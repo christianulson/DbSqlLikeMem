@@ -1,12 +1,3 @@
-using DbSqlLikeMem.Interfaces;
-using System.Diagnostics;
-using System.IO.Compression;
-using DbSqlLikeMem.Models;
-using System.Security.Cryptography;
-using System.Net;
-using System.Text;
-using System.Text.Json;
-
 namespace DbSqlLikeMem;
 
 /// <summary>
@@ -25,21 +16,6 @@ internal abstract class AstQueryExecutorBase(
     private static readonly Regex _sqlCalcFoundRowsRegex = new(
         @"\bSQL_CALC_FOUND_ROWS\b",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
-    private static readonly Regex _cacheKeyWherePredicateRegex = new(
-        @"\bWHERE\s+(?<predicate>.+?)(?=(?:\bGROUP\s+BY\b|\bHAVING\b|\bORDER\s+BY\b|\bLIMIT\b|\bOFFSET\b|\bUNION\b|$))",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline | RegexOptions.Compiled);
-    private static readonly Regex _cacheKeyHavingPredicateRegex = new(
-        @"\bHAVING\s+(?<predicate>.+?)(?=(?:\bORDER\s+BY\b|\bLIMIT\b|\bOFFSET\b|\bUNION\b|$))",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline | RegexOptions.Compiled);
-    private static readonly Regex _qualifiedSqlIdentifierRegex = new(
-        @"(?<![A-Za-z0-9_$])([A-Za-z_][A-Za-z0-9_$]*\.[A-Za-z_][A-Za-z0-9_$]*)(?![A-Za-z0-9_$])",
-        RegexOptions.CultureInvariant | RegexOptions.Compiled);
-    private static readonly Regex _subqueryAliasDeclarationRegex = new(
-        @"\b(?:FROM|JOIN|APPLY)\s+(?:[A-Z_][A-Z0-9_$]*(?:\.[A-Z_][A-Z0-9_$]*)*)\s+(?:AS\s+)?([A-Z_][A-Z0-9_$]*)\b",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
-    private static readonly Regex _simpleAliasTokenRegex = new(
-        @"^[A-Z_][A-Z0-9_$]*$",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     private static readonly Regex _dateModifierRegex = new(
         @"^(?<amount>[+-]?\d+)\s*(?<unit>\w+)s?$",
         RegexOptions.CultureInvariant | RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -57,10 +33,24 @@ internal abstract class AstQueryExecutorBase(
     private readonly object _dialect = dialect ?? throw new ArgumentNullException(nameof(dialect));
     private readonly AstSubqueryEvaluationCache _subqueryEvaluationCache = new();
     private readonly Stack<IReadOnlyDictionary<string, object?>> _localParameterScopes = new();
+    private AstQueryJoinService? _joinService;
+    private AstQuerySourceResolver? _sourceResolver;
     private ISqlDialect? Dialect
         => _cnn.UseAutoSqlDialect
             ? _cnn.ExecutionDialect
             : _dialect as ISqlDialect;
+    private AstQueryJoinService JoinService
+        => _joinService ??= new AstQueryJoinService(
+            resolveSource: ResolveSource,
+            buildMySqlIndexHintPlan: BuildMySqlIndexHintPlan,
+            evalJoinPredicate: (expr, row, ctes) => Eval(expr, row, group: null, ctes).ToBool());
+    private AstQuerySourceResolver SourceResolver
+        => _sourceResolver ??= new AstQuerySourceResolver(
+            _cnn,
+            () => Dialect,
+            evalExpression: Eval,
+            executeSelect: (select, ctes, outerRow) => ExecuteSelect(select, ctes, outerRow),
+            executeUnion: ExecuteUnion);
 
 
     private static readonly HashSet<string> _aggFns = new(StringComparer.OrdinalIgnoreCase)
@@ -76,11 +66,6 @@ internal abstract class AstQueryExecutorBase(
         "JSON_OBJECT_AGG","JSON_OBJECT_AGG_STRICT","JSON_OBJECT_AGG_UNIQUE","JSON_OBJECT_AGG_UNIQUE_STRICT",
         "JSONB_OBJECT_AGG","JSONB_OBJECT_AGG_STRICT","JSONB_OBJECT_AGG_UNIQUE","JSONB_OBJECT_AGG_UNIQUE_STRICT"
     };
-    private static readonly HashSet<string> _sqlAliasReservedTokens = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "SELECT","FROM","JOIN","INNER","LEFT","RIGHT","FULL","CROSS","OUTER","APPLY","ON","WHERE","GROUP","BY","ORDER","HAVING","LIMIT","OFFSET","UNION","ALL","AS","USING","WHEN","THEN","ELSE","END"
-    };
-
     // Dialect-aware expression parsing without hard dependency on a specific dialect type.
     // Resolution is delegated to a shared resolver so this base stays focused on query execution.
     private SqlExpr ParseExpr(string raw)
@@ -1906,686 +1891,16 @@ internal abstract class AstQueryExecutorBase(
         IDictionary<string, Source> ctes,
         bool hasOrderBy,
         bool hasGroupBy)
-    {
-        // FULL is not MySQL; accept as INNER for test/mock purposes
-        var jt = //join.Type == SqlJoinType.Full ? SqlJoinType.Inner : 
-            join.Type;
-
-        if (jt is SqlJoinType.CrossApply or SqlJoinType.OuterApply)
-        {
-            var isOuterApply = jt == SqlJoinType.OuterApply;
-            foreach (var leftRow in leftRows)
-            {
-                foreach (var applied in ApplyApplyJoin(join, ctes, hasOrderBy, hasGroupBy, leftRow, isOuterApply))
-                    yield return applied;
-            }
-
-            yield break;
-        }
-
-        if (join.Table.IsLateral)
-        {
-            foreach (var leftRow in leftRows)
-            {
-                foreach (var lateralRow in ApplyLateralJoin(join, ctes, leftRow, isLeft: jt == SqlJoinType.Left))
-                    yield return lateralRow;
-            }
-
-            yield break;
-        }
-
-        var rightSrc = ResolveSource(join.Table, ctes);
-
-        if (rightSrc.Physical is not null)
-        {
-            var hintPlan = BuildMySqlIndexHintPlan(join.Table.MySqlIndexHints, rightSrc.Physical, hasOrderBy, hasGroupBy);
-            if (hintPlan?.MissingForcedIndexes.Count > 0)
-                throw new InvalidOperationException($"MySQL FORCE INDEX referencia índice inexistente: {string.Join(", ", hintPlan.MissingForcedIndexes)}.");
-        }
-
-        if (jt == SqlJoinType.Cross)
-        {
-            foreach (var l in leftRows)
-                foreach (var rr in rightSrc.Rows())
-                {
-                    var merged = l.CloneRow();
-                    merged.AddSource(rightSrc);
-                    merged.AddFields(rr);
-                    yield return merged;
-                }
-            yield break;
-        }
-
-        if (jt == SqlJoinType.Right)
-        {
-            // Implement RIGHT JOIN by swapping and treating as LEFT
-            var swapped = new SqlJoin(SqlJoinType.Left, join.Table, join.On);
-            foreach (var r in ApplyJoinRight(leftRows, swapped, rightSrc, ctes))
-                yield return r;
-            yield break;
-        }
-
-        bool isLeft = jt == SqlJoinType.Left;
-
-        foreach (var l in leftRows)
-            foreach (var li in ApplyLeftJoin(join, ctes, rightSrc, isLeft, l))
-                yield return li;
-    }
-
-    private IEnumerable<EvalRow> ApplyApplyJoin(
-        SqlJoin join,
-        IDictionary<string, Source> ctes,
-        bool hasOrderBy,
-        bool hasGroupBy,
-        EvalRow leftRow,
-        bool isOuterApply)
-    {
-        var rightSrc = ResolveSource(join.Table, ctes, leftRow);
-
-        if (rightSrc.Physical is not null)
-        {
-            var hintPlan = BuildMySqlIndexHintPlan(join.Table.MySqlIndexHints, rightSrc.Physical, hasOrderBy, hasGroupBy);
-            if (hintPlan?.MissingForcedIndexes.Count > 0)
-                throw new InvalidOperationException($"MySQL FORCE INDEX referencia índice inexistente: {string.Join(", ", hintPlan.MissingForcedIndexes)}.");
-        }
-
-        var matched = false;
-        foreach (var rr in rightSrc.Rows())
-        {
-            matched = true;
-            var merged = leftRow.CloneRow();
-            merged.AddSource(rightSrc);
-            merged.AddFields(rr);
-            yield return merged;
-        }
-
-        if (!isOuterApply || matched)
-            yield break;
-
-        var mergedOuter = leftRow.CloneRow();
-        mergedOuter.AddSource(rightSrc);
-        foreach (var c in rightSrc.ColumnNames)
-            mergedOuter.Fields[$"{rightSrc.Alias}.{c}"] = null;
-        yield return mergedOuter;
-    }
-
-    private IEnumerable<EvalRow> ApplyLeftJoin(
-        SqlJoin join,
-        IDictionary<string, Source> ctes,
-        Source rightSrc,
-        bool isLeft, EvalRow l)
-    {
-        bool matched = false;
-
-        foreach (var rr in rightSrc.Rows())
-        {
-            var merged = l.CloneRow();
-            merged.AddSource(rightSrc);
-            merged.AddFields(rr);
-
-            if (!Eval(join.On, merged, group: null, ctes).ToBool())
-                continue;
-            matched = true;
-            yield return merged;
-        }
-
-        if (isLeft && !matched)
-        {
-            var merged = l.CloneRow();
-            merged.AddSource(rightSrc);
-            // add nulls for right columns
-            foreach (var c in rightSrc.ColumnNames)
-                merged.Fields[$"{rightSrc.Alias}.{c}"] = null;
-            yield return merged;
-        }
-    }
-
-    private IEnumerable<EvalRow> ApplyLateralJoin(
-        SqlJoin join,
-        IDictionary<string, Source> ctes,
-        EvalRow leftRow,
-        bool isLeft)
-    {
-        var rightSrc = ResolveSource(join.Table, ctes, leftRow);
-        var matched = false;
-
-        foreach (var rr in rightSrc.Rows())
-        {
-            var merged = leftRow.CloneRow();
-            merged.AddSource(rightSrc);
-            merged.AddFields(rr);
-
-            if (!Eval(join.On, merged, group: null, ctes).ToBool())
-                continue;
-
-            matched = true;
-            yield return merged;
-        }
-
-        if (isLeft && !matched)
-        {
-            var merged = leftRow.CloneRow();
-            merged.AddSource(rightSrc);
-            foreach (var c in rightSrc.ColumnNames)
-                merged.Fields[$"{rightSrc.Alias}.{c}"] = null;
-            yield return merged;
-        }
-    }
-
-    private IEnumerable<EvalRow> ApplyJoinRight(
-        IEnumerable<EvalRow> leftRows,
-        SqlJoin leftJoin,
-        Source rightSrc,
-        IDictionary<string, Source> ctes)
-    {
-        // RIGHT JOIN: produce all right rows, optionally matched with left
-        var leftList = leftRows.ToList();
-
-        foreach (var rr in rightSrc.Rows())
-        {
-            bool matched = false;
-            foreach (var l in leftList)
-            {
-                var merged = l.CloneRow();
-                merged.AddSource(rightSrc);
-                merged.AddFields(rr);
-
-                if (Eval(leftJoin.On, merged, group: null, ctes).ToBool())
-                {
-                    matched = true;
-                    yield return merged;
-                }
-            }
-
-            if (matched)
-                continue;
-
-            // left side nulls (best effort: keep existing left sources, but blank their fields)
-            var fields = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-            var sources = new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase)
-            {
-                // no left sources/fields
-                [rightSrc.Alias] = rightSrc
-            };
-
-            var row = new EvalRow(fields, sources);
-            row.AddFields(rr);
-            yield return row;
-        }
-    }
+        => JoinService.ApplyJoin(leftRows, join, ctes, hasOrderBy, hasGroupBy);
 
     private Source ResolveSource(
         SqlTableSource ts,
         IDictionary<string, Source> ctes,
         EvalRow? outerRow = null)
     {
-        var alias = ts.Alias ?? ts.TableFunction?.Name ?? ts.Name ?? ts.DbName ?? "t";
-
-        Source source;
-
-        if (ts.DerivedUnion is not null)
-        {
-            var res = ExecuteUnion(
-                [.. ts.DerivedUnion.Parts
-                    .Select(_=>_)
-                    .Where(_=>_!= null)
-                    .Select(_=>_!)],
-                ts.DerivedUnion.AllFlags,
-                ts.DerivedUnion.OrderBy,
-                ts.DerivedUnion.RowLimit,
-                ts.DerivedSql ?? "(derived)"
-            );
-            source = Source.FromResult(alias, res);
-            return ApplyTableTransformsIfNeeded(source, ts.Pivot, ts.Unpivot, ctes);
-        }
-
-        if (ts.Derived is not null)
-        {
-            var res = ExecuteSelect(ts.Derived, ctes, outerRow);
-            source = Source.FromResult(alias, res);
-            return ApplyTableTransformsIfNeeded(source, ts.Pivot, ts.Unpivot, ctes);
-        }
-
-        if (ts.TableFunction is not null)
-        {
-            source = ResolveTableFunctionSource(ts.TableFunction, alias, ts.OpenJsonWithClause, ctes, outerRow);
-            return ApplyTableTransformsIfNeeded(source, ts.Pivot, ts.Unpivot, ctes);
-        }
-
-        if (!string.IsNullOrWhiteSpace(ts.Name)
-            && ctes.TryGetValue(ts.Name!, out var cteSrc))
-        {
-            source = cteSrc.WithAlias(alias);
-            return ApplyTableTransformsIfNeeded(source, ts.Pivot, ts.Unpivot, ctes);
-        }
-
-        if (string.IsNullOrWhiteSpace(ts.Name))
-            throw new InvalidOperationException("FROM sem nome de tabela/CTE/derived não suportado.");
-
-        var tableName = ts.Name!.NormalizeName();
-
-        if (_cnn.TryGetView(tableName, out var viewSelect, ts.DbName)
-            && viewSelect != null)
-        {
-            var viewRes = ExecuteSelect(viewSelect, ctes, outerRow: null);
-            source = Source.FromResult(alias, viewRes);
-            return ApplyTableTransformsIfNeeded(source, ts.Pivot, ts.Unpivot, ctes);
-        }
-
-        if (tableName.Equals("DUAL", StringComparison.OrdinalIgnoreCase))
-        {
-            var one = new TableResultMock
-            {
-                ([])
-            };
-            source = Source.FromResult("DUAL", alias, one);
-            return ApplyTableTransformsIfNeeded(source, ts.Pivot, ts.Unpivot, ctes);
-        }
-
-        _cnn.Metrics.IncrementTableHint(tableName);
-        var tb = _cnn.GetTable(tableName, ts.DbName);
-        source = Source.FromPhysical(tableName, alias, tb, ts.MySqlIndexHints);
+        var source = SourceResolver.ResolveBaseSource(ts, ctes, outerRow);
         return ApplyTableTransformsIfNeeded(source, ts.Pivot, ts.Unpivot, ctes);
     }
-
-    private Source ResolveTableFunctionSource(
-        FunctionCallExpr function,
-        string alias,
-        SqlOpenJsonWithClause? openJsonWithClause,
-        IDictionary<string, Source> ctes,
-        EvalRow? outerRow)
-    {
-        TableResultMock result;
-        if (function.Name.Equals("OPENJSON", StringComparison.OrdinalIgnoreCase))
-        {
-            result = ExecuteOpenJsonTableFunction(function, alias, openJsonWithClause, ctes, outerRow);
-            return Source.FromResult(function.Name, alias, result);
-        }
-
-        if (function.Name.Equals("STRING_SPLIT", StringComparison.OrdinalIgnoreCase))
-        {
-            result = ExecuteStringSplitTableFunction(function, alias, ctes, outerRow);
-            return Source.FromResult(function.Name, alias, result);
-        }
-
-        throw new NotSupportedException($"Table-valued function '{function.Name}' not supported yet in the mock.");
-    }
-
-    private TableResultMock ExecuteOpenJsonTableFunction(
-        FunctionCallExpr function,
-        string alias,
-        SqlOpenJsonWithClause? openJsonWithClause,
-        IDictionary<string, Source> ctes,
-        EvalRow? outerRow)
-    {
-        var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para OPENJSON.");
-        if (!dialect.SupportsOpenJsonFunction)
-            throw SqlUnsupported.ForDialect(dialect, "OPENJSON");
-
-        if (function.Args.Count is < 1 or > 2)
-            throw new NotSupportedException("OPENJSON table source currently supports one or two arguments in the mock.");
-
-        var evalRow = CreateFunctionEvaluationRow(outerRow);
-        var json = Eval(function.Args[0], evalRow, group: null, ctes);
-        var result = openJsonWithClause is null
-            ? CreateOpenJsonTableResult(alias)
-            : CreateOpenJsonWithSchemaTableResult(alias, openJsonWithClause);
-
-        if (IsNullish(json))
-            return result;
-
-        var path = function.Args.Count == 2
-            ? Eval(function.Args[1], evalRow, group: null, ctes)?.ToString()
-            : null;
-
-        System.Text.Json.JsonElement target;
-        try
-        {
-            if (string.IsNullOrWhiteSpace(path))
-            {
-                using var document = System.Text.Json.JsonDocument.Parse(json!.ToString() ?? string.Empty);
-                target = document.RootElement.Clone();
-            }
-            else
-            {
-                var lookup = QueryJsonFunctionHelper.LookupJsonPath(json!, path!);
-                if (!lookup.Success)
-                {
-                    if (lookup.Failure == QueryJsonFunctionHelper.JsonPathLookupFailure.InvalidPath)
-                        throw new InvalidOperationException($"OPENJSON path '{path}' is invalid in the mock.");
-
-                    if (lookup.Mode == QueryJsonFunctionHelper.JsonPathMode.Strict)
-                        throw new InvalidOperationException($"OPENJSON strict path '{path}' was not found in the JSON payload.");
-
-                    return result;
-                }
-
-                target = lookup.Value;
-            }
-        }
-        catch (System.Text.Json.JsonException ex)
-        {
-            throw new InvalidOperationException("OPENJSON recebeu JSON inválido.", ex);
-        }
-
-        if (openJsonWithClause is not null)
-        {
-            foreach (var rowContext in EnumerateOpenJsonExplicitSchemaContexts(target))
-                result.Add(ProjectOpenJsonExplicitSchemaRow(openJsonWithClause, rowContext));
-
-            return result;
-        }
-
-        if (target.ValueKind == System.Text.Json.JsonValueKind.Array)
-        {
-            var index = 0;
-            foreach (var item in target.EnumerateArray())
-            {
-                AddOpenJsonRow(result, index.ToString(CultureInfo.InvariantCulture), item);
-                index++;
-            }
-
-            return result;
-        }
-
-        if (target.ValueKind == System.Text.Json.JsonValueKind.Object)
-        {
-            foreach (var property in target.EnumerateObject())
-                AddOpenJsonRow(result, property.Name, property.Value);
-
-            return result;
-        }
-
-        AddOpenJsonRow(result, "0", target);
-        return result;
-    }
-
-    private TableResultMock ExecuteStringSplitTableFunction(
-        FunctionCallExpr function,
-        string alias,
-        IDictionary<string, Source> ctes,
-        EvalRow? outerRow)
-    {
-        var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para STRING_SPLIT.");
-        if (!dialect.SupportsStringSplitFunction)
-            throw SqlUnsupported.ForDialect(dialect, "STRING_SPLIT");
-
-        if (function.Args.Count is < 2 or > 3)
-            throw new NotSupportedException("STRING_SPLIT table source currently supports two or three arguments in the mock.");
-
-        var evalRow = CreateFunctionEvaluationRow(outerRow);
-        var input = Eval(function.Args[0], evalRow, group: null, ctes);
-        var separator = Eval(function.Args[1], evalRow, group: null, ctes)?.ToString() ?? string.Empty;
-        var includeOrdinal = false;
-        if (function.Args.Count == 3)
-        {
-            if (!dialect.SupportsStringSplitOrdinalArgument)
-                throw SqlUnsupported.ForDialect(dialect, "STRING_SPLIT enable_ordinal");
-
-            includeOrdinal = EvaluateStringSplitOrdinalFlag(
-                Eval(function.Args[2], evalRow, group: null, ctes));
-        }
-
-        var result = CreateStringSplitTableResult(alias, includeOrdinal);
-
-        if (IsNullish(input))
-            return result;
-
-        if (separator.Length != 1)
-            throw new InvalidOperationException("STRING_SPLIT separator must be a single character in the mock.");
-
-        var pieces = (input?.ToString() ?? string.Empty)
-            .Split([separator], StringSplitOptions.None);
-
-        for (var index = 0; index < pieces.Length; index++)
-        {
-            var row = new Dictionary<int, object?>
-            {
-                [0] = pieces[index]
-            };
-
-            if (includeOrdinal)
-                row[1] = (long)index + 1L;
-
-            result.Add(row);
-        }
-
-        return result;
-    }
-
-    private static TableResultMock CreateOpenJsonTableResult(string tableAlias)
-        => new()
-        {
-            Columns =
-            [
-                new TableResultColMock(tableAlias, "key", "key", 0, DbType.String, false),
-                new TableResultColMock(tableAlias, "value", "value", 1, DbType.String, true),
-                new TableResultColMock(tableAlias, "type", "type", 2, DbType.Int32, false)
-            ]
-        };
-
-    private static TableResultMock CreateOpenJsonWithSchemaTableResult(
-        string tableAlias,
-        SqlOpenJsonWithClause withClause)
-        => new()
-        {
-            Columns = withClause.Columns
-                .Select((column, index) => new TableResultColMock(
-                    tableAlias,
-                    column.Name,
-                    column.Name,
-                    index,
-                    column.DbType,
-                    true,
-                    column.AsJson))
-                .ToList()
-        };
-
-    private static TableResultMock CreateStringSplitTableResult(string tableAlias, bool includeOrdinal)
-    {
-        var columns = new List<TableResultColMock>
-        {
-            new(tableAlias, "value", "value", 0, DbType.String, true)
-        };
-
-        if (includeOrdinal)
-            columns.Add(new TableResultColMock(tableAlias, "ordinal", "ordinal", 1, DbType.Int64, false));
-
-        return new TableResultMock
-        {
-            Columns = columns
-        };
-    }
-
-    private static bool EvaluateStringSplitOrdinalFlag(object? rawValue)
-    {
-        if (rawValue is null or DBNull)
-            throw new InvalidOperationException("STRING_SPLIT enable_ordinal must be 0 or 1 in the mock.");
-
-        if (rawValue is bool boolean)
-            return boolean;
-
-        if (rawValue is byte or sbyte or short or ushort or int or uint or long or ulong)
-        {
-            var numeric = Convert.ToInt64(rawValue, CultureInfo.InvariantCulture);
-            return numeric switch
-            {
-                0 => false,
-                1 => true,
-                _ => throw new InvalidOperationException("STRING_SPLIT enable_ordinal must be 0 or 1 in the mock.")
-            };
-        }
-
-        if (rawValue is decimal or double or float)
-        {
-            var numeric = Convert.ToDecimal(rawValue, CultureInfo.InvariantCulture);
-            return numeric switch
-            {
-                0m => false,
-                1m => true,
-                _ => throw new InvalidOperationException("STRING_SPLIT enable_ordinal must be 0 or 1 in the mock.")
-            };
-        }
-
-        var text = rawValue.ToString()?.Trim();
-        if (string.Equals(text, "0", StringComparison.Ordinal))
-            return false;
-
-        if (string.Equals(text, "1", StringComparison.Ordinal))
-            return true;
-
-        if (decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsedNumeric))
-        {
-            return parsedNumeric switch
-            {
-                0m => false,
-                1m => true,
-                _ => throw new InvalidOperationException("STRING_SPLIT enable_ordinal must be 0 or 1 in the mock.")
-            };
-        }
-
-        throw new InvalidOperationException("STRING_SPLIT enable_ordinal must be 0 or 1 in the mock.");
-    }
-
-    private static void AddOpenJsonRow(
-        TableResultMock result,
-        string key,
-        System.Text.Json.JsonElement value)
-    {
-        result.Add(new Dictionary<int, object?>
-        {
-            [0] = key,
-            [1] = ConvertOpenJsonValue(value),
-            [2] = GetOpenJsonType(value)
-        });
-    }
-
-    private static object? ConvertOpenJsonValue(System.Text.Json.JsonElement value)
-        => value.ValueKind switch
-        {
-            System.Text.Json.JsonValueKind.Null => null,
-            System.Text.Json.JsonValueKind.String => value.GetString(),
-            System.Text.Json.JsonValueKind.Object or System.Text.Json.JsonValueKind.Array => value.GetRawText(),
-            _ => value.ToString()
-        };
-
-    private static int GetOpenJsonType(System.Text.Json.JsonElement value)
-        => value.ValueKind switch
-        {
-            System.Text.Json.JsonValueKind.Null => 0,
-            System.Text.Json.JsonValueKind.String => 1,
-            System.Text.Json.JsonValueKind.Number => 2,
-            System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False => 3,
-            System.Text.Json.JsonValueKind.Array => 4,
-            System.Text.Json.JsonValueKind.Object => 5,
-            _ => 0
-        };
-
-    private static IEnumerable<System.Text.Json.JsonElement> EnumerateOpenJsonExplicitSchemaContexts(System.Text.Json.JsonElement target)
-    {
-        if (target.ValueKind == System.Text.Json.JsonValueKind.Array)
-        {
-            foreach (var item in target.EnumerateArray())
-                yield return item;
-
-            yield break;
-        }
-
-        yield return target;
-    }
-
-    private static Dictionary<int, object?> ProjectOpenJsonExplicitSchemaRow(
-        SqlOpenJsonWithClause withClause,
-        System.Text.Json.JsonElement rowContext)
-    {
-        var row = new Dictionary<int, object?>();
-        for (var i = 0; i < withClause.Columns.Count; i++)
-            row[i] = ResolveOpenJsonExplicitColumnValue(rowContext, withClause.Columns[i]);
-
-        return row;
-    }
-
-    private static object? ResolveOpenJsonExplicitColumnValue(
-        System.Text.Json.JsonElement rowContext,
-        SqlOpenJsonWithColumn column)
-    {
-        var resolution = ResolveOpenJsonExplicitColumnElement(rowContext, column);
-        if (!resolution.Success)
-        {
-            if (resolution.InvalidPath)
-                throw new InvalidOperationException($"OPENJSON WITH column '{column.Name}' uses an invalid JSON path '{resolution.Path}'.");
-
-            if (resolution.IsStrict)
-                throw new InvalidOperationException($"OPENJSON WITH strict path '{resolution.Path}' for column '{column.Name}' was not found in the JSON payload.");
-
-            return null;
-        }
-
-        var valueElement = resolution.Value;
-
-        if (column.AsJson)
-        {
-            if (valueElement.ValueKind is System.Text.Json.JsonValueKind.Object or System.Text.Json.JsonValueKind.Array)
-                return valueElement.GetRawText();
-
-            if (resolution.IsStrict)
-                throw new InvalidOperationException($"OPENJSON WITH column '{column.Name}' requires an object or array at strict path '{resolution.Path}' when AS JSON is used.");
-
-            return null;
-        }
-
-        if (valueElement.ValueKind is System.Text.Json.JsonValueKind.Object or System.Text.Json.JsonValueKind.Array)
-        {
-            if (resolution.IsStrict)
-                throw new InvalidOperationException($"OPENJSON WITH column '{column.Name}' requires a scalar value at strict path '{resolution.Path}'.");
-
-            return null;
-        }
-
-        var scalarText = ConvertOpenJsonExplicitScalarToText(valueElement);
-        return scalarText is null ? null : column.DbType.Parse(scalarText);
-    }
-
-    private static OpenJsonColumnResolution ResolveOpenJsonExplicitColumnElement(
-        System.Text.Json.JsonElement rowContext,
-        SqlOpenJsonWithColumn column)
-    {
-        if (!string.IsNullOrWhiteSpace(column.Path))
-        {
-            var lookup = QueryJsonFunctionHelper.LookupJsonPath(rowContext, column.Path!);
-            return new OpenJsonColumnResolution(
-                lookup.Success,
-                lookup.Mode == QueryJsonFunctionHelper.JsonPathMode.Strict,
-                lookup.Failure == QueryJsonFunctionHelper.JsonPathLookupFailure.InvalidPath,
-                column.Path,
-                lookup.Value);
-        }
-
-        if (rowContext.ValueKind == System.Text.Json.JsonValueKind.Object
-            && rowContext.TryGetProperty(column.Name, out var valueElement))
-        {
-            return new OpenJsonColumnResolution(true, false, false, null, valueElement);
-        }
-
-        return new OpenJsonColumnResolution(false, false, false, null, default);
-    }
-
-    private static string? ConvertOpenJsonExplicitScalarToText(System.Text.Json.JsonElement valueElement)
-        => valueElement.ValueKind switch
-        {
-            System.Text.Json.JsonValueKind.Null => null,
-            System.Text.Json.JsonValueKind.String => valueElement.GetString(),
-            System.Text.Json.JsonValueKind.True => "true",
-            System.Text.Json.JsonValueKind.False => "false",
-            _ => valueElement.ToString()
-        };
-
-    private readonly record struct OpenJsonColumnResolution(
-        bool Success,
-        bool IsStrict,
-        bool InvalidPath,
-        string? Path,
-        System.Text.Json.JsonElement Value);
 
     private readonly record struct AutoJsonProjection(
         int ColumnIndex,
@@ -2608,11 +1923,6 @@ internal abstract class AstQueryExecutorBase(
             return json;
         }
     }
-
-    private static EvalRow CreateFunctionEvaluationRow(EvalRow? outerRow)
-        => outerRow ?? new EvalRow(
-            new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase),
-            new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase));
 
     private Source ApplyTableTransformsIfNeeded(
         Source source,
@@ -5018,1237 +4328,7 @@ private void FillPercentRankOrCumeDist(
     /// PT: Monta uma chave de cache determinística para avaliação de subquery correlacionada usando tipo de operação, texto bruto da subquery e valores normalizados da linha externa.
     /// </summary>
     private static string BuildCorrelatedSubqueryCacheKey(string operation, string? subquerySql, EvalRow row)
-    {
-        var normalizedSubquerySql = BuildNormalizedCorrelatedSubquerySql(operation, subquerySql);
-        var sb = new StringBuilder();
-        AppendCorrelatedSubqueryCacheKeyPrefix(sb, operation, normalizedSubquerySql);
-        AppendCorrelatedSubqueryCacheKeyFields(sb, GetCorrelatedSubqueryCacheFields(subquerySql ?? string.Empty, row));
-
-        return sb.ToString();
-    }
-
-    private static string BuildNormalizedCorrelatedSubquerySql(string operation, string? subquerySql)
-    {
-        var normalizedSubquerySql = NormalizeSubquerySqlForCacheKey(subquerySql ?? string.Empty);
-        return NormalizeOperationSpecificSubquerySqlForCacheKey(operation, normalizedSubquerySql);
-    }
-
-    private static void AppendCorrelatedSubqueryCacheKeyPrefix(
-        StringBuilder sb,
-        string operation,
-        string normalizedSubquerySql)
-    {
-        sb.Append(operation);
-        sb.Append('\u001F');
-        sb.Append(normalizedSubquerySql);
-        sb.Append('\u001F');
-    }
-
-    private static void AppendCorrelatedSubqueryCacheKeyFields(
-        StringBuilder sb,
-        IReadOnlyList<KeyValuePair<string, object?>> cacheFields)
-    {
-        foreach (var kv in cacheFields)
-        {
-            sb.Append(kv.Key);
-            sb.Append('=');
-            sb.Append(NormalizeSubqueryCacheValue(kv.Value));
-            sb.Append('\u001E');
-        }
-    }
-
-    /// <summary>
-    /// EN: Applies operation-specific canonicalization rules for subquery SQL used in correlated cache keys.
-    /// PT: Aplica regras de canonização específicas por operação para SQL de subquery usado em chaves de cache correlacionado.
-    /// </summary>
-    private static string NormalizeOperationSpecificSubquerySqlForCacheKey(
-        string operation,
-        string normalizedSubquerySql)
-    {
-        if (string.IsNullOrWhiteSpace(normalizedSubquerySql))
-            return string.Empty;
-
-        if (string.Equals(operation, "EXISTS", StringComparison.OrdinalIgnoreCase))
-            return NormalizeExistsProjectionPayloadForCacheKey(normalizedSubquerySql);
-
-        if (string.Equals(operation, "IN", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(operation, "SCALAR", StringComparison.OrdinalIgnoreCase)
-            || operation.StartsWith("QANY_", StringComparison.OrdinalIgnoreCase)
-            || operation.StartsWith("QALL_", StringComparison.OrdinalIgnoreCase))
-            return NormalizeSelectProjectionAliasesForCacheKey(normalizedSubquerySql);
-
-        return normalizedSubquerySql;
-    }
-
-    /// <summary>
-    /// EN: Selects relevant outer-row fields for correlated subquery cache keys, prioritizing identifiers explicitly referenced in subquery SQL.
-    /// PT: Seleciona campos relevantes da linha externa para chaves de cache de subquery correlacionada, priorizando identificadores explicitamente referenciados no SQL da subquery.
-    /// </summary>
-    private static IReadOnlyList<KeyValuePair<string, object?>> GetCorrelatedSubqueryCacheFields(
-        string subquerySql,
-        EvalRow row)
-    {
-        var allFields = GetOrderedCorrelatedSubqueryCacheFields(row);
-
-        if (allFields.Count == 0 || string.IsNullOrWhiteSpace(subquerySql))
-            return allFields;
-
-        var normalizedSql = NormalizeSqlIdentifierSpacing(subquerySql);
-        var qualifiedMatches = GetQualifiedCorrelatedSubqueryCacheFieldMatches(allFields, normalizedSql);
-
-        if (qualifiedMatches.Count > 0)
-            return qualifiedMatches;
-
-        var unqualifiedMatches = GetUnqualifiedCorrelatedSubqueryCacheFieldMatches(allFields, normalizedSql);
-
-        if (unqualifiedMatches.Count > 0)
-            return unqualifiedMatches;
-
-        // If we cannot match any outer identifier but SQL still appears to reference outer qualifiers,
-        // keep conservative behavior and include all fields to avoid stale cross-row reuse.
-        return ContainsPotentialOuterQualifierReference(normalizedSql, allFields)
-            ? allFields
-            : [];
-    }
-
-    private static List<KeyValuePair<string, object?>> GetOrderedCorrelatedSubqueryCacheFields(EvalRow row)
-        => row.Fields
-            .OrderBy(static kv => kv.Key, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-    private static List<KeyValuePair<string, object?>> GetQualifiedCorrelatedSubqueryCacheFieldMatches(
-        IReadOnlyList<KeyValuePair<string, object?>> allFields,
-        string normalizedSql)
-    {
-        var qualifiedIdentifiers = ExtractQualifiedSqlIdentifiers(normalizedSql);
-        return allFields
-            .Where(static kv => kv.Key.IndexOf('.') >= 0)
-            .Where(kv => qualifiedIdentifiers.Contains(kv.Key))
-            .ToList();
-    }
-
-    private static List<KeyValuePair<string, object?>> GetUnqualifiedCorrelatedSubqueryCacheFieldMatches(
-        IReadOnlyList<KeyValuePair<string, object?>> allFields,
-        string normalizedSql)
-        => allFields
-            .Where(static kv => kv.Key.IndexOf('.') < 0)
-            .Where(kv => ContainsSqlIdentifierToken(normalizedSql, kv.Key))
-            .ToList();
-
-    /// <summary>
-    /// EN: Checks whether a candidate identifier token appears in SQL text using lightweight identifier-boundary guards.
-    /// PT: Verifica se um token identificador candidato aparece no texto SQL usando guardas leves de fronteira de identificador.
-    /// </summary>
-    private static bool ContainsSqlIdentifierToken(string sql, string token)
-    {
-        if (string.IsNullOrWhiteSpace(sql) || string.IsNullOrWhiteSpace(token))
-            return false;
-
-        var index = 0;
-        while (true)
-        {
-            index = sql.IndexOf(token, index, StringComparison.OrdinalIgnoreCase);
-            if (index < 0)
-                return false;
-
-            var leftBoundaryOk = index == 0 || !IsSqlIdentifierChar(sql[index - 1]);
-            var right = index + token.Length;
-            var rightBoundaryOk = right >= sql.Length || !IsSqlIdentifierChar(sql[right]);
-
-            if (leftBoundaryOk && rightBoundaryOk)
-                return true;
-
-            index = right;
-        }
-    }
-
-    /// <summary>
-    /// EN: Determines whether a character can participate in SQL identifiers when evaluating token boundaries.
-    /// PT: Determina se um caractere pode participar de identificadores SQL ao avaliar fronteiras de token.
-    /// </summary>
-    private static bool IsSqlIdentifierChar(char c)
-        => char.IsLetterOrDigit(c) || c is '_' or '$';
-
-    /// <summary>
-    /// EN: Extracts qualified identifier tokens (alias.column) from SQL text using lightweight lexical boundaries.
-    /// PT: Extrai tokens de identificador qualificado (alias.coluna) do texto SQL usando fronteiras léxicas leves.
-    /// </summary>
-    private static HashSet<string> ExtractQualifiedSqlIdentifiers(string sql)
-    {
-        var identifiers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        if (string.IsNullOrWhiteSpace(sql))
-            return identifiers;
-
-        var matches = _qualifiedSqlIdentifierRegex.Matches(sql);
-
-        foreach (Match match in matches)
-        {
-            if (match.Success && match.Groups.Count > 1)
-                identifiers.Add(match.Groups[1].Value);
-        }
-
-        return identifiers;
-    }
-
-    /// <summary>
-    /// EN: Detects whether SQL text appears to reference any qualifier from outer-row fields, even when full token matching failed.
-    /// PT: Detecta se o texto SQL parece referenciar algum qualificador dos campos da linha externa, mesmo quando o matching completo de token falha.
-    /// </summary>
-    private static bool ContainsPotentialOuterQualifierReference(
-        string sql,
-        IReadOnlyList<KeyValuePair<string, object?>> fields)
-    {
-        if (string.IsNullOrWhiteSpace(sql) || fields.Count == 0)
-            return false;
-
-        var qualifiers = fields
-            .Select(static kv =>
-            {
-                var dot = kv.Key.IndexOf('.');
-                return dot > 0 ? kv.Key[..dot] : null;
-            })
-            .Where(static q => !string.IsNullOrWhiteSpace(q))
-            .Distinct(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var qualifier in qualifiers)
-        {
-            if (Regex.IsMatch(
-                    sql,
-                    $@"(?<![A-Za-z0-9_$]){Regex.Escape(qualifier!)}\.",
-                    RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
-                return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// EN: Normalizes SQL text by collapsing optional whitespace around dot separators in qualified identifiers.
-    /// PT: Normaliza texto SQL colapsando espaços opcionais ao redor de separadores com ponto em identificadores qualificados.
-    /// </summary>
-    private static string NormalizeSqlIdentifierSpacing(string sql)
-        => string.IsNullOrWhiteSpace(sql)
-            ? string.Empty
-            : Regex.Replace(sql, @"\s*\.\s*", ".", RegexOptions.CultureInvariant);
-
-    /// <summary>
-    /// EN: Canonicalizes subquery SQL text for cache-key usage by normalizing identifier spacing, keyword casing and redundant whitespace while preserving string literals.
-    /// PT: Canoniza o texto SQL da subquery para uso na chave de cache normalizando espaçamento de identificadores, casing de palavras-chave e whitespace redundante preservando literais de texto.
-    /// </summary>
-    private static string NormalizeSubquerySqlForCacheKey(string sql)
-    {
-        if (string.IsNullOrWhiteSpace(sql))
-            return string.Empty;
-
-        var normalized = NormalizeSqlIdentifierSpacing(sql);
-        var sb = new StringBuilder(normalized.Length);
-        var previousWasSpace = false;
-
-        for (var i = 0; i < normalized.Length; i++)
-        {
-            if (TryAppendProtectedSqlSegment(normalized, ref i, sb))
-            {
-                previousWasSpace = false;
-                continue;
-            }
-
-            var ch = normalized[i];
-
-            if (char.IsWhiteSpace(ch))
-            {
-                if (!previousWasSpace)
-                {
-                    sb.Append(' ');
-                    previousWasSpace = true;
-                }
-
-                continue;
-            }
-
-            sb.Append(char.ToUpperInvariant(ch));
-            previousWasSpace = false;
-        }
-
-        var canonicalSql = sb.ToString().Trim();
-        canonicalSql = NormalizeRelationalOperatorSpacingForCacheKey(canonicalSql);
-        canonicalSql = NormalizeSubqueryLocalAliasesForCacheKey(canonicalSql);
-        return NormalizeCommutativeAndClausesForCacheKey(canonicalSql);
-    }
-
-    /// <summary>
-    /// EN: Appends a SQL quoted segment handling escaped quote doubles and returns the consumed end index.
-    /// PT: Anexa um segmento SQL entre aspas tratando escape por duplicidade de aspas e retorna o índice final consumido.
-    /// </summary>
-    private static int AppendQuotedSegment(
-        string sql,
-        int startIndex,
-        char quoteChar,
-        StringBuilder sb)
-    {
-        sb.Append(quoteChar);
-
-        var i = startIndex + 1;
-        while (i < sql.Length)
-        {
-            var ch = sql[i];
-            sb.Append(sql[i]);
-
-            if (ch == quoteChar)
-            {
-                var hasEscapedQuote = i + 1 < sql.Length && sql[i + 1] == quoteChar;
-                if (hasEscapedQuote)
-                {
-                    sb.Append(sql[i + 1]);
-                    i += 2;
-                    continue;
-                }
-
-                return i;
-            }
-
-            i++;
-        }
-
-        return sql.Length - 1;
-    }
-
-    /// <summary>
-    /// EN: Appends a SQL bracket-identifier segment and returns the consumed end index.
-    /// PT: Anexa um segmento SQL de identificador entre colchetes e retorna o índice final consumido.
-    /// </summary>
-    private static int AppendBracketIdentifierSegment(
-        string sql,
-        int startIndex,
-        StringBuilder sb)
-    {
-        sb.Append('[');
-
-        var i = startIndex + 1;
-        while (i < sql.Length)
-        {
-            var ch = sql[i];
-            sb.Append(sql[i]);
-            if (ch == ']')
-                return i;
-            i++;
-        }
-
-        return sql.Length - 1;
-    }
-
-    private static bool TryAppendProtectedSqlSegment(
-        string sql,
-        ref int index,
-        StringBuilder sb)
-    {
-        if (index < 0 || index >= sql.Length)
-            return false;
-
-        var ch = sql[index];
-        if (ch is '\'' or '"' or '`')
-        {
-            index = AppendQuotedSegment(sql, index, ch, sb);
-            return true;
-        }
-
-        if (ch != '[')
-            return false;
-
-        index = AppendBracketIdentifierSegment(sql, index, sb);
-        return true;
-    }
-
-    /// <summary>
-    /// EN: Normalizes local aliases declared inside the subquery so semantically equivalent aliases generate the same cache-key SQL fragment.
-    /// PT: Normaliza aliases locais declarados dentro da subquery para que aliases semanticamente equivalentes gerem o mesmo fragmento SQL da chave de cache.
-    /// </summary>
-    private static string NormalizeSubqueryLocalAliasesForCacheKey(string sql)
-    {
-        if (string.IsNullOrWhiteSpace(sql))
-            return string.Empty;
-
-        var aliasMap = ExtractSubqueryAliasMap(sql);
-        if (aliasMap.Count == 0)
-            return sql;
-
-        return ApplySubqueryAliasMapForCacheKey(sql, aliasMap);
-    }
-
-    private static string ApplySubqueryAliasMapForCacheKey(
-        string sql,
-        IReadOnlyDictionary<string, string> aliasMap)
-    {
-        var normalized = sql;
-        foreach (var aliasPair in aliasMap)
-        {
-            normalized = ReplaceAliasDeclarationForCacheKey(normalized, aliasPair.Key, aliasPair.Value);
-            normalized = ReplaceAliasQualifierReferencesForCacheKey(normalized, aliasPair.Key, aliasPair.Value);
-        }
-
-        return normalized;
-    }
-
-    /// <summary>
-    /// EN: Extracts a deterministic map of local alias names declared in FROM/JOIN clauses to canonical placeholders.
-    /// PT: Extrai um mapa determinístico de nomes de aliases locais declarados em cláusulas FROM/JOIN para placeholders canônicos.
-    /// </summary>
-    private static IReadOnlyDictionary<string, string> ExtractSubqueryAliasMap(string sql)
-    {
-        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        if (string.IsNullOrWhiteSpace(sql))
-            return map;
-
-        var matches = _subqueryAliasDeclarationRegex.Matches(sql);
-
-        foreach (Match match in matches)
-        {
-            if (!match.Success || match.Groups.Count < 2)
-                continue;
-
-            var alias = match.Groups[1].Value;
-            if (string.IsNullOrWhiteSpace(alias) || _sqlAliasReservedTokens.Contains(alias))
-                continue;
-
-            if (!map.ContainsKey(alias))
-                map[alias] = $"T{map.Count + 1}";
-        }
-
-        return map;
-    }
-
-    /// <summary>
-    /// EN: Rewrites FROM/JOIN alias declarations to canonical placeholders for cache-key normalization.
-    /// PT: Reescreve declarações de alias em FROM/JOIN para placeholders canônicos na normalização da chave de cache.
-    /// </summary>
-    private static string ReplaceAliasDeclarationForCacheKey(
-        string sql,
-        string alias,
-        string replacementAlias)
-    {
-        if (string.IsNullOrWhiteSpace(sql) || string.IsNullOrWhiteSpace(alias))
-            return sql;
-
-        var pattern =
-            $@"(?<![A-Z0-9_$])(?<kw>FROM|JOIN|APPLY)\s+(?<table>[A-Z_][A-Z0-9_$]*(?:\.[A-Z_][A-Z0-9_$]*)*)\s+(?:AS\s+)?" +
-            $@"{Regex.Escape(alias)}(?![A-Z0-9_$])";
-
-        return Regex.Replace(
-            sql,
-            pattern,
-            m => $"{m.Groups["kw"].Value} {m.Groups["table"].Value} {replacementAlias}",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-    }
-
-    /// <summary>
-    /// EN: Rewrites alias-qualified references (alias.column) outside quoted segments to canonical placeholders for cache-key normalization.
-    /// PT: Reescreve referências qualificadas por alias (alias.coluna) fora de segmentos entre aspas para placeholders canônicos na normalização da chave de cache.
-    /// </summary>
-    private static string ReplaceAliasQualifierReferencesForCacheKey(
-        string sql,
-        string alias,
-        string replacementAlias)
-    {
-        if (string.IsNullOrWhiteSpace(sql) || string.IsNullOrWhiteSpace(alias))
-            return sql;
-
-        var sb = new StringBuilder(sql.Length);
-
-        for (var i = 0; i < sql.Length; i++)
-        {
-            if (TryAppendProtectedSqlSegment(sql, ref i, sb))
-                continue;
-
-            if (IsAliasQualifierReferenceAt(sql, i, alias))
-            {
-                sb.Append(replacementAlias);
-                sb.Append('.');
-                i += alias.Length;
-                continue;
-            }
-
-            sb.Append(sql[i]);
-        }
-
-        return sb.ToString();
-    }
-
-    /// <summary>
-    /// EN: Checks whether the SQL text at a given index starts with an alias qualifier reference (alias followed by dot) respecting identifier boundaries.
-    /// PT: Verifica se o texto SQL em um índice inicia uma referência de qualificador por alias (alias seguido de ponto) respeitando fronteiras de identificador.
-    /// </summary>
-    private static bool IsAliasQualifierReferenceAt(
-        string sql,
-        int startIndex,
-        string alias)
-    {
-        if (startIndex < 0 || startIndex >= sql.Length || string.IsNullOrWhiteSpace(alias))
-            return false;
-
-        if (startIndex + alias.Length >= sql.Length)
-            return false;
-
-        if (startIndex > 0 && IsSqlIdentifierChar(sql[startIndex - 1]))
-            return false;
-
-        for (var i = 0; i < alias.Length; i++)
-        {
-            if (char.ToUpperInvariant(sql[startIndex + i]) != char.ToUpperInvariant(alias[i]))
-                return false;
-        }
-
-        return sql[startIndex + alias.Length] == '.';
-    }
-
-    /// <summary>
-    /// EN: Normalizes spacing around top-level relational operators outside quoted segments so semantically equivalent operator formatting maps to the same cache-key SQL.
-    /// PT: Normaliza espaçamento ao redor de operadores relacionais no topo fora de segmentos entre aspas para que formatações equivalentes mapeiem para o mesmo SQL de chave de cache.
-    /// </summary>
-    private static string NormalizeRelationalOperatorSpacingForCacheKey(string sql)
-    {
-        if (string.IsNullOrWhiteSpace(sql))
-            return string.Empty;
-
-        var sb = new StringBuilder(sql.Length + 16);
-
-        for (var i = 0; i < sql.Length; i++)
-        {
-            if (TryAppendProtectedSqlSegment(sql, ref i, sb))
-                continue;
-
-            var ch = sql[i];
-
-            if (!TryReadRelationalOperator(sql, i, out var op, out var opLength))
-            {
-                sb.Append(ch);
-                continue;
-            }
-
-            TrimTrailingSpaces(sb);
-            if (sb.Length > 0)
-                sb.Append(' ');
-
-            sb.Append(op);
-            sb.Append(' ');
-            i += opLength - 1;
-        }
-
-        return CollapseWhitespaceOutsideQuotedSegments(sb.ToString()).Trim();
-    }
-
-    /// <summary>
-    /// EN: Tries to read a relational comparison operator at the current index, including two-character variants.
-    /// PT: Tenta ler um operador relacional de comparação no índice atual, incluindo variantes de dois caracteres.
-    /// </summary>
-    private static bool TryReadRelationalOperator(
-        string sql,
-        int startIndex,
-        out string op,
-        out int opLength)
-    {
-        op = string.Empty;
-        opLength = 0;
-
-        if (string.IsNullOrWhiteSpace(sql) || startIndex < 0 || startIndex >= sql.Length)
-            return false;
-
-        var ch = sql[startIndex];
-        var next = startIndex + 1 < sql.Length ? sql[startIndex + 1] : '\0';
-
-        if (ch == '<' && next == '=')
-        {
-            op = "<=";
-            opLength = 2;
-            return true;
-        }
-
-        if (ch == '>' && next == '=')
-        {
-            op = ">=";
-            opLength = 2;
-            return true;
-        }
-
-        if (ch == '<' && next == '>')
-        {
-            op = "<>";
-            opLength = 2;
-            return true;
-        }
-
-        if (ch == '!' && next == '=')
-        {
-            op = "!=";
-            opLength = 2;
-            return true;
-        }
-
-        if (ch is '=' or '<' or '>')
-        {
-            op = ch.ToString();
-            opLength = 1;
-            return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// EN: Trims trailing spaces from a StringBuilder buffer.
-    /// PT: Remove espaços à direita de um buffer StringBuilder.
-    /// </summary>
-    private static void TrimTrailingSpaces(StringBuilder sb)
-    {
-        while (sb.Length > 0 && sb[^1] == ' ')
-            sb.Length--;
-    }
-
-    /// <summary>
-    /// EN: Collapses repeated whitespace outside quoted or bracket-delimited segments while preserving inner literal content.
-    /// PT: Colapsa whitespace repetido fora de segmentos entre aspas ou delimitados por colchetes preservando o conteúdo interno de literais.
-    /// </summary>
-    private static string CollapseWhitespaceOutsideQuotedSegments(string sql)
-    {
-        if (string.IsNullOrWhiteSpace(sql))
-            return string.Empty;
-
-        var sb = new StringBuilder(sql.Length);
-        var previousWasSpace = false;
-
-        for (var i = 0; i < sql.Length; i++)
-        {
-            if (TryAppendProtectedSqlSegment(sql, ref i, sb))
-            {
-                previousWasSpace = false;
-                continue;
-            }
-
-            var ch = sql[i];
-
-            if (!char.IsWhiteSpace(ch))
-            {
-                sb.Append(ch);
-                previousWasSpace = false;
-                continue;
-            }
-
-            if (previousWasSpace)
-                continue;
-
-            sb.Append(' ');
-            previousWasSpace = true;
-        }
-
-        return sb.ToString();
-    }
-
-    /// <summary>
-    /// EN: Canonicalizes top-level EXISTS subquery projection payload by replacing SELECT list with a fixed token while preserving relational clauses.
-    /// PT: Canoniza o payload de projeção de subquery EXISTS no nível de topo substituindo a lista do SELECT por token fixo preservando cláusulas relacionais.
-    /// </summary>
-    private static string NormalizeExistsProjectionPayloadForCacheKey(string sql)
-    {
-        return RewriteTopLevelSelectPayloadForCacheKey(sql, static _ => "<EXISTS_PAYLOAD>");
-    }
-
-    /// <summary>
-    /// EN: Canonicalizes top-level SELECT projection aliases by removing explicit AS aliases while preserving projection expressions and relational clauses.
-    /// PT: Canoniza aliases da projeção SELECT no nível de topo removendo aliases explícitos AS e preservando expressões projetadas e cláusulas relacionais.
-    /// </summary>
-    private static string NormalizeSelectProjectionAliasesForCacheKey(string sql)
-    {
-        return RewriteTopLevelSelectPayloadForCacheKey(sql, NormalizeSelectListAliasesForCacheKey);
-    }
-
-    private static string RewriteTopLevelSelectPayloadForCacheKey(
-        string sql,
-        Func<string, string> rewritePayload)
-    {
-        if (string.IsNullOrWhiteSpace(sql))
-            return string.Empty;
-
-        if (!TryGetTopLevelSelectPayloadRange(sql, out var afterSelect, out var fromIndex))
-            return sql;
-
-        return string.Concat(
-            sql.Substring(0, afterSelect),
-            " ",
-            rewritePayload(sql[afterSelect..fromIndex]),
-            " ",
-            sql.Substring(fromIndex));
-    }
-
-    private static bool TryGetTopLevelSelectPayloadRange(
-        string sql,
-        out int afterSelect,
-        out int fromIndex)
-    {
-        afterSelect = -1;
-        fromIndex = -1;
-        if (string.IsNullOrWhiteSpace(sql))
-            return false;
-
-        if (!TryFindTopLevelKeywordIndex(sql, "SELECT", 0, out var selectIndex))
-            return false;
-
-        afterSelect = selectIndex + "SELECT".Length;
-        if (!TryFindTopLevelKeywordIndex(sql, "FROM", afterSelect, out fromIndex))
-            return false;
-
-        return fromIndex > afterSelect;
-    }
-
-    /// <summary>
-    /// EN: Normalizes explicit AS aliases from a top-level SELECT list while preserving nested expressions.
-    /// PT: Normaliza aliases explícitos AS de uma lista SELECT de topo preservando expressões aninhadas.
-    /// </summary>
-    private static string NormalizeSelectListAliasesForCacheKey(string selectList)
-    {
-        if (string.IsNullOrWhiteSpace(selectList))
-            return string.Empty;
-
-        var segments = SplitTopLevelCommaSegments(selectList);
-        if (segments.Count == 0)
-            return selectList.Trim();
-
-        for (var i = 0; i < segments.Count; i++)
-            segments[i] = RemoveExplicitAsAliasFromSelectExpression(segments[i]);
-
-        return string.Join(", ", segments);
-    }
-
-    /// <summary>
-    /// EN: Splits text by top-level comma separators outside quoted segments and nested parentheses.
-    /// PT: Divide o texto por vírgulas de topo fora de segmentos entre aspas e parênteses aninhados.
-    /// </summary>
-    private static List<string> SplitTopLevelCommaSegments(string text)
-    {
-        var segments = new List<string>();
-        if (string.IsNullOrWhiteSpace(text))
-            return segments;
-
-        var start = 0;
-        var depth = 0;
-        for (var i = 0; i < text.Length; i++)
-        {
-            if (TrySkipProtectedSqlSegment(text, ref i))
-                continue;
-
-            var ch = text[i];
-
-            if (ch == '(')
-            {
-                depth++;
-                continue;
-            }
-
-            if (ch == ')' && depth > 0)
-            {
-                depth--;
-                continue;
-            }
-
-            if (depth == 0 && ch == ',')
-            {
-                var segment = text[start..i].Trim();
-                if (segment.Length > 0)
-                    segments.Add(segment);
-                start = i + 1;
-            }
-        }
-
-        var last = text[start..].Trim();
-        if (last.Length > 0)
-            segments.Add(last);
-
-        return segments;
-    }
-
-    /// <summary>
-    /// EN: Removes a trailing explicit AS alias from a SELECT expression when alias syntax is valid.
-    /// PT: Remove alias explícito AS ao final de uma expressão SELECT quando a sintaxe do alias é válida.
-    /// </summary>
-    private static string RemoveExplicitAsAliasFromSelectExpression(string expression)
-    {
-        if (string.IsNullOrWhiteSpace(expression))
-            return string.Empty;
-
-        var trimmed = expression.Trim();
-        if (!TrySplitExplicitAsAlias(trimmed, out var beforeAs, out var aliasPart)
-            || !IsValidExplicitAliasToken(aliasPart))
-            return trimmed;
-
-        return beforeAs;
-    }
-
-    private static bool TrySplitExplicitAsAlias(
-        string expression,
-        out string beforeAs,
-        out string aliasPart)
-    {
-        beforeAs = string.Empty;
-        aliasPart = string.Empty;
-        if (string.IsNullOrWhiteSpace(expression))
-            return false;
-
-        if (!TryFindTopLevelKeywordIndex(expression, "AS", 0, out var asIndex))
-            return false;
-
-        beforeAs = expression[..asIndex].TrimEnd();
-        aliasPart = expression[(asIndex + 2)..].Trim();
-        return true;
-    }
-
-    /// <summary>
-    /// EN: Validates whether an alias token matches supported explicit alias forms (identifier or quoted identifier).
-    /// PT: Valida se um token de alias corresponde às formas suportadas de alias explícito (identificador ou identificador entre delimitadores).
-    /// </summary>
-    private static bool IsValidExplicitAliasToken(string aliasToken)
-    {
-        if (string.IsNullOrWhiteSpace(aliasToken))
-            return false;
-
-        var trimmed = aliasToken.Trim();
-        if (_simpleAliasTokenRegex.IsMatch(trimmed))
-            return true;
-
-        if (trimmed.Length >= 2 && trimmed[0] == '[' && trimmed[^1] == ']')
-            return true;
-
-        if (trimmed.Length >= 2 && trimmed[0] == '"' && trimmed[^1] == '"')
-            return true;
-
-        if (trimmed.Length >= 2 && trimmed[0] == '`' && trimmed[^1] == '`')
-            return true;
-
-        return false;
-    }
-
-    /// <summary>
-    /// EN: Tries to find a top-level SQL keyword index outside quoted segments and nested parentheses, starting from a given position.
-    /// PT: Tenta localizar o índice de uma palavra-chave SQL no topo fora de segmentos entre aspas e parênteses aninhados, iniciando em uma posição informada.
-    /// </summary>
-    private static bool TryFindTopLevelKeywordIndex(
-        string sql,
-        string keyword,
-        int startIndex,
-        out int keywordIndex)
-    {
-        keywordIndex = -1;
-        if (string.IsNullOrWhiteSpace(sql) || string.IsNullOrWhiteSpace(keyword))
-            return false;
-
-        var safeStart = startIndex;
-        if (safeStart < 0)
-            safeStart = 0;
-        else if (safeStart > sql.Length)
-            safeStart = sql.Length;
-        var depth = 0;
-        for (var i = safeStart; i < sql.Length; i++)
-        {
-            if (TrySkipProtectedSqlSegment(sql, ref i))
-                continue;
-
-            var ch = sql[i];
-
-            if (ch == '(')
-            {
-                depth++;
-                continue;
-            }
-
-            if (ch == ')' && depth > 0)
-            {
-                depth--;
-                continue;
-            }
-
-            if (depth == 0 && MatchesKeywordTokenAt(sql, i, keyword))
-            {
-                keywordIndex = i;
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static bool TrySkipProtectedSqlSegment(string sql, ref int index)
-    {
-        if (index < 0 || index >= sql.Length)
-            return false;
-
-        var ch = sql[index];
-        if (ch is '\'' or '"' or '`')
-        {
-            index = FindQuotedSegmentEndIndex(sql, index, ch);
-            return true;
-        }
-
-        if (ch != '[')
-            return false;
-
-        index = FindBracketSegmentEndIndex(sql, index);
-        return true;
-    }
-
-    /// <summary>
-    /// EN: Normalizes commutative top-level AND chains in WHERE/HAVING clauses so equivalent predicate orderings reuse the same cache-key SQL fragment.
-    /// PT: Normaliza cadeias comutativas de AND no topo em cláusulas WHERE/HAVING para que ordenações equivalentes de predicados reutilizem o mesmo fragmento SQL da chave de cache.
-    /// </summary>
-    private static string NormalizeCommutativeAndClausesForCacheKey(string sql)
-    {
-        if (string.IsNullOrWhiteSpace(sql))
-            return string.Empty;
-
-        var normalizedWhere = RewritePredicateClauseForCacheKey(sql, _cacheKeyWherePredicateRegex, "WHERE");
-        return RewritePredicateClauseForCacheKey(normalizedWhere, _cacheKeyHavingPredicateRegex, "HAVING");
-    }
-
-    private static string RewritePredicateClauseForCacheKey(
-        string sql,
-        Regex clauseRegex,
-        string clauseKeyword)
-        => clauseRegex.Replace(
-            sql,
-            match => $"{clauseKeyword} {NormalizeTopLevelAndPredicateForCacheKey(match.Groups["predicate"].Value)}");
-
-    /// <summary>
-    /// EN: Canonicalizes a predicate text by sorting top-level AND segments when safe (no top-level OR and no BETWEEN token).
-    /// PT: Canoniza um texto de predicado ordenando segmentos AND de topo quando seguro (sem OR de topo e sem token BETWEEN).
-    /// </summary>
-    private static string NormalizeTopLevelAndPredicateForCacheKey(string predicate)
-    {
-        if (string.IsNullOrWhiteSpace(predicate))
-            return string.Empty;
-
-        var trimmedPredicate = TrimRedundantOuterParentheses(predicate);
-        if (!ShouldNormalizeTopLevelAndPredicateForCacheKey(trimmedPredicate))
-            return trimmedPredicate;
-
-        var segments = SplitTopLevelAndSegments(trimmedPredicate);
-        return JoinNormalizedTopLevelAndSegments(trimmedPredicate, segments);
-    }
-
-    private static bool ShouldNormalizeTopLevelAndPredicateForCacheKey(string predicate)
-        => !string.IsNullOrWhiteSpace(predicate)
-            && !ContainsTokenOutsideQuotedSegments(predicate, "OR")
-            && !ContainsTokenOutsideQuotedSegments(predicate, "BETWEEN");
-
-    private static string JoinNormalizedTopLevelAndSegments(
-        string originalPredicate,
-        List<string> segments)
-    {
-        if (segments.Count <= 1)
-            return originalPredicate;
-
-        segments.Sort(StringComparer.Ordinal);
-        return string.Join(" AND ", segments);
-    }
-
-    /// <summary>
-    /// EN: Splits predicate text by top-level AND operators outside quoted segments and nested parentheses.
-    /// PT: Divide o texto do predicado por operadores AND de topo fora de segmentos entre aspas e parênteses aninhados.
-    /// </summary>
-    private static List<string> SplitTopLevelAndSegments(string predicate)
-    {
-        var segments = new List<string>();
-        if (string.IsNullOrWhiteSpace(predicate))
-            return segments;
-
-        var start = 0;
-        var depth = 0;
-
-        for (var i = 0; i < predicate.Length; i++)
-        {
-            if (TrySkipProtectedSqlSegment(predicate, ref i))
-                continue;
-
-            var ch = predicate[i];
-
-            if (ch == '(')
-            {
-                depth++;
-                continue;
-            }
-
-            if (ch == ')' && depth > 0)
-            {
-                depth--;
-                continue;
-            }
-
-            if (depth == 0 && MatchesKeywordTokenAt(predicate, i, "AND"))
-            {
-                AppendNormalizedPredicateSegment(segments, predicate[start..i]);
-                start = i + 3;
-                i += 2;
-            }
-        }
-
-        AppendNormalizedPredicateSegment(segments, predicate[start..]);
-
-        return segments;
-    }
-
-    private static void AppendNormalizedPredicateSegment(List<string> segments, string rawSegment)
-    {
-        var segment = NormalizePredicateSegmentForCacheKey(rawSegment);
-        if (segment.Length > 0)
-            segments.Add(segment);
-    }
-
-    /// <summary>
-    /// EN: Normalizes an individual predicate segment by trimming redundant outer parentheses and canonicalizing simple commutative equalities.
-    /// PT: Normaliza um segmento individual de predicado removendo parênteses externos redundantes e canonizando igualdades comutativas simples.
-    /// </summary>
-    private static string NormalizePredicateSegmentForCacheKey(string segment)
-    {
-        var trimmedSegment = TrimRedundantOuterParentheses(segment);
-        if (string.IsNullOrWhiteSpace(trimmedSegment))
-            return string.Empty;
-
-        return NormalizeCommutativeEqualitySegmentForCacheKey(trimmedSegment);
-    }
-
-    /// <summary>
-    /// EN: Canonicalizes a simple top-level equality segment (`lhs = rhs`) by sorting operands lexicographically when safe.
-    /// PT: Canoniza um segmento de igualdade simples no topo (`lhs = rhs`) ordenando operandos lexicograficamente quando seguro.
-    /// </summary>
-    private static string NormalizeCommutativeEqualitySegmentForCacheKey(string segment)
-    {
-        if (string.IsNullOrWhiteSpace(segment))
-            return string.Empty;
-
-        if (!TrySplitStandaloneTopLevelEqualityOperands(segment, out var left, out var right))
-            return segment;
-
-        return BuildOrderedEqualitySegmentForCacheKey(left, right);
-    }
-
-    private static bool TrySplitStandaloneTopLevelEqualityOperands(
-        string segment,
-        out string left,
-        out string right)
-    {
-        left = string.Empty;
-        right = string.Empty;
-        if (!TryFindStandaloneTopLevelEqualityOperator(segment, out var equalityIndex))
-            return false;
-
-        left = TrimRedundantOuterParentheses(segment[..equalityIndex]);
-        right = TrimRedundantOuterParentheses(segment[(equalityIndex + 1)..]);
-        return left.Length > 0 && right.Length > 0;
-    }
-
-    private static string BuildOrderedEqualitySegmentForCacheKey(string left, string right)
-        => StringComparer.Ordinal.Compare(left, right) <= 0
-            ? $"{left} = {right}"
-            : $"{right} = {left}";
-
-    /// <summary>
-    /// EN: Tries to find a single standalone top-level equality operator, excluding composite comparisons such as less-or-equal, greater-or-equal, different and double-equals.
-    /// PT: Tenta localizar um único operador de igualdade isolado no topo, excluindo comparações compostas como menor-ou-igual, maior-ou-igual, diferente e igualdade dupla.
-    /// </summary>
-    private static bool TryFindStandaloneTopLevelEqualityOperator(string segment, out int equalityIndex)
-    {
-        equalityIndex = -1;
-        if (string.IsNullOrWhiteSpace(segment))
-            return false;
-
-        var depth = 0;
-        for (var i = 0; i < segment.Length; i++)
-        {
-            if (TrySkipProtectedSqlSegment(segment, ref i))
-                continue;
-
-            var ch = segment[i];
-
-            if (ch == '(')
-            {
-                depth++;
-                continue;
-            }
-
-            if (ch == ')' && depth > 0)
-            {
-                depth--;
-                continue;
-            }
-
-            if (depth != 0 || ch != '=')
-                continue;
-
-            var previous = i > 0 ? segment[i - 1] : '\0';
-            var next = i + 1 < segment.Length ? segment[i + 1] : '\0';
-
-            var isCompositeComparison = previous is '<' or '>' or '!' or '='
-                                      || next is '<' or '>' or '!' or '=';
-            if (isCompositeComparison)
-                continue;
-
-            if (equalityIndex >= 0)
-                return false;
-
-            equalityIndex = i;
-        }
-
-        return equalityIndex >= 0;
-    }
-
-    /// <summary>
-    /// EN: Removes redundant outer parentheses that wrap the full expression while preserving inner structure.
-    /// PT: Remove parênteses externos redundantes que envolvem a expressão inteira preservando a estrutura interna.
-    /// </summary>
-    private static string TrimRedundantOuterParentheses(string expression)
-    {
-        if (string.IsNullOrWhiteSpace(expression))
-            return string.Empty;
-
-        var trimmed = expression.Trim();
-        while (trimmed.Length >= 2 && trimmed[0] == '(' && trimmed[^1] == ')')
-        {
-            if (!HasSingleOuterParenthesesWrappingWholeExpression(trimmed))
-                break;
-
-            trimmed = trimmed[1..^1].Trim();
-        }
-
-        return trimmed;
-    }
-
-    /// <summary>
-    /// EN: Checks whether the first and last parentheses wrap the whole expression without closing earlier at top level.
-    /// PT: Verifica se o primeiro e o último parêntese envolvem toda a expressão sem fechar antes no nível de topo.
-    /// </summary>
-    private static bool HasSingleOuterParenthesesWrappingWholeExpression(string expression)
-    {
-        if (string.IsNullOrWhiteSpace(expression) || expression.Length < 2)
-            return false;
-
-        if (expression[0] != '(' || expression[^1] != ')')
-            return false;
-
-        var depth = 0;
-        for (var i = 0; i < expression.Length; i++)
-        {
-            if (TrySkipProtectedSqlSegment(expression, ref i))
-                continue;
-
-            var ch = expression[i];
-
-            if (ch == '(')
-            {
-                depth++;
-                continue;
-            }
-
-            if (ch != ')')
-                continue;
-
-            depth--;
-            if (depth < 0)
-                return false;
-
-            if (depth == 0 && i < expression.Length - 1)
-                return false;
-        }
-
-        return depth == 0;
-    }
-
-    /// <summary>
-    /// EN: Detects whether a token appears outside quoted segments and nested parentheses.
-    /// PT: Detecta se um token aparece fora de segmentos entre aspas e parênteses aninhados.
-    /// </summary>
-    private static bool ContainsTokenOutsideQuotedSegments(string sql, string token)
-        => TryFindTopLevelKeywordIndex(sql, token, 0, out _);
-
-    /// <summary>
-    /// EN: Matches a SQL keyword token at a position ensuring identifier boundaries.
-    /// PT: Compara um token de palavra-chave SQL em uma posição garantindo fronteiras de identificador.
-    /// </summary>
-    private static bool MatchesKeywordTokenAt(string sql, int startIndex, string token)
-    {
-        if (string.IsNullOrWhiteSpace(sql) || string.IsNullOrWhiteSpace(token))
-            return false;
-
-        if (startIndex < 0 || startIndex + token.Length > sql.Length)
-            return false;
-
-        if (startIndex > 0 && IsSqlIdentifierChar(sql[startIndex - 1]))
-            return false;
-
-        var endIndex = startIndex + token.Length;
-        if (endIndex < sql.Length && IsSqlIdentifierChar(sql[endIndex]))
-            return false;
-
-        for (var i = 0; i < token.Length; i++)
-        {
-            if (char.ToUpperInvariant(sql[startIndex + i]) != char.ToUpperInvariant(token[i]))
-                return false;
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// EN: Finds the end index of a quoted SQL segment handling escaped doubled quote characters.
-    /// PT: Localiza o índice final de um segmento SQL entre aspas tratando escapes por duplicidade de aspas.
-    /// </summary>
-    private static int FindQuotedSegmentEndIndex(string sql, int startIndex, char quoteChar)
-    {
-        var i = startIndex + 1;
-        while (i < sql.Length)
-        {
-            if (sql[i] == quoteChar)
-            {
-                var hasEscapedQuote = i + 1 < sql.Length && sql[i + 1] == quoteChar;
-                if (hasEscapedQuote)
-                {
-                    i += 2;
-                    continue;
-                }
-
-                return i;
-            }
-
-            i++;
-        }
-
-        return sql.Length - 1;
-    }
-
-    /// <summary>
-    /// EN: Finds the end index of a bracket-delimited SQL identifier segment.
-    /// PT: Localiza o índice final de um segmento SQL de identificador delimitado por colchetes.
-    /// </summary>
-    private static int FindBracketSegmentEndIndex(string sql, int startIndex)
-    {
-        var i = startIndex + 1;
-        while (i < sql.Length)
-        {
-            if (sql[i] == ']')
-                return i;
-            i++;
-        }
-
-        return sql.Length - 1;
-    }
-
-    /// <summary>
-    /// EN: Normalizes scalar and tuple-like values into stable cache-key fragments for correlated subquery memoization.
-    /// PT: Normaliza valores escalares e em formato tupla em fragmentos estáveis de chave de cache para memoização de subquery correlacionada.
-    /// </summary>
-    private static string NormalizeSubqueryCacheValue(object? value)
-    {
-        if (value is null || value is DBNull)
-            return "<null>";
-
-        if (value is object?[] tuple)
-            return "[" + string.Join(",", tuple.Select(NormalizeSubqueryCacheValue)) + "]";
-
-        return Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
-    }
+        => AstCorrelatedSubqueryCacheKeyBuilder.Build(operation, subquerySql, row);
 
     /// <summary>
     /// EN: Clears per-query correlated subquery caches so memoized values do not leak across independent top-level executions.
@@ -6705,159 +4785,7 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalCurrentUserFunction(fn, dialect, out var currentUserResult))
             return currentUserResult;
 
-        if (dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
-            && (fn.Name.Equals("APP_NAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("APPLOCK_MODE", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("APPLOCK_TEST", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("ASSEMBLYPROPERTY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("CERTENCODED", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("CERTPRIVATEKEY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("CURSOR_STATUS", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("DB_ID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("CURRENT_REQUEST_ID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("CURRENT_TRANSACTION_ID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("CONTEXT_INFO", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("DATABASE_PRINCIPAL_ID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("DATABASEPROPERTYEX", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("CONNECTIONPROPERTY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("COLUMNPROPERTY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("DB_NAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("COL_LENGTH", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("COL_NAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("OBJECT_ID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("FILE_ID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("FILE_IDEX", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("FILE_NAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("FILEGROUP_ID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("FILEGROUP_NAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("FILEGROUPPROPERTY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("FILEPROPERTY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("FULLTEXTCATALOGPROPERTY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("FULLTEXTSERVICEPROPERTY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("GET_FILESTREAM_TRANSACTION_CONTEXT", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("HAS_PERMS_BY_NAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("INDEX_COL", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("INDEXKEY_PROPERTY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("INDEXPROPERTY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("MIN_ACTIVE_ROWVERSION", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("OBJECT_DEFINITION", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("OBJECTPROPERTY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("OBJECTPROPERTYEX", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("OBJECT_NAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("OBJECT_SCHEMA_NAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("IS_MEMBER", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("IS_ROLEMEMBER", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("IS_SRVROLEMEMBER", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("ORIGINAL_DB_NAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("ORIGINAL_LOGIN", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("PWDCOMPARE", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("PWDENCRYPT", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SCHEMA_ID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SCHEMA_NAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SESSION_CONTEXT", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SERVERPROPERTY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SESSION_ID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SUSER_ID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SUSER_NAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SUSER_SID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SUSER_SNAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("STATS_DATE", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("TYPE_ID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("TYPE_NAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("TYPEPROPERTY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("USER_ID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("USER_NAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("XACT_STATE", StringComparison.OrdinalIgnoreCase))
-            && !dialect.SupportsSqlServerMetadataFunction(fn.Name))
-        {
-            throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
-        }
-
-        if (dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
-            && (fn.Name.Equals("DATEDIFF", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("DATENAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("DATEPART", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("DAY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("MONTH", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("YEAR", StringComparison.OrdinalIgnoreCase))
-            && !dialect.SupportsSqlServerDateFunction(fn.Name))
-        {
-            throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
-        }
-
-        if (dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
-            && (fn.Name.Equals("ABS", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("ACOS", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("ASCII", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("ASIN", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("ATAN", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("ATN2", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("BINARY_CHECKSUM", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("CEILING", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("CHARINDEX", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("CHECKSUM", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("COS", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("COMPRESS", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("DECOMPRESS", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("COT", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("DEGREES", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("DIFFERENCE", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("EXP", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("FLOOR", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("FORMAT", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("FORMATMESSAGE", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("DATALENGTH", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("DATEDIFF_BIG", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("GROUPING", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("GROUPING_ID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("ISDATE", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("ISJSON", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("ISNUMERIC", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("CHAR", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("CONCAT", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("CONCAT_WS", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("LEN", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("LEFT", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("LOG", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("LOG10", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("LOWER", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("PI", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("POWER", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("RADIANS", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("RAND", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("NCHAR", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("JSON_MODIFY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("NEWID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("NEWSEQUENTIALID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("REPLACE", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("RIGHT", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("ROUND", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SIGN", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SIN", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SQUARE", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("STR", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SUBSTRING", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("TAN", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("STRING_ESCAPE", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("TRANSLATE", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("TRIM", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("UPPER", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("LTRIM", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("PARSENAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("PATINDEX", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("QUOTENAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("REPLICATE", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("REVERSE", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("RTRIM", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SOUNDEX", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SPACE", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SQRT", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("STUFF", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("UNICODE", StringComparison.OrdinalIgnoreCase))
-            && !dialect.SupportsSqlServerScalarFunction(fn.Name))
-        {
-            throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
-        }
+        EnsureSqlServerFunctionSupport(fn, dialect);
 
         if (TryEvalSqlServerDatabaseFunctions(fn, dialect, EvalArg, out var sqlServerDatabaseResult))
             return sqlServerDatabaseResult;
@@ -7500,6 +5428,163 @@ private void FillPercentRankOrCumeDist(
         }
 
         return score;
+    }
+
+    private static void EnsureSqlServerFunctionSupport(FunctionCallExpr fn, ISqlDialect dialect)
+    {
+        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        if ((fn.Name.Equals("APP_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("APPLOCK_MODE", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("APPLOCK_TEST", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("ASSEMBLYPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("CERTENCODED", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("CERTPRIVATEKEY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("CURSOR_STATUS", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("DB_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("CURRENT_REQUEST_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("CURRENT_TRANSACTION_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("CONTEXT_INFO", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("DATABASE_PRINCIPAL_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("DATABASEPROPERTYEX", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("CONNECTIONPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("COLUMNPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("DB_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("COL_LENGTH", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("COL_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("OBJECT_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("FILE_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("FILE_IDEX", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("FILE_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("FILEGROUP_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("FILEGROUP_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("FILEGROUPPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("FILEPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("FULLTEXTCATALOGPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("FULLTEXTSERVICEPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("GET_FILESTREAM_TRANSACTION_CONTEXT", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("HAS_PERMS_BY_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("INDEX_COL", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("INDEXKEY_PROPERTY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("INDEXPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("MIN_ACTIVE_ROWVERSION", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("OBJECT_DEFINITION", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("OBJECTPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("OBJECTPROPERTYEX", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("OBJECT_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("OBJECT_SCHEMA_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("IS_MEMBER", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("IS_ROLEMEMBER", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("IS_SRVROLEMEMBER", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("ORIGINAL_DB_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("ORIGINAL_LOGIN", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("PWDCOMPARE", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("PWDENCRYPT", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SCHEMA_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SCHEMA_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SESSION_CONTEXT", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SERVERPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SESSION_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SUSER_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SUSER_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SUSER_SID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SUSER_SNAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("STATS_DATE", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("TYPE_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("TYPE_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("TYPEPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("USER_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("USER_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("XACT_STATE", StringComparison.OrdinalIgnoreCase))
+            && !dialect.SupportsSqlServerMetadataFunction(fn.Name))
+        {
+            throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
+        }
+
+        if ((fn.Name.Equals("DATEDIFF", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("DATENAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("DATEPART", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("DAY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("MONTH", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("YEAR", StringComparison.OrdinalIgnoreCase))
+            && !dialect.SupportsSqlServerDateFunction(fn.Name))
+        {
+            throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
+        }
+
+        if ((fn.Name.Equals("ABS", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("ACOS", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("ASCII", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("ASIN", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("ATAN", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("ATN2", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("BINARY_CHECKSUM", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("CEILING", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("CHARINDEX", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("CHECKSUM", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("COS", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("COMPRESS", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("DECOMPRESS", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("COT", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("DEGREES", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("DIFFERENCE", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("EXP", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("FLOOR", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("FORMAT", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("FORMATMESSAGE", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("DATALENGTH", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("DATEDIFF_BIG", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("GROUPING", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("GROUPING_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("ISDATE", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("ISJSON", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("ISNUMERIC", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("CHAR", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("CONCAT", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("CONCAT_WS", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("LEN", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("LEFT", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("LOG", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("LOG10", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("LOWER", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("PI", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("POWER", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("RADIANS", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("RAND", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("NCHAR", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("JSON_MODIFY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("NEWID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("NEWSEQUENTIALID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("REPLACE", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("RIGHT", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("ROUND", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SIGN", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SIN", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SQUARE", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("STR", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SUBSTRING", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("TAN", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("STRING_ESCAPE", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("TRANSLATE", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("TRIM", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("UPPER", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("LTRIM", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("PARSENAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("PATINDEX", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("QUOTENAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("REPLICATE", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("REVERSE", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("RTRIM", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SOUNDEX", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SPACE", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SQRT", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("STUFF", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("UNICODE", StringComparison.OrdinalIgnoreCase))
+            && !dialect.SupportsSqlServerScalarFunction(fn.Name))
+        {
+            throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
+        }
     }
 
     private static bool TryEvalConditionalFunction(
@@ -25000,4 +23085,5 @@ private void FillPercentRankOrCumeDist(
            && !string.IsNullOrWhiteSpace(query.RawSql)
            && _sqlCalcFoundRowsRegex.IsMatch(query.RawSql);
 }
+
 

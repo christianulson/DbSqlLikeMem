@@ -1,5 +1,3 @@
-using DbSqlLikeMem.Interfaces;
-using DbSqlLikeMem.Models;
 using System.Collections.ObjectModel;
 
 namespace DbSqlLikeMem;

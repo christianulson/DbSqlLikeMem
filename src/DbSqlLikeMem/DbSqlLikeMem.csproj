@@ -32,12 +32,20 @@
 		<InternalsVisibleTo Include="DbSqlLikeMem.TestTools" />
 	</ItemGroup>
 	<ItemGroup>
+		<Using Include="DbSqlLikeMem.Interfaces" />
+		<Using Include="DbSqlLikeMem.Models" />
 		<Using Include="DbSqlLikeMem.Resources" />
 		<Using Include="System.Collections" />
 		<Using Include="System.Data" />
 		<Using Include="System.Data.Common" />
+		<Using Include="System.Diagnostics" />
 		<Using Include="System.Globalization" />
+		<Using Include="System.IO.Compression" />
+		<Using Include="System.Net" />
 		<Using Include="System.Reflection" />
+		<Using Include="System.Text" />
+		<Using Include="System.Text.Json" />
 		<Using Include="System.Text.RegularExpressions" />
+		<Using Include="System.Security.Cryptography" />
 	</ItemGroup>
 </Project>

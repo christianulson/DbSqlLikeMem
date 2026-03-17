@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace DbSqlLikeMem;
 
 internal sealed class SqlQueryParser

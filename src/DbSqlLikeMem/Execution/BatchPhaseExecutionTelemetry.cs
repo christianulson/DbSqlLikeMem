@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 namespace DbSqlLikeMem;
 
 internal static class BatchPhaseExecutionTelemetry

@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace DbSqlLikeMem;
 
 internal static class AggregateExpressionInspector
