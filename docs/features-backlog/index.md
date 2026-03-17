@@ -84,7 +84,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.2.1 Interpretação de comandos DDL
 
-- Implementação estimada: **90%**.
+- Implementação estimada: **91%**.
 - Leitura e processamento de comandos de definição de schema.
 - Suporte a operações estruturais comuns (criação e alteração de entidades).
 - Aplicação de regras específicas por dialeto e versão simulada.
@@ -112,6 +112,23 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: cobertura de regressão de `DROP TABLE` foi adicionada de forma unificada em SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2, incluindo casos válidos (`IF EXISTS`, `GLOBAL TEMPORARY`) e inválidos (`DROP TABLE IF EXISTS ;`, `DROP GLOBAL TABLE ...`, segundo statement indevido).
 - Incremento desta sessão: corpus de parser por provedor foi alinhado para remover `DROP TABLE` da lista de comandos explicitamente inválidos, refletindo o novo contrato de interpretação DDL.
 - Incremento desta sessão: parser/executor passaram a suportar o subset pragmático de `CREATE INDEX` e `DROP INDEX`, incluindo `UNIQUE`, lista simples de colunas, `IF EXISTS` em `DROP INDEX` e a variante `DROP INDEX ... ON <table>` nos dialetos que a expõem (`MySQL` e `SQL Server`), com busca única por índice no schema atual quando o `DROP` não informa tabela.
+- Incremento desta sessão: parser/runtime passaram a suportar o subset pragmático de `ALTER TABLE ... ADD [COLUMN] ...` com tipo simples, `NULL/NOT NULL` e `DEFAULT` literal, incluindo backfill determinístico de linhas já existentes e regressões dedicadas em Auto/SQLite/MySQL, além do alinhamento do corpus por provedor para retirar `ALTER TABLE` da trilha de comandos explicitamente inválidos.
+- Incremento desta sessão: o subset de `ALTER TABLE ... ADD [COLUMN] ...` recebeu hardening adicional para bloquear coluna duplicada com erro consistente de metadata e para rejeitar `NOT NULL` sem `DEFAULT` em tabela já populada sem deixar mutação parcial, com regressões direcionadas em MySQL e SQLite/Auto.
+- Incremento desta sessão: `ALTER TABLE ... ADD [COLUMN] ...` passou a validar explicitamente referência de tabela sem alias na gramática compartilhada, emitindo erro acionável para variantes como `ALTER TABLE users u ADD COLUMN ...` no modo `Auto` e no dialeto SQL Server.
+- Incremento desta sessão: `ALTER TABLE ... ADD [COLUMN] ...` passou a rejeitar explicitamente `NOT NULL DEFAULT NULL` na gramática compartilhada, evitando que `DEFAULT NULL` seja tratado como ausência silenciosa de default no caminho de execução.
+- Incremento desta sessão: `ALTER TABLE ... ADD [COLUMN] ...` passou a exigir nome de tabela concreto também contra fontes derivadas como `ALTER TABLE (SELECT ...) u ADD COLUMN ...`, mantendo o subset pragmático alinhado ao contrato de DDL estrutural exposto pelo mock.
+- Incremento desta sessão: o parser de `ALTER TABLE ... ADD [COLUMN] ...` deixou de normalizar argumentos de tipo inválidos para defaults silenciosos e agora rejeita explicitamente variantes malformadas como `VARCHAR(foo)` e `DECIMAL(10, foo)`, com regressões em Auto/SQL Server e caminho end-to-end MySQL.
+- Incremento desta sessão: `ALTER TABLE ... ADD [COLUMN] ...` passou a preservar também a precisão de colunas `DECIMAL(p,s)` nos metadados compartilhados (além da escala), alinhando AST e runtime ao contrato de schema esperado no mock.
+- Incremento desta sessão: `CREATE INDEX` passou a bloquear colunas-chave duplicadas (`(Name, Name)`) com erro explícito antes de registrar metadata parcial, com regressão dedicada no pipeline MySQL.
+- Incremento desta sessão: o runtime de `CREATE INDEX` passou a validar colunas-chave referenciadas antes de registrar metadata, rejeitando índice sobre coluna inexistente mesmo em tabela vazia e evitando aceitação silenciosa que antes só explodia quando surgissem linhas.
+- Incremento desta sessão: a API de core de `CREATE INDEX` passou a validar também `include columns`, rejeitando duplicatas e sobreposição redundante com as colunas-chave antes de registrar metadata parcial em tabela vazia.
+- Incremento desta sessão: o hardening de `include columns` em `CREATE INDEX` passou a comparar sobreposição com `key columns` de forma case-insensitive e a persistir os nomes `include` já normalizados na metadata do índice, evitando drift de casing/wrappers no core.
+- Incremento desta sessão: o parser de `CREATE INDEX` também passou a rejeitar lista de colunas-chave duplicadas já na construção da AST compartilhada, evitando aceitar DDL inválido no modo `Auto` e reduzindo divergência entre parse e runtime.
+- Incremento desta sessão: `CREATE INDEX` passou a exigir referência de tabela concreta sem alias na gramática compartilhada, rejeitando tanto `ON users u (...)` quanto fontes derivadas como `ON (SELECT ...) u (...)` antes de cair em erros genéricos do runtime.
+- Incremento desta sessão: `DROP INDEX ... ON <table>` passou a validar explicitamente nome de tabela obrigatório na gramática compartilhada, emitindo erro acionável para casos como `DROP INDEX ix_users_name ON ;` no modo `Auto` e no dialeto SQL Server.
+- Incremento desta sessão: `DROP INDEX ... ON <table>` passou a exigir referência de tabela concreta sem alias na gramática compartilhada, evitando aceitar `DROP INDEX ... ON users u` fora do contrato pragmático exposto por Auto/SQL Server.
+- Incremento desta sessão: `DROP INDEX ... ON <table>` deixou de aceitar `table sources` genéricos e agora exige nome qualificado concreto também contra fontes derivadas como `ON (SELECT ...) u`, mantendo o subset pragmático alinhado ao contrato real exposto pelo mock.
+- Incremento desta sessão: a cobertura de runtime de `DROP INDEX` foi ampliada para rejeitar busca ambígua por nome sem tabela explícita quando mais de uma tabela do schema atual expõe o mesmo índice, preservando a metadata intacta no caminho MySQL.
 - TODO: expandir o subset DDL com `ALTER TABLE` pragmático e hardening adicional de `CREATE/DROP INDEX`, mantendo gate explícito por dialeto/versão e sem aceitar DDL avançado fora do contrato real do provider.
 - TODO: revisar a trilha de objetos programáveis (`FUNCTION`/`PROCEDURE`/`TRIGGER` DDL) para deixar explícito no backlog o que será suportado de forma real e o que continuará bloqueado por `NotSupportedException`.
 

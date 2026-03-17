@@ -99,6 +99,9 @@ internal sealed class AutoSqlDialect : SqlDialectBase
     public override bool SupportsSequenceDdl => true;
 
     /// <inheritdoc />
+    public override bool SupportsAlterTableAddColumn => true;
+
+    /// <inheritdoc />
     public override bool SupportsNextValueForSequenceExpression => true;
 
     /// <inheritdoc />

@@ -356,6 +356,30 @@ public abstract class DbMock
         throw new InvalidOperationException($"Index '{normalizedIndexName}' does not exist.");
     }
 
+    internal void AlterTableAddColumn(
+        string tableName,
+        string columnName,
+        DbType dbType,
+        bool nullable,
+        int? size = null,
+        int? decimalPlaces = null,
+        object? defaultValue = null,
+        string? schemaName = null)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(tableName, nameof(tableName));
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(columnName, nameof(columnName));
+
+        var table = GetTable(tableName, schemaName);
+        table.AddColumn(
+            columnName,
+            dbType,
+            nullable,
+            size,
+            decimalPlaces,
+            identity: false,
+            defaultValue: defaultValue);
+    }
+
     /// <summary>
     /// EN: Resets volatile in-memory data for all tables and optionally global temporary tables.
     /// PT: Reseta dados voláteis em memória de todas as tabelas e, opcionalmente, das tabelas temporárias globais.

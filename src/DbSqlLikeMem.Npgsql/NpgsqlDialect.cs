@@ -106,6 +106,9 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsReturning => true;
 
+    /// <inheritdoc />
+    public override bool SupportsAlterTableAddColumn => true;
+
     public override bool SupportsSequenceDdl => true;
     public override bool SupportsSequenceFunctionCall(string functionName)
         => functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)

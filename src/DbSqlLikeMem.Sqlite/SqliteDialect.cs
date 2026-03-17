@@ -107,6 +107,9 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// PT: Obtém se há suporte a with cte.
     /// </summary>
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
+
+    /// <inheritdoc />
+    public override bool SupportsAlterTableAddColumn => true;
     /// <summary>
     /// EN: Gets whether with recursive is supported.
     /// PT: Obtém se há suporte a with recursive.

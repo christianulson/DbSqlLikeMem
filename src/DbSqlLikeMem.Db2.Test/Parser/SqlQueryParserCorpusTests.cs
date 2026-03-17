@@ -621,15 +621,9 @@ select id
     "CREATE TABLE users (id INT)"
 };
 
-        // ALTER TABLE
-        yield return new object[] {
-    "ALTER TABLE users ADD COLUMN age INT"
-};
-
-
         // CALL procedure
         yield return new object[] {
-    "CALL my_proc(1,2,3)"
+            "CALL my_proc(1,2,3)"
 };
     }
 

@@ -74,6 +74,7 @@ internal interface ISqlDialect
     bool SupportsMerge { get; }
     bool SupportsTriggers { get; }
     bool SupportsSequenceDdl { get; }
+    bool SupportsAlterTableAddColumn { get; }
     bool SupportsNextValueForSequenceExpression { get; }
     bool SupportsPreviousValueForSequenceExpression { get; }
     bool SupportsSequenceDotValueExpression(string suffix);
@@ -798,6 +799,8 @@ internal abstract class SqlDialectBase : ISqlDialect
     public virtual bool SupportsTriggers => true;
 
     public virtual bool SupportsSequenceDdl => false;
+
+    public virtual bool SupportsAlterTableAddColumn => false;
 
     public virtual bool SupportsNextValueForSequenceExpression => false;
 

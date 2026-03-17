@@ -164,6 +164,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
     /// PT: Obtém se há suporte a merge.
     /// </summary>
     public override bool SupportsMerge => Version >= MergeMinVersion;
+    public override bool SupportsAlterTableAddColumn => true;
     public override bool SupportsSequenceDdl => Version >= SequenceMinVersion;
     public override bool SupportsNextValueForSequenceExpression => Version >= SequenceMinVersion;
     public override bool SupportsPreviousValueForSequenceExpression => false;

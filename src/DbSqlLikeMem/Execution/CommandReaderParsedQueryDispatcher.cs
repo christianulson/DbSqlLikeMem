@@ -23,6 +23,9 @@ internal static class CommandReaderParsedQueryDispatcher
             case SqlCreateViewQuery viewQ:
                 connection.ExecuteCreateView(viewQ, pars, connection.ExecutionDialect);
                 break;
+            case SqlAlterTableAddColumnQuery alterAddColumnQ:
+                connection.ExecuteAlterTableAddColumn(alterAddColumnQ, pars, connection.ExecutionDialect);
+                break;
             case SqlCreateIndexQuery createIndexQ:
                 connection.ExecuteCreateIndex(createIndexQ, pars, connection.ExecutionDialect);
                 break;

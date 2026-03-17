@@ -21,6 +21,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             SqlDeleteQuery deleteQ => connection.ExecuteDeleteSmart(deleteQ, pars, dialect),
             SqlCreateTemporaryTableQuery tempQ => connection.ExecuteCreateTemporaryTableAsSelect(tempQ, pars, dialect),
             SqlCreateViewQuery viewQ => connection.ExecuteCreateView(viewQ, pars, dialect),
+            SqlAlterTableAddColumnQuery alterAddColumnQ => connection.ExecuteAlterTableAddColumn(alterAddColumnQ, pars, dialect),
             SqlCreateIndexQuery createIndexQ => connection.ExecuteCreateIndex(createIndexQ, pars, dialect),
             SqlCreateSequenceQuery createSequenceQ => connection.ExecuteCreateSequence(createSequenceQ, pars, dialect),
             SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, pars, dialect),
@@ -140,6 +141,55 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             query.Temporary,
             query.Scope,
             query.Table?.DbName);
+        return 0;
+    }
+
+    /// <summary>
+    /// EN: Implements ExecuteAlterTableAddColumn.
+    /// PT: Implementa ExecuteAlterTableAddColumn.
+    /// </summary>
+    public static int ExecuteAlterTableAddColumn(
+        this DbConnectionMockBase connection,
+        SqlAlterTableAddColumnQuery query,
+        DbParameterCollection pars,
+        ISqlDialect dialect)
+    {
+        _ = pars;
+        _ = dialect;
+        int affected;
+        if (!connection.Db.ThreadSafe)
+            affected = ExecuteAlterTableAddColumnImpl(connection, query);
+        else
+        {
+            lock (connection.Db.SyncRoot)
+                affected = ExecuteAlterTableAddColumnImpl(connection, query);
+        }
+
+        connection.SetLastFoundRows(affected);
+        return affected;
+    }
+
+    private static int ExecuteAlterTableAddColumnImpl(
+        DbConnectionMockBase connection,
+        SqlAlterTableAddColumnQuery query)
+    {
+        var tableName = query.Table?.Name;
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(tableName, nameof(tableName));
+
+        var defaultValue = query.DefaultValueRaw is null
+            ? null
+            : query.ColumnType.Parse(query.DefaultValueRaw);
+
+        connection.AlterTableAddColumn(
+            tableName!,
+            query.ColumnName,
+            query.ColumnType,
+            query.Nullable,
+            query.Size,
+            query.DecimalPlaces,
+            defaultValue,
+            query.Table?.DbName);
+
         return 0;
     }
 

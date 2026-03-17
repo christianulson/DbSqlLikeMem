@@ -100,7 +100,7 @@ internal static class SqlUnsupported
 
 
     public static InvalidOperationException ForUnknownTopLevelStatement(ISqlDialect dialect, string token)
-        => new($"SQL não suportado ou parser inválido para dialeto '{FormatDialectLabel(dialect)}' (v{dialect.Version}): token inicial '{token}'. Use SELECT/INSERT/UPDATE/DELETE/CREATE/DROP/MERGE.");
+        => new($"SQL não suportado ou parser inválido para dialeto '{FormatDialectLabel(dialect)}' (v{dialect.Version}): token inicial '{token}'. Use SELECT/INSERT/UPDATE/DELETE/CREATE/ALTER/DROP/MERGE.");
 
     public static NotSupportedException ForCommandType(ISqlDialect dialect, string operation, Type queryType)
         => new($"SQL não suportado em {operation} para dialeto '{FormatDialectLabel(dialect)}' (v{dialect.Version}): {queryType.Name}.");

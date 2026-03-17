@@ -113,6 +113,7 @@ internal sealed class Db2Dialect : SqlDialectBase
     public override bool SupportsMerge => Version >= MergeMinVersion;
     public override bool SupportsJsonQueryFunction => Version >= JsonFunctionsMinVersion;
     public override bool SupportsJsonValueFunction => Version >= JsonFunctionsMinVersion;
+    public override bool SupportsAlterTableAddColumn => true;
     public override bool SupportsSequenceDdl => true;
     public override bool SupportsNextValueForSequenceExpression => true;
     public override bool SupportsPreviousValueForSequenceExpression => true;

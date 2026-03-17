@@ -314,6 +314,56 @@ public sealed class SqliteMockTests
     }
 
     /// <summary>
+    /// EN: Verifies automatic dialect mode executes the shared ALTER TABLE ... ADD COLUMN subset and backfills existing rows.
+    /// PT: Verifica se o modo automatico de dialeto executa o subset compartilhado de ALTER TABLE ... ADD COLUMN e preenche linhas existentes.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteNonQuery_WithAutoSqlDialect_ShouldAcceptAlterTableAddColumn()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', NULL)"
+        };
+        command.ExecuteNonQuery();
+
+        command.CommandText = "ALTER TABLE Users ADD COLUMN NickName VARCHAR(30) DEFAULT 'guest'";
+        Assert.Equal(0, command.ExecuteNonQuery());
+
+        var users = _connection.GetTable("users");
+        Assert.True(users.Columns.ContainsKey("nickname"));
+        Assert.Equal("guest", users[0][users.Columns["nickname"].Index]);
+    }
+
+    /// <summary>
+    /// EN: Verifies automatic dialect mode rejects NOT NULL ALTER TABLE additions without a default when rows already exist.
+    /// PT: Verifica se o modo automatico de dialeto rejeita adicoes NOT NULL via ALTER TABLE sem default quando ja existem linhas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteNonQuery_WithAutoSqlDialect_ShouldRejectNotNullColumnWithoutDefaultOnPopulatedTable()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', NULL)"
+        };
+        command.ExecuteNonQuery();
+
+        var ex = Assert.ThrowsAny<Exception>(() =>
+        {
+            command.CommandText = "ALTER TABLE Users ADD COLUMN Status VARCHAR(20) NOT NULL";
+            command.ExecuteNonQuery();
+        });
+
+        Assert.Contains("status", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.False(_connection.GetTable("users").Columns.ContainsKey("status"));
+    }
+
+    /// <summary>
     /// EN: Verifies automatic dialect mode executes shared JSON arrow operators through the SQLite runtime pipeline.
     /// PT: Verifica se o modo automatico de dialeto executa operadores JSON compartilhados pelo pipeline de runtime do SQLite.
     /// </summary>

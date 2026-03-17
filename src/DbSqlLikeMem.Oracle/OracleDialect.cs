@@ -144,6 +144,7 @@ internal sealed class OracleDialect : SqlDialectBase
     /// PT: Obtém se há suporte a merge.
     /// </summary>
     public override bool SupportsMerge => Version >= MergeMinVersion;
+    public override bool SupportsAlterTableAddColumn => true;
     public override bool SupportsSequenceDdl => true;
     public override bool SupportsSequenceDotValueExpression(string suffix)
         => suffix.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)

@@ -176,10 +176,19 @@ public abstract class TableMock
         object? defaultValue = null,
         IList<string>? enumValues = null)
     {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(name, nameof(name));
+
+        var normalizedName = name.NormalizeName();
+        if (_columns.ContainsKey(normalizedName))
+            throw new InvalidOperationException(Resources.SqlExceptionMessages.ColumnAlreadyExistsInTable(normalizedName, TableName));
+
+        if (_items.Count != 0 && !nullable && defaultValue == null && !identity)
+            throw new InvalidOperationException($"Cannot add NOT NULL column '{name}' without default value when the table already has rows.");
+
         var idx = _columns.Count;
         var col = new ColumnDef(
             table: this,
-            name: name,
+            name: normalizedName,
             index: idx,
             dbType: dbType,
             nullable: nullable,
@@ -189,7 +198,8 @@ public abstract class TableMock
             defaultValue: defaultValue,
             enumValues: enumValues);
 
-        _columns.Add(name, col);
+        _columns.Add(normalizedName, col);
+        BackfillAddedColumn(col);
         return col;
     }
 
@@ -200,22 +210,36 @@ public abstract class TableMock
     /// <returns></returns>
     public ColumnDef AddColumn(
         Col column)
-    {
-        var idx = _columns.Count;
-        var col = new ColumnDef(
-            table: this,
-            name: column.name,
-            index: idx,
-            dbType: column.dbType,
-            nullable: column.nullable,
-            size: column.size,
-            decimalPlaces: column.decimalPlaces,
-            identity: column.identity,
-            defaultValue: column.defaultValue,
-            enumValues: column.enumValues);
+        => AddColumn(
+            column.name,
+            column.dbType,
+            column.nullable,
+            column.size,
+            column.decimalPlaces,
+            column.identity,
+            column.defaultValue,
+            column.enumValues);
 
-        _columns.Add(column.name, col);
-        return col;
+    private void BackfillAddedColumn(ColumnDef column)
+    {
+        if (_items.Count == 0)
+            return;
+
+        foreach (var row in _items)
+        {
+            object? value = column.DefaultValue;
+
+            if (column.Identity)
+                value = NextIdentity++;
+
+            row[column.Index] = value;
+
+            if (column.GetGenValue != null && column.PersistComputedValue)
+                row[column.Index] = column.GetGenValue(new ReadOnlyDictionary<int, object?>(row), this);
+
+            if (!column.Nullable && row[column.Index] == null)
+                throw ColumnCannotBeNull(column.Name);
+        }
     }
 
     /// <summary>
@@ -253,7 +277,33 @@ public abstract class TableMock
         name = name.NormalizeName();
         if (_indexes.ContainsKey(name))
             throw new InvalidOperationException(Resources.SqlExceptionMessages.IndexAlreadyExists(name));
-        var idx = new IndexDef(this, name, keyCols, include, unique);
+        var normalizedKeyCols = keyCols
+            .Select(static col => col.NormalizeName())
+            .ToList();
+        if (normalizedKeyCols.Count != normalizedKeyCols.Distinct(StringComparer.OrdinalIgnoreCase).Count())
+            throw new InvalidOperationException($"Index '{name}' cannot contain duplicate key columns.");
+
+        foreach (var keyColumn in normalizedKeyCols)
+            GetColumn(keyColumn);
+
+        List<string>? normalizedIncludeCols = null;
+        if (include is not null)
+        {
+            normalizedIncludeCols = include
+                .Select(static col => col.NormalizeName())
+                .ToList();
+
+            if (normalizedIncludeCols.Count != normalizedIncludeCols.Distinct(StringComparer.OrdinalIgnoreCase).Count())
+                throw new InvalidOperationException($"Index '{name}' cannot contain duplicate include columns.");
+
+            if (normalizedIncludeCols.Any(includeCol => normalizedKeyCols.Contains(includeCol, StringComparer.OrdinalIgnoreCase)))
+                throw new InvalidOperationException($"Index '{name}' cannot include key columns redundantly.");
+
+            foreach (var includeColumn in normalizedIncludeCols)
+                GetColumn(includeColumn);
+        }
+
+        var idx = new IndexDef(this, name, normalizedKeyCols, normalizedIncludeCols?.ToArray(), unique);
         _indexes.Add(name, idx);
         return idx;
     }

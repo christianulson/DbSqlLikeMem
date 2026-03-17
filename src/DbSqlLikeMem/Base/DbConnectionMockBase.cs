@@ -912,6 +912,25 @@ public abstract class DbConnectionMockBase(
             tableName,
             schemaName ?? Database);
 
+    internal void AlterTableAddColumn(
+        string tableName,
+        string columnName,
+        DbType dbType,
+        bool nullable,
+        int? size = null,
+        int? decimalPlaces = null,
+        object? defaultValue = null,
+        string? schemaName = null)
+        => Db.AlterTableAddColumn(
+            tableName,
+            columnName,
+            dbType,
+            nullable,
+            size,
+            decimalPlaces,
+            defaultValue,
+            schemaName ?? Database);
+
     #endregion
 
     #region Procedures

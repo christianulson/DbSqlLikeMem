@@ -130,6 +130,9 @@ internal sealed class MySqlDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
 
+    /// <inheritdoc />
+    public override bool SupportsAlterTableAddColumn => true;
+
     /// <summary>
     /// EN: Indicates whether recursive CTE syntax is supported by the configured MySQL version.
     /// PT: Indica se a sintaxe de CTE recursiva é suportada pela versão configurada do MySQL.

@@ -1120,6 +1120,207 @@ public sealed class SqlServerDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures SQL Server rejects CREATE INDEX when the table reference uses an alias outside the pragmatic shared subset.
+    /// PT: Garante que o SQL Server rejeite CREATE INDEX quando a referencia da tabela usa alias fora do subset pragmatico compartilhado.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseCreateIndex_WithTableAlias_ShouldReject(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "CREATE INDEX IX_Users_Name ON dbo.Users u (Name)",
+            new SqlServerDialect(version)));
+
+        Assert.Contains("alias", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server rejects CREATE INDEX when the table reference is a derived source outside the pragmatic shared subset.
+    /// PT: Garante que o SQL Server rejeite CREATE INDEX quando a referencia da tabela e uma fonte derivada fora do subset pragmatico compartilhado.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseCreateIndex_WithDerivedTable_ShouldReject(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "CREATE INDEX IX_Users_Name ON (SELECT * FROM dbo.Users) u (Name)",
+            new SqlServerDialect(version)));
+
+        Assert.Contains("concrete table name", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server rejects DROP INDEX ... ON when the table name is omitted from the pragmatic subset.
+    /// PT: Garante que o SQL Server rejeite DROP INDEX ... ON quando o nome da tabela for omitido no subset pragmático.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseDropIndex_WithOnWithoutTableName_ShouldReject(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "DROP INDEX IX_Users_Name ON ;",
+            new SqlServerDialect(version)));
+
+        Assert.Contains("table name", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server rejects DROP INDEX ... ON when the table reference uses an alias outside the pragmatic subset.
+    /// PT: Garante que o SQL Server rejeite DROP INDEX ... ON quando a referencia da tabela usa alias fora do subset pragmático.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseDropIndex_WithOnTableAlias_ShouldReject(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "DROP INDEX IX_Users_Name ON dbo.Users u",
+            new SqlServerDialect(version)));
+
+        Assert.Contains("alias", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server rejects DROP INDEX ... ON when the table reference is a derived source outside the pragmatic subset.
+    /// PT: Garante que o SQL Server rejeite DROP INDEX ... ON quando a referencia da tabela e uma fonte derivada fora do subset pragmatico.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseDropIndex_WithOnDerivedTable_ShouldReject(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "DROP INDEX IX_Users_Name ON (SELECT * FROM dbo.Users) u",
+            new SqlServerDialect(version)));
+
+        Assert.Contains("concrete table name", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server accepts the pragmatic ALTER TABLE ... ADD subset with ADD syntax and captures column metadata.
+    /// PT: Garante que o SQL Server aceite o subset pragmático de ALTER TABLE ... ADD com sintaxe ADD e capture os metadados da coluna.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseAlterTableAddColumn_ShouldParse(int version)
+    {
+        var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
+            "ALTER TABLE dbo.Users ADD age INT NOT NULL DEFAULT 0",
+            new SqlServerDialect(version)));
+
+        Assert.Equal("dbo", parsed.Table?.DbName, ignoreCase: true);
+        Assert.Equal("Users", parsed.Table?.Name, ignoreCase: true);
+        Assert.Equal("age", parsed.ColumnName, ignoreCase: true);
+        Assert.Equal(DbType.Int32, parsed.ColumnType);
+        Assert.False(parsed.Nullable);
+        Assert.Equal("0", parsed.DefaultValueRaw);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server preserves DECIMAL precision and scale metadata in the pragmatic ALTER TABLE ... ADD subset.
+    /// PT: Garante que o SQL Server preserve os metadados de precisao e escala de DECIMAL no subset pragmatico de ALTER TABLE ... ADD.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseAlterTableAddDecimalColumn_ShouldPreservePrecisionAndScale(int version)
+    {
+        var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
+            "ALTER TABLE dbo.Users ADD amount DECIMAL(10, 4) NOT NULL DEFAULT 0",
+            new SqlServerDialect(version)));
+
+        Assert.Equal(DbType.Decimal, parsed.ColumnType);
+        Assert.Equal(10, parsed.Size);
+        Assert.Equal(4, parsed.DecimalPlaces);
+        Assert.False(parsed.Nullable);
+        Assert.Equal("0", parsed.DefaultValueRaw);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server rejects ALTER TABLE ... ADD when the table reference uses an alias outside the pragmatic subset.
+    /// PT: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando a referencia da tabela usa alias fora do subset pragmatico.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseAlterTableAddColumn_WithTableAlias_ShouldReject(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE dbo.Users u ADD age INT",
+            new SqlServerDialect(version)));
+
+        Assert.Contains("alias", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server rejects ALTER TABLE ... ADD when the table reference is a derived source outside the pragmatic subset.
+    /// PT: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando a referencia da tabela e uma fonte derivada fora do subset pragmatico.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseAlterTableAddColumn_WithDerivedTable_ShouldReject(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE (SELECT * FROM dbo.Users) u ADD age INT",
+            new SqlServerDialect(version)));
+
+        Assert.Contains("concrete table name", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server rejects ALTER TABLE ... ADD when NOT NULL is paired with DEFAULT NULL outside the pragmatic subset.
+    /// PT: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando NOT NULL e combinado com DEFAULT NULL fora do subset pragmatico.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseAlterTableAddColumn_NotNullWithDefaultNull_ShouldReject(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE dbo.Users ADD status VARCHAR(20) NOT NULL DEFAULT NULL",
+            new SqlServerDialect(version)));
+
+        Assert.Contains("default null", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server rejects ALTER TABLE ... ADD when VARCHAR type arguments are not numeric outside the pragmatic subset.
+    /// PT: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando os argumentos de tipo VARCHAR nao sao numericos fora do subset pragmatico.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseAlterTableAddColumn_WithInvalidVarcharTypeArguments_ShouldReject(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE dbo.Users ADD nickname VARCHAR(foo)",
+            new SqlServerDialect(version)));
+
+        Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server rejects ALTER TABLE ... ADD when DECIMAL scale arguments are not numeric outside the pragmatic subset.
+    /// PT: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando os argumentos de escala de DECIMAL nao sao numericos fora do subset pragmatico.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseAlterTableAddColumn_WithInvalidDecimalTypeArguments_ShouldReject(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE dbo.Users ADD amount DECIMAL(10, foo)",
+            new SqlServerDialect(version)));
+
+        Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Validates OFFSET/FETCH without ORDER BY according to dialect version rules.
     /// PT: Valida OFFSET/FETCH sem ORDER BY conforme as regras de versão do dialeto.
     /// </summary>

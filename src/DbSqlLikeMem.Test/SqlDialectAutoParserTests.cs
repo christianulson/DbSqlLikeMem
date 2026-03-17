@@ -332,6 +332,198 @@ public sealed class SqlDialectAutoParserTests(
     }
 
     /// <summary>
+    /// EN: Verifies Auto mode parses the pragmatic shared ALTER TABLE ... ADD COLUMN subset.
+    /// PT: Verifica se o modo Auto interpreta o subset pragmático compartilhado de ALTER TABLE ... ADD COLUMN.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldParseAlterTableAddColumnDdl()
+    {
+        var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.ParseAuto(
+            "ALTER TABLE sales.users ADD COLUMN nickname VARCHAR(40) NOT NULL DEFAULT 'guest'"));
+
+        Assert.Equal("sales", parsed.Table?.DbName, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("users", parsed.Table?.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("nickname", parsed.ColumnName, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(DbType.String, parsed.ColumnType);
+        Assert.Equal(40, parsed.Size);
+        Assert.False(parsed.Nullable);
+        Assert.Equal("'guest'", parsed.DefaultValueRaw);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto mode preserves DECIMAL precision and scale metadata in the pragmatic ALTER TABLE ... ADD COLUMN subset.
+    /// PT: Verifica se o modo Auto preserva os metadados de precisao e escala de DECIMAL no subset pragmatico de ALTER TABLE ... ADD COLUMN.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldParseAlterTableAddDecimalColumnPrecisionAndScale()
+    {
+        var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.ParseAuto(
+            "ALTER TABLE sales.users ADD COLUMN amount DECIMAL(10, 4) NOT NULL DEFAULT 0"));
+
+        Assert.Equal(DbType.Decimal, parsed.ColumnType);
+        Assert.Equal(10, parsed.Size);
+        Assert.Equal(4, parsed.DecimalPlaces);
+        Assert.False(parsed.Nullable);
+        Assert.Equal("0", parsed.DefaultValueRaw);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto mode rejects ALTER TABLE ... ADD COLUMN when the table reference includes an alias in the shared subset.
+    /// PT: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando a referencia da tabela inclui alias no subset compartilhado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldRejectAlterTableWithTableAlias()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
+            "ALTER TABLE users u ADD COLUMN nickname VARCHAR(40)"));
+
+        Assert.Contains("alias", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto mode rejects ALTER TABLE ... ADD COLUMN when the table reference is a derived source instead of a concrete table name.
+    /// PT: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando a referencia da tabela e uma fonte derivada em vez de um nome concreto.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldRejectAlterTableWithDerivedTable()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
+            "ALTER TABLE (SELECT * FROM users) u ADD COLUMN nickname VARCHAR(40)"));
+
+        Assert.Contains("concrete table name", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto mode rejects ALTER TABLE ... ADD COLUMN when NOT NULL is combined with DEFAULT NULL in the shared subset.
+    /// PT: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando NOT NULL e combinado com DEFAULT NULL no subset compartilhado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldRejectAlterTableNotNullWithDefaultNull()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
+            "ALTER TABLE users ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT NULL"));
+
+        Assert.Contains("default null", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto mode rejects ALTER TABLE ... ADD COLUMN when VARCHAR type arguments are not numeric in the shared subset.
+    /// PT: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando os argumentos de tipo VARCHAR nao sao numericos no subset compartilhado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldRejectAlterTableWithInvalidVarcharTypeArguments()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
+            "ALTER TABLE users ADD COLUMN nickname VARCHAR(foo)"));
+
+        Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto mode rejects ALTER TABLE ... ADD COLUMN when DECIMAL scale arguments are not numeric in the shared subset.
+    /// PT: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando os argumentos de escala de DECIMAL nao sao numericos no subset compartilhado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldRejectAlterTableWithInvalidDecimalTypeArguments()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
+            "ALTER TABLE users ADD COLUMN amount DECIMAL(10, foo)"));
+
+        Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto mode rejects CREATE INDEX definitions that repeat the same key column in the shared subset.
+    /// PT: Verifica se o modo Auto rejeita definicoes de CREATE INDEX que repetem a mesma coluna-chave no subset compartilhado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldRejectCreateIndexWithDuplicateKeyColumns()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
+            "CREATE INDEX ix_users_name_dup ON users (name, name)"));
+
+        Assert.Contains("duplicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto mode rejects CREATE INDEX when the table reference includes an alias in the shared subset.
+    /// PT: Verifica se o modo Auto rejeita CREATE INDEX quando a referencia da tabela inclui alias no subset compartilhado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldRejectCreateIndexWithTableAlias()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
+            "CREATE INDEX ix_users_name ON users u (name)"));
+
+        Assert.Contains("alias", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto mode rejects CREATE INDEX when the table reference is a derived source instead of a concrete table name.
+    /// PT: Verifica se o modo Auto rejeita CREATE INDEX quando a referencia da tabela e uma fonte derivada em vez de um nome concreto.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldRejectCreateIndexWithDerivedTable()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
+            "CREATE INDEX ix_users_name ON (SELECT * FROM users) u (name)"));
+
+        Assert.Contains("concrete table name", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto mode rejects DROP INDEX ... ON when the table name is missing in the shared subset.
+    /// PT: Verifica se o modo Auto rejeita DROP INDEX ... ON quando falta o nome da tabela no subset compartilhado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldRejectDropIndexOnWithoutTableName()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
+            "DROP INDEX ix_users_name ON ;"));
+
+        Assert.Contains("table name", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto mode rejects DROP INDEX ... ON when the table reference includes an alias in the shared subset.
+    /// PT: Verifica se o modo Auto rejeita DROP INDEX ... ON quando a referencia de tabela inclui alias no subset compartilhado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldRejectDropIndexOnWithTableAlias()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
+            "DROP INDEX ix_users_name ON users u"));
+
+        Assert.Contains("alias", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto mode rejects DROP INDEX ... ON when the table reference is a derived source instead of a concrete table name.
+    /// PT: Verifica se o modo Auto rejeita DROP INDEX ... ON quando a referencia da tabela e uma fonte derivada em vez de um nome concreto.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldRejectDropIndexOnWithDerivedTable()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
+            "DROP INDEX ix_users_name ON (SELECT * FROM users) u"));
+
+        Assert.Contains("concrete table name", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Verifies Auto mode parses the shared sequence expression families into the existing canonical call nodes.
     /// PT: Verifica se o modo Auto interpreta as familias compartilhadas de expressoes de sequence para os nos canonicos de chamada ja existentes.
     /// </summary>

@@ -116,7 +116,7 @@ internal sealed class SqlQueryParser
         }
 
         // DDL statements are cheap to parse and benefit from deterministic no-cache behavior in tests.
-        if (IsWord(first, "CREATE") || IsWord(first, "DROP"))
+        if (IsWord(first, "CREATE") || IsWord(first, "ALTER") || IsWord(first, "DROP"))
         {
             var uncached = ParseUncached(tokens, dialect, null, autoSyntaxFeatures);
             EnsureDialectSupport(uncached, dialect);
@@ -220,6 +220,8 @@ internal sealed class SqlQueryParser
             result = q.ParseDelete();
         else if (IsWord(first, "CREATE"))
             result = q.ParseCreate();
+        else if (IsWord(first, "ALTER"))
+            result = q.ParseAlter();
         else if (IsWord(first, "DROP"))
             result = q.ParseDrop();
         else if (IsWord(first, "MERGE"))
@@ -2098,13 +2100,19 @@ internal sealed class SqlQueryParser
 
         var indexName = ExpectIdentifier();
         ExpectWord("ON");
-        var table = ParseTableSource(consumeHints: false, allowFunctionSource: false);
+        var table = ParseCreateIndexTableName();
 
         if (!IsSymbol(Peek(), "("))
             throw new InvalidOperationException("CREATE INDEX requires a column list.");
 
         Consume(); // (
         var keyColumns = ParseIdentifierList("CREATE INDEX column list");
+        var normalizedKeyColumns = keyColumns
+            .Select(static col => col.NormalizeName())
+            .ToList();
+        if (normalizedKeyColumns.Count != normalizedKeyColumns.Distinct(StringComparer.OrdinalIgnoreCase).Count())
+            throw new InvalidOperationException("CREATE INDEX column list cannot contain duplicate columns.");
+
         ExpectSymbol(")");
         EnsureStatementEnd("CREATE INDEX");
 
@@ -2112,9 +2120,137 @@ internal sealed class SqlQueryParser
         {
             IndexName = indexName,
             Unique = unique,
-            KeyColumns = keyColumns,
+            KeyColumns = normalizedKeyColumns,
             Table = table
         };
+    }
+
+    private SqlTableSource ParseCreateIndexTableName()
+    {
+        var tableNameToken = Peek();
+        if (IsEnd(tableNameToken) || IsSymbol(tableNameToken, ";"))
+            throw new InvalidOperationException("CREATE INDEX requires a table name.");
+
+        if (IsSymbol(tableNameToken, "("))
+            throw new InvalidOperationException("CREATE INDEX requires a concrete table name.");
+
+        var table = ParseQualifiedObjectName();
+
+        if (IsWord(Peek(), "AS") || Peek().Kind is SqlTokenKind.Identifier or SqlTokenKind.Keyword)
+            throw new InvalidOperationException("CREATE INDEX requires a table name without alias.");
+
+        return table;
+    }
+
+    private SqlQueryBase ParseAlter()
+    {
+        ExpectWord("ALTER");
+
+        if (IsWord(Peek(), "TABLE"))
+            return ParseAlterTable();
+
+        throw new InvalidOperationException("Apenas ALTER TABLE pragmático é suportado no mock no momento.");
+    }
+
+    private SqlAlterTableAddColumnQuery ParseAlterTable()
+    {
+        if (!_dialect.SupportsAlterTableAddColumn)
+            throw SqlUnsupported.ForDialect(_dialect, "ALTER TABLE ... ADD [COLUMN]");
+
+        ExpectWord("TABLE");
+        var table = ParseAlterTableName();
+
+        if (!IsWord(Peek(), "ADD"))
+            throw new InvalidOperationException("Only ALTER TABLE ... ADD [COLUMN] is supported in the mock.");
+
+        Consume(); // ADD
+        if (IsWord(Peek(), "COLUMN"))
+            Consume();
+
+        var columnNameToken = Peek();
+        if (IsEnd(columnNameToken) || IsSymbol(columnNameToken, ";"))
+            throw new InvalidOperationException("ALTER TABLE ADD COLUMN requires a column name.");
+
+        var columnName = ExpectIdentifier();
+        var (columnType, size, decimalPlaces) = ParseAlterTableColumnTypeDefinition();
+        var nullable = true;
+        var sawNullability = false;
+        string? defaultValueRaw = null;
+
+        while (!IsEnd(Peek()) && !IsSymbol(Peek(), ";"))
+        {
+            if (IsWord(Peek(), "DEFAULT"))
+            {
+                if (defaultValueRaw is not null)
+                    throw new InvalidOperationException("ALTER TABLE ADD COLUMN DEFAULT can only be specified once.");
+
+                Consume();
+                defaultValueRaw = ParseAlterTableDefaultLiteralRaw();
+                continue;
+            }
+
+            if (IsWord(Peek(), "NOT"))
+            {
+                if (sawNullability)
+                    throw new InvalidOperationException("ALTER TABLE ADD COLUMN nullability can only be specified once.");
+
+                Consume();
+                ExpectWord("NULL");
+                nullable = false;
+                sawNullability = true;
+                continue;
+            }
+
+            if (IsWord(Peek(), "NULL"))
+            {
+                if (sawNullability)
+                    throw new InvalidOperationException("ALTER TABLE ADD COLUMN nullability can only be specified once.");
+
+                Consume();
+                nullable = true;
+                sawNullability = true;
+                continue;
+            }
+
+            var unexpected = Peek();
+            throw new InvalidOperationException(
+                $"Unsupported token in ALTER TABLE ADD COLUMN subset: {unexpected.Kind} '{unexpected.Text}'");
+        }
+
+        if (!nullable
+            && defaultValueRaw is not null
+            && string.Equals(defaultValueRaw.Trim(), "NULL", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("ALTER TABLE ADD COLUMN NOT NULL cannot use DEFAULT NULL.");
+
+        EnsureStatementEnd("ALTER TABLE");
+
+        return new SqlAlterTableAddColumnQuery
+        {
+            Table = table,
+            ColumnName = columnName,
+            ColumnType = columnType,
+            Size = size,
+            DecimalPlaces = decimalPlaces,
+            Nullable = nullable,
+            DefaultValueRaw = defaultValueRaw
+        };
+    }
+
+    private SqlTableSource ParseAlterTableName()
+    {
+        var tableNameToken = Peek();
+        if (IsEnd(tableNameToken) || IsSymbol(tableNameToken, ";"))
+            throw new InvalidOperationException("ALTER TABLE requires a table name.");
+
+        if (IsSymbol(tableNameToken, "("))
+            throw new InvalidOperationException("ALTER TABLE requires a concrete table name.");
+
+        var table = ParseQualifiedObjectName();
+
+        if (IsWord(Peek(), "AS") || Peek().Kind == SqlTokenKind.Identifier)
+            throw new InvalidOperationException("ALTER TABLE requires a table name without alias.");
+
+        return table;
     }
 
     private SqlQueryBase ParseDrop()
@@ -2298,7 +2434,7 @@ internal sealed class SqlQueryParser
                 throw SqlUnsupported.ForDialect(_dialect, "DROP INDEX ... ON <table>");
 
             Consume();
-            table = ParseTableSource(consumeHints: false, allowFunctionSource: false);
+            table = ParseDropIndexOnTableName();
         }
 
         EnsureStatementEnd("DROP INDEX");
@@ -2309,6 +2445,134 @@ internal sealed class SqlQueryParser
             IfExists = ifExists,
             Table = table
         };
+    }
+
+    private SqlTableSource ParseDropIndexOnTableName()
+    {
+        var tableNameToken = Peek();
+        if (IsEnd(tableNameToken) || IsSymbol(tableNameToken, ";"))
+            throw new InvalidOperationException("DROP INDEX ... ON requires a table name.");
+
+        if (IsSymbol(tableNameToken, "("))
+            throw new InvalidOperationException("DROP INDEX ... ON requires a concrete table name.");
+
+        var table = ParseQualifiedObjectName();
+
+        if (IsWord(Peek(), "AS") || Peek().Kind is SqlTokenKind.Identifier or SqlTokenKind.Keyword)
+            throw new InvalidOperationException("DROP INDEX ... ON requires a table name without alias.");
+
+        if (IsSymbol(Peek(), "("))
+            throw new InvalidOperationException("DROP INDEX ... ON requires a concrete table name.");
+
+        return table;
+    }
+
+    private (DbType Type, int? Size, int? DecimalPlaces) ParseAlterTableColumnTypeDefinition()
+    {
+        var typeToken = Peek();
+        if (typeToken.Kind is not (SqlTokenKind.Identifier or SqlTokenKind.Keyword))
+            throw new InvalidOperationException("ALTER TABLE ADD COLUMN requires a SQL type name.");
+
+        var typeName = Consume().Text;
+        string? rawArgs = null;
+
+        if (IsSymbol(Peek(), "("))
+        {
+            Consume();
+            var args = new List<SqlToken>();
+            while (!IsEnd(Peek()) && !IsSymbol(Peek(), ")"))
+                args.Add(Consume());
+
+            if (!IsSymbol(Peek(), ")"))
+                throw new InvalidOperationException("ALTER TABLE ADD COLUMN type arguments were not closed correctly.");
+
+            Consume();
+            rawArgs = TokensToSql(args);
+        }
+
+        var dbType = typeName.Trim().NormalizeName() switch
+        {
+            "INT" or "INTEGER" or "SMALLINT" => DbType.Int32,
+            "BIGINT" => DbType.Int64,
+            "DECIMAL" or "NUMERIC" => DbType.Decimal,
+            "FLOAT" or "REAL" or "DOUBLE" => DbType.Double,
+            "BOOLEAN" or "BOOL" => DbType.Boolean,
+            "DATE" => DbType.Date,
+            "TIMESTAMP" or "DATETIME" => DbType.DateTime,
+            "GUID" or "UUID" => DbType.Guid,
+            "BLOB" or "BINARY" or "VARBINARY" => DbType.Binary,
+            _ => DbType.String,
+        };
+
+        var (size, decimalPlaces) = ParseAlterTableTypeArgs(rawArgs, dbType);
+        return (dbType, size, decimalPlaces);
+    }
+
+    private static (int? Size, int? DecimalPlaces) ParseAlterTableTypeArgs(string? rawArgs, DbType dbType)
+    {
+        if (string.IsNullOrWhiteSpace(rawArgs))
+        {
+            if (dbType == DbType.String)
+                return (255, null);
+            if (dbType == DbType.Decimal || dbType == DbType.Double || dbType == DbType.Currency)
+                return (null, 2);
+            return (null, null);
+        }
+
+        var args = rawArgs.Split(',')
+            .Select(static x => x.Trim())
+            .Where(static x => x.Length > 0)
+            .ToArray();
+
+        if (dbType == DbType.String)
+        {
+            if (args.Length != 1 || !int.TryParse(args[0], out var parsedSize) || parsedSize <= 0)
+                throw new InvalidOperationException("ALTER TABLE ADD COLUMN type arguments are invalid.");
+
+            return (parsedSize, null);
+        }
+
+        if (dbType == DbType.Decimal || dbType == DbType.Double || dbType == DbType.Currency)
+        {
+            if (args.Length is < 1 or > 2)
+                throw new InvalidOperationException("ALTER TABLE ADD COLUMN type arguments are invalid.");
+
+            if (!int.TryParse(args[0], out var parsedPrecision) || parsedPrecision <= 0)
+                throw new InvalidOperationException("ALTER TABLE ADD COLUMN type arguments are invalid.");
+
+            if (args.Length == 1)
+                return (parsedPrecision, 2);
+
+            if (!int.TryParse(args[1], out var parsedScale) || parsedScale < 0 || parsedScale > parsedPrecision)
+                throw new InvalidOperationException("ALTER TABLE ADD COLUMN type arguments are invalid.");
+
+            return (parsedPrecision, parsedScale);
+        }
+
+        return (null, null);
+    }
+
+    private string ParseAlterTableDefaultLiteralRaw()
+    {
+        var tokens = new List<SqlToken>();
+
+        if (IsSymbol(Peek(), "+") || IsSymbol(Peek(), "-"))
+            tokens.Add(Consume());
+
+        var token = Peek();
+        if (token.Kind is SqlTokenKind.Number or SqlTokenKind.String)
+        {
+            tokens.Add(Consume());
+            return TokensToSql(tokens);
+        }
+
+        if (IsWord(token, "NULL") || IsWord(token, "TRUE") || IsWord(token, "FALSE"))
+        {
+            tokens.Add(Consume());
+            return TokensToSql(tokens);
+        }
+
+        throw new InvalidOperationException("ALTER TABLE ADD COLUMN DEFAULT only supports literal values in the shared subset.");
     }
 
     private SqlTableSource ParseQualifiedObjectName()

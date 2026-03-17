@@ -117,6 +117,16 @@ internal sealed record SqlDropTableQuery : SqlQueryBase
     internal TemporaryTableScope Scope { get; init; } = TemporaryTableScope.None;
 }
 
+internal sealed record SqlAlterTableAddColumnQuery : SqlQueryBase
+{
+    internal string ColumnName { get; init; } = "";
+    internal DbType ColumnType { get; init; }
+    internal bool Nullable { get; init; } = true;
+    internal int? Size { get; init; }
+    internal int? DecimalPlaces { get; init; }
+    internal string? DefaultValueRaw { get; init; }
+}
+
 internal sealed record SqlCreateIndexQuery : SqlQueryBase
 {
     internal string IndexName { get; init; } = "";

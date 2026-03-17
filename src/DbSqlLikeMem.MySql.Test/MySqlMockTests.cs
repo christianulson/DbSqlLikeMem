@@ -140,6 +140,221 @@ public sealed class MySqlMockTests
     }
 
     /// <summary>
+    /// EN: Verifies CREATE INDEX rejects duplicate key columns and leaves index metadata unchanged.
+    /// PT: Verifica se CREATE INDEX rejeita colunas-chave duplicadas e mantem a metadata de indices inalterada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteNonQuery_CreateIndex_ShouldRejectDuplicateKeyColumns()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "CREATE INDEX IX_Users_Name_Dup ON Users (Name, Name)"
+        };
+
+        var ex = Assert.ThrowsAny<Exception>(() => command.ExecuteNonQuery());
+
+        Assert.Contains("duplicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        _connection.GetTable("users").Indexes.ContainsKey("ix_users_name_dup").Should().BeFalse();
+    }
+
+    /// <summary>
+    /// EN: Verifies CREATE INDEX rejects unknown key columns even when the target table is empty and leaves index metadata unchanged.
+    /// PT: Verifica se CREATE INDEX rejeita colunas-chave desconhecidas mesmo quando a tabela alvo esta vazia e mantem a metadata de indices inalterada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteNonQuery_CreateIndex_ShouldRejectUnknownKeyColumnOnEmptyTable()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "CREATE INDEX IX_Users_Missing ON Users (MissingCol)"
+        };
+
+        var ex = Assert.ThrowsAny<Exception>(() => command.ExecuteNonQuery());
+
+        Assert.Contains("column", ex.Message, StringComparison.OrdinalIgnoreCase);
+        _connection.GetTable("users").Indexes.ContainsKey("ix_users_missing").Should().BeFalse();
+    }
+
+    /// <summary>
+    /// EN: Verifies direct index creation rejects duplicate include columns and leaves index metadata unchanged.
+    /// PT: Verifica se a criacao direta de indice rejeita colunas include duplicadas e mantem a metadata de indices inalterada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void CreateIndex_ShouldRejectDuplicateIncludeColumns()
+    {
+        var table = _connection.GetTable("users");
+
+        var ex = Assert.ThrowsAny<Exception>(() => table.CreateIndex(
+            "IX_Users_Name_Include_Dup",
+            ["Name"],
+            ["Email", "Email"]));
+
+        Assert.Contains("include", ex.Message, StringComparison.OrdinalIgnoreCase);
+        table.Indexes.ContainsKey("ix_users_name_include_dup").Should().BeFalse();
+    }
+
+    /// <summary>
+    /// EN: Verifies direct index creation rejects include columns that overlap the key columns and leaves index metadata unchanged.
+    /// PT: Verifica se a criacao direta de indice rejeita colunas include que sobrepoem as colunas-chave e mantem a metadata de indices inalterada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void CreateIndex_ShouldRejectIncludeColumnsThatOverlapKeyColumns()
+    {
+        var table = _connection.GetTable("users");
+
+        var ex = Assert.ThrowsAny<Exception>(() => table.CreateIndex(
+            "IX_Users_Name_Include_Overlap",
+            ["Name"],
+            ["name"]));
+
+        Assert.Contains("include", ex.Message, StringComparison.OrdinalIgnoreCase);
+        table.Indexes.ContainsKey("ix_users_name_include_overlap").Should().BeFalse();
+    }
+
+    /// <summary>
+    /// EN: Verifies DROP INDEX without a table name rejects ambiguous matches and keeps both index registrations intact.
+    /// PT: Verifica se DROP INDEX sem nome de tabela rejeita correspondencias ambiguas e mantem os dois registros de indice intactos.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteNonQuery_DropIndexWithoutTableName_ShouldRejectAmbiguousMatch()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "CREATE TABLE UsersArchive (Id INT, Name VARCHAR(100), Email VARCHAR(200))"
+        };
+        command.ExecuteNonQuery();
+
+        command.CommandText = "CREATE INDEX IX_Shared_Name ON Users (Name)";
+        command.ExecuteNonQuery();
+
+        command.CommandText = "CREATE INDEX IX_Shared_Name ON UsersArchive (Name)";
+        command.ExecuteNonQuery();
+
+        var ex = Assert.ThrowsAny<Exception>(() =>
+        {
+            command.CommandText = "DROP INDEX IX_Shared_Name";
+            command.ExecuteNonQuery();
+        });
+
+        Assert.Contains("ambiguous", ex.Message, StringComparison.OrdinalIgnoreCase);
+        _connection.GetTable("users").Indexes.ContainsKey("ix_shared_name").Should().BeTrue();
+        _connection.GetTable("usersarchive").Indexes.ContainsKey("ix_shared_name").Should().BeTrue();
+    }
+
+    /// <summary>
+    /// EN: Verifies ALTER TABLE ... ADD COLUMN updates metadata and backfills existing rows with the shared default literal subset.
+    /// PT: Verifica se ALTER TABLE ... ADD COLUMN atualiza os metadados e preenche linhas existentes com o subset compartilhado de literal DEFAULT.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteNonQuery_AlterTableAddColumn_ShouldBackfillExistingRows()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', NULL)"
+        };
+        command.ExecuteNonQuery();
+
+        command.CommandText = "ALTER TABLE Users ADD COLUMN NickName VARCHAR(20) NOT NULL DEFAULT 'guest'";
+        command.ExecuteNonQuery();
+
+        var users = _connection.GetTable("users");
+        users.Columns.ContainsKey("nickname").Should().BeTrue();
+        users.Columns["nickname"].Size.Should().Be(20);
+        users[0][users.Columns["nickname"].Index].Should().Be("guest");
+    }
+
+    /// <summary>
+    /// EN: Verifies ALTER TABLE ... ADD COLUMN preserves DECIMAL precision and scale metadata in the runtime path.
+    /// PT: Verifica se ALTER TABLE ... ADD COLUMN preserva os metadados de precisao e escala de DECIMAL no caminho de runtime.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteNonQuery_AlterTableAddDecimalColumn_ShouldPreservePrecisionAndScale()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "ALTER TABLE Users ADD COLUMN Amount2 DECIMAL(10, 4) NOT NULL DEFAULT 0"
+        };
+
+        command.ExecuteNonQuery();
+
+        var column = _connection.GetTable("users").Columns["amount2"];
+        column.DbType.Should().Be(DbType.Decimal);
+        column.Size.Should().Be(10);
+        column.DecimalPlaces.Should().Be(4);
+        column.Nullable.Should().BeFalse();
+        column.DefaultValue.Should().Be(0m);
+    }
+
+    /// <summary>
+    /// EN: Verifies ALTER TABLE ... ADD COLUMN rejects NOT NULL combined with DEFAULT NULL and leaves table metadata unchanged.
+    /// PT: Verifica se ALTER TABLE ... ADD COLUMN rejeita NOT NULL combinado com DEFAULT NULL e mantem a metadata da tabela inalterada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteNonQuery_AlterTableAddColumn_ShouldRejectNotNullWithDefaultNull()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "ALTER TABLE Users ADD COLUMN Status VARCHAR(20) NOT NULL DEFAULT NULL"
+        };
+
+        var ex = Assert.ThrowsAny<Exception>(() => command.ExecuteNonQuery());
+
+        Assert.Contains("default null", ex.Message, StringComparison.OrdinalIgnoreCase);
+        _connection.GetTable("users").Columns.ContainsKey("status").Should().BeFalse();
+    }
+
+    /// <summary>
+    /// EN: Verifies ALTER TABLE ... ADD COLUMN rejects malformed VARCHAR type arguments and leaves table metadata unchanged.
+    /// PT: Verifica se ALTER TABLE ... ADD COLUMN rejeita argumentos malformados de tipo VARCHAR e mantem a metadata da tabela inalterada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteNonQuery_AlterTableAddColumn_ShouldRejectInvalidVarcharTypeArguments()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "ALTER TABLE Users ADD COLUMN NickName VARCHAR(foo)"
+        };
+
+        var ex = Assert.ThrowsAny<Exception>(() => command.ExecuteNonQuery());
+
+        Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
+        _connection.GetTable("users").Columns.ContainsKey("nickname").Should().BeFalse();
+    }
+
+    /// <summary>
+    /// EN: Verifies ALTER TABLE ... ADD COLUMN rejects duplicate column names without mutating the table metadata twice.
+    /// PT: Verifica se ALTER TABLE ... ADD COLUMN rejeita nomes de coluna duplicados sem alterar a metadata da tabela duas vezes.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteNonQuery_AlterTableAddColumn_ShouldRejectDuplicateColumn()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "ALTER TABLE Users ADD COLUMN NickName VARCHAR(20)"
+        };
+        command.ExecuteNonQuery();
+
+        var ex = Assert.ThrowsAny<Exception>(() =>
+        {
+            command.CommandText = "ALTER TABLE Users ADD COLUMN NickName VARCHAR(20)";
+            command.ExecuteNonQuery();
+        });
+
+        Assert.Contains("nickname", ex.Message, StringComparison.OrdinalIgnoreCase);
+        _connection.GetTable("users").Columns.Keys.Count(k => k.Equals("nickname", StringComparison.OrdinalIgnoreCase)).Should().Be(1);
+    }
+
+    /// <summary>
     /// EN: Tests creating a table with an inline primary key and inserting data into it.
     /// PT: Testa a criação de uma tabela com chave primária inline e a inserção de dados nela.
     /// </summary>
