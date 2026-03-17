@@ -4,7 +4,9 @@
 		<IsPackable>false</IsPackable>
 		<IsTestProject>false</IsTestProject>
 		<IsTestToolsProject>true</IsTestToolsProject>
-		<OutputType>Library</OutputType>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+		<OutputType>Exe</OutputType>
 	</PropertyGroup>
 
 	<ItemGroup>
