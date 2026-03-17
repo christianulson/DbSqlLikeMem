@@ -1170,6 +1170,7 @@ public abstract class DbConnectionMockBase(
         _sessionSequenceValues.Clear();
         _sessionContextValues.Clear();
         _contextInfo = null;
+        _lastInsertId = 0;
         _lastSessionSequenceKey = null;
         SetLastFoundRows(0);
         ClearExecutionPlans();
