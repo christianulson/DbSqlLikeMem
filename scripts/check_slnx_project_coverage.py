@@ -9,21 +9,31 @@ from pathlib import Path
 PROJECT_PATTERN = re.compile(r'Project Path="([^"]+\.csproj)"')
 
 
-def normalize(path: Path) -> str:
-    return str(path.resolve()).replace('\\', '/')
+def normalize_path_text(path_text: str) -> str:
+    return path_text.replace('\\', '/')
 
 
 def load_slnx_projects(slnx_path: Path) -> set[str]:
     content = slnx_path.read_text(encoding='utf-8')
-    base_dir = slnx_path.parent
     return {
-        normalize(base_dir / project_path)
+        normalize_path_text(project_path)
         for project_path in PROJECT_PATTERN.findall(content)
     }
 
 
 def collect_csproj(search_dir: Path) -> set[str]:
-    return {normalize(p) for p in search_dir.rglob('*.csproj')}
+    return {
+        normalize_path_text(str(path.resolve()))
+        for path in search_dir.rglob('*.csproj')
+    }
+
+
+def resolve_included_project_path(project_path: str, slnx_base_dir: Path, search_dir: Path) -> str:
+    candidate_paths = [slnx_base_dir / project_path, search_dir / project_path]
+    for candidate_path in candidate_paths:
+        if candidate_path.exists():
+            return normalize_path_text(str(candidate_path.resolve()))
+    return normalize_path_text(str(candidate_paths[0].resolve()))
 
 
 def main() -> int:
@@ -43,25 +53,36 @@ def main() -> int:
         print(f"ERROR: slnx file not found: {slnx_path}", file=sys.stderr)
         return 2
 
-    discovered = collect_csproj(src_dir)
-    included = load_slnx_projects(slnx_path)
+    included_relative = load_slnx_projects(slnx_path)
+    discovered_absolute = collect_csproj(src_dir)
+    included_absolute = {
+        resolve_included_project_path(project_path, slnx_path.parent, src_dir)
+        for project_path in included_relative
+    }
 
-    missing = sorted(discovered - included)
-    extra = sorted(included - discovered)
+    missing_absolute = sorted(discovered_absolute - included_absolute)
+    extra_relative = sorted(
+        project_path
+        for project_path in included_relative
+        if resolve_included_project_path(project_path, slnx_path.parent, src_dir) not in discovered_absolute
+    )
 
-    print(f"csproj_total={len(discovered)} included_total={len(included)} missing={len(missing)} extra={len(extra)}")
+    print(
+        f"csproj_total={len(discovered_absolute)} included_total={len(included_relative)} "
+        f"missing={len(missing_absolute)} extra={len(extra_relative)}"
+    )
 
-    if missing:
+    if missing_absolute:
         print('\nMissing from .slnx:')
-        for item in missing:
+        for item in missing_absolute:
             print(f"  - {item}")
 
-    if extra:
+    if extra_relative:
         print('\nReferenced in .slnx but not found in scanned tree:')
-        for item in extra:
+        for item in extra_relative:
             print(f"  - {item}")
 
-    return 0 if not missing and not extra else 1
+    return 0 if not missing_absolute and not extra_relative else 1
 
 
 if __name__ == '__main__':

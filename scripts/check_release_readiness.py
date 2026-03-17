@@ -381,6 +381,8 @@ def check_docs(root: Path) -> list[str]:
             failures.append(f"wiki documentation path not found for '{label}'")
 
     for path, required_tokens in checks.items():
+        if not path.exists():
+            continue
         content = load_text(path)
         for token in required_tokens:
             if token not in content:

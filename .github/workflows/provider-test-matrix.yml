@@ -84,7 +84,7 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Check .slnx project coverage
-        run: python3 scripts/check_slnx_project_coverage.py --src-dir src --slnx src/DbSqlLikeMem.slnx
+        run: python3 scripts/check_slnx_project_coverage.py --src-dir . --slnx src/DbSqlLikeMem.slnx
 
       - name: Restore
         run: dotnet restore ${{ matrix.project }} -p:TargetFramework=net8.0
@@ -118,7 +118,7 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Check .slnx project coverage
-        run: python3 scripts/check_slnx_project_coverage.py --src-dir src --slnx src/DbSqlLikeMem.slnx
+        run: python3 scripts/check_slnx_project_coverage.py --src-dir . --slnx src/DbSqlLikeMem.slnx
 
       - name: Run cross-dialect equivalence smoke suite
         run: bash scripts/run_cross_dialect_equivalence.sh --profile smoke --snapshot-file artifacts/cross-dialect-smoke-snapshot.md --continue-on-error
@@ -148,7 +148,7 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Check .slnx project coverage
-        run: python3 scripts/check_slnx_project_coverage.py --src-dir src --slnx src/DbSqlLikeMem.slnx
+        run: python3 scripts/check_slnx_project_coverage.py --src-dir . --slnx src/DbSqlLikeMem.slnx
 
       - name: Run cross-dialect aggregation suite
         run: bash scripts/run_cross_dialect_equivalence.sh --profile aggregation --snapshot-file artifacts/cross-dialect-aggregation-snapshot.md --continue-on-error
@@ -177,7 +177,7 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Check .slnx project coverage
-        run: python3 scripts/check_slnx_project_coverage.py --src-dir src --slnx src/DbSqlLikeMem.slnx
+        run: python3 scripts/check_slnx_project_coverage.py --src-dir . --slnx src/DbSqlLikeMem.slnx
 
       - name: Run cross-dialect parser suite
         run: bash scripts/run_cross_dialect_equivalence.sh --profile parser --snapshot-file artifacts/cross-dialect-parser-snapshot.md --continue-on-error
@@ -206,7 +206,7 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Check .slnx project coverage
-        run: python3 scripts/check_slnx_project_coverage.py --src-dir src --slnx src/DbSqlLikeMem.slnx
+        run: python3 scripts/check_slnx_project_coverage.py --src-dir . --slnx src/DbSqlLikeMem.slnx
 
       - name: Run cross-dialect strategy suite
         run: bash scripts/run_cross_dialect_equivalence.sh --profile strategy --snapshot-file artifacts/cross-dialect-strategy-snapshot.md --continue-on-error
