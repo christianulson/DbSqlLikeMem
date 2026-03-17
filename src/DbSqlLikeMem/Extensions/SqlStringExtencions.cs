@@ -15,10 +15,44 @@ internal static class SqlStringExtencions
 
         var sb = new System.Text.StringBuilder(str.Length);
         var pendingSpace = false;
+        var inSingleQuotedString = false;
 
         for (var i = 0; i < str.Length; i++)
         {
             var ch = str[i];
+
+            if (inSingleQuotedString)
+            {
+                sb.Append(ch);
+                if (ch == '\'')
+                {
+                    if (i + 1 < str.Length && str[i + 1] == '\'')
+                    {
+                        sb.Append(str[i + 1]);
+                        i++;
+                    }
+                    else
+                    {
+                        inSingleQuotedString = false;
+                    }
+                }
+
+                continue;
+            }
+
+            if (ch == '\'')
+            {
+                if (pendingSpace)
+                {
+                    sb.Append(' ');
+                    pendingSpace = false;
+                }
+
+                sb.Append(ch);
+                inSingleQuotedString = true;
+                continue;
+            }
+
             var isWhitespace = ch is ' ' or '\n' or '\r' or '\t';
 
             if (isWhitespace)

@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.Db2.Test;
 /// EN: Contains tests for db2 provider surface mocks.
 /// PT: Contém testes para db2 provedor surface mocks.
 /// </summary>
-public sealed class Db2ProviderSurfaceMocksTests
+public sealed class Db2ProviderSurfaceMocksTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Ensures the typed SelectCommand property stays synchronized with the base SelectCommand.

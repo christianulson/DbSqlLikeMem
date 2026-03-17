@@ -5,6 +5,9 @@
 		<IsTestProject>false</IsTestProject>
 		<IsTestToolsProject>true</IsTestToolsProject>
 	</PropertyGroup>
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+		<OutputType>Exe</OutputType>
+	</PropertyGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\DbSqlLikeMem.CsvReader\DbSqlLikeMem.CsvReader.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />

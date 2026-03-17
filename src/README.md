@@ -39,7 +39,7 @@ dotnet add package DbSqlLikeMem.SqlServer
 ```csharp
 using DbSqlLikeMem.MySql;
 
-var db = new MySqlDbMock(version: 8);
+var db = new MySqlDbMock(version: 80);
 var users = db.AddTable("users");
 users.AddColumn("Id", DbType.Int32, false);
 users.AddColumn("Name", DbType.String, false);
@@ -104,10 +104,13 @@ dotnet add package DbSqlLikeMem.SqlServer
 
 ### Exemplo rápido de uso
 
+MySQL documentation uses dotted versions such as `8.0` and `8.4`, while the provider mock API uses integer values such as `80` and `84`.
+A documentação de MySQL usa versões com ponto, como `8.0` e `8.4`, enquanto a API do provider mock usa valores inteiros, como `80` e `84`.
+
 ```csharp
 using DbSqlLikeMem.MySql;
 
-var db = new MySqlDbMock(version: 8);
+var db = new MySqlDbMock(version: 80);
 var users = db.AddTable("users");
 users.AddColumn("Id", DbType.Int32, false);
 users.AddColumn("Name", DbType.String, false);

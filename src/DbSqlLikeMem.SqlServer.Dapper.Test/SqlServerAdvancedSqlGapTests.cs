@@ -203,6 +203,89 @@ ORDER BY id").ToList();
         Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.lead0)]);
     }
 
+    /// <summary>
+    /// EN: Verifies a SQL Server reference query combining CTE, JOIN, LEFT JOIN, CROSS APPLY, OUTER APPLY, EXISTS, STRING_AGG, DATEADD, DATEDIFF, CASE, CAST and ROW_NUMBER returns the expected rows.
+    /// PT: Verifica se uma query de referencia do SQL Server combinando CTE, JOIN, LEFT JOIN, CROSS APPLY, OUTER APPLY, EXISTS, STRING_AGG, DATEADD, DATEDIFF, CASE, CAST e ROW_NUMBER retorna as linhas esperadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void ProviderSignature_CteOuterApplyTopAndWindow_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+WITH tenant_scope AS (
+    SELECT 10 AS tenantid
+    UNION ALL
+    SELECT 20
+),
+order_rollup AS (
+    SELECT o.userid,
+           COUNT(*) AS order_count,
+           SUM(CAST(o.amount AS DECIMAL(10,2))) AS total_amount,
+           STRING_AGG(CAST(o.id AS NVARCHAR(20)), '|') WITHIN GROUP (ORDER BY o.id DESC) AS order_ids
+    FROM orders o
+    GROUP BY o.userid
+),
+ranked_orders AS (
+    SELECT u.id,
+           u.name,
+           u.tenantid,
+           calc.normalized_id,
+           calc.shifted_created,
+           calc.days_from_anchor,
+           calc.user_code,
+           ISNULL(rollup.order_count, CAST(0 AS INT)) AS order_count,
+           ISNULL(rollup.total_amount, CAST(0 AS DECIMAL(10,2))) AS total_amount,
+           ISNULL(rollup.order_ids, CAST('' AS NVARCHAR(20))) AS order_ids,
+           latest.last_order_id,
+           ISNULL(latest.last_order_amount, CAST(0 AS DECIMAL(10,2))) AS last_order_amount,
+           CASE
+               WHEN EXISTS (SELECT 1 FROM orders ox WHERE ox.userid = u.id AND ox.amount >= CAST(10 AS DECIMAL(10,2))) THEN CAST(1 AS BIT)
+               ELSE CAST(0 AS BIT)
+           END AS has_big_order,
+           ROW_NUMBER() OVER (
+               PARTITION BY u.tenantid
+               ORDER BY ISNULL(latest.last_order_amount, CAST(0 AS DECIMAL(10,2))) DESC, u.id
+           ) AS rn
+    FROM users u
+    JOIN tenant_scope scope ON scope.tenantid = u.tenantid
+    LEFT JOIN order_rollup rollup ON rollup.userid = u.id
+    CROSS APPLY (
+        SELECT CAST(u.id AS INT) AS normalized_id,
+               DATEADD(DAY, 1, u.created) AS shifted_created,
+               DATEDIFF(DAY, CAST('2020-01-01' AS DATETIME), u.created) AS days_from_anchor,
+               CONCAT(CAST(u.tenantid AS NVARCHAR(10)), '-', CAST(u.id AS NVARCHAR(10))) AS user_code
+    ) calc
+    OUTER APPLY (
+        SELECT TOP 1
+               CAST(o.id AS INT) AS last_order_id,
+               CAST(o.amount AS DECIMAL(10,2)) AS last_order_amount
+        FROM orders o
+        WHERE o.userid = u.id
+        ORDER BY o.id DESC
+    ) latest
+)
+SELECT id, name, tenantid, normalized_id, shifted_created, days_from_anchor, user_code, order_count, total_amount, order_ids, last_order_id, last_order_amount, has_big_order, rn
+FROM ranked_orders
+ORDER BY tenantid, rn, id").ToList();
+
+        Assert.Equal([2, 1, 3], [.. rows.Select(r => (int)r.id)]);
+        Assert.Equal(["Bob", "John", "Jane"], [.. rows.Select(r => (string)r.name)]);
+        Assert.Equal([10, 10, 20], [.. rows.Select(r => (int)r.tenantid)]);
+        Assert.Equal([2, 1, 3], [.. rows.Select(r => (int)r.normalized_id)]);
+        Assert.Equal(
+            [new DateTime(2020, 1, 3, 0, 0, 0, DateTimeKind.Local), new DateTime(2020, 1, 2, 0, 0, 0, DateTimeKind.Local), new DateTime(2020, 1, 4, 0, 0, 0, DateTimeKind.Local)],
+            [.. rows.Select(r => (DateTime)r.shifted_created)]);
+        Assert.Equal([1, 0, 2], [.. rows.Select(r => (int?)r.days_from_anchor)]);
+        Assert.Equal(["10-2", "10-1", "20-3"], [.. rows.Select(r => (string)r.user_code)]);
+        Assert.Equal([1, 2, 0], [.. rows.Select(r => Convert.ToInt32(r.order_count))]);
+        Assert.Equal([7m, 15m, 0m], [.. rows.Select(r => Convert.ToDecimal(r.total_amount))]);
+        Assert.Equal(["12", "11|10", string.Empty], [.. rows.Select(r => (string)r.order_ids)]);
+        Assert.Equal([12, 11, null], [.. rows.Select(r => (int?)r.last_order_id)]);
+        Assert.Equal([7m, 5m, 0m], [.. rows.Select(r => Convert.ToDecimal(r.last_order_amount))]);
+        Assert.Equal([false, true, false], [.. rows.Select(r => Convert.ToBoolean(r.has_big_order))]);
+        Assert.Equal([1, 2, 1], [.. rows.Select(r => (int)r.rn)]);
+    }
+
 
     /// <summary>
     /// EN: Tests Regexp_NotOperator_ShouldWork behavior.
@@ -670,7 +753,7 @@ PIVOT (
         Assert.Equal(3m, (decimal)minRow.t20);
         Assert.Equal(2m, (decimal)maxRow.t10);
         Assert.Equal(3m, (decimal)maxRow.t20);
-        Assert.Equal(1.5m, (decimal)avgRow.t10);
+        Assert.Equal(1m, (decimal)avgRow.t10);
         Assert.Equal(3m, (decimal)avgRow.t20);
     }
 

@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.Npgsql.EfCore.Test;
 /// EN: Validates interception-capable Npgsql EF Core connection factories.
 /// PT: Valida factories de conexao Npgsql para EF Core com suporte a interceptacao.
 /// </summary>
-public sealed class NpgsqlEfCoreInterceptionConnectionFactoryTests
+public sealed class NpgsqlEfCoreInterceptionConnectionFactoryTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Verifies the interceptor-aware constructor returns an opened wrapped connection.

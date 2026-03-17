@@ -61,6 +61,7 @@ public class TableResultColMock
     /// <param name="columIndex">EN: Column position in the result. PT: Posição da coluna no resultado.</param>
     /// <param name="dbType">EN: Data type in the result. PT: Tipo do dado no resultado.</param>
     /// <param name="isNullable">EN: Whether the column accepts nulls. PT: Indica se a coluna aceita valores nulos.</param>
+    /// <param name="isJsonFragment">EN: Whether the column carries a JSON fragment that should remain raw during JSON serialization. PT: Indica se a coluna carrega um fragmento JSON que deve permanecer bruto durante a serializacao JSON.</param>
     [SetsRequiredMembers]
     public TableResultColMock(
         string tableAlias,
@@ -68,7 +69,8 @@ public class TableResultColMock
         string columnName,
         int columIndex,
         DbType dbType,
-        bool isNullable
+        bool isNullable,
+        bool isJsonFragment = false
         )
     {
         TableAlias = tableAlias;
@@ -77,6 +79,7 @@ public class TableResultColMock
         ColumIndex = columIndex;
         DbType = dbType;
         IsNullable = isNullable;
+        IsJsonFragment = isJsonFragment;
     }
 
     /// <summary>
@@ -109,4 +112,9 @@ public class TableResultColMock
     /// PT: Indica se o valor da coluna pode ser nulo.
     /// </summary>
     public bool IsNullable { get; set; }
+    /// <summary>
+    /// EN: Indicates whether the column carries a JSON fragment that should remain unescaped in JSON serialization flows.
+    /// PT: Indica se a coluna carrega um fragmento JSON que deve permanecer sem escape em fluxos de serializacao JSON.
+    /// </summary>
+    public bool IsJsonFragment { get; set; }
 }

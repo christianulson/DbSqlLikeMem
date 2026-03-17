@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.Test;
 /// EN: Tests core binary/char/nested-reader APIs of <see cref="DbDataReaderMockBase"/>.
 /// PT: Testa APIs centrais de binário/char/leitor aninhado de <see cref="DbDataReaderMockBase"/>.
 /// </summary>
-public sealed class DbDataReaderMockBaseTests
+public sealed class DbDataReaderMockBaseTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Verifies GetBytes returns total byte length when the destination buffer is null.

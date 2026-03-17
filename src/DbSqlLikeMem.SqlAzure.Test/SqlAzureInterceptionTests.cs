@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 /// EN: Validates interception pipeline usage on SQL Azure provider entry points.
 /// PT: Valida o uso do pipeline de interceptacao nos pontos de entrada do provider SQL Azure.
 /// </summary>
-public sealed class SqlAzureInterceptionTests
+public sealed class SqlAzureInterceptionTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Verifies direct interception over SqlAzureConnectionMock keeps command execution working and records events.

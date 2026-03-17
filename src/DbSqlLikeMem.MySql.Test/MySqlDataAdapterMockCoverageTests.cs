@@ -6,7 +6,9 @@ namespace DbSqlLikeMem.MySql.Test;
 /// EN: Adds focused coverage for MySqlDataAdapterMock batching, events, and async wrappers.
 /// PT: Adiciona cobertura focada para batching, eventos e wrappers assincronos de MySqlDataAdapterMock.
 /// </summary>
-public sealed class MySqlDataAdapterMockCoverageTests
+public sealed class MySqlDataAdapterMockCoverageTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     private static object? InvokeNonPublic(MySqlDataAdapterMock adapter, string methodName, params object?[] args)
     {

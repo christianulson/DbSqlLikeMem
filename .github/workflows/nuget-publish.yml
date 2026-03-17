@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -117,6 +119,10 @@ jobs:
             symbol_name="$(basename "$symbol")"
             if [[ "$symbol_name" == DbSqlLikeMem.VisualStudioExtension.*.snupkg ]]; then
               echo "Skipping Visual Studio extension symbol package: $symbol_name"
+              continue
+            fi
+            if [[ "$symbol_name" == DbSqlLikeMem.Benchmarks.*.snupkg ]]; then
+              echo "Skipping Benchmarks symbol package: $symbol_name"
               continue
             fi
 

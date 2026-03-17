@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.Oracle.Test;
 /// EN: Validates transactional reliability additions for P11 scenarios.
 /// PT: Valida as adições de confiabilidade transacional para cenários do P11.
 /// </summary>
-public sealed class OracleTransactionReliabilityTests : ProviderDapperTransactionReliabilityTestsBase<OracleDbMock, OracleConnectionMock>
+public sealed class OracleTransactionReliabilityTests(
+        ITestOutputHelper helper
+    ) : ProviderDapperTransactionReliabilityTestsBase<OracleDbMock, OracleConnectionMock>(helper)
 {
     /// <inheritdoc />
     protected override OracleDbMock CreateDb(int? version, bool threadSafe)

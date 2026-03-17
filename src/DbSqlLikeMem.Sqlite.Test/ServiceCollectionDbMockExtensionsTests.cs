@@ -6,7 +6,9 @@ namespace DbSqlLikeMem.Sqlite.Test;
 /// EN: Validates generic DbMock service collection registration helpers.
 /// PT: Valida os helpers genéricos de registro de DbMock na coleção de serviços.
 /// </summary>
-public sealed class ServiceCollectionDbMockExtensionsTests
+public sealed class ServiceCollectionDbMockExtensionsTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     private sealed class ServiceCollectionStub : List<ServiceDescriptor>, IServiceCollection
     {

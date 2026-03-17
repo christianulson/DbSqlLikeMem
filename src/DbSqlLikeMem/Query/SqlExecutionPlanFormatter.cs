@@ -78,8 +78,7 @@ internal static class SqlExecutionPlanFormatter
             sb.AppendLine($"- FROM: {FormatSource(query.InsertSelect.Table)}");
             foreach (var join in query.InsertSelect.Joins)
             {
-                var on = SqlExprPrinter.Print(join.On);
-                sb.AppendLine($"- JOIN: {join.Type.ToString().ToUpperInvariant()} {FormatSource(join.Table)} ON {on}");
+                sb.AppendLine(FormatJoinLine(join));
             }
 
             if (query.InsertSelect.Where is not null)
@@ -181,8 +180,7 @@ internal static class SqlExecutionPlanFormatter
         {
             foreach (var join in query.Joins)
             {
-                var on = SqlExprPrinter.Print(join.On);
-                sb.AppendLine($"- JOIN: {join.Type.ToString().ToUpperInvariant()} {FormatSource(join.Table)} ON {on}");
+                sb.AppendLine(FormatJoinLine(join));
             }
         }
 
@@ -208,6 +206,18 @@ internal static class SqlExecutionPlanFormatter
 
         if (query.RowLimit is not null)
             sb.AppendLine($"- LIMIT/TOP/FETCH: {FormatLimit(query.RowLimit)}");
+
+        if (query.ForJson is not null)
+        {
+            var options = new List<string> { query.ForJson.Mode.ToString().ToUpperInvariant() };
+            if (query.ForJson.RootName is not null)
+                options.Add($"ROOT('{query.ForJson.RootName}')");
+            if (query.ForJson.IncludeNullValues)
+                options.Add("INCLUDE_NULL_VALUES");
+            if (query.ForJson.WithoutArrayWrapper)
+                options.Add("WITHOUT_ARRAY_WRAPPER");
+            sb.AppendLine($"- FOR JSON: {string.Join(", ", options)}");
+        }
 
         sb.AppendLine($"- {SqlExecutionPlanMessages.InputTablesLabel()}: {metrics.InputTables}");
         sb.AppendLine($"- {SqlExecutionPlanMessages.EstimatedRowsReadLabel()}: {metrics.EstimatedRowsRead}");
@@ -927,8 +937,88 @@ internal static class SqlExecutionPlanFormatter
         if (source.DerivedUnion is not null)
             return $"union-subquery AS {source.Alias ?? "<derived_union>"}";
 
-        return source.Name ?? "<unknown_table>";
+        if (source.TableFunction is not null)
+        {
+            var functionName = FormatQualifiedFunctionSource(source);
+            var alias = source.Alias ?? source.TableFunction.Name;
+            return alias.Equals(source.TableFunction.Name, StringComparison.OrdinalIgnoreCase)
+                ? functionName
+                : $"{functionName} AS {alias}";
+        }
+
+        return FormatQualifiedTableName(source);
     }
+
+    private static string FormatQualifiedFunctionSource(SqlTableSource source)
+    {
+        var functionName = source.DbName is null
+            ? source.TableFunction?.Name ?? "<unknown_function>"
+            : $"{source.DbName}.{source.TableFunction?.Name ?? "<unknown_function>"}";
+
+        if (source.TableFunction?.Name.Equals("STRING_SPLIT", StringComparison.OrdinalIgnoreCase) == true
+            && source.TableFunction.Args.Count == 3)
+        {
+            return $"{functionName}(..., ..., enable_ordinal)";
+        }
+
+        if (source.TableFunction?.Name.Equals("OPENJSON", StringComparison.OrdinalIgnoreCase) == true
+            && source.TableFunction.Args.Count == 2)
+        {
+            var pathShape = TryFormatOpenJsonPathShape(source.TableFunction.Args[1]);
+            return source.OpenJsonWithClause is null
+                ? $"{functionName}(..., {pathShape})"
+                : $"{functionName}(..., {pathShape}) WITH (...)";
+        }
+
+        return source.OpenJsonWithClause is null
+            ? $"{functionName}(...)"
+            : $"{functionName}(...) WITH (...)";
+    }
+
+    private static string FormatQualifiedTableName(SqlTableSource source)
+    {
+        if (source.Name is null)
+            return "<unknown_table>";
+
+        return source.DbName is null
+            ? source.Name
+            : $"{source.DbName}.{source.Name}";
+    }
+
+    private static string TryFormatOpenJsonPathShape(SqlExpr pathExpr)
+    {
+        if (pathExpr is not LiteralExpr { Value: string pathText })
+            return "path";
+
+        var trimmed = pathText.Trim();
+        if (trimmed.StartsWith("strict ", StringComparison.OrdinalIgnoreCase))
+            return "strict path";
+
+        if (trimmed.StartsWith("lax ", StringComparison.OrdinalIgnoreCase))
+            return "lax path";
+
+        return "path";
+    }
+
+    private static string FormatJoinLine(SqlJoin join)
+    {
+        var joinType = FormatJoinType(join.Type);
+        var source = FormatSource(join.Table);
+
+        if (join.Type is SqlJoinType.CrossApply or SqlJoinType.OuterApply)
+            return $"- JOIN: {joinType} {source}";
+
+        var on = SqlExprPrinter.Print(join.On);
+        return $"- JOIN: {joinType} {source} ON {on}";
+    }
+
+    private static string FormatJoinType(SqlJoinType joinType)
+        => joinType switch
+        {
+            SqlJoinType.CrossApply => "CROSS APPLY",
+            SqlJoinType.OuterApply => "OUTER APPLY",
+            _ => joinType.ToString().ToUpperInvariant()
+        };
 
     private static string FormatLimit(SqlRowLimit rowLimit)
         => rowLimit switch
@@ -1026,7 +1116,7 @@ internal static class SqlExecutionPlanFormatter
         if (joins.Count > 1)
             cost += (joins.Count - 1) * 3;
 
-        var expansionRiskJoins = joins.Count(static j => j.Type is SqlJoinType.Left or SqlJoinType.Right or SqlJoinType.Cross);
+        var expansionRiskJoins = joins.Count(static j => j.Type is SqlJoinType.Left or SqlJoinType.Right or SqlJoinType.Cross or SqlJoinType.OuterApply or SqlJoinType.CrossApply);
         if (expansionRiskJoins > 1)
             cost += (expansionRiskJoins - 1) * 4;
 
@@ -1055,7 +1145,15 @@ internal static class SqlExecutionPlanFormatter
     /// EN: Estimates lightweight nested CTE query complexity to avoid over-amplifying recursive cost loops.
     /// PT: Estima complexidade leve de consulta CTE aninhada para evitar sobre-amplificação em loops recursivos de custo.
     /// </summary>
-    private static int EstimateCteQueryCost(SqlSelectQuery query)
+    private static int EstimateCteQueryCost(SqlQueryBase query)
+        => query switch
+        {
+            SqlSelectQuery select => EstimateCteSelectQueryCost(select),
+            SqlUnionQuery union => union.Parts.Sum(EstimateCteSelectQueryCost) + union.Parts.Count,
+            _ => 2
+        };
+
+    private static int EstimateCteSelectQueryCost(SqlSelectQuery query)
     {
         var cost = 2;
         cost += query.Joins.Count * 3;
@@ -1090,6 +1188,8 @@ internal static class SqlExecutionPlanFormatter
             SqlJoinType.Left => 4,
             SqlJoinType.Right => 4,
             SqlJoinType.Cross => 10,
+            SqlJoinType.CrossApply => 8,
+            SqlJoinType.OuterApply => 6,
             _ => 0
         };
 
@@ -1281,7 +1381,7 @@ internal static class SqlExecutionPlanFormatter
         if (!distinct || groupBy.Count == 0 || orderBy.Count == 0 || having is null || joins.Count == 0)
             return 0;
 
-        var expansionRiskJoins = joins.Count(static j => j.Type is SqlJoinType.Left or SqlJoinType.Right or SqlJoinType.Cross);
+        var expansionRiskJoins = joins.Count(static j => j.Type is SqlJoinType.Left or SqlJoinType.Right or SqlJoinType.Cross or SqlJoinType.OuterApply or SqlJoinType.CrossApply);
         if (expansionRiskJoins <= 0)
             return 0;
 
@@ -1402,7 +1502,7 @@ internal static class SqlExecutionPlanFormatter
         if (!distinct || groupBy.Count == 0 || orderBy.Count == 0 || joins.Count == 0)
             return 0;
 
-        var expansionRiskJoins = joins.Count(static j => j.Type is SqlJoinType.Left or SqlJoinType.Right or SqlJoinType.Cross);
+        var expansionRiskJoins = joins.Count(static j => j.Type is SqlJoinType.Left or SqlJoinType.Right or SqlJoinType.Cross or SqlJoinType.OuterApply or SqlJoinType.CrossApply);
         var cost = 1 + Math.Min(2, joins.Count);
         cost += expansionRiskJoins switch
         {
@@ -1437,6 +1537,9 @@ internal static class SqlExecutionPlanFormatter
 
         if (source.DerivedUnion is not null)
             return 12 + EstimateUnionCost(source.DerivedUnion.Parts, source.DerivedUnion.AllFlags, source.DerivedUnion.OrderBy, source.DerivedUnion.RowLimit);
+
+        if (source.TableFunction is not null)
+            return 6;
 
         return 0;
     }

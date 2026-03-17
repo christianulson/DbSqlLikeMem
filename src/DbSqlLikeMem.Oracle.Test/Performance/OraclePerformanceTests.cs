@@ -116,10 +116,10 @@ public sealed class OraclePerformanceTests : XUnitTestBase
         });
         Assert.Equal(totalRows, deletedRows);
 
-        Console.WriteLine($"[Oracle][Performance] Inserts: {totalRows} in {insertElapsedMs}ms ({OpsPerSecond(totalRows, insertElapsedMs):F2} ops/s)");
-        Console.WriteLine($"[Oracle][Performance] Reads: {sampledReads} in {readElapsedMs}ms ({OpsPerSecond(sampledReads, readElapsedMs):F2} ops/s)");
-        Console.WriteLine($"[Oracle][Performance] Updates: {totalRows} in {updateElapsedMs}ms ({OpsPerSecond(totalRows, updateElapsedMs):F2} ops/s)");
-        Console.WriteLine($"[Oracle][Performance] Deletes: {totalRows} in {deleteElapsedMs}ms ({OpsPerSecond(totalRows, deleteElapsedMs):F2} ops/s)");
+        Console.WriteLine($"[Oracle][Performance] Inserts: {totalRows} in {insertElapsedMs}ms ({OpsPerSecond(totalRows, insertElapsedMs):F2} ops/s, {OpsAVG(totalRows, insertElapsedMs):F2} ms/avg)");
+        Console.WriteLine($"[Oracle][Performance] Reads: {sampledReads} in {readElapsedMs}ms ({OpsPerSecond(sampledReads, readElapsedMs):F2} ops/s, {OpsAVG(sampledReads, readElapsedMs):F2} ms/avg)");
+        Console.WriteLine($"[Oracle][Performance] Updates: {totalRows} in {updateElapsedMs}ms ({OpsPerSecond(totalRows, updateElapsedMs):F2} ops/s, {OpsAVG(totalRows, updateElapsedMs):F2} ms/avg)");
+        Console.WriteLine($"[Oracle][Performance] Deletes: {totalRows} in {deleteElapsedMs}ms ({OpsPerSecond(totalRows, deleteElapsedMs):F2} ops/s, {OpsAVG(totalRows, deleteElapsedMs):F2} ms/avg)");
 
         Assert.Empty(_connection.GetTable("Users"));
     }
@@ -138,6 +138,14 @@ public sealed class OraclePerformanceTests : XUnitTestBase
             return operationCount;
 
         return operationCount / (elapsedMs / 1000d);
+    }
+
+    private static double OpsAVG(int operationCount, long elapsedMs)
+    {
+        if (operationCount <= 0)
+            return elapsedMs;
+
+        return (double)elapsedMs / operationCount;
     }
 
     /// <summary>

@@ -26,7 +26,8 @@ internal sealed record CallExpr(
     string Name,
     IReadOnlyList<SqlExpr> Args,
     bool Distinct = false,
-    IReadOnlyList<WindowOrderItem>? WithinGroupOrderBy = null) : SqlExpr;
+    IReadOnlyList<WindowOrderItem>? WithinGroupOrderBy = null,
+    SqlExpr? Filter = null) : SqlExpr;
 internal sealed record WindowFunctionExpr(string Name, IReadOnlyList<SqlExpr> Args, WindowSpec Spec, bool Distinct = false) : SqlExpr;
 internal sealed record WindowSpec(
     IReadOnlyList<SqlExpr> PartitionBy,
@@ -72,6 +73,7 @@ internal enum SqlBinaryOp
 
     // arithmetic
     Add, Subtract, Multiply, Divide,
+    Concat,
 
     // comparisons
     Eq, Neq, Greater, GreaterOrEqual, Less, LessOrEqual,

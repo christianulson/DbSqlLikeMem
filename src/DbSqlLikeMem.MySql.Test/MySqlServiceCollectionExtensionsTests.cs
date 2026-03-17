@@ -6,7 +6,9 @@ namespace DbSqlLikeMem.MySql.Test;
 /// EN: Validates MySql service collection registration helpers.
 /// PT: Valida os helpers de registro de MySql na coleção de serviços.
 /// </summary>
-public sealed class MySqlServiceCollectionExtensionsTests
+public sealed class MySqlServiceCollectionExtensionsTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     private sealed class NullServiceProvider : IServiceProvider
     {
@@ -28,7 +30,7 @@ public sealed class MySqlServiceCollectionExtensionsTests
                 table.AddColumn("Id", DbType.Int32, false);
                 table.Add(new Dictionary<int, object?> { [0] = 1 });
             },
-            version: 8);
+            version: 80);
 
         var descriptor = services.Single();
         descriptor.ServiceType.Should().Be(typeof(MySqlDbMock));
@@ -39,8 +41,8 @@ public sealed class MySqlServiceCollectionExtensionsTests
         var second = (MySqlDbMock)descriptor.ImplementationFactory!(new NullServiceProvider());
 
         first.Should().NotBeSameAs(second);
-        first.Version.Should().Be(8);
-        second.Version.Should().Be(8);
+        first.Version.Should().Be(80);
+        second.Version.Should().Be(80);
         first.GetTable("Users").Should().HaveCount(1);
         second.GetTable("Users").Should().HaveCount(1);
     }
@@ -60,7 +62,7 @@ public sealed class MySqlServiceCollectionExtensionsTests
                 table.AddColumn("Id", DbType.Int32, false);
                 table.Add(new Dictionary<int, object?> { [0] = 7 });
             },
-            version: 5);
+            version: 50);
 
         var descriptor = services.Single();
 
@@ -71,9 +73,9 @@ public sealed class MySqlServiceCollectionExtensionsTests
         var first = (MySqlDbMock)descriptor.ImplementationFactory!(new NullServiceProvider());
         var second = (MySqlDbMock)descriptor.ImplementationFactory!(new NullServiceProvider());
 
-        first.Version.Should().Be(5);
+        first.Version.Should().Be(50);
         first.GetTable("Users").Single()[0].Should().Be(7);
-        second.Version.Should().Be(5);
+        second.Version.Should().Be(50);
         second.GetTable("Users").Single()[0].Should().Be(7);
     }
 
@@ -92,7 +94,7 @@ public sealed class MySqlServiceCollectionExtensionsTests
                 table.AddColumn("Name", DbType.String, false);
                 table.Add(new Dictionary<int, object?> { [0] = "Ana" });
             },
-            version: 8);
+            version: 80);
 
         var descriptor = services.Single();
 
@@ -103,9 +105,9 @@ public sealed class MySqlServiceCollectionExtensionsTests
         var first = (MySqlDbMock)descriptor.ImplementationFactory!(new NullServiceProvider());
         var second = (MySqlDbMock)descriptor.ImplementationFactory!(new NullServiceProvider());
 
-        first.Version.Should().Be(8);
+        first.Version.Should().Be(80);
         first.GetTable("Users").Single()[0].Should().Be("Ana");
-        second.Version.Should().Be(8);
+        second.Version.Should().Be(80);
         second.GetTable("Users").Single()[0].Should().Be("Ana");
     }
 

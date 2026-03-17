@@ -71,6 +71,11 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     public override bool SupportsWithinGroupStringAggregateFunction(string functionName)
         => functionName.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase);
 
+    public override bool SupportsAggregateOrderByForStringAggregates => true;
+
+    public override bool SupportsAggregateOrderByStringAggregateFunction(string functionName)
+        => functionName.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>
     /// EN: Gets whether fetch first is supported.
     /// PT: Obtém se há suporte a fetch first.
@@ -125,6 +130,14 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsJsonArrowOperators => Version >= JsonbMinVersion;
 
+    public override bool SupportsJsonQueryFunction => false;
+
+    public override bool SupportsJsonValueFunction => false;
+
+    public override bool SupportsOracleTimeFunction(string functionName)
+        => functionName.Equals("LOCALTIME", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LOCALTIMESTAMP", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>
     /// EN: Gets or sets allows parser cross dialect json operators.
     /// PT: Obtém ou define allows parser cross dialect json operators.
@@ -165,6 +178,8 @@ internal sealed class NpgsqlDialect : SqlDialectBase
             ["CURRENT_DATE"] = SqlTemporalFunctionKind.Date,
             ["CURRENT_TIME"] = SqlTemporalFunctionKind.Time,
             ["CURRENT_TIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
+            ["LOCALTIME"] = SqlTemporalFunctionKind.Time,
+            ["LOCALTIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
             ["NOW"] = SqlTemporalFunctionKind.DateTime,
             ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
         };
@@ -174,7 +189,10 @@ internal sealed class NpgsqlDialect : SqlDialectBase
         => ["CURRENT_DATE", "CURRENT_TIME", "CURRENT_TIMESTAMP", "SYSTEMDATE"];
 
     public override IReadOnlyCollection<string> TemporalFunctionCallNames
-        => ["NOW"];
+        => ["NOW", "LOCALTIME", "LOCALTIMESTAMP"];
+
+    public override bool SupportsSqlServerMetadataIdentifier(string identifier)
+        => identifier.Equals("CURRENT_USER", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// EN: Gets or sets concat returns null on null input.

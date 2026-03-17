@@ -33,6 +33,28 @@ internal sealed class OracleDialect : SqlDialectBase
     internal const int WindowFunctionsMinVersion = 8;
     internal const int OffsetFetchMinVersion = 12;
     internal const int FetchFirstMinVersion = 12;
+    internal const int ApproxCountDistinctMinVersion = 12;
+    internal const int ApproximateAnalyticsMinVersion = 18;
+    internal const int OracleTextConversionMinVersion = 9;
+    internal const int OracleBinaryConversionMinVersion = 10;
+    internal const int OracleBlobConversionMinVersion = 11;
+    internal const int OracleScnFunctionMinVersion = 10;
+    internal const int OracleClusterFunctionMinVersion = 10;
+    internal const int OracleAdvancedClusterFunctionMinVersion = 12;
+    internal const int OracleContainerFunctionMinVersion = 12;
+    internal const int OracleRowToNCharFunctionMinVersion = 18;
+    internal const int OracleUserEnvMetadataMinVersion = 12;
+    internal const int OraclePartitionMetadataMinVersion = 18;
+    internal const int OracleValidateConversionMinVersion = 18;
+    internal const int OracleJsonTransformMinVersion = 19;
+    internal const int OracleJsonSqlFunctionMinVersion = 12;
+    internal const int OracleCollationFunctionMinVersion = 18;
+    internal const int OracleOraHashMinVersion = 10;
+    internal const int OracleStandardHashMinVersion = 12;
+    internal const int OracleSysFamilyMinVersion = 9;
+    internal const int OracleSysZoneIdMinVersion = 12;
+    internal const int OracleTemporalFunctionMinVersion = 9;
+    internal const int OracleIntervalFunctionMinVersion = 8;
 
     /// <summary>
     /// EN: Gets or sets identifier escape style.
@@ -109,12 +131,14 @@ internal sealed class OracleDialect : SqlDialectBase
     /// EN: Gets whether json value function is supported.
     /// PT: Obtém se há suporte a função json_value.
     /// </summary>
-    public override bool SupportsJsonValueFunction => true;
+    public override bool SupportsJsonValueFunction => Version >= OracleJsonSqlFunctionMinVersion;
+    public override bool SupportsJsonQueryFunction => Version >= OracleJsonSqlFunctionMinVersion;
+    public override bool SupportsJsonTableFunction => Version >= OracleJsonSqlFunctionMinVersion;
 
     public override bool SupportsStringAggregateFunction(string functionName)
         => functionName.Equals("LISTAGG", StringComparison.OrdinalIgnoreCase);
 
-    public override bool SupportsJsonValueReturningClause => true;
+    public override bool SupportsJsonValueReturningClause => Version >= OracleJsonSqlFunctionMinVersion;
     /// <summary>
     /// EN: Gets whether merge is supported.
     /// PT: Obtém se há suporte a merge.
@@ -132,20 +156,32 @@ internal sealed class OracleDialect : SqlDialectBase
     /// PT: Obtém se há suporte a pivot clause.
     /// </summary>
     public override bool SupportsPivotClause => true;
+    public override bool PivotAvgReturnsDecimalForIntegralInputs => true;
     /// <summary>
     /// EN: Gets or sets null substitute function names.
     /// PT: Obtém ou define null substitute function names.
     /// </summary>
     public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["NVL"];
     public override IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames
-        => new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase)
+    {
+        get
         {
-            ["CURRENT_DATE"] = SqlTemporalFunctionKind.Date,
-            ["CURRENT_TIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
-            ["SYSDATE"] = SqlTemporalFunctionKind.DateTime,
-            ["SYSTIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
-            ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
-        };
+            var map = new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["SYSDATE"] = SqlTemporalFunctionKind.DateTime,
+                ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
+            };
+
+            if (Version >= OracleTemporalFunctionMinVersion)
+            {
+                map["CURRENT_DATE"] = SqlTemporalFunctionKind.Date;
+                map["CURRENT_TIMESTAMP"] = SqlTemporalFunctionKind.DateTime;
+                map["SYSTIMESTAMP"] = SqlTemporalFunctionKind.DateTime;
+            }
+
+            return map;
+        }
+    }
 
 
     /// <summary>
@@ -168,6 +204,136 @@ internal sealed class OracleDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsDateAddFunction(string functionName)
         => false;
+
+    /// <inheritdoc />
+    public override bool SupportsApproximateAggregateFunction(string functionName)
+        => functionName.ToUpperInvariant() switch
+        {
+            "APPROX_COUNT_DISTINCT" => Version >= ApproxCountDistinctMinVersion,
+            "APPROX_COUNT_DISTINCT_AGG" or "APPROX_COUNT_DISTINCT_DETAIL"
+                or "APPROX_MEDIAN"
+                or "APPROX_PERCENTILE"
+                or "APPROX_PERCENTILE_AGG"
+                or "APPROX_PERCENTILE_DETAIL" => Version >= ApproximateAnalyticsMinVersion,
+            _ => false
+        };
+    /// <inheritdoc />
+    public override bool SupportsApproximateScalarFunction(string functionName)
+        => Version >= ApproximateAnalyticsMinVersion
+            && (functionName.Equals("TO_APPROX_COUNT_DISTINCT", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("TO_APPROX_PERCENTILE", StringComparison.OrdinalIgnoreCase));
+    /// <inheritdoc />
+    public override bool SupportsOracleSpecificConversionFunction(string functionName)
+        => functionName.ToUpperInvariant() switch
+        {
+            "TO_BINARY_DOUBLE" or "TO_BINARY_FLOAT" => Version >= OracleBinaryConversionMinVersion,
+            "TO_BLOB" => Version >= OracleBlobConversionMinVersion,
+            "TO_CLOB" or "TO_DSINTERVAL" or "TO_NCHAR" or "TO_NCLOB" or "TO_TIMESTAMP_TZ" or "TO_YMINTERVAL"
+                => Version >= OracleTextConversionMinVersion,
+            "TO_LOB" or "TO_MULTI_BYTE" or "TO_SINGLE_BYTE" => true,
+            _ => false
+        };
+    /// <inheritdoc />
+    public override bool SupportsOracleScnFunction(string functionName)
+        => Version >= OracleScnFunctionMinVersion
+            && (functionName.Equals("SCN_TO_TIMESTAMP", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("TIMESTAMP_TO_SCN", StringComparison.OrdinalIgnoreCase));
+    /// <inheritdoc />
+    public override bool SupportsOracleAnalyticsFunction(string functionName)
+        => functionName.ToUpperInvariant() switch
+        {
+            "RATIO_TO_REPORT" => Version >= 8,
+            "FEATURE_ID" or "FEATURE_SET" or "FEATURE_VALUE"
+                or "POWERMULTISET" or "POWERMULTISET_BY_CARDINALITY"
+                or "PREDICTION" or "PREDICTION_COST" or "PREDICTION_DETAILS"
+                or "PREDICTION_PROBABILITY" or "PREDICTION_SET"
+                or "PRESENTNNV" or "PRESENTV" => Version >= 10,
+            "PREDICTION_BOUNDS" => Version >= 11,
+            "FEATURE_DETAILS" => Version >= 12,
+            "FEATURE_COMPARE" or "NCGR" => Version >= 18,
+            _ => false
+        };
+    /// <inheritdoc />
+    public override bool SupportsOracleClusterFunction(string functionName)
+        => functionName.ToUpperInvariant() switch
+        {
+            "CLUSTER_ID" or "CLUSTER_PROBABILITY" or "CLUSTER_SET" => Version >= OracleClusterFunctionMinVersion,
+            "CLUSTER_DETAILS" or "CLUSTER_DISTANCE" => Version >= OracleAdvancedClusterFunctionMinVersion,
+            _ => false
+        };
+    /// <inheritdoc />
+    public override bool SupportsOracleContainerFunction(string functionName)
+        => Version >= OracleContainerFunctionMinVersion
+            && (functionName.Equals("CON_DBID_TO_ID", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("CON_GUID_TO_ID", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("CON_NAME_TO_ID", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("CON_UID_TO_ID", StringComparison.OrdinalIgnoreCase));
+    /// <inheritdoc />
+    public override bool SupportsOracleRowIdFunction(string functionName)
+        => functionName.ToUpperInvariant() switch
+        {
+            "ROWIDTOCHAR" => true,
+            "ROWTONCHAR" => Version >= OracleRowToNCharFunctionMinVersion,
+            _ => false
+        };
+    /// <inheritdoc />
+    public override bool SupportsOracleUserEnvFunction(string functionName)
+        => functionName.ToUpperInvariant() switch
+        {
+            "USERENV" => true,
+            "ORA_INVOKING_USER" or "ORA_INVOKING_USERID" or "ORA_DST_AFFECTED" or "ORA_DST_CONVERT" or "ORA_DST_ERROR"
+                => Version >= OracleUserEnvMetadataMinVersion,
+            "ORA_DM_PARTITION_NAME" => Version >= OraclePartitionMetadataMinVersion,
+            _ => false
+        };
+    /// <inheritdoc />
+    public override bool SupportsOracleValidationFunction(string functionName)
+        => functionName.Equals("VALIDATE_CONVERSION", StringComparison.OrdinalIgnoreCase)
+            && Version >= OracleValidateConversionMinVersion;
+    /// <inheritdoc />
+    public override bool SupportsOracleJsonTransformFunction(string functionName)
+        => functionName.Equals("JSON_TRANSFORM", StringComparison.OrdinalIgnoreCase)
+            && Version >= OracleJsonTransformMinVersion;
+    /// <inheritdoc />
+    public override bool SupportsOracleCollationFunction(string functionName)
+        => functionName.Equals("COLLATION", StringComparison.OrdinalIgnoreCase)
+            && Version >= OracleCollationFunctionMinVersion;
+    /// <inheritdoc />
+    public override bool SupportsOracleNlsFunction(string functionName)
+        => functionName.ToUpperInvariant() switch
+        {
+            "NLS_CHARSET_DECL_LEN" or "NLS_CHARSET_ID" or "NLS_CHARSET_NAME"
+                or "NLS_INITCAP" or "NLS_LOWER" or "NLS_UPPER" or "NLSSORT" => true,
+            "NLS_COLLATION_ID" or "NLS_COLLATION_NAME" => Version >= OracleCollationFunctionMinVersion,
+            _ => false
+        };
+    /// <inheritdoc />
+    public override bool SupportsOracleHashFunction(string functionName)
+        => functionName.ToUpperInvariant() switch
+        {
+            "ORA_HASH" => Version >= OracleOraHashMinVersion,
+            "STANDARD_HASH" => Version >= OracleStandardHashMinVersion,
+            _ => false
+        };
+    /// <inheritdoc />
+    public override bool SupportsOracleSysFunction(string functionName)
+        => functionName.ToUpperInvariant() switch
+        {
+            "SYS_GUID" or "SYS_CONTEXT" => true,
+            "SYS_CONNECT_BY_PATH" or "SYS_DBURIGEN" or "SYS_EXTRACT_UTC" or "SYS_TYPEID" or "SYS_XMLAGG" or "SYS_XMLGEN"
+                => Version >= OracleSysFamilyMinVersion,
+            "SYS_OP_ZONE_ID" => Version >= OracleSysZoneIdMinVersion,
+            _ => false
+        };
+    /// <inheritdoc />
+    public override bool SupportsOracleTimeFunction(string functionName)
+        => functionName.ToUpperInvariant() switch
+        {
+            "DBTIMEZONE" or "FROM_TZ" or "LOCALTIMESTAMP" or "SESSIONTIMEZONE" or "TZ_OFFSET" => Version >= OracleTemporalFunctionMinVersion,
+            "NUMTODSINTERVAL" or "NUMTOYMINTERVAL" => Version >= OracleIntervalFunctionMinVersion,
+            "NEW_TIME" or "NEXT_DAY" => true,
+            _ => false
+        };
 
     public override bool SupportsLastFoundRowsFunction(string functionName)
         => functionName.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase);

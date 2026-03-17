@@ -203,6 +203,79 @@ ORDER BY id").ToList();
         Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.lead0)]);
     }
 
+    /// <summary>
+    /// EN: Verifies a DB2 reference query combining CTE, JOIN, LEFT JOIN, correlated subquery, LISTAGG, VALUE, DAYS, CHAR, CASE, CAST and ROW_NUMBER returns the expected rows.
+    /// PT: Verifica se uma query de referencia do DB2 combinando CTE, JOIN, LEFT JOIN, subquery correlacionada, LISTAGG, VALUE, DAYS, CHAR, CASE, CAST e ROW_NUMBER retorna as linhas esperadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2AdvancedSqlGap")]
+    public void ProviderSignature_CteAggregateAndWindow_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+WITH tenant_scope AS (
+    SELECT 10 AS tenantid
+    UNION ALL
+    SELECT 20
+),
+order_totals AS (
+    SELECT o.userid,
+           COUNT(*) AS order_count,
+           SUM(CAST(o.amount AS DECIMAL(10,2))) AS total_amount,
+           LISTAGG(CAST(o.id AS VARCHAR(20)), '|') WITHIN GROUP (ORDER BY o.id DESC) AS order_ids
+    FROM orders o
+    GROUP BY o.userid
+),
+ranked AS (
+    SELECT u.id,
+           u.name,
+           u.tenantid,
+           CAST(u.id AS INTEGER) AS normalized_id,
+           u.created + 1 DAY AS shifted_created,
+           DAYS(u.created) - DAYS(DATE('2020-01-01')) AS days_from_anchor,
+           RTRIM(CHAR(u.tenantid)) || '-' || RTRIM(CHAR(u.id)) AS user_code,
+           VALUE(order_totals.order_count, CAST(0 AS INTEGER)) AS order_count,
+           VALUE(order_totals.total_amount, CAST(0 AS DECIMAL(10,2))) AS total_amount,
+           VALUE(order_totals.order_ids, CAST('' AS VARCHAR(20))) AS order_ids,
+           (
+               SELECT CAST(o.id AS INTEGER)
+               FROM orders o
+               WHERE o.userid = u.id
+               ORDER BY o.id DESC
+               FETCH FIRST 1 ROW ONLY
+           ) AS last_order_id,
+           CASE
+               WHEN VALUE(order_totals.order_count, 0) = 0 THEN 'NO'
+               ELSE 'YES'
+           END AS has_orders_text,
+           ROW_NUMBER() OVER (
+               PARTITION BY u.tenantid
+               ORDER BY VALUE(order_totals.total_amount, CAST(0 AS DECIMAL(10,2))) DESC, u.id
+           ) AS rn
+    FROM users u
+    JOIN tenant_scope scope ON scope.tenantid = u.tenantid
+    LEFT JOIN order_totals ON order_totals.userid = u.id
+)
+SELECT id, name, tenantid, normalized_id, shifted_created, days_from_anchor, user_code, order_count, total_amount, order_ids, last_order_id, has_orders_text, rn
+FROM ranked
+ORDER BY tenantid, rn, id").ToList();
+
+        Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.id)]);
+        Assert.Equal(["John", "Bob", "Jane"], [.. rows.Select(r => (string)r.name)]);
+        Assert.Equal([10, 10, 20], [.. rows.Select(r => (int)r.tenantid)]);
+        Assert.Equal([1, 2, 3], [.. rows.Select(r => Convert.ToInt32(r.normalized_id))]);
+        Assert.Equal(
+            [new DateTime(2020, 1, 2, 0, 0, 0, DateTimeKind.Local), new DateTime(2020, 1, 3, 0, 0, 0, DateTimeKind.Local), new DateTime(2020, 1, 4, 0, 0, 0, DateTimeKind.Local)],
+            [.. rows.Select(r => (DateTime)r.shifted_created)]);
+        Assert.Equal([0, 1, 2], [.. rows.Select(r => Convert.ToInt32(r.days_from_anchor))]);
+        Assert.Equal(["10-1", "10-2", "20-3"], [.. rows.Select(r => ((string)r.user_code).Trim())]);
+        Assert.Equal([2, 1, 0], [.. rows.Select(r => Convert.ToInt32(r.order_count))]);
+        Assert.Equal([15m, 7m, 0m], [.. rows.Select(r => Convert.ToDecimal(r.total_amount))]);
+        Assert.Equal(["11|10", "12", string.Empty], [.. rows.Select(r => (string)r.order_ids)]);
+        Assert.Equal([11, 12, null], [.. rows.Select(r => (int?)r.last_order_id)]);
+        Assert.Equal(["YES", "YES", "NO"], [.. rows.Select(r => (string)r.has_orders_text)]);
+        Assert.Equal([1, 2, 1], [.. rows.Select(r => (int)r.rn)]);
+    }
+
 
     /// <summary>
     /// EN: Tests Regexp_NotOperator_ShouldWork behavior.

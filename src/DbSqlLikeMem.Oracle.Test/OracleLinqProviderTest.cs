@@ -3,7 +3,9 @@ namespace DbSqlLikeMem.Oracle.Test;
 /// EN: Defines the class OracleLinqProviderTest.
 /// PT: Define a classe OracleLinqProviderTest.
 /// </summary>
-public sealed class OracleLinqProviderTest
+public sealed class OracleLinqProviderTest(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
 #pragma warning disable CA1812
     private sealed class User

@@ -41,6 +41,13 @@ internal sealed class SqlTokenizer
                 continue;
             }
 
+            if ((ch == 'N' || ch == 'n') && _dialect.IsStringQuote(Peek(1)))
+            {
+                Read(); // Unicode string prefix
+                tokens.Add(ReadString());
+                continue;
+            }
+
             if (_dialect.IsStringQuote(ch))
             {
                 tokens.Add(ReadString());
@@ -210,6 +217,17 @@ internal sealed class SqlTokenizer
         var startPos = _pos;
         if (Peek() == '-') Read();
 
+        if (Peek() == '0' && (Peek(1) == 'x' || Peek(1) == 'X'))
+        {
+            Read();
+            Read();
+
+            while (!Eof && IsHexDigit(Peek()))
+                Read();
+
+            return new SqlToken(SqlTokenKind.Number, _sql[startPos.._pos], startPos);
+        }
+
         while (!Eof && char.IsDigit(Peek())) Read();
 
         if (!Eof && Peek() == '.')
@@ -220,6 +238,11 @@ internal sealed class SqlTokenizer
 
         return new SqlToken(SqlTokenKind.Number, _sql[startPos.._pos], startPos);
     }
+
+    private static bool IsHexDigit(char ch)
+        => (ch >= '0' && ch <= '9')
+            || (ch >= 'a' && ch <= 'f')
+            || (ch >= 'A' && ch <= 'F');
 
     private SqlToken ReadParameter()
     {

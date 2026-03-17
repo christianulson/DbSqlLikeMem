@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.Npgsql.Test;
 /// EN: Contains tests for the Npgsql provider surface mocks.
 /// PT: Contém testes para os mocks da surface do provedor Npgsql.
 /// </summary>
-public sealed class NpgsqlProviderSurfaceMocksTests
+public sealed class NpgsqlProviderSurfaceMocksTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Ensures the typed SelectCommand property stays synchronized with the base SelectCommand.

@@ -84,7 +84,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.2.1 Interpretação de comandos DDL
 
-- Implementação estimada: **100%**.
+- Implementação estimada: **90%**.
 - Leitura e processamento de comandos de definição de schema.
 - Suporte a operações estruturais comuns (criação e alteração de entidades).
 - Aplicação de regras específicas por dialeto e versão simulada.
@@ -111,7 +111,8 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: parser DDL passou a suportar `DROP TABLE` (incluindo `IF EXISTS` e variantes `TEMP/TEMPORARY/GLOBAL TEMPORARY`) com validação de nome obrigatório e boundary de statement.
 - Incremento desta sessão: cobertura de regressão de `DROP TABLE` foi adicionada de forma unificada em SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2, incluindo casos válidos (`IF EXISTS`, `GLOBAL TEMPORARY`) e inválidos (`DROP TABLE IF EXISTS ;`, `DROP GLOBAL TABLE ...`, segundo statement indevido).
 - Incremento desta sessão: corpus de parser por provedor foi alinhado para remover `DROP TABLE` da lista de comandos explicitamente inválidos, refletindo o novo contrato de interpretação DDL.
-- TODO: expandir o subset DDL com `ALTER TABLE` pragmático e `CREATE/DROP INDEX`, mantendo gate explícito por dialeto/versão e sem aceitar DDL avançado fora do contrato real do provider.
+- Incremento desta sessão: parser/executor passaram a suportar o subset pragmático de `CREATE INDEX` e `DROP INDEX`, incluindo `UNIQUE`, lista simples de colunas, `IF EXISTS` em `DROP INDEX` e a variante `DROP INDEX ... ON <table>` nos dialetos que a expõem (`MySQL` e `SQL Server`), com busca única por índice no schema atual quando o `DROP` não informa tabela.
+- TODO: expandir o subset DDL com `ALTER TABLE` pragmático e hardening adicional de `CREATE/DROP INDEX`, mantendo gate explícito por dialeto/versão e sem aceitar DDL avançado fora do contrato real do provider.
 - TODO: revisar a trilha de objetos programáveis (`FUNCTION`/`PROCEDURE`/`TRIGGER` DDL) para deixar explícito no backlog o que será suportado de forma real e o que continuará bloqueado por `NotSupportedException`.
 
 #### 1.2.2 Interpretação de comandos DML
@@ -281,7 +282,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - TODO: revisar cobertura equivalente de sintaxes nativas de `sequence` nos demais providers que exponham formas próprias alem de `SQL Server`, `Npgsql`, `Oracle` e `DB2`.
 - TODO: avaliar variantes adicionais de `sequence` por dialeto somente quando houver demanda real e validacao contra o comportamento do banco/provedor real.
 - TODO: levar a trilha de `sequence` para exemplos/documentacao canonica end-to-end assim que a matriz cross-provider dessa feature estiver fechada.
-- TODO: manter este item abaixo de `100%` até fechar as famílias reais de DML/query ainda fora do fluxo principal do parser/runtime (`FOR JSON`, `UNPIVOT`, `DISTINCT ON`, `LATERAL`, `json_each/json_tree`, `JSON_TABLE` e demais formas tabulares correlatas por provider).
+- TODO: manter este item abaixo de `100%` até fechar as famílias reais de DML/query ainda fora do fluxo principal do parser/runtime (`FOR JSON`, `CROSS APPLY/OUTER APPLY`, `DISTINCT ON`, `LATERAL`, `json_each/json_tree`, `JSON_TABLE` e demais formas tabulares correlatas por provider).
 - TODO: revisar materialização/execução de DML avançado por provider para que o item só volte a `100%` quando as diferenças remanescentes estiverem reduzidas a subset documentado e intencional.
 
 #### 1.2.3 Regras por dialeto e versão
@@ -314,7 +315,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.2.4 Governança de evolução do parser
 
-- Implementação estimada: **100%**.
+- Implementação estimada: **85%**.
 - Backlog guiado por gaps observados em testes reais.
 - Track global de normalização Parser/AST consolidado em ~90%, com foco atual em refinos finais por dialeto.
 - Priorização por impacto em frameworks de acesso a dados.
@@ -434,7 +435,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Tratamento de execução orientado por semântica do dialeto escolhido.
 - Retorno previsível para facilitar asserts em testes.
 - TODO: consolidar os pontos restantes de dispatch/estratégia que ainda escapam do pipeline shared, reduzindo branches residuais fora do contrato dirigido por capability do dialeto.
-- TODO: ampliar o pipeline comum para cobrir também lacunas de execução avançada por family (`PIVOT/UNPIVOT`, JSON tabular, mutações multi-tabela), sem reintroduzir atalhos por provider.
+- TODO: ampliar o pipeline comum para cobrir também lacunas de execução avançada por family (`PIVOT` avançado, JSON tabular, mutações multi-tabela), sem reintroduzir atalhos por provider.
 
 #### 1.3.2 Operações comuns suportadas
 
@@ -464,7 +465,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: decisões de `UPDATE/DELETE ... JOIN/FROM/USING` e a semântica de rowcount de `INSERT ... ON DUPLICATE KEY UPDATE` passaram a sair do contrato explícito do dialeto, em vez de depender de branches centrais por nome de provider.
 - Incremento desta sessão: o executor compartilhado de `PIVOT` passou a reutilizar a mesma trilha de agregação comum para `SUM`, `MIN`, `MAX` e `AVG`, corrigindo também a semântica de `COUNT(expr)` para ignorar `NULL` e removendo o retorno artificial de `0` para `SUM` em bucket vazio.
 - TODO: completar no executor a matriz de agregadores avançados de `PIVOT` para os dialetos que já declaram a cláusula (`SQL Server`, `SqlAzure`, `Oracle`), cobrindo funções além do conjunto comum `COUNT/SUM/MIN/MAX/AVG` quando houver necessidade real por banco.
-- TODO: abrir trilha shared para `UNPIVOT` orientada por capability do dialeto, evitando que a cobertura dessa família fique só documental nos bancos que a suportam de forma nativa.
+- TODO: expandir a trilha shared de `UNPIVOT` para além de `SQL Server/SqlAzure`, mantendo gate por capability do dialeto nos bancos que suportam essa família de forma nativa.
 
 #### 1.3.3 Resultados e consistência
 
@@ -668,6 +669,8 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: execution plan também passou a sinalizar `mockRuntimePerturbationActive` quando há latência/falha simulada configurada, deixando explícito que comparações diretas de tempo entre cenários estão contaminadas por perturbação artificial.
 - TODO: propagar o disclaimer de performance para todos os pontos de consumo de telemetria/planos e manter a documentação de entrada alinhada sempre que novas métricas forem expostas.
 - TODO: estruturar uma trilha de benchmark comparativo em ambiente de teste contra bancos reais locais/containerizados, focada em demonstrar ganho de feedback/custo operacional do mock para clientes e não em tuning de produção.
+- TODO: adotar `Testcontainers` como infraestrutura padrão dessa trilha de benchmark comparativo, subindo bancos reais sob demanda no pipeline de medição para comparar a aplicação real contra o `DbSqlLikeMem` com setup reproduzível.
+- TODO: extrair dessa trilha artefatos objetivos de benchmark (tempo total, setup, custo operacional, footprint e notas de limitação) em formato reaproveitável na wiki, para manter uma comparação viva entre bancos reais em container e esta aplicação.
 
 ## 2) Integração ADO.NET e experiência de uso
 
@@ -939,12 +942,24 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - TODO: planejar a fase posterior da família analytics com `ClickHouse` (`ARRAY JOIN`, `LIMIT BY`, `ENGINE MergeTree`) sem acoplar sintaxe analítica diretamente ao executor comum.
 - TODO: planejar `Snowflake` como extensão posterior da trilha analytics, com matriz de compatibilidade e subset explícito antes da primeira implementação.
 
+#### 3.0.2 Inventário funcional pendente por provider
+
+- Implementação estimada: **17%**.
+- Incremento desta sessão: o inventário pendente passou a registrar explicitamente a convenção documental de versões MySQL em formato humano (`3.0`, `4.0`, `5.5`, `5.6`, `5.7`, `8.0`, `8.4`) com equivalência para os inteiros usados na API (`30`, `40`, `55`, `56`, `57`, `80`, `84`), reduzindo drift entre backlog, código e exemplos.
+- TODO: mapear explicitamente no backlog as famílias nativas do `MySQL` já cobertas/parciais (`LIMIT/OFFSET`, `ON DUPLICATE KEY UPDATE`, `MATCH ... AGAINST`, `SQL_CALC_FOUND_ROWS`/`FOUND_ROWS`, `USE/IGNORE/FORCE INDEX`, `<=>`, `GROUP_CONCAT`, `JSON_EXTRACT`/`->`/`->>`, `WITH RECURSIVE`, window functions) com status por versão simulada.
+- TODO: mapear explicitamente no backlog as famílias nativas de `SQL Server/SqlAzure` (`TOP`, `OFFSET/FETCH`, `OUTPUT`, `MERGE`, `@@ROWCOUNT`, table/query hints `WITH (...)`, `PIVOT/UNPIVOT`, `CROSS APPLY`/`OUTER APPLY`, `JSON_VALUE`/`OPENJSON`, `STRING_AGG`, `STRING_SPLIT`, `FOR JSON`) com status por versão simulada e `compatibility level`.
+- TODO: mapear explicitamente no backlog as famílias nativas do `Oracle` (`ROWNUM`, `FETCH FIRST`, `MERGE`, `seq.NEXTVAL/CURRVAL`, `LISTAGG`, `JSON_VALUE`/`JSON_TABLE`, `PIVOT/UNPIVOT`, `CONNECT BY`/`START WITH`, `MATCH_RECOGNIZE`, `MODEL`) com status por versão simulada.
+- TODO: mapear explicitamente no backlog as famílias nativas do `PostgreSQL/Npgsql` (`LIMIT/OFFSET`, `FETCH FIRST`, `ON CONFLICT`, `RETURNING`, `ILIKE`, `STRING_AGG`, `DISTINCT ON`, `LATERAL`, operadores JSON `->`/`->>`/`#>`/`#>>`, `WITH [NOT] MATERIALIZED`, `MERGE`) com status por versão simulada.
+- TODO: mapear explicitamente no backlog as famílias nativas do `SQLite` (`LIMIT/OFFSET`, `ON CONFLICT`, `RETURNING`, `GROUP_CONCAT` com `ORDER BY`, `json_each`/`json_tree`, `JSON_EXTRACT`/`->`/`->>`, `WITH RECURSIVE`, `MATERIALIZED/NOT MATERIALIZED`, window functions e frames, `NULLS FIRST/LAST`, `CHANGES()`) com status por versão simulada e subset real do mock.
+- TODO: mapear explicitamente no backlog as famílias nativas do `DB2` (`FETCH FIRST`/`OFFSET`, `MERGE`, `NEXT VALUE FOR`/`PREVIOUS VALUE FOR`, `LISTAGG`, `WITH RECURSIVE`, `ROW_NUMBER` e frames de janela, `JSON_TABLE`, `JSON_QUERY`) com status por versão simulada.
+
 ### 3.1 MySQL (`DbSqlLikeMem.MySql`)
 
 #### 3.1.1 Versões simuladas
 
 - Implementação estimada: **100%**.
-- 3, 4, 5, 8.
+- 3.0, 4.0, 5.5, 5.6, 5.7, 8.0, 8.4.
+- Convenção da documentação: usar `3.0`, `4.0`, `5.5`, `5.6`, `5.7`, `8.0` e `8.4`; na API/tipos de teste, os valores equivalentes seguem como `30`, `40`, `55`, `56`, `57`, `80` e `84`.
 
 #### 3.1.2 Recursos relevantes
 
@@ -954,6 +969,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Cobertura de `GROUP_CONCAT` ampliada com regressão para `DISTINCT`, tratamento de `NULL` e ordenação interna pela sintaxe nativa `ORDER BY ... SEPARATOR ...` dentro da função.
 - P7 consolidado: UPSERT por família (`ON DUPLICATE`/`ON CONFLICT`/`MERGE subset`) e mutações avançadas com contracts por strategy tests.
 - Funções-chave do banco: `GROUP_CONCAT`, `IFNULL`, `DATE_ADD` e `JSON_EXTRACT` (subset no mock).
+- Status por versão já explicitado nesta trilha:
+  - `5.0+`: `JSON_EXTRACT`, `->` e `->>`.
+  - `8.0+`: `WITH`/`WITH RECURSIVE` e window functions.
+  - Todas as versões simuladas atuais do mock: `LIMIT/OFFSET`, `ON DUPLICATE KEY UPDATE`, `MATCH ... AGAINST`, `SQL_CALC_FOUND_ROWS`/`FOUND_ROWS`, `USE/IGNORE/FORCE INDEX`, `<=>` e `GROUP_CONCAT` dentro do subset já coberto.
 - TODO: implementar `JSON_TABLE(...)` no parser/executor do MySQL, hoje ainda só com gate explícito de não suportado, apesar de o banco real suportar a função de tabela JSON.
 - TODO: avaliar subset de particionamento lógico por tabela (`PARTITION BY RANGE/LIST`) para aproximar testes de retenção/time-series de capacidades reais do MySQL/InnoDB.
 
@@ -973,20 +992,64 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 3.2.2 Recursos relevantes
 
-- Implementação estimada: **93%**.
+- Implementação estimada: **95%**.
 - Parser/executor para DDL/DML comuns.
 - Diferenças de dialeto por versão simulada.
 - Cobertura de `STRING_AGG` ampliada para `DISTINCT`, tratamento de `NULL` e ordenação interna via `WITHIN GROUP`, incluindo cenários de erro malformado com diagnóstico acionável.
 - P8 consolidado: paginação por versão (`OFFSET/FETCH`, `TOP`) com gates explícitos de dialeto.
-- Funções-chave do banco: `STRING_AGG`, `ISNULL`, `DATEADD`, `JSON_VALUE`/`OPENJSON` (subset no mock).
+- Funções-chave do banco: `STRING_AGG`, `STRING_SPLIT`, `ISNULL`, `DATEADD`, `JSON_VALUE`/`OPENJSON` (subset escalar/tabular com schema default/explicito, `strict/lax` e path avançado inicial no mock), `PIVOT`/`UNPIVOT` e `FOR JSON` (`PATH`/`AUTO` em subset inicial) no caminho compartilhado.
 - `DbSqlLikeMem.SqlAzure` compartilha a base do dialeto SQL Server no ciclo atual, com níveis de compatibilidade 100/110/120/130/140/150/160/170 agora mapeados explicitamente para a semântica correspondente de parser por versão (`2008`..`2025`).
 - Incremento desta sessão: a suíte dedicada de parser do `SqlAzure` também passou a cobrir `STRING_AGG ... WITHIN GROUP` (positivo, `SELECT` completo e cláusula malformada), reforçando que o caminho shared do SQL Server ficou corretamente projetado para níveis de compatibilidade Azure.
 - Incremento desta sessão: a camada Strategy do `SqlAzure` agora também possui regressões explícitas para semântica transacional herdada do SQL Server (`commit`, `rollback`, isolamento, savepoint e limpeza de sessão), reduzindo risco de drift comportamental no provider Azure.
 - Incremento desta sessão: o executor de `PIVOT` passou a cobrir também `MIN`, `MAX` e `AVG` no caminho compartilhado de `SQL Server/SqlAzure`, além de alinhar `COUNT(expr)`/`SUM(expr)` à semântica agregadora comum do core.
-- TODO: completar executor de `PIVOT` para agregadores avançados do SQL Server/SqlAzure além do conjunto comum `COUNT/SUM/MIN/MAX/AVG`, conforme prioridade real de uso.
-- TODO: adicionar `UNPIVOT` no parser/executor para SQL Server/SqlAzure, alinhando a cobertura ao conjunto real documentado pelo banco.
-- TODO: adicionar `FOR JSON` (`PATH`/`AUTO`) no parser/executor para cobrir serialização JSON nativa de consultas, presente no SQL Server 2016+ e Azure SQL.
-- TODO: avaliar subset de `STRING_SPLIT(...)` guiado por versão/compatibility level (`130+`) para cenários de CROSS APPLY e projeção tabular comuns no banco real.
+- Incremento desta sessão: parser/executor passaram a suportar `CROSS APPLY`/`OUTER APPLY` no caminho compartilhado de `SQL Server/SqlAzure` tanto com subquery derivada correlacionada quanto com fontes tabulares nativas `OPENJSON(json[, path])` em schema default e `WITH (...)` explícito (subset de colunas tipadas + `AS JSON`) e `STRING_SPLIT(text, separator[, enable_ordinal])`, incluindo gate por versão no dialeto SQL Server, `enable_ordinal` restrito a SQL Server 2022+/compatibility level `160+`, suporte inicial a `strict/lax`, chaves JSON escapadas com aspas e array index em paths do `OPENJSON`, regressão dedicada de parser no `SqlAzure` e cobertura comportamental de runtime nos dois providers.
+- Incremento desta sessão: `UNPIVOT` entrou no parser/executor compartilhado de `SQL Server/SqlAzure`, com AST própria de transformação tabular, parsing em `FROM`/`JOIN`, expansão de colunas em linhas no runtime, descarte de valores `NULL`, regressões de parser/runtime nos dois providers e cobertura adicional no modo `Auto`.
+- Incremento desta sessão: `FOR JSON` entrou no parser/executor compartilhado de `SQL Server/SqlAzure` com gate de versão `2016+`, suporte inicial a `PATH`/`AUTO`, opções `ROOT('...')`, `INCLUDE_NULL_VALUES` e `WITHOUT_ARRAY_WRAPPER`, serialização do rowset final em coluna JSON única, regressões de parser nos dois providers e cobertura comportamental de runtime para `PATH` e `AUTO`.
+- Incremento desta sessão: o subset de `FOR JSON PATH` agora preserva fragmentos vindos de colunas marcadas como JSON (`OPENJSON ... WITH (... AS JSON)`) em vez de escapá-los como texto, com propagação de metadata no plano/projeção compartilhados e regressão de runtime para `SQL Server` e `SqlAzure`.
+- Incremento desta sessão: `JSON_QUERY(...)` entrou no gate/evaluator compartilhado de `SQL Server/SqlAzure` com semântica escalar conservadora de retornar apenas objeto/array JSON, e projeções via `FOR JSON PATH` agora preservam esse fragmento bruto sem escape indevido, com regressões de parser/runtime nos dois providers.
+- Incremento desta sessão: `JSON_QUERY(expr)` sem path explícito passou a preservar também o documento JSON raiz quando ele já for objeto/array, permitindo reuso direto desse fragmento em projeções e em `FOR JSON PATH` no caminho compartilhado de `SQL Server`/`SqlAzure`.
+- Incremento desta sessão: `FOR JSON AUTO` passou a ignorar aliases aninhados vindos de `LEFT JOIN` sem linha filha real, mesmo sob `INCLUDE_NULL_VALUES`, evitando arrays-filhos fantasmas quando todas as colunas da fonte não raiz chegam `NULL`, com regressões de runtime em `SQL Server` e `SqlAzure`.
+- Incremento desta sessão: a família `APPLY` passou a aceitar TVF schema-qualified no subset compartilhado (`dbo.STRING_SPLIT(...)` e `dbo.OPENJSON(...)`), preservando o schema na AST e reaproveitando o executor atual sem branch extra por provider, com regressões de parser/runtime para `SQL Server` e `SqlAzure`.
+- Incremento desta sessão: a cobertura de TVF schema-qualified foi estendida para variantes já suportadas do subset compartilhado, incluindo `dbo.OPENJSON(...) WITH (...)` e `dbo.STRING_SPLIT(..., enable_ordinal)`, com regressões explícitas de parser/runtime para `SQL Server` e `SqlAzure`.
+- Incremento desta sessão: o execution plan/trace compartilhado passou a preservar nomes schema-qualified de fontes tabulares (`dbo.OPENJSON(...)`, `dbo.STRING_SPLIT(...)` e tabelas `schema.table`), reduzindo drift entre AST, debug e backlog para a trilha `APPLY`.
+- Incremento desta sessão: o execution plan/trace também passou a preservar o shape `OPENJSON ... WITH (...)` em fontes tabulares, deixando o diagnóstico textual coerente com a AST para a fatia já suportada de shredding JSON em `APPLY`.
+- Incremento desta sessão: o execution plan/trace passou a distinguir `STRING_SPLIT(..., enable_ordinal)` do caso básico, preservando essa nuance textual no subset compartilhado de `APPLY`.
+- Incremento desta sessão: o execution plan/trace passou a distinguir `OPENJSON(..., path)` do caso básico, preservando também o shape combinado com `WITH (...)` para reduzir ambiguidade diagnóstica na trilha `APPLY`.
+- Incremento desta sessão: o execution plan/trace passou a distinguir também `OPENJSON(..., strict path)` e `OPENJSON(..., lax path)` quando o path literal estiver disponível, fechando a malha diagnóstica principal da trilha `APPLY` já suportada.
+- Incremento desta sessão: a malha de regressão do execution plan passou a cobrir também o shape combinado `OPENJSON(..., strict path) WITH (...)`, consolidando a observabilidade textual do subset JSON tabular já suportado em `APPLY`.
+- Incremento desta sessão: a regressão textual do execution plan passou a cobrir também a linha de `JOIN: CROSS APPLY` para `OPENJSON(..., strict path) WITH (...)`, fechando a prova de formatação tanto em `FROM` quanto em `JOIN`.
+- Incremento desta sessão: a regressão textual do execution plan passou a cobrir também a linha de `JOIN: CROSS APPLY` para `STRING_SPLIT(..., enable_ordinal)`, fechando a contraparte diagnóstica da outra TVF principal do subset `APPLY`.
+- Incremento desta sessão: a malha textual do execution plan passou a cobrir também `JOIN: OUTER APPLY dbo.STRING_SPLIT(...)`, fechando a simetria diagnóstica básica entre `CROSS APPLY` e `OUTER APPLY` para a família tabular já suportada.
+- Incremento desta sessão: a malha textual do execution plan passou a cobrir também `JOIN: OUTER APPLY dbo.OPENJSON(..., strict path) WITH (...)`, fechando a simetria diagnóstica principal da trilha `APPLY` para `OPENJSON` e `STRING_SPLIT`.
+- Incremento desta sessão: a regressão textual do execution plan passou a cobrir também `JOIN: OUTER APPLY dbo.STRING_SPLIT(..., ..., enable_ordinal)`, fechando a malha simétrica completa de `CROSS/OUTER APPLY` para a nuance de `enable_ordinal`.
+- Incremento desta sessão: o runtime de `STRING_SPLIT(..., enable_ordinal)` passou a aceitar também flags decimais que coercem exatamente para `0`/`1`, reduzindo uma das diferenças finas de coerção do terceiro argumento no subset `2022+` compartilhado entre `SQL Server` e `SqlAzure`.
+- Incremento desta sessão: o runtime de `STRING_SPLIT(..., enable_ordinal)` passou a aceitar também texto numérico simples que coerce exatamente para `0`/`1` (ex.: `'1.0'`), reduzindo mais uma aresta do residual de coerção do terceiro argumento.
+- Incremento desta sessão: a trilha de `STRING_SPLIT(..., enable_ordinal)` agora também tem regressão explícita para o caso textual `'0.0'`, garantindo que coercões equivalentes a zero desabilitem a coluna ordinal sem erro no subset compartilhado `2022+`.
+- Incremento desta sessão: a trilha de `STRING_SPLIT(..., enable_ordinal)` ganhou regressões negativas explícitas para texto numérico fora do subset aceito (ex.: `'2.0'`), consolidando o contrato de coerção ampliado sem afrouxar a validação do terceiro argumento.
+- Incremento desta sessão: o mesmo contrato ampliado de coerção/validação de `enable_ordinal` passou a ficar coberto também no caminho schema-qualified (`dbo.STRING_SPLIT(...)`), reduzindo risco de drift entre as variantes básica e qualificada por schema.
+- Incremento desta sessão: o executor compartilhado de `PIVOT` passou a cobrir também agregadores estatísticos `STDEV`, `STDEVP`, `VAR` e `VARP` para `SQL Server/SqlAzure`, com regressões comportamentais de runtime nos dois providers para buckets múltiplos e cálculo esperado por tenant.
+- Incremento desta sessão: `FOR JSON PATH` passou a rejeitar ordem conflitante de aliases aninhados quando um mesmo objeto JSON seria reaberto fora de ordem (`Movement.Something.*` separado por outro ramo), deixando de mesclar silenciosamente paths incompatíveis e aproximando o mock do comportamento do banco real em `SQL Server`/`SqlAzure`.
+- Incremento desta sessão: o executor compartilhado de `PIVOT` passou a suportar também `COUNT_BIG(...)`, preservando o shape `bigint` no resultado e cobrindo regressões comportamentais em `SQL Server` e `SqlAzure`.
+- Incremento desta sessão: as colunas agregadas de `PIVOT` passaram a expor metadata mais coerente no reader compartilhado (`COUNT` como `Int32`, `COUNT_BIG` como `Int64` e `STDEV`/`STDEVP`/`VAR`/`VARP` como `Double`), reduzindo drift de contrato entre valor materializado e introspecção de schema em `SQL Server`/`SqlAzure`.
+- Incremento desta sessão: a inferência de metadata do `PIVOT` passou a reutilizar também o tipo da coluna de entrada para `MIN`/`MAX` quando o argumento agregado for um identificador simples, reduzindo mais uma aresta de `DbType.Object` residual no reader compartilhado de `SQL Server`/`SqlAzure`.
+- Incremento desta sessão: a mesma inferência conservadora de metadata do `PIVOT` passou a cobrir também `SUM`/`AVG` quando o argumento agregado for um identificador simples já tipado, reduzindo mais um bloco de `DbType.Object` residual no reader compartilhado de `SQL Server`/`SqlAzure`.
+- Incremento desta sessão: colunas copiadas de `PIVOT` e `UNPIVOT` passaram a reaproveitar metadata tipada/nullable da fonte quando disponível, reduzindo drift de schema no reader compartilhado para colunas de agrupamento e valores reemitidos em `SQL Server`/`SqlAzure`.
+- Incremento desta sessão: a coluna de valor do `UNPIVOT` passou a reconciliar o metadata das colunas do `IN (...)` de forma conservadora, preservando o tipo comum quando ele existe e caindo para `Object` quando o conjunto mistura tipos incompatíveis em `SQL Server`/`SqlAzure`.
+- Incremento desta sessão: como o runtime de `UNPIVOT` descarta linhas cujo valor seja `NULL`, a coluna `FieldValue` passou a ser exposta como não anulável no schema do reader compartilhado, alinhando melhor metadata e materialização em `SQL Server`/`SqlAzure`.
+- Incremento desta sessão: o schema compartilhado de `PIVOT` foi corrigido para expor `COUNT(...)`, `COUNT(*)` e `COUNT_BIG(...)` como colunas tipadas (`Int32`/`Int64`) porém ainda anuláveis no metadata do reader, alinhando o mock ao contrato observado/documentado do SQL Server em que o valor materializado não vem `NULL`, mas o metadata continua nullable por padrão.
+- Incremento desta sessão: a malha de regressão do reader/shared schema passou a cobrir explicitamente as variantes `COUNT(...)`, `COUNT(*)` e `COUNT_BIG(...)` do `PIVOT`, consolidando a distinção entre tipo de retorno e nullability de metadata em `SQL Server`/`SqlAzure`.
+- Incremento desta sessão: a malha de schema do `PIVOT` passou a cobrir explicitamente também o lado anulável dos agregadores tipados (`AVG`), reduzindo risco de drift entre o metadata nullable exposto para agregadores e os casos em que o bucket efetivamente materializa `NULL` em `SQL Server`/`SqlAzure`.
+- Incremento desta sessão: o `PIVOT` passou a alinhar também o valor materializado de `SUM` ao metadata promovido no caso de tipos numéricos menores (`SMALLINT`/inteiros estreitos), deixando de carregar `decimal` residual quando o contrato do SQL Server espera retorno inteiro promovido no subset compartilhado de `SQL Server`/`SqlAzure`.
+- Incremento desta sessão: a mesma correção de promoção/materialização de `SUM` em `PIVOT` passou a ficar provada explicitamente também para `TINYINT`, consolidando a família dos inteiros estreitos no subset compartilhado de `SQL Server`/`SqlAzure`.
+- Incremento desta sessão: `AVG` em `PIVOT` passou a alinhar também valor materializado e metadata para agregados inteiros (`SMALLINT`/`INT`), deixando de carregar `decimal` residual onde o contrato do SQL Server espera retorno inteiro promovido no subset compartilhado de `SQL Server`/`SqlAzure`.
+- Incremento desta sessão: a mesma correção de `AVG` em `PIVOT` passou a ficar provada explicitamente também para `BIGINT`, fechando a promoção/materialização inteira principal do subset compartilhado de `SQL Server`/`SqlAzure`.
+- Incremento desta sessão: a coerção final de `AVG` em `PIVOT` passou a truncar corretamente valores fracionários ao voltar para `INT`/`BIGINT`, evitando arredondamento acidental e aproximando o mock do contrato real do SQL Server/SqlAzure para agregados inteiros.
+- Incremento desta sessão: a mesma trilha de `AVG` em `PIVOT` passou a ficar provada explicitamente também para `TINYINT`, consolidando a família inteira dos inteiros promovidos no subset compartilhado de `SQL Server`/`SqlAzure`.
+- Incremento desta sessão: a semântica de truncamento de `AVG` inteiro em `PIVOT` passou a ficar provada também para médias negativas fracionárias, consolidando o comportamento "truncate toward zero" no subset compartilhado de `SQL Server`/`SqlAzure`.
+- TODO: completar executor de `PIVOT` para outros agregadores avançados eventualmente necessários no SQL Server/SqlAzure além do conjunto agora coberto (`COUNT/COUNT_BIG/SUM/MIN/MAX/AVG/STDEV/STDEVP/VAR/VARP`), conforme prioridade real de uso.
+- TODO: expandir `FOR JSON` além do subset atual (`PATH`/`AUTO`, `ROOT`, `INCLUDE_NULL_VALUES`, `WITHOUT_ARRAY_WRAPPER`, embedding de fragmentos JSON vindos de `OPENJSON ... AS JSON` e `JSON_QUERY(...)`, supressão inicial de filhos nulos em `AUTO` com `LEFT JOIN` e validação inicial de conflito/ordem em aliases aninhados de `PATH`), cobrindo demais diferenças finas de serialização/nesting, edge cases residuais de ordenação/conflito em `PATH`, demais edge cases de `AUTO`, nuances do banco real e outras origens compatíveis de JSON bruto antes de considerar a família fechada.
+- TODO: expandir a família `APPLY` (`CROSS APPLY`/`OUTER APPLY`) além do subset atual já coberto (`subquery` derivada correlacionada, `OPENJSON(json[, path])` com schema default e `WITH (...)` explícito em subset inicial, `STRING_SPLIT(text, separator[, enable_ordinal])` e TVF schema-qualified no shape `schema.func(...)` com `WITH (...)`/`enable_ordinal`), cobrindo `OPENJSON` com semântica mais completa de schema/path (`strict/lax` residual, validações finas, modos avançados e variantes adicionais), TVF inline e demais fontes tabulares nativas com gate por versão/`compatibility level`.
+- TODO: revisar diferenças finas de `STRING_SPLIT(...)` por versão (`160+`), especialmente coercões aceitas no `enable_ordinal`, shape de metadata e nuances de ordenação/estabilidade sem `ORDER BY`, antes de considerar a família tabular do banco como fechada.
 
 #### 3.2.3 Aplicações típicas
 
@@ -1119,7 +1182,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Cobertura de regressão inclui suíte cross-dialeto com snapshots por perfil (smoke/aggregation/parser), operacionalizada no script `scripts/run_cross_dialect_equivalence.sh`; atualização em lote suportada por `scripts/refresh_cross_dialect_snapshots.sh` e baseline documental semântico (`manual-placeholder`) para evitar snapshot desatualizado no repositório.
 - O profile `parser` agora inclui também `SqlAzure`, fechando a matriz principal de providers SQL suportados nessa trilha sem precisar duplicar runtime do dialeto.
 - Matriz consolidada de providers/versões e capacidades comuns agora está refletida diretamente neste índice como fonte principal de backlog.
-- TODO: ampliar a matriz compartilhada para capacidades avançadas auditadas contra bancos reais (`JSON_TABLE`, `FOR JSON`, `LATERAL`, `DISTINCT ON`, `json_each/json_tree`, `PIVOT/UNPIVOT`) com status explícito por provider.
+- TODO: ampliar a matriz compartilhada para capacidades avançadas auditadas contra bancos reais (`JSON_TABLE`, `FOR JSON`, `CROSS APPLY/OUTER APPLY`, `LATERAL`, `DISTINCT ON`, `json_each/json_tree`, `PIVOT/UNPIVOT`) com status explícito por provider.
 - TODO: incluir `SqlDialect.Auto` na malha `parser`/`smoke` com snapshots dedicados para sintaxes equivalentes de paginação e demais heurísticas que entrarem no modo automático.
 - TODO: expandir a matriz para os próximos providers/famílias planejados (`MariaDB`, `Firebird`, `DuckDB` e, em fase posterior, `ClickHouse`/`Snowflake`) com status por etapa de implementação.
 - TODO: conectar a futura API de validação cross-dialect aos artefatos publicados da matriz para transformar compatibilidade em evidência objetiva de CI.
@@ -1127,6 +1190,8 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
   - Providers já mapeados com benchmark viável por container: `MySQL`, `SQL Server`, `PostgreSQL/Npgsql`, `Oracle` e `DB2`.
   - Providers do backlog com benchmark viável por container: `MariaDB`, `Firebird` e `ClickHouse`.
   - Fora desta trilha por enquanto: `SQLite` e `DuckDB` (embedded) e `SqlAzure`/`Snowflake` (sem baseline local/container equivalente no ciclo atual).
+- TODO: padronizar essa trilha em `Testcontainers` para que cada benchmark gere baseline reproduzível por provider e também uma visão consolidada comparando bancos reais em container com o runtime do `DbSqlLikeMem`.
+- TODO: publicar os resultados consolidados dessa trilha na wiki espelhada (`docs/Wiki`) com snapshots/versionamento por rodada, permitindo comparação histórica entre providers reais em container e esta aplicação.
 
 #### 3.7.2 Priorização de gaps
 
@@ -1151,7 +1216,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Diferenças que impactam relatórios, filtros avançados e paginação em módulos centrais.
 - Inclui execução do plano P11/P12 para confiabilidade transacional, concorrência e diagnóstico de erro com contexto.
 - Status detalhado de transações concorrentes: fase de hardening base concluída (100%), governança em progresso (~10%) e cenários críticos (fases 2–5) priorizados para fechamento.
-- TODO: manter nesta onda recursos avançados de consulta com impacto funcional frequente (`FOR JSON`, `STRING_SPLIT`, `DISTINCT ON`, `LATERAL`, window frames avançados no SQLite).
+- TODO: manter nesta onda recursos avançados de consulta com impacto funcional frequente (`FOR JSON`, `STRING_SPLIT`, `CROSS APPLY/OUTER APPLY`, `DISTINCT ON`, `LATERAL`, window frames avançados no SQLite).
 - TODO: priorizar nesta onda `Query Plan Debugger`, `MariaDB`, `Firebird`, `DuckDB`, `Schema Snapshot` e `Cross Dialect Validator`, respeitando a ordem de dependências definida no roadmap.
 
 #### 3.8.3 Onda 3 (média/baixa)
@@ -1221,10 +1286,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: a próxima lacuna pequena fechada no core foi DDL de `SEQUENCE`, reaproveitando a infraestrutura já existente de runtime e deixando parser/dispatcher/executor seguirem a capacidade declarada no dialeto.
 - Incremento desta sessão: o parser comum de agregação textual foi endurecido para a forma nativa do MySQL (`GROUP_CONCAT(DISTINCT ... ORDER BY ... SEPARATOR ...)`), aceitando `SEPARATOR` como terminador válido do `ORDER BY` interno apenas quando o dialeto/função o suportam.
 - Incremento desta sessão: a trilha auditada de regras por dialeto removeu os últimos branches comportamentais centrais por `dialect.Name` para mutações multi-tabela, rowcount de UPSERT e `SQL_CALC_FOUND_ROWS`, consolidando parser/executor/strategies sob o mesmo contrato de capability do provider.
-- Incremento desta sessão: a próxima fatia funcional do executor fechou o subset principal de `PIVOT` com `SUM/MIN/MAX/AVG` no caminho compartilhado, deixando `UNPIVOT` e agregadores avançados como backlog residual explícito.
+- Incremento desta sessão: a próxima fatia funcional do executor fechou o subset principal de `PIVOT` com `SUM/MIN/MAX/AVG`, adicionou `UNPIVOT` e abriu o subset inicial de `FOR JSON` no caminho compartilhado de `SQL Server/SqlAzure`, deixando agregadores avançados, nuances tabulares por versão e arestas finas de serialização JSON como backlog residual explícito.
 - TODO: executar o roadmap na ordem acordada: `SqlDialect.Auto` -> `Query Plan Debugger` -> `MariaDB` -> `Firebird` -> `DuckDB` -> `Schema Snapshot` -> `Cross Dialect Validator`.
 - TODO: extrair/refatorar bases compartilhadas por família antes de `MariaDB` e `DuckDB`, para evitar duplicação e preservar o parser/executor agnósticos.
-- TODO: fechar a trilha auditada contra bancos reais com implementação incremental de `JSON_TABLE` (MySQL, Oracle, DB2), `FOR JSON`/`UNPIVOT`/`STRING_SPLIT` (SQL Server/SqlAzure), `DISTINCT ON`/`LATERAL` (PostgreSQL), `json_each`/`json_tree` e frames avançados de window (SQLite).
+- TODO: fechar a trilha auditada contra bancos reais com implementação incremental de `JSON_TABLE` (MySQL, Oracle, DB2), `FOR JSON`/`STRING_SPLIT`/`CROSS APPLY`/`OUTER APPLY` (SQL Server/SqlAzure), `DISTINCT ON`/`LATERAL` (PostgreSQL), `json_each`/`json_tree` e frames avançados de window (SQLite).
 - TODO: revisar cada nova feature acima com a regra "dialeto manda", garantindo gate no tokenizer/parser, contract no executor e suíte positiva/negativa por versão simulada antes de marcar o item como concluído.
 
 #### 4.2.3 Critérios de aceitação

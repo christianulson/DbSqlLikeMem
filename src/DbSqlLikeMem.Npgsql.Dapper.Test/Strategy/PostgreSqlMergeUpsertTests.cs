@@ -38,19 +38,36 @@ public sealed class PostgreSqlMergeUpsertTests(ITestOutputHelper helper) : XUnit
     /// EN: Ensures MERGE updates an existing row when the ON condition matches.
     /// PT: Garante que merge atualize uma linha existente quando a condição ON é satisfeita.
     /// </summary>
-    [Fact]
+    [Theory]
     [Trait("Category", "Strategy")]
-    public void Merge_ShouldUpdate_WhenMatched()
+    [MemberDataNpgsqlVersion]
+    public void Merge_ShouldUpdate_WhenMatched(int version)
     {
-        var db = new NpgsqlDbMock(NpgsqlDialect.MergeMinVersion);
+        var db = new NpgsqlDbMock(version);
+        using var cnn = new NpgsqlConnectionMock(db);
+        cnn.Open();
+
+        if (version < NpgsqlDialect.MergeMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => cnn.Execute("""
+                MERGE INTO users AS target
+                USING (SELECT 1 AS Id, 'NEW' AS Name) AS src
+                ON target.Id = src.Id
+                WHEN MATCHED THEN
+                    UPDATE SET Name = src.Name
+                WHEN NOT MATCHED THEN
+                    INSERT (Id, Name) VALUES (src.Id, src.Name);
+                """));
+
+            Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
         var t = db.AddTable("users");
         t.AddColumn("Id", DbType.Int32, false);
         t.AddColumn("Name", DbType.String, false);
         t.AddPrimaryKeyIndexes("id");
         t.Add(new Dictionary<int, object?> { [0] = 1, [1] = "OLD" });
-
-        using var cnn = new NpgsqlConnectionMock(db);
-        cnn.Open();
 
         const string sql = @"
 MERGE INTO users AS target
@@ -72,18 +89,33 @@ WHEN NOT MATCHED THEN
     /// EN: Ensures MERGE resolves source alias without AS for insert path.
     /// PT: Garante que o merge resolva alias da fonte sem AS no caminho de inserção.
     /// </summary>
-    [Fact]
+    [Theory]
     [Trait("Category", "Strategy")]
-    public void Merge_SourceAliasWithoutAs_ShouldInsert_WhenNotMatched()
+    [MemberDataNpgsqlVersion]
+    public void Merge_SourceAliasWithoutAs_ShouldInsert_WhenNotMatched(int version)
     {
-        var db = new NpgsqlDbMock(NpgsqlDialect.MergeMinVersion);
+        var db = new NpgsqlDbMock(version);
+        using var cnn = new NpgsqlConnectionMock(db);
+        cnn.Open();
+
+        if (version < NpgsqlDialect.MergeMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => cnn.Execute("""
+                MERGE INTO users target
+                USING (SELECT 8 AS Id, 'PgNoAs' AS Name) s
+                ON target.Id = s.Id
+                WHEN NOT MATCHED THEN
+                    INSERT (Id, Name) VALUES (s.Id, s.Name);
+                """));
+
+            Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
         var t = db.AddTable("users");
         t.AddColumn("Id", DbType.Int32, false);
         t.AddColumn("Name", DbType.String, false);
         t.AddPrimaryKeyIndexes("id");
-
-        using var cnn = new NpgsqlConnectionMock(db);
-        cnn.Open();
 
         const string sql = @"
 MERGE INTO users target

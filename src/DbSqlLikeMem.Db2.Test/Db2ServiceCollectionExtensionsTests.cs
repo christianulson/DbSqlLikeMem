@@ -6,7 +6,9 @@ namespace DbSqlLikeMem.Db2.Test;
 /// EN: Validates Db2 service collection registration helpers.
 /// PT: Valida os helpers de registro de Db2 na coleção de serviços.
 /// </summary>
-public sealed class Db2ServiceCollectionExtensionsTests
+public sealed class Db2ServiceCollectionExtensionsTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     private sealed class ServiceCollectionStub : List<ServiceDescriptor>, IServiceCollection
     {

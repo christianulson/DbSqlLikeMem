@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.SqlServer.Test;
 /// EN: Contains tests for sql server provider surface mocks.
 /// PT: Contém testes para sql server provedor surface mocks.
 /// </summary>
-public sealed class SqlServerProviderSurfaceMocksTests
+public sealed class SqlServerProviderSurfaceMocksTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Ensures the typed SelectCommand property stays synchronized with the base SelectCommand.

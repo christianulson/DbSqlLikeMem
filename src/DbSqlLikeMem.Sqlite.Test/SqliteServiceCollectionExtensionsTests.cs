@@ -6,7 +6,9 @@ namespace DbSqlLikeMem.Sqlite.Test;
 /// EN: Validates Sqlite service collection registration helpers.
 /// PT: Valida os helpers de registro de Sqlite na coleção de serviços.
 /// </summary>
-public sealed class SqliteServiceCollectionExtensionsTests
+public sealed class SqliteServiceCollectionExtensionsTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     private sealed class ServiceCollectionStub : List<ServiceDescriptor>, IServiceCollection
     {

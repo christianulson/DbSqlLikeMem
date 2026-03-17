@@ -6,7 +6,9 @@ namespace DbSqlLikeMem.Sqlite.Test;
 /// EN: Covers the first schema snapshot export/load slice over the SQLite mock surface.
 /// PT: Cobre a primeira fatia de exportacao/carga de schema snapshot sobre a superficie do mock SQLite.
 /// </summary>
-public sealed class SchemaSnapshotTests
+public sealed class SchemaSnapshotTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Verifies schema snapshot export preserves table and column structural metadata.

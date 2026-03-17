@@ -4,6 +4,8 @@
 
 **PT-BR:** Mecanismo de banco de dados em memória para testes unitários em C# que emula dialetos SQL e o comportamento de ADO.NET para **MySQL**, **SQL Server**, **SQL Azure**, **Oracle**, **PostgreSQL (Npgsql)**, **SQLite** e **DB2**.
 
+<img src="./image.png" width="300" alt="Logo DbSqlLikeMem">
+
 ---
 
 ## 📚 Documentation by context | Documentação por contexto
@@ -14,6 +16,8 @@
 
 - [Documentation overview | Visão geral da documentação](docs/README.md)
 - [Getting started (installation and usage) | Começando rápido (instalação e uso)](docs/getting-started.md)
+- [EN: .NET Fiddle quick start (all providers) | Test DbSqlLikeMem in the browser](docs/Wiki/DotNet-Fiddle-Quick-Start.md)
+- [PT-BR: Começando no .NET Fiddle (todos os provedores) | Teste o DbSqlLikeMem no navegador](docs/Wiki/DotNet-Fiddle-Quick-Start.pt-BR.md)
 - [Providers, versions, and SQL compatibility | Provedores, versões e compatibilidade SQL](docs/old/providers-and-features.md)
 - [AI playbook for external repository/integration tests | Playbook de IA para testes de repositório/integração](docs/ai-nuget-test-projects-playbook.md)
 - [Publishing (NuGet, VSIX, and VS Code) | Publicação (NuGet, VSIX e VS Code)](docs/publishing.md)
@@ -71,7 +75,7 @@
 ```csharp
 using DbSqlLikeMem.MySql;
 
-var db = new MySqlDbMock(version: 8);
+var db = new MySqlDbMock(version: 80);
 var users = db.AddTable("users");
 users.AddColumn("Id", DbType.Int32, false);
 users.AddColumn("Name", DbType.String, false);
@@ -145,13 +149,16 @@ var plan = cnn.LastExecutionPlan;
 
 | Provider / Provedor | Simulated versions / Versões simuladas |
 | --- | --- |
-| MySQL | 3, 4, 5, 8 |
+| MySQL | 3.0, 4.0, 5.5, 5.6, 5.7, 8.0, 8.4 |
 | SQL Server | 7, 2000, 2005, 2008, 2012, 2014, 2016, 2017, 2019, 2022 |
 | SQL Azure | 100, 110, 120, 130, 140, 150, 160, 170 |
 | Oracle | 7, 8, 9, 10, 11, 12, 18, 19, 21, 23 |
 | PostgreSQL (Npgsql) | 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 |
 | SQLite (Sqlite) | 3 |
 | DB2 | 8, 9, 10, 11 |
+
+For MySQL, documentation uses dotted versions (`8.0`, `8.4`), while the provider API keeps integer values (`80`, `84`).
+Para MySQL, a documentação usa versões com ponto (`8.0`, `8.4`), enquanto a API do provider mantém valores inteiros (`80`, `84`).
 
 ## Runtime provider factory example | Exemplo de factory de provider em runtime
 
@@ -189,6 +196,8 @@ public static class DbSqlLikeMemFactory
 **PT-BR:** Consulte o guia dedicado de início rápido:
 
 - [docs/getting-started.md](docs/getting-started.md)
+- [EN: .NET Fiddle quick start (all providers) | Test DbSqlLikeMem in the browser](docs/Wiki/DotNet-Fiddle-Quick-Start.md)
+- [PT-BR: Começando no .NET Fiddle (todos os provedores) | Teste o DbSqlLikeMem no navegador](docs/Wiki/DotNet-Fiddle-Quick-Start.pt-BR.md)
 
 **EN:** The guide includes:  
 **PT-BR:** O guia inclui:

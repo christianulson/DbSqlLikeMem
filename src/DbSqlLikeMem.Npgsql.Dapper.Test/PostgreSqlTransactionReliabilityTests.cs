@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.Npgsql.Test;
 /// EN: Validates transactional reliability additions for P11 scenarios.
 /// PT: Valida as adições de confiabilidade transacional para cenários do P11.
 /// </summary>
-public sealed class PostgreSqlTransactionReliabilityTests : ProviderDapperTransactionReliabilityTestsBase<NpgsqlDbMock, NpgsqlConnectionMock>
+public sealed class PostgreSqlTransactionReliabilityTests(
+        ITestOutputHelper helper
+    ) : ProviderDapperTransactionReliabilityTestsBase<NpgsqlDbMock, NpgsqlConnectionMock>(helper)
 {
     /// <inheritdoc />
     protected override NpgsqlDbMock CreateDb(int? version, bool threadSafe)

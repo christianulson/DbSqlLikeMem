@@ -52,7 +52,7 @@ internal static class SelectPlanProjectionHelper
     }
 
     internal static string GetSelectProjectionTableAlias(SqlSelectQuery query)
-        => query.Table?.Alias ?? query.Table?.Name ?? string.Empty;
+        => query.Table?.Alias ?? query.Table?.TableFunction?.Name ?? query.Table?.Name ?? string.Empty;
 
     internal static string InferColumnAlias(string rawExpression)
     {
@@ -91,14 +91,17 @@ internal static class SelectPlanProjectionHelper
         string tableAlias,
         string columnAlias,
         int columnIndex,
-        DbType dbType)
+        DbType dbType,
+        bool isNullable = true,
+        bool isJsonFragment = false)
         => new(
             tableAlias: tableAlias,
             columnAlias: columnAlias,
             columnName: columnAlias,
             columIndex: columnIndex,
             dbType: dbType,
-            isNullable: true);
+            isNullable: isNullable,
+            isJsonFragment: isJsonFragment);
 
     private static void AppendSourceColumns(
         List<TableResultColMock> columns,
@@ -109,7 +112,10 @@ internal static class SelectPlanProjectionHelper
         foreach (var columnName in source.ColumnNames)
         {
             var alias = MakeUniqueAlias(columns, columnName, source.Alias);
-            columns.Add(new TableResultColMock(source.Alias, alias, columnName, columns.Count, DbType.Object, true));
+            var isJsonFragment = source.TryGetColumnMetadata(columnName, out var metadata) && metadata.IsJsonFragment;
+            var dbType = metadata?.DbType ?? DbType.Object;
+            var isNullable = metadata?.IsNullable ?? true;
+            columns.Add(new TableResultColMock(source.Alias, alias, columnName, columns.Count, dbType, isNullable, isJsonFragment));
             evaluators.Add((row, group) => resolveColumn(source.Alias, columnName, row));
         }
     }

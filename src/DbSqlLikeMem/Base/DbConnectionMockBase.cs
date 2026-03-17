@@ -60,10 +60,15 @@ public abstract class DbConnectionMockBase(
     private readonly List<QueryDebugTrace> _lastDebugTraces = [];
     private int _debugTraceCaptureDepth;
     private long _lastFoundRows;
+    private object? _lastInsertId;
     private readonly AutoSqlDialect _autoSqlDialect = new();
     private readonly Dictionary<string, long> _sessionSequenceValues =
         new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, object?> _sessionContextValues =
+        new(StringComparer.OrdinalIgnoreCase);
+    private byte[]? _contextInfo;
     private string? _lastSessionSequenceKey;
+    private string? _currentQueryText;
 
     internal void ClearExecutionPlans()
     {
@@ -80,6 +85,12 @@ public abstract class DbConnectionMockBase(
         LastExecutionPlan = executionPlan;
         _lastExecutionPlans.Add(executionPlan);
     }
+
+    internal string? GetCurrentQueryText()
+        => _currentQueryText;
+
+    internal IDisposable BeginCurrentQueryScope(string? sql)
+        => new CurrentQueryScope(this, sql);
 
     /// <summary>
     /// EN: Last runtime query debug trace captured for this connection.
@@ -484,11 +495,39 @@ public abstract class DbConnectionMockBase(
         }
     }
 
+    private sealed class CurrentQueryScope : IDisposable
+    {
+        private DbConnectionMockBase? _connection;
+        private readonly string? _previousQueryText;
+
+        public CurrentQueryScope(DbConnectionMockBase connection, string? sql)
+        {
+            _connection = connection;
+            _previousQueryText = connection._currentQueryText;
+            connection._currentQueryText = sql;
+        }
+
+        public void Dispose()
+        {
+            if (_connection is null)
+                return;
+
+            _connection._currentQueryText = _previousQueryText;
+            _connection = null;
+        }
+    }
+
     internal void SetLastFoundRows(long value)
         => _lastFoundRows = Math.Max(0, value);
 
     internal long GetLastFoundRows()
         => _lastFoundRows;
+
+    internal void SetLastInsertId(object? value)
+        => _lastInsertId = value;
+
+    internal object? GetLastInsertId()
+        => _lastInsertId;
 
     /// <summary>
     /// EN: Simulated latency in milliseconds for each operation.
@@ -849,6 +888,30 @@ public abstract class DbConnectionMockBase(
         Db.DropTable(tableName, ifExists, targetSchema);
     }
 
+    internal void CreateIndex(
+        string indexName,
+        string tableName,
+        IEnumerable<string> keyColumns,
+        bool unique,
+        string? schemaName = null)
+        => Db.CreateIndex(
+            indexName,
+            tableName,
+            keyColumns,
+            unique,
+            schemaName ?? Database);
+
+    internal void DropIndex(
+        string indexName,
+        bool ifExists,
+        string? tableName = null,
+        string? schemaName = null)
+        => Db.DropIndex(
+            indexName,
+            ifExists,
+            tableName,
+            schemaName ?? Database);
+
     #endregion
 
     #region Procedures
@@ -992,6 +1055,23 @@ public abstract class DbConnectionMockBase(
             && _sessionSequenceValues.TryGetValue(_lastSessionSequenceKey, out value);
     }
 
+    internal void SetSessionContextValue(string key, object? value)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return;
+
+        _sessionContextValues[key] = value;
+    }
+
+    internal bool TryGetSessionContextValue(string key, out object? value)
+        => _sessionContextValues.TryGetValue(key, out value);
+
+    internal void SetContextInfo(byte[]? value)
+        => _contextInfo = value;
+
+    internal byte[]? GetContextInfo()
+        => _contextInfo;
+
     private string BuildSessionSequenceKey(
         string sequenceName,
         string? schemaName)
@@ -1088,6 +1168,9 @@ public abstract class DbConnectionMockBase(
 
         _temporaryTables.Clear();
         _sessionSequenceValues.Clear();
+        _sessionContextValues.Clear();
+        _contextInfo = null;
+        _lastInsertId = 0;
         _lastSessionSequenceKey = null;
         SetLastFoundRows(0);
         ClearExecutionPlans();

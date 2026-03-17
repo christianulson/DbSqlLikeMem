@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.MySql.Test;
 /// EN: Contains tests for MySQL batch mock behavior.
 /// PT: Contém testes para o comportamento do simulado de lote MySQL.
 /// </summary>
-public sealed class MySqlBatchMockTests
+public sealed class MySqlBatchMockTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Ensures non-query batch execution runs all commands and accumulates affected rows.

@@ -3,7 +3,9 @@
 /// EN: Defines the class Db2LinqProviderTest.
 /// PT: Define a classe Db2LinqProviderTest.
 /// </summary>
-public sealed class Db2LinqProviderTest
+public sealed class Db2LinqProviderTest(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
 #pragma warning disable CA1812
     private sealed class User

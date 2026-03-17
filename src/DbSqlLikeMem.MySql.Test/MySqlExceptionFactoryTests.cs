@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.MySql.Test;
 /// EN: Verifies MySqlExceptionFactory creates provider-specific exceptions with the expected error codes.
 /// PT: Verifica se MySqlExceptionFactory cria excecoes especificas do provedor com os codigos esperados.
 /// </summary>
-public sealed class MySqlExceptionFactoryTests
+public sealed class MySqlExceptionFactoryTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Verifies duplicate key, unknown column, and nullability exceptions preserve their MySQL-style codes.

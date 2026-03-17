@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 /// EN: Defines SQL Azure LINQ provider smoke tests.
 /// PT: Define testes smoke do provider LINQ de SQL Azure.
 /// </summary>
-public sealed class SqlAzureLinqProviderTests
+public sealed class SqlAzureLinqProviderTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
 #pragma warning disable CA1812
     private sealed class User

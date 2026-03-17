@@ -162,6 +162,7 @@ public class NpgsqlCommandMock(
             var query = SqlQueryParser.Parse(sqlRaw, connection.ExecutionDialect, Parameters);
             parsedStatementCount++;
 
+            using var currentQueryScope = connection.BeginCurrentQueryScope(sqlRaw);
             connection.DispatchParsedReaderQuery(
                 query,
                 Parameters,

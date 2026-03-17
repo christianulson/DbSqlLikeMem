@@ -20,16 +20,16 @@ Priorizar migração para testes versionados quando a query usa recurso que mudo
 ### 1) `Window_RowNumber_PartitionBy_ShouldWork`
 
 - Query usa `ROW_NUMBER() OVER (PARTITION BY ...)`.
-- Em MySQL, window functions são recurso de linha 8.x.
-- Recomendação: trocar para `[Theory] + [MemberDataMySqlVersion(VersionGraterOrEqual = 8)]`. Para versões `< 8`, criar teste separado de rejeição (`NotSupportedException`).
+- Em MySQL, window functions entram no contrato versionado do projeto a partir de `8.0+`.
+- Recomendação: trocar para `[Theory] + [MemberDataMySqlVersion(VersionGraterOrEqual = 80)]`. Para versões `< 8.0`, criar teste separado de rejeição (`NotSupportedException`).
 
 Referência: `MySqlAdvancedSqlGapTests` com `ROW_NUMBER() OVER (...)`.【F:src/DbSqlLikeMem.MySql.Test/MySqlAdvancedSqlGapTests.cs†L50-L57】
 
 ### 2) `Cte_With_ShouldWork`
 
 - Query usa `WITH u AS (...)`.
-- CTE em MySQL é esperado apenas em versões novas (8.x).
-- Recomendação: versionar em `>= 8` e ter cenário inverso para `< 8`.
+- CTE em MySQL é esperado apenas em versões novas (`8.0`/`8.4`).
+- Recomendação: versionar em `>= 8.0` e ter cenário inverso para `< 8.0`.
 
 Referência: `WITH u AS (...) SELECT ...`.【F:src/DbSqlLikeMem.MySql.Test/MySqlSqlCompatibilityGapTests.cs†L261-L267】
 
@@ -37,7 +37,7 @@ Referência: `WITH u AS (...) SELECT ...`.【F:src/DbSqlLikeMem.MySql.Test/MySql
 
 - Query usa `JSON_EXTRACT(...)`.
 - JSON nativo é sensível a versão no ecossistema MySQL (na matriz do projeto, isso deve ser explicitado por versão).
-- Recomendação: `[MemberDataMySqlVersion(VersionGraterOrEqual = 5)]` (ou recorte mais estrito se quiser refletir versão menor suportada internamente).
+- Recomendação: `[MemberDataMySqlVersion(VersionGraterOrEqual = 50)]` (ou recorte mais estrito se quiser refletir versão menor suportada internamente).
 
 Referência: `JSON_EXTRACT(payload, '$.a.b')`.【F:src/DbSqlLikeMem.MySql.Test/MySqlUnionLimitAndJsonCompatibilityTests.cs†L83-L87】
 

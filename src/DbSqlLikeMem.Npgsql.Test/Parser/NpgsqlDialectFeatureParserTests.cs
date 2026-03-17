@@ -547,6 +547,22 @@ public sealed class NpgsqlDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures PostgreSQL keeps DROP INDEX ... ON &lt;table&gt; blocked because the ON table clause is not part of its shared subset.
+    /// PT: Garante que o PostgreSQL mantenha DROP INDEX ... ON &lt;table&gt; bloqueado porque a clausula ON table nao faz parte do subset compartilhado dele.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseDropIndex_WithOnTableClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("DROP INDEX ix_users_name ON public.users", new NpgsqlDialect(version)));
+
+        Assert.Contains("DROP INDEX", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ON <table>", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures MATERIALIZED CTE syntax is accepted.
     /// PT: Garante que a sintaxe de CTE MATERIALIZED seja aceita.
     /// </summary>

@@ -3,7 +3,9 @@ namespace DbSqlLikeMem.Npgsql.Test;
 /// EN: Defines the class PostgreSqlLinqProviderTest.
 /// PT: Define a classe PostgreSqlLinqProviderTest.
 /// </summary>
-public sealed class PostgreSqlLinqProviderTest
+public sealed class PostgreSqlLinqProviderTest(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
 #pragma warning disable CA1812
     private sealed class User

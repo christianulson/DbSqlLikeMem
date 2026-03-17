@@ -60,6 +60,8 @@ public sealed class SqlQueryParserCorpusTests(
                 minVersion = SqlServerDialect.WithCteMinVersion;
             else if (trimmed.Contains("FETCH", StringComparison.OrdinalIgnoreCase))
                 minVersion = SqlServerDialect.OffsetFetchMinVersion;
+            else if (trimmed.Contains("FOR JSON", StringComparison.OrdinalIgnoreCase))
+                minVersion = SqlServerDialect.JsonFunctionsMinVersion;
             else if (trimmed.Contains("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
                 || trimmed.Contains("OPENJSON", StringComparison.OrdinalIgnoreCase))
                 minVersion = SqlServerDialect.JsonFunctionsMinVersion;
@@ -161,6 +163,8 @@ public sealed class SqlQueryParserCorpusTests(
 
         // CASE/COALESCE/CONCAT/IF/IFNULL/IIF
         yield return new object[] { "SELECT t10, t20 FROM (SELECT tenantid, id FROM users) src PIVOT (COUNT(id) FOR tenantid IN (10 AS t10, 20 AS t20)) p", "PIVOT count by tenant" };
+        yield return new object[] { "SELECT up.id, up.FieldName, up.FieldValue FROM (SELECT id, name, email FROM users) src UNPIVOT (FieldValue FOR FieldName IN (name, email)) up", "UNPIVOT rows by source columns" };
+        yield return new object[] { "SELECT id AS [User.Id], name AS [User.Name] FROM users ORDER BY id FOR JSON PATH, ROOT('users')", "FOR JSON PATH with root wrapper" };
         yield return new object[] { "SELECT id, CASE WHEN email IS NULL THEN 0 ELSE 1 END AS hasEmail FROM users ORDER BY id", "CASE WHEN expression" };
         yield return new object[] { "SELECT id, COALESCE(email, 'none') AS em FROM users ORDER BY id", "COALESCE function" };
         yield return new object[] { "SELECT id, CONCAT(name, '#', id) AS tag FROM users ORDER BY id", "CONCAT function with mixed args" };

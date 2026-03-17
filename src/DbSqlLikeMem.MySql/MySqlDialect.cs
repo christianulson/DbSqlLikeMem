@@ -31,11 +31,19 @@ internal sealed class MySqlDialect : SqlDialectBase
         ])
     { }
 
+    /// <inheritdoc />
+    public override bool SupportsOracleCollationFunction(string functionName)
+        => functionName.Equals("COLLATION", StringComparison.OrdinalIgnoreCase);
 
-    internal const int WithCteMinVersion = 8;
+    /// <inheritdoc />
+    public override bool SupportsOracleTimeFunction(string functionName)
+        => functionName.Equals("LOCALTIMESTAMP", StringComparison.OrdinalIgnoreCase);
+
+
+    internal const int WithCteMinVersion = 80;
     internal const int MergeMinVersion = int.MaxValue;
-    internal const int WindowFunctionsMinVersion = 8;
-    internal const int JsonExtractMinVersion = 5;
+    internal const int WindowFunctionsMinVersion = 80;
+    internal const int JsonExtractMinVersion = 50;
     /// <summary>
     /// EN: Gets or sets AllowsBacktickIdentifiers.
     /// PT: Obtém ou define AllowsBacktickIdentifiers.
@@ -158,6 +166,8 @@ internal sealed class MySqlDialect : SqlDialectBase
     public override IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames
         => new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase)
         {
+            ["CURDATE"] = SqlTemporalFunctionKind.Date,
+            ["CURTIME"] = SqlTemporalFunctionKind.Time,
             ["CURRENT_DATE"] = SqlTemporalFunctionKind.Date,
             ["CURRENT_TIME"] = SqlTemporalFunctionKind.Time,
             ["CURRENT_TIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
@@ -171,7 +181,7 @@ internal sealed class MySqlDialect : SqlDialectBase
         => ["CURRENT_DATE", "CURRENT_TIME", "CURRENT_TIMESTAMP", "SYSTEMDATE"];
 
     public override IReadOnlyCollection<string> TemporalFunctionCallNames
-        => ["NOW", "SYSDATE"];
+        => ["CURDATE", "CURTIME", "NOW", "SYSDATE"];
 
     /// <summary>
     /// EN: Indicates whether string concatenation returns <c>NULL</c> when any operand is <c>NULL</c>.
@@ -213,10 +223,49 @@ internal sealed class MySqlDialect : SqlDialectBase
     /// </returns>
     public override bool SupportsDateAddFunction(string functionName)
         => functionName.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase)
+        || functionName.Equals("ADDDATE", StringComparison.OrdinalIgnoreCase)
         || functionName.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase);
 
     public override bool SupportsStringAggregateFunction(string functionName)
         => functionName.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase);
+
+    /// <inheritdoc />
+    public override bool SupportsTryCastFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsSqlServerScalarFunction(string functionName)
+        => functionName.Equals("ABS", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("ACOS", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("ASIN", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("ATAN", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("ATN2", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("ASCII", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("CEIL", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("CEILING", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("CONCAT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("CONCAT_WS", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LN", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LOCATE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LOG", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LOG10", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LOG2", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LOWER", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("MOD", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("PI", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("POW", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("POWER", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("RADIANS", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("RAND", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("REVERSE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("RIGHT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("ROUND", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SIN", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SPACE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SQRT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SUBSTRING", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("TAN", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("TRIM", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("UPPER", StringComparison.OrdinalIgnoreCase);
 
     public override bool SupportsAggregateOrderByForStringAggregates => true;
 

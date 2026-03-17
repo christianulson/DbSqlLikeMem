@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.TestTools;
 /// EN: Provides a shared readability-focused contract for provider-specific DbMockConnectionFactory tests.
 /// PT: Fornece um contrato compartilhado, focado em legibilidade, para testes por provedor da DbMockConnectionFactory.
 /// </summary>
-public abstract class DbMockConnectionFactoryContractTestsBase
+public abstract class DbMockConnectionFactoryContractTestsBase(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Gets the canonical provider hint used to resolve the provider in factory calls.

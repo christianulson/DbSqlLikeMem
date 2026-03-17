@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.Test;
 /// EN: Verifies textual formatting for runtime query debug traces.
 /// PT: Verifica a formatacao textual dos traces de debug de query em runtime.
 /// </summary>
-public sealed class QueryDebugTraceFormatterTests
+public sealed class QueryDebugTraceFormatterTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     private static TimeSpan Ms(decimal milliseconds)
         => TimeSpan.FromTicks((long)(milliseconds * TimeSpan.TicksPerMillisecond));

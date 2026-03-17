@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 /// EN: Validates transactional reliability additions for P11 scenarios.
 /// PT: Valida as adições de confiabilidade transacional para cenários do P11.
 /// </summary>
-public sealed class SqliteTransactionReliabilityTests : ProviderDapperTransactionReliabilityTestsBase<SqliteDbMock, SqliteConnectionMock>
+public sealed class SqliteTransactionReliabilityTests(
+        ITestOutputHelper helper
+    ) : ProviderDapperTransactionReliabilityTestsBase<SqliteDbMock, SqliteConnectionMock>(helper)
 {
     /// <inheritdoc />
     protected override SqliteDbMock CreateDb(int? version, bool threadSafe)

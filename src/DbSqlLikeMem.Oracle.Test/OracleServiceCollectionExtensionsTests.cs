@@ -6,7 +6,9 @@ namespace DbSqlLikeMem.Oracle.Test;
 /// EN: Validates Oracle service collection registration helpers.
 /// PT: Valida os helpers de registro de Oracle na coleção de serviços.
 /// </summary>
-public sealed class OracleServiceCollectionExtensionsTests
+public sealed class OracleServiceCollectionExtensionsTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     private sealed class ServiceCollectionStub : List<ServiceDescriptor>, IServiceCollection
     {

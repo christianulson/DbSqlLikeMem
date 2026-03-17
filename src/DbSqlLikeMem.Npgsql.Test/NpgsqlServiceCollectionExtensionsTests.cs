@@ -6,7 +6,9 @@ namespace DbSqlLikeMem.Npgsql.Test;
 /// EN: Validates Npgsql service collection registration helpers.
 /// PT: Valida os helpers de registro de Npgsql na coleção de serviços.
 /// </summary>
-public sealed class NpgsqlServiceCollectionExtensionsTests
+public sealed class NpgsqlServiceCollectionExtensionsTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     private sealed class ServiceCollectionStub : List<ServiceDescriptor>, IServiceCollection
     {

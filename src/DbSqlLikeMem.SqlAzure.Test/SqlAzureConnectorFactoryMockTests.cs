@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 /// EN: Contains tests for SQL Azure connector factory mock.
 /// PT: Contém testes para a fábrica de conectores simulada do SQL Azure.
 /// </summary>
-public sealed class SqlAzureConnectorFactoryMockTests
+public sealed class SqlAzureConnectorFactoryMockTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Ensures core factory members return SQL Azure provider mocks.

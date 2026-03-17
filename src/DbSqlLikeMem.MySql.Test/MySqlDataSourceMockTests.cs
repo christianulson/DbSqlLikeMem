@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.MySql.Test;
 /// EN: Verifies MySqlDataSourceMock exposes the expected provider-facing surface.
 /// PT: Verifica se MySqlDataSourceMock expõe a superfície esperada do provedor.
 /// </summary>
-public sealed class MySqlDataSourceMockTests
+public sealed class MySqlDataSourceMockTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Verifies the mock data source exposes an empty connection string and creates connections bound to the supplied database.

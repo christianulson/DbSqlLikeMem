@@ -5,13 +5,17 @@ internal static class SqlTemporalFunctionEvaluator
     private static readonly HashSet<string> KnownTemporalFunctionNames = new(StringComparer.OrdinalIgnoreCase)
     {
         "CURRENT_DATE",
+        "CURDATE",
         "CURRENT_TIME",
         "CURRENT_TIMESTAMP",
         "NOW",
         "SYSDATE",
         "SYSTEMDATE",
         "GETDATE",
+        "GETUTCDATE",
         "SYSDATETIME",
+        "SYSDATETIMEOFFSET",
+        "SYSUTCDATETIME",
         "SYSTIMESTAMP",
     };
 
@@ -62,9 +66,12 @@ internal static class SqlTemporalFunctionEvaluator
         {
             SqlTemporalFunctionKind.Date => utcNow.Date,
             SqlTemporalFunctionKind.Time => utcNow.TimeOfDay,
+            SqlTemporalFunctionKind.DateTimeOffset => DateTimeOffset.Now,
             _ => utcNow,
         };
 
         return true;
     }
 }
+
+

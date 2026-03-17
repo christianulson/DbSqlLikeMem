@@ -5,7 +5,9 @@ namespace DbSqlLikeMem.MySql.Test;
 /// EN: Defines the class MySqlLinqProviderTest.
 /// PT: Define a classe MySqlLinqProviderTest.
 /// </summary>
-public sealed class MySqlLinqProviderTest
+public sealed class MySqlLinqProviderTest(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
 #pragma warning disable CA1812
     private sealed class User

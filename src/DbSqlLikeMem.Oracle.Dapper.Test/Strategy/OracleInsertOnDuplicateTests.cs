@@ -10,11 +10,12 @@ public sealed class OracleMergeUpsertTests(ITestOutputHelper helper) : XUnitTest
     /// EN: Tests Merge_ShouldInsert_WhenNotMatched behavior.
     /// PT: Testa o comportamento de Merge_ShouldInsert_WhenNotMatched.
     /// </summary>
-    [Fact]
+    [Theory]
+    [MemberDataOracleVersion]
     [Trait("Category", "Strategy")]
-    public void Merge_ShouldInsert_WhenNotMatched()
+    public void Merge_ShouldInsert_WhenNotMatched(int version)
     {
-        var db = new OracleDbMock();
+        var db = new OracleDbMock(version);
         var t = db.AddTable("users");
         t.AddColumn("Id", DbType.Int32, false);
         t.AddColumn("Name", DbType.String, false);
@@ -30,6 +31,13 @@ ON (target.Id = src.Id)
 WHEN NOT MATCHED THEN
     INSERT (Id, Name) VALUES (src.Id, src.Name)";
 
+        if (version < OracleDialect.MergeMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => cnn.Execute(sql));
+            Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
         var affected = cnn.Execute(sql);
 
         Assert.Equal(1, affected);
@@ -41,11 +49,12 @@ WHEN NOT MATCHED THEN
     /// EN: Tests Merge_ShouldUpdate_WhenMatched behavior.
     /// PT: Testa o comportamento de Merge_ShouldUpdate_WhenMatched.
     /// </summary>
-    [Fact]
+    [Theory]
+    [MemberDataOracleVersion]
     [Trait("Category", "Strategy")]
-    public void Merge_ShouldUpdate_WhenMatched()
+    public void Merge_ShouldUpdate_WhenMatched(int version)
     {
-        var db = new OracleDbMock();
+        var db = new OracleDbMock(version);
         var t = db.AddTable("users");
         t.AddColumn("Id", DbType.Int32, false);
         t.AddColumn("Name", DbType.String, false);
@@ -65,6 +74,13 @@ WHEN MATCHED THEN
 WHEN NOT MATCHED THEN
     INSERT (Id, Name) VALUES (src.Id, src.Name)";
 
+        if (version < OracleDialect.MergeMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => cnn.Execute(sql));
+            Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
         var affected = cnn.Execute(sql);
 
         Assert.Equal(1, affected);
@@ -76,11 +92,12 @@ WHEN NOT MATCHED THEN
     /// EN: Tests Merge_SourceAliasWithoutAs_ShouldResolveSourceColumns behavior.
     /// PT: Testa o comportamento de Merge_SourceAliasWithoutAs_ShouldResolveSourceColumns.
     /// </summary>
-    [Fact]
+    [Theory]
+    [MemberDataOracleVersion]
     [Trait("Category", "Strategy")]
-    public void Merge_SourceAliasWithoutAs_ShouldResolveSourceColumns()
+    public void Merge_SourceAliasWithoutAs_ShouldResolveSourceColumns(int version)
     {
-        var db = new OracleDbMock();
+        var db = new OracleDbMock(version);
         var t = db.AddTable("users");
         t.AddColumn("Id", DbType.Int32, false);
         t.AddColumn("Name", DbType.String, false);
@@ -95,6 +112,13 @@ USING (SELECT 11 AS Id, 'OraNoAs' AS Name FROM DUAL) s
 ON (target.Id = s.Id)
 WHEN NOT MATCHED THEN
     INSERT (Id, Name) VALUES (s.Id, s.Name)";
+
+        if (version < OracleDialect.MergeMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => cnn.Execute(sql));
+            Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
 
         var affected = cnn.Execute(sql);
 

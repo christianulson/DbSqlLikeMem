@@ -12,9 +12,13 @@ public static class MySqlDbVersions
     /// </summary>
     public static IEnumerable<int> Versions()
     {
-        yield return 3;
-        yield return 4;
-        yield return 5;
-        yield return 8;
+        yield return 30;
+        yield return 40;
+        yield return 55;
+        yield return 56;
+        yield return 57;
+        yield return 80;
+        yield return 84;
+        //yield return 96;
     }
 }

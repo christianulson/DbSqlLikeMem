@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.MySql.Test;
 /// EN: Adds focused coverage for MySqlCommandMock surface behavior, batching helpers, and cloning.
 /// PT: Adiciona cobertura focada para comportamento de superficie, helpers de batching e clonagem de MySqlCommandMock.
 /// </summary>
-public sealed class MySqlCommandMockCoverageTests
+public sealed class MySqlCommandMockCoverageTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Verifies Cancel rolls back the active transaction and CreateParameter returns a provider-specific parameter.

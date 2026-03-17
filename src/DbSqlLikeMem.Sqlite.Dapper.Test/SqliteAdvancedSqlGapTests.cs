@@ -215,6 +215,77 @@ ORDER BY id").ToList());
         Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// EN: Verifies a SQLite reference query combining WITH RECURSIVE, JOIN, LEFT JOIN, correlated subquery, GROUP_CONCAT, IFNULL, JULIANDAY, DATETIME, CASE, CAST and ROW_NUMBER returns the expected rows.
+    /// PT: Verifica se uma query de referencia do SQLite combinando WITH RECURSIVE, JOIN, LEFT JOIN, subquery correlacionada, GROUP_CONCAT, IFNULL, JULIANDAY, DATETIME, CASE, CAST e ROW_NUMBER retorna as linhas esperadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
+    public void ProviderSignature_CteAggregateAndWindow_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+WITH RECURSIVE tenant_scope AS (
+    SELECT 10 AS tenantid
+    UNION ALL
+    SELECT 20
+),
+order_totals AS (
+    SELECT o.userid,
+           COUNT(*) AS order_count,
+           SUM(CAST(o.amount AS DECIMAL(10,2))) AS total_amount,
+           GROUP_CONCAT(CAST(o.id AS TEXT), '|' ORDER BY o.id DESC) AS order_ids
+    FROM orders o
+    GROUP BY o.userid
+),
+ranked AS (
+    SELECT u.id,
+           u.name,
+           u.tenantid,
+           CAST(u.id AS INTEGER) AS normalized_id,
+           DATETIME(u.created, '+1 day') AS shifted_created,
+           CAST(JULIANDAY(u.created) - JULIANDAY('2020-01-01') AS INTEGER) AS days_from_anchor,
+           CAST(u.tenantid AS TEXT) || '-' || CAST(u.id AS TEXT) AS user_code,
+           IFNULL(order_totals.order_count, CAST(0 AS INTEGER)) AS order_count,
+           IFNULL(order_totals.total_amount, CAST(0 AS DECIMAL(10,2))) AS total_amount,
+           IFNULL(order_totals.order_ids, CAST('' AS TEXT)) AS order_ids,
+           (
+               SELECT o.id
+               FROM orders o
+               WHERE o.userid = u.id
+               ORDER BY o.id DESC
+               LIMIT 1
+           ) AS last_order_id,
+           CASE
+               WHEN IFNULL(order_totals.order_count, 0) = 0 THEN 0
+               ELSE 1
+           END AS has_orders,
+           ROW_NUMBER() OVER (
+               PARTITION BY u.tenantid
+               ORDER BY IFNULL(order_totals.total_amount, CAST(0 AS DECIMAL(10,2))) DESC, u.id
+           ) AS rn
+    FROM users u
+    JOIN tenant_scope scope ON scope.tenantid = u.tenantid
+    LEFT JOIN order_totals ON order_totals.userid = u.id
+)
+SELECT id, name, tenantid, normalized_id, shifted_created, days_from_anchor, user_code, order_count, total_amount, order_ids, last_order_id, has_orders, rn
+FROM ranked
+ORDER BY tenantid, rn, id").ToList();
+
+        Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.id)]);
+        Assert.Equal(["John", "Bob", "Jane"], [.. rows.Select(r => (string)r.name)]);
+        Assert.Equal([10, 10, 20], [.. rows.Select(r => (int)r.tenantid)]);
+        Assert.Equal([1, 2, 3], [.. rows.Select(r => Convert.ToInt32(r.normalized_id))]);
+        Assert.All(rows, row => Assert.NotNull((object?)row.shifted_created));
+        Assert.Equal([0, 1, 2], [.. rows.Select(r => Convert.ToInt32(r.days_from_anchor))]);
+        Assert.Equal(["10-1", "10-2", "20-3"], [.. rows.Select(r => (string)r.user_code)]);
+        Assert.Equal([2, 1, 0], [.. rows.Select(r => Convert.ToInt32(r.order_count))]);
+        Assert.Equal([15m, 7m, 0m], [.. rows.Select(r => Convert.ToDecimal(r.total_amount))]);
+        Assert.Equal(["11|10", "12", string.Empty], [.. rows.Select(r => (string)r.order_ids)]);
+        Assert.Equal([11, 12, null], [.. rows.Select(r => (int?)r.last_order_id)]);
+        Assert.Equal([1, 1, 0], [.. rows.Select(r => Convert.ToInt32(r.has_orders))]);
+        Assert.Equal([1, 2, 1], [.. rows.Select(r => (int)r.rn)]);
+    }
+
 
     /// <summary>
     /// EN: Tests Window_NthValue_ShouldWork behavior.

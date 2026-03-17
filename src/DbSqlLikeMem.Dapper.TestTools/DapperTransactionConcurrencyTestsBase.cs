@@ -6,7 +6,9 @@ namespace DbSqlLikeMem.TestTools;
 /// EN: Defines shared transaction reliability assertions for Dapper provider tests.
 /// PT: Define asserções compartilhadas de confiabilidade transacional para testes de provedores Dapper.
 /// </summary>
-public abstract class DapperTransactionConcurrencyTestsBase
+public abstract class DapperTransactionConcurrencyTestsBase(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Creates a factory that opens connections against the same provider database instance.
@@ -192,8 +194,9 @@ public abstract class DapperTransactionConcurrencyTestsBase
 /// EN: Shared provider-specific implementation for Dapper transaction reliability tests.
 /// PT: Implementação compartilhada específica por provedor para testes Dapper de confiabilidade transacional.
 /// </summary>
-public abstract class ProviderDapperTransactionReliabilityTestsBase<TDb, TConnection>
-    : DapperTransactionConcurrencyTestsBase
+public abstract class ProviderDapperTransactionReliabilityTestsBase<TDb, TConnection>(
+        ITestOutputHelper helper
+    ) : DapperTransactionConcurrencyTestsBase(helper)
     where TDb : DbMock
     where TConnection : DbConnectionMockBase
 {

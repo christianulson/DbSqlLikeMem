@@ -302,6 +302,60 @@ public abstract class DbMock
         throw SqlUnsupported.ForNormalizedTableDoesNotExist(normalized);
     }
 
+    internal void CreateIndex(
+        string indexName,
+        string tableName,
+        IEnumerable<string> keyColumns,
+        bool unique,
+        string? schemaName = null)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(indexName, nameof(indexName));
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(tableName, nameof(tableName));
+        ArgumentNullExceptionCompatible.ThrowIfNull(keyColumns, nameof(keyColumns));
+
+        var table = GetTable(tableName, schemaName);
+        table.CreateIndex(indexName, keyColumns, unique: unique);
+    }
+
+    internal void DropIndex(
+        string indexName,
+        bool ifExists,
+        string? tableName = null,
+        string? schemaName = null)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(indexName, nameof(indexName));
+
+        if (!string.IsNullOrWhiteSpace(tableName))
+        {
+            if (GetTable(tableName!, schemaName) is not TableMock namedTable)
+                throw new InvalidOperationException($"Table '{tableName!.NormalizeName()}' does not support index mutation.");
+
+            namedTable.DropIndex(indexName, ifExists);
+            return;
+        }
+
+        var normalizedIndexName = indexName.NormalizeName();
+        var sc = GetSchemaName(schemaName);
+        var matchingTables = this[sc].Tables.Values
+            .OfType<TableMock>()
+            .Where(table => table.Indexes.ContainsKey(normalizedIndexName))
+            .ToList();
+
+        if (matchingTables.Count == 1)
+        {
+            matchingTables[0].DropIndex(indexName, ifExists);
+            return;
+        }
+
+        if (matchingTables.Count > 1)
+            throw new InvalidOperationException($"DROP INDEX '{normalizedIndexName}' is ambiguous without table name.");
+
+        if (ifExists)
+            return;
+
+        throw new InvalidOperationException($"Index '{normalizedIndexName}' does not exist.");
+    }
+
     /// <summary>
     /// EN: Resets volatile in-memory data for all tables and optionally global temporary tables.
     /// PT: Reseta dados voláteis em memória de todas as tabelas e, opcionalmente, das tabelas temporárias globais.

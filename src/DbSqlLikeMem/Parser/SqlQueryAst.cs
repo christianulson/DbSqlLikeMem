@@ -23,7 +23,8 @@ internal sealed record SqlSelectQuery(
     IReadOnlyList<SqlOrderByItem> OrderBy,
     SqlRowLimit? RowLimit,
     IReadOnlyList<string> GroupBy,
-    SqlExpr? Having
+    SqlExpr? Having,
+    SqlForJsonClause? ForJson = null
 ) : SqlQueryBase;
 
 internal sealed record SqlUnionQuery(
@@ -116,6 +117,19 @@ internal sealed record SqlDropTableQuery : SqlQueryBase
     internal TemporaryTableScope Scope { get; init; } = TemporaryTableScope.None;
 }
 
+internal sealed record SqlCreateIndexQuery : SqlQueryBase
+{
+    internal string IndexName { get; init; } = "";
+    internal bool Unique { get; init; }
+    internal IReadOnlyList<string> KeyColumns { get; init; } = [];
+}
+
+internal sealed record SqlDropIndexQuery : SqlQueryBase
+{
+    internal string IndexName { get; init; } = "";
+    internal bool IfExists { get; init; }
+}
+
 internal sealed record SqlCreateSequenceQuery : SqlQueryBase
 {
     internal bool IfNotExists { get; init; }
@@ -143,7 +157,23 @@ internal sealed record SqlTableSource(
     SqlQueryParser.UnionChain? DerivedUnion,
     string? DerivedSql,
     SqlPivotSpec? Pivot,
-    IReadOnlyList<SqlMySqlIndexHint>? MySqlIndexHints = null
+    IReadOnlyList<SqlMySqlIndexHint>? MySqlIndexHints = null,
+    FunctionCallExpr? TableFunction = null,
+    SqlOpenJsonWithClause? OpenJsonWithClause = null,
+    SqlUnpivotSpec? Unpivot = null,
+    bool IsLateral = false
+);
+
+internal sealed record SqlOpenJsonWithClause(
+    IReadOnlyList<SqlOpenJsonWithColumn> Columns
+);
+
+internal sealed record SqlOpenJsonWithColumn(
+    string Name,
+    string SqlType,
+    DbType DbType,
+    string? Path,
+    bool AsJson
 );
 
 internal enum SqlMySqlIndexHintKind
@@ -179,6 +209,30 @@ internal sealed record SqlPivotInItem(
     string Alias
 );
 
+internal sealed record SqlUnpivotSpec(
+    string ValueColumnName,
+    string NameColumnName,
+    IReadOnlyList<SqlUnpivotInItem> InItems
+);
+
+internal sealed record SqlUnpivotInItem(
+    string SourceColumnName,
+    string OutputName
+);
+
+internal sealed record SqlForJsonClause(
+    SqlForJsonMode Mode,
+    string? RootName,
+    bool IncludeNullValues,
+    bool WithoutArrayWrapper
+);
+
+internal enum SqlForJsonMode
+{
+    Auto,
+    Path
+}
+
 /// <summary>
 /// EN: Join types represented in the SQL AST.
 /// PT: Tipos de join representados na AST SQL.
@@ -189,6 +243,8 @@ internal enum SqlJoinType
     Left,
     Right,
     Cross,
+    CrossApply,
+    OuterApply,
     //Full
 }
 
@@ -201,7 +257,7 @@ internal sealed record SqlLimitOffset(int Count, int? Offset) : SqlRowLimit;
 internal sealed record SqlTop(int Count) : SqlRowLimit;
 internal sealed record SqlFetch(int Count, int? Offset) : SqlRowLimit;
 
-internal sealed record SqlCte(string Name, SqlSelectQuery Query);
+internal sealed record SqlCte(string Name, SqlQueryBase Query);
 
 internal sealed record SqlOnDuplicateKeyUpdate(
     IReadOnlyList<SqlAssignment> Assignments,

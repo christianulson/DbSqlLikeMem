@@ -18,7 +18,8 @@ internal enum SqlTemporalFunctionKind
 {
     Date,
     Time,
-    DateTime
+    DateTime,
+    DateTimeOffset
 }
 
 /// <summary>
@@ -105,6 +106,7 @@ internal interface ISqlDialect
     bool SupportsNullSafeEq { get; }
     bool SupportsJsonArrowOperators { get; }
     bool SupportsJsonExtractFunction { get; }
+    bool SupportsJsonQueryFunction { get; }
     bool SupportsJsonValueFunction { get; }
     bool SupportsJsonValueReturningClause { get; }
     bool SupportsOpenJsonFunction { get; }
@@ -164,7 +166,105 @@ internal interface ISqlDialect
     bool SupportsAggregateSeparatorKeywordForStringAggregates { get; }
     bool SupportsAggregateSeparatorKeywordStringAggregateFunction(string functionName);
     bool SupportsMatchAgainstPredicate { get; }
+    bool SupportsForJsonClause { get; }
     bool SupportsPivotClause { get; }
+    bool SupportsUnpivotClause { get; }
+    bool PivotAvgReturnsDecimalForIntegralInputs { get; }
+    bool SupportsApplyClause { get; }
+    bool SupportsStringSplitFunction { get; }
+    bool SupportsStringSplitOrdinalArgument { get; }
+    bool SupportsTryCastFunction { get; }
+    bool SupportsTryConvertFunction { get; }
+    bool SupportsParseFunction { get; }
+    bool SupportsTryParseFunction { get; }
+    bool SupportsEomonthFunction { get; }
+    bool SupportsGetUtcDateFunction { get; }
+    /// <summary>
+    /// EN: Indicates whether an approximate aggregate helper is supported by the current dialect/version.
+    /// PT: Indica se um helper de agregacao aproximada e suportado pelo dialeto/versao atual.
+    /// </summary>
+    bool SupportsApproximateAggregateFunction(string functionName);
+    /// <summary>
+    /// EN: Indicates whether an approximate scalar/helper function is supported by the current dialect/version.
+    /// PT: Indica se uma funcao escalar/helper aproximada e suportada pelo dialeto/versao atual.
+    /// </summary>
+    bool SupportsApproximateScalarFunction(string functionName);
+    /// <summary>
+    /// EN: Indicates whether an Oracle-specific conversion helper is supported by the current dialect/version.
+    /// PT: Indica se um helper Oracle especifico de conversao e suportado pelo dialeto/versao atual.
+    /// </summary>
+    bool SupportsOracleSpecificConversionFunction(string functionName);
+    /// <summary>
+    /// EN: Indicates whether an Oracle SCN helper is supported by the current dialect/version.
+    /// PT: Indica se um helper Oracle de SCN e suportado pelo dialeto/versao atual.
+    /// </summary>
+    bool SupportsOracleScnFunction(string functionName);
+    /// <summary>
+    /// EN: Indicates whether an Oracle analytics/modeling helper is supported by the current dialect/version.
+    /// PT: Indica se um helper Oracle de analytics/modelagem e suportado pelo dialeto/versao atual.
+    /// </summary>
+    bool SupportsOracleAnalyticsFunction(string functionName);
+    /// <summary>
+    /// EN: Indicates whether an Oracle clustering/data mining helper is supported by the current dialect/version.
+    /// PT: Indica se um helper Oracle de clustering/data mining e suportado pelo dialeto/versao atual.
+    /// </summary>
+    bool SupportsOracleClusterFunction(string functionName);
+    /// <summary>
+    /// EN: Indicates whether an Oracle container identifier helper is supported by the current dialect/version.
+    /// PT: Indica se um helper Oracle de identificador de container e suportado pelo dialeto/versao atual.
+    /// </summary>
+    bool SupportsOracleContainerFunction(string functionName);
+    /// <summary>
+    /// EN: Indicates whether an Oracle rowid helper is supported by the current dialect/version.
+    /// PT: Indica se um helper Oracle de rowid e suportado pelo dialeto/versao atual.
+    /// </summary>
+    bool SupportsOracleRowIdFunction(string functionName);
+    /// <summary>
+    /// EN: Indicates whether an Oracle user environment helper is supported by the current dialect/version.
+    /// PT: Indica se um helper Oracle de ambiente do usuario e suportado pelo dialeto/versao atual.
+    /// </summary>
+    bool SupportsOracleUserEnvFunction(string functionName);
+    /// <summary>
+    /// EN: Indicates whether an Oracle validation helper is supported by the current dialect/version.
+    /// PT: Indica se um helper Oracle de validacao e suportado pelo dialeto/versao atual.
+    /// </summary>
+    bool SupportsOracleValidationFunction(string functionName);
+    /// <summary>
+    /// EN: Indicates whether an Oracle JSON transform helper is supported by the current dialect/version.
+    /// PT: Indica se um helper Oracle de JSON transform e suportado pelo dialeto/versao atual.
+    /// </summary>
+    bool SupportsOracleJsonTransformFunction(string functionName);
+    /// <summary>
+    /// EN: Indicates whether an Oracle collation helper is supported by the current dialect/version.
+    /// PT: Indica se um helper Oracle de collation e suportado pelo dialeto/versao atual.
+    /// </summary>
+    bool SupportsOracleCollationFunction(string functionName);
+    /// <summary>
+    /// EN: Indicates whether an Oracle NLS helper is supported by the current dialect/version.
+    /// PT: Indica se um helper Oracle de NLS e suportado pelo dialeto/versao atual.
+    /// </summary>
+    bool SupportsOracleNlsFunction(string functionName);
+    /// <summary>
+    /// EN: Indicates whether an Oracle hash helper is supported by the current dialect/version.
+    /// PT: Indica se um helper Oracle de hash e suportado pelo dialeto/versao atual.
+    /// </summary>
+    bool SupportsOracleHashFunction(string functionName);
+    /// <summary>
+    /// EN: Indicates whether an Oracle SYS helper is supported by the current dialect/version.
+    /// PT: Indica se um helper Oracle SYS e suportado pelo dialeto/versao atual.
+    /// </summary>
+    bool SupportsOracleSysFunction(string functionName);
+    /// <summary>
+    /// EN: Indicates whether an Oracle time/date helper is supported by the current dialect/version.
+    /// PT: Indica se um helper Oracle de tempo/data e suportado pelo dialeto/versao atual.
+    /// </summary>
+    bool SupportsOracleTimeFunction(string functionName);
+    bool SupportsSqlServerMetadataFunction(string functionName);
+    bool SupportsSqlServerMetadataIdentifier(string identifier);
+    bool SupportsSqlServerDateFunction(string functionName);
+    bool SupportsSqlServerAggregateFunction(string functionName);
+    bool SupportsSqlServerScalarFunction(string functionName);
+    bool SupportsSqlServerFromPartsFunction(string functionName);
     DbType InferWindowFunctionDbType(WindowFunctionExpr windowFunctionExpr, Func<SqlExpr, DbType> inferArgDbType);
 }
 
@@ -323,7 +423,10 @@ internal abstract class SqlDialectBase : ISqlDialect
     public virtual bool SupportsIifFunction => true;
     public virtual bool SupportsWindowFunctions => true;
     public virtual bool SupportsWindowFrameClause => false;
+    public virtual bool SupportsForJsonClause => false;
     public virtual bool SupportsPivotClause => false;
+    public virtual bool SupportsUnpivotClause => false;
+    public virtual bool PivotAvgReturnsDecimalForIntegralInputs => false;
     public virtual IReadOnlyCollection<string> NullSubstituteFunctionNames
         => ["IFNULL", "ISNULL", "NVL"];
     public virtual IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames
@@ -383,7 +486,8 @@ internal abstract class SqlDialectBase : ISqlDialect
             || typeName.StartsWith("INTEGER", StringComparison.OrdinalIgnoreCase)
             || typeName.StartsWith("BIGINT", StringComparison.OrdinalIgnoreCase)
             || typeName.StartsWith("SMALLINT", StringComparison.OrdinalIgnoreCase)
-            || typeName.StartsWith("TINYINT", StringComparison.OrdinalIgnoreCase);
+            || typeName.StartsWith("TINYINT", StringComparison.OrdinalIgnoreCase)
+            || typeName.Equals("BIT", StringComparison.OrdinalIgnoreCase);
     }
 
     public virtual bool SupportsDateAddFunction(string functionName)
@@ -451,6 +555,37 @@ internal abstract class SqlDialectBase : ISqlDialect
     }
 
     public virtual bool SupportsMatchAgainstPredicate => false;
+    public virtual bool SupportsApplyClause => false;
+    public virtual bool SupportsStringSplitFunction => false;
+    public virtual bool SupportsStringSplitOrdinalArgument => false;
+    public virtual bool SupportsTryCastFunction => false;
+    public virtual bool SupportsTryConvertFunction => false;
+    public virtual bool SupportsParseFunction => false;
+    public virtual bool SupportsTryParseFunction => false;
+    public virtual bool SupportsEomonthFunction => false;
+    public virtual bool SupportsGetUtcDateFunction => false;
+    public virtual bool SupportsApproximateAggregateFunction(string functionName) => false;
+    public virtual bool SupportsApproximateScalarFunction(string functionName) => false;
+    public virtual bool SupportsOracleSpecificConversionFunction(string functionName) => false;
+    public virtual bool SupportsOracleScnFunction(string functionName) => false;
+    public virtual bool SupportsOracleAnalyticsFunction(string functionName) => false;
+    public virtual bool SupportsOracleClusterFunction(string functionName) => false;
+    public virtual bool SupportsOracleContainerFunction(string functionName) => false;
+    public virtual bool SupportsOracleRowIdFunction(string functionName) => false;
+    public virtual bool SupportsOracleUserEnvFunction(string functionName) => false;
+    public virtual bool SupportsOracleValidationFunction(string functionName) => false;
+    public virtual bool SupportsOracleJsonTransformFunction(string functionName) => false;
+    public virtual bool SupportsOracleCollationFunction(string functionName) => false;
+    public virtual bool SupportsOracleNlsFunction(string functionName) => false;
+    public virtual bool SupportsOracleHashFunction(string functionName) => false;
+    public virtual bool SupportsOracleSysFunction(string functionName) => false;
+    public virtual bool SupportsOracleTimeFunction(string functionName) => false;
+    public virtual bool SupportsSqlServerMetadataFunction(string functionName) => false;
+    public virtual bool SupportsSqlServerMetadataIdentifier(string identifier) => false;
+    public virtual bool SupportsSqlServerDateFunction(string functionName) => false;
+    public virtual bool SupportsSqlServerAggregateFunction(string functionName) => false;
+    public virtual bool SupportsSqlServerScalarFunction(string functionName) => false;
+    public virtual bool SupportsSqlServerFromPartsFunction(string functionName) => false;
 
     public virtual bool IsRowNumberWindowFunction(string functionName)
         => functionName.Equals("ROW_NUMBER", StringComparison.OrdinalIgnoreCase);
@@ -767,6 +902,7 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// </summary>
     public virtual bool SupportsJsonArrowOperators => false;
     public virtual bool SupportsJsonExtractFunction => false;
+    public virtual bool SupportsJsonQueryFunction => false;
     public virtual bool SupportsJsonValueFunction => false;
     public virtual bool SupportsJsonValueReturningClause => false;
     public virtual bool SupportsOpenJsonFunction => false;

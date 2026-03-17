@@ -19,6 +19,7 @@ internal sealed class AutoSqlDialect : SqlDialectBase
             ["SYSDATE"] = SqlTemporalFunctionKind.DateTime,
             ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
             ["GETDATE"] = SqlTemporalFunctionKind.DateTime,
+            ["GETUTCDATE"] = SqlTemporalFunctionKind.DateTime,
             ["SYSDATETIME"] = SqlTemporalFunctionKind.DateTime,
             ["SYSTIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
         };
@@ -123,6 +124,7 @@ internal sealed class AutoSqlDialect : SqlDialectBase
 
     /// <inheritdoc />
     public override bool SupportsJsonExtractFunction => true;
+    public override bool SupportsJsonQueryFunction => true;
 
     /// <inheritdoc />
     public override bool SupportsJsonValueFunction => true;
@@ -142,7 +144,7 @@ internal sealed class AutoSqlDialect : SqlDialectBase
 
     /// <inheritdoc />
     public override IReadOnlyCollection<string> TemporalFunctionCallNames
-        => ["NOW", "GETDATE", "SYSDATETIME", "SYSTIMESTAMP"];
+        => ["NOW", "GETDATE", "GETUTCDATE", "SYSDATETIME", "SYSTIMESTAMP"];
 
     /// <inheritdoc />
     public override bool SupportsDateAddFunction(string functionName)
@@ -164,6 +166,78 @@ internal sealed class AutoSqlDialect : SqlDialectBase
         => functionName.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("LISTAGG", StringComparison.OrdinalIgnoreCase);
+
+    /// <inheritdoc />
+    public override bool SupportsTryCastFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsTryConvertFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsEomonthFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsGetUtcDateFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsSqlServerMetadataFunction(string functionName)
+        => functionName.Equals("DB_ID", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("DB_NAME", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SCHEMA_ID", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SCHEMA_NAME", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SERVERPROPERTY", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SESSION_ID", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SUSER_ID", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SUSER_NAME", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SUSER_SNAME", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("USER_ID", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("USER_NAME", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("XACT_STATE", StringComparison.OrdinalIgnoreCase);
+
+    /// <inheritdoc />
+    public override bool SupportsSqlServerMetadataIdentifier(string identifier)
+        => identifier.Equals("CURRENT_USER", StringComparison.OrdinalIgnoreCase)
+            || identifier.Equals("SESSION_USER", StringComparison.OrdinalIgnoreCase)
+            || identifier.Equals("SYSTEM_USER", StringComparison.OrdinalIgnoreCase);
+
+    /// <inheritdoc />
+    public override bool SupportsSqlServerScalarFunction(string functionName)
+        => functionName.Equals("COT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("DEGREES", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("DIFFERENCE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("EXP", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("FLOOR", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LEN", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LOG", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LOG10", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("PI", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("POWER", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("RADIANS", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("RAND", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("ROUND", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SIN", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SQUARE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("TAN", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LTRIM", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("PARSENAME", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("QUOTENAME", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("REPLICATE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("REVERSE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("RTRIM", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SOUNDEX", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SPACE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SQRT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("STUFF", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("UNICODE", StringComparison.OrdinalIgnoreCase);
+
+    /// <inheritdoc />
+    public override bool SupportsSqlServerFromPartsFunction(string functionName)
+        => functionName.Equals("DATEFROMPARTS", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("DATETIMEFROMPARTS", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("DATETIME2FROMPARTS", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("DATETIMEOFFSETFROMPARTS", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("TIMEFROMPARTS", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SMALLDATETIMEFROMPARTS", StringComparison.OrdinalIgnoreCase);
 
     /// <inheritdoc />
     public override bool SupportsWithinGroupStringAggregateFunction(string functionName)
@@ -222,7 +296,13 @@ internal sealed class AutoSqlDialect : SqlDialectBase
     public override bool SupportsWindowFunctions => true;
 
     /// <inheritdoc />
+    public override bool SupportsForJsonClause => true;
+
+    /// <inheritdoc />
     public override bool SupportsPivotClause => true;
+
+    /// <inheritdoc />
+    public override bool SupportsUnpivotClause => true;
 
     /// <inheritdoc />
     public override bool SupportsWithCte => true;

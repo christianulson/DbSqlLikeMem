@@ -6,7 +6,9 @@ namespace DbSqlLikeMem.SqlServer.Test;
 /// EN: Validates SqlServer service collection registration helpers.
 /// PT: Valida os helpers de registro de SqlServer na coleção de serviços.
 /// </summary>
-public sealed class SqlServerServiceCollectionExtensionsTests
+public sealed class SqlServerServiceCollectionExtensionsTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     private sealed class ServiceCollectionStub : List<ServiceDescriptor>, IServiceCollection
     {

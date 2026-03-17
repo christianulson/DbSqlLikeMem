@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.Oracle.Test;
 /// EN: Validates Oracle-specific DbMock connection factory contract behavior.
 /// PT: Valida o comportamento do contrato da factory de conexao DbMock especifica de Oracle.
 /// </summary>
-public sealed class DbMockConnectionFactoryOracleTests : DbMockConnectionFactoryContractTestsBase
+public sealed class DbMockConnectionFactoryOracleTests(
+        ITestOutputHelper helper
+    ) : DbMockConnectionFactoryContractTestsBase(helper)
 {
     /// <inheritdoc />
     protected override string ProviderHint => "Oracle";

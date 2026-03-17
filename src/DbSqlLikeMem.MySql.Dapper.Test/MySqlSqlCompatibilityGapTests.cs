@@ -7,7 +7,7 @@ namespace DbSqlLikeMem.MySql.Dapper.Test;
 public sealed class MySqlSqlCompatibilityGapTests : XUnitTestBase
 {
     private readonly MySqlConnectionMock _cnn;
-    private const int MySqlCteMinVersion = 8;
+    private const int MySqlCteMinVersion = 80;
 
     /// <summary>
     /// EN: Tests MySqlSqlCompatibilityGapTests behavior.

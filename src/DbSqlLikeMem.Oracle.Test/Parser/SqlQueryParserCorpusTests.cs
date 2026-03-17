@@ -59,6 +59,11 @@ public sealed class SqlQueryParserCorpusTests(
                 minVersion = OracleDialect.OffsetFetchMinVersion;
             else if (trimmed.Contains("FETCH", StringComparison.OrdinalIgnoreCase))
                 minVersion = OracleDialect.FetchFirstMinVersion;
+            else if (trimmed.Contains("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
+                || trimmed.Contains("JSON_QUERY", StringComparison.OrdinalIgnoreCase)
+                || trimmed.Contains("JSON_TABLE", StringComparison.OrdinalIgnoreCase)
+                || trimmed.Contains("JSON_TRANSFORM", StringComparison.OrdinalIgnoreCase))
+                minVersion = OracleDialect.OracleJsonSqlFunctionMinVersion;
 
             yield return Case(sql, why, expectation, minVersion);
         }
@@ -663,6 +668,15 @@ select id
         ConsoleWriter.Flush();
 
         var dialect = new OracleDialect(version);
+        var trimmed = sql.TrimStart();
+        if (minVersion == 0
+            && (trimmed.Contains("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
+                || trimmed.Contains("JSON_QUERY", StringComparison.OrdinalIgnoreCase)
+                || trimmed.Contains("JSON_TABLE", StringComparison.OrdinalIgnoreCase)
+                || trimmed.Contains("JSON_TRANSFORM", StringComparison.OrdinalIgnoreCase)))
+        {
+            minVersion = OracleDialect.OracleJsonSqlFunctionMinVersion;
+        }
 
         // regra: se precisa de minVersion e versão atual é menor, então é NotSupported (não é inválido)
         if (minVersion > 0 

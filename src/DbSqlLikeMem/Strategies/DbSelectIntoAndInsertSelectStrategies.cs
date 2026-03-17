@@ -21,9 +21,11 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             SqlDeleteQuery deleteQ => connection.ExecuteDeleteSmart(deleteQ, pars, dialect),
             SqlCreateTemporaryTableQuery tempQ => connection.ExecuteCreateTemporaryTableAsSelect(tempQ, pars, dialect),
             SqlCreateViewQuery viewQ => connection.ExecuteCreateView(viewQ, pars, dialect),
+            SqlCreateIndexQuery createIndexQ => connection.ExecuteCreateIndex(createIndexQ, pars, dialect),
             SqlCreateSequenceQuery createSequenceQ => connection.ExecuteCreateSequence(createSequenceQ, pars, dialect),
             SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, pars, dialect),
             SqlDropTableQuery dropTableQ => connection.ExecuteDropTable(dropTableQ, pars, dialect),
+            SqlDropIndexQuery dropIndexQ => connection.ExecuteDropIndex(dropIndexQ, pars, dialect),
             SqlDropSequenceQuery dropSequenceQ => connection.ExecuteDropSequence(dropSequenceQ, pars, dialect),
             SqlMergeQuery mergeQ when allowMerge => connection.ExecuteMerge(mergeQ, pars, dialect),
             SqlSelectQuery _ => throw new InvalidOperationException(SqlExceptionMessages.UseExecuteReaderForSelect()),
@@ -138,6 +140,74 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             query.Temporary,
             query.Scope,
             query.Table?.DbName);
+        return 0;
+    }
+
+    /// <summary>
+    /// EN: Implements ExecuteCreateIndex.
+    /// PT: Implementa ExecuteCreateIndex.
+    /// </summary>
+    public static int ExecuteCreateIndex(
+        this DbConnectionMockBase connection,
+        SqlCreateIndexQuery query,
+        DbParameterCollection pars,
+        ISqlDialect dialect)
+    {
+        _ = pars;
+        _ = dialect;
+        int affected;
+        if (!connection.Db.ThreadSafe)
+            affected = ExecuteCreateIndexImpl(connection, query);
+        else
+        {
+            lock (connection.Db.SyncRoot)
+                affected = ExecuteCreateIndexImpl(connection, query);
+        }
+
+        connection.SetLastFoundRows(affected);
+        return affected;
+    }
+
+    private static int ExecuteCreateIndexImpl(
+        DbConnectionMockBase connection,
+        SqlCreateIndexQuery query)
+    {
+        var tableName = query.Table?.Name;
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(tableName, nameof(tableName));
+        connection.CreateIndex(query.IndexName, tableName!, query.KeyColumns, query.Unique, query.Table?.DbName);
+        return 0;
+    }
+
+    /// <summary>
+    /// EN: Implements ExecuteDropIndex.
+    /// PT: Implementa ExecuteDropIndex.
+    /// </summary>
+    public static int ExecuteDropIndex(
+        this DbConnectionMockBase connection,
+        SqlDropIndexQuery query,
+        DbParameterCollection pars,
+        ISqlDialect dialect)
+    {
+        _ = pars;
+        _ = dialect;
+        int affected;
+        if (!connection.Db.ThreadSafe)
+            affected = ExecuteDropIndexImpl(connection, query);
+        else
+        {
+            lock (connection.Db.SyncRoot)
+                affected = ExecuteDropIndexImpl(connection, query);
+        }
+
+        connection.SetLastFoundRows(affected);
+        return affected;
+    }
+
+    private static int ExecuteDropIndexImpl(
+        DbConnectionMockBase connection,
+        SqlDropIndexQuery query)
+    {
+        connection.DropIndex(query.IndexName, query.IfExists, query.Table?.Name, query.Table?.DbName);
         return 0;
     }
 

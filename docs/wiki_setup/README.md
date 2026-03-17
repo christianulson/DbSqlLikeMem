@@ -1,108 +1,167 @@
 # GitHub Wiki for DbSqlLikeMem
 
-This directory documents the repository Wiki workflow now that the mirrored pages live in the `docs/Wiki` submodule.
+This directory documents the GitHub Wiki workflow now that the mirrored pages live in `docs/Wiki` and follow a multilingual page-pair convention.
 
-## Recommended strategy
+## Documentation strategy
 
-1. Keep canonical documentation in the repository (`docs/`).
-2. Mirror key pages to the GitHub Wiki for quick navigation.
-3. Add bidirectional links between README and Wiki pages.
+1. Keep canonical deep documentation in the repository under `docs/`.
+2. Keep the GitHub Wiki focused on end-user developer guidance.
+3. Use English as the canonical wiki language.
+4. Add one mirrored page per additional language using a locale suffix.
 
-## Suggested page structure
+## Current language convention
 
-The files under `docs/Wiki` are prepared to be used directly as Wiki pages:
+- English page: `Home.md`
+- Portuguese (Brazil) mirror: `Home.pt-BR.md`
+- Repository mirror lives at `docs/Wiki/Home.md`
+- Every wiki page should expose reciprocal language links at the top.
+- The shared `_Sidebar.md` should list both language trees.
 
-- `Home.md`
-- `Getting-Started.md`
-- `Providers-and-Compatibility.md`
-- `Publishing.md`
+Future languages should follow the same naming style, for example `Getting-Started.es.md` or `Getting-Started.fr-FR.md`.
 
-Publishing coverage already mirrored in the wiki pages:
+## Current wiki structure
 
-- workflow/secret/tag guidance for NuGet, VSIX, and VS Code
-- version source by artifact (`src/Directory.Build.props`, `source.extension.vsixmanifest`, `package.json`)
-- release-readiness audit entry point via `scripts/check_release_readiness.py`
+### Core navigation
 
-Sequence-related highlights already mirrored in the wiki pages:
+- `Home`
+- `Getting-Started`
+- `Provider-Selection`
+- `Providers-and-Compatibility`
+- `ADO.NET-and-Dapper`
+- `DbConnection-Interception`
+- `DI-and-Interception-Setup`
+- `Testing-Strategy`
+- `Diagnostics-and-Execution-Plans`
+- `Limitations-and-Known-Gaps`
+- `Recipes-and-Common-Scenarios`
+- `Transactions-and-Volatile-Data`
+- `Schema-Snapshots-and-Replay`
+- `FAQ-and-Troubleshooting`
 
-- provider-specific sequence syntax quick reference
-- getting-started sequence examples
-- compatibility notes for SQL Server, SQL Azure, PostgreSQL, Oracle, and DB2
+### Guided walkthroughs
 
-## How to publish to Wiki (manual)
+- `Dapper-and-Interception-Walkthrough`
+- `Snapshot-Fixture-in-CI`
+- `Troubleshooting-by-Provider`
+
+### Advanced guides
+
+- `Observability-and-Debugging`
+- `Provider-Specific-Recipes`
+- `Examples-by-Architecture`
+- `Migration-from-Real-DB-Tests`
+- `Performance-of-Test-Suites`
+- `Compatibility-Matrix-Summary`
+- `Glossary`
+
+### Ecosystem navigation
+
+- `Extensions-and-Ecosystem`
+- `ORM-and-Test-Integrations`
+- `MiniProfiler-Integration`
+- `Visual-Studio-Extension`
+- `VS-Code-Extension`
+- `Maintainer-Resources`
+
+### Provider pages
+
+- `Provider-MySQL`
+- `Provider-SQL-Server`
+- `Provider-SQL-Azure`
+- `Provider-PostgreSQL-Npgsql`
+- `Provider-Oracle`
+- `Provider-SQLite`
+- `Provider-DB2`
+
+Each page above currently has an English file and a `pt-BR` mirror.
+
+## Publishing to GitHub Wiki
 
 ### Option A: Copy and paste in GitHub
 
-1. In the GitHub repository, open the **Wiki** tab.
-2. Create the `Home` page and paste `docs/Wiki/Home.md`.
-3. Create the remaining pages with the same names (without `.md`).
+1. Open the repository **Wiki** tab.
+2. Create or update the English pages from `docs/Wiki/*.md`.
+3. Create or update the Portuguese mirrors from `docs/Wiki/*.pt-BR.md`.
+4. Copy `_Sidebar.md` so both language trees appear in the GitHub Wiki sidebar.
 
-### Option B: Clone the Wiki repository and version it locally
+### Option B: Sync through the separate wiki repository
 
 ```bash
 # Wiki URL usually ends with .wiki.git
 git clone https://github.com/<org>/<repo>.wiki.git
 cd <repo>.wiki
 
-# copy files from the submodule to the wiki repo root
+# copy the mirrored wiki files to the wiki repo root
 cp -r ../DbSqlLikeMem/docs/Wiki/* .
 
 git add .
-git commit -m "docs(wiki): initial wiki structure"
+git commit -m "docs(wiki): refresh multilingual wiki"
 git push
 ```
 
-## Notes
+## Editorial rules for wiki pages
 
-- GitHub Wiki uses a separate Git repository (`<repo>.wiki.git`).
-- The sidebar menu can be controlled via `_Sidebar.md` (optional).
-- You can automate sync from `docs/Wiki` to the wiki repo using GitHub Actions.
+- Do not mix English and Portuguese in the same wiki page.
+- Keep user-facing pages focused on installation, provider choice, usage, diagnostics, ecosystem, and known limitations.
+- Keep release and publishing details out of the main navigation and point maintainers to `Maintainer-Resources`.
+- Use repository docs and the feature backlog as source material, but rewrite them for end users instead of copying backlog wording.
 
-## Related links
+## Related repository docs
 
-- [Local documentation](../README.md)
+- [Docs index](../README.md)
 - [Getting started](../getting-started.md)
-- [Providers and compatibility](../old/providers-and-features.md)
 - [Publishing](../publishing.md)
+- [Feature backlog](../features-backlog/index.md)
 
 ---
 
-# Wiki do GitHub para o DbSqlLikeMem (Português)
+# Wiki do GitHub para o DbSqlLikeMem
 
-Este diretório prepara uma estrutura pronta para ser publicada como Wiki do repositório.
+Este diretório documenta o fluxo da GitHub Wiki agora que as páginas espelhadas vivem em `docs/Wiki` e seguem uma convenção multilíngue por par de páginas.
 
-## Estratégia recomendada
+## Estratégia de documentação
 
-1. Manter a documentação canônica no repositório (`docs/`).
-2. Espelhar as páginas principais na Wiki do GitHub para navegação rápida.
-3. Incluir links bidirecionais entre README e Wiki.
+1. Manter a documentação canônica e mais profunda dentro de `docs/`.
+2. Manter a GitHub Wiki focada na orientação ao desenvolvedor usuário final.
+3. Usar inglês como idioma canônico da wiki.
+4. Adicionar um arquivo espelho por idioma com sufixo de locale.
 
-Destaques de sequence já refletidos nas páginas da wiki:
+## Convenção atual de idiomas
 
-- referência rápida de sintaxe por provider
-- exemplos de sequence no getting started
-- notas de compatibilidade para SQL Server, SQL Azure, PostgreSQL, Oracle e DB2
-- guia de publicação com fonte da versão e prefixo de tag por artefato
+- Página em inglês: `Home.md`
+- Espelho em português do Brasil: `Home.pt-BR.md`
+- Toda página da wiki deve expor links recíprocos de idioma no topo.
+- O `_Sidebar.md` compartilhado deve listar as duas árvores de navegação.
 
-## Como publicar na Wiki (manual)
+Idiomas futuros devem seguir o mesmo padrão de nome, por exemplo `Getting-Started.es.md` ou `Getting-Started.fr-FR.md`.
+
+## Publicação na GitHub Wiki
 
 ### Opção A: copiar e colar no GitHub
 
-1. No repositório do GitHub, abra a aba **Wiki**.
-2. Crie a página `Home` e cole `docs/Wiki/Home.md`.
-3. Crie as demais páginas com os mesmos nomes (sem `.md`).
+1. Abra a aba **Wiki** do repositório.
+2. Crie ou atualize as páginas em inglês a partir de `docs/Wiki/*.md`.
+3. Crie ou atualize os espelhos em português a partir de `docs/Wiki/*.pt-BR.md`.
+4. Copie `_Sidebar.md` para que as duas árvores de idioma apareçam na navegação lateral.
 
-### Opção B: clonar o repositório da wiki e versionar localmente
+### Opção B: sincronizar pelo repositório separado da wiki
 
 ```bash
-# URL da wiki normalmente termina com .wiki.git
+# A URL da wiki normalmente termina com .wiki.git
 git clone https://github.com/<org>/<repo>.wiki.git
 cd <repo>.wiki
 
-# copie os arquivos do submodulo para a raiz do repo da wiki
+# copie os arquivos espelhados para a raiz do repo da wiki
 cp -r ../DbSqlLikeMem/docs/Wiki/* .
 
 git add .
-git commit -m "docs(wiki): estrutura inicial da wiki"
+git commit -m "docs(wiki): atualizar wiki multilíngue"
 git push
 ```
+
+## Regras editoriais para as páginas da wiki
+
+- Não misturar inglês e português na mesma página.
+- Manter as páginas de usuário final focadas em instalação, escolha de provider, uso, diagnóstico, ecossistema e limitações conhecidas.
+- Deixar detalhes de release e publicação fora da navegação principal e apontar mantenedores para `Maintainer-Resources`.
+- Usar a documentação do repositório e o backlog funcional como fonte, mas reescrever para o público final em vez de copiar a linguagem do backlog.

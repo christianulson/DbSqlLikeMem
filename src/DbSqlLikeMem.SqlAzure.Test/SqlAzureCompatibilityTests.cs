@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 /// EN: Covers SqlAzure compatibility-level behavior.
 /// PT: Cobre o comportamento por nível de compatibilidade do SqlAzure.
 /// </summary>
-public sealed class SqlAzureCompatibilityTests
+public sealed class SqlAzureCompatibilityTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Provides sample SQL rows used by compatibility-level theory data composition.
@@ -31,11 +33,12 @@ public sealed class SqlAzureCompatibilityTests
     /// EN: Ensures explicit SQL Azure compatibility level is respected.
     /// PT: Garante que o nível explícito de compatibilidade SQL Azure seja respeitado.
     /// </summary>
-    [Fact]
-    public void SqlAzureDbMock_ShouldRespectExplicitCompatibilityLevel()
+    [Theory]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void SqlAzureDbMock_ShouldRespectExplicitCompatibilityLevel(int compatibilityLevel)
     {
-        var db = new SqlAzureDbMock(SqlAzureDbCompatibilityLevels.SqlServer2016);
-        db.Version.Should().Be(SqlAzureDbCompatibilityLevels.SqlServer2016);
+        var db = new SqlAzureDbMock(compatibilityLevel);
+        db.Version.Should().Be(compatibilityLevel);
     }
 
     /// <summary>
@@ -53,11 +56,12 @@ public sealed class SqlAzureCompatibilityTests
     /// EN: Ensures SQL Azure connection exposes SQL Azure server version text.
     /// PT: Garante que a conexão SQL Azure exponha texto de versão de servidor SQL Azure.
     /// </summary>
-    [Fact]
-    public void SqlAzureConnectionMock_ShouldExposeSqlAzureServerVersion()
+    [Theory]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void SqlAzureConnectionMock_ShouldExposeSqlAzureServerVersion(int compatibilityLevel)
     {
-        using var connection = new SqlAzureConnectionMock(new SqlAzureDbMock(SqlAzureDbCompatibilityLevels.SqlServer2019));
-        connection.ServerVersion.Should().Be("SQL Azure 150");
+        using var connection = new SqlAzureConnectionMock(new SqlAzureDbMock(compatibilityLevel));
+        connection.ServerVersion.Should().Be($"SQL Azure {compatibilityLevel}");
     }
 
     /// <summary>

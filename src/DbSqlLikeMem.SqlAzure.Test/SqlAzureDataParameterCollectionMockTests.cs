@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 /// EN: Contains tests for SQL Azure parameter collection behavior.
 /// PT: Contém testes para o comportamento da coleção de parâmetros do SQL Azure.
 /// </summary>
-public sealed class SqlAzureDataParameterCollectionMockTests
+public sealed class SqlAzureDataParameterCollectionMockTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Ensures adding duplicate parameter names is rejected case-insensitively.

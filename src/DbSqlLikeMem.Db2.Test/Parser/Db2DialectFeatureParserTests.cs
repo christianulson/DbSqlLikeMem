@@ -246,6 +246,54 @@ public sealed class Db2DialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures JSON_QUERY follows DB2 version support starting in version 11.
+    /// PT: Garante que JSON_QUERY siga o suporte por versão do DB2 a partir da versão 11.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void ParseScalar_JsonQuery_ShouldFollowDb2VersionSupport(int version)
+    {
+        const string sql = "JSON_QUERY(payload, '$.profile')";
+        var dialect = new Db2Dialect(version);
+
+        if (version < Db2Dialect.JsonFunctionsMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, dialect));
+            Assert.Contains("JSON_QUERY", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect));
+        Assert.Equal("JSON_QUERY", call.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures JSON_VALUE follows DB2 version support starting in version 11.
+    /// PT: Garante que JSON_VALUE siga o suporte por versão do DB2 a partir da versão 11.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void ParseScalar_JsonValue_ShouldFollowDb2VersionSupport(int version)
+    {
+        const string sql = "JSON_VALUE(payload, '$.profile.name')";
+        var dialect = new Db2Dialect(version);
+
+        if (version < Db2Dialect.JsonFunctionsMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, dialect));
+            Assert.Contains("JSON_VALUE", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect));
+        Assert.Equal("JSON_VALUE", call.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Tests ParseSelect_WithMySqlIndexHints_ShouldBeRejected behavior.
     /// PT: Testa o comportamento de ParseSelect_WithMySqlIndexHints_ShouldBeRejected.
     /// </summary>
