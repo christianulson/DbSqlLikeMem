@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem;
+namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Base of an in-memory database with schemas, tables, procedures, and sequences.
@@ -517,6 +517,63 @@ public abstract class DbMock
         var sc = GetSchemaName(schemaName);
         return this[sc].Procedures.TryGetValue(procName, out pr)
             && pr != null;
+    }
+
+    #endregion
+
+    #region Functions
+
+    internal bool TryGetFunction(
+        string functionName,
+        out ScalarFunctionDef? function,
+        string? schemaName = null)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(functionName, nameof(functionName));
+        var sc = GetSchemaName(schemaName);
+        return this[sc].Functions.TryGetValue(functionName.NormalizeName(), out function)
+            && function != null;
+    }
+
+    internal void CreateFunction(
+        string functionName,
+        string returnTypeSql,
+        IReadOnlyList<ScalarFunctionParameterDef> parameters,
+        SqlExpr body,
+        bool orReplace = false,
+        string? schemaName = null)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(returnTypeSql, nameof(returnTypeSql));
+        ArgumentNullExceptionCompatible.ThrowIfNull(parameters, nameof(parameters));
+        ArgumentNullExceptionCompatible.ThrowIfNull(body, nameof(body));
+        var sc = GetSchemaName(schemaName);
+        if (!this.TryGetValue(sc, out var s) || s == null)
+            CreateSchema(sc);
+
+        var normalized = functionName.NormalizeName();
+        var functions = this[sc].Functions;
+        if (functions.ContainsKey(normalized) && !orReplace)
+            throw new InvalidOperationException($"Function '{normalized}' already exists.");
+
+        functions[normalized] = new ScalarFunctionDef(functionName, returnTypeSql.Trim(), parameters, body);
+    }
+
+    internal void DropFunction(
+        string functionName,
+        bool ifExists,
+        string? schemaName = null)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
+        var sc = GetSchemaName(schemaName);
+        var normalized = functionName.NormalizeName();
+
+        if (this[sc].Functions.Remove(normalized))
+            return;
+
+        if (ifExists)
+            return;
+
+        throw new InvalidOperationException($"Function '{normalized}' does not exist.");
     }
 
     #endregion

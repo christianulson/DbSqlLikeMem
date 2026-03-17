@@ -24,10 +24,12 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             SqlAlterTableAddColumnQuery alterAddColumnQ => connection.ExecuteAlterTableAddColumn(alterAddColumnQ, pars, dialect),
             SqlCreateIndexQuery createIndexQ => connection.ExecuteCreateIndex(createIndexQ, pars, dialect),
             SqlCreateSequenceQuery createSequenceQ => connection.ExecuteCreateSequence(createSequenceQ, pars, dialect),
+            SqlCreateFunctionQuery createFunctionQ => connection.ExecuteCreateFunction(createFunctionQ, pars, dialect),
             SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, pars, dialect),
             SqlDropTableQuery dropTableQ => connection.ExecuteDropTable(dropTableQ, pars, dialect),
             SqlDropIndexQuery dropIndexQ => connection.ExecuteDropIndex(dropIndexQ, pars, dialect),
             SqlDropSequenceQuery dropSequenceQ => connection.ExecuteDropSequence(dropSequenceQ, pars, dialect),
+            SqlDropFunctionQuery dropFunctionQ => connection.ExecuteDropFunction(dropFunctionQ, pars, dialect),
             SqlMergeQuery mergeQ when allowMerge => connection.ExecuteMerge(mergeQ, pars, dialect),
             SqlSelectQuery _ => throw new InvalidOperationException(SqlExceptionMessages.UseExecuteReaderForSelect()),
             SqlUnionQuery _ when unionUsesSelectMessage => throw new InvalidOperationException(SqlExceptionMessages.UseExecuteReaderForSelectUnion()),
@@ -301,6 +303,37 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         return 0;
     }
 
+    public static int ExecuteCreateFunction(
+        this DbConnectionMockBase connection,
+        SqlCreateFunctionQuery query,
+        DbParameterCollection pars,
+        ISqlDialect dialect)
+    {
+        _ = pars;
+        _ = dialect;
+        int affected;
+        if (!connection.Db.ThreadSafe)
+            affected = ExecuteCreateFunctionImpl(connection, query);
+        else
+        {
+            lock (connection.Db.SyncRoot)
+                affected = ExecuteCreateFunctionImpl(connection, query);
+        }
+
+        connection.SetLastFoundRows(affected);
+        return affected;
+    }
+
+    private static int ExecuteCreateFunctionImpl(
+        DbConnectionMockBase connection,
+        SqlCreateFunctionQuery query)
+    {
+        var functionName = query.Table?.Name;
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
+        connection.CreateFunction(functionName!, query.ReturnTypeSql, query.Parameters, query.Body, query.OrReplace, query.Table?.DbName);
+        return 0;
+    }
+
     /// <summary>
     /// EN: Implements ExecuteDropSequence.
     /// PT: Implementa ExecuteDropSequence.
@@ -333,6 +366,37 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         var sequenceName = query.Table?.Name;
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sequenceName, nameof(sequenceName));
         connection.DropSequence(sequenceName!, query.IfExists, query.Table?.DbName);
+        return 0;
+    }
+
+    public static int ExecuteDropFunction(
+        this DbConnectionMockBase connection,
+        SqlDropFunctionQuery query,
+        DbParameterCollection pars,
+        ISqlDialect dialect)
+    {
+        _ = pars;
+        _ = dialect;
+        int affected;
+        if (!connection.Db.ThreadSafe)
+            affected = ExecuteDropFunctionImpl(connection, query);
+        else
+        {
+            lock (connection.Db.SyncRoot)
+                affected = ExecuteDropFunctionImpl(connection, query);
+        }
+
+        connection.SetLastFoundRows(affected);
+        return affected;
+    }
+
+    private static int ExecuteDropFunctionImpl(
+        DbConnectionMockBase connection,
+        SqlDropFunctionQuery query)
+    {
+        var functionName = query.Table?.Name;
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
+        connection.DropFunction(functionName!, query.IfExists, query.Table?.DbName);
         return 0;
     }
 

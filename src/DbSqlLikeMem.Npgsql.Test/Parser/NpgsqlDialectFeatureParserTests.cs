@@ -7,6 +7,148 @@ namespace DbSqlLikeMem.Npgsql.Test.Parser;
 public sealed class NpgsqlDialectFeatureParserTests
 {
     /// <summary>
+    /// EN: Ensures PostgreSQL preserves binary column size metadata in the pragmatic ALTER TABLE ... ADD subset.
+    /// PT: Garante que o PostgreSQL preserve o metadado de tamanho de coluna binaria no subset pragmatico de ALTER TABLE ... ADD.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseAlterTableAddBinaryColumn_ShouldPreserveSize(int version)
+    {
+        var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
+            "ALTER TABLE public.users ADD payload VARBINARY(16) NULL",
+            new NpgsqlDialect(version)));
+
+        Assert.Equal(DbType.Binary, parsed.ColumnType);
+        Assert.Equal(16, parsed.Size);
+        Assert.True(parsed.Nullable);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL preserves DECIMAL precision and scale metadata in the pragmatic ALTER TABLE ... ADD subset.
+    /// PT: Garante que o PostgreSQL preserve os metadados de precisao e escala de DECIMAL no subset pragmatico de ALTER TABLE ... ADD.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseAlterTableAddDecimalColumn_ShouldPreservePrecisionAndScale(int version)
+    {
+        var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
+            "ALTER TABLE public.users ADD amount DECIMAL(10, 4) NOT NULL DEFAULT 0",
+            new NpgsqlDialect(version)));
+
+        Assert.Equal(DbType.Decimal, parsed.ColumnType);
+        Assert.Equal(10, parsed.Size);
+        Assert.Equal(4, parsed.DecimalPlaces);
+        Assert.False(parsed.Nullable);
+        Assert.Equal("0", parsed.DefaultValueRaw);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL rejects ALTER TABLE ... ADD when NOT NULL is paired with DEFAULT NULL outside the pragmatic subset.
+    /// PT: Garante que o PostgreSQL rejeite ALTER TABLE ... ADD quando NOT NULL e combinado com DEFAULT NULL fora do subset pragmatico.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseAlterTableAddColumn_NotNullWithDefaultNull_ShouldReject(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE public.users ADD status VARCHAR(20) NOT NULL DEFAULT NULL",
+            new NpgsqlDialect(version)));
+
+        Assert.Contains("default null", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL rejects ALTER TABLE ... ADD when the table reference uses an alias outside the pragmatic subset.
+    /// PT: Garante que o PostgreSQL rejeite ALTER TABLE ... ADD quando a referencia da tabela usa alias fora do subset pragmatico.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseAlterTableAddColumn_WithTableAlias_ShouldReject(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE public.users u ADD age INT",
+            new NpgsqlDialect(version)));
+
+        Assert.Contains("alias", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL rejects ALTER TABLE ... ADD when the table reference is a derived source outside the pragmatic subset.
+    /// PT: Garante que o PostgreSQL rejeite ALTER TABLE ... ADD quando a referencia da tabela e uma fonte derivada fora do subset pragmatico.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseAlterTableAddColumn_WithDerivedTable_ShouldReject(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE (SELECT * FROM public.users) u ADD age INT",
+            new NpgsqlDialect(version)));
+
+        Assert.Contains("concrete table name", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL parses the pragmatic provider-real scalar FUNCTION DDL subset.
+    /// PT: Garante que o PostgreSQL interprete o subset pragmatico e realista do provider para DDL de FUNCTION escalar.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseScalarFunctionDdlSubset_ShouldParse(int version)
+    {
+        var dialect = new NpgsqlDialect(version);
+
+        var create = Assert.IsType<SqlCreateFunctionQuery>(SqlQueryParser.Parse(
+            "CREATE FUNCTION fn_users(base_value integer, increment_value integer) RETURNS integer AS 'SELECT base_value + increment_value' LANGUAGE SQL",
+            dialect));
+
+        Assert.Equal("fn_users", create.Table?.Name, ignoreCase: true);
+        Assert.Equal("integer", create.ReturnTypeSql, ignoreCase: true);
+        Assert.Equal(2, create.Parameters.Count);
+        Assert.Equal("base_value", create.Parameters[0].Name, ignoreCase: true);
+        Assert.Equal("increment_value", create.Parameters[1].Name, ignoreCase: true);
+        Assert.IsType<BinaryExpr>(create.Body);
+
+        var drop = Assert.IsType<SqlDropFunctionQuery>(SqlQueryParser.Parse(
+            "DROP FUNCTION IF EXISTS fn_users(integer, integer)",
+            dialect));
+
+        Assert.True(drop.IfExists);
+        Assert.Equal("fn_users", drop.Table?.Name, ignoreCase: true);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL parses CREATE OR REPLACE FUNCTION in the supported provider-real subset.
+    /// PT: Garante que o PostgreSQL interprete CREATE OR REPLACE FUNCTION no subset realista suportado pelo provider.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseCreateOrReplaceScalarFunctionDdlSubset_ShouldParse(int version)
+    {
+        var dialect = new NpgsqlDialect(version);
+        var create = Assert.IsType<SqlCreateFunctionQuery>(SqlQueryParser.Parse(
+            "CREATE OR REPLACE FUNCTION fn_users(base_value integer, increment_value integer) RETURNS integer AS 'SELECT base_value + increment_value + 1' LANGUAGE SQL",
+            dialect));
+        Assert.True(create.OrReplace);
+        Assert.Equal("fn_users", create.Table?.Name, ignoreCase: true);
+        Assert.Equal(2, create.Parameters.Count);
+        Assert.IsType<BinaryExpr>(create.Body);
+    }
+
+    /// <summary>
     /// EN: Ensures PostgreSQL accepts ILIKE and keeps the case-insensitive flag in the AST.
     /// PT: Garante que o PostgreSQL aceite ILIKE e mantenha a flag case-insensitive na AST.
     /// </summary>

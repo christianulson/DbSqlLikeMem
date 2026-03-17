@@ -132,6 +132,7 @@ internal sealed class MySqlDialect : SqlDialectBase
 
     /// <inheritdoc />
     public override bool SupportsAlterTableAddColumn => true;
+    public override bool SupportsFunctionDdl => true;
 
     /// <summary>
     /// EN: Indicates whether recursive CTE syntax is supported by the configured MySQL version.

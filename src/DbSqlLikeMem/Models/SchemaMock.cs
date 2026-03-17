@@ -77,6 +77,9 @@ public abstract class SchemaMock
     public IDictionary<string, ProcedureDef> Procedures { get; } =
         new Dictionary<string, ProcedureDef>(StringComparer.OrdinalIgnoreCase);
 
+    internal IDictionary<string, ScalarFunctionDef> Functions { get; } =
+        new Dictionary<string, ScalarFunctionDef>(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>
     /// EN: Sequence definitions registered in the schema.
     /// PT: Definições de sequence registradas no schema.

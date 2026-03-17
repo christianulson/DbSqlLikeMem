@@ -84,7 +84,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.2.1 Interpretação de comandos DDL
 
-- Implementação estimada: **91%**.
+- Implementação estimada: **95%**.
 - Leitura e processamento de comandos de definição de schema.
 - Suporte a operações estruturais comuns (criação e alteração de entidades).
 - Aplicação de regras específicas por dialeto e versão simulada.
@@ -129,8 +129,11 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: `DROP INDEX ... ON <table>` passou a exigir referência de tabela concreta sem alias na gramática compartilhada, evitando aceitar `DROP INDEX ... ON users u` fora do contrato pragmático exposto por Auto/SQL Server.
 - Incremento desta sessão: `DROP INDEX ... ON <table>` deixou de aceitar `table sources` genéricos e agora exige nome qualificado concreto também contra fontes derivadas como `ON (SELECT ...) u`, mantendo o subset pragmático alinhado ao contrato real exposto pelo mock.
 - Incremento desta sessão: a cobertura de runtime de `DROP INDEX` foi ampliada para rejeitar busca ambígua por nome sem tabela explícita quando mais de uma tabela do schema atual expõe o mesmo índice, preservando a metadata intacta no caminho MySQL.
+- Incremento desta sessão: parser/runtime passaram a suportar um primeiro subset pragmático de `FUNCTION` escalar (`CREATE FUNCTION ... RETURNS <type> AS BEGIN RETURN <expr> END` + `DROP FUNCTION`) no estilo `SQL Server/SqlAzure`, com execução end-to-end de chamadas zero-arg e gate explícito de `NotSupportedException` nos demais dialetos enquanto as variantes reais de cada provider continuam fora do subset.
+- Incremento desta sessão: o suporte de FUNCTION evoluiu para um subset pragmático e provider-real também em MySQL, PostgreSQL, Oracle e Db2, com parâmetros escalares simples, corpo mínimo compatível por dialeto (RETURN <expr>, AS 'SELECT <expr>' LANGUAGE SQL, RETURN ... IS BEGIN ... END) e cobertura versionada/end-to-end nos providers que aceitam DDL de função; SQLite permanece fora do escopo com gate explícito de NotSupportedException.
+- Incremento desta sessão: `CREATE OR REPLACE FUNCTION` passou a ser suportado no subset provider-real de PostgreSQL e Oracle, com substituição end-to-end do corpo existente e regressão versionada explícita de rejeição nos providers que aceitam `FUNCTION` mas não expõem a variante `OR REPLACE`.
 - TODO: expandir o subset DDL com `ALTER TABLE` pragmático e hardening adicional de `CREATE/DROP INDEX`, mantendo gate explícito por dialeto/versão e sem aceitar DDL avançado fora do contrato real do provider.
-- TODO: revisar a trilha de objetos programáveis (`FUNCTION`/`PROCEDURE`/`TRIGGER` DDL) para deixar explícito no backlog o que será suportado de forma real e o que continuará bloqueado por `NotSupportedException`.
+- TODO: revisar a trilha restante de objetos programáveis (`PROCEDURE`/`TRIGGER` DDL e variantes avançadas de `FUNCTION`, como sobrecarga por assinatura, defaults de parâmetros, funções tabulares e corpos procedurais mais ricos) para deixar explícito no backlog o que será suportado de forma real e o que continuará bloqueado por `NotSupportedException`.
 
 #### 1.2.2 Interpretação de comandos DML
 

@@ -20,6 +20,44 @@ public sealed class NpgsqlFunctionTests
     }
 
     /// <summary>
+    /// EN: Ensures PostgreSQL executes the pragmatic scalar FUNCTION DDL subset end to end.
+    /// PT: Garante que o PostgreSQL execute end-to-end o subset pragmatico de DDL de FUNCTION escalar.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    [Theory]
+    [MemberDataNpgsqlVersion]
+    [Trait("Category", "PostgreSqlMock")]
+    public void ScalarFunctionDdlSubset_ShouldExecuteEndToEnd(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        ExecuteNonQuery(connection, "CREATE FUNCTION fn_users(base_value integer, increment_value integer) RETURNS integer AS 'SELECT base_value + increment_value' LANGUAGE SQL");
+
+        Assert.Equal(42, Convert.ToInt32(ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+
+        ExecuteNonQuery(connection, "DROP FUNCTION IF EXISTS fn_users(integer, integer)");
+
+        Assert.Null(ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"));
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL replaces an existing scalar function body through CREATE OR REPLACE FUNCTION.
+    /// PT: Garante que o PostgreSQL substitua o corpo de uma funcao escalar existente com CREATE OR REPLACE FUNCTION.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    [Theory]
+    [MemberDataNpgsqlVersion]
+    [Trait("Category", "PostgreSqlMock")]
+    public void CreateOrReplaceScalarFunctionDdlSubset_ShouldReplaceExistingBody(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+        ExecuteNonQuery(connection, "CREATE FUNCTION fn_users(base_value integer, increment_value integer) RETURNS integer AS 'SELECT base_value + increment_value' LANGUAGE SQL");
+        Assert.Equal(42, Convert.ToInt32(ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        ExecuteNonQuery(connection, "CREATE OR REPLACE FUNCTION fn_users(base_value integer, increment_value integer) RETURNS integer AS 'SELECT base_value + increment_value + 1' LANGUAGE SQL");
+        Assert.Equal(43, Convert.ToInt32(ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
     /// EN: Ensures PostgreSQL system functions return expected values.
     /// PT: Garante que funcoes de sistema do PostgreSQL retornem valores esperados.
     /// </summary>

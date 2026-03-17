@@ -107,6 +107,8 @@ internal sealed class SqlServerDialect : SqlDialectBase
         => Version >= StringAggMinVersion
             && functionName.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase);
 
+    public override bool SupportsFunctionDdl => true;
+
     // OFFSET ... FETCH entrou no SQL Server 2012.
     /// <summary>
     /// EN: Gets whether offset fetch is supported.

@@ -34,6 +34,28 @@ public sealed class MySqlMockTests
     }
 
     /// <summary>
+    /// EN: Ensures MySQL executes the pragmatic scalar FUNCTION DDL subset end to end.
+    /// PT: Garante que o MySQL execute end-to-end o subset pragmatico de DDL de FUNCTION escalar.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void ScalarFunctionDdlSubset_ShouldExecuteEndToEnd(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+        ExecuteNonQuery(connection, "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', 'ana@example.com')");
+
+        ExecuteNonQuery(connection, "CREATE FUNCTION fn_users(baseValue INT, incrementValue INT) RETURNS INT RETURN baseValue + incrementValue");
+
+        Assert.Equal(42, Convert.ToInt32(ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+
+        ExecuteNonQuery(connection, "DROP FUNCTION IF EXISTS fn_users");
+
+        Assert.Null(ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"));
+    }
+
+    /// <summary>
     /// EN: Tests TestInsert behavior.
     /// PT: Testa o comportamento de TestInsert.
     /// </summary>
@@ -293,6 +315,27 @@ public sealed class MySqlMockTests
     }
 
     /// <summary>
+    /// EN: Verifies ALTER TABLE ... ADD COLUMN preserves binary column size metadata in the runtime path.
+    /// PT: Verifica se ALTER TABLE ... ADD COLUMN preserva o metadado de tamanho de coluna binaria no caminho de runtime.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteNonQuery_AlterTableAddBinaryColumn_ShouldPreserveSize()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "ALTER TABLE Users ADD COLUMN Payload VARBINARY(16) NULL"
+        };
+
+        command.ExecuteNonQuery();
+
+        var column = _connection.GetTable("users").Columns["payload"];
+        column.DbType.Should().Be(DbType.Binary);
+        column.Size.Should().Be(16);
+        column.Nullable.Should().BeTrue();
+    }
+
+    /// <summary>
     /// EN: Verifies ALTER TABLE ... ADD COLUMN rejects NOT NULL combined with DEFAULT NULL and leaves table metadata unchanged.
     /// PT: Verifica se ALTER TABLE ... ADD COLUMN rejeita NOT NULL combinado com DEFAULT NULL e mantem a metadata da tabela inalterada.
     /// </summary>
@@ -322,6 +365,44 @@ public sealed class MySqlMockTests
         using var command = new MySqlCommandMock(_connection)
         {
             CommandText = "ALTER TABLE Users ADD COLUMN NickName VARCHAR(foo)"
+        };
+
+        var ex = Assert.ThrowsAny<Exception>(() => command.ExecuteNonQuery());
+
+        Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
+        _connection.GetTable("users").Columns.ContainsKey("nickname").Should().BeFalse();
+    }
+
+    /// <summary>
+    /// EN: Verifies ALTER TABLE ... ADD COLUMN rejects empty VARCHAR type arguments and leaves table metadata unchanged.
+    /// PT: Verifica se ALTER TABLE ... ADD COLUMN rejeita argumentos vazios de tipo VARCHAR e mantem a metadata da tabela inalterada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteNonQuery_AlterTableAddColumn_ShouldRejectEmptyVarcharTypeArguments()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "ALTER TABLE Users ADD COLUMN NickName VARCHAR()"
+        };
+
+        var ex = Assert.ThrowsAny<Exception>(() => command.ExecuteNonQuery());
+
+        Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
+        _connection.GetTable("users").Columns.ContainsKey("nickname").Should().BeFalse();
+    }
+
+    /// <summary>
+    /// EN: Verifies ALTER TABLE ... ADD COLUMN rejects trailing-empty VARCHAR type arguments and leaves table metadata unchanged.
+    /// PT: Verifica se ALTER TABLE ... ADD COLUMN rejeita argumentos de tipo VARCHAR com entrada vazia final e mantem a metadata da tabela inalterada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteNonQuery_AlterTableAddColumn_ShouldRejectTrailingCommaInVarcharTypeArguments()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "ALTER TABLE Users ADD COLUMN NickName VARCHAR(10,)"
         };
 
         var ex = Assert.ThrowsAny<Exception>(() => command.ExecuteNonQuery());

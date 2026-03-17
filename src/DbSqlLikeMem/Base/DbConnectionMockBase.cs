@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace DbSqlLikeMem;
@@ -966,6 +966,43 @@ public abstract class DbConnectionMockBase(
         => Db.TryGetProcedure(
             procName,
             out pr,
+            schemaName ?? Database);
+
+    #endregion
+
+    #region Functions
+
+    internal bool TryGetFunction(
+        string functionName,
+        out ScalarFunctionDef? function,
+        string? schemaName = null)
+        => Db.TryGetFunction(
+            functionName,
+            out function,
+            schemaName ?? Database);
+
+    internal void CreateFunction(
+        string functionName,
+        string returnTypeSql,
+        IReadOnlyList<ScalarFunctionParameterDef> parameters,
+        SqlExpr body,
+        bool orReplace = false,
+        string? schemaName = null)
+        => Db.CreateFunction(
+            functionName,
+            returnTypeSql,
+            parameters,
+            body,
+            orReplace,
+            schemaName ?? Database);
+
+    internal void DropFunction(
+        string functionName,
+        bool ifExists,
+        string? schemaName = null)
+        => Db.DropFunction(
+            functionName,
+            ifExists,
             schemaName ?? Database);
 
     #endregion

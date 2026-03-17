@@ -152,6 +152,19 @@ internal sealed record SqlDropSequenceQuery : SqlQueryBase
     internal bool IfExists { get; init; }
 }
 
+internal sealed record SqlCreateFunctionQuery : SqlQueryBase
+{
+    internal bool OrReplace { get; init; }
+    internal string ReturnTypeSql { get; init; } = "";
+    internal IReadOnlyList<ScalarFunctionParameterDef> Parameters { get; init; } = [];
+    internal SqlExpr Body { get; init; } = null!;
+}
+
+internal sealed record SqlDropFunctionQuery : SqlQueryBase
+{
+    internal bool IfExists { get; init; }
+}
+
 internal sealed record SqlMergeQuery : SqlQueryBase
 {
     internal SqlTableSource? Source { get; init; } // opcional (pode deixar null por enquanto)

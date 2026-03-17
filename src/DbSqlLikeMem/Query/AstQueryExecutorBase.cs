@@ -56,6 +56,7 @@ internal abstract class AstQueryExecutorBase(
     private readonly IDataParameterCollection _pars = pars ?? throw new ArgumentNullException(nameof(pars));
     private readonly object _dialect = dialect ?? throw new ArgumentNullException(nameof(dialect));
     private readonly AstSubqueryEvaluationCache _subqueryEvaluationCache = new();
+    private readonly Stack<IReadOnlyDictionary<string, object?>> _localParameterScopes = new();
     private ISqlDialect? Dialect
         => _cnn.UseAutoSqlDialect
             ? _cnn.ExecutionDialect
@@ -4184,6 +4185,9 @@ private void FillPercentRankOrCumeDist(
                 return ResolveParam(p.Name);
 
             case IdentifierExpr id:
+                if (TryResolveLocalFunctionValue(id.Name, out var localValue))
+                    return localValue;
+
                 return EvalIdentifier(id, row);
 
             case ColumnExpr col:
@@ -6327,6 +6331,9 @@ private void FillPercentRankOrCumeDist(
             return EvalAggregate(fn, group, ctes);
 
         // Scalar functions (best-effort)
+        if (TryEvalUserDefinedScalarFunction(fn, row, group, ctes, out var userDefinedResult))
+            return userDefinedResult;
+
         if (fn.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, fn.Name, out var temporalValue))
             return temporalValue;
 
@@ -7314,6 +7321,53 @@ private void FillPercentRankOrCumeDist(
         return null;
 
         object? EvalArg(int i) => i < fn.Args.Count ? Eval(fn.Args[i], row, group, ctes) : null;
+    }
+
+    private bool TryEvalUserDefinedScalarFunction(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        out object? result)
+    {
+        result = null;
+
+        if (!_cnn.TryGetFunction(fn.Name, out var function) || function is null)
+            return false;
+
+        if (fn.Args.Count != function.Parameters.Count)
+            throw new InvalidOperationException($"Function '{fn.Name}' expects {function.Parameters.Count} argument(s), but received {fn.Args.Count}.");
+
+        var parameterScope = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        for (var i = 0; i < function.Parameters.Count; i++)
+        {
+            var parameter = function.Parameters[i];
+            parameterScope[parameter.NormalizedName] = Eval(fn.Args[i], row, group, ctes);
+        }
+
+        _localParameterScopes.Push(parameterScope);
+        try
+        {
+            result = Eval(function.Body, row, group, ctes);
+            return true;
+        }
+        finally
+        {
+            _localParameterScopes.Pop();
+        }
+    }
+
+    private bool TryResolveLocalFunctionValue(string name, out object? value)
+    {
+        var normalized = ProcedureDef.NormalizeParamName(name);
+        foreach (var scope in _localParameterScopes)
+        {
+            if (scope.TryGetValue(normalized, out value))
+                return true;
+        }
+
+        value = null;
+        return false;
     }
 
     private static bool TryEvalCharFunction(
@@ -24506,7 +24560,12 @@ private void FillPercentRankOrCumeDist(
 
     private object? ResolveParam(
         string name)
-        => QueryRowValueHelper.ResolveParam(_pars, name);
+    {
+        if (TryResolveLocalFunctionValue(name, out var localValue))
+            return localValue;
+
+        return QueryRowValueHelper.ResolveParam(_pars, name);
+    }
 
     private static object? ResolveIdentifier(
         string name,
@@ -24941,13 +25000,4 @@ private void FillPercentRankOrCumeDist(
            && !string.IsNullOrWhiteSpace(query.RawSql)
            && _sqlCalcFoundRowsRegex.IsMatch(query.RawSql);
 }
-
-
-
-
-
-
-
-
-
 

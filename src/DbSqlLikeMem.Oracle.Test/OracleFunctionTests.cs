@@ -40,6 +40,44 @@ public sealed class OracleFunctionTests
     }
 
     /// <summary>
+    /// EN: Ensures Oracle executes the pragmatic scalar FUNCTION DDL subset end to end.
+    /// PT: Garante que o Oracle execute end-to-end o subset pragmatico de DDL de FUNCTION escalar.
+    /// </summary>
+    /// <param name="version">EN: Oracle dialect version under test. PT: Versao do dialeto Oracle em teste.</param>
+    [Theory]
+    [MemberDataOracleVersion]
+    [Trait("Category", "OracleMock")]
+    public void ScalarFunctionDdlSubset_ShouldExecuteEndToEnd(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        ExecuteNonQuery(connection, "CREATE FUNCTION fn_users(baseValue NUMBER, incrementValue NUMBER) RETURN NUMBER IS BEGIN RETURN baseValue + incrementValue; END");
+
+        Assert.Equal(42, Convert.ToInt32(ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+
+        ExecuteNonQuery(connection, "DROP FUNCTION fn_users");
+
+        Assert.Null(ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"));
+    }
+
+    /// <summary>
+    /// EN: Ensures Oracle replaces an existing scalar function body through CREATE OR REPLACE FUNCTION.
+    /// PT: Garante que o Oracle substitua o corpo de uma funcao escalar existente com CREATE OR REPLACE FUNCTION.
+    /// </summary>
+    /// <param name="version">EN: Oracle dialect version under test. PT: Versao do dialeto Oracle em teste.</param>
+    [Theory]
+    [MemberDataOracleVersion]
+    [Trait("Category", "OracleMock")]
+    public void CreateOrReplaceScalarFunctionDdlSubset_ShouldReplaceExistingBody(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+        ExecuteNonQuery(connection, "CREATE FUNCTION fn_users(baseValue NUMBER, incrementValue NUMBER) RETURN NUMBER IS BEGIN RETURN baseValue + incrementValue; END");
+        Assert.Equal(42, Convert.ToInt32(ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        ExecuteNonQuery(connection, "CREATE OR REPLACE FUNCTION fn_users(baseValue NUMBER, incrementValue NUMBER) RETURN NUMBER IS BEGIN RETURN baseValue + incrementValue + 1; END");
+        Assert.Equal(43, Convert.ToInt32(ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
     /// EN: Ensures core Oracle conversion functions return expected results.
     /// PT: Garante que funcoes de conversao Oracle retornem resultados esperados.
     /// </summary>

@@ -108,6 +108,8 @@ internal sealed class NpgsqlDialect : SqlDialectBase
 
     /// <inheritdoc />
     public override bool SupportsAlterTableAddColumn => true;
+    public override bool SupportsFunctionDdl => true;
+    public override bool SupportsCreateOrReplaceFunctionDdl => true;
 
     public override bool SupportsSequenceDdl => true;
     public override bool SupportsSequenceFunctionCall(string functionName)

@@ -16,13 +16,15 @@ internal sealed class AstDdlNonQueryCommandHandler : INonQueryCommandHandler
             SqlAlterTableAddColumnQuery alterAddColumnQ => context.Connection.ExecuteAlterTableAddColumn(alterAddColumnQ, context.Parameters, context.Connection.ExecutionDialect),
             SqlCreateIndexQuery createIndexQ => context.Connection.ExecuteCreateIndex(createIndexQ, context.Parameters, context.Connection.ExecutionDialect),
             SqlCreateSequenceQuery createSequenceQ => context.Connection.ExecuteCreateSequence(createSequenceQ, context.Parameters, context.Connection.ExecutionDialect),
+            SqlCreateFunctionQuery createFunctionQ => context.Connection.ExecuteCreateFunction(createFunctionQ, context.Parameters, context.Connection.ExecutionDialect),
             SqlDropViewQuery dropViewQ => context.Connection.ExecuteDropView(dropViewQ, context.Parameters, context.Connection.ExecutionDialect),
             SqlDropTableQuery dropTableQ => context.Connection.ExecuteDropTable(dropTableQ, context.Parameters, context.Connection.ExecutionDialect),
             SqlDropIndexQuery dropIndexQ => context.Connection.ExecuteDropIndex(dropIndexQ, context.Parameters, context.Connection.ExecutionDialect),
             SqlDropSequenceQuery dropSequenceQ => context.Connection.ExecuteDropSequence(dropSequenceQ, context.Parameters, context.Connection.ExecutionDialect),
+            SqlDropFunctionQuery dropFunctionQ => context.Connection.ExecuteDropFunction(dropFunctionQ, context.Parameters, context.Connection.ExecutionDialect),
             _ => 0
         };
 
-        return query is SqlCreateTemporaryTableQuery or SqlCreateViewQuery or SqlAlterTableAddColumnQuery or SqlCreateIndexQuery or SqlCreateSequenceQuery or SqlDropViewQuery or SqlDropTableQuery or SqlDropIndexQuery or SqlDropSequenceQuery;
+        return query is SqlCreateTemporaryTableQuery or SqlCreateViewQuery or SqlAlterTableAddColumnQuery or SqlCreateIndexQuery or SqlCreateSequenceQuery or SqlCreateFunctionQuery or SqlDropViewQuery or SqlDropTableQuery or SqlDropIndexQuery or SqlDropSequenceQuery or SqlDropFunctionQuery;
     }
 }

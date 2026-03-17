@@ -35,6 +35,27 @@ public sealed class SqlAzureFunctionTests
     }
 
     /// <summary>
+    /// EN: Ensures SQL Azure executes the first pragmatic scalar FUNCTION DDL subset end to end.
+    /// PT: Garante que o SQL Azure execute end-to-end o primeiro subset pragmatico de FUNCTION escalar.
+    /// </summary>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    [Theory]
+    [MemberDataSqlAzureCompatibilityLevel]
+    [Trait("Category", "SqlAzureMock")]
+    public void ScalarFunctionDdlSubset_ShouldExecuteEndToEnd(int compatibilityLevel)
+    {
+        using var connection = CreateOpenConnection(compatibilityLevel);
+
+        ExecuteNonQuery(connection, "CREATE FUNCTION fn_users(@baseValue INT, @incrementValue INT) RETURNS INT AS BEGIN RETURN @baseValue + @incrementValue END");
+
+        Assert.Equal(42, Convert.ToInt32(ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+
+        ExecuteNonQuery(connection, "DROP FUNCTION fn_users");
+
+        Assert.Null(ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"));
+    }
+
+    /// <summary>
     /// EN: Ensures SQL Azure system functions return expected values.
     /// PT: Garante que funcoes de sistema do SQL Azure retornem valores esperados.
     /// </summary>
@@ -477,8 +498,4 @@ public sealed class SqlAzureFunctionTests
     private void ExecuteNonQuery(string sql)
         => ExecuteNonQuery(_connection, sql);
 }
-
-
-
-
 

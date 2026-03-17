@@ -36,6 +36,52 @@ public sealed class SqlAzureDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures SQL Azure parses the first pragmatic scalar FUNCTION DDL subset.
+    /// PT: Garante que o SQL Azure interprete o primeiro subset pragmatico de FUNCTION escalar.
+    /// </summary>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ParseScalarFunctionDdlSubset_ShouldParse(int compatibilityLevel)
+    {
+        var dialect = CreateDialect(compatibilityLevel);
+        var create = Assert.IsType<SqlCreateFunctionQuery>(SqlQueryParser.Parse(
+            "CREATE FUNCTION fn_users(@baseValue INT, @incrementValue INT) RETURNS INT AS BEGIN RETURN @baseValue + @incrementValue END",
+            dialect));
+
+        Assert.Equal("fn_users", create.Table?.Name, ignoreCase: true);
+        Assert.Equal("INT", create.ReturnTypeSql, ignoreCase: true);
+        Assert.Equal(2, create.Parameters.Count);
+        Assert.Equal("@baseValue", create.Parameters[0].Name, ignoreCase: true);
+        Assert.Equal("@incrementValue", create.Parameters[1].Name, ignoreCase: true);
+        Assert.IsType<BinaryExpr>(create.Body);
+
+        var drop = Assert.IsType<SqlDropFunctionQuery>(SqlQueryParser.Parse(
+            "DROP FUNCTION IF EXISTS fn_users",
+            dialect));
+
+        Assert.True(drop.IfExists);
+        Assert.Equal("fn_users", drop.Table?.Name, ignoreCase: true);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Azure rejects CREATE OR REPLACE FUNCTION outside the supported provider-real subset.
+    /// PT: Garante que o SQL Azure rejeite CREATE OR REPLACE FUNCTION fora do subset realista suportado pelo provider.
+    /// </summary>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ParseCreateOrReplaceScalarFunctionDdlSubset_ShouldReject(int compatibilityLevel)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "CREATE OR REPLACE FUNCTION fn_users(@baseValue INT, @incrementValue INT) RETURNS INT AS BEGIN RETURN @baseValue + @incrementValue END",
+            CreateDialect(compatibilityLevel)));
+        Assert.Contains("CREATE OR REPLACE FUNCTION", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures OFFSET/FETCH without ORDER BY follows SQL Azure compatibility-level rules.
     /// PT: Garante que OFFSET/FETCH sem ORDER BY siga as regras por nivel de compatibilidade do SQL Azure.
     /// </summary>

@@ -370,6 +370,22 @@ public sealed class SqlDialectAutoParserTests(
     }
 
     /// <summary>
+    /// EN: Verifies Auto mode preserves binary column size metadata in the pragmatic ALTER TABLE ... ADD COLUMN subset.
+    /// PT: Verifica se o modo Auto preserva o metadado de tamanho de coluna binaria no subset pragmatico de ALTER TABLE ... ADD COLUMN.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldParseAlterTableAddBinaryColumnSize()
+    {
+        var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.ParseAuto(
+            "ALTER TABLE sales.users ADD COLUMN payload VARBINARY(16) NULL"));
+
+        Assert.Equal(DbType.Binary, parsed.ColumnType);
+        Assert.Equal(16, parsed.Size);
+        Assert.True(parsed.Nullable);
+    }
+
+    /// <summary>
     /// EN: Verifies Auto mode rejects ALTER TABLE ... ADD COLUMN when the table reference includes an alias in the shared subset.
     /// PT: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando a referencia da tabela inclui alias no subset compartilhado.
     /// </summary>
@@ -395,6 +411,28 @@ public sealed class SqlDialectAutoParserTests(
             "ALTER TABLE (SELECT * FROM users) u ADD COLUMN nickname VARCHAR(40)"));
 
         Assert.Contains("concrete table name", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto mode parses the first pragmatic scalar FUNCTION DDL subset using SQL Server-style syntax.
+    /// PT: Verifica se o modo Auto interpreta o primeiro subset pragmatico de FUNCTION escalar usando sintaxe no estilo SQL Server.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldParseScalarFunctionDdlSubset()
+    {
+        var create = Assert.IsType<SqlCreateFunctionQuery>(SqlQueryParser.ParseAuto(
+            "CREATE FUNCTION fn_users() RETURNS INT AS BEGIN RETURN 40 + 2 END"));
+
+        Assert.Equal("fn_users", create.Table?.Name, ignoreCase: true);
+        Assert.Equal("INT", create.ReturnTypeSql, ignoreCase: true);
+        Assert.IsType<BinaryExpr>(create.Body);
+
+        var drop = Assert.IsType<SqlDropFunctionQuery>(SqlQueryParser.ParseAuto(
+            "DROP FUNCTION IF EXISTS fn_users"));
+
+        Assert.True(drop.IfExists);
+        Assert.Equal("fn_users", drop.Table?.Name, ignoreCase: true);
     }
 
     /// <summary>
@@ -440,6 +478,62 @@ public sealed class SqlDialectAutoParserTests(
     }
 
     /// <summary>
+    /// EN: Verifies Auto mode rejects ALTER TABLE ... ADD COLUMN when VARCHAR type arguments are empty in the shared subset.
+    /// PT: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando os argumentos de tipo VARCHAR estao vazios no subset compartilhado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldRejectAlterTableWithEmptyVarcharTypeArguments()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
+            "ALTER TABLE users ADD COLUMN nickname VARCHAR()"));
+
+        Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto mode rejects ALTER TABLE ... ADD COLUMN when DECIMAL type arguments are empty in the shared subset.
+    /// PT: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando os argumentos de tipo DECIMAL estao vazios no subset compartilhado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldRejectAlterTableWithEmptyDecimalTypeArguments()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
+            "ALTER TABLE users ADD COLUMN amount DECIMAL()"));
+
+        Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto mode rejects ALTER TABLE ... ADD COLUMN when VARCHAR type arguments contain an empty trailing entry in the shared subset.
+    /// PT: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando os argumentos de tipo VARCHAR contem uma entrada vazia final no subset compartilhado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldRejectAlterTableWithTrailingCommaInVarcharTypeArguments()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
+            "ALTER TABLE users ADD COLUMN nickname VARCHAR(10,)"));
+
+        Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto mode rejects ALTER TABLE ... ADD COLUMN when DECIMAL type arguments contain an empty trailing entry in the shared subset.
+    /// PT: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando os argumentos de tipo DECIMAL contem uma entrada vazia final no subset compartilhado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldRejectAlterTableWithTrailingCommaInDecimalTypeArguments()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
+            "ALTER TABLE users ADD COLUMN amount DECIMAL(10,)"));
+
+        Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Verifies Auto mode rejects CREATE INDEX definitions that repeat the same key column in the shared subset.
     /// PT: Verifica se o modo Auto rejeita definicoes de CREATE INDEX que repetem a mesma coluna-chave no subset compartilhado.
     /// </summary>
@@ -451,6 +545,20 @@ public sealed class SqlDialectAutoParserTests(
             "CREATE INDEX ix_users_name_dup ON users (name, name)"));
 
         Assert.Contains("duplicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto mode rejects CREATE INDEX with an empty key-column list in the shared subset.
+    /// PT: Verifica se o modo Auto rejeita CREATE INDEX com lista vazia de colunas-chave no subset compartilhado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldRejectCreateIndexWithEmptyKeyColumnList()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
+            "CREATE INDEX ix_users_name ON users ()"));
+
+        Assert.Contains("at least one column", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

@@ -1102,6 +1102,51 @@ public sealed class SqlServerDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures SQL Server parses the first pragmatic scalar FUNCTION DDL subset.
+    /// PT: Garante que o SQL Server interprete o primeiro subset pragmatico de FUNCTION escalar.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalarFunctionDdlSubset_ShouldParse(int version)
+    {
+        var create = Assert.IsType<SqlCreateFunctionQuery>(SqlQueryParser.Parse(
+            "CREATE FUNCTION fn_users(@baseValue INT, @incrementValue INT) RETURNS INT AS BEGIN RETURN @baseValue + @incrementValue END",
+            new SqlServerDialect(version)));
+
+        Assert.Equal("fn_users", create.Table?.Name, ignoreCase: true);
+        Assert.Equal("INT", create.ReturnTypeSql, ignoreCase: true);
+        Assert.Equal(2, create.Parameters.Count);
+        Assert.Equal("@baseValue", create.Parameters[0].Name, ignoreCase: true);
+        Assert.Equal("@incrementValue", create.Parameters[1].Name, ignoreCase: true);
+        Assert.IsType<BinaryExpr>(create.Body);
+
+        var drop = Assert.IsType<SqlDropFunctionQuery>(SqlQueryParser.Parse(
+            "DROP FUNCTION IF EXISTS fn_users",
+            new SqlServerDialect(version)));
+
+        Assert.True(drop.IfExists);
+        Assert.Equal("fn_users", drop.Table?.Name, ignoreCase: true);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server rejects CREATE OR REPLACE FUNCTION outside the supported provider-real subset.
+    /// PT: Garante que o SQL Server rejeite CREATE OR REPLACE FUNCTION fora do subset realista suportado pelo provider.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Vers+�o do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseCreateOrReplaceScalarFunctionDdlSubset_ShouldReject(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "CREATE OR REPLACE FUNCTION fn_users(@baseValue INT, @incrementValue INT) RETURNS INT AS BEGIN RETURN @baseValue + @incrementValue END",
+            new SqlServerDialect(version)));
+        Assert.Contains("CREATE OR REPLACE FUNCTION", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures SQL Server accepts DROP INDEX ... ON &lt;table&gt; in the pragmatic shared DDL subset.
     /// PT: Garante que o SQL Server aceite DROP INDEX ... ON &lt;table&gt; no subset DDL pragmático compartilhado.
     /// </summary>
@@ -1149,6 +1194,22 @@ public sealed class SqlServerDialectFeatureParserTests
             new SqlServerDialect(version)));
 
         Assert.Contains("concrete table name", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server rejects CREATE INDEX with an empty key-column list outside the pragmatic shared subset.
+    /// PT: Garante que o SQL Server rejeite CREATE INDEX com lista vazia de colunas-chave fora do subset pragmatico compartilhado.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseCreateIndex_WithEmptyKeyColumnList_ShouldReject(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "CREATE INDEX IX_Users_Name ON dbo.Users ()",
+            new SqlServerDialect(version)));
+
+        Assert.Contains("at least one column", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1241,6 +1302,24 @@ public sealed class SqlServerDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures SQL Server preserves binary column size metadata in the pragmatic ALTER TABLE ... ADD subset.
+    /// PT: Garante que o SQL Server preserve o metadado de tamanho de coluna binaria no subset pragmatico de ALTER TABLE ... ADD.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseAlterTableAddBinaryColumn_ShouldPreserveSize(int version)
+    {
+        var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
+            "ALTER TABLE dbo.Users ADD payload VARBINARY(16) NULL",
+            new SqlServerDialect(version)));
+
+        Assert.Equal(DbType.Binary, parsed.ColumnType);
+        Assert.Equal(16, parsed.Size);
+        Assert.True(parsed.Nullable);
+    }
+
+    /// <summary>
     /// EN: Ensures SQL Server rejects ALTER TABLE ... ADD when the table reference uses an alias outside the pragmatic subset.
     /// PT: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando a referencia da tabela usa alias fora do subset pragmatico.
     /// </summary>
@@ -1315,6 +1394,70 @@ public sealed class SqlServerDialectFeatureParserTests
     {
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "ALTER TABLE dbo.Users ADD amount DECIMAL(10, foo)",
+            new SqlServerDialect(version)));
+
+        Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server rejects ALTER TABLE ... ADD when VARCHAR type arguments are empty outside the pragmatic subset.
+    /// PT: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando os argumentos de tipo VARCHAR estao vazios fora do subset pragmatico.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseAlterTableAddColumn_WithEmptyVarcharTypeArguments_ShouldReject(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE dbo.Users ADD nickname VARCHAR()",
+            new SqlServerDialect(version)));
+
+        Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server rejects ALTER TABLE ... ADD when DECIMAL type arguments are empty outside the pragmatic subset.
+    /// PT: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando os argumentos de tipo DECIMAL estao vazios fora do subset pragmatico.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseAlterTableAddColumn_WithEmptyDecimalTypeArguments_ShouldReject(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE dbo.Users ADD amount DECIMAL()",
+            new SqlServerDialect(version)));
+
+        Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server rejects ALTER TABLE ... ADD when VARCHAR type arguments contain a trailing empty entry outside the pragmatic subset.
+    /// PT: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando os argumentos de tipo VARCHAR contem uma entrada vazia final fora do subset pragmatico.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseAlterTableAddColumn_WithTrailingCommaInVarcharTypeArguments_ShouldReject(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE dbo.Users ADD nickname VARCHAR(10,)",
+            new SqlServerDialect(version)));
+
+        Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server rejects ALTER TABLE ... ADD when DECIMAL type arguments contain a trailing empty entry outside the pragmatic subset.
+    /// PT: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando os argumentos de tipo DECIMAL contem uma entrada vazia final fora do subset pragmatico.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseAlterTableAddColumn_WithTrailingCommaInDecimalTypeArguments_ShouldReject(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE dbo.Users ADD amount DECIMAL(10,)",
             new SqlServerDialect(version)));
 
         Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);

@@ -7,6 +7,114 @@ namespace DbSqlLikeMem.Sqlite.Test.Parser;
 public sealed class SqliteDialectFeatureParserTests
 {
     /// <summary>
+    /// EN: Ensures SQLite preserves binary column size metadata in the pragmatic ALTER TABLE ... ADD subset.
+    /// PT: Garante que o SQLite preserve o metadado de tamanho de coluna binaria no subset pragmatico de ALTER TABLE ... ADD.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseAlterTableAddBinaryColumn_ShouldPreserveSize(int version)
+    {
+        var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
+            "ALTER TABLE users ADD payload VARBINARY(16) NULL",
+            new SqliteDialect(version)));
+
+        Assert.Equal(DbType.Binary, parsed.ColumnType);
+        Assert.Equal(16, parsed.Size);
+        Assert.True(parsed.Nullable);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQLite preserves DECIMAL precision and scale metadata in the pragmatic ALTER TABLE ... ADD subset.
+    /// PT: Garante que o SQLite preserve os metadados de precisao e escala de DECIMAL no subset pragmatico de ALTER TABLE ... ADD.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseAlterTableAddDecimalColumn_ShouldPreservePrecisionAndScale(int version)
+    {
+        var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
+            "ALTER TABLE users ADD amount DECIMAL(10, 4) NOT NULL DEFAULT 0",
+            new SqliteDialect(version)));
+
+        Assert.Equal(DbType.Decimal, parsed.ColumnType);
+        Assert.Equal(10, parsed.Size);
+        Assert.Equal(4, parsed.DecimalPlaces);
+        Assert.False(parsed.Nullable);
+        Assert.Equal("0", parsed.DefaultValueRaw);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQLite rejects ALTER TABLE ... ADD when NOT NULL is paired with DEFAULT NULL outside the pragmatic subset.
+    /// PT: Garante que o SQLite rejeite ALTER TABLE ... ADD quando NOT NULL e combinado com DEFAULT NULL fora do subset pragmatico.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseAlterTableAddColumn_NotNullWithDefaultNull_ShouldReject(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE users ADD status VARCHAR(20) NOT NULL DEFAULT NULL",
+            new SqliteDialect(version)));
+
+        Assert.Contains("default null", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQLite rejects ALTER TABLE ... ADD when the table reference uses an alias outside the pragmatic subset.
+    /// PT: Garante que o SQLite rejeite ALTER TABLE ... ADD quando a referencia da tabela usa alias fora do subset pragmatico.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseAlterTableAddColumn_WithTableAlias_ShouldReject(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE users u ADD age INT",
+            new SqliteDialect(version)));
+
+        Assert.Contains("alias", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQLite rejects ALTER TABLE ... ADD when the table reference is a derived source outside the pragmatic subset.
+    /// PT: Garante que o SQLite rejeite ALTER TABLE ... ADD quando a referencia da tabela e uma fonte derivada fora do subset pragmatico.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseAlterTableAddColumn_WithDerivedTable_ShouldReject(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE (SELECT * FROM users) u ADD age INT",
+            new SqliteDialect(version)));
+
+        Assert.Contains("concrete table name", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQLite keeps scalar FUNCTION DDL blocked because the real provider does not expose SQL-defined function DDL.
+    /// PT: Garante que o SQLite mantenha DDL de FUNCTION escalar bloqueado porque o provider real nao expoe DDL SQL para funcao.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseScalarFunctionDdlSubset_ShouldRespectDialectRule(int version)
+    {
+        var dialect = new SqliteDialect(version);
+
+        var createEx = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
+            "CREATE FUNCTION fn_users() RETURNS INT AS BEGIN RETURN 40 + 2 END",
+            dialect));
+        Assert.Contains("CREATE FUNCTION", createEx.Message, StringComparison.OrdinalIgnoreCase);
+
+        var dropEx = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
+            "DROP FUNCTION IF EXISTS fn_users",
+            dialect));
+        Assert.Contains("DROP FUNCTION", dropEx.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures SQLite exposes CHANGES() through the dialect capability used by the executor.
     /// PT: Garante que o SQLite exponha CHANGES() pela capability de dialeto usada pelo executor.
     /// </summary>

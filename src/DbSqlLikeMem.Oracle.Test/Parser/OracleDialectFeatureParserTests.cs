@@ -7,6 +7,148 @@ namespace DbSqlLikeMem.Oracle.Test.Parser;
 public sealed class OracleDialectFeatureParserTests
 {
     /// <summary>
+    /// EN: Ensures Oracle preserves binary column size metadata in the pragmatic ALTER TABLE ... ADD subset.
+    /// PT: Garante que o Oracle preserve o metadado de tamanho de coluna binaria no subset pragmatico de ALTER TABLE ... ADD.
+    /// </summary>
+    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseAlterTableAddBinaryColumn_ShouldPreserveSize(int version)
+    {
+        var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
+            "ALTER TABLE users ADD payload VARBINARY(16) NULL",
+            new OracleDialect(version)));
+
+        Assert.Equal(DbType.Binary, parsed.ColumnType);
+        Assert.Equal(16, parsed.Size);
+        Assert.True(parsed.Nullable);
+    }
+
+    /// <summary>
+    /// EN: Ensures Oracle preserves DECIMAL precision and scale metadata in the pragmatic ALTER TABLE ... ADD subset.
+    /// PT: Garante que o Oracle preserve os metadados de precisao e escala de DECIMAL no subset pragmatico de ALTER TABLE ... ADD.
+    /// </summary>
+    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseAlterTableAddDecimalColumn_ShouldPreservePrecisionAndScale(int version)
+    {
+        var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
+            "ALTER TABLE users ADD amount DECIMAL(10, 4) NOT NULL DEFAULT 0",
+            new OracleDialect(version)));
+
+        Assert.Equal(DbType.Decimal, parsed.ColumnType);
+        Assert.Equal(10, parsed.Size);
+        Assert.Equal(4, parsed.DecimalPlaces);
+        Assert.False(parsed.Nullable);
+        Assert.Equal("0", parsed.DefaultValueRaw);
+    }
+
+    /// <summary>
+    /// EN: Ensures Oracle rejects ALTER TABLE ... ADD when NOT NULL is paired with DEFAULT NULL outside the pragmatic subset.
+    /// PT: Garante que o Oracle rejeite ALTER TABLE ... ADD quando NOT NULL e combinado com DEFAULT NULL fora do subset pragmatico.
+    /// </summary>
+    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseAlterTableAddColumn_NotNullWithDefaultNull_ShouldReject(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE users ADD status VARCHAR(20) NOT NULL DEFAULT NULL",
+            new OracleDialect(version)));
+
+        Assert.Contains("default null", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures Oracle rejects ALTER TABLE ... ADD when the table reference uses an alias outside the pragmatic subset.
+    /// PT: Garante que o Oracle rejeite ALTER TABLE ... ADD quando a referencia da tabela usa alias fora do subset pragmatico.
+    /// </summary>
+    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseAlterTableAddColumn_WithTableAlias_ShouldReject(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE users u ADD age INT",
+            new OracleDialect(version)));
+
+        Assert.Contains("alias", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures Oracle rejects ALTER TABLE ... ADD when the table reference is a derived source outside the pragmatic subset.
+    /// PT: Garante que o Oracle rejeite ALTER TABLE ... ADD quando a referencia da tabela e uma fonte derivada fora do subset pragmatico.
+    /// </summary>
+    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseAlterTableAddColumn_WithDerivedTable_ShouldReject(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE (SELECT * FROM users) u ADD age INT",
+            new OracleDialect(version)));
+
+        Assert.Contains("concrete table name", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures Oracle parses the pragmatic provider-real scalar FUNCTION DDL subset.
+    /// PT: Garante que o Oracle interprete o subset pragmatico e realista do provider para DDL de FUNCTION escalar.
+    /// </summary>
+    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseScalarFunctionDdlSubset_ShouldParse(int version)
+    {
+        var dialect = new OracleDialect(version);
+
+        var create = Assert.IsType<SqlCreateFunctionQuery>(SqlQueryParser.Parse(
+            "CREATE FUNCTION fn_users(baseValue NUMBER, incrementValue NUMBER) RETURN NUMBER IS BEGIN RETURN baseValue + incrementValue; END",
+            dialect));
+
+        Assert.Equal("fn_users", create.Table?.Name, ignoreCase: true);
+        Assert.Equal("NUMBER", create.ReturnTypeSql, ignoreCase: true);
+        Assert.Equal(2, create.Parameters.Count);
+        Assert.Equal("baseValue", create.Parameters[0].Name, ignoreCase: true);
+        Assert.Equal("incrementValue", create.Parameters[1].Name, ignoreCase: true);
+        Assert.IsType<BinaryExpr>(create.Body);
+
+        var drop = Assert.IsType<SqlDropFunctionQuery>(SqlQueryParser.Parse(
+            "DROP FUNCTION fn_users",
+            dialect));
+
+        Assert.False(drop.IfExists);
+        Assert.Equal("fn_users", drop.Table?.Name, ignoreCase: true);
+    }
+
+    /// <summary>
+    /// EN: Ensures Oracle parses CREATE OR REPLACE FUNCTION in the supported provider-real subset.
+    /// PT: Garante que o Oracle interprete CREATE OR REPLACE FUNCTION no subset realista suportado pelo provider.
+    /// </summary>
+    /// <param name="version">EN: Oracle dialect version under test. PT: Vers+�o do dialeto Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseCreateOrReplaceScalarFunctionDdlSubset_ShouldParse(int version)
+    {
+        var dialect = new OracleDialect(version);
+        var create = Assert.IsType<SqlCreateFunctionQuery>(SqlQueryParser.Parse(
+            "CREATE OR REPLACE FUNCTION fn_users(baseValue NUMBER, incrementValue NUMBER) RETURN NUMBER IS BEGIN RETURN baseValue + incrementValue + 1; END",
+            dialect));
+        Assert.True(create.OrReplace);
+        Assert.Equal("fn_users", create.Table?.Name, ignoreCase: true);
+        Assert.Equal(2, create.Parameters.Count);
+        Assert.IsType<BinaryExpr>(create.Body);
+    }
+
+    /// <summary>
     /// EN: Ensures Oracle exposes ROW_COUNT() through the dialect capability used by the executor.
     /// PT: Garante que o Oracle exponha ROW_COUNT() pela capability de dialeto usada pelo executor.
     /// </summary>

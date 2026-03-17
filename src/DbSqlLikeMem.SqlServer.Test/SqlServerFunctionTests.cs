@@ -22,6 +22,27 @@ public sealed class SqlServerFunctionTests
     }
 
     /// <summary>
+    /// EN: Ensures SQL Server executes the first pragmatic scalar FUNCTION DDL subset end to end.
+    /// PT: Garante que o SQL Server execute end-to-end o primeiro subset pragmatico de FUNCTION escalar.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [MemberDataSqlServerVersion]
+    [Trait("Category", "SqlServerMock")]
+    public void ScalarFunctionDdlSubset_ShouldExecuteEndToEnd(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        ExecuteNonQuery(connection, "CREATE FUNCTION fn_users(@baseValue INT, @incrementValue INT) RETURNS INT AS BEGIN RETURN @baseValue + @incrementValue END");
+
+        Assert.Equal(42, Convert.ToInt32(ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+
+        ExecuteNonQuery(connection, "DROP FUNCTION fn_users");
+
+        Assert.Null(ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"));
+    }
+
+    /// <summary>
     /// EN: Ensures SQL Server system functions return expected values.
     /// PT: Garante que funcoes de sistema do SQL Server retornem valores esperados.
     /// </summary>

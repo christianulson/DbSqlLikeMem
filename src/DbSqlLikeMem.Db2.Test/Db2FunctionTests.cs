@@ -20,6 +20,27 @@ public sealed class Db2FunctionTests
     }
 
     /// <summary>
+    /// EN: Ensures DB2 executes the pragmatic scalar FUNCTION DDL subset end to end.
+    /// PT: Garante que o DB2 execute end-to-end o subset pragmatico de DDL de FUNCTION escalar.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    [Theory]
+    [MemberDataDb2Version]
+    [Trait("Category", "Db2Mock")]
+    public void ScalarFunctionDdlSubset_ShouldExecuteEndToEnd(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        ExecuteNonQuery(connection, "CREATE FUNCTION fn_users(baseValue INT, incrementValue INT) RETURNS INT RETURN baseValue + incrementValue");
+
+        Assert.Equal(42, Convert.ToInt32(ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+
+        ExecuteNonQuery(connection, "DROP FUNCTION IF EXISTS fn_users(INT, INT)");
+
+        Assert.Null(ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"));
+    }
+
+    /// <summary>
     /// EN: Ensures DB2 temporal identifiers return provider-compatible values.
     /// PT: Garante que identificadores temporais do DB2 retornem valores compativeis com o provedor.
     /// </summary>
