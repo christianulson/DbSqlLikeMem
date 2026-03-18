@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Benchmarks.Core;
 
 /// <summary>
 /// EN: Defines the base BenchmarkDotNet suite lifecycle shared by all provider-specific suites.
-/// PT-br: Define o ciclo de vida base do BenchmarkDotNet compartilhado por todas as suítes específicas de provedor.
+/// PT-br: Define o ciclo de vida base do BenchmarkDotNet compartilhado por todas as suÃ­tes especÃ­ficas de provedor.
 /// </summary>
 [MemoryDiagnoser]
 public abstract class BenchmarkSuiteBase
@@ -67,6 +67,118 @@ public abstract class BenchmarkSuiteBase
         Session.Execute(feature);
     }
 
+    /// <summary>
+    /// EN: Executes a connection-open benchmark.
+    /// PT: Executa um benchmark de abertura de conexao.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void ConnectionOpen() => Run(BenchmarkFeatureId.ConnectionOpen);
+
+    /// <summary>
+    /// EN: Executes a schema-creation benchmark.
+    /// PT: Executa um benchmark de criacao de esquema.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void CreateSchema() => Run(BenchmarkFeatureId.CreateSchema);
+
+    /// <summary>
+    /// EN: Executes a single-row insert benchmark.
+    /// PT: Executa um benchmark de insercao de uma linha.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void InsertSingle() => Run(BenchmarkFeatureId.InsertSingle);
+
+    /// <summary>
+    /// EN: Executes a 100-row batch insert benchmark.
+    /// PT: Executa um benchmark de insercao em lote de 100 linhas.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void InsertBatch100() => Run(BenchmarkFeatureId.InsertBatch100);
+
+    /// <summary>
+    /// EN: Executes a parallel 100-row batch insert benchmark.
+    /// PT: Executa um benchmark de insercao em lote paralelo de 100 linhas.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void InsertBatch100Parallel() => Run(BenchmarkFeatureId.InsertBatch100Parallel);
+
+    /// <summary>
+    /// EN: Executes a primary-key lookup benchmark.
+    /// PT: Executa um benchmark de consulta por chave primaria.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void SelectByPk() => Run(BenchmarkFeatureId.SelectByPk);
+
+    /// <summary>
+    /// EN: Executes a join-query benchmark.
+    /// PT: Executa um benchmark de consulta com join.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void SelectJoin() => Run(BenchmarkFeatureId.SelectJoin);
+
+    /// <summary>
+    /// EN: Executes a primary-key update benchmark.
+    /// PT: Executa um benchmark de atualizacao por chave primaria.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void UpdateByPk() => Run(BenchmarkFeatureId.UpdateByPk);
+
+    /// <summary>
+    /// EN: Executes a primary-key delete benchmark.
+    /// PT: Executa um benchmark de exclusao por chave primaria.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void DeleteByPk() => Run(BenchmarkFeatureId.DeleteByPk);
+
+    /// <summary>
+    /// EN: Executes a transaction-commit benchmark.
+    /// PT: Executa um benchmark de confirmacao de transacao.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("transactions")]
+    public void TransactionCommit() => Run(BenchmarkFeatureId.TransactionCommit);
+
+    /// <summary>
+    /// EN: Executes a transaction-rollback benchmark.
+    /// PT: Executa um benchmark de rollback de transacao.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("transactions")]
+    public void TransactionRollback() => Run(BenchmarkFeatureId.TransactionRollback);
+
+    /// <summary>
+    /// EN: Executes a provider-specific upsert benchmark.
+    /// PT: Executa um benchmark de upsert especifico do provedor.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("dialect")]
+    public void Upsert() => Run(BenchmarkFeatureId.Upsert);
+
+    /// <summary>
+    /// EN: Executes a string-aggregation benchmark.
+    /// PT: Executa um benchmark de agregacao de strings.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("dialect")]
+    public void StringAggregate() => Run(BenchmarkFeatureId.StringAggregate);
+
+    /// <summary>
+    /// EN: Executes a date-scalar benchmark.
+    /// PT: Executa um benchmark escalar de data.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("dialect")]
+    public void DateScalar() => Run(BenchmarkFeatureId.DateScalar);
+
     private static readonly object _setupLogSync = new();
     protected void LogSetupIssue(Exception ex)
     {
@@ -83,8 +195,8 @@ public abstract class BenchmarkSuiteBase
         lock (_setupLogSync)
         {
             var file = Path.Combine("Logs", $"{GetType().Namespace}-setup-errors.log");
-            //if (!File.Exists(file))
-            //    File.Create(file);
+            if (!File.Exists(file))
+                File.Create(file).Dispose();
             File.AppendAllText(
                 file,
                 logEntry);
@@ -102,8 +214,8 @@ public abstract class BenchmarkSuiteBase
         lock (_logSync)
         {
             var file = Path.Combine("Logs", $"{GetType().Namespace}-errors.log");
-            //if (!File.Exists(file))
-            //    File.Create(file);
+            if (!File.Exists(file))
+                File.Create(file).Dispose();
             File.AppendAllText(
                 file,
                 message + Environment.NewLine);
@@ -213,6 +325,87 @@ public abstract class BenchmarkSuiteBase
     [Benchmark]
     [BenchmarkCategory("advanced")]
     public void WindowLag() => Run(BenchmarkFeatureId.WindowLag);
+
+    /// <summary>
+    /// EN: Executes an EXISTS predicate benchmark query.
+    /// PT: Executa uma consulta de benchmark com predicado EXISTS.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("advancedquery")]
+    public void SelectExistsPredicate() => Run(BenchmarkFeatureId.SelectExistsPredicate);
+
+    /// <summary>
+    /// EN: Executes a correlated COUNT subquery benchmark.
+    /// PT: Executa um benchmark com subconsulta correlacionada de COUNT.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("advancedquery")]
+    public void SelectCorrelatedCount() => Run(BenchmarkFeatureId.SelectCorrelatedCount);
+
+    /// <summary>
+    /// EN: Executes a GROUP BY HAVING benchmark query.
+    /// PT: Executa uma consulta de benchmark com GROUP BY HAVING.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("advancedquery")]
+    public void GroupByHaving() => Run(BenchmarkFeatureId.GroupByHaving);
+
+    /// <summary>
+    /// EN: Executes a UNION ALL projection benchmark query.
+    /// PT: Executa uma consulta de benchmark com projeccao UNION ALL.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("advancedquery")]
+    public void UnionAllProjection() => Run(BenchmarkFeatureId.UnionAllProjection);
+
+    /// <summary>
+    /// EN: Executes a DISTINCT projection benchmark query.
+    /// PT: Executa uma consulta de benchmark com projeccao DISTINCT.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("advancedquery")]
+    public void DistinctProjection() => Run(BenchmarkFeatureId.DistinctProjection);
+
+    /// <summary>
+    /// EN: Executes a multi-join aggregate benchmark query.
+    /// PT: Executa uma consulta de benchmark com agregacao e multiplos joins.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("advancedquery")]
+    public void MultiJoinAggregate() => Run(BenchmarkFeatureId.MultiJoinAggregate);
+
+    /// <summary>
+    /// EN: Executes a scalar subquery benchmark query.
+    /// PT: Executa uma consulta de benchmark com subconsulta escalar.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("advancedquery")]
+    public void SelectScalarSubquery() => Run(BenchmarkFeatureId.SelectScalarSubquery);
+
+    /// <summary>
+    /// EN: Executes an IN subquery benchmark query.
+    /// PT: Executa uma consulta de benchmark com subconsulta IN.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("advancedquery")]
+    public void SelectInSubquery() => Run(BenchmarkFeatureId.SelectInSubquery);
+
+    /// <summary>
+    /// EN: Executes a CROSS APPLY benchmark query.
+    /// PT: Executa uma consulta de benchmark com CROSS APPLY.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("advancedquery")]
+    public void CrossApplyProjection() => Run(BenchmarkFeatureId.CrossApplyProjection);
+
+    /// <summary>
+    /// EN: Executes an OUTER APPLY benchmark query.
+    /// PT: Executa uma consulta de benchmark com OUTER APPLY.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("advancedquery")]
+    public void OuterApplyProjection() => Run(BenchmarkFeatureId.OuterApplyProjection);
+
     [Benchmark]
     [BenchmarkCategory("batch")]
     public void BatchReaderMultiResult() => Run(BenchmarkFeatureId.BatchReaderMultiResult);
@@ -378,3 +571,4 @@ public abstract class BenchmarkSuiteBase
     public void FluentScenarioCompose() => Run(BenchmarkFeatureId.FluentScenarioCompose);
 
 }
+

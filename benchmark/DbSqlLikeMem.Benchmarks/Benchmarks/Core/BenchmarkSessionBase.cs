@@ -365,8 +365,8 @@ public abstract class BenchmarkSessionBase(
         lock (_logSync)
         {
             var file = Path.Combine("Logs", $"{GetType().Namespace}-errors.log");
-            //if (!File.Exists(file))
-            //    File.Create(file);
+            if (!File.Exists(file))
+                File.Create(file).Dispose();
             File.AppendAllText(
                 file,
                 message + Environment.NewLine);
