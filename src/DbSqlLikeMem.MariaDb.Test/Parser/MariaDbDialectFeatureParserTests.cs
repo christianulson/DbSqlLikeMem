@@ -16,7 +16,7 @@ public sealed class MariaDbDialectFeatureParserTests
     {
         var dialect = new MariaDbDialect(MariaDbDbVersions.Version11_0);
 
-        Assert.True(dialect.Name.Equals("mariadb", StringComparison.OrdinalIgnoreCase));
+        dialect.Name.Equals("mariadb", StringComparison.OrdinalIgnoreCase).Should().BeTrue();
         Assert.True(dialect.SupportsInsertReturning);
         Assert.False(dialect.SupportsUpdateReturning);
         Assert.True(dialect.SupportsDeleteReturning);
@@ -207,8 +207,10 @@ public sealed class MariaDbDialectFeatureParserTests
             """;
 
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
-        var source = Assert.NotNull(parsed.Table);
-        var clause = Assert.NotNull(source.JsonTableClause);
+        Assert.NotNull(parsed.Table);
+        var source = parsed.Table;
+        Assert.NotNull(source.JsonTableClause);
+        var clause = source.JsonTableClause;
 
         Assert.Equal("JSON_TABLE", source.TableFunction?.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("jt", source.Alias);
@@ -234,8 +236,10 @@ public sealed class MariaDbDialectFeatureParserTests
             """;
 
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
-        var source = Assert.NotNull(parsed.Table);
-        var clause = Assert.NotNull(source.JsonTableClause);
+        Assert.NotNull(parsed.Table);
+        var source = parsed.Table;
+        Assert.NotNull(source.JsonTableClause);
+        var clause = source.JsonTableClause;
         var column = Assert.Single(clause.Columns);
 
         Assert.True(column.ExistsPath);

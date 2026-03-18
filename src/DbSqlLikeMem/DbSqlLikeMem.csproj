@@ -9,6 +9,9 @@
 		<InternalsVisibleTo Include="DbSqlLikeMem.Db2" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Db2.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Db2.Dapper.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.MariaDb" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.MariaDb.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.MariaDb.XUnit" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.MySql" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.MySql.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.MySql.Dapper.Test" />
