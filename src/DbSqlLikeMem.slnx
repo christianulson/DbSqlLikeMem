@@ -15,6 +15,13 @@
     <Project Path="DbSqlLikeMem.Db2.NHibernate.Test/DbSqlLikeMem.Db2.NHibernate.Test.csproj" />
     <Project Path="DbSqlLikeMem.Db2.Test/DbSqlLikeMem.Db2.Test.csproj" />
   </Folder>
+  <Folder Name="/MariaDb/">
+    <Project Path="DbSqlLikeMem.MariaDb.XUnit/DbSqlLikeMem.MariaDb.XUnit.csproj" />
+    <Project Path="DbSqlLikeMem.MariaDb/DbSqlLikeMem.MariaDb.csproj" />
+  </Folder>
+  <Folder Name="/MariaDb/Tests/">
+    <Project Path="DbSqlLikeMem.MariaDb.Test/DbSqlLikeMem.MariaDb.Test.csproj" />
+  </Folder>
   <Folder Name="/MySql/">
     <Project Path="DbSqlLikeMem.MySql.EfCore/DbSqlLikeMem.MySql.EfCore.csproj" />
     <Project Path="DbSqlLikeMem.MySql.LinqToDb/DbSqlLikeMem.MySql.LinqToDb.csproj" />

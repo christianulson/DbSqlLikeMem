@@ -1,4 +1,4 @@
-namespace DbSqlLikeMem.MySql;
+namespace DbSqlLikeMem.MariaDb;
 
 /// <inheritdoc/>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]

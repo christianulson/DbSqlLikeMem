@@ -1,4 +1,4 @@
-namespace DbSqlLikeMem.MySql.Test;
+namespace DbSqlLikeMem.MariaDb.Test;
 
 /// <summary>
 /// EN: Covers MariaDB runtime behavior built on top of the shared MySQL provider family.

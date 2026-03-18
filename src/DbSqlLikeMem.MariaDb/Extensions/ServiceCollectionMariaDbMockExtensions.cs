@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 
-namespace DbSqlLikeMem.MySql;
+namespace DbSqlLikeMem.MariaDb;
 
 /// <summary>
 /// EN: Provides dependency injection extensions for registering MariaDbDbMock instances.

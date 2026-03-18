@@ -1,12 +1,13 @@
-namespace DbSqlLikeMem.MySql;
+namespace DbSqlLikeMem.MariaDb;
 
 /// <summary>
 /// EN: SQL dialect implementation for MariaDB built on top of the shared MySQL family behavior.
 /// PT: Implementacao de dialeto SQL para MariaDB construida sobre o comportamento compartilhado da familia MySQL.
 /// </summary>
-internal sealed class MariaDbDialect : MySqlDialect
+internal sealed class MariaDbDialect
+    : MySqlDialect
 {
-    internal const string DialectName = "mariadb";
+    internal new const string DialectName = "mariadb";
     internal const int SequenceMinVersion = MariaDbDbVersions.Version10_3;
     internal const int ReturningMinVersion = MariaDbDbVersions.Version10_5;
     internal const int JsonTableMinVersion = MariaDbDbVersions.Version10_6;

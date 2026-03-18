@@ -1,24 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<Description>MySQL provider for the DbSqlLikeMem in-memory SQL-like database.</Description>
+		<Description>MariaDb provider for the DbSqlLikeMem in-memory SQL-like database.</Description>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="MySql.Data" Version="9.6.0" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<ProjectReference Include="..\DbSqlLikeMem\DbSqlLikeMem.csproj" />
+		<ProjectReference Include="..\DbSqlLikeMem.MySql\DbSqlLikeMem.MySql.csproj" />
 	</ItemGroup>
 	<ItemGroup>
-		<InternalsVisibleTo Include="DbSqlLikeMem.MariaDb" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.MariaDb.Test" />
-		<InternalsVisibleTo Include="DbSqlLikeMem.MySql.NHibernate" />
-		<InternalsVisibleTo Include="DbSqlLikeMem.MySql.Test" />
-		<InternalsVisibleTo Include="DbSqlLikeMem.MySql.Dapper.Test" />
-		<InternalsVisibleTo Include="DbSqlLikeMem.MySql.NHibernate.Test" />
 	</ItemGroup>
 	<ItemGroup>
+		<Using Include="DbSqlLikeMem.MySql" />
 		<Using Include="DbSqlLikeMem.Resources" />
 		<Using Include="MySql.Data.MySqlClient" />
 		<Using Include="System.Collections" />
@@ -30,5 +22,10 @@
 		<Using Include="System.Reflection" />
 		<Using Include="System.Text" />
 		<Using Include="System.Text.RegularExpressions" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Compile Update="MariaDbConnectionMock.cs">
+	    <SubType>Component</SubType>
+	  </Compile>
 	</ItemGroup>
 </Project>

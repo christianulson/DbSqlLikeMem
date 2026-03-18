@@ -1,4 +1,4 @@
-namespace DbSqlLikeMem.MySql;
+namespace DbSqlLikeMem.MariaDb;
 
 /// <summary>
 /// EN: Simulated MariaDB versions exposed by the MySQL-family provider.

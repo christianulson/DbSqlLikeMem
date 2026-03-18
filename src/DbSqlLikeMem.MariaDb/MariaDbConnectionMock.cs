@@ -1,4 +1,4 @@
-namespace DbSqlLikeMem.MySql;
+namespace DbSqlLikeMem.MariaDb;
 
 /// <summary>
 /// EN: Mock connection specialized for MariaDB while reusing the shared MySQL command/runtime path.
