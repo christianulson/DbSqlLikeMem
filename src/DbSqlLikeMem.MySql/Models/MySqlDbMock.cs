@@ -16,9 +16,23 @@ public class MySqlDbMock
     /// </summary>
     public MySqlDbMock(
         int? version = null
-        ): base(version ?? 80)
+        ) : this(version, static currentVersion => new MySqlDialect(currentVersion))
     {
-        Dialect = new MySqlDialect(Version);
+    }
+
+    /// <summary>
+    /// EN: Initializes an in-memory MySQL-family mock database with a custom dialect factory.
+    /// PT: Inicializa um banco simulado em memória da família MySQL com uma factory de dialeto customizada.
+    /// </summary>
+    /// <param name="version">EN: Optional simulated version. PT: Versão simulada opcional.</param>
+    /// <param name="dialectFactory">EN: Factory used to create the dialect bound to this database. PT: Factory usada para criar o dialeto associado a este banco.</param>
+    private protected MySqlDbMock(
+        int? version,
+        Func<int, SqlDialectBase> dialectFactory
+        ) : base(version ?? 80)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(dialectFactory, nameof(dialectFactory));
+        Dialect = dialectFactory(Version);
     }
 
     /// <summary>

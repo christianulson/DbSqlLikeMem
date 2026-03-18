@@ -82,8 +82,11 @@ public abstract class BenchmarkSuiteBase
 
         lock (_setupLogSync)
         {
+            var file = Path.Combine("Logs", $"{GetType().Namespace}-setup-errors.log");
+            //if (!File.Exists(file))
+            //    File.Create(file);
             File.AppendAllText(
-                "benchmark-setup-errors.log",
+                file,
                 logEntry);
         }
     }
@@ -92,14 +95,17 @@ public abstract class BenchmarkSuiteBase
     protected virtual void LogBenchmarkIssue(BenchmarkFeatureId feature, Exception ex)
     {
         var root = ex.GetBaseException();
-        var message = $"[NA-{root.GetType().Name}] {feature}: {root.Message}";
+        var message = $"[NA-{root.GetType().Name}] {feature}: {root.Message} -- {ex.StackTrace}{Environment.NewLine}{Environment.NewLine}";
 
         Console.WriteLine(message);
 
         lock (_logSync)
         {
+            var file = Path.Combine("Logs", $"{GetType().Namespace}-errors.log");
+            //if (!File.Exists(file))
+            //    File.Create(file);
             File.AppendAllText(
-                "benchmark-errors.log",
+                file,
                 message + Environment.NewLine);
         }
     }

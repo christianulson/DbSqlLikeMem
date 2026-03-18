@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.MySql;
 /// EN: Defines the class MySqlConnectionMock.
 /// PT: Define a classe MySqlConnectionMock.
 /// </summary>
-public sealed class MySqlConnectionMock
+public class MySqlConnectionMock
     : DbConnectionMockBase
 {
     static MySqlConnectionMock()

@@ -961,7 +961,16 @@ internal abstract class AstQueryExecutorBase(
                 : $"{functionName}(..., {pathShape}) WITH (...)";
         }
 
-        return source.OpenJsonWithClause is null
+        if (source.TableFunction?.Name.Equals("JSON_TABLE", StringComparison.OrdinalIgnoreCase) == true
+            && source.TableFunction.Args.Count == 2)
+        {
+            var pathShape = TryFormatOpenJsonPathShape(source.TableFunction.Args[1]);
+            return source.JsonTableClause is null
+                ? $"{functionName}(..., {pathShape})"
+                : $"{functionName}(..., {pathShape}) COLUMNS (...)";
+        }
+
+        return source.OpenJsonWithClause is null && source.JsonTableClause is null
             ? $"{functionName}(...)"
             : $"{functionName}(...) WITH (...)";
     }

@@ -24,7 +24,7 @@ public static class DbMockConnectionFactory
             ["azuresqldb"] = "SqlAzure",
             ["azuresqlserver"] = "SqlAzure",
             ["mysql"] = "MySql",
-            ["mariadb"] = "MySql",
+            ["mariadb"] = "MariaDb",
             ["sqlite"] = "Sqlite",
             ["sqlite3"] = "Sqlite",
             ["db2"] = "Db2",
@@ -99,12 +99,27 @@ public static class DbMockConnectionFactory
         => CreateWithTables("MySql", tableMappers);
 
     /// <summary>
+    /// EN: Creates a MariaDB mock and resolves its matching connection.
+    /// PT: Cria um mock MariaDB e resolve sua conexao correspondente.
+    /// </summary>
+    public static (DbMock Db, IDbConnection Connection) CreateMariaDbWithTables(params Action<DbMock>[] tableMappers)
+        => CreateWithTables("MariaDb", tableMappers);
+
+    /// <summary>
     /// EN: Creates a MySQL mock and wraps its connection with the interception pipeline.
     /// PT: Cria um mock MySQL e encapsula sua conexao com o pipeline de interceptacao.
     /// </summary>
     public static (DbMock Db, DbConnection Connection) CreateMySqlWithTablesIntercepted(
         params DbConnectionInterceptor[] interceptors)
         => CreateWithTablesIntercepted("MySql", interceptors);
+
+    /// <summary>
+    /// EN: Creates a MariaDB mock and wraps its connection with the interception pipeline.
+    /// PT: Cria um mock MariaDB e encapsula sua conexao com o pipeline de interceptacao.
+    /// </summary>
+    public static (DbMock Db, DbConnection Connection) CreateMariaDbWithTablesIntercepted(
+        params DbConnectionInterceptor[] interceptors)
+        => CreateWithTablesIntercepted("MariaDb", interceptors);
 
     /// <summary>
     /// EN: Creates a MySQL mock and wraps its connection using interception options.
@@ -114,6 +129,15 @@ public static class DbMockConnectionFactory
         DbInterceptionOptions options,
         params Action<DbMock>[] tableMappers)
         => CreateWithTablesIntercepted("MySql", options, tableMappers);
+
+    /// <summary>
+    /// EN: Creates a MariaDB mock and wraps its connection using interception options.
+    /// PT: Cria um mock MariaDB e encapsula sua conexao usando opcoes de interceptacao.
+    /// </summary>
+    public static (DbMock Db, DbConnection Connection) CreateMariaDbWithTablesIntercepted(
+        DbInterceptionOptions options,
+        params Action<DbMock>[] tableMappers)
+        => CreateWithTablesIntercepted("MariaDb", options, tableMappers);
 
     public static (DbMock Db, IDbConnection Connection) CreateSqliteWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("Sqlite", tableMappers);
@@ -179,7 +203,7 @@ public static class DbMockConnectionFactory
     /// EN: Creates a provider-specific <see cref="DbMock"/> and resolves an <see cref="IDbConnection"/> for it.
     /// PT: Cria um <see cref="DbMock"/> específico do provedor e resolve um <see cref="IDbConnection"/> para ele.
     /// </summary>
-    /// <param name="providerHint">EN: Provider name hint like Oracle, SqlServer, SqlAzure (also sqlazure/azure-sql), MySql, Sqlite, Db2 or Npgsql. PT: Indicação do provedor como Oracle, SqlServer, SqlAzure (também sqlazure/azure-sql), MySql, Sqlite, Db2 ou Npgsql.</param>
+    /// <param name="providerHint">EN: Provider name hint like Oracle, SqlServer, SqlAzure, MySql, MariaDb, Sqlite, Db2 or Npgsql. PT: Indicação do provedor como Oracle, SqlServer, SqlAzure, MySql, MariaDb, Sqlite, Db2 ou Npgsql.</param>
     /// <param name="tableMappers">EN: Optional actions to configure tables/schemas on the created mock. PT: Ações opcionais para configurar tabelas/esquemas no mock criado.</param>
     public static (DbMock Db, IDbConnection Connection) CreateWithTables(
         string providerHint,
@@ -294,6 +318,7 @@ public static class DbMockConnectionFactory
             "SQLSERVER" => ("DbSqlLikeMem.SqlServer.SqlServerDbMock, DbSqlLikeMem.SqlServer", "DbSqlLikeMem.SqlServer.SqlServerConnectionMock, DbSqlLikeMem.SqlServer"),
             "SQLAZURE" => ("DbSqlLikeMem.SqlAzure.SqlAzureDbMock, DbSqlLikeMem.SqlAzure", "DbSqlLikeMem.SqlAzure.SqlAzureConnectionMock, DbSqlLikeMem.SqlAzure"),
             "MYSQL" => ("DbSqlLikeMem.MySql.MySqlDbMock, DbSqlLikeMem.MySql", "DbSqlLikeMem.MySql.MySqlConnectionMock, DbSqlLikeMem.MySql"),
+            "MARIADB" => ("DbSqlLikeMem.MySql.MariaDbDbMock, DbSqlLikeMem.MySql", "DbSqlLikeMem.MySql.MariaDbConnectionMock, DbSqlLikeMem.MySql"),
             "SQLITE" => ("DbSqlLikeMem.Sqlite.SqliteDbMock, DbSqlLikeMem.Sqlite", "DbSqlLikeMem.Sqlite.SqliteConnectionMock, DbSqlLikeMem.Sqlite"),
             "DB2" => ("DbSqlLikeMem.Db2.Db2DbMock, DbSqlLikeMem.Db2", "DbSqlLikeMem.Db2.Db2ConnectionMock, DbSqlLikeMem.Db2"),
             "NPGSQL" => ("DbSqlLikeMem.Npgsql.NpgsqlDbMock, DbSqlLikeMem.Npgsql", "DbSqlLikeMem.Npgsql.NpgsqlConnectionMock, DbSqlLikeMem.Npgsql"),
@@ -347,6 +372,21 @@ public static class DbMockConnectionFactory
 
         foreach (var assemblyName in candidates)
         {
+            if (providerHint.Contains("MariaDb", StringComparison.OrdinalIgnoreCase)
+                && assemblyName.Equals("DbSqlLikeMem.MySql", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    _ = Assembly.Load(assemblyName);
+                }
+                catch
+                {
+                    // Best effort: continue discovery with assemblies already loaded.
+                }
+
+                continue;
+            }
+
             if (!assemblyName.Contains(providerHint, StringComparison.OrdinalIgnoreCase)
                 && !providerHint.Contains(assemblyName.Split('.').Last(), StringComparison.OrdinalIgnoreCase))
                 continue;

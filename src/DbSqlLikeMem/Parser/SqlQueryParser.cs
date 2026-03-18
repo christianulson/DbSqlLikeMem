@@ -2,6 +2,13 @@ namespace DbSqlLikeMem;
 
 internal sealed class SqlQueryParser
 {
+    private enum ReturningClauseTarget
+    {
+        Insert,
+        Update,
+        Delete
+    }
+
     private readonly IReadOnlyList<SqlToken> _toks;
     private readonly ISqlDialect _dialect;
     private readonly IDataParameterCollection? _parameters;
@@ -436,7 +443,7 @@ internal sealed class SqlQueryParser
 
         // ON DUPLICATE KEY UPDATE
         var onDup = ParseOnDuplicated();
-        var returning = ParseOptionalReturningItems();
+        var returning = ParseOptionalReturningItems(ReturningClauseTarget.Insert);
 
         EnsureStatementEnd("INSERT");
 
@@ -1052,7 +1059,7 @@ internal sealed class SqlQueryParser
                 throw new InvalidOperationException(
                     $"UPDATE WHERE requires a predicate (found '{DescribeFoundToken(Peek())}').");
         }
-        var returning = ParseOptionalReturningItems();
+        var returning = ParseOptionalReturningItems(ReturningClauseTarget.Update);
 
         var setParsed = assignsList;
         SqlExpr? whereExpr = null;
@@ -1193,7 +1200,7 @@ internal sealed class SqlQueryParser
                 throw new InvalidOperationException(
                     $"DELETE WHERE requires a predicate (found '{DescribeFoundToken(Peek())}').");
         }
-        var returning = ParseOptionalReturningItems();
+        var returning = ParseOptionalReturningItems(ReturningClauseTarget.Delete);
 
         SqlExpr? whereExpr = null;
         if (!string.IsNullOrWhiteSpace(whereRaw))
@@ -3113,12 +3120,20 @@ internal sealed class SqlQueryParser
     /// PT: Faz o parsing opcional da cláusula RETURNING de DML com gate de dialeto e validação de expressão.
     /// </summary>
     /// <returns>EN: Returning items when clause is present; otherwise empty list. PT: Itens de retorno quando a cláusula estiver presente; caso contrário, lista vazia.</returns>
-    private IReadOnlyList<SqlSelectItem> ParseOptionalReturningItems()
+    private IReadOnlyList<SqlSelectItem> ParseOptionalReturningItems(ReturningClauseTarget target)
     {
         if (!IsWord(Peek(), "RETURNING"))
             return [];
 
-        if (!_dialect.SupportsReturning)
+        var isSupported = target switch
+        {
+            ReturningClauseTarget.Insert => _dialect.SupportsInsertReturning,
+            ReturningClauseTarget.Update => _dialect.SupportsUpdateReturning,
+            ReturningClauseTarget.Delete => _dialect.SupportsDeleteReturning,
+            _ => _dialect.SupportsReturning
+        };
+
+        if (!isSupported)
             throw SqlUnsupported.ForDialect(_dialect, "RETURNING");
 
         Consume(); // RETURNING
@@ -3602,6 +3617,9 @@ internal sealed class SqlQueryParser
 
     private SqlTableSource ParseTableFunctionSource(string functionName, string? schemaName = null)
     {
+        if (functionName.Equals("JSON_TABLE", StringComparison.OrdinalIgnoreCase))
+            return ParseJsonTableSource(functionName, schemaName);
+
         var argsSql = ReadBalancedParenRawTokens();
         var function = new FunctionCallExpr(
             functionName,
@@ -3642,7 +3660,57 @@ internal sealed class SqlQueryParser
             Pivot: null,
             MySqlIndexHints: null,
             TableFunction: function,
-            OpenJsonWithClause: null);
+            OpenJsonWithClause: null,
+            JsonTableClause: null);
+    }
+
+    private SqlTableSource ParseJsonTableSource(string functionName, string? schemaName)
+    {
+        var argsSql = ReadBalancedParenRawTokens();
+        var parts = SplitRawByComma(argsSql)
+            .Select(static x => x.Trim())
+            .Where(static x => x.Length > 0)
+            .ToList();
+        if (parts.Count != 2)
+            throw new NotSupportedException("JSON_TABLE table source currently supports json document plus path/COLUMNS clause in the mock.");
+
+        var columnsKeywordIndex = IndexOfTopLevelKeyword(parts[1], "COLUMNS");
+        if (columnsKeywordIndex < 0)
+            throw new InvalidOperationException("JSON_TABLE requires a COLUMNS clause.");
+
+        var pathSql = parts[1][..columnsKeywordIndex].Trim();
+        if (string.IsNullOrWhiteSpace(pathSql))
+            throw new InvalidOperationException("JSON_TABLE requires a row path expression before COLUMNS.");
+
+        var columnsSegment = parts[1][(columnsKeywordIndex + "COLUMNS".Length)..].TrimStart();
+        if (!TryExtractSingleParenthesizedBlock(columnsSegment, out var rawColumns, out var trailingSql))
+            throw new InvalidOperationException("JSON_TABLE COLUMNS clause must be enclosed in parentheses.");
+
+        if (!string.IsNullOrWhiteSpace(trailingSql))
+            throw new InvalidOperationException($"JSON_TABLE has unexpected tokens after COLUMNS clause: '{trailingSql.Trim()}'.");
+
+        var function = new FunctionCallExpr(
+            functionName,
+            [
+                SqlExpressionParser.ParseScalar(parts[0], _dialect, _parameters),
+                SqlExpressionParser.ParseScalar(pathSql, _dialect, _parameters)
+            ]);
+
+        ValidateTableFunctionSource(function);
+
+        var alias = ReadOptionalAlias();
+        return new SqlTableSource(
+            schemaName,
+            null,
+            alias,
+            Derived: null,
+            DerivedUnion: null,
+            DerivedSql: null,
+            Pivot: null,
+            MySqlIndexHints: null,
+            TableFunction: function,
+            OpenJsonWithClause: null,
+            JsonTableClause: ParseJsonTableClause(rawColumns));
     }
 
     private void ValidateTableFunctionSource(FunctionCallExpr function)
@@ -3672,12 +3740,24 @@ internal sealed class SqlQueryParser
             return;
         }
 
+        if (function.Name.Equals("JSON_TABLE", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!_dialect.SupportsJsonTableFunction)
+                throw SqlUnsupported.ForDialect(_dialect, "JSON_TABLE");
+
+            if (function.Args.Count != 2)
+                throw new NotSupportedException("JSON_TABLE table source currently supports exactly two arguments in the mock.");
+
+            return;
+        }
+
         throw new NotSupportedException($"Table-valued function '{function.Name}' not supported yet in the mock.");
     }
 
     private static bool IsSupportedTableFunctionName(string functionName)
         => functionName.Equals("OPENJSON", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("STRING_SPLIT", StringComparison.OrdinalIgnoreCase);
+            || functionName.Equals("STRING_SPLIT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("JSON_TABLE", StringComparison.OrdinalIgnoreCase);
 
     private static SqlOpenJsonWithClause ParseOpenJsonWithClause(string rawSchema)
     {
@@ -3736,6 +3816,265 @@ internal sealed class SqlQueryParser
             path,
             asJson);
     }
+
+    private static SqlJsonTableClause ParseJsonTableClause(string rawColumns)
+    {
+        var items = SplitRawByComma(rawColumns)
+            .Select(static x => x.Trim())
+            .Where(static x => x.Length > 0)
+            .ToList();
+
+        if (items.Count == 0)
+            throw new InvalidOperationException("JSON_TABLE COLUMNS requires at least one column definition.");
+
+        return new SqlJsonTableClause([.. items.Select(ParseJsonTableEntry)]);
+    }
+
+    private static SqlJsonTableEntry ParseJsonTableEntry(string rawItem)
+    {
+        var item = rawItem.Trim();
+        if (!item.StartsWith("NESTED", StringComparison.OrdinalIgnoreCase))
+            return ParseJsonTableColumn(rawItem);
+
+        var nestedMatch = Regex.Match(
+            item,
+            @"^NESTED(?:\s+PATH)?\s+(?<path>N?'(?:''|[^'])*')\s+(?<rest>.+)$",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        if (!nestedMatch.Success)
+            throw new InvalidOperationException($"JSON_TABLE nested path definition is invalid: '{rawItem}'.");
+
+        var rest = nestedMatch.Groups["rest"].Value.TrimStart();
+        if (!rest.StartsWith("COLUMNS", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException($"JSON_TABLE nested path requires COLUMNS clause: '{rawItem}'.");
+
+        var rawColumns = rest["COLUMNS".Length..].TrimStart();
+        if (!TryExtractSingleParenthesizedBlock(rawColumns, out var nestedColumnsRaw, out var trailingSql))
+            throw new InvalidOperationException("JSON_TABLE nested COLUMNS clause must be enclosed in parentheses.");
+
+        if (!string.IsNullOrWhiteSpace(trailingSql))
+            throw new InvalidOperationException($"JSON_TABLE nested path has unexpected tokens after COLUMNS clause: '{trailingSql.Trim()}'.");
+
+        return new SqlJsonTableNestedPath(
+            UnquoteSqlStringLiteral(nestedMatch.Groups["path"].Value),
+            ParseJsonTableClause(nestedColumnsRaw));
+    }
+
+    private static SqlJsonTableColumn ParseJsonTableColumn(string rawItem)
+    {
+        var item = rawItem.Trim();
+        var ordinalityMatch = Regex.Match(
+            item,
+            @"^(?<name>\[[^\]]+\]|""[^""]+""|`[^`]+`|[A-Za-z_][A-Za-z0-9_$#]*)\s+FOR\s+ORDINALITY$",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        if (ordinalityMatch.Success)
+        {
+            return new SqlJsonTableColumn(
+                ordinalityMatch.Groups["name"].Value.NormalizeName(),
+                "BIGINT",
+                DbType.Int64,
+                null,
+                true);
+        }
+
+        var existsPathMatch = Regex.Match(
+            item,
+            @"^(?<name>\[[^\]]+\]|""[^""]+""|`[^`]+`|[A-Za-z_][A-Za-z0-9_$#]*)\s+(?<type>.+?)\s+EXISTS\s+PATH\s+(?<path>N?'(?:''|[^'])*')$",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        if (existsPathMatch.Success)
+        {
+            var existsName = existsPathMatch.Groups["name"].Value.NormalizeName();
+            var existsTypeSql = existsPathMatch.Groups["type"].Value.Trim();
+            if (string.IsNullOrWhiteSpace(existsTypeSql))
+                throw new InvalidOperationException($"JSON_TABLE column '{existsName}' requires a SQL type.");
+
+            return new SqlJsonTableColumn(
+                existsName,
+                existsTypeSql,
+                ParseOpenJsonColumnDbType(existsTypeSql),
+                UnquoteSqlStringLiteral(existsPathMatch.Groups["path"].Value),
+                false,
+                true);
+        }
+
+        string? path = null;
+        var pathMatch = Regex.Match(
+            item,
+            @"\s+PATH\s+(?<path>N?'(?:''|[^'])*')\s*$",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        if (pathMatch.Success)
+        {
+            path = UnquoteSqlStringLiteral(pathMatch.Groups["path"].Value);
+            item = item[..pathMatch.Index].TrimEnd();
+        }
+
+        var nameAndTypeMatch = Regex.Match(
+            item,
+            @"^(?<name>\[[^\]]+\]|""[^""]+""|`[^`]+`|[A-Za-z_][A-Za-z0-9_$#]*)\s+(?<type>.+)$",
+            RegexOptions.CultureInvariant);
+        if (!nameAndTypeMatch.Success)
+            throw new InvalidOperationException($"JSON_TABLE column definition is invalid: '{rawItem}'.");
+
+        var name = nameAndTypeMatch.Groups["name"].Value.NormalizeName();
+        var sqlType = nameAndTypeMatch.Groups["type"].Value.Trim();
+        if (string.IsNullOrWhiteSpace(sqlType))
+            throw new InvalidOperationException($"JSON_TABLE column '{name}' requires a SQL type.");
+
+        return new SqlJsonTableColumn(
+            name,
+            sqlType,
+            ParseOpenJsonColumnDbType(sqlType),
+            path,
+            false);
+    }
+
+    private static int IndexOfTopLevelKeyword(string sql, string keyword)
+    {
+        var depth = 0;
+        var inSingleQuote = false;
+        var inDoubleQuote = false;
+        var inBacktick = false;
+
+        for (var i = 0; i < sql.Length; i++)
+        {
+            var ch = sql[i];
+            if (inSingleQuote)
+            {
+                if (ch == '\'')
+                {
+                    if (i + 1 < sql.Length && sql[i + 1] == '\'')
+                    {
+                        i++;
+                        continue;
+                    }
+
+                    inSingleQuote = false;
+                }
+
+                continue;
+            }
+
+            if (inDoubleQuote)
+            {
+                if (ch == '"')
+                    inDoubleQuote = false;
+
+                continue;
+            }
+
+            if (inBacktick)
+            {
+                if (ch == '`')
+                    inBacktick = false;
+
+                continue;
+            }
+
+            if (ch == '\'')
+            {
+                inSingleQuote = true;
+                continue;
+            }
+
+            if (ch == '"')
+            {
+                inDoubleQuote = true;
+                continue;
+            }
+
+            if (ch == '`')
+            {
+                inBacktick = true;
+                continue;
+            }
+
+            if (ch == '(')
+            {
+                depth++;
+                continue;
+            }
+
+            if (ch == ')')
+            {
+                depth--;
+                continue;
+            }
+
+            if (depth != 0)
+                continue;
+
+            if (!MatchesKeywordAt(sql, keyword, i))
+                continue;
+
+            var beforeOk = i == 0 || !IsKeywordIdentifierPart(sql[i - 1]);
+            var afterIndex = i + keyword.Length;
+            var afterOk = afterIndex >= sql.Length || !IsKeywordIdentifierPart(sql[afterIndex]);
+            if (beforeOk && afterOk)
+                return i;
+        }
+
+        return -1;
+    }
+
+    private static bool TryExtractSingleParenthesizedBlock(string sql, out string inner, out string trailingSql)
+    {
+        inner = string.Empty;
+        trailingSql = string.Empty;
+        if (string.IsNullOrWhiteSpace(sql) || sql[0] != '(')
+            return false;
+
+        var depth = 0;
+        var inSingleQuote = false;
+        for (var i = 0; i < sql.Length; i++)
+        {
+            var ch = sql[i];
+            if (inSingleQuote)
+            {
+                if (ch == '\'')
+                {
+                    if (i + 1 < sql.Length && sql[i + 1] == '\'')
+                    {
+                        i++;
+                        continue;
+                    }
+
+                    inSingleQuote = false;
+                }
+
+                continue;
+            }
+
+            if (ch == '\'')
+            {
+                inSingleQuote = true;
+                continue;
+            }
+
+            if (ch == '(')
+            {
+                depth++;
+                continue;
+            }
+
+            if (ch != ')')
+                continue;
+
+            depth--;
+            if (depth != 0)
+                continue;
+
+            inner = sql[1..i];
+            trailingSql = sql[(i + 1)..];
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool MatchesKeywordAt(string sql, string keyword, int index)
+        => sql.AsSpan(index).StartsWith(keyword, StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsKeywordIdentifierPart(char ch)
+        => char.IsLetterOrDigit(ch) || ch is '_' or '$' or '#';
 
     private static string UnquoteSqlStringLiteral(string token)
     {

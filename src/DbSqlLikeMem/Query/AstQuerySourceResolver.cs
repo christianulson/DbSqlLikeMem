@@ -7,7 +7,7 @@ internal sealed class AstQuerySourceResolver
     private readonly Func<SqlExpr, AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, IDictionary<string, AstQueryExecutorBase.Source>, object?> _evalExpression;
     private readonly Func<SqlSelectQuery, IDictionary<string, AstQueryExecutorBase.Source>?, AstQueryExecutorBase.EvalRow?, TableResultMock> _executeSelect;
     private readonly Func<IReadOnlyList<SqlSelectQuery>, IReadOnlyList<bool>, IReadOnlyList<SqlOrderByItem>?, SqlRowLimit?, string?, TableResultMock> _executeUnion;
-    private readonly Dictionary<string, Func<FunctionCallExpr, string, SqlOpenJsonWithClause?, IDictionary<string, AstQueryExecutorBase.Source>, AstQueryExecutorBase.EvalRow?, TableResultMock>> _tableFunctionHandlers;
+    private readonly Dictionary<string, Func<SqlTableSource, IDictionary<string, AstQueryExecutorBase.Source>, AstQueryExecutorBase.EvalRow?, TableResultMock>> _tableFunctionHandlers;
 
     public AstQuerySourceResolver(
         DbConnectionMockBase cnn,
@@ -21,10 +21,11 @@ internal sealed class AstQuerySourceResolver
         _evalExpression = evalExpression;
         _executeSelect = executeSelect;
         _executeUnion = executeUnion;
-        _tableFunctionHandlers = new Dictionary<string, Func<FunctionCallExpr, string, SqlOpenJsonWithClause?, IDictionary<string, AstQueryExecutorBase.Source>, AstQueryExecutorBase.EvalRow?, TableResultMock>>(StringComparer.OrdinalIgnoreCase)
+        _tableFunctionHandlers = new Dictionary<string, Func<SqlTableSource, IDictionary<string, AstQueryExecutorBase.Source>, AstQueryExecutorBase.EvalRow?, TableResultMock>>(StringComparer.OrdinalIgnoreCase)
         {
             ["OPENJSON"] = ExecuteOpenJsonTableFunction,
-            ["STRING_SPLIT"] = ExecuteStringSplitTableFunction
+            ["STRING_SPLIT"] = ExecuteStringSplitTableFunction,
+            ["JSON_TABLE"] = ExecuteJsonTableFunction
         };
     }
 
@@ -53,7 +54,7 @@ internal sealed class AstQuerySourceResolver
         }
 
         if (tableSource.TableFunction is not null)
-            return ResolveTableFunctionSource(tableSource.TableFunction, alias, tableSource.OpenJsonWithClause, ctes, outerRow);
+            return ResolveTableFunctionSource(tableSource, ctes, outerRow);
 
         if (!string.IsNullOrWhiteSpace(tableSource.Name)
             && ctes.TryGetValue(tableSource.Name!, out var cteSource))
@@ -88,26 +89,27 @@ internal sealed class AstQuerySourceResolver
     }
 
     private AstQueryExecutorBase.Source ResolveTableFunctionSource(
-        FunctionCallExpr function,
-        string alias,
-        SqlOpenJsonWithClause? openJsonWithClause,
+        SqlTableSource tableSource,
         IDictionary<string, AstQueryExecutorBase.Source> ctes,
         AstQueryExecutorBase.EvalRow? outerRow)
     {
+        var function = tableSource.TableFunction ?? throw new InvalidOperationException("Table function source is missing function metadata.");
         if (!_tableFunctionHandlers.TryGetValue(function.Name, out var handler))
             throw new NotSupportedException($"Table-valued function '{function.Name}' not supported yet in the mock.");
 
-        var result = handler(function, alias, openJsonWithClause, ctes, outerRow);
+        var alias = tableSource.Alias ?? function.Name;
+        var result = handler(tableSource, ctes, outerRow);
         return AstQueryExecutorBase.Source.FromResult(function.Name, alias, result);
     }
 
     private TableResultMock ExecuteOpenJsonTableFunction(
-        FunctionCallExpr function,
-        string alias,
-        SqlOpenJsonWithClause? openJsonWithClause,
+        SqlTableSource tableSource,
         IDictionary<string, AstQueryExecutorBase.Source> ctes,
         AstQueryExecutorBase.EvalRow? outerRow)
     {
+        var function = tableSource.TableFunction ?? throw new InvalidOperationException("OPENJSON source is missing function metadata.");
+        var alias = tableSource.Alias ?? function.Name;
+        var openJsonWithClause = tableSource.OpenJsonWithClause;
         var dialect = _dialectAccessor() ?? throw new InvalidOperationException("Dialeto SQL não disponível para OPENJSON.");
         if (!dialect.SupportsOpenJsonFunction)
             throw SqlUnsupported.ForDialect(dialect, "OPENJSON");
@@ -190,12 +192,13 @@ internal sealed class AstQuerySourceResolver
     }
 
     private TableResultMock ExecuteStringSplitTableFunction(
-        FunctionCallExpr function,
-        string alias,
-        SqlOpenJsonWithClause? openJsonWithClause,
+        SqlTableSource tableSource,
         IDictionary<string, AstQueryExecutorBase.Source> ctes,
         AstQueryExecutorBase.EvalRow? outerRow)
     {
+        var function = tableSource.TableFunction ?? throw new InvalidOperationException("STRING_SPLIT source is missing function metadata.");
+        var alias = tableSource.Alias ?? function.Name;
+        var openJsonWithClause = tableSource.OpenJsonWithClause;
         _ = openJsonWithClause;
 
         var dialect = _dialectAccessor() ?? throw new InvalidOperationException("Dialeto SQL não disponível para STRING_SPLIT.");
@@ -239,6 +242,65 @@ internal sealed class AstQuerySourceResolver
                 row[1] = (long)index + 1L;
 
             result.Add(row);
+        }
+
+        return result;
+    }
+
+    private TableResultMock ExecuteJsonTableFunction(
+        SqlTableSource tableSource,
+        IDictionary<string, AstQueryExecutorBase.Source> ctes,
+        AstQueryExecutorBase.EvalRow? outerRow)
+    {
+        var function = tableSource.TableFunction ?? throw new InvalidOperationException("JSON_TABLE source is missing function metadata.");
+        var alias = tableSource.Alias ?? function.Name;
+        var jsonTableClause = tableSource.JsonTableClause ?? throw new InvalidOperationException("JSON_TABLE source is missing COLUMNS metadata.");
+
+        var dialect = _dialectAccessor() ?? throw new InvalidOperationException("Dialeto SQL não disponível para JSON_TABLE.");
+        if (!dialect.SupportsJsonTableFunction)
+            throw SqlUnsupported.ForDialect(dialect, "JSON_TABLE");
+
+        if (function.Args.Count != 2)
+            throw new NotSupportedException("JSON_TABLE table source currently supports exactly two arguments in the mock.");
+
+        var evalRow = CreateFunctionEvaluationRow(outerRow);
+        var json = _evalExpression(function.Args[0], evalRow, null, ctes);
+        var rowPath = _evalExpression(function.Args[1], evalRow, null, ctes)?.ToString();
+        if (string.IsNullOrWhiteSpace(rowPath))
+            throw new InvalidOperationException("JSON_TABLE row path must not be empty in the mock.");
+
+        var result = CreateJsonTableResult(alias, jsonTableClause);
+        if (IsNullish(json))
+            return result;
+
+        JsonElement target;
+        try
+        {
+            var lookupPath = NormalizeJsonTableLookupPath(rowPath!);
+            var lookup = QueryJsonFunctionHelper.LookupJsonPath(json!, lookupPath);
+            if (!lookup.Success)
+            {
+                if (lookup.Failure == QueryJsonFunctionHelper.JsonPathLookupFailure.InvalidPath)
+                    throw new InvalidOperationException($"JSON_TABLE path '{rowPath}' is invalid in the mock.");
+
+                if (lookup.Mode == QueryJsonFunctionHelper.JsonPathMode.Strict)
+                    throw new InvalidOperationException($"JSON_TABLE strict path '{rowPath}' was not found in the JSON payload.");
+
+                return result;
+            }
+
+            target = lookup.Value;
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidOperationException("JSON_TABLE recebeu JSON inválido.", ex);
+        }
+
+        var ordinal = 1L;
+        foreach (var rowContext in EnumerateJsonTableRowContexts(target))
+        {
+            result.Add(ProjectJsonTableRow(jsonTableClause, rowContext, ordinal));
+            ordinal++;
         }
 
         return result;
@@ -293,6 +355,19 @@ internal sealed class AstQuerySourceResolver
             Columns = columns
         };
     }
+
+    private static TableResultMock CreateJsonTableResult(string tableAlias, SqlJsonTableClause clause)
+        => new()
+        {
+            Columns = [.. clause.Columns
+                .Select((column, index) => new TableResultColMock(
+                    tableAlias,
+                    column.Name,
+                    column.Name,
+                    index,
+                    column.DbType,
+                    true))]
+        };
 
     private static bool EvaluateStringSplitOrdinalFlag(object? rawValue)
     {
@@ -391,6 +466,44 @@ internal sealed class AstQuerySourceResolver
         yield return target;
     }
 
+    private static string NormalizeJsonTableLookupPath(string rowPath)
+    {
+        var trimmed = rowPath.Trim();
+        var prefix = string.Empty;
+        if (trimmed.StartsWith("strict ", StringComparison.OrdinalIgnoreCase))
+        {
+            prefix = "strict ";
+            trimmed = trimmed[7..].TrimStart();
+        }
+        else if (trimmed.StartsWith("lax ", StringComparison.OrdinalIgnoreCase))
+        {
+            prefix = "lax ";
+            trimmed = trimmed[4..].TrimStart();
+        }
+
+        if (!trimmed.EndsWith("[*]", StringComparison.Ordinal))
+            return rowPath;
+
+        var normalized = trimmed[..^3].TrimEnd();
+        if (normalized.Length == 0)
+            normalized = "$";
+
+        return prefix + normalized;
+    }
+
+    private static IEnumerable<JsonElement> EnumerateJsonTableRowContexts(JsonElement target)
+    {
+        if (target.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in target.EnumerateArray())
+                yield return item;
+
+            yield break;
+        }
+
+        yield return target;
+    }
+
     private static Dictionary<int, object?> ProjectOpenJsonExplicitSchemaRow(
         SqlOpenJsonWithClause withClause,
         JsonElement rowContext)
@@ -398,6 +511,18 @@ internal sealed class AstQuerySourceResolver
         var row = new Dictionary<int, object?>();
         for (var i = 0; i < withClause.Columns.Count; i++)
             row[i] = ResolveOpenJsonExplicitColumnValue(rowContext, withClause.Columns[i]);
+
+        return row;
+    }
+
+    private static Dictionary<int, object?> ProjectJsonTableRow(
+        SqlJsonTableClause clause,
+        JsonElement rowContext,
+        long ordinal)
+    {
+        var row = new Dictionary<int, object?>();
+        for (var i = 0; i < clause.Columns.Count; i++)
+            row[i] = ResolveJsonTableColumnValue(rowContext, clause.Columns[i], ordinal);
 
         return row;
     }
@@ -436,6 +561,54 @@ internal sealed class AstQuerySourceResolver
                 throw new InvalidOperationException($"OPENJSON WITH column '{column.Name}' requires a scalar value at strict path '{resolution.Path}'.");
 
             return null;
+        }
+
+        var scalarText = ConvertOpenJsonExplicitScalarToText(valueElement);
+        return scalarText is null ? null : column.DbType.Parse(scalarText);
+    }
+
+    private static object? ResolveJsonTableColumnValue(
+        JsonElement rowContext,
+        SqlJsonTableColumn column,
+        long ordinal)
+    {
+        if (column.ForOrdinality)
+            return ordinal;
+
+        var effectivePath = string.IsNullOrWhiteSpace(column.Path)
+            ? "$." + column.Name
+            : column.Path!;
+
+        var lookup = QueryJsonFunctionHelper.LookupJsonPath(rowContext, effectivePath);
+        if (column.ExistsPath)
+        {
+            if (lookup.Failure == QueryJsonFunctionHelper.JsonPathLookupFailure.InvalidPath)
+                throw new InvalidOperationException($"JSON_TABLE column '{column.Name}' uses an invalid JSON path '{effectivePath}'.");
+
+            var existsValue = lookup.Success ? "1" : "0";
+            return column.DbType.Parse(existsValue);
+        }
+
+        if (!lookup.Success)
+        {
+            if (lookup.Failure == QueryJsonFunctionHelper.JsonPathLookupFailure.InvalidPath)
+                throw new InvalidOperationException($"JSON_TABLE column '{column.Name}' uses an invalid JSON path '{effectivePath}'.");
+
+            if (lookup.Mode == QueryJsonFunctionHelper.JsonPathMode.Strict)
+                throw new InvalidOperationException($"JSON_TABLE strict path '{effectivePath}' for column '{column.Name}' was not found in the JSON payload.");
+
+            return null;
+        }
+
+        var valueElement = lookup.Value;
+        if (valueElement.ValueKind == JsonValueKind.Null)
+            return null;
+
+        if (valueElement.ValueKind is JsonValueKind.Object or JsonValueKind.Array)
+        {
+            return column.DbType == DbType.String
+                ? valueElement.GetRawText()
+                : null;
         }
 
         var scalarText = ConvertOpenJsonExplicitScalarToText(valueElement);

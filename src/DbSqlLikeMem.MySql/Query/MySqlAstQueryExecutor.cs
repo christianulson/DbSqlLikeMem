@@ -12,8 +12,16 @@ public static class MySqlAstQueryExecutorRegister
     /// PT: Implementa Register.
     /// </summary>
     public static void Register()
+        => Register(MySqlDialect.DialectName);
+
+    /// <summary>
+    /// EN: Registers the MySQL-family AST executor for the provided dialect name.
+    /// PT: Registra o executor AST da família MySQL para o nome de dialeto informado.
+    /// </summary>
+    /// <param name="dialectName">EN: Dialect name exposed to the executor factory. PT: Nome do dialeto exposto à factory de executores.</param>
+    public static void Register(string dialectName)
         => AstQueryExecutorFactory.RegisterExecutor(
-            MySqlDialect.DialectName,
+            dialectName,
             (
                 DbConnectionMockBase cnn,
                 IDataParameterCollection pars

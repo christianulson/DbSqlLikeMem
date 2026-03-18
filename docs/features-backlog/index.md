@@ -954,9 +954,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 3.0.1 Expansão planejada de famílias SQL
 
-- Implementação estimada: **0%**.
+- Implementação estimada: **37%**.
 - A próxima expansão deve continuar por famílias de dialeto, reaproveitando parser/runtime existentes antes de criar providers isolados.
-- TODO: refatorar a família MySQL para permitir um `MariaDbDialect` reaproveitável e implementar o subset inicial de diferenças reais (`RETURNING`, `SEQUENCE`, `JSON_TABLE`) com regressão positiva/negativa.
+- Incremento desta sessão: a família MySQL passou a expor um trilho inicial reutilizável para `MariaDB` dentro do próprio assembly da família, com `MariaDbDbMock`/`MariaDbConnectionMock`, resolução dedicada no `DbMockConnectionFactory`, gates de dialeto por versão para `RETURNING`, `SEQUENCE` e `JSON_TABLE`, suporte de runtime compartilhado para `INSERT/DELETE ... RETURNING`, expressões de `SEQUENCE` e um subset inicial executável de `JSON_TABLE(..., path COLUMNS(...))` com colunas `PATH`, `FOR ORDINALITY` e `EXISTS PATH`, além de regressões parser-level e runtime positivas/negativas.
+- TODO: consolidar a cobertura de runtime do `MariaDB` além do subset atual, principalmente ampliando `JSON_TABLE` para `NESTED PATH` e refinando mais cenários executáveis de `RETURNING`.
 - TODO: adicionar `FirebirdDialect` com suporte inicial a `SELECT FIRST`, `ROWS` e `GENERATOR`, mantendo gates explícitos para tudo que ainda não entrar no subset.
 - TODO: refatorar a família PostgreSQL para permitir um `DuckDbDialect` compartilhando o máximo possível do caminho `Npgsql/PostgreSQL`.
 - TODO: cobrir no `DuckDbDialect` o subset inicial realmente priorizado (`STRUCT`, `LIST`, `UNNEST`) somente depois da base compartilhada estar pronta.

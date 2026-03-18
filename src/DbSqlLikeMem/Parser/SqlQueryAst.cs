@@ -183,6 +183,7 @@ internal sealed record SqlTableSource(
     IReadOnlyList<SqlMySqlIndexHint>? MySqlIndexHints = null,
     FunctionCallExpr? TableFunction = null,
     SqlOpenJsonWithClause? OpenJsonWithClause = null,
+    SqlJsonTableClause? JsonTableClause = null,
     SqlUnpivotSpec? Unpivot = null,
     bool IsLateral = false
 );
@@ -198,6 +199,38 @@ internal sealed record SqlOpenJsonWithColumn(
     string? Path,
     bool AsJson
 );
+
+internal sealed record SqlJsonTableClause(
+    IReadOnlyList<SqlJsonTableEntry> Entries
+)
+{
+    internal SqlJsonTableClause(IReadOnlyList<SqlJsonTableColumn> columns)
+        : this([.. columns.Cast<SqlJsonTableEntry>()])
+    {
+    }
+
+    internal IReadOnlyList<SqlJsonTableColumn> Columns
+        => [.. Entries.OfType<SqlJsonTableColumn>()];
+
+    internal IReadOnlyList<SqlJsonTableNestedPath> NestedPaths
+        => [.. Entries.OfType<SqlJsonTableNestedPath>()];
+}
+
+internal abstract record SqlJsonTableEntry;
+
+internal sealed record SqlJsonTableColumn(
+    string Name,
+    string SqlType,
+    DbType DbType,
+    string? Path,
+    bool ForOrdinality,
+    bool ExistsPath = false
+) : SqlJsonTableEntry;
+
+internal sealed record SqlJsonTableNestedPath(
+    string Path,
+    SqlJsonTableClause Clause
+) : SqlJsonTableEntry;
 
 internal enum SqlMySqlIndexHintKind
 {

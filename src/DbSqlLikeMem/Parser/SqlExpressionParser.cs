@@ -2246,6 +2246,9 @@ internal sealed class SqlExpressionParser(
         // Funções normais
         // ================================
 
+        if (name.Equals("JSON_TABLE", StringComparison.OrdinalIgnoreCase))
+            return ParseJsonTableCall(name);
+
         var distinct = false;
         if (IsKeywordOrIdentifierWord(Peek(), "DISTINCT"))
         {
@@ -2332,6 +2335,16 @@ internal sealed class SqlExpressionParser(
 
         ExpectSymbol(")");
         return new CallExpr(name, args, distinct, aggregateOrderBy);
+    }
+
+    private CallExpr ParseJsonTableCall(string functionName)
+    {
+        var raw = ReadRawUntilMatchingParen();
+        if (string.IsNullOrWhiteSpace(raw))
+            throw Error("JSON_TABLE requires arguments", Peek());
+
+        ExpectSymbol(")");
+        return new CallExpr(functionName, [new RawSqlExpr(raw)]);
     }
 
     private IReadOnlyList<WindowOrderItem>? ParseAggregateOrderByInsideCallIfPresent(string functionName)

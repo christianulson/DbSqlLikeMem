@@ -1,13 +1,35 @@
 namespace DbSqlLikeMem.MySql;
 
-internal sealed class MySqlDialect : SqlDialectBase
+/// <summary>
+/// EN: SQL dialect implementation for the MySQL family supported by this provider.
+/// PT: Implementação de dialeto SQL para a família MySQL suportada por este provedor.
+/// </summary>
+internal class MySqlDialect : SqlDialectBase
 {
     internal const string DialectName = "mysql";
 
+    /// <summary>
+    /// EN: Initializes the MySQL dialect for the requested simulated version.
+    /// PT: Inicializa o dialeto MySQL para a versão simulada informada.
+    /// </summary>
+    /// <param name="version">EN: Simulated MySQL version. PT: Versão simulada do MySQL.</param>
     internal MySqlDialect(
         int version
+        ) : this(DialectName, version)
+    {
+    }
+
+    /// <summary>
+    /// EN: Initializes a MySQL-family dialect with a custom provider name and version.
+    /// PT: Inicializa um dialeto da família MySQL com nome de provedor e versão customizados.
+    /// </summary>
+    /// <param name="dialectName">EN: Dialect/provider name exposed to the parser and executor. PT: Nome do dialeto/provedor exposto ao parser e executor.</param>
+    /// <param name="version">EN: Simulated dialect version. PT: Versão simulada do dialeto.</param>
+    protected MySqlDialect(
+        string dialectName,
+        int version
         ) : base(
-        name: DialectName,
+        name: dialectName,
         version: version,
         keywords: ["REGEXP"],
         binOps:

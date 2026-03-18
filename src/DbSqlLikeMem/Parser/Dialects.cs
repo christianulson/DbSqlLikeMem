@@ -71,6 +71,9 @@ internal interface ISqlDialect
     bool SupportsOnDuplicateKeyUpdate { get; }
     bool SupportsOnConflictClause { get; }
     bool SupportsReturning { get; }
+    bool SupportsInsertReturning { get; }
+    bool SupportsUpdateReturning { get; }
+    bool SupportsDeleteReturning { get; }
     bool SupportsMerge { get; }
     bool SupportsTriggers { get; }
     bool SupportsSequenceDdl { get; }
@@ -791,6 +794,24 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// PT: Obtém ou define SupportsReturning.
     /// </summary>
     public virtual bool SupportsReturning => false;
+
+    /// <summary>
+    /// EN: Gets whether INSERT statements support RETURNING in this dialect.
+    /// PT: Obtém se instruções INSERT suportam RETURNING neste dialeto.
+    /// </summary>
+    public virtual bool SupportsInsertReturning => SupportsReturning;
+
+    /// <summary>
+    /// EN: Gets whether UPDATE statements support RETURNING in this dialect.
+    /// PT: Obtém se instruções UPDATE suportam RETURNING neste dialeto.
+    /// </summary>
+    public virtual bool SupportsUpdateReturning => SupportsReturning;
+
+    /// <summary>
+    /// EN: Gets whether DELETE statements support RETURNING in this dialect.
+    /// PT: Obtém se instruções DELETE suportam RETURNING neste dialeto.
+    /// </summary>
+    public virtual bool SupportsDeleteReturning => SupportsReturning;
 
     /// <summary>
     /// EN: Gets or sets SupportsMerge.

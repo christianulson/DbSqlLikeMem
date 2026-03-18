@@ -368,6 +368,36 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
     }
 
     /// <summary>
+    /// EN: Verifies JSON_TABLE sources keep the row-path and COLUMNS shape in the execution plan.
+    /// PT: Verifica se fontes JSON_TABLE mantem o shape de row-path e COLUMNS no plano de execucao.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_ShouldRenderJsonTableColumnsShapeInTableFunctionSource()
+    {
+        var metrics = new SqlPlanRuntimeMetrics(1, 1, 1, 1);
+        var query = new SqlSelectQuery([], false, [new SqlSelectItem("jt.Name", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(
+                DbName: "dbo",
+                Name: null,
+                Alias: "jt",
+                Derived: null,
+                DerivedUnion: null,
+                DerivedSql: null,
+                Pivot: null,
+                TableFunction: new FunctionCallExpr("JSON_TABLE", [new IdentifierExpr("payload"), new LiteralExpr("strict $.items[*]")]),
+                JsonTableClause: new SqlJsonTableClause(
+                [
+                    new SqlJsonTableColumn("ord", "BIGINT", DbType.Int64, null, true),
+                    new SqlJsonTableColumn("Name", "VARCHAR(20)", DbType.String, "$.name", false)
+                ]))
+        };
+
+        var plan = SqlExecutionPlanFormatter.FormatSelect(query, metrics, [], []);
+        plan.Should().Contain("- FROM: dbo.JSON_TABLE(..., strict path) COLUMNS (...) AS jt");
+    }
+
+    /// <summary>
     /// EN: Verifies CROSS APPLY join lines preserve strict-path and WITH details for OPENJSON sources.
     /// PT: Verifica se linhas de CROSS APPLY preservam os detalhes de strict-path e WITH para fontes OPENJSON.
     /// </summary>

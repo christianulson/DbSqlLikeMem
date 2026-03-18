@@ -40,4 +40,8 @@
 		<Using Include="DbSqlLikeMem.Benchmarks.Dialects" />
 		<Using Include="System.Data.Common" />
 	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Logs\" />
+	</ItemGroup>
 </Project>
