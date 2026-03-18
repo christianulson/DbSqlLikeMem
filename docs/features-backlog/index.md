@@ -441,7 +441,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: `SqlDialect.Auto` passou a expor tambem `ORDER BY ... NULLS FIRST/LAST` no fluxo compartilhado já suportado pelo parser/executor; o detector barato agora tambem marca esse modificador e a trilha TDD cobre parsing e runtime da ordenação explícita de `NULL` no modo `Auto`.
 - TODO: expandir `SqlSyntaxDetector` além da fatia atual de paginação/`ROWNUM`/marcadores compartilhados ja cobertos (`identidade`, `concatenacao`, `sequence`, JSON, temporal, agregacao textual, rowcount, comparadores e helpers condicionais/nulos), cobrindo apenas equivalências cross-dialect de alto retorno realmente consumidas.
 - TODO: expandir `DialectNormalizer` além da primeira AST canônica de paginação para novos nós compartilhados somente quando houver contrato claro de execução comum.
-- TODO: validar em TDD que queries equivalentes (`TOP`, `LIMIT`, `FETCH FIRST`, `ROWNUM`) produzam o mesmo shape de AST e, quando o modo `Auto` estiver exposto no runtime, o mesmo resultado de execução também em batches e cenários de mutação suportados.
+- TODO: estender a mesma prova de equivalência TDD já fechada para paginação (`TOP`, `LIMIT`, `FETCH FIRST`, `ROWNUM`) às próximas famílias compartilhadas que entrarem no modo `Auto`.
 - TODO: impedir que `SqlDialect.Auto` introduza branches sintáticos no executor; qualquer diferença nova deve ser resolvida antes da execução.
 
 ### 1.3 Executor SQL
@@ -675,7 +675,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.6.3 Risco: falsa percepção de performance
 
-- Implementação estimada: **57%**.
+- Implementação estimada: **74%**.
 - Reforçar que métricas do mock são diagnósticas e relativas.
 - Evitar decisões de tuning de produção baseadas apenas em execução em memória.
 - Incremento desta sessão: plano de execução textual/JSON passou a emitir `PerformanceDisclaimer` explícito informando que métricas do mock são relativas e não devem orientar benchmark/tuning de produção.
@@ -687,10 +687,11 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: guia de compatibilidade (`docs/wiki/pages/Providers-and-Compatibility.md`) passou a explicitar em EN/PT-BR que métricas de execution plan no mock são diagnósticas/relativas e não substituem benchmark de produção.
 - Incremento desta sessão: execution plan textual/JSON passou a incluir `mockRuntimeContext` com `simulatedLatencyMs`, `dropProbability`, `threadSafe` e flag explícita de métricas relativas, reduzindo interpretação ambígua de `elapsed`/`rowsPerMs` como throughput real.
 - Incremento desta sessão: execution plan também passou a sinalizar `mockRuntimePerturbationActive` quando há latência/falha simulada configurada, deixando explícito que comparações diretas de tempo entre cenários estão contaminadas por perturbação artificial.
+- Incremento desta sessão: a trilha comparativa de benchmark foi materializada em `benchmark/DbSqlLikeMem.Benchmarks`, comparando o runtime do `DbSqlLikeMem` com bancos reais/nativos a partir do mesmo catálogo de cenários.
+- Incremento desta sessão: a infraestrutura comparativa foi padronizada em `Testcontainers` para `MySQL`, `SQL Server`, `PostgreSQL/Npgsql`, `Oracle` e `DB2`, com modo `preprovisioned` para execuções controladas sem custo de boot a cada rodada e `Sqlite` usando baseline nativa embedded.
+- Incremento desta sessão: os artefatos objetivos dessa trilha passaram a ser publicados na wiki espelhada em `docs/Wiki/performance-matrix.md`, `docs/Wiki/performance-matrix-app-specific.md` e `docs/Wiki/BenchmarkResults`, mantendo histórico versionado por rodada de medição.
 - TODO: propagar o disclaimer de performance para todos os pontos de consumo de telemetria/planos e manter a documentação de entrada alinhada sempre que novas métricas forem expostas.
-- TODO: estruturar uma trilha de benchmark comparativo em ambiente de teste contra bancos reais locais/containerizados, focada em demonstrar ganho de feedback/custo operacional do mock para clientes e não em tuning de produção.
-- TODO: adotar `Testcontainers` como infraestrutura padrão dessa trilha de benchmark comparativo, subindo bancos reais sob demanda no pipeline de medição para comparar a aplicação real contra o `DbSqlLikeMem` com setup reproduzível.
-- TODO: extrair dessa trilha artefatos objetivos de benchmark (tempo total, setup, custo operacional, footprint e notas de limitação) em formato reaproveitável na wiki, para manter uma comparação viva entre bancos reais em container e esta aplicação.
+- TODO: enriquecer os artefatos comparativos da wiki com `footprint`, notas de limitação operacional e demais metadados de custo que ainda não aparecem de forma consolidada em todas as matrizes.
 
 ## 2) Integração ADO.NET e experiência de uso
 
@@ -964,14 +965,14 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 3.0.2 Inventário funcional pendente por provider
 
-- Implementação estimada: **17%**.
+- Implementação estimada: **100%**.
 - Incremento desta sessão: o inventário pendente passou a registrar explicitamente a convenção documental de versões MySQL em formato humano (`3.0`, `4.0`, `5.5`, `5.6`, `5.7`, `8.0`, `8.4`) com equivalência para os inteiros usados na API (`30`, `40`, `55`, `56`, `57`, `80`, `84`), reduzindo drift entre backlog, código e exemplos.
-- TODO: mapear explicitamente no backlog as famílias nativas do `MySQL` já cobertas/parciais (`LIMIT/OFFSET`, `ON DUPLICATE KEY UPDATE`, `MATCH ... AGAINST`, `SQL_CALC_FOUND_ROWS`/`FOUND_ROWS`, `USE/IGNORE/FORCE INDEX`, `<=>`, `GROUP_CONCAT`, `JSON_EXTRACT`/`->`/`->>`, `WITH RECURSIVE`, window functions) com status por versão simulada.
-- TODO: mapear explicitamente no backlog as famílias nativas de `SQL Server/SqlAzure` (`TOP`, `OFFSET/FETCH`, `OUTPUT`, `MERGE`, `@@ROWCOUNT`, table/query hints `WITH (...)`, `PIVOT/UNPIVOT`, `CROSS APPLY`/`OUTER APPLY`, `JSON_VALUE`/`OPENJSON`, `STRING_AGG`, `STRING_SPLIT`, `FOR JSON`) com status por versão simulada e `compatibility level`.
-- TODO: mapear explicitamente no backlog as famílias nativas do `Oracle` (`ROWNUM`, `FETCH FIRST`, `MERGE`, `seq.NEXTVAL/CURRVAL`, `LISTAGG`, `JSON_VALUE`/`JSON_TABLE`, `PIVOT/UNPIVOT`, `CONNECT BY`/`START WITH`, `MATCH_RECOGNIZE`, `MODEL`) com status por versão simulada.
-- TODO: mapear explicitamente no backlog as famílias nativas do `PostgreSQL/Npgsql` (`LIMIT/OFFSET`, `FETCH FIRST`, `ON CONFLICT`, `RETURNING`, `ILIKE`, `STRING_AGG`, `DISTINCT ON`, `LATERAL`, operadores JSON `->`/`->>`/`#>`/`#>>`, `WITH [NOT] MATERIALIZED`, `MERGE`) com status por versão simulada.
-- TODO: mapear explicitamente no backlog as famílias nativas do `SQLite` (`LIMIT/OFFSET`, `ON CONFLICT`, `RETURNING`, `GROUP_CONCAT` com `ORDER BY`, `json_each`/`json_tree`, `JSON_EXTRACT`/`->`/`->>`, `WITH RECURSIVE`, `MATERIALIZED/NOT MATERIALIZED`, window functions e frames, `NULLS FIRST/LAST`, `CHANGES()`) com status por versão simulada e subset real do mock.
-- TODO: mapear explicitamente no backlog as famílias nativas do `DB2` (`FETCH FIRST`/`OFFSET`, `MERGE`, `NEXT VALUE FOR`/`PREVIOUS VALUE FOR`, `LISTAGG`, `WITH RECURSIVE`, `ROW_NUMBER` e frames de janela, `JSON_TABLE`, `JSON_QUERY`) com status por versão simulada.
+- `MySQL`: `LIMIT/OFFSET`, `ON DUPLICATE KEY UPDATE`, `MATCH ... AGAINST`, `SQL_CALC_FOUND_ROWS`/`FOUND_ROWS`, `USE/IGNORE/FORCE INDEX`, `<=>` e `GROUP_CONCAT` ja estao cobertos nas versoes simuladas atuais; `JSON_EXTRACT`/`->`/`->>` entram em `5.0+`; `WITH RECURSIVE` e window functions entram em `8.0+`; `JSON_TABLE` permanece fora do subset real.
+- `SQL Server/SqlAzure`: `TOP`, `OFFSET/FETCH`, `OUTPUT`, `MERGE`, `@@ROWCOUNT`, table/query hints `WITH (...)`, `PIVOT/UNPIVOT`, `CROSS APPLY`/`OUTER APPLY`, `JSON_VALUE`/`OPENJSON`, `STRING_AGG`, `STRING_SPLIT` e `FOR JSON` ja estao mapeados com gate por versao simulada e `compatibility level`, ficando o backlog residual concentrado nas nuances avancadas dessas familias.
+- `Oracle`: `ROWNUM`, `FETCH FIRST/NEXT`, `MERGE`, `seq.NEXTVAL/CURRVAL`, `LISTAGG`, `JSON_VALUE` e o subset atual de `PIVOT` ja estao explicitados por versao simulada; `JSON_TABLE`, `CONNECT BY/START WITH`, `MATCH_RECOGNIZE` e `MODEL` seguem fora do subset explicito ou ainda parciais.
+- `PostgreSQL/Npgsql`: `LIMIT/OFFSET`, `FETCH FIRST`, `ON CONFLICT`, `RETURNING`, `ILIKE`, `STRING_AGG`, operadores JSON `->`/`->>`/`#>`/`#>>` e `WITH [NOT] MATERIALIZED` ja estao mapeados na trilha atual; `DISTINCT ON`, `LATERAL` e `MERGE` seguem como backlog residual explicito.
+- `SQLite`: `LIMIT/OFFSET`, `ON CONFLICT`, `RETURNING`, `GROUP_CONCAT` com `ORDER BY`, `JSON_EXTRACT`/`->`/`->>`, `WITH RECURSIVE`, `CHANGES()`, `NULLS FIRST/LAST` e a familia principal de window functions ja estao refletidos no subset atual; `MATERIALIZED/NOT MATERIALIZED` permanece parcial por cenario, e `json_each/json_tree` com detalhes avancados de frame continuam pendentes.
+- `DB2`: `FETCH FIRST`, `MERGE` (`>= 9`), `NEXT VALUE FOR`/`PREVIOUS VALUE FOR`, `LISTAGG` e a familia compartilhada de window functions ja estao refletidos no inventario atual; `LIMIT/OFFSET` segue nao suportado no dialeto, enquanto `JSON_TABLE` e `JSON_QUERY` permanecem como gaps explicitos.
 
 ### 3.1 MySQL (`DbSqlLikeMem.MySql`)
 
@@ -998,10 +999,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 3.1.3 Aplicações típicas
 
-- Implementação estimada: **90%**.
+- Implementação estimada: **100%**.
 - Legados com SQL histórico do ecossistema MySQL.
 - Validação de comportamento de upsert no fluxo de escrita.
-- TODO: adicionar benchmark controlado contra MySQL local para queries/cargas representativas de testes, gerando baseline comparativa para demonstrar a clientes o custo/benefício de usar o mock no ciclo de testes.
+- Benchmark comparativo controlado já disponível contra MySQL real por `Testcontainers` e modo `preprovisioned`, com suites dedicadas, baseline publicada na wiki e reutilização do mesmo catálogo de cenários do mock.
 
 ### 3.2 SQL Server (`DbSqlLikeMem.SqlServer`)
 
@@ -1073,10 +1074,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 3.2.3 Aplicações típicas
 
-- Implementação estimada: **90%**.
+- Implementação estimada: **100%**.
 - Sistemas .NET com forte dependência de SQL Server.
 - Testes de compatibilidade evolutiva por geração da plataforma.
-- TODO: adicionar benchmark controlado contra SQL Server LocalDB para queries/cargas representativas de testes, gerando baseline comparativa para demonstrar a clientes o custo/benefício de usar o mock no ciclo de testes.
+- Benchmark comparativo controlado já disponível contra SQL Server real por `Testcontainers`, com suites dedicadas, baseline publicada na wiki e reaproveitamento do mesmo catálogo de cenários executado no `DbSqlLikeMem`.
 
 ### 3.3 Oracle (`DbSqlLikeMem.Oracle`)
 
@@ -1195,23 +1196,22 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 3.7.1 Matriz de cobertura
 
-- Implementação estimada: **90%**.
+- Implementação estimada: **94%**.
 - Executar casos críticos em todos os provedores prioritários do produto.
 - Definir perfil mínimo de compatibilidade por módulo.
 - Execução matricial por provider já iniciada em CI (`provider-test-matrix.yml`), com publicação de artefatos de resultado por projeto e etapas dedicadas de smoke e agregação cross-dialect, com publicação de snapshot por perfil em artefatos de CI.
 - Cobertura de regressão inclui suíte cross-dialeto com snapshots por perfil (smoke/aggregation/parser), operacionalizada no script `scripts/run_cross_dialect_equivalence.sh`; atualização em lote suportada por `scripts/refresh_cross_dialect_snapshots.sh` e baseline documental semântico (`manual-placeholder`) para evitar snapshot desatualizado no repositório.
 - O profile `parser` agora inclui também `SqlAzure`, fechando a matriz principal de providers SQL suportados nessa trilha sem precisar duplicar runtime do dialeto.
 - Matriz consolidada de providers/versões e capacidades comuns agora está refletida diretamente neste índice como fonte principal de backlog.
+- Incremento desta sessão: a trilha dedicada de benchmark comparativo foi materializada em `benchmark/DbSqlLikeMem.Benchmarks`, cobrindo `MySQL`, `SQL Server`, `PostgreSQL/Npgsql`, `Oracle` e `DB2` contra runtimes reais via `Testcontainers`, `Sqlite` contra baseline nativa e `SqlAzure` como mock-only com proxy operacional em `SQL Server`.
+- Incremento desta sessão: a mesma trilha foi padronizada em `Testcontainers`/modo `preprovisioned`, garantindo baseline reproduzível por provider sem depender de instalação manual local para os bancos reais viáveis no ambiente de testes.
+- Incremento desta sessão: os resultados consolidados dessa trilha já são publicados na wiki espelhada em `docs/Wiki/performance-matrix.md`, `docs/Wiki/performance-matrix-app-specific.md` e artefatos versionados em `docs/Wiki/BenchmarkResults`.
 - TODO: ampliar a matriz compartilhada para capacidades avançadas auditadas contra bancos reais (`JSON_TABLE`, `FOR JSON`, `CROSS APPLY/OUTER APPLY`, `LATERAL`, `DISTINCT ON`, `json_each/json_tree`, `PIVOT/UNPIVOT`) com status explícito por provider.
 - TODO: incluir `SqlDialect.Auto` na malha `parser`/`smoke` com snapshots dedicados para sintaxes equivalentes de paginação e demais heurísticas que entrarem no modo automático.
 - TODO: expandir a matriz para os próximos providers/famílias planejados (`MariaDB`, `Firebird`, `DuckDB` e, em fase posterior, `ClickHouse`/`Snowflake`) com status por etapa de implementação.
 - TODO: conectar a futura API de validação cross-dialect aos artefatos publicados da matriz para transformar compatibilidade em evidência objetiva de CI.
-- TODO: criar uma trilha dedicada de benchmark comparativo por containers para bancos reais viáveis no ambiente de testes.
-  - Providers já mapeados com benchmark viável por container: `MySQL`, `SQL Server`, `PostgreSQL/Npgsql`, `Oracle` e `DB2`.
-  - Providers do backlog com benchmark viável por container: `MariaDB`, `Firebird` e `ClickHouse`.
-  - Fora desta trilha por enquanto: `SQLite` e `DuckDB` (embedded) e `SqlAzure`/`Snowflake` (sem baseline local/container equivalente no ciclo atual).
-- TODO: padronizar essa trilha em `Testcontainers` para que cada benchmark gere baseline reproduzível por provider e também uma visão consolidada comparando bancos reais em container com o runtime do `DbSqlLikeMem`.
-- TODO: publicar os resultados consolidados dessa trilha na wiki espelhada (`docs/Wiki`) com snapshots/versionamento por rodada, permitindo comparação histórica entre providers reais em container e esta aplicação.
+- Providers do backlog com benchmark viável por container para expansão futura: `MariaDB`, `Firebird` e `ClickHouse`.
+- Fora desta trilha por enquanto: `DuckDB` e `SQLite` permanecem embedded/nativos, e `SqlAzure`/`Snowflake` seguem sem baseline local/container equivalente no ciclo atual.
 
 #### 3.7.2 Priorização de gaps
 
@@ -1225,7 +1225,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 3.8.1 Onda 1 (crítica)
 
-- Implementação estimada: **78%**.
+- Implementação estimada: **84%**.
 - Comandos que bloqueiam operações essenciais de CRUD e autenticação/autorização da aplicação.
 - TODO: manter nesta onda os gaps que ainda quebram fluxo essencial do core, começando por `SqlDialect.Auto`, refatoração das famílias reutilizáveis de dialeto e o fechamento dos gaps pequenos/críticos do parser comum.
 - TODO: manter também nesta onda os gaps que ainda quebram fluxo essencial do core, como `UPDATE/DELETE` multi-tabela dirigidos por dialeto, `PIVOT` subset incompleto e families JSON tabulares mais críticas por provider.
@@ -1237,7 +1237,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Inclui execução do plano P11/P12 para confiabilidade transacional, concorrência e diagnóstico de erro com contexto.
 - Status detalhado de transações concorrentes: fase de hardening base concluída (100%), governança em progresso (~10%) e cenários críticos (fases 2–5) priorizados para fechamento.
 - TODO: manter nesta onda recursos avançados de consulta com impacto funcional frequente (`FOR JSON`, `STRING_SPLIT`, `CROSS APPLY/OUTER APPLY`, `DISTINCT ON`, `LATERAL`, window frames avançados no SQLite).
-- TODO: priorizar nesta onda `Query Plan Debugger`, `MariaDB`, `Firebird`, `DuckDB`, `Schema Snapshot` e `Cross Dialect Validator`, respeitando a ordem de dependências definida no roadmap.
+- TODO: priorizar nesta onda `MariaDB`, `Firebird`, `DuckDB` e `Cross Dialect Validator`, respeitando a ordem de dependências definida no roadmap, já que `Query Plan Debugger` e `Schema Snapshot` passaram a constar como trilhas já materializadas no índice.
 
 #### 3.8.3 Onda 3 (média/baixa)
 
@@ -1307,7 +1307,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: o parser comum de agregação textual foi endurecido para a forma nativa do MySQL (`GROUP_CONCAT(DISTINCT ... ORDER BY ... SEPARATOR ...)`), aceitando `SEPARATOR` como terminador válido do `ORDER BY` interno apenas quando o dialeto/função o suportam.
 - Incremento desta sessão: a trilha auditada de regras por dialeto removeu os últimos branches comportamentais centrais por `dialect.Name` para mutações multi-tabela, rowcount de UPSERT e `SQL_CALC_FOUND_ROWS`, consolidando parser/executor/strategies sob o mesmo contrato de capability do provider.
 - Incremento desta sessão: a próxima fatia funcional do executor fechou o subset principal de `PIVOT` com `SUM/MIN/MAX/AVG`, adicionou `UNPIVOT` e abriu o subset inicial de `FOR JSON` no caminho compartilhado de `SQL Server/SqlAzure`, deixando agregadores avançados, nuances tabulares por versão e arestas finas de serialização JSON como backlog residual explícito.
-- TODO: executar o roadmap na ordem acordada: `SqlDialect.Auto` -> `Query Plan Debugger` -> `MariaDB` -> `Firebird` -> `DuckDB` -> `Schema Snapshot` -> `Cross Dialect Validator`.
+- TODO: executar o roadmap remanescente na ordem acordada: `SqlDialect.Auto` -> `MariaDB` -> `Firebird` -> `DuckDB` -> `Cross Dialect Validator`, considerando `Query Plan Debugger` e `Schema Snapshot` como trilhas já materializadas no ciclo atual.
 - TODO: extrair/refatorar bases compartilhadas por família antes de `MariaDB` e `DuckDB`, para evitar duplicação e preservar o parser/executor agnósticos.
 - TODO: fechar a trilha auditada contra bancos reais com implementação incremental de `JSON_TABLE` (MySQL, Oracle, DB2), `FOR JSON`/`STRING_SPLIT`/`CROSS APPLY`/`OUTER APPLY` (SQL Server/SqlAzure), `DISTINCT ON`/`LATERAL` (PostgreSQL), `json_each`/`json_tree` e frames avançados de window (SQLite).
 - TODO: revisar cada nova feature acima com a regra "dialeto manda", garantindo gate no tokenizer/parser, contract no executor e suíte positiva/negativa por versão simulada antes de marcar o item como concluído.
