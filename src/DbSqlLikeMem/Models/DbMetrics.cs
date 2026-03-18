@@ -214,6 +214,18 @@ public sealed class DbMetrics
     public ConcurrentDictionary<string, long> BatchPhaseElapsedTicks { get; } =
         new(StringComparer.OrdinalIgnoreCase);
     /// <summary>
+    /// EN: Number of hits grouped by custom performance phase name.
+    /// PT: Quantidade de ocorrencias agrupadas por nome de fase de performance.
+    /// </summary>
+    public ConcurrentDictionary<string, int> PerformancePhaseHits { get; } =
+        new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>
+    /// EN: Accumulated elapsed ticks grouped by custom performance phase name.
+    /// PT: Ticks acumulados agrupados por nome de fase de performance.
+    /// </summary>
+    public ConcurrentDictionary<string, long> PerformancePhaseElapsedTicks { get; } =
+        new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>
     /// EN: Total elapsed time since metrics started.
     /// PT: Tempo total decorrido desde o início da coleta.
     /// </summary>
@@ -321,5 +333,80 @@ public sealed class DbMetrics
     internal void IncrementBatchPhaseElapsedTicks(string phase, long elapsedTicks)
         => BatchPhaseElapsedTicks.AddOrUpdate(phase, elapsedTicks, (_, current) => current + elapsedTicks);
 
+    internal void IncrementPerformancePhaseHit(string phase)
+        => PerformancePhaseHits.AddOrUpdate(phase, 1, (_, current) => current + 1);
+
+    internal void IncrementPerformancePhaseElapsedTicks(string phase, long elapsedTicks)
+        => PerformancePhaseElapsedTicks.AddOrUpdate(phase, elapsedTicks, (_, current) => current + elapsedTicks);
+
+    internal string? FormatPerformancePhases()
+    {
+        List<(string Key, int Hits, long ElapsedTicks)>? items = null;
+
+        foreach (var pair in PerformancePhaseElapsedTicks)
+        {
+            if (pair.Value <= 0)
+                continue;
+
+            PerformancePhaseHits.TryGetValue(pair.Key, out var hits);
+            (items ??= []).Add((pair.Key, hits, pair.Value));
+        }
+
+        if (items is null || items.Count == 0)
+            return null;
+
+        items.Sort(static (left, right) =>
+        {
+            var ticks = right.ElapsedTicks.CompareTo(left.ElapsedTicks);
+            return ticks != 0
+                ? ticks
+                : StringComparer.OrdinalIgnoreCase.Compare(left.Key, right.Key);
+        });
+
+        var builder = new StringBuilder();
+        for (var i = 0; i < items.Count; i++)
+        {
+            var item = items[i];
+            if (i > 0)
+                builder.Append(',');
+
+            builder.Append(item.Key);
+            builder.Append("[hits=");
+            builder.Append(item.Hits);
+            builder.Append(",ms=");
+            builder.Append(TimeSpan.FromTicks(item.ElapsedTicks).TotalMilliseconds.ToString("0.###", CultureInfo.InvariantCulture));
+            builder.Append(']');
+        }
+
+        return builder.ToString();
+    }
+
+    internal IDisposable BeginAmbientScope()
+        => new AmbientMetricsScope(this);
+
+    internal static DbMetrics? Current => _ambientMetrics.Value;
+
     private readonly Stopwatch _sw = Stopwatch.StartNew();
+    private static readonly AsyncLocal<DbMetrics?> _ambientMetrics = new();
+
+    private sealed class AmbientMetricsScope : IDisposable
+    {
+        private readonly DbMetrics? _previous;
+        private bool _disposed;
+
+        public AmbientMetricsScope(DbMetrics metrics)
+        {
+            _previous = _ambientMetrics.Value;
+            _ambientMetrics.Value = metrics;
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+                return;
+
+            _ambientMetrics.Value = _previous;
+            _disposed = true;
+        }
+    }
 }

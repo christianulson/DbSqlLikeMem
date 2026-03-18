@@ -7,6 +7,7 @@ internal sealed class AstDmlNonQueryCommandHandler : INonQueryCommandHandler
         string sqlRaw,
         out int affectedRows)
     {
+        using var _ = context.Connection.Metrics.BeginAmbientScope();
         var query = context.GetParsedQuery(sqlRaw);
 
         affectedRows = query switch

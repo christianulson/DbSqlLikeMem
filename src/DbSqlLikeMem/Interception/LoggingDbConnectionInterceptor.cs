@@ -85,7 +85,8 @@ public sealed class LoggingDbConnectionInterceptor : DbConnectionInterceptor
             ConnectionState = context.Connection.State,
             CommandText = context.Command.CommandText,
             CommandExecutionKind = context.ExecutionKind,
-            Result = result
+            Result = result,
+            PerformanceMetrics = TryGetPerformanceMetrics(context.Connection)
         });
 
     /// <inheritdoc />
@@ -97,8 +98,14 @@ public sealed class LoggingDbConnectionInterceptor : DbConnectionInterceptor
             ConnectionState = context.Connection.State,
             CommandText = context.Command.CommandText,
             CommandExecutionKind = context.ExecutionKind,
+            PerformanceMetrics = TryGetPerformanceMetrics(context.Connection),
             Exception = exception
         });
+
+    private static string? TryGetPerformanceMetrics(DbConnection connection)
+        => connection is DbConnectionMockBase mock
+            ? mock.Metrics.FormatPerformancePhases()
+            : null;
 
     /// <inheritdoc />
     public override void TransactionStarting(DbTransactionStartingContext context)

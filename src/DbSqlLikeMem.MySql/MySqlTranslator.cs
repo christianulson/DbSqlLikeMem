@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace DbSqlLikeMem.MySql;
 
 #pragma warning disable CA1305 // Specify IFormatProvider
@@ -7,6 +9,8 @@ namespace DbSqlLikeMem.MySql;
 /// </summary>
 public class MySqlTranslator : ExpressionVisitor
 {
+    private const int TranslationCacheSoftLimit = 256;
+    private static readonly ConcurrentDictionary<string, string> TranslationCache = new(StringComparer.Ordinal);
     private StringBuilder _sb = new();
     private readonly List<object> _values = [];
     private string? _table;
@@ -24,6 +28,10 @@ public class MySqlTranslator : ExpressionVisitor
     /// <returns>EN: Generated SQL and parameters. PT: SQL gerado e parâmetros.</returns>
     public TranslationResult Translate(Expression expression)
     {
+        var cacheKey = BuildTranslationCacheKey(expression);
+        if (TranslationCache.TryGetValue(cacheKey, out var cachedSql))
+            return new TranslationResult(cachedSql, BuildParameters(CollectParameters(expression)));
+
         _sb.Clear();
         _values.Clear();
         _table = null;
@@ -46,7 +54,9 @@ public class MySqlTranslator : ExpressionVisitor
         if (_limit.HasValue)
             _sb.Append(" LIMIT ").Append(_limit.Value);
 
-        return new TranslationResult(_sb.ToString(), BuildParameters(_values));
+        var sql = _sb.ToString();
+        CacheTranslation(cacheKey, sql);
+        return new TranslationResult(sql, BuildParameters(_values));
     }
 
 #pragma warning disable CA1859 // Use concrete types when possible for improved performance
@@ -57,6 +67,28 @@ public class MySqlTranslator : ExpressionVisitor
         for (int i = 0; i < vals.Count; i++)
             dict[$"p{i}"] = vals[i];
         return dict;
+    }
+
+    private static string BuildTranslationCacheKey(Expression expression)
+    {
+        var tableName = TryExtractTableName(expression) ?? string.Empty;
+        var expressionText = expression.ToString();
+        return string.Concat(tableName, "|", expressionText);
+    }
+
+    private static void CacheTranslation(string cacheKey, string sql)
+    {
+        if (TranslationCache.Count >= TranslationCacheSoftLimit)
+            TranslationCache.Clear();
+
+        TranslationCache[cacheKey] = sql;
+    }
+
+    private static List<object> CollectParameters(Expression expression)
+    {
+        var collector = new MySqlTranslationParameterCollector();
+        collector.Visit(expression);
+        return collector.Values;
     }
 
 #pragma warning disable CS8605 // Unboxing a possibly null value.
@@ -257,6 +289,101 @@ public class MySqlTranslator : ExpressionVisitor
         }
 
         return "*"; // fallback
+    }
+
+    private static string? TryExtractTableName(Expression expression)
+    {
+        switch (expression)
+        {
+            case ConstantExpression constant:
+                {
+                    if (constant.Value is null)
+                        return null;
+
+                    var valueType = constant.Value.GetType();
+                    if (valueType.IsGenericType && valueType.GetGenericTypeDefinition() == typeof(MySqlQueryable<>))
+                    {
+                        var property = valueType.GetProperty(nameof(MySqlQueryable<object>.TableName), BindingFlags.Instance | BindingFlags.Public);
+                        if (property?.GetValue(constant.Value) is string tableName && !string.IsNullOrWhiteSpace(tableName))
+                            return tableName;
+                    }
+
+                    if (constant.Value is IQueryable queryable)
+                        return queryable.ElementType.Name;
+
+                    return null;
+                }
+
+            case MethodCallExpression methodCall when methodCall.Arguments.Count > 0:
+                return TryExtractTableName(methodCall.Arguments[0]);
+
+            default:
+                return null;
+        }
+    }
+
+    private sealed class MySqlTranslationParameterCollector : ExpressionVisitor
+    {
+        internal List<object> Values { get; } = [];
+
+        protected override Expression VisitMethodCall(MethodCallExpression node)
+        {
+            ArgumentNullExceptionCompatible.ThrowIfNull(node, nameof(node));
+
+            if (node.Method.Name is "Where" or "OrderBy" or "OrderByDescending" or "ThenBy" or "ThenByDescending" or "Select")
+            {
+                Visit(node.Arguments[0]);
+                Visit(StripQuotes(node.Arguments[1]));
+                return node;
+            }
+
+            if (node.Method.Name is "Skip" or "Take")
+            {
+                Visit(node.Arguments[0]);
+                Visit(node.Arguments[1]);
+                return node;
+            }
+
+            if (node.Method.Name == "Count")
+            {
+                Visit(node.Arguments[0]);
+                return node;
+            }
+
+            return base.VisitMethodCall(node);
+        }
+
+        protected override Expression VisitConstant(ConstantExpression node)
+        {
+            ArgumentNullExceptionCompatible.ThrowIfNull(node, nameof(node));
+
+            if (node.Value is null)
+                return node;
+
+            var valueType = node.Value.GetType();
+            if (valueType.IsGenericType && valueType.GetGenericTypeDefinition() == typeof(MySqlQueryable<>))
+                return node;
+
+            if (node.Value is IQueryable)
+                return node;
+
+            Values.Add(node.Value);
+            return node;
+        }
+
+        protected override Expression VisitMember(MemberExpression node)
+        {
+            ArgumentNullExceptionCompatible.ThrowIfNull(node, nameof(node));
+
+            if (node.Expression is not null && node.Expression.NodeType == ExpressionType.Parameter)
+                return node;
+
+            var value = Expression.Lambda(node).Compile().DynamicInvoke();
+            if (value is not null)
+                Values.Add(value);
+
+            return node;
+        }
     }
 }
 #pragma warning restore CA1305 // Specify IFormatProvider

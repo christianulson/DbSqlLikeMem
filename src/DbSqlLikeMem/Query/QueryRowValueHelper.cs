@@ -61,8 +61,9 @@ internal static class QueryRowValueHelper
 
     internal static TableResultMock ApplyDistinct(TableResultMock result, ISqlDialect? dialect)
     {
+        var estimatedCount = result.Count;
         var seen = new HashSet<string>(StringComparer.Ordinal);
-        var outputRows = new List<Dictionary<int, object?>>();
+        var outputRows = new List<Dictionary<int, object?>>(estimatedCount);
 
         foreach (var row in result)
         {
@@ -233,7 +234,13 @@ internal static class QueryRowValueHelper
         int columnCount,
         ISqlDialect? dialect)
     {
-        var builder = new StringBuilder();
+        if (columnCount <= 0)
+            return string.Empty;
+
+        if (columnCount == 1)
+            return NormalizeDistinctKey(row.TryGetValue(0, out var singleValue) ? singleValue : null, dialect);
+
+        var builder = new StringBuilder(Math.Max(16, columnCount * 12));
         for (var i = 0; i < columnCount; i++)
         {
             if (builder.Length > 0)

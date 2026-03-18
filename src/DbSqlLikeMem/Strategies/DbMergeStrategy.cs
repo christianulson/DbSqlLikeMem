@@ -93,36 +93,40 @@ internal static class DbMergeStrategy
         var updates = updateMatch.Success ? SplitByComma(updateMatch.Groups["set"].Value) : [];
         var insertCols = insertMatch.Success ? SplitByComma(insertMatch.Groups["cols"].Value) : [];
         var insertVals = insertMatch.Success ? SplitByComma(insertMatch.Groups["vals"].Value) : [];
+        var targetJoinCol = table.GetColumn(targetJoinColumn);
+        string[] sourceColumnNames = [.. sourceTable.Columns.Select(col => col.ColumnName)];
+        var parsedUpdates = ParseMergeAssignments(table, updates);
+        ColumnDef[] insertTargets = [.. insertCols.Select(table.GetColumn)];
+        var pendingInsertRows = new List<Dictionary<int, object?>>();
+        var pendingJoinKeys = new HashSet<object?>();
 
         var affected = 0;
         foreach (var srcRow in sourceTable)
         {
-            var srcValues = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-            for (int i = 0; i < sourceTable.Columns.Count; i++)
+            var srcValues = new Dictionary<string, object?>(sourceColumnNames.Length, StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < sourceColumnNames.Length; i++)
             {
-                var colName = sourceTable.Columns[i].ColumnName;
-                srcValues[colName] = srcRow.TryGetValue(i, out var v) ? v : null;
+                srcValues[sourceColumnNames[i]] = srcRow.TryGetValue(i, out var v) ? v : null;
             }
 
             srcValues.TryGetValue(sourceJoinColumn, out var srcKeyRaw);
-            var targetCol = table.GetColumn(targetJoinColumn);
-            var srcKey = CoerceToColumnType(srcKeyRaw, targetCol.DbType);
-            var existingIndex = FindRowIndex(table, targetCol.Index, srcKey);
+            var srcKey = CoerceToColumnType(srcKeyRaw, targetJoinCol.DbType);
+            if (pendingJoinKeys.Contains(srcKey))
+                FlushPendingMergeInsertBatch(table, pendingInsertRows, pendingJoinKeys, ref affected);
+
+            var existingIndex = FindRowIndex(table, targetJoinCol.Index, srcKey);
 
             if (existingIndex >= 0)
             {
-                if (updates.Count > 0)
+                FlushPendingMergeInsertBatch(table, pendingInsertRows, pendingJoinKeys, ref affected);
+
+                if (parsedUpdates.Length > 0)
                 {
                     var oldSnapshot = table[existingIndex].ToDictionary(_ => _.Key, _ => _.Value);
-                    foreach (var assignment in updates)
+                    foreach (var assignment in parsedUpdates)
                     {
-                        var parts = assignment.Split('=').Select(_=>_.Trim()).Take(2).ToArray();
-                        if (parts.Length != 2) continue;
-                        var colName = parts[0];
-                        var valueToken = parts[1];
-                        var value = ResolveMergeValue(valueToken, sourceAlias, srcValues, table, colName, pars);
-                        var col = table.GetColumn(colName);
-                        table.UpdateRowColumn(existingIndex, col.Index, value);
+                        var value = ResolveMergeValue(assignment.ValueToken, sourceAlias, srcValues, table, assignment.TargetColumn.Name, pars);
+                        table.UpdateRowColumn(existingIndex, assignment.TargetColumn.Index, value);
                     }
 
                     table.UpdateIndexesWithRow(existingIndex, oldSnapshot, table[existingIndex]);
@@ -132,24 +136,57 @@ internal static class DbMergeStrategy
                 continue;
             }
 
-            if (insertCols.Count > 0)
+            if (insertTargets.Length > 0)
             {
-                var newRow = new Dictionary<int, object?>();
-                for (int i = 0; i < insertCols.Count; i++)
+                var newRow = new Dictionary<int, object?>(insertTargets.Length);
+                for (int i = 0; i < insertTargets.Length; i++)
                 {
-                    var colName = insertCols[i];
                     var valueToken = i < insertVals.Count ? insertVals[i] : "NULL";
-                    var value = ResolveMergeValue(valueToken, sourceAlias, srcValues, table, colName, pars);
-                    var col = table.GetColumn(colName);
-                    newRow[col.Index] = value is DBNull ? null : value;
+                    var targetColumn = insertTargets[i];
+                    var value = ResolveMergeValue(valueToken, sourceAlias, srcValues, table, targetColumn.Name, pars);
+                    newRow[targetColumn.Index] = value is DBNull ? null : value;
                 }
 
-                table.Add(newRow);
-                affected++;
+                pendingInsertRows.Add(newRow);
+                pendingJoinKeys.Add(newRow.TryGetValue(targetJoinCol.Index, out var pendingJoinKey) ? pendingJoinKey : null);
             }
         }
 
+        FlushPendingMergeInsertBatch(table, pendingInsertRows, pendingJoinKeys, ref affected);
         return affected;
+    }
+
+    private static void FlushPendingMergeInsertBatch(
+        TableMock table,
+        List<Dictionary<int, object?>> pendingInsertRows,
+        HashSet<object?> pendingJoinKeys,
+        ref int affected)
+    {
+        if (pendingInsertRows.Count == 0)
+            return;
+
+        table.AddBatch(pendingInsertRows);
+        affected += pendingInsertRows.Count;
+        pendingInsertRows.Clear();
+        pendingJoinKeys.Clear();
+    }
+
+    private static MergeAssignment[] ParseMergeAssignments(TableMock table, IReadOnlyList<string> assignments)
+    {
+        if (assignments.Count == 0)
+            return [];
+
+        var parsed = new List<MergeAssignment>(assignments.Count);
+        foreach (var assignment in assignments)
+        {
+            var parts = assignment.Split('=').Select(_ => _.Trim()).Take(2).ToArray();
+            if (parts.Length != 2)
+                continue;
+
+            parsed.Add(new MergeAssignment(table.GetColumn(parts[0]), parts[1]));
+        }
+
+        return [.. parsed];
     }
 
     private static int FindRowIndex(TableMock table, int columnIndex, object? value)
@@ -222,6 +259,8 @@ internal static class DbMergeStrategy
 
     private static List<string> SplitByComma(string raw)
         => [.. raw.Split(',').Select(_=>_.Trim())];
+
+    private readonly record struct MergeAssignment(ColumnDef TargetColumn, string ValueToken);
 
     private static string ExtractParenthesized(string sql, int startIndex)
     {

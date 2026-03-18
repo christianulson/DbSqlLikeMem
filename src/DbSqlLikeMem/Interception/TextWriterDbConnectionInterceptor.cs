@@ -91,7 +91,8 @@ public sealed class TextWriterDbConnectionInterceptor : DbConnectionInterceptor
             ConnectionState = context.Connection.State,
             CommandText = context.Command.CommandText,
             CommandExecutionKind = context.ExecutionKind,
-            Result = result
+            Result = result,
+            PerformanceMetrics = TryGetPerformanceMetrics(context.Connection)
         });
 
     /// <inheritdoc />
@@ -103,6 +104,7 @@ public sealed class TextWriterDbConnectionInterceptor : DbConnectionInterceptor
             ConnectionState = context.Connection.State,
             CommandText = context.Command.CommandText,
             CommandExecutionKind = context.ExecutionKind,
+            PerformanceMetrics = TryGetPerformanceMetrics(context.Connection),
             Exception = exception
         });
 
@@ -161,6 +163,11 @@ public sealed class TextWriterDbConnectionInterceptor : DbConnectionInterceptor
             IsolationLevel = context.Transaction.IsolationLevel,
             Exception = exception
         });
+
+    private static string? TryGetPerformanceMetrics(DbConnection connection)
+        => connection is DbConnectionMockBase mock
+            ? mock.Metrics.FormatPerformancePhases()
+            : null;
 
     private void Write(DbInterceptionEvent interceptionEvent)
         => _writer.WriteLine(DbInterceptionEventFormatter.Format(interceptionEvent));

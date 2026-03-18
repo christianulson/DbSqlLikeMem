@@ -51,14 +51,80 @@ internal static class DbInsertStrategy
         int updatedCount = 0;
 
         var tableMock = (TableMock)table;
+        var canUseBatchInsert = CanUseBatchInsert(connection, dialect, table, tableName, query.Table.DbName, tableMock);
 
         if (!query.HasOnDuplicateKeyUpdate
             && newRows.Count > 1
-            && CanUseBatchInsert(connection, dialect, table, tableName, query.Table.DbName, tableMock))
+            && canUseBatchInsert)
         {
             tableMock.AddBatch(newRows);
             insertedCount = newRows.Count;
             TrySetLastInsertId(connection, table, table[table.Count - 1]);
+        }
+        else if (query.HasOnDuplicateKeyUpdate
+            && newRows.Count > 1
+            && canUseBatchInsert)
+        {
+            var pendingInsertRows = new List<Dictionary<int, object?>>(newRows.Count);
+            HashSet<string>? pendingPrimaryKeys = tableMock.PrimaryKeyIndexes.Count > 0
+                ? new HashSet<string>(StringComparer.Ordinal)
+                : null;
+            var pendingUniqueKeys = tableMock.Indexes.Values
+                .Where(static index => index.Unique)
+                .ToDictionary(
+                    static index => index,
+                    static _ => new HashSet<string>(StringComparer.Ordinal));
+
+            foreach (var newRow in newRows)
+            {
+                if (pendingInsertRows.Count > 0
+                    && HasPendingBatchConflict(tableMock, pendingPrimaryKeys, pendingUniqueKeys, newRow))
+                {
+                    FlushPendingInsertBatch(connection, table, tableMock, pendingInsertRows, pendingPrimaryKeys, pendingUniqueKeys, ref insertedCount);
+                }
+
+                var conflictIdx = tableMock.FindConflictingRowIndex(newRow, out _, out _);
+                if (conflictIdx is null)
+                {
+                    pendingInsertRows.Add(newRow);
+                    RegisterPendingBatchKeys(tableMock, pendingPrimaryKeys, pendingUniqueKeys, newRow);
+                    continue;
+                }
+
+                FlushPendingInsertBatch(connection, table, tableMock, pendingInsertRows, pendingPrimaryKeys, pendingUniqueKeys, ref insertedCount);
+
+                if (query.IsOnConflictDoNothing)
+                    continue;
+                if (!ShouldApplyOnConflictUpdateWhere(query, table, conflictIdx.Value, newRow, pars, dialect))
+                    continue;
+
+                var oldSnapshot = SnapshotRow(table[conflictIdx.Value]);
+                var simulatedUpdated = table[conflictIdx.Value].ToDictionary(_ => _.Key, _ => _.Value);
+                ApplyOnDuplicateUpdateAstInMemory(
+                    table,
+                    conflictIdx.Value,
+                    newRow,
+                    query.OnDupAssignsParsed,
+                    pars,
+                    dialect,
+                    simulatedUpdated);
+                tableMock.ValidateForeignKeysOnRow(new System.Collections.ObjectModel.ReadOnlyDictionary<int, object?>(simulatedUpdated));
+
+                TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, SnapshotRow(newRow));
+                ApplyOnDuplicateUpdateAst(
+                    table,
+                    conflictIdx.Value,
+                    newRow,
+                    query.OnDupAssignsParsed,
+                    pars,
+                    dialect);
+                TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, SnapshotRow(table[conflictIdx.Value]));
+
+                tableMock.UpdateIndexesWithRow(conflictIdx.Value, oldSnapshot, table[conflictIdx.Value]);
+                updatedCount++;
+            }
+
+            FlushPendingInsertBatch(connection, table, tableMock, pendingInsertRows, pendingPrimaryKeys, pendingUniqueKeys, ref insertedCount);
         }
         else
         {
@@ -104,7 +170,7 @@ internal static class DbInsertStrategy
                         table,
                         conflictIdx.Value,
                         newRow,
-                        query.OnDupAssigns,
+                        query.OnDupAssignsParsed,
                         pars,
                         dialect,
                         simulatedUpdated);
@@ -115,7 +181,7 @@ internal static class DbInsertStrategy
                         table,
                         conflictIdx.Value,
                         newRow,
-                        query.OnDupAssigns,
+                        query.OnDupAssignsParsed,
                         pars,
                         dialect);
                     TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, SnapshotRow(table[conflictIdx.Value]));
@@ -144,6 +210,62 @@ internal static class DbInsertStrategy
             new SqlPlanMockRuntimeContext(connection.SimulatedLatencyMs, connection.DropProbability, connection.Db.ThreadSafe));
         connection.RegisterExecutionPlan(plan);
         return affected;
+    }
+
+    private static void FlushPendingInsertBatch(
+        DbConnectionMockBase connection,
+        ITableMock table,
+        TableMock tableMock,
+        List<Dictionary<int, object?>> pendingInsertRows,
+        HashSet<string>? pendingPrimaryKeys,
+        Dictionary<IndexDef, HashSet<string>> pendingUniqueKeys,
+        ref int insertedCount)
+    {
+        if (pendingInsertRows.Count == 0)
+            return;
+
+        tableMock.AddBatch(pendingInsertRows);
+        insertedCount += pendingInsertRows.Count;
+        TrySetLastInsertId(connection, table, pendingInsertRows[^1]);
+        pendingInsertRows.Clear();
+        pendingPrimaryKeys?.Clear();
+        foreach (var keys in pendingUniqueKeys.Values)
+            keys.Clear();
+    }
+
+    private static bool HasPendingBatchConflict(
+        TableMock tableMock,
+        HashSet<string>? pendingPrimaryKeys,
+        Dictionary<IndexDef, HashSet<string>> pendingUniqueKeys,
+        IReadOnlyDictionary<int, object?> newRow)
+    {
+        if (pendingPrimaryKeys is not null)
+        {
+            var newPkKey = tableMock.BuildPkKey(newRow);
+            if (pendingPrimaryKeys.Contains(newPkKey))
+                return true;
+        }
+
+        foreach (var it in pendingUniqueKeys)
+        {
+            var newKey = it.Key.BuildIndexKey(newRow);
+            if (it.Value.Contains(newKey))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static void RegisterPendingBatchKeys(
+        TableMock tableMock,
+        HashSet<string>? pendingPrimaryKeys,
+        Dictionary<IndexDef, HashSet<string>> pendingUniqueKeys,
+        IReadOnlyDictionary<int, object?> row)
+    {
+        pendingPrimaryKeys?.Add(tableMock.BuildPkKey(row));
+
+        foreach (var it in pendingUniqueKeys)
+            it.Value.Add(it.Key.BuildIndexKey(row));
     }
 
     private static bool CanUseBatchInsert(
@@ -194,8 +316,19 @@ internal static class DbInsertStrategy
         DbParameterCollection? pars,
         ISqlDialect dialect)
     {
-        var rows = new List<Dictionary<int, object?>>();
+        var rows = new List<Dictionary<int, object?>>(query.ValuesRaw.Count);
         var colNames = query.Columns; // Lista de colunas do Insert
+        ColumnDef[]? explicitTargetColumns = null;
+        List<ColumnDef>? orderedTableColumns = null;
+        List<ColumnDef>? nonIdentityColumns = null;
+
+        if (colNames.Count > 0)
+            explicitTargetColumns = [.. colNames.Select(colName => ResolveInsertColumn(table, colName, dialect))];
+        else
+        {
+            orderedTableColumns = [.. table.Columns.Values.OrderBy(c => c.Index)];
+            nonIdentityColumns = [.. orderedTableColumns.Where(c => !c.Identity)];
+        }
 
         for (var rowIndex = 0; rowIndex < query.ValuesRaw.Count; rowIndex++)
         {
@@ -208,7 +341,7 @@ internal static class DbInsertStrategy
             if (colNames.Count > 0 && colNames.Count != valueBlock.Count)
                 throw new InvalidOperationException($"Column count ({colNames.Count}) does not match value count ({valueBlock.Count}).");
 
-            var newRow = new Dictionary<int, object?>();
+            var newRow = new Dictionary<int, object?>(Math.Max(1, valueBlock.Count));
 
             // Se colNames estiver vazio, assume ordem das colunas da tabela? 
             // O Mock original assumia que se não tem colunas, tem que bater com tudo ou ser default.
@@ -218,16 +351,13 @@ internal static class DbInsertStrategy
             {
                 // Insert implicito: INSERT INTO t VALUES (1, 2)
                 // Mapeia por index da tabela
-                var tableCols = table.Columns.Values.OrderBy(c => c.Index).ToList();
-
                 // Fallback defensivo: se o parser não trouxe a lista explícita de colunas
                 // e a quantidade de valores bate apenas com colunas não-identity,
                 // mapeia para as não-identity (caso comum: INSERT INTO t(name) VALUES(...)).
                 // Isso evita jogar o primeiro valor em uma identity e deixar colunas obrigatórias nulas.
-                var nonIdentityCols = tableCols.Where(c => !c.Identity).ToList();
-                var targetCols = valueBlock.Count == tableCols.Count
-                    ? tableCols
-                    : (valueBlock.Count == nonIdentityCols.Count ? nonIdentityCols : tableCols);
+                var targetCols = valueBlock.Count == orderedTableColumns!.Count
+                    ? orderedTableColumns
+                    : (valueBlock.Count == nonIdentityColumns!.Count ? nonIdentityColumns : orderedTableColumns);
 
                 for (int i = 0; i < valueBlock.Count; i++)
                 {
@@ -235,19 +365,18 @@ internal static class DbInsertStrategy
                     var parsedExpr = parsedExprBlock is not null && i < parsedExprBlock.Count
                         ? parsedExprBlock[i]
                         : null;
-                    SetColValue(table, connection, pars, targetCols[i].Index, valueBlock[i], parsedExpr, newRow, dialect);
+                    SetColValue(table, connection, pars, targetCols[i], valueBlock[i], parsedExpr, newRow, dialect);
                 }
             }
             else if (colNames.Count > 0)
             {
                 // Insert explícito: INSERT INTO t (a,b) VALUES (1, 2)
-                for (int i = 0; i < colNames.Count; i++)
+                for (int i = 0; i < explicitTargetColumns!.Length; i++)
                 {
-                    var colInfo = ResolveInsertColumn(table, colNames[i], dialect);
                     var parsedExpr = parsedExprBlock is not null && i < parsedExprBlock.Count
                         ? parsedExprBlock[i]
                         : null;
-                    SetColValue(table, connection, pars, colInfo.Index, valueBlock[i], parsedExpr, newRow, dialect);
+                    SetColValue(table, connection, pars, explicitTargetColumns[i], valueBlock[i], parsedExpr, newRow, dialect);
                 }
             }
 
@@ -350,33 +479,38 @@ internal static class DbInsertStrategy
 
         var rows = new List<Dictionary<int, object?>>();
         var colNames = query.Columns;
+        ColumnDef[]? explicitTargetColumns = null;
+        List<ColumnDef>? orderedTableColumns = null;
 
         if (colNames.Count > 0 && colNames.Count != res.Columns.Count)
             throw new InvalidOperationException(SqlExceptionMessages.ColumnCountDoesNotMatchSelectList());
 
+        if (colNames.Count > 0)
+            explicitTargetColumns = [.. colNames.Select(targetTable.GetColumn)];
+        else
+            orderedTableColumns = [.. targetTable.Columns.Values.OrderBy(c => c.Index)];
+
         foreach (var srcRow in res)
         {
-            var newRow = new Dictionary<int, object?>();
+            var newRow = new Dictionary<int, object?>(Math.Max(1, res.Columns.Count));
 
             if (colNames.Count > 0)
             {
                 // Mapeamento por nome explícito
-                for (int i = 0; i < colNames.Count; i++)
+                for (int i = 0; i < explicitTargetColumns!.Length; i++)
                 {
-                    var colInfo = targetTable.GetColumn(colNames[i]);
                     var val = srcRow.TryGetValue(i, out var v) ? v : null;
-                    newRow[colInfo.Index] = (val is DBNull) ? null : val;
+                    newRow[explicitTargetColumns[i].Index] = (val is DBNull) ? null : val;
                 }
             }
             else
             {
                 // Mapeamento posicional implícito
-                var tableCols = targetTable.Columns.Values.OrderBy(c => c.Index).ToList();
                 for (int i = 0; i < res.Columns.Count; i++)
                 {
-                    if (i >= tableCols.Count) break;
+                    if (i >= orderedTableColumns!.Count) break;
                     var val = srcRow.TryGetValue(i, out var v) ? v : null;
-                    newRow[tableCols[i].Index] = (val is DBNull) ? null : val;
+                    newRow[orderedTableColumns[i].Index] = (val is DBNull) ? null : val;
                 }
             }
 
@@ -389,17 +523,14 @@ internal static class DbInsertStrategy
         ITableMock table,
         DbConnectionMockBase connection,
         DbParameterCollection? pars,
-        int colIndex,
+        ColumnDef colDef,
         string rawValue,
         SqlExpr? parsedExpr,
         Dictionary<int, object?> row,
         ISqlDialect dialect)
     {
-        // Encontra definição da coluna para saber tipo
-        var colDef = table.Columns.Values.First(c => c.Index == colIndex);
-
         // Resolve valor
-        table.CurrentColumn = table.Columns.First(c => c.Value.Index == colIndex).Key;
+        table.CurrentColumn = colDef.Name;
         object? resolved;
         if (TryResolveCastAsJsonValue(parsedExpr, pars, out var castJsonValue))
         {
@@ -419,9 +550,9 @@ internal static class DbInsertStrategy
 
         var val = (resolved is DBNull) ? null : resolved;
         if (val == null && !colDef.Nullable)
-            throw table.ColumnCannotBeNull("Idx:" + colIndex);
+            throw table.ColumnCannotBeNull("Idx:" + colDef.Index);
 
-        row[colIndex] = val;
+        row[colDef.Index] = val;
     }
 
     private static bool TryResolveParsedSpecialValue(
@@ -599,7 +730,7 @@ internal static class DbInsertStrategy
         ITableMock table,
         int existinIndex,
         IReadOnlyDictionary<int, object?> insertedRow,
-        IReadOnlyList<(string Col, string ExprRaw)> assigns,
+        IReadOnlyList<SqlAssignment> assigns,
         DbParameterCollection? pars,
         ISqlDialect dialect,
         IDictionary<int, object?> targetRow)
@@ -769,11 +900,11 @@ internal static class DbInsertStrategy
             return true;
         }
 
-        foreach (var (col, exprRaw) in assigns)
+        foreach (var assignment in assigns)
         {
-            var colInfo = table.GetColumn(col);
+            var colInfo = table.GetColumn(assignment.Column);
             if (colInfo.GetGenValue != null) continue;
-            var expr = SqlExpressionParser.ParseScalar(exprRaw, dialect);
+            var expr = assignment.ValueExpr ?? SqlExpressionParser.ParseScalar(assignment.ValueRaw, dialect);
             var resolved = Eval(expr);
             var coerced = Coerce(colInfo.DbType, resolved);
             targetRow[colInfo.Index] = coerced;
@@ -784,7 +915,7 @@ internal static class DbInsertStrategy
         ITableMock table,
         int existinIndex,
         IReadOnlyDictionary<int, object?> insertedRow,
-        IReadOnlyList<(string Col, string ExprRaw)> assigns,
+        IReadOnlyList<SqlAssignment> assigns,
         DbParameterCollection? pars,
         ISqlDialect dialect)
     {
@@ -965,12 +1096,12 @@ internal static class DbInsertStrategy
             throw new InvalidOperationException($"CALL não suportado no ON DUPLICATE: {call.Name}");
         }
 
-        foreach (var (colName, exprRaw) in assigns)
+        foreach (var assignment in assigns)
         {
-            var colInfo = table.GetColumn(colName);
+            var colInfo = table.GetColumn(assignment.Column);
 
             // Parseia e avalia a expressão (suporta VALUES(col), users.col, col, aritmética)
-            var ast = SqlExpressionParser.ParseScalar(exprRaw, dialect);
+            var ast = assignment.ValueExpr ?? SqlExpressionParser.ParseScalar(assignment.ValueRaw, dialect);
             var value = Eval(ast);
 
             table.UpdateRowColumn(

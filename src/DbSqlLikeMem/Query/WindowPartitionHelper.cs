@@ -8,14 +8,14 @@ internal static class WindowPartitionHelper
         Func<SqlExpr, AstQueryExecutorBase.EvalRow, object?> evalPartitionExpression,
         Func<object?, string> normalizePartitionKeyValue)
     {
-        var partitions = new Dictionary<string, List<AstQueryExecutorBase.EvalRow>>(StringComparer.Ordinal);
+        var partitions = new Dictionary<string, List<AstQueryExecutorBase.EvalRow>>(Math.Max(1, rows.Count), StringComparer.Ordinal);
 
         foreach (var row in rows)
         {
             var key = BuildPartitionKey(windowFunction.Spec.PartitionBy, row, evalPartitionExpression, normalizePartitionKeyValue);
             if (!partitions.TryGetValue(key, out var partition))
             {
-                partition = [];
+                partition = new List<AstQueryExecutorBase.EvalRow>();
                 partitions[key] = partition;
             }
 
@@ -25,28 +25,53 @@ internal static class WindowPartitionHelper
         return partitions;
     }
 
-    internal static void SortPartition(
+    internal static Dictionary<AstQueryExecutorBase.EvalRow, object?[]>? SortPartition(
         List<AstQueryExecutorBase.EvalRow> partition,
         IReadOnlyList<WindowOrderItem> orderBy,
         Func<SqlExpr, AstQueryExecutorBase.EvalRow, object?> evalOrderExpression,
         Func<object?, object?, int> compareSql)
     {
         if (orderBy.Count == 0)
-            return;
+            return null;
 
-        partition.Sort((leftRow, rightRow) =>
+        var orderValuesByRow = WindowOrderValueHelper.BuildWindowOrderValuesByRow(
+            partition,
+            orderBy,
+            evalOrderExpression);
+
+        if (orderBy.Count == 1)
         {
-            foreach (var orderItem in orderBy)
+            var orderItem = orderBy[0];
+            partition.Sort((leftRow, rightRow) =>
             {
-                var leftValue = evalOrderExpression(orderItem.Expr, leftRow);
-                var rightValue = evalOrderExpression(orderItem.Expr, rightRow);
+                var leftValue = orderValuesByRow[leftRow][0];
+                var rightValue = orderValuesByRow[rightRow][0];
                 var comparison = compareSql(leftValue, rightValue);
                 if (comparison != 0)
                     return orderItem.Desc ? -comparison : comparison;
+
+                return 0;
+            });
+
+            return orderValuesByRow;
+        }
+
+        partition.Sort((leftRow, rightRow) =>
+        {
+            var leftValues = orderValuesByRow[leftRow];
+            var rightValues = orderValuesByRow[rightRow];
+
+            for (var i = 0; i < orderBy.Count; i++)
+            {
+                var comparison = compareSql(leftValues[i], rightValues[i]);
+                if (comparison != 0)
+                    return orderBy[i].Desc ? -comparison : comparison;
             }
 
             return 0;
         });
+
+        return orderValuesByRow;
     }
 
     private static string BuildPartitionKey(

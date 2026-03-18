@@ -10,6 +10,7 @@ public static class LinqQueryExecutor
 {
     private static readonly ConcurrentDictionary<Type, IReadOnlyList<(string Name, Func<object, object?> Getter)>> ParameterAccessorCache = new();
     private static readonly ConcurrentDictionary<Type, IReadOnlyList<LinqRecordSetter>> RecordSetterCache = new();
+    private static readonly ConcurrentDictionary<string, IReadOnlyList<LinqRecordBinding>> RecordPlanCache = new(StringComparer.Ordinal);
 
     /// <summary>
     /// Executa SQL e materializa o resultado no tipo esperado.
@@ -38,12 +39,37 @@ public static class LinqQueryExecutor
     {
         using var command = CreateCommand(connection, sql, parameters);
         using var reader = command.ExecuteReader();
+        var metrics = (connection as DbConnectionMockBase)?.Metrics;
 
         var listType = typeof(List<>).MakeGenericType(elementType);
         var list = (IList)Activator.CreateInstance(listType)!;
 
-        while (reader.Read())
-            list.Add(MapRecord(reader, elementType));
+        if (!reader.Read())
+            return list;
+
+        var planStartedAt = metrics is null ? 0 : Stopwatch.GetTimestamp();
+        var plan = GetRecordPlan(reader, elementType);
+        if (planStartedAt != 0)
+        {
+            metrics!.IncrementPerformancePhaseHit(DbPerformanceMetricKeys.MaterializationLinqPlan);
+            metrics.IncrementPerformancePhaseElapsedTicks(
+                DbPerformanceMetricKeys.MaterializationLinqPlan,
+                StopwatchCompatible.GetElapsedTicks(planStartedAt));
+        }
+
+        do
+        {
+            var rowStartedAt = metrics is null ? 0 : Stopwatch.GetTimestamp();
+            list.Add(MapRecord(reader, elementType, plan));
+            if (rowStartedAt != 0)
+            {
+                metrics!.IncrementPerformancePhaseHit(DbPerformanceMetricKeys.MaterializationLinqRow);
+                metrics.IncrementPerformancePhaseElapsedTicks(
+                    DbPerformanceMetricKeys.MaterializationLinqRow,
+                    StopwatchCompatible.GetElapsedTicks(rowStartedAt));
+            }
+        }
+        while (reader.Read());
 
         return list;
     }
@@ -52,11 +78,32 @@ public static class LinqQueryExecutor
     {
         using var command = CreateCommand(connection, sql, parameters);
         using var reader = command.ExecuteReader();
+        var metrics = (connection as DbConnectionMockBase)?.Metrics;
 
         if (!reader.Read())
             return resultType.IsValueType ? Activator.CreateInstance(resultType) : null;
 
-        return MapRecord(reader, resultType);
+        var planStartedAt = metrics is null ? 0 : Stopwatch.GetTimestamp();
+        var plan = GetRecordPlan(reader, resultType);
+        if (planStartedAt != 0)
+        {
+            metrics!.IncrementPerformancePhaseHit(DbPerformanceMetricKeys.MaterializationLinqPlan);
+            metrics.IncrementPerformancePhaseElapsedTicks(
+                DbPerformanceMetricKeys.MaterializationLinqPlan,
+                StopwatchCompatible.GetElapsedTicks(planStartedAt));
+        }
+
+        var rowStartedAt = metrics is null ? 0 : Stopwatch.GetTimestamp();
+        var mapped = MapRecord(reader, resultType, plan);
+        if (rowStartedAt != 0)
+        {
+            metrics!.IncrementPerformancePhaseHit(DbPerformanceMetricKeys.MaterializationLinqRow);
+            metrics.IncrementPerformancePhaseElapsedTicks(
+                DbPerformanceMetricKeys.MaterializationLinqRow,
+                StopwatchCompatible.GetElapsedTicks(rowStartedAt));
+        }
+
+        return mapped;
     }
 
     private static IDbCommand CreateCommand(IDbConnection connection, string sql, object? parameters)
@@ -95,7 +142,7 @@ public static class LinqQueryExecutor
         command.Parameters.Add(parameter);
     }
 
-    private static object? MapRecord(IDataRecord record, Type targetType)
+    private static object? MapRecord(IDataRecord record, Type targetType, IReadOnlyList<LinqRecordBinding>? plan = null)
     {
         if (targetType == typeof(object))
             return ReadValue(record, 0, typeof(object));
@@ -106,18 +153,8 @@ public static class LinqQueryExecutor
         var instance = Activator.CreateInstance(targetType)
             ?? throw new InvalidOperationException($"Não foi possível instanciar o tipo {targetType}.");
 
-        var columns = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        for (var i = 0; i < record.FieldCount; i++)
-            columns[record.GetName(i)] = i;
-
-        foreach (var setter in GetRecordSetters(targetType))
-        {
-            if (!columns.TryGetValue(setter.Name, out var ordinal))
-                continue;
-
-            var value = ReadValue(record, ordinal, setter.PropertyType);
-            setter.Setter(instance, value);
-        }
+        foreach (var binding in plan ?? GetRecordPlan(record, targetType))
+            binding.Setter.Setter(instance, ReadValue(record, binding.Ordinal, binding.Setter.PropertyType));
 
         return instance;
     }
@@ -157,6 +194,44 @@ public static class LinqQueryExecutor
         return Expression.Lambda<Action<object, object?>>(assign, instance, value).Compile();
     }
 
+    private static IReadOnlyList<LinqRecordBinding> GetRecordPlan(IDataRecord record, Type targetType)
+    {
+        if (targetType == typeof(object) || IsSimpleType(targetType))
+            return [];
+
+        var cacheKey = BuildRecordPlanCacheKey(record, targetType);
+        return RecordPlanCache.GetOrAdd(cacheKey, _ => BuildRecordPlan(record, targetType));
+    }
+
+    private static string BuildRecordPlanCacheKey(IDataRecord record, Type targetType)
+    {
+        var sb = new StringBuilder(targetType.FullName?.Length ?? targetType.Name.Length + 32);
+        sb.Append(targetType.AssemblyQualifiedName ?? targetType.FullName ?? targetType.Name);
+        sb.Append('|').Append(record.FieldCount);
+        for (var i = 0; i < record.FieldCount; i++)
+            sb.Append('|').Append(record.GetName(i));
+
+        return sb.ToString();
+    }
+
+    private static IReadOnlyList<LinqRecordBinding> BuildRecordPlan(IDataRecord record, Type targetType)
+    {
+        var columns = new Dictionary<string, int>(record.FieldCount, StringComparer.OrdinalIgnoreCase);
+        for (var i = 0; i < record.FieldCount; i++)
+            columns[record.GetName(i)] = i;
+
+        var bindings = new List<LinqRecordBinding>();
+        foreach (var setter in GetRecordSetters(targetType))
+        {
+            if (!columns.TryGetValue(setter.Name, out var ordinal))
+                continue;
+
+            bindings.Add(new LinqRecordBinding(ordinal, setter));
+        }
+
+        return bindings;
+    }
+
     private static object? ReadValue(IDataRecord record, int ordinal, Type destinationType)
     {
         if (record.IsDBNull(ordinal))
@@ -193,4 +268,5 @@ public static class LinqQueryExecutor
     }
 
     private sealed record LinqRecordSetter(string Name, Type PropertyType, Action<object, object?> Setter);
+    private sealed record LinqRecordBinding(int Ordinal, LinqRecordSetter Setter);
 }

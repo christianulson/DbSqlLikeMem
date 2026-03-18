@@ -75,6 +75,7 @@ public abstract class TableMock
     }
 
     private readonly ColumnDictionary _columns = [];
+    private readonly Dictionary<int, string> _columnsByIndex = [];
 
     /// <summary>
     /// EN: Table column dictionary.
@@ -82,6 +83,8 @@ public abstract class TableMock
     /// </summary>
     public IReadOnlyDictionary<string, ColumnDef> Columns
         => new ReadOnlyDictionary<string, ColumnDef>(_columns);
+
+    internal IReadOnlyDictionary<int, string> ColumnsByIndex => _columnsByIndex;
 
     private readonly List<Dictionary<int, object?>> _items = [];
 
@@ -183,6 +186,7 @@ public abstract class TableMock
         => new ReadOnlyDictionary<string, IndexDef>(_indexes);
 
     private readonly Dictionary<TableTriggerEvent, List<Action<TableTriggerContext>>> _triggers = [];
+    internal event Action<TableMutationNotification>? MutationApplied;
 
     /// <summary>
     /// EN: Registers a trigger callback for the specified table event.
@@ -214,6 +218,20 @@ public abstract class TableMock
         foreach (var handler in handlers)
             handler(context);
     }
+
+    private void NotifyMutationApplied(
+        TableMutationKind kind,
+        int rowIndex,
+        Dictionary<int, object?> row,
+        Dictionary<int, object?>? oldRowSnapshot = null,
+        int previousNextIdentity = 0)
+        => MutationApplied?.Invoke(new TableMutationNotification(
+            this,
+            kind,
+            rowIndex,
+            row,
+            oldRowSnapshot,
+            previousNextIdentity));
 
     internal bool HasRegisteredTriggers()
         => _triggers.Values.Any(static handlers => handlers.Count > 0);
@@ -264,6 +282,7 @@ public abstract class TableMock
             enumValues: enumValues);
 
         _columns.Add(normalizedName, col);
+        _columnsByIndex[col.Index] = normalizedName;
         BackfillAddedColumn(col);
         return col;
     }
@@ -460,6 +479,12 @@ public abstract class TableMock
         RebuildPkIndex();
     }
 
+    internal void MarkAllIndexesDirty()
+    {
+        foreach (var ix in _indexes.Values)
+            ix.MarkDirty();
+    }
+
 
     /// <summary>
     /// EN: Implements CreateForeignKey.
@@ -596,6 +621,26 @@ public abstract class TableMock
 
     private Dictionary<int, object?> MaterializeItem<T>(T item)
     {
+        var metrics = DbMetrics.Current;
+        if (metrics is null)
+            return MaterializeItemCore(item);
+
+        metrics.IncrementPerformancePhaseHit(DbPerformanceMetricKeys.MaterializationObjectRow);
+        var startedAt = Stopwatch.GetTimestamp();
+        try
+        {
+            return MaterializeItemCore(item);
+        }
+        finally
+        {
+            metrics.IncrementPerformancePhaseElapsedTicks(
+                DbPerformanceMetricKeys.MaterializationObjectRow,
+                StopwatchCompatible.GetElapsedTicks(startedAt));
+        }
+    }
+
+    private Dictionary<int, object?> MaterializeItemCore<T>(T item)
+    {
         var row = new Dictionary<int, object?>();
         var accessors = GetItemAccessors(typeof(T));
 
@@ -652,8 +697,8 @@ public abstract class TableMock
     }
 
     /// <summary>
-    /// EN: Adds multiple rows in batch, rebuilding indexes only once at the end for performance.
-    /// PT: Adiciona multiplas linhas em lote, reconstruindo indices apenas uma vez no final para performance.
+    /// EN: Adds multiple rows in batch while validating uniqueness and updating indexes incrementally.
+    /// PT: Adiciona multiplas linhas em lote validando unicidade e atualizando indices de forma incremental.
     /// </summary>
     /// <param name="values">EN: Rows to insert. PT: Linhas a inserir.</param>
     public ITableMock AddBatch(IReadOnlyList<Dictionary<int, object?>> values)
@@ -672,12 +717,15 @@ public abstract class TableMock
         var batchPrimaryKeys = _primaryKeyIndexes.Count > 0
             ? new HashSet<string>(StringComparer.Ordinal)
             : null;
+        var previousNextIdentities = new int[values.Count];
         var batchUniqueKeys = uniqueIndexes.ToDictionary(
             static index => index,
             static _ => new HashSet<string>(StringComparer.Ordinal));
 
-        foreach (var value in values)
+        for (var valueIndex = 0; valueIndex < values.Count; valueIndex++)
         {
+            var value = values[valueIndex];
+            previousNextIdentities[valueIndex] = NextIdentity;
             ApplyDefaultValues(value);
             RefreshPersistedComputedValues(value);
             ValidateForeignKeysOnRow(value);
@@ -702,8 +750,17 @@ public abstract class TableMock
             }
         }
 
+        var startIndex = _items.Count;
         _items.AddRange(values);
-        RebuildAllIndexes();
+        UpdateIndexesWithRows(startIndex, values);
+        for (var rowOffset = 0; rowOffset < values.Count; rowOffset++)
+        {
+            NotifyMutationApplied(
+                TableMutationKind.Insert,
+                startIndex + rowOffset,
+                values[rowOffset],
+                previousNextIdentity: previousNextIdentities[rowOffset]);
+        }
 
         return this;
     }
@@ -715,6 +772,7 @@ public abstract class TableMock
     /// <param name="value">EN: Row to insert. PT: Linha a inserir.</param>
     public ITableMock Add(Dictionary<int, object?> value)
     {
+        var previousNextIdentity = NextIdentity;
         ApplyDefaultValues(value);
         RefreshPersistedComputedValues(value);
         ValidateForeignKeysOnRow(value);
@@ -729,7 +787,33 @@ public abstract class TableMock
             var pkKey = BuildPkKey(value);
             _pkIndex[pkKey] = newIdx;
         }
+        NotifyMutationApplied(
+            TableMutationKind.Insert,
+            newIdx,
+            value,
+            previousNextIdentity: previousNextIdentity);
         return this;
+    }
+
+    internal void UpdateIndexesWithRows(
+        int startIndex,
+        IReadOnlyList<Dictionary<int, object?>> rows)
+    {
+        if (rows.Count == 0)
+            return;
+
+        var hasPrimaryKey = _primaryKeyIndexes.Count > 0;
+        for (var rowOffset = 0; rowOffset < rows.Count; rowOffset++)
+        {
+            var rowIndex = startIndex + rowOffset;
+            var row = rows[rowOffset];
+
+            foreach (var index in _indexes.Values)
+                index.UpdateIndexesWithRow(rowIndex, row);
+
+            if (hasPrimaryKey)
+                _pkIndex[BuildPkKey(row)] = rowIndex;
+        }
     }
 
     private void ApplyDefaultValues(Dictionary<int, object?> value)
@@ -1365,6 +1449,7 @@ public abstract class TableMock
         }
         _items.RemoveAt(idx);
         ShiftIndexPositionsAfterDelete(idx);
+        NotifyMutationApplied(TableMutationKind.Delete, idx, it);
         return it;
     }
 
@@ -1377,21 +1462,60 @@ public abstract class TableMock
         int colIdx,
         object? value)
     {
+        var row = _items[rowIdx];
+        var oldRow = row.ToDictionary(_ => _.Key, _ => _.Value);
         // If changing a PK column, update the PK index
         if (_primaryKeyIndexes.Count > 0 && _primaryKeyIndexes.Contains(colIdx))
         {
-            var oldKey = BuildPkKey(_items[rowIdx]);
+            var oldKey = BuildPkKey(row);
             _pkIndex.Remove(oldKey);
-            _items[rowIdx][colIdx] = value;
-            RefreshPersistedComputedValues(_items[rowIdx]);
-            var newKey = BuildPkKey(_items[rowIdx]);
+            row[colIdx] = value;
+            RefreshPersistedComputedValues(row);
+            var newKey = BuildPkKey(row);
             _pkIndex[newKey] = rowIdx;
         }
         else
         {
-            _items[rowIdx][colIdx] = value;
-            RefreshPersistedComputedValues(_items[rowIdx]);
+            row[colIdx] = value;
+            RefreshPersistedComputedValues(row);
         }
+        NotifyMutationApplied(TableMutationKind.Update, rowIdx, row, oldRow);
+    }
+
+    internal int FindRowIndexByReference(Dictionary<int, object?> row)
+    {
+        for (var i = 0; i < _items.Count; i++)
+        {
+            if (ReferenceEquals(_items[i], row))
+                return i;
+        }
+
+        return -1;
+    }
+
+    internal void RemoveRowByReference(Dictionary<int, object?> row)
+    {
+        var rowIndex = FindRowIndexByReference(row);
+        if (rowIndex >= 0)
+            _items.RemoveAt(rowIndex);
+    }
+
+    internal void InsertRestoredRow(int rowIndex, Dictionary<int, object?> row)
+        => _items.Insert(rowIndex, row);
+
+    internal void RestoreRowSnapshot(
+        Dictionary<int, object?> targetRow,
+        IReadOnlyDictionary<int, object?> snapshot)
+    {
+        targetRow.Clear();
+        foreach (var entry in snapshot)
+            targetRow[entry.Key] = entry.Value;
+    }
+
+    internal void RestoreIndexesAfterJournalReplay()
+    {
+        RebuildPkIndex();
+        MarkAllIndexesDirty();
     }
 
     private List<Dictionary<int, object?>>? _backup;
@@ -1413,10 +1537,11 @@ public abstract class TableMock
 
         _items.Clear();
         _pkIndex.Clear();
-        foreach (var row in _backup) Add(row);
+        foreach (var row in _backup)
+            _items.Add(row.ToDictionary(_ => _.Key, _ => _.Value));
 
-        foreach (var ix in _indexes)
-            ix.Value.RebuildIndex();
+        RebuildPkIndex();
+        MarkAllIndexesDirty();
     }
 
     /// <summary>

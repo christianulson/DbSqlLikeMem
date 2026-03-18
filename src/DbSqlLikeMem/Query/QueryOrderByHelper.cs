@@ -14,10 +14,8 @@ internal static class QueryOrderByHelper
         if (keySelectors.Count == 0)
             return false;
 
-        var sortedRows = result
-            .OrderBy(row => row, Comparer<Dictionary<int, object?>>.Create((left, right) =>
-                CompareRows(left, right, keySelectors, compareSql)))
-            .ToList();
+        var sortedRows = result.ToList();
+        sortedRows.Sort((left, right) => CompareRows(left, right, keySelectors, compareSql));
 
         result.Clear();
         foreach (var row in sortedRows)
@@ -34,7 +32,7 @@ internal static class QueryOrderByHelper
         Func<SqlExpr, AstQueryExecutorBase.EvalRow, object?> evalExpression,
         Dictionary<Dictionary<int, object?>, Dictionary<string, object?>> joinFieldsByRow)
     {
-        var keySelectors = new List<OrderByKeySelector>();
+        var keySelectors = new List<OrderByKeySelector>(orderBy.Count);
         Dictionary<string, int>? aliasToIndex = null;
 
         foreach (var item in orderBy)

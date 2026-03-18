@@ -8,6 +8,7 @@ internal static class WindowOrderValueHelper
         Func<SqlExpr, AstQueryExecutorBase.EvalRow, object?> evalOrderExpression)
     {
         var orderValuesByRow = new Dictionary<AstQueryExecutorBase.EvalRow, object?[]>(
+            Math.Max(1, partition.Count),
             ReferenceEqualityComparer<AstQueryExecutorBase.EvalRow>.Instance);
 
         foreach (var row in partition)

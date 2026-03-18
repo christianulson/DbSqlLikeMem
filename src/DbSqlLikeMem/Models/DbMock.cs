@@ -204,6 +204,20 @@ public abstract class DbMock
         throw SqlUnsupported.ForNormalizedTableDoesNotExist(tableName);
     }
 
+    internal void RestoreGlobalTemporaryTable(
+        ITableMock table,
+        string? schemaName = null)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(table, nameof(table));
+        var key = BuildTemporaryTableKey(table.TableName, schemaName ?? table.Schema.SchemaName);
+        _globalTemporaryTables[key] = table;
+    }
+
+    internal void RemoveGlobalTemporaryTable(
+        string tableName,
+        string? schemaName = null)
+        => _globalTemporaryTables.Remove(BuildTemporaryTableKey(tableName, schemaName));
+
     /// <summary>
     /// EN: Creates and adds a table to the specified schema.
     /// PT: Cria e adiciona uma tabela ao schema indicado.
@@ -477,6 +491,26 @@ public abstract class DbMock
         throw new InvalidOperationException(Resources.SqlExceptionMessages.ViewDoesNotExist(normalized));
     }
 
+    internal void RestoreView(
+        string viewName,
+        SqlSelectQuery definition,
+        string? schemaName = null)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(viewName, nameof(viewName));
+        ArgumentNullExceptionCompatible.ThrowIfNull(definition, nameof(definition));
+        var sc = GetSchemaName(schemaName);
+        this[sc].Views[viewName.NormalizeName()] = definition;
+    }
+
+    internal void RemoveView(
+        string viewName,
+        string? schemaName = null)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(viewName, nameof(viewName));
+        var sc = GetSchemaName(schemaName);
+        this[sc].Views.Remove(viewName.NormalizeName());
+    }
+
     #endregion
 
     #region Procedures
@@ -576,6 +610,26 @@ public abstract class DbMock
         throw new InvalidOperationException($"Function '{normalized}' does not exist.");
     }
 
+    internal void RestoreFunction(
+        string functionName,
+        ScalarFunctionDef definition,
+        string? schemaName = null)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
+        ArgumentNullExceptionCompatible.ThrowIfNull(definition, nameof(definition));
+        var sc = GetSchemaName(schemaName);
+        this[sc].Functions[functionName.NormalizeName()] = definition;
+    }
+
+    internal void RemoveFunction(
+        string functionName,
+        string? schemaName = null)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
+        var sc = GetSchemaName(schemaName);
+        this[sc].Functions.Remove(functionName.NormalizeName());
+    }
+
     #endregion
 
     #region Sequences
@@ -637,7 +691,13 @@ public abstract class DbMock
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(sequenceName, nameof(sequenceName));
         var sc = GetSchemaName(schemaName);
-        return this[sc].MutableSequences.TryGetValue(sequenceName.NormalizeName(), out sequence)
+        if (!TryGetValue(sc, out var schema) || schema == null)
+        {
+            sequence = null;
+            return false;
+        }
+
+        return schema.Sequences.TryGetValue(sequenceName.NormalizeName(), out sequence)
             && sequence != null;
     }
 
@@ -682,6 +742,17 @@ public abstract class DbMock
             return;
 
         throw new InvalidOperationException($"Sequence '{normalized}' does not exist.");
+    }
+
+    internal void RestoreSequence(
+        string sequenceName,
+        SequenceDef sequence,
+        string? schemaName = null)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sequenceName, nameof(sequenceName));
+        ArgumentNullExceptionCompatible.ThrowIfNull(sequence, nameof(sequence));
+        var sc = GetSchemaName(schemaName);
+        this[sc].MutableSequences[sequenceName.NormalizeName()] = sequence;
     }
 
     #endregion

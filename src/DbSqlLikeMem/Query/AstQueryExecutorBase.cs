@@ -63,6 +63,108 @@ internal abstract class AstQueryExecutorBase(
             executeSelect: (select, ctes, outerRow) => ExecuteSelect(select, ctes, outerRow),
             executeUnion: ExecuteUnion);
 
+    private sealed class WindowPartitionExecutionContext(
+        AstQueryExecutorBase owner,
+        List<EvalRow> part,
+        WindowSpec spec,
+        IDictionary<string, Source> ctes,
+        Dictionary<EvalRow, object?[]>? precomputedOrderValuesByRow)
+    {
+        private readonly AstQueryExecutorBase _owner = owner;
+        private readonly WindowSpec _spec = spec;
+        private readonly IDictionary<string, Source> _ctes = ctes;
+        private Dictionary<EvalRow, object?[]>? _orderValuesByRow = precomputedOrderValuesByRow;
+        private RowsFrameRange[]? _frameRangesByRow;
+        private List<(int Start, int End)>? _peerGroups;
+        private bool? _coversWholePartition;
+
+        internal List<EvalRow> Part { get; } = part;
+
+        internal Dictionary<EvalRow, object?[]> GetRequiredOrderValuesByRow()
+        {
+            _orderValuesByRow ??= WindowOrderValueHelper.BuildWindowOrderValuesByRow(
+                Part,
+                _spec.OrderBy,
+                (expr, row) => _owner.Eval(expr, row, null, _ctes));
+            return _orderValuesByRow;
+        }
+
+        internal RowsFrameRange GetFrameRange(int rowIndex)
+        {
+            if (_frameRangesByRow is null)
+            {
+                _frameRangesByRow = new RowsFrameRange[Part.Count];
+                var orderValuesByRow = _spec.OrderBy.Count == 0 ? null : GetRequiredOrderValuesByRow();
+                for (var i = 0; i < Part.Count; i++)
+                {
+                    _frameRangesByRow[i] = _owner.ResolveWindowFrameRange(
+                        _spec.Frame,
+                        Part,
+                        i,
+                        _spec.OrderBy,
+                        _ctes,
+                        orderValuesByRow);
+                }
+            }
+
+            return _frameRangesByRow[rowIndex];
+        }
+
+        internal bool CoversWholePartition()
+        {
+            if (_coversWholePartition.HasValue)
+                return _coversWholePartition.Value;
+
+            if (Part.Count == 0)
+            {
+                _coversWholePartition = false;
+                return false;
+            }
+
+            for (var i = 0; i < Part.Count; i++)
+            {
+                var frameRange = GetFrameRange(i);
+                if (frameRange.IsEmpty || frameRange.StartIndex != 0 || frameRange.EndIndex != Part.Count - 1)
+                {
+                    _coversWholePartition = false;
+                    return false;
+                }
+            }
+
+            _coversWholePartition = true;
+            return true;
+        }
+
+        internal List<(int Start, int End)> GetPeerGroups()
+        {
+            if (_peerGroups is not null)
+                return _peerGroups;
+
+            var orderValuesByRow = GetRequiredOrderValuesByRow();
+            var peerGroups = new List<(int Start, int End)>();
+            if (Part.Count == 0)
+                return _peerGroups = peerGroups;
+
+            var start = 0;
+            for (var i = 1; i <= Part.Count; i++)
+            {
+                var isBoundary = i == Part.Count
+                    || !WindowOrderValueHelper.WindowOrderValuesEqual(
+                        orderValuesByRow[Part[i - 1]],
+                        orderValuesByRow[Part[i]],
+                        _owner.CompareSql);
+                if (!isBoundary)
+                    continue;
+
+                peerGroups.Add((start, i - 1));
+                start = i;
+            }
+
+            _peerGroups = peerGroups;
+            return _peerGroups;
+        }
+    }
+
 
     private static readonly HashSet<string> _aggFns = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -89,6 +191,69 @@ internal abstract class AstQueryExecutorBase(
     {
         var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para parse de expressão escalar.");
         return SqlExpressionParser.ParseScalar(raw, dialect, _pars);
+    }
+
+    private static List<List<WindowSlot>> GroupWindowSlotsBySpec(List<WindowSlot> slots)
+    {
+        var groups = new Dictionary<string, List<WindowSlot>>(Math.Max(1, slots.Count), StringComparer.Ordinal);
+        foreach (var slot in slots)
+        {
+            var key = BuildWindowSpecCacheKey(slot.Expr.Spec);
+            if (!groups.TryGetValue(key, out var group))
+            {
+                group = new List<WindowSlot>();
+                groups[key] = group;
+            }
+
+            group.Add(slot);
+        }
+
+        return [.. groups.Values];
+    }
+
+    private static string BuildWindowSpecCacheKey(WindowSpec spec)
+    {
+        var sb = new StringBuilder();
+        sb.Append("PART:");
+        for (var i = 0; i < spec.PartitionBy.Count; i++)
+        {
+            if (i > 0)
+                sb.Append('|');
+
+            sb.Append(SqlExprPrinter.Print(spec.PartitionBy[i]));
+        }
+
+        sb.Append(";ORDER:");
+        for (var i = 0; i < spec.OrderBy.Count; i++)
+        {
+            if (i > 0)
+                sb.Append('|');
+
+            sb.Append(SqlExprPrinter.Print(spec.OrderBy[i].Expr));
+            sb.Append(spec.OrderBy[i].Desc ? ":DESC" : ":ASC");
+        }
+
+        sb.Append(";FRAME:");
+        if (spec.Frame is null)
+        {
+            sb.Append("NULL");
+            return sb.ToString();
+        }
+
+        sb.Append(spec.Frame.Unit);
+        sb.Append(':');
+        AppendWindowFrameBoundCacheKey(sb, spec.Frame.Start);
+        sb.Append(':');
+        AppendWindowFrameBoundCacheKey(sb, spec.Frame.End);
+        return sb.ToString();
+    }
+
+    private static void AppendWindowFrameBoundCacheKey(StringBuilder sb, WindowFrameBound bound)
+    {
+        sb.Append(bound.Kind);
+        sb.Append('(');
+        sb.Append(bound.Offset?.ToString(CultureInfo.InvariantCulture) ?? "null");
+        sb.Append(')');
     }
 
     /// <summary>
@@ -1623,7 +1788,7 @@ internal abstract class AstQueryExecutorBase(
             || equalsByColumn.Count == 0)
             return null;
 
-        if (TryRowsFromPrimaryKey(src, equalsByColumn, out var pkRows))
+        if (TryRowsFromPrimaryKey(src, hintPlan, equalsByColumn, out var pkRows))
             return pkRows;
 
         IndexDef? best = null;
@@ -1664,6 +1829,7 @@ internal abstract class AstQueryExecutorBase(
 
     private bool TryRowsFromPrimaryKey(
         Source src,
+        MySqlIndexHintPlan? hintPlan,
         IReadOnlyDictionary<string, object?> equalsByColumn,
         out IEnumerable<Dictionary<string, object?>>? rows)
     {
@@ -1686,6 +1852,7 @@ internal abstract class AstQueryExecutorBase(
             pkValues[pkIdx] = value;
         }
 
+        TryRecordPrimaryKeyHintMetric(tableMock, hintPlan);
         _cnn.Metrics.IndexLookups++;
         if (!tableMock.TryFindRowByPk(pkValues, out var rowIndex))
         {
@@ -1754,7 +1921,7 @@ internal abstract class AstQueryExecutorBase(
             }
         }
 
-        return new MySqlIndexHintPlan(allowedNames, missingForced);
+        return new MySqlIndexHintPlan(allowedNames, missingForced, joinScopeHints.Count > 0);
     }
 
 
@@ -1807,6 +1974,23 @@ internal abstract class AstQueryExecutorBase(
         }
 
         return new ReadOnlyHashSet<string>(primaryEquivalent);
+    }
+
+    private void TryRecordPrimaryKeyHintMetric(
+        ITableMock table,
+        MySqlIndexHintPlan? hintPlan)
+    {
+        if (hintPlan is null)
+            return;
+
+        var allIndexes = table.Indexes.Values.ToList();
+        if (!hintPlan.HasRowAccessHints)
+            return;
+
+        var hintedPrimaryEquivalent = ResolvePrimaryEquivalentIndexNames(table, allIndexes)
+            .FirstOrDefault(hintPlan.AllowedIndexNames.Contains);
+        if (!string.IsNullOrWhiteSpace(hintedPrimaryEquivalent))
+            _cnn.Metrics.IncrementIndexHint(hintedPrimaryEquivalent);
     }
 
     private IReadOnlyDictionary<int, Dictionary<string, object?>>? LookupIndexWithMetrics(
@@ -2504,87 +2688,92 @@ internal abstract class AstQueryExecutorBase(
         if (slots.Count == 0 || rows.Count == 0)
             return;
 
-        foreach (var slot in slots)
+        foreach (var slotGroup in GroupWindowSlotsBySpec(slots))
         {
-            var w = slot.Expr;
-
-            var isRowNumber = Dialect!.IsRowNumberWindowFunction(w.Name);
-            var isRank = w.Name.Equals("RANK", StringComparison.OrdinalIgnoreCase);
-            var isDenseRank = w.Name.Equals("DENSE_RANK", StringComparison.OrdinalIgnoreCase);
-            var isNtile = w.Name.Equals("NTILE", StringComparison.OrdinalIgnoreCase);
-            var isPercentRank = w.Name.Equals("PERCENT_RANK", StringComparison.OrdinalIgnoreCase);
-            var isCumeDist = w.Name.Equals("CUME_DIST", StringComparison.OrdinalIgnoreCase);
-            var isLag = w.Name.Equals("LAG", StringComparison.OrdinalIgnoreCase);
-            var isLead = w.Name.Equals("LEAD", StringComparison.OrdinalIgnoreCase);
-            var isFirstValue = w.Name.Equals("FIRST_VALUE", StringComparison.OrdinalIgnoreCase);
-            var isLastValue = w.Name.Equals("LAST_VALUE", StringComparison.OrdinalIgnoreCase);
-            var isNthValue = w.Name.Equals("NTH_VALUE", StringComparison.OrdinalIgnoreCase);
-
-            // Fail fast for unsupported window functions to keep runtime behavior aligned with parser dialect gates.
-            if (!isRowNumber && !isRank && !isDenseRank && !isNtile && !isPercentRank && !isCumeDist && !isLag && !isLead && !isFirstValue && !isLastValue && !isNthValue)
-                throw SqlUnsupported.ForDialect(
-                    Dialect ?? throw new InvalidOperationException("Dialect is required for window function validation."),
-                    $"window functions ({w.Name})");
-
-            if (Dialect?.RequiresOrderByInWindowFunction(w.Name) == true && w.Spec.OrderBy.Count == 0)
-                throw new InvalidOperationException($"Window function '{w.Name}' requires ORDER BY in OVER clause.");
-
+            var spec = slotGroup[0].Expr.Spec;
             var partitions = WindowPartitionHelper.BuildPartitions(
-                w,
+                slotGroup[0].Expr,
                 rows,
                 (expr, row) => Eval(expr, row, null, ctes),
                 value => NormalizeDistinctKey(value));
 
             foreach (var part in partitions.Values)
             {
-                WindowPartitionHelper.SortPartition(
+                var orderValuesByRow = WindowPartitionHelper.SortPartition(
                     part,
-                    w.Spec.OrderBy,
+                    spec.OrderBy,
                     (expr, row) => Eval(expr, row, null, ctes),
                     CompareSql);
+                var partitionContext = new WindowPartitionExecutionContext(this, part, spec, ctes, orderValuesByRow);
 
-                if (isRowNumber)
+                foreach (var slot in slotGroup)
                 {
-                    long rn = 1;
-                    foreach (var r in part)
+                    var w = slot.Expr;
+
+                    var isRowNumber = Dialect!.IsRowNumberWindowFunction(w.Name);
+                    var isRank = w.Name.Equals("RANK", StringComparison.OrdinalIgnoreCase);
+                    var isDenseRank = w.Name.Equals("DENSE_RANK", StringComparison.OrdinalIgnoreCase);
+                    var isNtile = w.Name.Equals("NTILE", StringComparison.OrdinalIgnoreCase);
+                    var isPercentRank = w.Name.Equals("PERCENT_RANK", StringComparison.OrdinalIgnoreCase);
+                    var isCumeDist = w.Name.Equals("CUME_DIST", StringComparison.OrdinalIgnoreCase);
+                    var isLag = w.Name.Equals("LAG", StringComparison.OrdinalIgnoreCase);
+                    var isLead = w.Name.Equals("LEAD", StringComparison.OrdinalIgnoreCase);
+                    var isFirstValue = w.Name.Equals("FIRST_VALUE", StringComparison.OrdinalIgnoreCase);
+                    var isLastValue = w.Name.Equals("LAST_VALUE", StringComparison.OrdinalIgnoreCase);
+                    var isNthValue = w.Name.Equals("NTH_VALUE", StringComparison.OrdinalIgnoreCase);
+
+                    // Fail fast for unsupported window functions to keep runtime behavior aligned with parser dialect gates.
+                    if (!isRowNumber && !isRank && !isDenseRank && !isNtile && !isPercentRank && !isCumeDist && !isLag && !isLead && !isFirstValue && !isLastValue && !isNthValue)
+                        throw SqlUnsupported.ForDialect(
+                            Dialect ?? throw new InvalidOperationException("Dialect is required for window function validation."),
+                            $"window functions ({w.Name})");
+
+                    if (Dialect?.RequiresOrderByInWindowFunction(w.Name) == true && w.Spec.OrderBy.Count == 0)
+                        throw new InvalidOperationException($"Window function '{w.Name}' requires ORDER BY in OVER clause.");
+
+                    if (isRowNumber)
                     {
-                        slot.Map[r] = rn;
-                        rn++;
+                        long rn = 1;
+                        foreach (var r in part)
+                        {
+                            slot.Map[r] = rn;
+                            rn++;
+                        }
+                        continue;
                     }
-                    continue;
-                }
 
-                if (isNtile)
-                {
-                    FillNtile(slot.Map, part, w, ctes);
-                    continue;
-                }
+                    if (isNtile)
+                    {
+                        FillNtile(slot.Map, partitionContext, w, ctes);
+                        continue;
+                    }
 
-                if (isPercentRank || isCumeDist)
-                {
-                    FillPercentRankOrCumeDist(slot.Map, part, w.Spec.Frame, w.Spec.OrderBy, ctes, isPercentRank);
-                    continue;
-                }
+                    if (isPercentRank || isCumeDist)
+                    {
+                        FillPercentRankOrCumeDist(slot.Map, partitionContext, isPercentRank);
+                        continue;
+                    }
 
-                if (isLag || isLead)
-                {
-                    FillLagOrLead(slot.Map, part, w, ctes, isLead);
-                    continue;
-                }
+                    if (isLag || isLead)
+                    {
+                        FillLagOrLead(slot.Map, partitionContext, w, ctes, isLead);
+                        continue;
+                    }
 
-                if (isFirstValue || isLastValue)
-                {
-                    FillFirstOrLastValue(slot.Map, part, w, ctes, isLastValue);
-                    continue;
-                }
+                    if (isFirstValue || isLastValue)
+                    {
+                        FillFirstOrLastValue(slot.Map, partitionContext, w, ctes, isLastValue);
+                        continue;
+                    }
 
-                if (isNthValue)
-                {
-                    FillNthValue(slot.Map, part, w, ctes);
-                    continue;
-                }
+                    if (isNthValue)
+                    {
+                        FillNthValue(slot.Map, partitionContext, w, ctes);
+                        continue;
+                    }
 
-                FillRankOrDenseRank(slot.Map, part, w, ctes, isRank);
+                    FillRankOrDenseRank(slot.Map, partitionContext, isRank);
+                }
             }
         }
     }
@@ -2600,20 +2789,31 @@ internal abstract class AstQueryExecutorBase(
     /// EN: Fills FIRST_VALUE/LAST_VALUE results for all rows in the current partition.
     /// PT: Preenche os resultados de FIRST_VALUE/LAST_VALUE para todas as linhas da partição atual.
     /// </summary>
-private void FillFirstOrLastValue(
+    private void FillFirstOrLastValue(
         Dictionary<EvalRow, object?> map,
-        List<EvalRow> part,
+        WindowPartitionExecutionContext partitionContext,
         WindowFunctionExpr windowFunctionExpr,
         IDictionary<string, Source> ctes,
         bool fillLast)
     {
+        var part = partitionContext.Part;
         if (part.Count == 0 || windowFunctionExpr.Args.Count == 0)
             return;
 
         var valueExpr = windowFunctionExpr.Args[0];
+        if (windowFunctionExpr.Spec.Frame is null || partitionContext.CoversWholePartition())
+        {
+            var value = Eval(valueExpr, part[fillLast ? part.Count - 1 : 0], null, ctes);
+            foreach (var row in part)
+                map[row] = value;
+
+            return;
+        }
+
+        var valuesByTargetIndex = new Dictionary<int, object?>(Math.Max(1, Math.Min(part.Count, 8)));
         for (var i = 0; i < part.Count; i++)
         {
-            var frameRange = ResolveWindowFrameRange(windowFunctionExpr.Spec.Frame, part, i, windowFunctionExpr.Spec.OrderBy, ctes);
+            var frameRange = partitionContext.GetFrameRange(i);
             if (frameRange.IsEmpty)
             {
                 map[part[i]] = null;
@@ -2621,7 +2821,13 @@ private void FillFirstOrLastValue(
             }
 
             var targetIndex = fillLast ? frameRange.EndIndex : frameRange.StartIndex;
-            map[part[i]] = Eval(valueExpr, part[targetIndex], null, ctes);
+            if (!valuesByTargetIndex.TryGetValue(targetIndex, out var value))
+            {
+                value = Eval(valueExpr, part[targetIndex], null, ctes);
+                valuesByTargetIndex[targetIndex] = value;
+            }
+
+            map[part[i]] = value;
         }
     }
 
@@ -2632,10 +2838,11 @@ private void FillFirstOrLastValue(
     /// </summary>
 private void FillNthValue(
         Dictionary<EvalRow, object?> map,
-        List<EvalRow> part,
+        WindowPartitionExecutionContext partitionContext,
         WindowFunctionExpr windowFunctionExpr,
         IDictionary<string, Source> ctes)
     {
+        var part = partitionContext.Part;
         if (part.Count == 0 || windowFunctionExpr.Args.Count == 0)
             return;
 
@@ -2644,9 +2851,22 @@ private void FillNthValue(
         if (nth <= 0)
             return;
 
+        if (windowFunctionExpr.Spec.Frame is null || partitionContext.CoversWholePartition())
+        {
+            var targetIndex = nth - 1;
+            var value = targetIndex < part.Count
+                ? Eval(valueExpr, part[targetIndex], null, ctes)
+                : null;
+            foreach (var row in part)
+                map[row] = value;
+
+            return;
+        }
+
+        var valuesByTargetIndex = new Dictionary<int, object?>(Math.Max(1, Math.Min(part.Count, 8)));
         for (var i = 0; i < part.Count; i++)
         {
-            var frameRange = ResolveWindowFrameRange(windowFunctionExpr.Spec.Frame, part, i, windowFunctionExpr.Spec.OrderBy, ctes);
+            var frameRange = partitionContext.GetFrameRange(i);
             if (frameRange.IsEmpty)
             {
                 map[part[i]] = null;
@@ -2654,9 +2874,19 @@ private void FillNthValue(
             }
 
             var targetIndex = frameRange.StartIndex + (nth - 1);
-            map[part[i]] = targetIndex <= frameRange.EndIndex
-                ? Eval(valueExpr, part[targetIndex], null, ctes)
-                : null;
+            if (targetIndex > frameRange.EndIndex)
+            {
+                map[part[i]] = null;
+                continue;
+            }
+
+            if (!valuesByTargetIndex.TryGetValue(targetIndex, out var value))
+            {
+                value = Eval(valueExpr, part[targetIndex], null, ctes);
+                valuesByTargetIndex[targetIndex] = value;
+            }
+
+            map[part[i]] = value;
         }
     }
 
@@ -2669,7 +2899,8 @@ private void FillNthValue(
         List<EvalRow> part,
         int rowIndex,
         IReadOnlyList<WindowOrderItem> orderBy,
-        IDictionary<string, Source> ctes)
+        IDictionary<string, Source> ctes,
+        Dictionary<EvalRow, object?[]>? precomputedOrderValuesByRow = null)
     {
         if (part.Count == 0)
             return RowsFrameRange.Empty;
@@ -2680,7 +2911,7 @@ private void FillNthValue(
         if (orderBy.Count == 0)
             throw new InvalidOperationException($"Window frame unit '{frame.Unit}' requires ORDER BY in OVER clause.");
 
-        var orderValuesByRow = WindowOrderValueHelper.BuildWindowOrderValuesByRow(
+        var orderValuesByRow = precomputedOrderValuesByRow ?? WindowOrderValueHelper.BuildWindowOrderValuesByRow(
             part,
             orderBy,
             (expr, row) => Eval(expr, row, null, ctes));
@@ -2785,23 +3016,39 @@ private int ResolveNthValueIndex(
     /// </summary>
 private void FillLagOrLead(
         Dictionary<EvalRow, object?> map,
-        List<EvalRow> part,
+        WindowPartitionExecutionContext partitionContext,
         WindowFunctionExpr windowFunctionExpr,
         IDictionary<string, Source> ctes,
         bool fillLead)
     {
+        var part = partitionContext.Part;
         if (part.Count == 0 || windowFunctionExpr.Args.Count == 0)
             return;
 
         var valueExpr = windowFunctionExpr.Args[0];
         var offset = ResolveLagLeadOffset(windowFunctionExpr.Args, part[0], ctes);
         var defaultExpr = windowFunctionExpr.Args.Count >= 3 ? windowFunctionExpr.Args[2] : null;
+        var hasExplicitFrame = windowFunctionExpr.Spec.Frame is not null;
+
+        if (!hasExplicitFrame)
+        {
+            for (int i = 0; i < part.Count; i++)
+            {
+                var targetIndex = fillLead ? i + offset : i - offset;
+                var currentRow = part[i];
+                map[currentRow] = targetIndex >= 0 && targetIndex < part.Count
+                    ? Eval(valueExpr, part[targetIndex], null, ctes)
+                    : defaultExpr is null ? null : Eval(defaultExpr, currentRow, null, ctes);
+            }
+
+            return;
+        }
 
         for (int i = 0; i < part.Count; i++)
         {
             var targetIndex = fillLead ? i + offset : i - offset;
             var currentRow = part[i];
-            var frameRange = ResolveWindowFrameRange(windowFunctionExpr.Spec.Frame, part, i, windowFunctionExpr.Spec.OrderBy, ctes);
+            var frameRange = partitionContext.GetFrameRange(i);
 
             if (!frameRange.IsEmpty && targetIndex >= frameRange.StartIndex && targetIndex <= frameRange.EndIndex)
             {
@@ -2854,22 +3101,33 @@ private int ResolveLagLeadOffset(
     /// </summary>
     private void FillRankOrDenseRank(
         Dictionary<EvalRow, object?> map,
-        List<EvalRow> part,
-        WindowFunctionExpr windowFunctionExpr,
-        IDictionary<string, Source> ctes,
+        WindowPartitionExecutionContext partitionContext,
         bool fillRank)
     {
+        var part = partitionContext.Part;
         if (part.Count == 0)
             return;
 
-        var orderValuesByRow = WindowOrderValueHelper.BuildWindowOrderValuesByRow(
-            part,
-            windowFunctionExpr.Spec.OrderBy,
-            (expr, row) => Eval(expr, row, null, ctes));
+        if (partitionContext.CoversWholePartition())
+        {
+            var denseRank = 1L;
+            foreach (var peerGroup in partitionContext.GetPeerGroups())
+            {
+                var value = fillRank ? peerGroup.Start + 1L : denseRank;
+                for (var i = peerGroup.Start; i <= peerGroup.End; i++)
+                    map[part[i]] = value;
+
+                denseRank++;
+            }
+
+            return;
+        }
+
+        var orderValuesByRow = partitionContext.GetRequiredOrderValuesByRow();
 
         for (var i = 0; i < part.Count; i++)
         {
-            var frameRange = ResolveWindowFrameRange(windowFunctionExpr.Spec.Frame, part, i, windowFunctionExpr.Spec.OrderBy, ctes);
+            var frameRange = partitionContext.GetFrameRange(i);
             if (frameRange.IsEmpty || !WindowOrderValueHelper.RowsFrameContainsRow(frameRange, i))
             {
                 map[part[i]] = null;
@@ -2905,24 +3163,35 @@ private int ResolveLagLeadOffset(
     /// </summary>
 private void FillPercentRankOrCumeDist(
         Dictionary<EvalRow, object?> map,
-        List<EvalRow> part,
-        WindowFrameSpec? frame,
-        IReadOnlyList<WindowOrderItem> orderBy,
-        IDictionary<string, Source> ctes,
+        WindowPartitionExecutionContext partitionContext,
         bool fillPercentRank)
     {
+        var part = partitionContext.Part;
         if (part.Count == 0)
             return;
 
-        var orderValuesByRow = WindowOrderValueHelper.BuildWindowOrderValuesByRow(
-            part,
-            orderBy,
-            (expr, row) => Eval(expr, row, null, ctes));
+        if (partitionContext.CoversWholePartition())
+        {
+            foreach (var peerGroup in partitionContext.GetPeerGroups())
+            {
+                var peerCount = peerGroup.End - peerGroup.Start + 1;
+                var value = fillPercentRank
+                    ? part.Count <= 1 ? 0d : (double)peerGroup.Start / (part.Count - 1)
+                    : (double)(peerGroup.Start + peerCount) / part.Count;
+
+                for (var i = peerGroup.Start; i <= peerGroup.End; i++)
+                    map[part[i]] = value;
+            }
+
+            return;
+        }
+
+        var orderValuesByRow = partitionContext.GetRequiredOrderValuesByRow();
 
         for (var rowIndex = 0; rowIndex < part.Count; rowIndex++)
         {
             var row = part[rowIndex];
-            var frameRange = ResolveWindowFrameRange(frame, part, rowIndex, orderBy, ctes);
+            var frameRange = partitionContext.GetFrameRange(rowIndex);
             if (frameRange.IsEmpty || !WindowOrderValueHelper.RowsFrameContainsRow(frameRange, rowIndex))
             {
                 map[row] = null;
@@ -2965,10 +3234,11 @@ private void FillPercentRankOrCumeDist(
     /// </summary>
     private void FillNtile(
         Dictionary<EvalRow, object?> map,
-        List<EvalRow> part,
+        WindowPartitionExecutionContext partitionContext,
         WindowFunctionExpr windowFunctionExpr,
         IDictionary<string, Source> ctes)
     {
+        var part = partitionContext.Part;
         if (part.Count == 0)
             return;
 
@@ -2976,9 +3246,17 @@ private void FillPercentRankOrCumeDist(
         if (bucketCount <= 0)
             return;
 
+        if (windowFunctionExpr.Spec.Frame is null || partitionContext.CoversWholePartition())
+        {
+            for (var rowIndex = 0; rowIndex < part.Count; rowIndex++)
+                map[part[rowIndex]] = (rowIndex * bucketCount) / part.Count + 1;
+
+            return;
+        }
+
         for (var rowIndex = 0; rowIndex < part.Count; rowIndex++)
         {
-            var frameRange = ResolveWindowFrameRange(windowFunctionExpr.Spec.Frame, part, rowIndex, windowFunctionExpr.Spec.OrderBy, ctes);
+            var frameRange = partitionContext.GetFrameRange(rowIndex);
             if (frameRange.IsEmpty || !WindowOrderValueHelper.RowsFrameContainsRow(frameRange, rowIndex))
             {
                 map[part[rowIndex]] = null;
@@ -4512,22 +4790,13 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
-        if (TryEvalMySqlBase64Functions(fn, dialect, evalArg, out result)
-            || TryEvalMySqlStringCompareFunction(fn, dialect, evalArg, out result)
-            || TryEvalMySqlChecksumFunction(fn, dialect, evalArg, out result)
-            || TryEvalMySqlNetworkFunctions(fn, dialect, evalArg, out result)
-            || TryEvalMySqlUuidFunctions(fn, dialect, evalArg, out result)
-            || TryEvalMySqlDateFormatFunction(fn, dialect, evalArg, out result)
-            || TryEvalMySqlStrToDateFunction(fn, dialect, evalArg, out result)
-            || TryEvalMySqlFromUnixTimeFunction(fn, dialect, evalArg, out result)
-            || TryEvalMySqlFromDaysFunction(fn, dialect, evalArg, out result))
+        if (QueryMySqlUtilityFunctionHelper.TryEvalUtilityFunctions(fn, dialect, evalArg, TryConvertNumericToInt64, out result)
+            || QueryMySqlDateTimeFunctionHelper.TryEvalFunctions(fn, dialect, evalArg, TryConvertNumericToDouble, TryConvertNumericToInt64, TryCoerceDateTime, TryParseExactCachedDateTime, out result))
         {
             return true;
         }
 
         if (TryEvalMySqlDateSubFunction(fn, dialect, row, group, ctes, evalArg, out result)
-            || TryEvalMySqlGetFormatFunction(fn, dialect, evalArg, out result)
-            || TryEvalMySqlConvertTzFunction(fn, dialect, evalArg, out result)
             || TryEvalMySqlConvFunction(fn, dialect, evalArg, out result)
             || TryEvalMySqlDayFunctions(fn, dialect, evalArg, out result)
             || TryEvalMySqlDatabaseFunctions(fn, dialect, evalArg, out result)
@@ -5130,395 +5399,6 @@ private void FillPercentRankOrCumeDist(
         return true;
     }
 
-    private static bool TryEvalMySqlBase64Functions(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!(fn.Name.Equals("FROM_BASE64", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("TO_BASE64", StringComparison.OrdinalIgnoreCase)))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        var isToBase64 = fn.Name.Equals("TO_BASE64", StringComparison.OrdinalIgnoreCase);
-        var minSupportedVersion = 56;
-        if (dialect.Version < minSupportedVersion)
-        {
-            throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
-        }
-
-        if (fn.Args.Count == 0)
-            throw new InvalidOperationException($"{fn.Name.ToUpperInvariant()}() espera ao menos um argumento.");
-
-        var value = evalArg(0);
-        if (IsNullish(value))
-        {
-            result = null;
-            return true;
-        }
-
-        if (isToBase64)
-        {
-            var bytes = value as byte[]
-                ?? Encoding.UTF8.GetBytes(value!.ToString() ?? string.Empty);
-            result = Convert.ToBase64String(bytes);
-            return true;
-        }
-
-        var payload = value!.ToString();
-        if (string.IsNullOrWhiteSpace(payload))
-        {
-            result = null;
-            return true;
-        }
-
-        try
-        {
-            result = Convert.FromBase64String(payload);
-            return true;
-        }
-        catch
-        {
-            result = null;
-            return true;
-        }
-    }
-
-    private static bool TryEvalMySqlStringCompareFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("STRCMP", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (fn.Args.Count < 2)
-            throw new InvalidOperationException("STRCMP() espera dois argumentos.");
-
-        var left = evalArg(0);
-        var right = evalArg(1);
-        if (IsNullish(left) || IsNullish(right))
-        {
-            result = null;
-            return true;
-        }
-
-        var comparison = string.Compare(
-            Convert.ToString(left, CultureInfo.InvariantCulture),
-            Convert.ToString(right, CultureInfo.InvariantCulture),
-            StringComparison.Ordinal);
-
-        result = comparison < 0 ? -1 : comparison > 0 ? 1 : 0;
-        return true;
-    }
-
-    private static bool TryEvalMySqlChecksumFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("CRC32", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (fn.Args.Count == 0)
-            throw new InvalidOperationException("CRC32() espera um argumento.");
-
-        var value = evalArg(0);
-        if (IsNullish(value))
-        {
-            result = null;
-            return true;
-        }
-
-        var bytes = value as byte[]
-            ?? Encoding.UTF8.GetBytes(Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty);
-        var crc = ComputeCrc32(bytes);
-        result = (long)crc;
-        return true;
-    }
-
-    private static bool TryEvalMySqlNetworkFunctions(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        var name = fn.Name.ToUpperInvariant();
-        if (name is not ("INET_ATON" or "INET_NTOA" or "INET6_ATON" or "INET6_NTOA"))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (fn.Args.Count == 0)
-        {
-            result = null;
-            return true;
-        }
-
-        if (name is "INET_ATON" or "INET6_ATON")
-        {
-            if (fn.Args.Count == 0)
-                throw new InvalidOperationException($"{name}() espera um argumento.");
-        }
-
-        if (name is "INET_ATON")
-        {
-            var textValue = evalArg(0);
-            if (IsNullish(textValue))
-            {
-                result = null;
-                return true;
-            }
-
-            var text = Convert.ToString(textValue, CultureInfo.InvariantCulture) ?? string.Empty;
-            if (!IPAddress.TryParse(text, out var address) || address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
-            {
-                result = null;
-                return true;
-            }
-
-            var bytes = address.GetAddressBytes();
-            var numeric = ((uint)bytes[0] << 24) | ((uint)bytes[1] << 16) | ((uint)bytes[2] << 8) | bytes[3];
-            result = (long)numeric;
-            return true;
-        }
-
-        if (name is "INET_NTOA")
-        {
-            var value = evalArg(0);
-            if (IsNullish(value))
-            {
-                result = null;
-                return true;
-            }
-
-            if (!TryConvertNumericToUInt64(value!, out var numeric) || numeric > uint.MaxValue)
-            {
-                result = null;
-                return true;
-            }
-
-            var bytes = new[]
-            {
-                (byte)((numeric >> 24) & 0xFF),
-                (byte)((numeric >> 16) & 0xFF),
-                (byte)((numeric >> 8) & 0xFF),
-                (byte)(numeric & 0xFF)
-            };
-            result = new IPAddress(bytes).ToString();
-            return true;
-        }
-
-        if (name is "INET6_ATON")
-        {
-            if (dialect.Version < 56 || dialect.Version >= 84)
-                throw SqlUnsupported.ForDialect(dialect, "INET6_ATON");
-
-            var textValue = evalArg(0);
-            if (IsNullish(textValue))
-            {
-                result = null;
-                return true;
-            }
-
-            var text = Convert.ToString(textValue, CultureInfo.InvariantCulture) ?? string.Empty;
-            if (!IPAddress.TryParse(text, out var address))
-            {
-                result = null;
-                return true;
-            }
-
-            result = address.GetAddressBytes();
-            return true;
-        }
-
-        if (name is "INET6_NTOA")
-        {
-            if (dialect.Version < 56 || dialect.Version >= 84)
-                throw SqlUnsupported.ForDialect(dialect, "INET6_NTOA");
-
-            var value = evalArg(0);
-            if (IsNullish(value))
-            {
-                result = null;
-                return true;
-            }
-
-            if (value is not byte[] bytes || (bytes.Length != 4 && bytes.Length != 16))
-            {
-                result = null;
-                return true;
-            }
-
-            result = new IPAddress(bytes).ToString();
-            return true;
-        }
-
-        result = null;
-        return true;
-    }
-
-    private static bool TryEvalMySqlUuidFunctions(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        var name = fn.Name.ToUpperInvariant();
-        if (name is not ("UUID_TO_BIN" or "BIN_TO_UUID"))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (fn.Args.Count == 0)
-            throw new InvalidOperationException($"{name}() espera ao menos um argumento.");
-
-        var swapFlag = false;
-        if (fn.Args.Count > 1)
-        {
-            var flagValue = evalArg(1);
-            if (!IsNullish(flagValue) && TryConvertNumericToInt64(flagValue!, out var numericFlag))
-                swapFlag = numericFlag != 0;
-        }
-
-        if (name == "UUID_TO_BIN")
-        {
-            if (dialect.Version < 80)
-                throw SqlUnsupported.ForDialect(dialect, "UUID_TO_BIN");
-
-            var value = evalArg(0);
-            if (IsNullish(value))
-            {
-                result = null;
-                return true;
-            }
-
-            if (value is byte[] byteValue)
-            {
-                if (byteValue.Length != 16)
-                {
-                    result = null;
-                    return true;
-                }
-
-                result = swapFlag ? ApplyMySqlUuidSwap(byteValue) : [.. byteValue];
-                return true;
-            }
-
-            var text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
-            if (!TryParseUuidHex(text, out var bytes))
-            {
-                result = null;
-                return true;
-            }
-
-            result = swapFlag ? ApplyMySqlUuidSwap(bytes) : bytes;
-            return true;
-        }
-
-        if (dialect.Version < 80)
-            throw SqlUnsupported.ForDialect(dialect, "BIN_TO_UUID");
-
-        var binValue = evalArg(0);
-        if (IsNullish(binValue))
-        {
-            result = null;
-            return true;
-        }
-
-        if (binValue is not byte[] binBytes || binBytes.Length != 16)
-        {
-            result = null;
-            return true;
-        }
-
-        var normalized = swapFlag ? ApplyMySqlUuidUnswap(binBytes) : [.. binBytes];
-        result = FormatUuid(normalized);
-        return true;
-    }
-
-    private static bool TryConvertNumericToUInt64(object value, out ulong numeric)
-    {
-        numeric = 0;
-        switch (value)
-        {
-            case byte b:
-                numeric = b;
-                return true;
-            case sbyte sb:
-                if (sb < 0) return false;
-                numeric = (ulong)sb;
-                return true;
-            case short s:
-                if (s < 0) return false;
-                numeric = (ulong)s;
-                return true;
-            case ushort us:
-                numeric = us;
-                return true;
-            case int i:
-                if (i < 0) return false;
-                numeric = (ulong)i;
-                return true;
-            case uint ui:
-                numeric = ui;
-                return true;
-            case long l:
-                if (l < 0) return false;
-                numeric = (ulong)l;
-                return true;
-            case ulong ul:
-                numeric = ul;
-                return true;
-        }
-
-        var text = Convert.ToString(value, CultureInfo.InvariantCulture);
-        return ulong.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out numeric);
-    }
-
     private static bool TryConvertNumericToInt64(object value, out long numeric)
     {
         switch (value)
@@ -5550,234 +5430,6 @@ private void FillPercentRankOrCumeDist(
         }
 
         return long.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), NumberStyles.Integer, CultureInfo.InvariantCulture, out numeric);
-    }
-
-    private static uint ComputeCrc32(byte[] bytes)
-    {
-        var table = Crc32Table.Value;
-        var crc = uint.MaxValue;
-        foreach (var b in bytes)
-        {
-            var index = (crc ^ b) & 0xFF;
-            crc = (crc >> 8) ^ table[index];
-        }
-
-        return crc ^ uint.MaxValue;
-    }
-
-    private static readonly Lazy<uint[]> Crc32Table = new(static () =>
-    {
-        var table = new uint[256];
-        for (var i = 0; i < table.Length; i++)
-        {
-            var crc = (uint)i;
-            for (var bit = 0; bit < 8; bit++)
-            {
-                crc = (crc & 1) != 0
-                    ? (crc >> 1) ^ 0xEDB88320u
-                    : crc >> 1;
-            }
-
-            table[i] = crc;
-        }
-
-        return table;
-    });
-
-    private static bool TryParseUuidHex(string text, out byte[] bytes)
-    {
-        bytes = Array.Empty<byte>();
-        if (string.IsNullOrWhiteSpace(text))
-            return false;
-
-        var normalized = text.Trim().Trim('{', '}').Replace("-", string.Empty);
-        if (normalized.Length != 32)
-            return false;
-
-        bytes = new byte[16];
-        for (var i = 0; i < 16; i++)
-        {
-            var slice = normalized.Substring(i * 2, 2);
-            if (!byte.TryParse(slice, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out bytes[i]))
-                return false;
-        }
-
-        return true;
-    }
-
-    private static byte[] ApplyMySqlUuidSwap(byte[] bytes)
-    {
-        var swapped = new byte[16];
-        var map = new[] { 6, 7, 4, 5, 0, 1, 2, 3, 8, 9, 10, 11, 12, 13, 14, 15 };
-        for (var i = 0; i < swapped.Length; i++)
-            swapped[i] = bytes[map[i]];
-        return swapped;
-    }
-
-    private static byte[] ApplyMySqlUuidUnswap(byte[] bytes)
-    {
-        var swapped = new byte[16];
-        var map = new[] { 4, 5, 6, 7, 2, 3, 0, 1, 8, 9, 10, 11, 12, 13, 14, 15 };
-        for (var i = 0; i < swapped.Length; i++)
-            swapped[i] = bytes[map[i]];
-        return swapped;
-    }
-
-    private static string FormatUuid(byte[] bytes)
-        => $"{bytes[0]:x2}{bytes[1]:x2}{bytes[2]:x2}{bytes[3]:x2}-{bytes[4]:x2}{bytes[5]:x2}-{bytes[6]:x2}{bytes[7]:x2}-{bytes[8]:x2}{bytes[9]:x2}-{bytes[10]:x2}{bytes[11]:x2}{bytes[12]:x2}{bytes[13]:x2}{bytes[14]:x2}{bytes[15]:x2}";
-
-    private static bool TryEvalMySqlDateFormatFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("DATE_FORMAT", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (fn.Args.Count < 2)
-            throw new InvalidOperationException("DATE_FORMAT() espera data e formato.");
-
-        var value = evalArg(0);
-        var formatValue = evalArg(1)?.ToString();
-        if (IsNullish(value) || string.IsNullOrWhiteSpace(formatValue) || !TryCoerceDateTime(value, out var dateTime))
-        {
-            result = null;
-            return true;
-        }
-
-        var dotNetFormat = GetMySqlDateFormatPattern(formatValue!);
-        result = dateTime.ToString(dotNetFormat, CultureInfo.InvariantCulture);
-        return true;
-    }
-
-    private static bool TryEvalMySqlStrToDateFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("STR_TO_DATE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (fn.Args.Count < 2)
-            throw new InvalidOperationException("STR_TO_DATE() espera texto e formato.");
-
-        var textValue = evalArg(0)?.ToString();
-        var formatValue = evalArg(1)?.ToString();
-        if (textValue is null || string.IsNullOrWhiteSpace(textValue)
-            || formatValue is null || string.IsNullOrWhiteSpace(formatValue))
-        {
-            result = null;
-            return true;
-        }
-
-        var dotNetFormat = GetMySqlDateFormatPattern(formatValue);
-        if (TryParseExactCachedDateTime(textValue, dotNetFormat, DateTimeStyles.AllowWhiteSpaces, out var parsed))
-        {
-            result = parsed;
-            return true;
-        }
-
-        result = null;
-        return true;
-    }
-
-    private static bool TryEvalMySqlFromUnixTimeFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("FROM_UNIXTIME", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (fn.Args.Count == 0)
-            throw new InvalidOperationException("FROM_UNIXTIME() espera um argumento.");
-
-        var value = evalArg(0);
-        if (IsNullish(value) || !TryConvertNumericToDouble(value, out var seconds))
-        {
-            result = null;
-            return true;
-        }
-
-        var dateTime = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(seconds);
-        if (fn.Args.Count > 1)
-        {
-            var formatValue = evalArg(1)?.ToString();
-            if (string.IsNullOrWhiteSpace(formatValue))
-            {
-                result = null;
-                return true;
-            }
-
-            var dotNetFormat = GetMySqlDateFormatPattern(formatValue!);
-            result = dateTime.ToString(dotNetFormat, CultureInfo.InvariantCulture);
-            return true;
-        }
-
-        result = dateTime;
-        return true;
-    }
-
-    private static bool TryEvalMySqlFromDaysFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("FROM_DAYS", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (fn.Args.Count == 0)
-            throw new InvalidOperationException("FROM_DAYS() espera um argumento.");
-
-        var value = evalArg(0);
-        if (IsNullish(value) || !TryConvertNumericToInt64(value!, out var days) || days < 1)
-        {
-            result = null;
-            return true;
-        }
-
-        result = new DateTime(1, 1, 1).AddDays(days - 1);
-        return true;
     }
 
     private bool TryEvalMySqlDateSubFunction(
@@ -5821,212 +5473,6 @@ private void FillPercentRankOrCumeDist(
         var unit = GetTemporalUnitOrDefault(intervalCall.Args[1], row, group, ctes, TemporalUnit.Day);
         result = ApplyDateDelta(dateTime, unit, -Convert.ToInt32((amountObject ?? 0m).ToDec()));
         return true;
-    }
-
-    private static bool TryEvalMySqlGetFormatFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("GET_FORMAT", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (fn.Args.Count < 2)
-            throw new InvalidOperationException("GET_FORMAT() espera tipo e formato.");
-
-        var typeValue = evalArg(0)?.ToString();
-        if (string.IsNullOrWhiteSpace(typeValue))
-        {
-            typeValue = fn.Args[0] switch
-            {
-                IdentifierExpr id => id.Name,
-                RawSqlExpr raw => raw.Sql,
-                _ => null
-            };
-        }
-
-        var formatValue = evalArg(1)?.ToString();
-        if (string.IsNullOrWhiteSpace(formatValue))
-        {
-            formatValue = fn.Args[1] switch
-            {
-                IdentifierExpr id => id.Name,
-                RawSqlExpr raw => raw.Sql,
-                _ => null
-            };
-        }
-        if (string.IsNullOrWhiteSpace(typeValue) || string.IsNullOrWhiteSpace(formatValue))
-        {
-            result = null;
-            return true;
-        }
-
-        result = ResolveMySqlGetFormatPattern(typeValue!, formatValue!);
-        return true;
-    }
-
-    private static bool TryEvalMySqlConvertTzFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("CONVERT_TZ", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (fn.Args.Count < 3)
-            throw new InvalidOperationException("CONVERT_TZ() espera data e dois fusos.");
-
-        var value = evalArg(0);
-        var fromValue = evalArg(1)?.ToString();
-        var toValue = evalArg(2)?.ToString();
-        if (IsNullish(value) || string.IsNullOrWhiteSpace(fromValue) || string.IsNullOrWhiteSpace(toValue) || !TryCoerceDateTime(value, out var dateTime))
-        {
-            result = null;
-            return true;
-        }
-
-        if (!TryParseMySqlTimeZoneOffset(fromValue!, out var fromOffset)
-            || !TryParseMySqlTimeZoneOffset(toValue!, out var toOffset))
-        {
-            result = null;
-            return true;
-        }
-
-        result = dateTime - fromOffset + toOffset;
-        return true;
-    }
-
-    private static string GetMySqlDateFormatPattern(string format)
-        => _mySqlDateFormatCache.GetOrAdd(format, static rawFormat => ConvertMySqlDateFormatToDotNet(rawFormat));
-
-    private static string ConvertMySqlDateFormatToDotNet(string format)
-    {
-        var builder = new StringBuilder();
-        for (var i = 0; i < format.Length; i++)
-        {
-            var ch = format[i];
-            if (ch != '%')
-            {
-                builder.Append(ch);
-                continue;
-            }
-
-            if (i + 1 >= format.Length)
-                break;
-
-            i++;
-            builder.Append(format[i] switch
-            {
-                'Y' => "yyyy",
-                'y' => "yy",
-                'm' => "MM",
-                'c' => "M",
-                'd' => "dd",
-                'e' => "d",
-                'H' => "HH",
-                'k' => "H",
-                'h' or 'I' => "hh",
-                'l' => "h",
-                'i' => "mm",
-                's' or 'S' => "ss",
-                'f' => "ffffff",
-                'p' => "tt",
-                'T' => "HH:mm:ss",
-                'r' => "hh:mm:ss tt",
-                'b' => "MMM",
-                'M' => "MMMM",
-                'a' => "ddd",
-                'W' => "dddd",
-                '%' => "%",
-                _ => format[i].ToString()
-            });
-        }
-
-        return builder.ToString();
-    }
-
-    private static string? ResolveMySqlGetFormatPattern(string type, string format)
-    {
-        var typeKey = type.Trim().ToUpperInvariant();
-        var formatKey = format.Trim().ToUpperInvariant();
-        return typeKey switch
-        {
-            "DATE" => formatKey switch
-            {
-                "USA" => "%m.%d.%Y",
-                "JIS" or "ISO" => "%Y-%m-%d",
-                "EUR" => "%d.%m.%Y",
-                "INTERNAL" => "%Y%m%d",
-                _ => null
-            },
-            "TIME" => formatKey switch
-            {
-                "USA" => "%h:%i:%s %p",
-                "JIS" or "ISO" => "%H:%i:%s",
-                "EUR" => "%H.%i.%s",
-                "INTERNAL" => "%H%i%s",
-                _ => null
-            },
-            "DATETIME" or "TIMESTAMP" => formatKey switch
-            {
-                "USA" => "%m.%d.%Y %h:%i:%s %p",
-                "JIS" or "ISO" => "%Y-%m-%d %H:%i:%s",
-                "EUR" => "%d.%m.%Y %H.%i.%s",
-                "INTERNAL" => "%Y%m%d%H%i%s",
-                _ => null
-            },
-            _ => null
-        };
-    }
-
-    private static bool TryParseMySqlTimeZoneOffset(string text, out TimeSpan offset)
-    {
-        offset = TimeSpan.Zero;
-        if (string.IsNullOrWhiteSpace(text))
-            return false;
-
-        var normalized = text.Trim().ToUpperInvariant();
-        if (normalized is "UTC" or "GMT" or "SYSTEM")
-        {
-            offset = TimeSpan.Zero;
-            return true;
-        }
-
-        if (normalized.Length == 6 && (normalized[0] == '+' || normalized[0] == '-') && normalized[3] == ':')
-        {
-            var hoursText = normalized.Substring(1, 2);
-            var minutesText = normalized.Substring(4, 2);
-            if (int.TryParse(hoursText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var hours)
-                && int.TryParse(minutesText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var minutes))
-            {
-                offset = new TimeSpan(hours, minutes, 0);
-                if (normalized[0] == '-')
-                    offset = -offset;
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private static bool TryEvalMySqlSetFunctions(
@@ -20525,6 +19971,12 @@ private void FillPercentRankOrCumeDist(
                 throw SqlUnsupported.ForDialect(dialect, name);
         }
 
+        if (name is "GROUP_CONCAT" or "STRING_AGG" or "LISTAGG")
+        {
+            var separator = GetAggregateSeparator(fn, group, ctes);
+            return EvalSimpleStringAggregate(fn, group, ctes, separator, GetStringAggregateDefaultSeparator(name));
+        }
+
         var values = TryGetAggregateValues(fn, group, ctes);
         if (values is null)
             return null;
@@ -21146,7 +20598,16 @@ private void FillPercentRankOrCumeDist(
             return null;
 
         var separator = separatorObj?.ToString() ?? defaultSeparator;
-        return string.Join(separator, values.Select(v => v?.ToString() ?? string.Empty));
+        var builder = new StringBuilder();
+        for (var i = 0; i < values.Count; i++)
+        {
+            if (i > 0)
+                builder.Append(separator);
+
+            builder.Append(values[i]?.ToString() ?? string.Empty);
+        }
+
+        return builder.ToString();
     }
 
     private string? EvalStringAggregateForCallExpr(CallExpr fn, EvalGroup group, IDictionary<string, Source> ctes, string name)
@@ -21156,8 +20617,7 @@ private void FillPercentRankOrCumeDist(
 
         var separator = GetAggregateSeparator(fn, group, ctes);
         var rows = GetStringAggregateRows(fn, group, ctes);
-        var values = CollectStringAggregateValues(fn, rows, ctes);
-        return EvalStringAggregate(values, separator, GetStringAggregateDefaultSeparator(name));
+        return EvalStringAggregateRows(fn, rows, ctes, separator, GetStringAggregateDefaultSeparator(name));
     }
 
     private object? GetAggregateSeparator(
@@ -21168,7 +20628,7 @@ private void FillPercentRankOrCumeDist(
             ? Eval(fn.Args[1], group.Rows[0], null, ctes)
             : null;
 
-    private IEnumerable<EvalRow> GetStringAggregateRows(
+    private List<EvalRow> GetStringAggregateRows(
         CallExpr fn,
         EvalGroup group,
         IDictionary<string, Source> ctes)
@@ -21177,23 +20637,48 @@ private void FillPercentRankOrCumeDist(
         if (orderBy is not { Count: > 0 })
             return group.Rows;
 
-        return group.Rows.OrderBy(
-            row => EvaluateWithinGroupOrderKey(orderBy, row, ctes),
-            CreateWithinGroupOrderKeyComparer(orderBy));
-    }
+        var sortedRows = new List<EvalRow>(group.Rows);
 
-    private object?[] EvaluateWithinGroupOrderKey(
-        IReadOnlyList<WindowOrderItem> orderBy,
-        EvalRow row,
-        IDictionary<string, Source> ctes)
-        => [.. orderBy.Select(order => Eval(order.Expr, row, null, ctes))];
-
-    private IComparer<object?[]> CreateWithinGroupOrderKeyComparer(IReadOnlyList<WindowOrderItem> orderBy)
-        => Comparer<object?[]>.Create((left, right) =>
+        if (orderBy.Count == 1)
         {
+            var order = orderBy[0];
+            var orderValuesByRow = new Dictionary<EvalRow, object?>(
+                Math.Max(1, sortedRows.Count),
+                ReferenceEqualityComparer<EvalRow>.Instance);
+
+            foreach (var row in sortedRows)
+                orderValuesByRow[row] = Eval(order.Expr, row, null, ctes);
+
+            sortedRows.Sort((left, right) =>
+            {
+                var comparison = CompareSql(orderValuesByRow[left], orderValuesByRow[right]);
+                return order.Desc ? -comparison : comparison;
+            });
+
+            return sortedRows;
+        }
+
+        var orderValuesByRowMulti = new Dictionary<EvalRow, object?[]>(
+            Math.Max(1, sortedRows.Count),
+            ReferenceEqualityComparer<EvalRow>.Instance);
+
+        foreach (var row in sortedRows)
+        {
+            var values = new object?[orderBy.Count];
+            for (var i = 0; i < orderBy.Count; i++)
+                values[i] = Eval(orderBy[i].Expr, row, null, ctes);
+
+            orderValuesByRowMulti[row] = values;
+        }
+
+        sortedRows.Sort((left, right) =>
+        {
+            var leftValues = orderValuesByRowMulti[left];
+            var rightValues = orderValuesByRowMulti[right];
+
             for (var i = 0; i < orderBy.Count; i++)
             {
-                var comparison = CompareSql(left[i], right[i]);
+                var comparison = CompareSql(leftValues[i], rightValues[i]);
                 if (comparison == 0)
                     continue;
 
@@ -21203,13 +20688,22 @@ private void FillPercentRankOrCumeDist(
             return 0;
         });
 
-    private List<object?> CollectStringAggregateValues(
+        return sortedRows;
+    }
+
+    private string? EvalStringAggregateRows(
         CallExpr fn,
         IEnumerable<EvalRow> rows,
-        IDictionary<string, Source> ctes)
+        IDictionary<string, Source> ctes,
+        object? separatorObj,
+        string defaultSeparator)
     {
-        var values = new List<object?>();
+        var separator = separatorObj?.ToString() ?? defaultSeparator;
+        var estimatedCount = rows is ICollection<EvalRow> collection ? collection.Count : 1;
+        StringBuilder? builder = null;
+        var hasValue = false;
         HashSet<string>? distinct = fn.Distinct ? new HashSet<string>(StringComparer.Ordinal) : null;
+        var estimatedCapacity = EstimateStringAggregateCapacity(estimatedCount, separator.Length);
 
         foreach (var row in rows)
         {
@@ -21217,15 +20711,73 @@ private void FillPercentRankOrCumeDist(
             if (IsNullish(value))
                 continue;
 
-            if (distinct is null || distinct.Add(NormalizeDistinctKey(value, Dialect)))
-                values.Add(value);
+            if (distinct is not null && !distinct.Add(NormalizeDistinctKey(value, Dialect)))
+                continue;
+
+            var text = value?.ToString() ?? string.Empty;
+            if (!hasValue)
+            {
+                builder = new StringBuilder(Math.Max(estimatedCapacity, text.Length));
+                builder.Append(text);
+                hasValue = true;
+                continue;
+            }
+
+            builder!.Append(separator);
+            builder.Append(text);
         }
 
-        return values;
+        return hasValue ? builder!.ToString() : null;
     }
 
     private static string GetStringAggregateDefaultSeparator(string name)
         => name == "LISTAGG" ? string.Empty : ",";
+
+    private static int EstimateStringAggregateCapacity(int rowCount, int separatorLength)
+    {
+        if (rowCount <= 1)
+            return 16;
+
+        var estimated = rowCount * Math.Max(8, separatorLength + 6);
+        return Math.Min(estimated, 64 * 1024);
+    }
+
+    private string? EvalSimpleStringAggregate(
+        FunctionCallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes,
+        object? separatorObj,
+        string defaultSeparator)
+    {
+        if (fn.Args.Count == 0)
+            return null;
+
+        var separator = separatorObj?.ToString() ?? defaultSeparator;
+        StringBuilder? builder = null;
+        var hasValue = false;
+        var estimatedCapacity = EstimateStringAggregateCapacity(group.Rows.Count, separator.Length);
+
+        foreach (var row in group.Rows)
+        {
+            var value = Eval(fn.Args[0], row, null, ctes);
+            if (IsNullish(value))
+                continue;
+
+            var text = value?.ToString() ?? string.Empty;
+            if (!hasValue)
+            {
+                builder = new StringBuilder(Math.Max(estimatedCapacity, text.Length));
+                builder.Append(text);
+                hasValue = true;
+                continue;
+            }
+
+            builder!.Append(separator);
+            builder.Append(text);
+        }
+
+        return hasValue ? builder!.ToString() : null;
+    }
 
     private bool TryEvalAggregateCount(
         FunctionCallExpr fn,
@@ -21382,7 +20934,8 @@ private void FillPercentRankOrCumeDist(
 
     internal sealed record MySqlIndexHintPlan(
         HashSet<string> AllowedIndexNames,
-        HashSet<string> MissingForcedIndexes);
+        HashSet<string> MissingForcedIndexes,
+        bool HasRowAccessHints);
 
     internal sealed class Source
     {

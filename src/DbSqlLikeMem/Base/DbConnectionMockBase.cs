@@ -11,6 +11,31 @@ public abstract class DbConnectionMockBase(
     string? defaultDatabase = null
     ) : DbConnection
 {
+    private enum TransactionJournalEntryKind
+    {
+        Insert,
+        Update,
+        Delete,
+        CreateTable,
+        DropTable,
+        CreateIndex,
+        DropIndex,
+        UpsertView,
+        DropView,
+        CreateSequence,
+        DropSequence,
+        UpdateSequence,
+        UpsertFunction,
+        DropFunction
+    }
+
+    private enum TransactionTableRegistrationKind
+    {
+        Schema,
+        ConnectionTemporary,
+        GlobalTemporary
+    }
+
     private sealed class TableReferenceComparer : IEqualityComparer<ITableMock>
     {
         public static readonly TableReferenceComparer Instance = new();
@@ -21,15 +46,45 @@ public abstract class DbConnectionMockBase(
             => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
     }
 
-    private sealed record TransactionTableSnapshot(
-        int NextIdentity,
-        List<Dictionary<int, object?>> Rows);
+    private sealed record TransactionJournalEntry(
+        TableMock Table,
+        TransactionJournalEntryKind Kind,
+        int RowIndex,
+        Dictionary<int, object?>? Row,
+        Dictionary<int, object?>? OldRowSnapshot,
+        int PreviousNextIdentity,
+        TransactionTableRegistrationKind RegistrationKind,
+        string RegistrationKey,
+        Idx? IndexDefinition = null,
+        TransactionViewState? ViewState = null,
+        TransactionSequenceState? SequenceState = null,
+        TransactionFunctionState? FunctionState = null);
+
+    private sealed record TransactionViewState(
+        string SchemaName,
+        string ViewName,
+        SqlSelectQuery? PreviousDefinition);
+
+    private sealed record TransactionSequenceState(
+        string SchemaName,
+        string SequenceName,
+        SequenceDef? PreviousDefinition,
+        bool HadSessionValue,
+        long SessionValue);
+
+    private sealed record TransactionFunctionState(
+        string SchemaName,
+        string FunctionName,
+        ScalarFunctionDef? PreviousDefinition);
 
     private bool _disposed;
-    private readonly Dictionary<string, Dictionary<ITableMock, TransactionTableSnapshot>> _savepoints =
+    private readonly Dictionary<string, int> _savepoints =
         new(StringComparer.OrdinalIgnoreCase);
     private readonly List<string> _savepointOrder = [];
-    private Dictionary<ITableMock, TransactionTableSnapshot>? _transactionBeginSnapshot;
+    private readonly List<TransactionJournalEntry> _transactionJournal = [];
+    private readonly HashSet<TableMock> _journalObservedTables = [];
+    private int _transactionBeginJournalPosition;
+    private bool _isReplayingTransactionJournal;
 
     /// <summary>
     /// EN: In-memory database associated with this connection.
@@ -668,8 +723,52 @@ public abstract class DbConnectionMockBase(
         if (!Db.TryGetValue(schemaKey, out var schemaMock) || schemaMock == null)
             schemaMock = Db.CreateSchema(schemaKey);
         var schema = (SchemaMock)schemaMock;
-        var table = schema.CreateTableInstance(tableName, columns ?? [], rows);
+        var materializedRows = rows as IReadOnlyList<Dictionary<int, object?>> ?? rows?.ToList();
+        var table = schema.CreateTableInstance(
+            tableName,
+            columns ?? [],
+            CurrentTransaction == null ? materializedRows : null);
         _temporaryTables.Add(key, table);
+        if (CurrentTransaction != null)
+        {
+            AttachTransactionJournal(table);
+            RecordCreatedTable((TableMock)table, TransactionTableRegistrationKind.ConnectionTemporary, key);
+            if (materializedRows is { Count: > 0 })
+            {
+                table.AddRange(materializedRows.Select(
+                    static row => row.ToDictionary(entry => entry.Key, entry => entry.Value)));
+            }
+        }
+        return table;
+    }
+
+    internal ITableMock AddGlobalTemporaryTable(
+        string tableName,
+        IEnumerable<Col>? columns = null,
+        IEnumerable<Dictionary<int, object?>>? rows = null,
+        string? schemaName = null)
+    {
+        var materializedRows = rows as IReadOnlyList<Dictionary<int, object?>> ?? rows?.ToList();
+        var table = Db.AddGlobalTemporaryTable(
+            tableName,
+            columns,
+            CurrentTransaction == null ? materializedRows : null,
+            schemaName);
+
+        if (CurrentTransaction != null)
+        {
+            AttachTransactionJournal(table);
+            RecordCreatedTable(
+                (TableMock)table,
+                TransactionTableRegistrationKind.GlobalTemporary,
+                BuildTemporaryTableKey(tableName, schemaName));
+            if (materializedRows is { Count: > 0 })
+            {
+                table.AddRange(materializedRows.Select(
+                    static row => row.ToDictionary(entry => entry.Key, entry => entry.Value)));
+            }
+        }
+
         return table;
     }
 
@@ -709,11 +808,24 @@ public abstract class DbConnectionMockBase(
         IEnumerable<Col>? columns = null,
         IEnumerable<Dictionary<int, object?>>? rows = null,
         string? schemaName = null)
-        => Db.AddTable(
+    {
+        var table = Db.AddTable(
             tableName,
             columns,
             rows,
             schemaName ?? Database);
+
+        if (CurrentTransaction != null && table is TableMock tableMock)
+        {
+            AttachTransactionJournal(tableMock);
+            RecordCreatedTable(
+                tableMock,
+                TransactionTableRegistrationKind.Schema,
+                tableMock.TableName);
+        }
+
+        return table;
+    }
 
     /// <summary>
     /// EN: Gets a table by name, throwing if it does not exist.
@@ -792,6 +904,142 @@ public abstract class DbConnectionMockBase(
         return false;
     }
 
+    private TransactionTableRegistrationKind GetRegistrationKind(TableMock table)
+    {
+        if (_temporaryTables.Values.Any(candidate => ReferenceEquals(candidate, table)))
+            return TransactionTableRegistrationKind.ConnectionTemporary;
+
+        if (Db.ListGlobalTemporaryTables(table.Schema.SchemaName).Any(candidate => ReferenceEquals(candidate, table)))
+            return TransactionTableRegistrationKind.GlobalTemporary;
+
+        return TransactionTableRegistrationKind.Schema;
+    }
+
+    private string GetRegistrationKey(TableMock table)
+        => GetRegistrationKind(table) switch
+        {
+            TransactionTableRegistrationKind.ConnectionTemporary or TransactionTableRegistrationKind.GlobalTemporary
+                => BuildTemporaryTableKey(table.TableName, table.Schema.SchemaName),
+            _ => table.TableName
+        };
+
+    private void RecordCreatedTable(
+        TableMock table,
+        TransactionTableRegistrationKind registrationKind,
+        string registrationKey)
+    {
+        if (CurrentTransaction == null)
+            return;
+
+        _transactionJournal.Add(new TransactionJournalEntry(
+            table,
+            TransactionJournalEntryKind.CreateIndex,
+            -1,
+            null,
+            null,
+            table.NextIdentity,
+            registrationKind,
+            registrationKey));
+    }
+
+    private void RecordDroppedTable(
+        TableMock table,
+        TransactionTableRegistrationKind registrationKind,
+        string registrationKey)
+    {
+        if (CurrentTransaction == null)
+            return;
+
+        _transactionJournal.Add(new TransactionJournalEntry(
+            table,
+            TransactionJournalEntryKind.DropIndex,
+            -1,
+            null,
+            null,
+            table.NextIdentity,
+            registrationKind,
+            registrationKey));
+    }
+
+    private void RecordCreatedIndex(
+        TableMock table,
+        Idx indexDefinition)
+    {
+        if (CurrentTransaction == null)
+            return;
+
+        _transactionJournal.Add(new TransactionJournalEntry(
+            table,
+            TransactionJournalEntryKind.CreateIndex,
+            -1,
+            null,
+            null,
+            table.NextIdentity,
+            GetRegistrationKind(table),
+            GetRegistrationKey(table),
+            indexDefinition));
+    }
+
+    private void RecordDroppedIndex(
+        TableMock table,
+        Idx indexDefinition)
+    {
+        if (CurrentTransaction == null)
+            return;
+
+        _transactionJournal.Add(new TransactionJournalEntry(
+            table,
+            TransactionJournalEntryKind.DropIndex,
+            -1,
+            null,
+            null,
+            table.NextIdentity,
+            GetRegistrationKind(table),
+            GetRegistrationKey(table),
+            indexDefinition));
+    }
+
+    private bool TryResolveDroppedIndex(
+        string indexName,
+        string? tableName,
+        string schemaName,
+        out TableMock table,
+        out Idx indexDefinition)
+    {
+        table = null!;
+        indexDefinition = null!;
+        var normalizedIndexName = indexName.NormalizeName();
+
+        if (!string.IsNullOrWhiteSpace(tableName))
+        {
+            if (Db.GetTable(tableName!, schemaName) is not TableMock namedTable
+                || !namedTable.Indexes.TryGetValue(normalizedIndexName, out var namedIndex))
+                return false;
+
+            table = namedTable;
+            indexDefinition = new Idx(
+                namedIndex.Name,
+                [.. namedIndex.KeyCols],
+                namedIndex.Unique,
+                [.. namedIndex.Include]);
+            return true;
+        }
+
+        var matchingTable = Db.ListTables(schemaName)
+            .OfType<TableMock>()
+            .FirstOrDefault(candidate => candidate.Indexes.TryGetValue(normalizedIndexName, out _));
+        if (matchingTable is null || !matchingTable.Indexes.TryGetValue(normalizedIndexName, out var resolvedIndex))
+            return false;
+
+        table = matchingTable;
+        indexDefinition = new Idx(
+            resolvedIndex.Name,
+            [.. resolvedIndex.KeyCols],
+            resolvedIndex.Unique,
+            [.. resolvedIndex.Include]);
+        return true;
+    }
+
     /// <summary>
     /// EN: Lists the tables in the current schema.
     /// PT: Lista as tabelas do schema atual.
@@ -829,9 +1077,29 @@ public abstract class DbConnectionMockBase(
 
     internal void AddView(
         SqlCreateViewQuery query)
-        => Db.AddView(
-            query,
-            query.Table?.DbName ?? Database);
+    {
+        var schemaName = query.Table?.DbName ?? Database;
+        var viewName = query.Table?.Name?.NormalizeName();
+        SqlSelectQuery? previousDefinition = null;
+        if (!string.IsNullOrWhiteSpace(viewName))
+            Db.TryGetView(viewName!, out previousDefinition, schemaName);
+
+        Db.AddView(query, schemaName);
+
+        if (CurrentTransaction == null || string.IsNullOrWhiteSpace(viewName))
+            return;
+
+        _transactionJournal.Add(new TransactionJournalEntry(
+            null!,
+            TransactionJournalEntryKind.UpsertView,
+            -1,
+            null,
+            null,
+            0,
+            default,
+            string.Empty,
+            ViewState: new TransactionViewState(schemaName, viewName!, previousDefinition)));
+    }
 
     internal SqlSelectQuery GetView(
         string viewName,
@@ -853,10 +1121,26 @@ public abstract class DbConnectionMockBase(
         string viewName,
         bool ifExists,
         string? schemaName = null)
-        => Db.DropView(
-            viewName,
-            ifExists,
-            schemaName ?? Database);
+    {
+        var targetSchema = schemaName ?? Database;
+        if (CurrentTransaction != null
+            && Db.TryGetView(viewName, out var previousDefinition, targetSchema)
+            && previousDefinition is not null)
+        {
+            _transactionJournal.Add(new TransactionJournalEntry(
+                null!,
+                TransactionJournalEntryKind.DropView,
+                -1,
+                null,
+                null,
+                0,
+                default,
+                string.Empty,
+                ViewState: new TransactionViewState(targetSchema, viewName.NormalizeName(), previousDefinition)));
+        }
+
+        Db.DropView(viewName, ifExists, targetSchema);
+    }
 
     internal void DropTable(
         string tableName,
@@ -869,19 +1153,51 @@ public abstract class DbConnectionMockBase(
 
         if (scope == TemporaryTableScope.Global)
         {
+            if (CurrentTransaction != null
+                && Db.TryGetGlobalTemporaryTable(tableName, out var globalTable, targetSchema)
+                && globalTable is TableMock globalTableMock)
+            {
+                RecordDroppedTable(
+                    globalTableMock,
+                    TransactionTableRegistrationKind.GlobalTemporary,
+                    BuildTemporaryTableKey(tableName, targetSchema));
+            }
             Db.DropGlobalTemporaryTable(tableName, ifExists, targetSchema);
             return;
         }
 
         if (temporary || scope == TemporaryTableScope.Connection)
         {
-            if (_temporaryTables.Remove(BuildTemporaryTableKey(tableName, targetSchema)))
+            var temporaryKey = BuildTemporaryTableKey(tableName, targetSchema);
+            if (_temporaryTables.TryGetValue(temporaryKey, out var connectionTemp)
+                && connectionTemp is TableMock connectionTempMock)
+            {
+                if (CurrentTransaction != null)
+                {
+                    RecordDroppedTable(
+                        connectionTempMock,
+                        TransactionTableRegistrationKind.ConnectionTemporary,
+                        temporaryKey);
+                }
+
+                _temporaryTables.Remove(temporaryKey);
                 return;
+            }
 
             if (ifExists)
                 return;
 
             throw SqlUnsupported.ForNormalizedTableDoesNotExist(tableName);
+        }
+
+        if (CurrentTransaction != null
+            && Db.TryGetTable(tableName, out var schemaTable, targetSchema)
+            && schemaTable is TableMock schemaTableMock)
+        {
+            RecordDroppedTable(
+                schemaTableMock,
+                TransactionTableRegistrationKind.Schema,
+                schemaTableMock.TableName);
         }
 
         Db.DropTable(tableName, ifExists, targetSchema);
@@ -893,23 +1209,48 @@ public abstract class DbConnectionMockBase(
         IEnumerable<string> keyColumns,
         bool unique,
         string? schemaName = null)
-        => Db.CreateIndex(
+    {
+        Db.CreateIndex(
             indexName,
             tableName,
             keyColumns,
             unique,
             schemaName ?? Database);
 
+        if (CurrentTransaction == null)
+            return;
+
+        if (Db.GetTable(tableName, schemaName ?? Database) is not TableMock table)
+            return;
+
+        var createdIndex = table.Indexes[indexName.NormalizeName()];
+        RecordCreatedIndex(
+            table,
+            new Idx(
+                createdIndex.Name,
+                [.. createdIndex.KeyCols],
+                createdIndex.Unique,
+                [.. createdIndex.Include]));
+    }
+
     internal void DropIndex(
         string indexName,
         bool ifExists,
         string? tableName = null,
         string? schemaName = null)
-        => Db.DropIndex(
+    {
+        if (CurrentTransaction != null
+            && TryResolveDroppedIndex(indexName, tableName, schemaName ?? Database, out var table, out var indexDefinition))
+        {
+            RecordDroppedIndex(table, indexDefinition);
+        }
+
+        Db.DropIndex(
             indexName,
             ifExists,
             tableName,
             schemaName ?? Database);
+    }
 
     internal void AlterTableAddColumn(
         string tableName,
@@ -987,22 +1328,64 @@ public abstract class DbConnectionMockBase(
         SqlExpr body,
         bool orReplace = false,
         string? schemaName = null)
-        => Db.CreateFunction(
+    {
+        var targetSchema = schemaName ?? Database;
+        ScalarFunctionDef? previousDefinition = null;
+        Db.TryGetFunction(functionName, out previousDefinition, targetSchema);
+
+        Db.CreateFunction(
             functionName,
             returnTypeSql,
             parameters,
             body,
             orReplace,
-            schemaName ?? Database);
+            targetSchema);
+
+        if (CurrentTransaction == null)
+            return;
+
+        _transactionJournal.Add(new TransactionJournalEntry(
+            null!,
+            TransactionJournalEntryKind.UpsertFunction,
+            -1,
+            null,
+            null,
+            0,
+            default,
+            string.Empty,
+            FunctionState: new TransactionFunctionState(
+                targetSchema,
+                functionName.NormalizeName(),
+                previousDefinition)));
+    }
 
     internal void DropFunction(
         string functionName,
         bool ifExists,
         string? schemaName = null)
-        => Db.DropFunction(
-            functionName,
-            ifExists,
-            schemaName ?? Database);
+    {
+        var targetSchema = schemaName ?? Database;
+        if (CurrentTransaction != null
+            && Db.TryGetFunction(functionName, out var previousDefinition, targetSchema)
+            && previousDefinition is not null)
+        {
+            _transactionJournal.Add(new TransactionJournalEntry(
+                null!,
+                TransactionJournalEntryKind.DropFunction,
+                -1,
+                null,
+                null,
+                0,
+                default,
+                string.Empty,
+                FunctionState: new TransactionFunctionState(
+                    targetSchema,
+                    functionName.NormalizeName(),
+                    previousDefinition)));
+        }
+
+        Db.DropFunction(functionName, ifExists, targetSchema);
+    }
 
     #endregion
 
@@ -1070,12 +1453,35 @@ public abstract class DbConnectionMockBase(
         long startValue = 1,
         long incrementBy = 1,
         string? schemaName = null)
-        => Db.CreateSequence(
+    {
+        var targetSchema = schemaName ?? Database;
+        var existedBefore = Db.TryGetSequence(sequenceName, out _, targetSchema);
+        Db.CreateSequence(
             sequenceName,
             ifNotExists,
             startValue,
             incrementBy,
-            schemaName ?? Database);
+            targetSchema);
+
+        if (CurrentTransaction == null || existedBefore)
+            return;
+
+        _transactionJournal.Add(new TransactionJournalEntry(
+            null!,
+            TransactionJournalEntryKind.CreateSequence,
+            -1,
+            null,
+            null,
+            0,
+            default,
+            string.Empty,
+            SequenceState: new TransactionSequenceState(
+                targetSchema,
+                sequenceName.NormalizeName(),
+                null,
+                false,
+                default)));
+    }
 
     internal void DropSequence(
         string sequenceName,
@@ -1083,8 +1489,71 @@ public abstract class DbConnectionMockBase(
         string? schemaName = null)
     {
         var targetSchema = schemaName ?? Database;
+        if (CurrentTransaction != null
+            && Db.TryGetSequence(sequenceName, out var previousSequence, targetSchema)
+            && previousSequence is not null)
+        {
+            var hadSessionValue = TryGetSessionSequenceValue(sequenceName, out var sessionValue, targetSchema);
+            _transactionJournal.Add(new TransactionJournalEntry(
+                null!,
+                TransactionJournalEntryKind.DropSequence,
+                -1,
+                null,
+                null,
+                0,
+                default,
+                string.Empty,
+                SequenceState: new TransactionSequenceState(
+                    targetSchema,
+                    sequenceName.NormalizeName(),
+                    CloneSequence(previousSequence),
+                    hadSessionValue,
+                    sessionValue)));
+        }
+
         ClearSessionSequenceValue(sequenceName, targetSchema);
         Db.DropSequence(sequenceName, ifExists, targetSchema);
+    }
+
+    private static SequenceDef CloneSequence(SequenceDef sequence)
+    {
+        var clone = new SequenceDef(
+            sequence.Name,
+            sequence.StartValue,
+            sequence.IncrementBy,
+            sequence.CurrentValue);
+        if (sequence.CurrentValue.HasValue && !sequence.IsCalled)
+            clone.SetValue(sequence.CurrentValue.Value, false);
+
+        return clone;
+    }
+
+    internal void CaptureSequenceStateForRollback(
+        string sequenceName,
+        string? schemaName = null)
+    {
+        if (CurrentTransaction == null
+            || !Db.TryGetSequence(sequenceName, out var sequence, schemaName ?? Database)
+            || sequence is null)
+            return;
+
+        var targetSchema = schemaName ?? Database;
+        var hadSessionValue = TryGetSessionSequenceValue(sequenceName, out var sessionValue, targetSchema);
+        _transactionJournal.Add(new TransactionJournalEntry(
+            null!,
+            TransactionJournalEntryKind.UpdateSequence,
+            -1,
+            null,
+            null,
+            0,
+            default,
+            string.Empty,
+            SequenceState: new TransactionSequenceState(
+                targetSchema,
+                sequenceName.NormalizeName(),
+                CloneSequence(sequence),
+                hadSessionValue,
+                sessionValue)));
     }
 
     internal void SetSessionSequenceValue(
@@ -1168,7 +1637,8 @@ public abstract class DbConnectionMockBase(
         CurrentIsolationLevel = isolationLevel;
         CurrentTransaction = CreateTransaction(isolationLevel);
         ClearTransactionStateCore();
-        _transactionBeginSnapshot = CaptureSnapshot();
+        AttachTransactionJournalToCurrentTables();
+        _transactionBeginJournalPosition = _transactionJournal.Count;
         if (SupportsSavepoints)
             CreateSavepointCore("__tx_begin__");
         return CurrentTransaction;
@@ -1304,8 +1774,7 @@ public abstract class DbConnectionMockBase(
             return;
 
         Debug.WriteLine("Transaction Rolled Back");
-        if (_transactionBeginSnapshot is not null)
-            RestoreSnapshot(_transactionBeginSnapshot);
+        RollbackJournalTo(_transactionBeginJournalPosition);
         ClearTransactionStateCore();
         CurrentTransaction = null;
         CurrentIsolationLevel = IsolationLevel.Unspecified;
@@ -1369,10 +1838,9 @@ public abstract class DbConnectionMockBase(
             throw SqlUnsupported.ForDialect(ExecutionDialect, "SAVEPOINT");
 
         var normalizedName = NormalizeSavepointName(savepointName);
-        var snapshot = CaptureSnapshot();
         if (_savepoints.ContainsKey(normalizedName))
             _savepointOrder.Remove(normalizedName);
-        _savepoints[normalizedName] = snapshot;
+        _savepoints[normalizedName] = _transactionJournal.Count;
         _savepointOrder.Add(normalizedName);
     }
 
@@ -1383,10 +1851,10 @@ public abstract class DbConnectionMockBase(
             throw SqlUnsupported.ForDialect(ExecutionDialect, "ROLLBACK TO SAVEPOINT");
 
         var normalizedName = NormalizeSavepointName(savepointName);
-        if (!_savepoints.TryGetValue(normalizedName, out var snapshot))
+        if (!_savepoints.TryGetValue(normalizedName, out var journalPosition))
             throw SqlUnsupported.ForSavepointNotFound(savepointName);
 
-        RestoreSnapshot(snapshot);
+        RollbackJournalTo(journalPosition);
 
         var savepointIndex = _savepointOrder.FindIndex(name => name.Equals(normalizedName, StringComparison.OrdinalIgnoreCase));
         if (savepointIndex >= 0)
@@ -1424,42 +1892,234 @@ public abstract class DbConnectionMockBase(
             throw SqlUnsupported.ForNoActiveTransactionForSavepointOperation();
     }
 
-    private Dictionary<ITableMock, TransactionTableSnapshot> CaptureSnapshot()
+    private void AttachTransactionJournalToCurrentTables()
     {
-        var snapshot = new Dictionary<ITableMock, TransactionTableSnapshot>(TableReferenceComparer.Instance);
         var allTables = Db.ListAllTablesBestEffort()
             .Concat(_temporaryTables.Values)
             .Distinct(TableReferenceComparer.Instance);
 
         foreach (var table in allTables)
-        {
-            var rows = table.Select(row => row.ToDictionary(entry => entry.Key, entry => entry.Value)).ToList();
-            snapshot[table] = new TransactionTableSnapshot(table.NextIdentity, rows);
-        }
-        return snapshot;
+            AttachTransactionJournal(table);
     }
 
-    private static void RestoreSnapshot(Dictionary<ITableMock, TransactionTableSnapshot> snapshot)
+    private void AttachTransactionJournal(ITableMock table)
     {
-        foreach (var it in snapshot)
+        if (table is not TableMock tableMock || !_journalObservedTables.Add(tableMock))
+            return;
+
+        tableMock.MutationApplied += OnTableMutationApplied;
+    }
+
+    private void OnTableMutationApplied(TableMutationNotification mutation)
+    {
+        if (_isReplayingTransactionJournal || CurrentTransaction == null)
+            return;
+
+        _transactionJournal.Add(new TransactionJournalEntry(
+            mutation.Table,
+            mutation.Kind switch
+            {
+                TableMutationKind.Insert => TransactionJournalEntryKind.Insert,
+                TableMutationKind.Update => TransactionJournalEntryKind.Update,
+                _ => TransactionJournalEntryKind.Delete
+            },
+            mutation.RowIndex,
+            mutation.Row,
+            mutation.OldRowSnapshot,
+            mutation.PreviousNextIdentity,
+            GetRegistrationKind(mutation.Table),
+            GetRegistrationKey(mutation.Table)));
+    }
+
+    private void RollbackJournalTo(int journalPosition)
+    {
+        if (_transactionJournal.Count <= journalPosition)
+            return;
+
+        var touchedTables = new HashSet<TableMock>();
+        _isReplayingTransactionJournal = true;
+        try
         {
-            var table = it.Key;
-            var tableSnapshot = it.Value;
-            while (table.Count > 0)
-                table.RemoveAt(table.Count - 1);
+            for (var idx = _transactionJournal.Count - 1; idx >= journalPosition; idx--)
+            {
+                var entry = _transactionJournal[idx];
+                if (entry.Table is not null)
+                    touchedTables.Add(entry.Table);
+                switch (entry.Kind)
+                {
+                    case TransactionJournalEntryKind.Insert:
+                        entry.Table!.RemoveRowByReference(entry.Row!);
+                        entry.Table.NextIdentity = entry.PreviousNextIdentity;
+                        break;
+                    case TransactionJournalEntryKind.Update:
+                        entry.Table!.RestoreRowSnapshot(
+                            entry.Row!,
+                            entry.OldRowSnapshot ?? new Dictionary<int, object?>());
+                        break;
+                    case TransactionJournalEntryKind.Delete:
+                        entry.Table!.InsertRestoredRow(entry.RowIndex, entry.Row!);
+                        break;
+                    case TransactionJournalEntryKind.CreateTable:
+                        UnregisterTable(entry.Table!, entry.RegistrationKind, entry.RegistrationKey);
+                        break;
+                    case TransactionJournalEntryKind.DropTable:
+                        RegisterTable(entry.Table!, entry.RegistrationKind, entry.RegistrationKey);
+                        break;
+                    case TransactionJournalEntryKind.CreateIndex:
+                        if (entry.IndexDefinition is not null)
+                            entry.Table!.DropIndex(entry.IndexDefinition.Name, ifExists: true);
+                        break;
+                    case TransactionJournalEntryKind.DropIndex:
+                        if (entry.IndexDefinition is not null
+                            && !entry.Table!.Indexes.ContainsKey(entry.IndexDefinition.Name))
+                        {
+                            entry.Table.CreateIndex(
+                                entry.IndexDefinition.Name,
+                                entry.IndexDefinition.KeyCols,
+                                [.. entry.IndexDefinition.Include],
+                                entry.IndexDefinition.Unique);
+                        }
+                        break;
+                    case TransactionJournalEntryKind.UpsertView:
+                        if (entry.ViewState is not null)
+                        {
+                            if (entry.ViewState.PreviousDefinition is null)
+                                Db.RemoveView(entry.ViewState.ViewName, entry.ViewState.SchemaName);
+                            else
+                                Db.RestoreView(
+                                    entry.ViewState.ViewName,
+                                    entry.ViewState.PreviousDefinition,
+                                    entry.ViewState.SchemaName);
+                        }
+                        break;
+                    case TransactionJournalEntryKind.DropView:
+                        if (entry.ViewState?.PreviousDefinition is not null)
+                        {
+                            Db.RestoreView(
+                                entry.ViewState.ViewName,
+                                entry.ViewState.PreviousDefinition,
+                                entry.ViewState.SchemaName);
+                        }
+                        break;
+                    case TransactionJournalEntryKind.CreateSequence:
+                        if (entry.SequenceState is not null)
+                        {
+                            Db.DropSequence(entry.SequenceState.SequenceName, true, entry.SequenceState.SchemaName);
+                            ClearSessionSequenceValue(entry.SequenceState.SequenceName, entry.SequenceState.SchemaName);
+                        }
+                        break;
+                    case TransactionJournalEntryKind.DropSequence:
+                        if (entry.SequenceState?.PreviousDefinition is not null)
+                        {
+                            Db.RestoreSequence(
+                                entry.SequenceState.SequenceName,
+                                CloneSequence(entry.SequenceState.PreviousDefinition),
+                                entry.SequenceState.SchemaName);
+                            if (entry.SequenceState.HadSessionValue)
+                                SetSessionSequenceValue(entry.SequenceState.SequenceName, entry.SequenceState.SessionValue, entry.SequenceState.SchemaName);
+                            else
+                                ClearSessionSequenceValue(entry.SequenceState.SequenceName, entry.SequenceState.SchemaName);
+                        }
+                        break;
+                    case TransactionJournalEntryKind.UpdateSequence:
+                        if (entry.SequenceState?.PreviousDefinition is not null)
+                        {
+                            Db.RestoreSequence(
+                                entry.SequenceState.SequenceName,
+                                CloneSequence(entry.SequenceState.PreviousDefinition),
+                                entry.SequenceState.SchemaName);
+                            if (entry.SequenceState.HadSessionValue)
+                                SetSessionSequenceValue(entry.SequenceState.SequenceName, entry.SequenceState.SessionValue, entry.SequenceState.SchemaName);
+                            else
+                                ClearSessionSequenceValue(entry.SequenceState.SequenceName, entry.SequenceState.SchemaName);
+                        }
+                        break;
+                    case TransactionJournalEntryKind.UpsertFunction:
+                        if (entry.FunctionState is not null)
+                        {
+                            if (entry.FunctionState.PreviousDefinition is null)
+                                Db.RemoveFunction(entry.FunctionState.FunctionName, entry.FunctionState.SchemaName);
+                            else
+                                Db.RestoreFunction(
+                                    entry.FunctionState.FunctionName,
+                                    entry.FunctionState.PreviousDefinition,
+                                    entry.FunctionState.SchemaName);
+                        }
+                        break;
+                    case TransactionJournalEntryKind.DropFunction:
+                        if (entry.FunctionState?.PreviousDefinition is not null)
+                        {
+                            Db.RestoreFunction(
+                                entry.FunctionState.FunctionName,
+                                entry.FunctionState.PreviousDefinition,
+                                entry.FunctionState.SchemaName);
+                        }
+                        break;
+                }
+            }
+        }
+        finally
+        {
+            _isReplayingTransactionJournal = false;
+        }
 
-            foreach (var row in tableSnapshot.Rows)
-                table.Add(row.ToDictionary(entry => entry.Key, entry => entry.Value));
+        _transactionJournal.RemoveRange(
+            journalPosition,
+            _transactionJournal.Count - journalPosition);
 
-            table.NextIdentity = tableSnapshot.NextIdentity;
+        foreach (var table in touchedTables)
+            table.RestoreIndexesAfterJournalReplay();
+    }
+
+    private void RegisterTable(
+        TableMock table,
+        TransactionTableRegistrationKind registrationKind,
+        string registrationKey)
+    {
+        switch (registrationKind)
+        {
+            case TransactionTableRegistrationKind.ConnectionTemporary:
+                _temporaryTables[registrationKey] = table;
+                break;
+            case TransactionTableRegistrationKind.GlobalTemporary:
+                Db.RestoreGlobalTemporaryTable(table, table.Schema.SchemaName);
+                break;
+            default:
+                table.Schema.Tables[table.TableName] = table;
+                break;
+        }
+    }
+
+    private void UnregisterTable(
+        TableMock table,
+        TransactionTableRegistrationKind registrationKind,
+        string registrationKey)
+    {
+        switch (registrationKind)
+        {
+            case TransactionTableRegistrationKind.ConnectionTemporary:
+                _temporaryTables.Remove(registrationKey);
+                break;
+            case TransactionTableRegistrationKind.GlobalTemporary:
+                Db.RemoveGlobalTemporaryTable(table.TableName, table.Schema.SchemaName);
+                break;
+            default:
+                table.Schema.Tables.Remove(table.TableName);
+                break;
         }
     }
 
     private void ClearTransactionStateCore()
     {
+        foreach (var table in _journalObservedTables)
+            table.MutationApplied -= OnTableMutationApplied;
+
+        _journalObservedTables.Clear();
+        _transactionJournal.Clear();
         _savepoints.Clear();
         _savepointOrder.Clear();
-        _transactionBeginSnapshot = null;
+        _transactionBeginJournalPosition = 0;
+        _isReplayingTransactionJournal = false;
     }
 
     private void ResetAllVolatileDataCore()

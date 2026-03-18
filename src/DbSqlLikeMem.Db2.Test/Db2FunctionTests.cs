@@ -37,7 +37,7 @@ public sealed class Db2FunctionTests
 
         ExecuteNonQuery(connection, "DROP FUNCTION IF EXISTS fn_users(INT, INT)");
 
-        Assert.Null(ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"));
+        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"));
     }
 
     /// <summary>

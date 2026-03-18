@@ -121,6 +121,7 @@ internal static class SqlSequenceEvaluator
         if (!connection.TryGetSequence(sequenceRef.SequenceName, out var sequence, sequenceRef.SchemaName) || sequence is null)
             throw new InvalidOperationException($"Sequence not found: {sequenceRef.DisplayName}");
 
+        connection.CaptureSequenceStateForRollback(sequenceRef.SequenceName, sequenceRef.SchemaName);
         var value = sequence.NextValue();
         connection.SetSessionSequenceValue(sequenceRef.SequenceName, value, sequenceRef.SchemaName);
         return value;
@@ -146,6 +147,7 @@ internal static class SqlSequenceEvaluator
         if (!connection.TryGetSequence(sequenceRef.SequenceName, out var sequence, sequenceRef.SchemaName) || sequence is null)
             throw new InvalidOperationException($"Sequence not found: {sequenceRef.DisplayName}");
 
+        connection.CaptureSequenceStateForRollback(sequenceRef.SequenceName, sequenceRef.SchemaName);
         var value = Convert.ToInt64(evalArg(args[1]), CultureInfo.InvariantCulture);
         var isCalled = args.Count < 3 || Convert.ToBoolean(evalArg(args[2]), CultureInfo.InvariantCulture);
         var result = sequence.SetValue(value, isCalled);

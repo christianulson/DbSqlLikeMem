@@ -95,41 +95,59 @@ internal sealed class SqlQueryParser
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sql, nameof(sql));
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
-
-        // Fast feature gate before cache lookup to avoid serving incompatible ASTs for version-gated commands.
-        var (tokens, autoSyntaxFeatures) = GetPrelude(sql, dialect);
-        var first = tokens.Count > 0 ? tokens[0] : default;
-        if (IsWord(first, "MERGE") && !dialect.SupportsMerge)
-            throw SqlUnsupported.ForMerge(dialect);
-
-        if (parameters is not null)
+        var metrics = DbMetrics.Current;
+        long startedAt = 0;
+        if (metrics is not null)
         {
-            var uncached = ParseUncached(tokens, dialect, parameters, autoSyntaxFeatures);
-            EnsureDialectSupport(uncached, dialect);
-            return uncached with { RawSql = sql };
+            metrics.IncrementPerformancePhaseHit(DbPerformanceMetricKeys.SqlParse);
+            startedAt = Stopwatch.GetTimestamp();
         }
 
-        // DDL statements are cheap to parse and benefit from deterministic no-cache behavior in tests.
-        if (IsWord(first, "CREATE") || IsWord(first, "ALTER") || IsWord(first, "DROP"))
+        try
         {
-            var uncached = ParseUncached(tokens, dialect, null, autoSyntaxFeatures);
-            EnsureDialectSupport(uncached, dialect);
-            return uncached with { RawSql = sql };
-        }
 
-        var cacheKey = SqlQueryAstCache.BuildKey(sql, dialect.Name, dialect.Version);
-        if (_astCache.TryGet(cacheKey, out var cached))
+            // Fast feature gate before cache lookup to avoid serving incompatible ASTs for version-gated commands.
+            var (tokens, autoSyntaxFeatures) = GetPrelude(sql, dialect);
+            var first = tokens.Count > 0 ? tokens[0] : default;
+            if (IsWord(first, "MERGE") && !dialect.SupportsMerge)
+                throw SqlUnsupported.ForMerge(dialect);
+
+            if (parameters is not null)
+            {
+                var uncached = ParseUncached(tokens, dialect, parameters, autoSyntaxFeatures);
+                EnsureDialectSupport(uncached, dialect);
+                return uncached with { RawSql = sql };
+            }
+
+            // DDL statements are cheap to parse and benefit from deterministic no-cache behavior in tests.
+            if (IsWord(first, "CREATE") || IsWord(first, "ALTER") || IsWord(first, "DROP"))
+            {
+                var uncached = ParseUncached(tokens, dialect, null, autoSyntaxFeatures);
+                EnsureDialectSupport(uncached, dialect);
+                return uncached with { RawSql = sql };
+            }
+
+            var cacheKey = SqlQueryAstCache.BuildKey(sql, dialect.Name, dialect.Version);
+            if (_astCache.TryGet(cacheKey, out var cached))
+            {
+                EnsureDialectSupport(cached, dialect);
+                return cached with { RawSql = sql };
+            }
+
+            var parsed = ParseUncached(tokens, dialect, null, autoSyntaxFeatures);
+            EnsureDialectSupport(parsed, dialect);
+            _astCache.Set(cacheKey, parsed);
+
+            // Para estratégias que precisam do SQL original (ex: UPDATE/DELETE ... JOIN (SELECT ...))
+            return parsed with { RawSql = sql };
+        }
+        finally
         {
-            EnsureDialectSupport(cached, dialect);
-            return cached with { RawSql = sql };
+            if (startedAt != 0)
+                metrics!.IncrementPerformancePhaseElapsedTicks(
+                    DbPerformanceMetricKeys.SqlParse,
+                    StopwatchCompatible.GetElapsedTicks(startedAt));
         }
-
-        var parsed = ParseUncached(tokens, dialect, null, autoSyntaxFeatures);
-        EnsureDialectSupport(parsed, dialect);
-        _astCache.Set(cacheKey, parsed);
-
-        // Para estratégias que precisam do SQL original (ex: UPDATE/DELETE ... JOIN (SELECT ...))
-        return parsed with { RawSql = sql };
     }
 
     private static SqlQueryParsePreludeCache.Prelude GetPrelude(string sql, ISqlDialect dialect)

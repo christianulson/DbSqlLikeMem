@@ -14,6 +14,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         bool allowMerge,
         bool unionUsesSelectMessage)
     {
+        using var _ = connection.Metrics.BeginAmbientScope();
         return query switch
         {
             SqlInsertQuery insertQ => connection.ExecuteInsert(insertQ, pars, dialect),
@@ -660,7 +661,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         var res = executor.ExecuteSelect(query.AsSelect);
 
         var newTable = tempScope == TemporaryTableScope.Global
-            ? connection.Db.AddGlobalTemporaryTable(tableName!, schemaName: schemaName)
+            ? connection.AddGlobalTemporaryTable(tableName!, schemaName: schemaName)
             : connection.AddTemporaryTable(tableName!, schemaName: schemaName);
 
         // column names: prefer explicit list if provided; else use select result columns

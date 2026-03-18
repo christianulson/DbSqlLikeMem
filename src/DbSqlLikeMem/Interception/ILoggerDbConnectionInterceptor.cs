@@ -115,6 +115,7 @@ public sealed class ILoggerDbConnectionInterceptor : DbConnectionInterceptor
             CommandText = context.Command.CommandText,
             CommandExecutionKind = context.ExecutionKind,
             Result = result,
+            PerformanceMetrics = TryGetPerformanceMetrics(context.Connection),
             Exception = exception
         };
 
@@ -131,6 +132,11 @@ public sealed class ILoggerDbConnectionInterceptor : DbConnectionInterceptor
             IsolationLevel = context.Transaction.IsolationLevel,
             Exception = exception
         };
+
+    private static string? TryGetPerformanceMetrics(DbConnection connection)
+        => connection is DbConnectionMockBase mock
+            ? mock.Metrics.FormatPerformancePhases()
+            : null;
 
     private void Log(DbInterceptionEvent interceptionEvent)
     {

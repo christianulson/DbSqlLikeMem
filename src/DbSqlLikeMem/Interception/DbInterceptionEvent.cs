@@ -55,6 +55,12 @@ public sealed class DbInterceptionEvent
     public object? Result { get; init; }
 
     /// <summary>
+    /// EN: Serialized performance metrics summary captured for logging when available.
+    /// PT: Resumo serializado de metricas de performance capturado para logging quando disponivel.
+    /// </summary>
+    public string? PerformanceMetrics { get; init; }
+
+    /// <summary>
     /// EN: Exception captured for failure events.
     /// PT: Excecao capturada para eventos de falha.
     /// </summary>

@@ -7,6 +7,7 @@ internal sealed class AstReadGuardNonQueryCommandHandler : INonQueryCommandHandl
         string sqlRaw,
         out int affectedRows)
     {
+        using var _ = context.Connection.Metrics.BeginAmbientScope();
         var query = context.GetParsedQuery(sqlRaw);
         affectedRows = 0;
 
