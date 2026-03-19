@@ -204,6 +204,7 @@ public abstract class BenchmarkSuiteBase
     }
 
     private static readonly object _logSync = new();
+    private static readonly HashSet<string> Errors = [];
     protected virtual void LogBenchmarkIssue(BenchmarkFeatureId feature, Exception ex)
     {
         var root = ex.GetBaseException();
@@ -213,6 +214,9 @@ public abstract class BenchmarkSuiteBase
 
         lock (_logSync)
         {
+            if (Errors.Contains(root.Message))
+                return;
+            Errors.Add(root.Message);
             var file = Path.Combine("Logs", $"{GetType().Namespace}-errors.log");
             if (!File.Exists(file))
                 File.Create(file).Dispose();

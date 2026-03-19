@@ -269,7 +269,8 @@ internal sealed class AstQuerySourceResolver
         if (string.IsNullOrWhiteSpace(rowPath))
             throw new InvalidOperationException("JSON_TABLE row path must not be empty in the mock.");
 
-        var result = CreateJsonTableResult(alias, jsonTableClause);
+        var jsonTableLayout = BuildJsonTableClauseLayout(jsonTableClause);
+        var result = CreateJsonTableResult(alias, jsonTableLayout);
         if (IsNullish(json))
             return result;
 
@@ -299,7 +300,9 @@ internal sealed class AstQuerySourceResolver
         var ordinal = 1L;
         foreach (var rowContext in EnumerateJsonTableRowContexts(target))
         {
-            result.Add(ProjectJsonTableRow(jsonTableClause, rowContext, ordinal));
+            foreach (var row in ProjectJsonTableRows(jsonTableLayout, rowContext, ordinal))
+                result.Add(row);
+
             ordinal++;
         }
 
@@ -356,18 +359,57 @@ internal sealed class AstQuerySourceResolver
         };
     }
 
-    private static TableResultMock CreateJsonTableResult(string tableAlias, SqlJsonTableClause clause)
+    private static TableResultMock CreateJsonTableResult(string tableAlias, JsonTableClauseLayout layout)
         => new()
         {
-            Columns = [.. clause.Columns
-                .Select((column, index) => new TableResultColMock(
+            Columns = [.. layout.AllColumns
+                .Select(column => new TableResultColMock(
                     tableAlias,
-                    column.Name,
-                    column.Name,
-                    index,
-                    column.DbType,
+                    column.Column.Name,
+                    column.Column.Name,
+                    column.Ordinal,
+                    column.Column.DbType,
                     true))]
         };
+
+    private static JsonTableClauseLayout BuildJsonTableClauseLayout(SqlJsonTableClause clause)
+    {
+        var nextOrdinal = 0;
+        return BuildJsonTableClauseLayout(clause, ref nextOrdinal);
+    }
+
+    private static JsonTableClauseLayout BuildJsonTableClauseLayout(SqlJsonTableClause clause, ref int nextOrdinal)
+    {
+        var columns = new List<JsonTableColumnLayout>();
+        var nestedPaths = new List<JsonTableNestedPathLayout>();
+        var allColumns = new List<JsonTableColumnLayout>();
+        var allOrdinals = new List<int>();
+
+        foreach (var entry in clause.Entries)
+        {
+            switch (entry)
+            {
+                case SqlJsonTableColumn column:
+                {
+                    var layout = new JsonTableColumnLayout(nextOrdinal++, column);
+                    columns.Add(layout);
+                    allColumns.Add(layout);
+                    allOrdinals.Add(layout.Ordinal);
+                    break;
+                }
+                case SqlJsonTableNestedPath nestedPath:
+                {
+                    var nestedLayout = BuildJsonTableClauseLayout(nestedPath.Clause, ref nextOrdinal);
+                    nestedPaths.Add(new JsonTableNestedPathLayout(nestedPath, nestedLayout));
+                    allColumns.AddRange(nestedLayout.AllColumns);
+                    allOrdinals.AddRange(nestedLayout.AllOrdinals);
+                    break;
+                }
+            }
+        }
+
+        return new JsonTableClauseLayout(columns, nestedPaths, allColumns, allOrdinals);
+    }
 
     private static bool EvaluateStringSplitOrdinalFlag(object? rawValue)
     {
@@ -515,16 +557,105 @@ internal sealed class AstQuerySourceResolver
         return row;
     }
 
-    private static Dictionary<int, object?> ProjectJsonTableRow(
-        SqlJsonTableClause clause,
+    private static IReadOnlyList<Dictionary<int, object?>> ProjectJsonTableRows(
+        JsonTableClauseLayout layout,
         JsonElement rowContext,
         long ordinal)
     {
-        var row = new Dictionary<int, object?>();
-        for (var i = 0; i < clause.Columns.Count; i++)
-            row[i] = ResolveJsonTableColumnValue(rowContext, clause.Columns[i], ordinal);
+        var baseRow = new Dictionary<int, object?>();
+        foreach (var column in layout.Columns)
+            baseRow[column.Ordinal] = ResolveJsonTableColumnValue(rowContext, column.Column, ordinal);
 
-        return row;
+        if (layout.NestedPaths.Count == 0)
+            return [baseRow];
+
+        var baseNestedRow = new Dictionary<int, object?>(baseRow);
+        foreach (var nestedOrdinal in layout.NestedPaths.SelectMany(static x => x.Layout.AllOrdinals))
+            baseNestedRow[nestedOrdinal] = null;
+
+        var rows = new List<Dictionary<int, object?>>();
+        foreach (var nestedPath in layout.NestedPaths)
+        {
+            var nestedRows = ProjectJsonTableNestedRows(nestedPath, rowContext);
+            foreach (var nestedRow in nestedRows)
+            {
+                var mergedRow = new Dictionary<int, object?>(baseNestedRow);
+                foreach (var cell in nestedRow)
+                    mergedRow[cell.Key] = cell.Value;
+
+                rows.Add(mergedRow);
+            }
+        }
+
+        return rows;
+    }
+
+    private static IReadOnlyList<Dictionary<int, object?>> ProjectJsonTableNestedRows(
+        JsonTableNestedPathLayout nestedPath,
+        JsonElement rowContext)
+    {
+        var nestedContexts = ResolveJsonTableNestedRowContexts(nestedPath.NestedPath, rowContext);
+        if (nestedContexts.Count == 0)
+            return CreateJsonTableNullComplementRows(nestedPath.Layout);
+
+        var rows = new List<Dictionary<int, object?>>();
+        var nestedOrdinal = 1L;
+        foreach (var nestedContext in nestedContexts)
+        {
+            rows.AddRange(ProjectJsonTableRows(nestedPath.Layout, nestedContext, nestedOrdinal));
+            nestedOrdinal++;
+        }
+
+        return rows;
+    }
+
+    private static IReadOnlyList<JsonElement> ResolveJsonTableNestedRowContexts(
+        SqlJsonTableNestedPath nestedPath,
+        JsonElement rowContext)
+    {
+        var lookupPath = NormalizeJsonTableLookupPath(nestedPath.Path);
+        var lookup = QueryJsonFunctionHelper.LookupJsonPath(rowContext, lookupPath);
+        if (!lookup.Success)
+        {
+            if (lookup.Failure == QueryJsonFunctionHelper.JsonPathLookupFailure.InvalidPath)
+                throw new InvalidOperationException($"JSON_TABLE nested path '{nestedPath.Path}' is invalid in the mock.");
+
+            if (lookup.Mode == QueryJsonFunctionHelper.JsonPathMode.Strict)
+                throw new InvalidOperationException($"JSON_TABLE strict nested path '{nestedPath.Path}' was not found in the JSON payload.");
+
+            return [];
+        }
+
+        return [.. EnumerateJsonTableRowContexts(lookup.Value)];
+    }
+
+    private static IReadOnlyList<Dictionary<int, object?>> CreateJsonTableNullComplementRows(JsonTableClauseLayout layout)
+    {
+        var baseRow = new Dictionary<int, object?>();
+        foreach (var column in layout.Columns)
+            baseRow[column.Ordinal] = ResolveMissingJsonTableColumnValue(column.Column);
+
+        if (layout.NestedPaths.Count == 0)
+            return [baseRow];
+
+        var baseNestedRow = new Dictionary<int, object?>(baseRow);
+        foreach (var nestedOrdinal in layout.NestedPaths.SelectMany(static x => x.Layout.AllOrdinals))
+            baseNestedRow[nestedOrdinal] = null;
+
+        var rows = new List<Dictionary<int, object?>>();
+        foreach (var nestedPath in layout.NestedPaths)
+        {
+            foreach (var nestedRow in CreateJsonTableNullComplementRows(nestedPath.Layout))
+            {
+                var mergedRow = new Dictionary<int, object?>(baseNestedRow);
+                foreach (var cell in nestedRow)
+                    mergedRow[cell.Key] = cell.Value;
+
+                rows.Add(mergedRow);
+            }
+        }
+
+        return rows;
     }
 
     private static object? ResolveOpenJsonExplicitColumnValue(
@@ -595,24 +726,76 @@ internal sealed class AstQuerySourceResolver
                 throw new InvalidOperationException($"JSON_TABLE column '{column.Name}' uses an invalid JSON path '{effectivePath}'.");
 
             if (lookup.Mode == QueryJsonFunctionHelper.JsonPathMode.Strict)
-                throw new InvalidOperationException($"JSON_TABLE strict path '{effectivePath}' for column '{column.Name}' was not found in the JSON payload.");
+                return ResolveJsonTableColumnFallback(column, column.OnEmpty, $"JSON_TABLE strict path '{effectivePath}' for column '{column.Name}' was not found in the JSON payload.");
 
-            return null;
+            return ResolveJsonTableColumnFallback(column, column.OnEmpty, null);
         }
 
         var valueElement = lookup.Value;
         if (valueElement.ValueKind == JsonValueKind.Null)
-            return null;
+            return ResolveJsonTableColumnFallback(column, column.OnEmpty, null);
 
         if (valueElement.ValueKind is JsonValueKind.Object or JsonValueKind.Array)
         {
+            if (column.OnError is not null || column.DbType != DbType.String)
+                return ResolveJsonTableColumnFallback(column, column.OnError, null);
+
             return column.DbType == DbType.String
                 ? valueElement.GetRawText()
                 : null;
         }
 
-        var scalarText = ConvertOpenJsonExplicitScalarToText(valueElement);
-        return scalarText is null ? null : column.DbType.Parse(scalarText);
+        try
+        {
+            var scalarText = ConvertOpenJsonExplicitScalarToText(valueElement);
+            if (scalarText is null)
+                return ResolveJsonTableColumnFallback(column, column.OnError, null);
+
+            return column.DbType.Parse(scalarText);
+        }
+        catch (FormatException ex)
+        {
+            if (column.OnError is null)
+                throw;
+
+            return ResolveJsonTableColumnFallback(column, column.OnError, ex.Message);
+        }
+        catch (OverflowException ex)
+        {
+            if (column.OnError is null)
+                throw;
+
+            return ResolveJsonTableColumnFallback(column, column.OnError, ex.Message);
+        }
+    }
+
+    private static object? ResolveMissingJsonTableColumnValue(SqlJsonTableColumn column)
+    {
+        if (column.ExistsPath)
+            return column.DbType.Parse("0");
+
+        return null;
+    }
+
+    private static object? ResolveJsonTableColumnFallback(
+        SqlJsonTableColumn column,
+        SqlJsonTableColumnFallback? fallback,
+        string? errorMessage)
+    {
+        if (fallback is null || fallback.Kind == SqlJsonTableColumnFallbackKind.Null)
+            return null;
+
+        if (fallback.Kind == SqlJsonTableColumnFallbackKind.Error)
+        {
+            if (!string.IsNullOrWhiteSpace(errorMessage))
+                throw new InvalidOperationException(errorMessage);
+
+            throw new InvalidOperationException($"JSON_TABLE column '{column.Name}' requires a scalar JSON value.");
+        }
+
+        return fallback.DefaultValueRaw is null
+            ? null
+            : column.DbType.Parse(fallback.DefaultValueRaw);
     }
 
     private static OpenJsonColumnResolution ResolveOpenJsonExplicitColumnElement(
@@ -655,4 +838,18 @@ internal sealed class AstQuerySourceResolver
         bool InvalidPath,
         string? Path,
         JsonElement Value);
+
+    private sealed record JsonTableClauseLayout(
+        IReadOnlyList<JsonTableColumnLayout> Columns,
+        IReadOnlyList<JsonTableNestedPathLayout> NestedPaths,
+        IReadOnlyList<JsonTableColumnLayout> AllColumns,
+        IReadOnlyList<int> AllOrdinals);
+
+    private sealed record JsonTableColumnLayout(
+        int Ordinal,
+        SqlJsonTableColumn Column);
+
+    private sealed record JsonTableNestedPathLayout(
+        SqlJsonTableNestedPath NestedPath,
+        JsonTableClauseLayout Layout);
 }

@@ -1,4 +1,4 @@
-namespace DbSqlLikeMem.MySql;
+namespace DbSqlLikeMem.MariaDb.Test.Parser;
 
 /// <summary>
 /// EN: Covers MariaDB-specific dialect gates layered on top of the shared MySQL family parser.
@@ -20,6 +20,7 @@ public sealed class MariaDbDialectFeatureParserTests
         Assert.True(dialect.SupportsInsertReturning);
         Assert.False(dialect.SupportsUpdateReturning);
         Assert.True(dialect.SupportsDeleteReturning);
+        Assert.False(dialect.SupportsAggregateFunctionsInReturningClause);
         Assert.True(dialect.SupportsSequenceDdl);
         Assert.True(dialect.SupportsJsonTableFunction);
     }
@@ -52,6 +53,65 @@ public sealed class MariaDbDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures MariaDB RETURNING rejects aggregate functions even when the version gate is enabled.
+    /// PT: Garante que RETURNING no MariaDB rejeite funcoes de agregacao mesmo com o gate de versao habilitado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void ParseInsert_Returning_ShouldRejectAggregateFunctions()
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING COUNT(*)";
+
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_5)));
+
+        Assert.Contains("aggregate", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MariaDB INSERT syntax accepts the VALUE keyword, LOW_PRIORITY modifier, and PARTITION clause.
+    /// PT: Garante que a sintaxe INSERT do MariaDB aceite a palavra-chave VALUE, o modificador LOW_PRIORITY e a clausula PARTITION.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void ParseInsert_ValuePartition_ShouldAcceptMariaDbSyntax()
+    {
+        const string sql = "INSERT LOW_PRIORITY INTO users PARTITION (p0) VALUE (1, 'a') RETURNING id";
+        var dialect = new MariaDbDialect(MariaDbDbVersions.Version10_5);
+
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, dialect));
+
+        Assert.False(parsed.IsReplace);
+        Assert.Single(parsed.ValuesRaw);
+        Assert.Equal("1", parsed.ValuesRaw[0][0]);
+        Assert.Equal("a", parsed.ValuesRaw[0][1]);
+        Assert.Single(parsed.Returning);
+        Assert.Equal("id", parsed.Returning[0].Raw);
+    }
+
+    /// <summary>
+    /// EN: Ensures MariaDB INSERT ... SET syntax is accepted together with RETURNING.
+    /// PT: Garante que a sintaxe INSERT ... SET do MariaDB seja aceita junto com RETURNING.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void ParseInsert_Set_ShouldAcceptMariaDbSyntax()
+    {
+        const string sql = "INSERT INTO users SET id = 1, name = 'a', email = 'a@maria.test' RETURNING id";
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_5)));
+
+        Assert.False(parsed.IsReplace);
+        Assert.Equal(3, parsed.Columns.Count);
+        Assert.Equal("id", parsed.Columns[0]);
+        Assert.Equal("name", parsed.Columns[1]);
+        Assert.Equal("email", parsed.Columns[2]);
+        Assert.Single(parsed.ValuesRaw);
+        Assert.Equal("1", parsed.ValuesRaw[0][0]);
+        Assert.Equal("a", parsed.ValuesRaw[0][1]);
+        Assert.Equal("a@maria.test", parsed.ValuesRaw[0][2]);
+        Assert.Single(parsed.Returning);
+    }
+
+    /// <summary>
     /// EN: Ensures DELETE ... RETURNING follows the MariaDB version gate and captures the projection payload when enabled.
     /// PT: Garante que DELETE ... RETURNING siga o gate de versao do MariaDB e capture a projecao quando habilitado.
     /// </summary>
@@ -77,6 +137,47 @@ public sealed class MariaDbDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures MariaDB rejects RETURNING on multi-table DELETE statements.
+    /// PT: Garante que o MariaDB rejeite RETURNING em instrucoes DELETE multi-tabela.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void ParseDelete_Returning_ShouldRejectMultiTableDelete()
+    {
+        const string sql = "DELETE u FROM users u JOIN audit a ON a.user_id = u.id RETURNING u.id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_5)));
+
+        Assert.Contains("multi-table DELETE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures REPLACE ... RETURNING follows the MariaDB version gate and is parsed as an insert-like statement.
+    /// PT: Garante que REPLACE ... RETURNING siga o gate de versao do MariaDB e seja parseado como um statement semelhante a INSERT.
+    /// </summary>
+    /// <param name="version">EN: MariaDB dialect version under test. PT: Versao do dialeto MariaDB em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMariaDbVersion]
+    public void ParseReplace_Returning_ShouldRespectMariaDbVersionGate(int version)
+    {
+        const string sql = "REPLACE INTO users (id, name) VALUES (1, 'a') RETURNING id";
+        var dialect = new MariaDbDialect(version);
+
+        if (version < MariaDbDialect.ReturningMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, dialect));
+        Assert.True(parsed.IsReplace);
+        Assert.Single(parsed.Returning);
+        Assert.Equal("id", parsed.Returning[0].Raw);
+    }
+
+    /// <summary>
     /// EN: Ensures UPDATE ... RETURNING remains blocked for MariaDB in this first family increment.
     /// PT: Garante que UPDATE ... RETURNING continue bloqueado para MariaDB neste primeiro incremento da familia.
     /// </summary>
@@ -91,6 +192,21 @@ public sealed class MariaDbDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new MariaDbDialect(version)));
 
         Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MariaDB parses SOUNDS LIKE as a binary predicate in the expression tree.
+    /// PT: Garante que o MariaDB faça o parsing de SOUNDS LIKE como predicado binario na arvore de expressao.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void ParseScalar_SoundsLike_ShouldBuildBinaryExpression()
+    {
+        var expr = Assert.IsType<BinaryExpr>(SqlExpressionParser.ParseScalar("'Robert' SOUNDS LIKE 'Rupert'", new MariaDbDialect(MariaDbDbVersions.Version10_5)));
+
+        Assert.Equal(SqlBinaryOp.SoundLike, expr.Op);
+        Assert.IsType<LiteralExpr>(expr.Left);
+        Assert.IsType<LiteralExpr>(expr.Right);
     }
 
     /// <summary>
@@ -245,6 +361,102 @@ public sealed class MariaDbDialectFeatureParserTests
         Assert.True(column.ExistsPath);
         Assert.Equal("$.email", column.Path);
         Assert.Equal(DbType.Int32, column.DbType);
+    }
+
+    /// <summary>
+    /// EN: Ensures JSON_TABLE captures NESTED PATH metadata for MariaDB projected columns.
+    /// PT: Garante que JSON_TABLE capture a metadata de NESTED PATH nas colunas projetadas do MariaDB.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void ParseSelect_FromJsonTable_WithNestedPath_ShouldCaptureNestedMetadata()
+    {
+        const string sql = """
+            SELECT jt.id, jt.tag_ord, jt.tag_name
+            FROM JSON_TABLE(payload, '$[*]' COLUMNS(
+                id INT PATH '$.id',
+                NESTED PATH '$.tags[*]' COLUMNS(
+                    tag_ord FOR ORDINALITY,
+                    tag_name VARCHAR(30) PATH '$.name'
+                )
+            )) jt
+            """;
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        Assert.NotNull(parsed.Table);
+        var source = parsed.Table;
+        Assert.NotNull(source.JsonTableClause);
+        var clause = source.JsonTableClause;
+        var nested = Assert.Single(clause.NestedPaths);
+
+        Assert.Single(clause.Columns);
+        Assert.Equal("id", clause.Columns[0].Name);
+        Assert.Equal("$.tags[*]", nested.Path);
+        Assert.Equal(2, nested.Clause.Columns.Count);
+        Assert.True(nested.Clause.Columns[0].ForOrdinality);
+        Assert.Equal("tag_name", nested.Clause.Columns[1].Name);
+        Assert.Equal("$.name", nested.Clause.Columns[1].Path);
+    }
+
+    /// <summary>
+    /// EN: Ensures JSON_TABLE captures EXISTS PATH metadata inside a MariaDB nested path branch.
+    /// PT: Garante que JSON_TABLE capture a metadata de EXISTS PATH dentro de um ramo nested path do MariaDB.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void ParseSelect_FromJsonTable_WithNestedExistsPath_ShouldCaptureNestedExistsMetadata()
+    {
+        const string sql = """
+            SELECT jt.id, jt.has_tag
+            FROM JSON_TABLE(payload, '$[*]' COLUMNS(
+                id INT PATH '$.id',
+                NESTED PATH '$.tags[*]' COLUMNS(
+                    has_tag INT EXISTS PATH '$.name'
+                )
+            )) jt
+            """;
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        Assert.NotNull(parsed.Table?.JsonTableClause);
+        var clause = parsed.Table?.JsonTableClause!;
+        var nested = Assert.Single(clause.NestedPaths);
+        var nestedColumn = Assert.Single(nested.Clause.Columns);
+
+        Assert.True(nestedColumn.ExistsPath);
+        Assert.Equal("$.name", nestedColumn.Path);
+        Assert.Equal(DbType.Int32, nestedColumn.DbType);
+    }
+
+    /// <summary>
+    /// EN: Ensures JSON_TABLE captures ON EMPTY and ON ERROR fallback metadata for MariaDB path columns.
+    /// PT: Garante que JSON_TABLE capture a metadata de fallback ON EMPTY e ON ERROR nas colunas PATH do MariaDB.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void ParseSelect_FromJsonTable_WithFallbackClauses_ShouldCaptureFallbackMetadata()
+    {
+        const string sql = """
+            SELECT jt.id, jt.title
+            FROM JSON_TABLE(payload, '$[*]' COLUMNS(
+                id INT PATH '$.id' DEFAULT '0' ON EMPTY,
+                title VARCHAR(50) PATH '$.title' NULL ON EMPTY DEFAULT 'fallback' ON ERROR
+            )) jt
+            """;
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        Assert.NotNull(parsed.Table?.JsonTableClause);
+        var clause = parsed.Table?.JsonTableClause!;
+
+        var idColumn = clause.Columns[0];
+        var titleColumn = clause.Columns[1];
+
+        Assert.Equal(SqlJsonTableColumnFallbackKind.Default, idColumn.OnEmpty?.Kind);
+        Assert.Equal("0", idColumn.OnEmpty?.DefaultValueRaw);
+        Assert.Null(idColumn.OnError);
+
+        Assert.Equal(SqlJsonTableColumnFallbackKind.Null, titleColumn.OnEmpty?.Kind);
+        Assert.Equal(SqlJsonTableColumnFallbackKind.Default, titleColumn.OnError?.Kind);
+        Assert.Equal("fallback", titleColumn.OnError?.DefaultValueRaw);
     }
 
     /// <summary>

@@ -95,8 +95,10 @@ public class MySqlCommandMock(
     }
 
     private static bool IsInsertCommandText(string commandText)
-        => commandText.Length >= 6
-           && string.Compare(commandText[..6], "INSERT", StringComparison.OrdinalIgnoreCase) == 0;
+        => (commandText.Length >= 6
+               && string.Compare(commandText[..6], "INSERT", StringComparison.OrdinalIgnoreCase) == 0)
+           || (commandText.Length >= 7
+               && string.Compare(commandText[..7], "REPLACE", StringComparison.OrdinalIgnoreCase) == 0);
 
     private string? BuildInsertBatchableCommandText()
     {
@@ -132,7 +134,8 @@ public class MySqlCommandMock(
 
     private static bool IsValuesKeyword(SqlToken token)
         => token.Kind != SqlTokenKind.Symbol
-           && string.Equals(token.Text, "VALUES", StringComparison.OrdinalIgnoreCase);
+           && (string.Equals(token.Text, "VALUES", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(token.Text, "VALUE", StringComparison.OrdinalIgnoreCase));
 
     private static bool TryReadValuesTuple(
         IReadOnlyList<SqlToken> tokens,
@@ -242,8 +245,8 @@ public class MySqlCommandMock(
         if (CommandType == CommandType.StoredProcedure)
         {
             var affected = connection!.ExecuteStoredProcedure(CommandText, Parameters);
-            connection.SetLastFoundRows(affected);
-            return affected;
+            connection.SetLastFoundRows(affected.AffectedRows);
+            return affected.AffectedRows;
         }
 
         return connection.ExecuteNonQueryWithPipeline(
@@ -261,7 +264,7 @@ public class MySqlCommandMock(
             throw new InvalidOperationException(SqlExceptionMessages.InvalidDeleteExpectedFromKeyword());
     }
 
-    private bool TryExecuteTransactionControlCommand(string sqlRaw, out int affectedRows)
+    private bool TryExecuteTransactionControlCommand(string sqlRaw, out DmlExecutionResult affectedRows)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
         return connection!.TryExecuteStandardTransactionControl(
@@ -354,22 +357,22 @@ public class MySqlCommandMock(
     {
         if (!TryResolveTargetTable(query.Table, out var table) || table == null)
         {
-            connection!.ExecuteInsert(query, Parameters, connection!.ExecutionDialect);
+            if (query.IsReplace)
+                connection!.ExecuteReplace(query, Parameters, connection!.ExecutionDialect);
+            else
+                connection!.ExecuteInsert(query, Parameters, connection!.ExecutionDialect);
             return null;
         }
 
-        var hadReturning = query.Returning.Count > 0;
-        var beforeCount = table.Count;
-        connection!.ExecuteInsert(query, Parameters, connection!.ExecutionDialect);
+        DmlExecutionResult result = query.IsReplace
+            ? connection!.ExecuteReplace(query, Parameters, connection!.ExecutionDialect)
+            : connection!.ExecuteInsert(query, Parameters, connection!.ExecutionDialect);
 
-        if (!hadReturning)
+        if (query.Returning.Count == 0)
             return null;
 
         var projections = BuildReturningProjection(query.Returning, query.Table!, table);
-        return BuildReturningResultFromIndexes(
-            projections,
-            table,
-            Enumerable.Range(beforeCount, Math.Max(0, table.Count - beforeCount)));
+        return BuildReturningResultFromIndexes(projections, table, result.AffectedIndexes);
     }
 
     /// <summary>

@@ -125,8 +125,11 @@ internal sealed class SqlExpressionParser(
             // IN (...)
             if (TryParseInInfix(ref left, minBp)) continue;
 
-            // LIKE
-            if (TryParseLikeInfix(ref left, minBp)) continue;
+        // LIKE
+        if (TryParseLikeInfix(ref left, minBp)) continue;
+
+        // SOUNDS LIKE
+        if (TryParseSoundsLikeInfix(ref left, minBp)) continue;
 
         // REGEXP
         if (TryParseRegexpInfix(ref left, minBp)) continue;
@@ -483,6 +486,28 @@ internal sealed class SqlExpressionParser(
         var pattern = ParseExpression(rbp);
         var expr = (SqlExpr)new BinaryExpr(SqlBinaryOp.Regexp, left, pattern);
         left = negate ? new UnaryExpr(SqlUnaryOp.Not, expr) : expr;
+        return true;
+    }
+
+    private bool TryParseSoundsLikeInfix(ref SqlExpr left, int minBp)
+    {
+        var t = Peek();
+        if (!IsKeywordOrIdentifierWord(t, "SOUNDS"))
+            return false;
+
+        var next = Peek(1);
+        if (!IsKeywordOrIdentifierWord(next, "LIKE"))
+            return false;
+
+        const int lbp = 50;
+        const int rbp = 51;
+        if (lbp < minBp) return false;
+
+        Consume(); // SOUNDS
+        Consume(); // LIKE
+
+        var pattern = ParseExpression(rbp);
+        left = new BinaryExpr(SqlBinaryOp.SoundLike, left, pattern);
         return true;
     }
 

@@ -1,10 +1,11 @@
-using DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
+using DbSqlLikeMem.Benchmarks.Sessions.External;
 
 namespace DbSqlLikeMem.Benchmarks.Suites;
 
 /// <summary>
 /// 
-/// </summary>public class Oracle_Testcontainers_Benchmarks : BenchmarkSuiteBase
+/// </summary>
+public class Oracle_Testcontainers_Benchmarks : BenchmarkSuiteBase
 {
     /// <summary>
     /// 

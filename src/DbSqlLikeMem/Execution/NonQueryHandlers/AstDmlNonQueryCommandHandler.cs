@@ -5,7 +5,7 @@ internal sealed class AstDmlNonQueryCommandHandler : INonQueryCommandHandler
     public bool TryHandle(
         CommandExecutionPipelineContext context,
         string sqlRaw,
-        out int affectedRows)
+        out DmlExecutionResult affectedRows)
     {
         using var _ = context.Connection.Metrics.BeginAmbientScope();
         var query = context.GetParsedQuery(sqlRaw);
@@ -16,7 +16,7 @@ internal sealed class AstDmlNonQueryCommandHandler : INonQueryCommandHandler
             SqlUpdateQuery updateQ => context.Connection.ExecuteUpdateSmart(updateQ, context.Parameters, context.Connection.ExecutionDialect),
             SqlDeleteQuery deleteQ => context.Connection.ExecuteDeleteSmart(deleteQ, context.Parameters, context.Connection.ExecutionDialect),
             SqlMergeQuery mergeQ when context.Options.AllowMerge => context.Connection.ExecuteMerge(mergeQ, context.Parameters, context.Connection.ExecutionDialect),
-            _ => 0
+            _ => new DmlExecutionResult()
         };
 
         return query is SqlInsertQuery or SqlUpdateQuery or SqlDeleteQuery ||

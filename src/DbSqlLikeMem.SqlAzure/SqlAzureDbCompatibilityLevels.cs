@@ -1,12 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Data.Common;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 namespace DbSqlLikeMem.SqlAzure;
 
+/// <summary>
+/// EN: Compatibility level value that emulates SQL Server.
+/// PT: Valor de nivel de compatibilidade que emula o comportamento do SQL Server.
+/// </summary>
 public static class SqlAzureDbCompatibilityLevels
 {
     /// <summary>

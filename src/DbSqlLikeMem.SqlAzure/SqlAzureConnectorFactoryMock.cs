@@ -1,15 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Data.Common;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using DbSqlLikeMem.SqlServer;
 using Microsoft.Data.SqlClient;
 namespace DbSqlLikeMem.SqlAzure;
 
-public sealed class SqlAzureConnectorFactoryMock : DbProviderFactory
+/// <summary>
+/// EN: Represents the Sql Azure Connector Factory Mock type used by provider mocks.
+/// PT: Representa o tipo Sql Azure Connector Factory simulado usado pelos mocks do provedor.
+/// </summary>
+public sealed class SqlAzureConnectorFactoryMock
+    : DbProviderFactory
 {
     private static SqlAzureConnectorFactoryMock? instance;
     private readonly SqlAzureDbMock? db;

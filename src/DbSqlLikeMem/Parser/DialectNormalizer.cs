@@ -32,7 +32,7 @@ internal static class DialectNormalizer
             {
                 where = StripRownumPredicate(where, resolveParameterInt, out var rownumLimit);
                 if (rownumLimit.HasValue)
-                    rowLimit = MergeAutoRowLimit(rowLimit, rownumLimit.Value);
+                    rowLimit = MergeAutoRowLimit(rowLimit, rownumLimit.Value, resolveParameterInt);
             }
         }
 
@@ -54,18 +54,35 @@ internal static class DialectNormalizer
             _ => rowLimit
         };
 
-    private static SqlRowLimit MergeAutoRowLimit(SqlRowLimit? current, int rownumCount)
+    private static SqlRowLimit MergeAutoRowLimit(SqlRowLimit? current, int rownumCount, Func<string, int>? resolveParameterInt)
     {
-        var normalizedCount = Math.Max(0, rownumCount);
+        var normalizedCount = new LiteralExpr(Math.Max(0, rownumCount));
 
         return current switch
         {
             null => new SqlLimitOffset(normalizedCount, null),
-            SqlLimitOffset limit => new SqlLimitOffset(Math.Min(limit.Count, normalizedCount), limit.Offset),
-            SqlFetch fetch => new SqlLimitOffset(Math.Min(fetch.Count, normalizedCount), fetch.Offset),
-            SqlTop top => new SqlLimitOffset(Math.Min(top.Count, normalizedCount), null),
+            SqlLimitOffset limit => new SqlLimitOffset(MinExpr(limit.Count, normalizedCount, resolveParameterInt), limit.Offset),
+            SqlFetch fetch => new SqlLimitOffset(MinExpr(fetch.Count, normalizedCount, resolveParameterInt), fetch.Offset),
+            SqlTop top => new SqlLimitOffset(MinExpr(top.Count, normalizedCount, resolveParameterInt), null),
             _ => new SqlLimitOffset(normalizedCount, null)
         };
+    }
+
+    private static SqlExpr MinExpr(SqlExpr a, SqlExpr b, Func<string, int>? resolveParameterInt)
+    {
+        if (TryResolveExactInteger(a, resolveParameterInt, out var aval) && TryResolveExactInteger(b, resolveParameterInt, out var bval))
+        {
+            return new LiteralExpr(Math.Min(aval, bval));
+        }
+
+        if (a is LiteralExpr && b is LiteralExpr)
+        {
+            TryResolveExactInteger(a, null, out var ai);
+            TryResolveExactInteger(b, null, out var bi);
+            return new LiteralExpr(Math.Min(ai, bi));
+        }
+
+        return a;
     }
 
     private static bool CanNormalizeRownum(SqlRowLimit? rowLimit)

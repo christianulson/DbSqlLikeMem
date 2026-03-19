@@ -8,7 +8,7 @@ internal static class DbUpdateStrategy
     /// EN: Implements ExecuteUpdate.
     /// PT: Implementa ExecuteUpdate.
     /// </summary>
-    public static int ExecuteUpdate(
+    public static DmlExecutionResult ExecuteUpdate(
         this DbConnectionMockBase connection,
         SqlUpdateQuery query,
         DbParameterCollection? pars = null)
@@ -19,7 +19,7 @@ internal static class DbUpdateStrategy
             return Execute(connection, query, pars);
     }
 
-    private static int Execute(
+    private static DmlExecutionResult Execute(
         DbConnectionMockBase connection,
         SqlUpdateQuery query,
         DbParameterCollection? pars)
@@ -34,29 +34,20 @@ internal static class DbUpdateStrategy
             throw SqlUnsupported.ForTableDoesNotExist(tableName);
         var rowCountBefore = table.Count;
 
-        // JOIN updates ainda não suportados plenamente no Parser simples, 
-        // mas se o AST viesse com UpdateFromSelect, trataríamos aqui.
-        // O Parser atual foca em UPDATE simples com WHERE.
-
-        // 1. Parse do WHERE (raw string do AST)
-        // Em alguns cenários (ex: camadas que reescrevem SQL/parametrização), o parser pode
-        // acabar não preenchendo WhereRaw. Como fallback, extraímos do RawSql.
         var whereRaw = TableMock.ResolveWhereRaw(query.WhereRaw, query.RawSql);
         var conditions = TableMock.ParseWhereSimple(whereRaw);
-
-        // 2. Prepara os SET pairs do AST
         var setPairs = query.Set.Select(s => (s.Col, Val: s.ExprRaw)).ToArray();
 
         int updated = 0;
         var tableMock = (TableMock)table;
+        var affectedIndexes = new List<int>();
+        var affectedRowsData = new List<IReadOnlyDictionary<int, object?>>();
         foreach (var rowIdx in GetCandidateRowIndexes(table, pars, conditions))
         {
             var row = table[rowIdx];
-
-            // Match Where
             if (!TableMock.IsMatchSimple(table, pars, conditions, row)) continue;
 
-            var oldSnapshot = SnapshotRow(row);
+            var oldSnapshot = TableMock.SnapshotRow(row);
 
             // Valida Unique Constraints antes de aplicar
             var changedCols = setPairs.Select(sp => sp.Col).ToList();
@@ -66,13 +57,20 @@ internal static class DbUpdateStrategy
             var simulated = row.ToDictionary(_ => _.Key, _ => _.Value);
             UpdateRowValuesInMemory(table, pars, setPairs, simulated, dialect);
             tableMock.ValidateForeignKeysOnRow(new ReadOnlyDictionary<int, object?>(simulated));
-            TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, SnapshotRow(new ReadOnlyDictionary<int, object?>(simulated)));
+            
+            if (dialect.SupportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeUpdate))
+                TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, simulated);
+            
             UpdateRowValues(table, pars, setPairs, rowIdx, row, dialect);
-            TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, SnapshotRow(table[rowIdx]));
+            
+            if (dialect.SupportsTriggers && table.HasTriggers(TableTriggerEvent.AfterUpdate))
+                TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, TableMock.SnapshotRow(table[rowIdx]));
 
             // Atualiza índices
             tableMock.UpdateIndexesWithRow(rowIdx, oldSnapshot, table[rowIdx]);
             updated++;
+            affectedIndexes.Add(rowIdx);
+            affectedRowsData.Add(TableMock.SnapshotRow(table[rowIdx]));
         }
 
         connection.Metrics.Updates += updated;
@@ -88,7 +86,12 @@ internal static class DbUpdateStrategy
             metrics,
             new SqlPlanMockRuntimeContext(connection.SimulatedLatencyMs, connection.DropProbability, connection.Db.ThreadSafe));
         connection.RegisterExecutionPlan(plan);
-        return updated;
+        return new DmlExecutionResult
+        {
+            AffectedRows= updated,
+            AffectedIndexes = affectedIndexes,
+            AffectedRowsData = affectedRowsData
+        };
     }
 
     private static IEnumerable<int> GetCandidateRowIndexes(
@@ -107,8 +110,6 @@ internal static class DbUpdateStrategy
             yield return rowIdx;
     }
 
-    // --- Helpers de Lógica ---
-
     private static void ValidateUniqueBeforeUpdate(
         string tableName,
         TableMock table,
@@ -119,10 +120,8 @@ internal static class DbUpdateStrategy
         List<string> changedCols,
         ISqlDialect dialect)
     {
-        // Simula linha nova sem mutar a tabela
         var simulated = row.ToDictionary(_=>_.Key, _=>_.Value);
-        UpdateRowValuesInMemory(table, pars, setPairs, simulated, dialect); // aplica na simulação
-
+        UpdateRowValuesInMemory(table, pars, setPairs, simulated, dialect); 
         table.EnsureUniqueBeforeUpdate(tableName, row, simulated, rowIdx, changedCols);
     }
 
@@ -137,7 +136,7 @@ internal static class DbUpdateStrategy
         foreach (var (Col, Val) in setPairs)
         {
             var info = table.GetColumn(Col);
-            if (info.GetGenValue != null) continue; // Coluna gerada não se update
+            if (info.GetGenValue != null) continue; 
 
             var raw = ResolveSetValue(table, pars, row, info, Col, Val, dialect);
             table.UpdateRowColumn(rowIdx, info.Index, raw);
@@ -154,7 +153,7 @@ internal static class DbUpdateStrategy
         foreach (var (Col, Val) in setPairs)
         {
             var info = table.GetColumn(Col);
-            if (info.GetGenValue != null) continue; // Coluna gerada não se update
+            if (info.GetGenValue != null) continue; 
             var raw = ResolveSetValue(table, pars, new ReadOnlyDictionary<int, object?>(row), info, Col, Val, dialect);
             row[info.Index] = raw;
         }
@@ -187,18 +186,9 @@ internal static class DbUpdateStrategy
         }
     }
 
-    /// <summary>
-    /// EN: Tries to resolve temporal tokens/functions used in UPDATE SET expressions for the current dialect.
-    /// PT: Tenta resolver tokens/funções temporais usados em expressões UPDATE SET para o dialeto atual.
-    /// </summary>
-    /// <param name="exprRaw">EN: Raw SET expression value. PT: Valor bruto da expressão SET.</param>
-    /// <param name="dialect">EN: Active SQL dialect. PT: Dialeto SQL ativo.</param>
-    /// <param name="value">EN: Resolved temporal value when successful. PT: Valor temporal resolvido quando houver sucesso.</param>
-    /// <returns>EN: True when expression maps to a supported temporal token/function. PT: True quando a expressão mapeia para token/função temporal suportada.</returns>
     private static bool TryResolveTemporalSetValue(string exprRaw, ISqlDialect dialect, out object? value)
     {
         var trimmed = exprRaw.Trim();
-
         if (SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, trimmed, out value))
             return true;
 
@@ -228,13 +218,7 @@ internal static class DbUpdateStrategy
         if (string.IsNullOrWhiteSpace(exprRaw))
             return false;
 
-        // We only support very simple arithmetic used in UPDATE SET, e.g.:
-        //   col = col + 1
-        //   col = col - @p
-        // This is enough to cover common "increment" patterns.
         var expr = exprRaw.Trim();
-
-        // Find + or - at top-level (ignore quoted strings).
         int opIdx = -1;
         char op = '\0';
         bool inSingle = false;
@@ -250,10 +234,7 @@ internal static class DbUpdateStrategy
 
             if (ch == '+' || ch == '-')
             {
-                // avoid treating leading sign as an operator: "-1"
-                // and avoid "e-3" inside scientific notation (rare here).
                 if (i == 0) continue;
-
                 opIdx = i;
                 op = ch;
                 break;
@@ -265,14 +246,12 @@ internal static class DbUpdateStrategy
 
         var leftTok = expr[..opIdx].Trim();
         var rightTok = expr[(opIdx + 1)..].Trim();
-
         if (leftTok.Length == 0 || rightTok.Length == 0)
             return false;
 
         object? leftVal = ResolveOperand(leftTok, table, row, pars, dbType, isNullable);
         object? rightVal = ResolveOperand(rightTok, table, row, pars, dbType, isNullable);
 
-        // MySQL: arithmetic with NULL yields NULL
         if (leftVal is null || leftVal is DBNull || rightVal is null || rightVal is DBNull)
         {
             value = null;
@@ -318,13 +297,11 @@ internal static class DbUpdateStrategy
                     return true;
 
                 default:
-                    // unsupported type for arithmetic
                     return false;
             }
         }
         catch
         {
-            // fall back to normal Resolve (will likely throw with a clearer message)
             return false;
         }
     }
@@ -337,13 +314,9 @@ internal static class DbUpdateStrategy
         DbType dbType,
         bool isNullable)
     {
-        // Column reference
         if (table.Columns.TryGetValue(token, out var col))
-        {
             return row.TryGetValue(col.Index, out var v) ? v : null;
-        }
 
-        // Quoted identifiers like `counter`
         var unquoted = token.Trim();
         if (unquoted.Length >= 2 && (unquoted[0] == '`' && unquoted[^1] == '`'))
         {
@@ -352,15 +325,10 @@ internal static class DbUpdateStrategy
                 return row.TryGetValue(col2.Index, out var v2) ? v2 : null;
         }
 
-        // Literal or parameter
         table.CurrentColumn = null;
         var raw = table.Resolve(token, dbType, isNullable, pars, table.Columns);
         return raw is DBNull ? null : raw;
     }
-
-
-    private static IReadOnlyDictionary<int, object?> SnapshotRow(IReadOnlyDictionary<int, object?> row)
-        => row.ToDictionary(_ => _.Key, _ => _.Value);
 
     private static void TryExecuteTableTrigger(
         DbConnectionMockBase connection,
@@ -381,5 +349,4 @@ internal static class DbUpdateStrategy
         if (table is TableMock tableMock)
             tableMock.ExecuteTriggers(evt, oldRow, newRow);
     }
-
 }

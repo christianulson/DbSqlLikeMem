@@ -65,7 +65,7 @@ internal static class SqlExecutionPlanFormatter
     {
         var sb = new StringBuilder();
         sb.AppendLine(SqlExecutionPlanMessages.ExecutionPlanTitle());
-        sb.AppendLine($"- {SqlExecutionPlanMessages.QueryTypeLabel()}: INSERT");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.QueryTypeLabel()}: {(query.IsReplace ? "REPLACE" : "INSERT")}");
         sb.AppendLine($"- {SqlExecutionPlanMessages.EstimatedCostLabel()}: {EstimateInsertCost(query)}");
         sb.AppendLine($"- {SqlExecutionPlanMessages.TableLabel()}: {FormatSource(query.Table)}");
         sb.AppendLine($"- {SqlExecutionPlanMessages.ProjectionLabel()}: {query.Columns.Count} item(s)");
@@ -973,7 +973,7 @@ internal static class SqlExecutionPlanFormatter
             var pathShape = TryFormatOpenJsonPathShape(source.TableFunction.Args[1]);
             return source.JsonTableClause is null
                 ? $"{functionName}(..., {pathShape})"
-                : $"{functionName}(..., {pathShape}) COLUMNS (...)";
+                : $"{functionName}(..., {pathShape}) {FormatJsonTableClauseShape(source.JsonTableClause)}";
         }
 
         return source.OpenJsonWithClause is null && source.JsonTableClause is null
@@ -1006,6 +1006,23 @@ internal static class SqlExecutionPlanFormatter
         return "path";
     }
 
+    private static string FormatJsonTableClauseShape(SqlJsonTableClause clause)
+    {
+        if (clause.NestedPaths.Count == 0)
+            return "COLUMNS (...)";
+
+        var nestedShapes = string.Join(", ", clause.NestedPaths.Select(FormatJsonTableNestedPathShape));
+        return $"COLUMNS (..., {nestedShapes})";
+    }
+
+    private static string FormatJsonTableNestedPathShape(SqlJsonTableNestedPath nestedPath)
+    {
+        if (nestedPath.Clause.NestedPaths.Count == 0)
+            return "NESTED PATH (...)";
+
+        return $"NESTED PATH (..., {string.Join(", ", nestedPath.Clause.NestedPaths.Select(FormatJsonTableNestedPathShape))})";
+    }
+
     private static string FormatJoinLine(SqlJoin join)
     {
         var joinType = FormatJoinType(join.Type);
@@ -1029,9 +1046,9 @@ internal static class SqlExecutionPlanFormatter
     private static string FormatLimit(SqlRowLimit rowLimit)
         => rowLimit switch
         {
-            SqlLimitOffset l => l.Offset.HasValue ? $"LIMIT {l.Count} OFFSET {l.Offset.Value}" : $"LIMIT {l.Count}",
-            SqlTop t => $"TOP {t.Count}",
-            SqlFetch f => f.Offset.HasValue ? $"FETCH {f.Count} OFFSET {f.Offset.Value}" : $"FETCH {f.Count}",
+            SqlLimitOffset l => l.Offset is not null ? $"LIMIT {SqlExprPrinter.Print(l.Count)} OFFSET {SqlExprPrinter.Print(l.Offset)}" : $"LIMIT {SqlExprPrinter.Print(l.Count)}",
+            SqlTop t => $"TOP {SqlExprPrinter.Print(t.Count)}",
+            SqlFetch f => f.Offset is not null ? $"FETCH {SqlExprPrinter.Print(f.Count)} OFFSET {SqlExprPrinter.Print(f.Offset)}" : $"FETCH {SqlExprPrinter.Print(f.Count)}",
             _ => rowLimit.ToString() ?? "<limit>"
         };
 
@@ -1060,12 +1077,15 @@ internal static class SqlExecutionPlanFormatter
 
     private static int EstimateInsertCost(SqlInsertQuery query)
     {
-        var cost = 8;
+        var cost = query.IsReplace ? 12 : 8;
         cost += query.Columns.Count * 2;
         cost += query.ValuesRaw.Count * 3;
 
         if (query.InsertSelect is not null)
             cost += EstimateSelectCost(query.InsertSelect);
+
+        if (query.IsReplace)
+            cost += 4 + query.ValuesRaw.Count * 2;
 
         if (query.HasOnDuplicateKeyUpdate)
             cost += 15 + query.OnDupAssigns.Count * 4;
@@ -2098,11 +2118,19 @@ internal static class SqlExecutionPlanFormatter
     private static (int Count, int Offset) ExtractRowLimitCountAndOffset(SqlRowLimit rowLimit)
         => rowLimit switch
         {
-            SqlLimitOffset l => (l.Count, l.Offset ?? 0),
-            SqlTop t => (t.Count, 0),
-            SqlFetch f => (f.Count, f.Offset ?? 0),
+            SqlLimitOffset l => (TryGetLiteralInt(l.Count, 1000), TryGetLiteralInt(l.Offset, 0)),
+            SqlTop t => (TryGetLiteralInt(t.Count, 1000), 0),
+            SqlFetch f => (TryGetLiteralInt(f.Count, 1000), TryGetLiteralInt(f.Offset, 0)),
             _ => (0, 0)
         };
+
+    private static int TryGetLiteralInt(SqlExpr? expr, int defaultValue)
+    {
+        if (expr is LiteralExpr { Value: int i }) return i;
+        if (expr is LiteralExpr { Value: long l }) return (int)l;
+        if (expr is LiteralExpr { Value: decimal d }) return (int)d;
+        return defaultValue;
+    }
 
     /// <summary>
     /// EN: Estimates penalty for high offsets because deep skips still require additional scan/sort work.

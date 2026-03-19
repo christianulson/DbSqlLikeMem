@@ -1,13 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Data.Common;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using DbSqlLikeMem.SqlServer;
 namespace DbSqlLikeMem.SqlAzure;
 
+/// <summary>
+/// EN: Represents a mock database command used to execute SQL text and stored procedures in memory.
+/// PT: Representa um comando de banco de dados simulado usado para executar SQL e procedures em memória.
+/// </summary>
 public class SqlAzureCommandMock(
     SqlAzureConnectionMock? connection,
     SqlServerTransactionMock? transaction = null

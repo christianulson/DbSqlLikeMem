@@ -10,7 +10,7 @@ internal static class NonQueryHandlerExecutionRunner
         CommandExecutionPipelineContext context,
         string sqlRaw,
         IReadOnlyList<INonQueryCommandHandler> handlers,
-        out int affectedRows)
+        out DmlExecutionResult affectedRows)
     {
         foreach (var handler in handlers)
         {
@@ -22,7 +22,7 @@ internal static class NonQueryHandlerExecutionRunner
                 if (!handler.TryHandle(context, sqlRaw, out affectedRows))
                     continue;
 
-                RegisterSuccessfulExecution(context.Connection, handlerName, startedAt, affectedRows);
+                RegisterSuccessfulExecution(context.Connection, handlerName, startedAt, affectedRows.AffectedRows);
                 return true;
             }
             catch
@@ -32,7 +32,7 @@ internal static class NonQueryHandlerExecutionRunner
             }
         }
 
-        affectedRows = 0;
+        affectedRows = new DmlExecutionResult();
         return false;
     }
 

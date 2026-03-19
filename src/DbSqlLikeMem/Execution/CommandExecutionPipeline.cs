@@ -1,6 +1,6 @@
 namespace DbSqlLikeMem;
 
-internal delegate bool TryExecutePipelineCommand(string sqlRaw, out int affectedRows);
+internal delegate bool TryExecutePipelineCommand(string sqlRaw, out DmlExecutionResult affectedRows);
 
 internal sealed class CommandExecutionPipelineOptions
 {
@@ -53,7 +53,7 @@ internal sealed class CommandExecutionPipeline : ICommandExecutionPipeline
                 throw new InvalidOperationException(SqlExceptionMessages.NonQueryHandlerCouldNotProcessStatement());
             }
 
-            affectedTotal += affectedRows;
+            affectedTotal += affectedRows.AffectedRows;
         }
 
         return affectedTotal;

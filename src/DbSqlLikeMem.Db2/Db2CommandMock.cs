@@ -105,8 +105,8 @@ public class Db2CommandMock(
         if (CommandType == CommandType.StoredProcedure)
         {
             var affected = connection.ExecuteStoredProcedure(CommandText, Parameters);
-            connection.SetLastFoundRows(affected);
-            return affected;
+            connection.SetLastFoundRows(affected.AffectedRows);
+            return affected.AffectedRows;
         }
 
         return connection.ExecuteNonQueryWithPipeline(
@@ -176,7 +176,7 @@ public class Db2CommandMock(
     }
 
 
-    private bool TryExecuteTransactionControlCommand(string sqlRaw, out int affectedRows)
+    private bool TryExecuteTransactionControlCommand(string sqlRaw, out DmlExecutionResult affectedRows)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
         return connection!.TryExecuteStandardTransactionControl(

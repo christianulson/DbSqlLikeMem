@@ -1,12 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Data.Common;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 namespace DbSqlLikeMem.SqlAzure;
 
+/// <summary>
+/// EN: Represents Sql Azure Data Reader Mock.
+/// PT: Representa Sql Azure Data leitor simulado.
+/// </summary>
 public sealed class SqlAzureDataReaderMock(
     IList<TableResultMock> tables
     ) : DbDataReaderMockBase(tables)

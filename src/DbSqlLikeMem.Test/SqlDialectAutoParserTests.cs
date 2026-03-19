@@ -40,7 +40,7 @@ public sealed class SqlDialectAutoParserTests(
         var limit = ParseRowLimit("SELECT id FROM users LIMIT 5", dialect);
         var fetch = ParseRowLimit("SELECT id FROM users FETCH FIRST 5 ROWS ONLY", dialect);
 
-        Assert.Equal(5, top.Count);
+        Assert.Equal(new LiteralExpr(5), top.Count);
         Assert.Null(top.Offset);
         Assert.Equal(top.Count, limit.Count);
         Assert.Equal(top.Offset, limit.Offset);
@@ -60,8 +60,8 @@ public sealed class SqlDialectAutoParserTests(
             "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY",
             new AutoSqlDialect());
 
-        Assert.Equal(2, rowLimit.Count);
-        Assert.Equal(1, rowLimit.Offset);
+        Assert.Equal(new LiteralExpr(2), rowLimit.Count);
+        Assert.Equal(new LiteralExpr(1), rowLimit.Offset);
     }
 
     /// <summary>
@@ -77,7 +77,7 @@ public sealed class SqlDialectAutoParserTests(
             new AutoSqlDialect());
 
         var rowLimit = Assert.IsType<SqlLimitOffset>(parsed.RowLimit);
-        Assert.Equal(5, rowLimit.Count);
+        Assert.Equal(new LiteralExpr(5), rowLimit.Count);
         Assert.Null(rowLimit.Offset);
         Assert.Null(parsed.Where);
     }
@@ -95,7 +95,7 @@ public sealed class SqlDialectAutoParserTests(
             new AutoSqlDialect());
 
         var rowLimit = Assert.IsType<SqlLimitOffset>(parsed.RowLimit);
-        Assert.Equal(5, rowLimit.Count);
+        Assert.Equal(new LiteralExpr(5), rowLimit.Count);
         Assert.Null(rowLimit.Offset);
         Assert.IsType<BinaryExpr>(parsed.Where);
     }
@@ -113,7 +113,7 @@ public sealed class SqlDialectAutoParserTests(
             new AutoSqlDialect());
 
         var rowLimit = Assert.IsType<SqlLimitOffset>(parsed.RowLimit);
-        Assert.Equal(3, rowLimit.Count);
+        Assert.Equal(new LiteralExpr(3), rowLimit.Count);
         Assert.Null(rowLimit.Offset);
         Assert.Null(parsed.Where);
     }
@@ -147,8 +147,8 @@ public sealed class SqlDialectAutoParserTests(
             new AutoSqlDialect());
 
         var rowLimit = Assert.IsType<SqlLimitOffset>(parsed.RowLimit);
-        Assert.Equal(2, rowLimit.Count);
-        Assert.Equal(1, rowLimit.Offset);
+        Assert.Equal(new LiteralExpr(2), rowLimit.Count);
+        Assert.Equal(new LiteralExpr(1), rowLimit.Offset);
         Assert.IsType<BinaryExpr>(parsed.Where);
     }
 
@@ -171,7 +171,7 @@ public sealed class SqlDialectAutoParserTests(
             parameters));
 
         var rowLimit = Assert.IsType<SqlLimitOffset>(parsed.RowLimit);
-        Assert.Equal(4, rowLimit.Count);
+        Assert.Equal(new LiteralExpr(4), rowLimit.Count);
         Assert.Null(rowLimit.Offset);
         Assert.Null(parsed.Where);
     }

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 
 namespace DbSqlLikeMem;
@@ -9,6 +10,8 @@ namespace DbSqlLikeMem;
 public sealed class ILoggerDbConnectionInterceptor : DbConnectionInterceptor
 {
     private readonly ILogger _logger;
+    private readonly ConcurrentDictionary<DbCommand, DbMetricsSnapshot> _commandSnapshots =
+        new(ReferenceEqualityComparer<DbCommand>.Instance);
 
     /// <summary>
     /// EN: Creates an interceptor that writes interception events to the supplied logger.
@@ -55,15 +58,28 @@ public sealed class ILoggerDbConnectionInterceptor : DbConnectionInterceptor
 
     /// <inheritdoc />
     public override void CommandExecuting(DbCommandExecutionContext context)
-        => Log(CreateCommandEvent(DbInterceptionEventKind.CommandExecuting, context, null, null));
+    {
+        TryCaptureCommandSnapshot(context.Connection, context.Command);
+        Log(CreateCommandEvent(DbInterceptionEventKind.CommandExecuting, context, null, null, null));
+    }
 
     /// <inheritdoc />
     public override void CommandExecuted(DbCommandExecutionContext context, object? result)
-        => Log(CreateCommandEvent(DbInterceptionEventKind.CommandExecuted, context, result, null));
+        => Log(CreateCommandEvent(
+            DbInterceptionEventKind.CommandExecuted,
+            context,
+            result,
+            TryGetPerformanceMetricsDelta(context.Connection, context.Command),
+            null));
 
     /// <inheritdoc />
     public override void CommandFailed(DbCommandExecutionContext context, Exception exception)
-        => Log(CreateCommandEvent(DbInterceptionEventKind.CommandFailed, context, null, exception));
+        => Log(CreateCommandEvent(
+            DbInterceptionEventKind.CommandFailed,
+            context,
+            null,
+            TryGetPerformanceMetricsDelta(context.Connection, context.Command),
+            exception));
 
     /// <inheritdoc />
     public override void TransactionStarting(DbTransactionStartingContext context)
@@ -106,6 +122,7 @@ public sealed class ILoggerDbConnectionInterceptor : DbConnectionInterceptor
         DbInterceptionEventKind eventKind,
         DbCommandExecutionContext context,
         object? result,
+        string? performanceMetricsDelta,
         Exception? exception)
         => new()
         {
@@ -116,6 +133,7 @@ public sealed class ILoggerDbConnectionInterceptor : DbConnectionInterceptor
             CommandExecutionKind = context.ExecutionKind,
             Result = result,
             PerformanceMetrics = TryGetPerformanceMetrics(context.Connection),
+            PerformanceMetricsDelta = performanceMetricsDelta,
             Exception = exception
         };
 
@@ -137,6 +155,23 @@ public sealed class ILoggerDbConnectionInterceptor : DbConnectionInterceptor
         => connection is DbConnectionMockBase mock
             ? mock.Metrics.FormatPerformancePhases()
             : null;
+
+    private string? TryGetPerformanceMetricsDelta(DbConnection connection, DbCommand command)
+    {
+        if (connection is not DbConnectionMockBase mock)
+            return null;
+
+        if (!_commandSnapshots.TryRemove(command, out var snapshot))
+            return null;
+
+        return mock.Metrics.FormatPerformancePhasesDelta(snapshot);
+    }
+
+    private void TryCaptureCommandSnapshot(DbConnection connection, DbCommand command)
+    {
+        if (connection is DbConnectionMockBase mock)
+            _commandSnapshots[command] = mock.Metrics.CapturePerformanceSnapshot();
+    }
 
     private void Log(DbInterceptionEvent interceptionEvent)
     {

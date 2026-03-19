@@ -398,6 +398,42 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
     }
 
     /// <summary>
+    /// EN: Verifies nested JSON_TABLE sources keep the row-path and nested COLUMNS shape in the execution plan.
+    /// PT: Verifica se fontes JSON_TABLE aninhadas mantem o shape de row-path e COLUMNS aninhados no plano de execucao.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_ShouldRenderNestedJsonTableColumnsShapeInTableFunctionSource()
+    {
+        var metrics = new SqlPlanRuntimeMetrics(1, 1, 1, 1);
+        var query = new SqlSelectQuery([], false, [new SqlSelectItem("jt.TagName", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(
+                DbName: "dbo",
+                Name: null,
+                Alias: "jt",
+                Derived: null,
+                DerivedUnion: null,
+                DerivedSql: null,
+                Pivot: null,
+                TableFunction: new FunctionCallExpr("JSON_TABLE", [new IdentifierExpr("payload"), new LiteralExpr("$[*]")]),
+                JsonTableClause: new SqlJsonTableClause(
+                [
+                    new SqlJsonTableColumn("Id", "INT", DbType.Int32, "$.id", false),
+                    new SqlJsonTableNestedPath(
+                        "$.tags[*]",
+                        new SqlJsonTableClause(
+                        [
+                            new SqlJsonTableColumn("TagOrd", "BIGINT", DbType.Int64, null, true),
+                            new SqlJsonTableColumn("TagName", "VARCHAR(20)", DbType.String, "$.name", false)
+                        ]))
+                ]))
+        };
+
+        var plan = SqlExecutionPlanFormatter.FormatSelect(query, metrics, [], []);
+        plan.Should().Contain("- FROM: dbo.JSON_TABLE(..., path) COLUMNS (..., NESTED PATH (...)) AS jt");
+    }
+
+    /// <summary>
     /// EN: Verifies CROSS APPLY join lines preserve strict-path and WITH details for OPENJSON sources.
     /// PT: Verifica se linhas de CROSS APPLY preservam os detalhes de strict-path e WITH para fontes OPENJSON.
     /// </summary>
@@ -1220,7 +1256,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
             Table = new SqlTableSource(null, "users", null, null, null, null, null)
         };
 
-        var withLimitQuery = noLimitQuery with { RowLimit = new SqlLimitOffset(10, null) };
+        var withLimitQuery = noLimitQuery with { RowLimit = new SqlLimitOffset(new LiteralExpr(10), null) };
 
         var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
         var noLimitPlan = SqlExecutionPlanFormatter.FormatSelect(noLimitQuery, metrics, [], []);
@@ -1475,7 +1511,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
         var metrics = new SqlPlanRuntimeMetrics(2, 200, 20, 4);
         var noLimitPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [new SqlOrderByItem("id", false)], null, metrics);
-        var withLimitPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [new SqlOrderByItem("id", false)], new SqlLimitOffset(10, null), metrics);
+        var withLimitPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [new SqlOrderByItem("id", false)], new SqlLimitOffset(new LiteralExpr(10), null), metrics);
 
         ExtractEstimatedCost(withLimitPlan).Should().BeLessThan(ExtractEstimatedCost(noLimitPlan));
     }
@@ -1573,7 +1609,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
             Table = new SqlTableSource(null, "users", null, null, null, null, null)
         };
 
-        var withLimitQuery = noLimitQuery with { RowLimit = new SqlLimitOffset(10, null) };
+        var withLimitQuery = noLimitQuery with { RowLimit = new SqlLimitOffset(new LiteralExpr(10), null) };
 
         var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
         var noLimitPlan = SqlExecutionPlanFormatter.FormatSelect(noLimitQuery, metrics, [], []);
@@ -1721,7 +1757,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
             Table = new SqlTableSource(null, "users", null, null, null, null, null)
         };
 
-        var withLimitQuery = noLimitQuery with { RowLimit = new SqlLimitOffset(10, null) };
+        var withLimitQuery = noLimitQuery with { RowLimit = new SqlLimitOffset(new LiteralExpr(10), null) };
 
         var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
         var noLimitPlan = SqlExecutionPlanFormatter.FormatSelect(noLimitQuery, metrics, [], []);
@@ -1746,7 +1782,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
             [],
             null,
             [new SqlOrderByItem("tenantid", false)],
-            new SqlLimitOffset(10, null),
+            new SqlLimitOffset(new LiteralExpr(10), null),
             ["tenantid"],
             null)
         {
@@ -1755,7 +1791,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
         var withOffsetQuery = noOffsetQuery with
         {
-            RowLimit = new SqlLimitOffset(10, 50)
+            RowLimit = new SqlLimitOffset(new LiteralExpr(10), new LiteralExpr(50))
         };
 
         var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
@@ -2427,7 +2463,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
         {
             Table = cteUnionNoLimit.Table with
             {
-                DerivedUnion = new SqlQueryParser.UnionChain([unionPart1, unionPart2], [true], [new SqlOrderByItem("id", false)], new SqlLimitOffset(10, null))
+                DerivedUnion = new SqlQueryParser.UnionChain([unionPart1, unionPart2], [true], [new SqlOrderByItem("id", false)], new SqlLimitOffset(new LiteralExpr(10), null))
             }
         };
 
@@ -2460,14 +2496,14 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldDecreaseMoreWhenCteBodyUsesTighterRowLimit()
     {
-        var cteBodyLooseLimit = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [new SqlOrderByItem("id", false)], new SqlLimitOffset(1000, null), [], null)
+        var cteBodyLooseLimit = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [new SqlOrderByItem("id", false)], new SqlLimitOffset(new LiteralExpr(1000), null), [], null)
         {
             Table = new SqlTableSource(null, "users", null, null, null, null, null)
         };
 
         var cteBodyTightLimit = cteBodyLooseLimit with
         {
-            RowLimit = new SqlLimitOffset(10, null)
+            RowLimit = new SqlLimitOffset(new LiteralExpr(10), null)
         };
 
         var baseQuery = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
@@ -2499,14 +2535,14 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWhenCteBodyRowLimitUsesLargeOffset()
     {
-        var cteBodyNoOffset = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [new SqlOrderByItem("id", false)], new SqlLimitOffset(10, null), [], null)
+        var cteBodyNoOffset = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [new SqlOrderByItem("id", false)], new SqlLimitOffset(new LiteralExpr(10), null), [], null)
         {
             Table = new SqlTableSource(null, "users", null, null, null, null, null)
         };
 
         var cteBodyLargeOffset = cteBodyNoOffset with
         {
-            RowLimit = new SqlLimitOffset(10, 5000)
+            RowLimit = new SqlLimitOffset(new LiteralExpr(10), new LiteralExpr(5000))
         };
 
         var baseQuery = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
@@ -2721,8 +2757,8 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
             Table = new SqlTableSource(null, "users", null, null, null, null, null)
         };
 
-        var looseLimitQuery = baseQuery with { RowLimit = new SqlLimitOffset(1000, null) };
-        var tightLimitQuery = baseQuery with { RowLimit = new SqlLimitOffset(10, null) };
+        var looseLimitQuery = baseQuery with { RowLimit = new SqlLimitOffset(new LiteralExpr(1000), null) };
+        var tightLimitQuery = baseQuery with { RowLimit = new SqlLimitOffset(new LiteralExpr(10), null) };
 
         var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
         var looseLimitPlan = SqlExecutionPlanFormatter.FormatSelect(looseLimitQuery, metrics, [], []);
@@ -2749,8 +2785,8 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
         };
 
         var metrics = new SqlPlanRuntimeMetrics(2, 200, 20, 4);
-        var looseLimitPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [new SqlOrderByItem("id", false)], new SqlLimitOffset(1000, null), metrics);
-        var tightLimitPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [new SqlOrderByItem("id", false)], new SqlLimitOffset(10, null), metrics);
+        var looseLimitPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [new SqlOrderByItem("id", false)], new SqlLimitOffset(new LiteralExpr(1000), null), metrics);
+        var tightLimitPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [new SqlOrderByItem("id", false)], new SqlLimitOffset(new LiteralExpr(10), null), metrics);
 
         ExtractEstimatedCost(tightLimitPlan).Should().BeLessThan(ExtractEstimatedCost(looseLimitPlan));
     }
@@ -2841,12 +2877,12 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWhenLargeOffsetReducesLimitRelief()
     {
-        var noOffsetQuery = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [new SqlOrderByItem("id", false)], new SqlLimitOffset(10, null), [], null)
+        var noOffsetQuery = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [new SqlOrderByItem("id", false)], new SqlLimitOffset(new LiteralExpr(10), null), [], null)
         {
             Table = new SqlTableSource(null, "users", null, null, null, null, null)
         };
 
-        var largeOffsetQuery = noOffsetQuery with { RowLimit = new SqlLimitOffset(10, 5000) };
+        var largeOffsetQuery = noOffsetQuery with { RowLimit = new SqlLimitOffset(new LiteralExpr(10), new LiteralExpr(5000)) };
 
         var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
         var noOffsetPlan = SqlExecutionPlanFormatter.FormatSelect(noOffsetQuery, metrics, [], []);
@@ -2873,8 +2909,8 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
         };
 
         var metrics = new SqlPlanRuntimeMetrics(2, 200, 20, 4);
-        var noOffsetPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [new SqlOrderByItem("id", false)], new SqlLimitOffset(10, null), metrics);
-        var largeOffsetPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [new SqlOrderByItem("id", false)], new SqlLimitOffset(10, 5000), metrics);
+        var noOffsetPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [new SqlOrderByItem("id", false)], new SqlLimitOffset(new LiteralExpr(10), null), metrics);
+        var largeOffsetPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [new SqlOrderByItem("id", false)], new SqlLimitOffset(new LiteralExpr(10), new LiteralExpr(5000)), metrics);
 
         ExtractEstimatedCost(noOffsetPlan).Should().BeLessThan(ExtractEstimatedCost(largeOffsetPlan));
     }
@@ -3372,7 +3408,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
                 [unionPart1, unionPart2],
                 [true],
                 [new SqlOrderByItem("id", false)],
-                new SqlLimitOffset(10, null))
+                new SqlLimitOffset(new LiteralExpr(10), null))
         };
 
         var largeOffsetSource = noLimitSource with
@@ -3381,7 +3417,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
                 [unionPart1, unionPart2],
                 [true],
                 [new SqlOrderByItem("id", false)],
-                new SqlLimitOffset(10, 5000))
+                new SqlLimitOffset(new LiteralExpr(10), new LiteralExpr(5000)))
         };
 
         var noLimitQuery = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
@@ -3789,7 +3825,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
         var withOuterLimit = withoutOuterLimit with
         {
-            RowLimit = new SqlLimitOffset(10, null)
+            RowLimit = new SqlLimitOffset(new LiteralExpr(10), null)
         };
 
         var metrics = new SqlPlanRuntimeMetrics(2, 200, 20, 4);
@@ -3827,7 +3863,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
         var orderedLimitedJoinSource = orderedNoLimitJoinSource with
         {
-            DerivedUnion = new SqlQueryParser.UnionChain([unionPart1, unionPart2], [true], [new SqlOrderByItem("id", false)], new SqlLimitOffset(10, null))
+            DerivedUnion = new SqlQueryParser.UnionChain([unionPart1, unionPart2], [true], [new SqlOrderByItem("id", false)], new SqlLimitOffset(new LiteralExpr(10), null))
         };
 
         var baseNoOrderQuery = new SqlSelectQuery(
@@ -3892,13 +3928,13 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
             null,
             "duj",
             null,
-            new SqlQueryParser.UnionChain([unionPart1, unionPart2], [true], [new SqlOrderByItem("id", false)], new SqlLimitOffset(100, null)),
+            new SqlQueryParser.UnionChain([unionPart1, unionPart2], [true], [new SqlOrderByItem("id", false)], new SqlLimitOffset(new LiteralExpr(100), null)),
             "(SELECT id FROM orders UNION ALL SELECT userid FROM orders ORDER BY id LIMIT 100)",
             null);
 
         var orderedLargeOffsetJoinSource = orderedNoOffsetJoinSource with
         {
-            DerivedUnion = new SqlQueryParser.UnionChain([unionPart1, unionPart2], [true], [new SqlOrderByItem("id", false)], new SqlLimitOffset(100, 5000))
+            DerivedUnion = new SqlQueryParser.UnionChain([unionPart1, unionPart2], [true], [new SqlOrderByItem("id", false)], new SqlLimitOffset(new LiteralExpr(100), new LiteralExpr(5000)))
         };
 
         var noOffsetNoOrderQuery = new SqlSelectQuery(

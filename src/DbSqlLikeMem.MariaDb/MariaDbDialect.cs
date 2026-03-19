@@ -35,6 +35,12 @@ internal sealed class MariaDbDialect
     public override bool SupportsDeleteReturning => Version >= ReturningMinVersion;
 
     /// <inheritdoc />
+    public override bool SupportsDeleteReturningWithJoin => false;
+
+    /// <inheritdoc />
+    public override bool SupportsAggregateFunctionsInReturningClause => false;
+
+    /// <inheritdoc />
     public override bool SupportsSequenceDdl => Version >= SequenceMinVersion;
 
     /// <inheritdoc />

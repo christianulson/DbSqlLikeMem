@@ -122,7 +122,7 @@ public sealed class SqliteWhereParserAndExecutorTests : XUnitTestBase
         var table = _cnn.GetTable("users");
         var idx = table.Indexes["ix_users_name_include_email"];
 
-        var lookup = table.Lookup(idx, "John");
+        var lookup = table.Lookup(idx, new IndexKey("John"));
 
         Assert.NotNull(lookup);
         var idxRow = lookup!.Single().Value;
@@ -147,7 +147,7 @@ public sealed class SqliteWhereParserAndExecutorTests : XUnitTestBase
         var table = _cnn.GetTable("users");
         var idx = table.Indexes["ix_users_name_include_email"];
 
-        var lookup = table.Lookup(idx, "John");
+        var lookup = table.Lookup(idx, new IndexKey("John"));
 
         Assert.NotNull(lookup);
         var idxRow = lookup!.Single().Value;

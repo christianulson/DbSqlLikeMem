@@ -6,13 +6,13 @@ internal static class DbMergeStrategy
     /// EN: Implements ExecuteMerge.
     /// PT: Implementa ExecuteMerge.
     /// </summary>
-    public static int ExecuteMerge(
+    public static DmlExecutionResult ExecuteMerge(
         this DbConnectionMockBase connection,
         SqlMergeQuery query,
         DbParameterCollection pars,
         ISqlDialect dialect)
     {
-        int affected;
+        DmlExecutionResult affected;
         if (!connection.Db.ThreadSafe)
             affected = ExecuteMergeImpl(connection, query, pars, dialect);
         else
@@ -21,11 +21,11 @@ internal static class DbMergeStrategy
                 affected = ExecuteMergeImpl(connection, query, pars, dialect);
         }
 
-        connection.SetLastFoundRows(affected);
+        connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
     }
 
-    private static int ExecuteMergeImpl(
+    private static DmlExecutionResult ExecuteMergeImpl(
         DbConnectionMockBase connection,
         SqlMergeQuery query,
         DbParameterCollection pars,
@@ -100,7 +100,7 @@ internal static class DbMergeStrategy
         var pendingInsertRows = new List<Dictionary<int, object?>>();
         var pendingJoinKeys = new HashSet<object?>();
 
-        var affected = 0;
+        var affected = new DmlExecutionResult();
         foreach (var srcRow in sourceTable)
         {
             var srcValues = new Dictionary<string, object?>(sourceColumnNames.Length, StringComparer.OrdinalIgnoreCase);
@@ -132,7 +132,7 @@ internal static class DbMergeStrategy
                     table.UpdateIndexesWithRow(existingIndex, oldSnapshot, table[existingIndex]);
                 }
 
-                affected++;
+                affected.IncreseAffected();
                 continue;
             }
 
@@ -160,13 +160,13 @@ internal static class DbMergeStrategy
         TableMock table,
         List<Dictionary<int, object?>> pendingInsertRows,
         HashSet<object?> pendingJoinKeys,
-        ref int affected)
+        ref DmlExecutionResult affected)
     {
         if (pendingInsertRows.Count == 0)
             return;
 
         table.AddBatch(pendingInsertRows);
-        affected += pendingInsertRows.Count;
+        affected.IncreseAffected(pendingInsertRows.Count);
         pendingInsertRows.Clear();
         pendingJoinKeys.Clear();
     }

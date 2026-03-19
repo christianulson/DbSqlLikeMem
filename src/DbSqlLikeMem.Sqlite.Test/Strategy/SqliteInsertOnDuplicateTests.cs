@@ -29,7 +29,7 @@ public class SqliteInsertOnDuplicateTests(
         var q = SqlQueryParser.Parse(sql, db.Dialect);
         var affected = cnn.ExecuteInsert((SqlInsertQuery)q, new SqliteDataParameterCollectionMock(), db.Dialect);
 
-        Assert.Equal(1, affected);
+        Assert.Equal(1, affected.AffectedRows);
         Assert.Single(t);
         Assert.Equal("A", t[0][1]);
     }
@@ -182,7 +182,7 @@ INSERT INTO users (Id, Qtd) VALUES (@p0, @p1)
         var q = SqlQueryParser.Parse(sql, db.Dialect);
         var affected = cnn.ExecuteInsert((SqlInsertQuery)q, new SqliteDataParameterCollectionMock(), db.Dialect);
 
-        Assert.Equal(0, affected);
+        Assert.Equal(0, affected.AffectedRows);
         Assert.Single(t);
         Assert.Equal("OLD", t[0][1]);
     }
@@ -209,7 +209,7 @@ INSERT INTO users (Id, Qtd) VALUES (@p0, @p1)
         var q = SqlQueryParser.Parse(sql, db.Dialect);
         var affected = cnn.ExecuteInsert((SqlInsertQuery)q, new SqliteDataParameterCollectionMock(), db.Dialect);
 
-        Assert.Equal(0, affected);
+        Assert.Equal(0, affected.AffectedRows);
         Assert.Single(t);
         Assert.Equal("OLD", t[0][1]);
     }
@@ -236,7 +236,7 @@ INSERT INTO users (Id, Qtd) VALUES (@p0, @p1)
         var q = SqlQueryParser.Parse(sql, db.Dialect);
         var affected = cnn.ExecuteInsert((SqlInsertQuery)q, new SqliteDataParameterCollectionMock(), db.Dialect);
 
-        Assert.Equal(1, affected);
+        Assert.Equal(1, affected.AffectedRows);
         Assert.Single(t);
         Assert.Equal("NEW", t[0][1]);
     }

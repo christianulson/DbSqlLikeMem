@@ -5,7 +5,7 @@ internal sealed class AstDdlNonQueryCommandHandler : INonQueryCommandHandler
     public bool TryHandle(
         CommandExecutionPipelineContext context,
         string sqlRaw,
-        out int affectedRows)
+        out DmlExecutionResult affectedRows)
     {
         using var _ = context.Connection.Metrics.BeginAmbientScope();
         var query = context.GetParsedQuery(sqlRaw);
@@ -23,7 +23,7 @@ internal sealed class AstDdlNonQueryCommandHandler : INonQueryCommandHandler
             SqlDropIndexQuery dropIndexQ => context.Connection.ExecuteDropIndex(dropIndexQ, context.Parameters, context.Connection.ExecutionDialect),
             SqlDropSequenceQuery dropSequenceQ => context.Connection.ExecuteDropSequence(dropSequenceQ, context.Parameters, context.Connection.ExecutionDialect),
             SqlDropFunctionQuery dropFunctionQ => context.Connection.ExecuteDropFunction(dropFunctionQ, context.Parameters, context.Connection.ExecutionDialect),
-            _ => 0
+            _ => new DmlExecutionResult()
         };
 
         return query is SqlCreateTemporaryTableQuery or SqlCreateViewQuery or SqlAlterTableAddColumnQuery or SqlCreateIndexQuery or SqlCreateSequenceQuery or SqlCreateFunctionQuery or SqlDropViewQuery or SqlDropTableQuery or SqlDropIndexQuery or SqlDropSequenceQuery or SqlDropFunctionQuery;

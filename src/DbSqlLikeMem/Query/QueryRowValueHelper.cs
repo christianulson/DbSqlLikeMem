@@ -12,6 +12,12 @@ internal static class QueryRowValueHelper
 
     internal static object? ResolveIdentifier(string name, AstQueryExecutorBase.EvalRow row)
     {
+        if (name.Equals("_ROWID", StringComparison.OrdinalIgnoreCase)
+            && TryResolveRowIdFromSources(row, out var rowId))
+        {
+            return rowId;
+        }
+
         if (TrySplitQualifiedIdentifier(name, out var qualifier, out var columnName))
             return ResolveColumn(qualifier, columnName, row);
 
@@ -226,6 +232,28 @@ internal static class QueryRowValueHelper
             return row.Fields.TryGetValue($"{source.Alias}.{matchedColumn}", out value);
 
         value = null;
+        return false;
+    }
+
+    private static bool TryResolveRowIdFromSources(
+        AstQueryExecutorBase.EvalRow row,
+        out object? rowId)
+    {
+        foreach (var source in row.Sources.Values)
+        {
+            if (source.Physical is null || source.Physical.PrimaryKeyIndexes.Count != 1)
+                continue;
+
+            var pkIndex = source.Physical.PrimaryKeyIndexes.First();
+            var pkColumn = source.Physical.Columns.FirstOrDefault(col => col.Value.Index == pkIndex).Key;
+            if (string.IsNullOrWhiteSpace(pkColumn))
+                continue;
+
+            rowId = ResolveColumn(source.Alias, pkColumn!, row);
+            return true;
+        }
+
+        rowId = null;
         return false;
     }
 

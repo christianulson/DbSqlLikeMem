@@ -76,7 +76,7 @@ public abstract class CsvLoaderAndIndexTestBase<TDbMock, TSqlMockException>(
 
         var idxDef = tb.CreateIndex("ix_name", ["name"]);
 
-        var ix = tb.Lookup(idxDef, "John");
+        var ix = tb.Lookup(idxDef, new IndexKey("John"));
         Assert.Equal([0, 1], [.. ix!.Select(_ => _.Key).OrderBy(_ => _)]);
     }
 

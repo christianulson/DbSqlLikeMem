@@ -4039,7 +4039,7 @@ WHERE id = 1";
         var normalizedFetchFirst = Assert.IsType<SqlLimitOffset>(fetchFirst.RowLimit);
 
         Assert.Equal(normalizedLimit, normalizedOffsetFetch);
-        Assert.Equal(2, normalizedFetchFirst.Count);
+        Assert.Equal(new LiteralExpr(2), normalizedFetchFirst.Count);
         Assert.Null(normalizedFetchFirst.Offset);
     }
 

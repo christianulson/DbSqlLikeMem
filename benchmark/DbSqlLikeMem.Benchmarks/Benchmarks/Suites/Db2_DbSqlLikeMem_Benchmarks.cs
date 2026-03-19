@@ -4,7 +4,8 @@ namespace DbSqlLikeMem.Benchmarks.Suites;
 
 /// <summary>
 /// 
-/// </summary>public class Db2_DbSqlLikeMem_Benchmarks : BenchmarkSuiteBase
+/// </summary>
+public class Db2_DbSqlLikeMem_Benchmarks : BenchmarkSuiteBase
 {
     /// <summary>
     /// 

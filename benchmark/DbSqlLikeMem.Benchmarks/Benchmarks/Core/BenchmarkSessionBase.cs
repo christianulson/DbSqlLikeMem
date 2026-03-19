@@ -3,6 +3,7 @@ using Microsoft.Data.SqlClient;
 using MySqlConnector;
 using Npgsql;
 using Oracle.ManagedDataAccess.Client;
+using System.Collections.Concurrent;
 using System.Globalization;
 
 namespace DbSqlLikeMem.Benchmarks.Core;
@@ -58,36 +59,35 @@ public abstract class BenchmarkSessionBase(
         }
         catch (InvalidOperationException ex)
         {
-            Console.WriteLine($"[NA-IOE] {feature}: {ex.Message}");
+            LogBenchmarkIssue("NA-IOE", feature, ex);
         }
         catch (NotSupportedException ex)
         {
-            Console.WriteLine($"[NA-NSE] {feature}: {ex.Message}");
+            LogBenchmarkIssue("NA-NSE", feature, ex);
         }
         catch (DB2Exception ex)
         {
-            Console.WriteLine($"[NA-DB2E] {feature}: {ex.Message}");
+            LogBenchmarkIssue("NA-DB2E", feature, ex);
         }
         catch (SqlException ex)
         {
-            Console.WriteLine($"[NA-SqlE] {feature}: {ex.Message}");
+            LogBenchmarkIssue("NA-SqlE", feature, ex);
         }
         catch (MySqlException ex)
         {
-            Console.WriteLine($"[NA-MSE] {feature}: {ex.Message}");
+            LogBenchmarkIssue("NA-MSE", feature, ex);
         }
         catch (NpgsqlException ex)
         {
-            Console.WriteLine($"[NA-NE] {feature}: {ex.Message}");
+            LogBenchmarkIssue("NA-NE", feature, ex);
         }
         catch (OracleException ex)
         {
-            Console.WriteLine($"[NA-OE] {feature}: {ex.Message}");
+            LogBenchmarkIssue("NA-OE", feature, ex);
         }
         catch (Exception ex)
         {
-            //Console.WriteLine($"[NA] {feature}: {ex.Message}");
-            LogBenchmarkIssue(feature, ex);
+            LogBenchmarkIssue("NA", feature, ex);
         }
     }
 
@@ -348,6 +348,36 @@ public abstract class BenchmarkSessionBase(
             case BenchmarkFeatureId.FluentScenarioCompose:
                 RunFluentScenarioCompose();
                 break;
+            case BenchmarkFeatureId.MultiJoinAggregate:
+                RunMultiJoinAggregate();
+                break;
+            case BenchmarkFeatureId.UnionAllProjection:
+                RunUnionAllProjection();
+                break;
+            case BenchmarkFeatureId.GroupByHaving:
+                RunGroupByHaving();
+                break;
+            case BenchmarkFeatureId.SelectCorrelatedCount:
+                RunSelectCorrelatedCount();
+                break;
+            case BenchmarkFeatureId.SelectExistsPredicate:
+                RunSelectExistsPredicate();
+                break;
+            case BenchmarkFeatureId.SelectScalarSubquery:
+                RunSelectScalarSubquery();
+                break;
+            case BenchmarkFeatureId.DistinctProjection:
+                RunDistinctProjection();
+                break;
+            case BenchmarkFeatureId.SelectInSubquery:
+                RunSelectInSubquery();
+                break;
+            case BenchmarkFeatureId.OuterApplyProjection:
+                RunOuterApplyProjection();
+                break;
+            case BenchmarkFeatureId.CrossApplyProjection:
+                RunCrossApplyProjection();
+                break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(feature), feature, null);
         }
@@ -355,15 +385,23 @@ public abstract class BenchmarkSessionBase(
 
     private static readonly object _logSync = new();
 
-    protected virtual void LogBenchmarkIssue(BenchmarkFeatureId feature, Exception ex)
+    private static readonly ConcurrentDictionary<string, int> Errors = [];
+
+    protected virtual void LogBenchmarkIssue(string txt, BenchmarkFeatureId feature, Exception ex)
     {
         var root = ex.GetBaseException();
-        var message = $"[NA-{root.GetType().Name}] {feature}: {root.Message} -- {ex.StackTrace}{Environment.NewLine}{Environment.NewLine}";
+        var message = $"[{txt}-{root.GetType().Name}] {feature}: {root.Message} -- {ex.StackTrace}{Environment.NewLine}{Environment.NewLine}";
 
         Console.WriteLine(message);
 
         lock (_logSync)
         {
+            if (Errors.TryGetValue(root.Message, out int value)) {
+                Errors[root.Message] = value + 1;
+                return;
+            }
+            Errors.GetOrAdd(root.Message, 0);
+
             var file = Path.Combine("Logs", $"{GetType().Namespace}-errors.log");
             if (!File.Exists(file))
                 File.Create(file).Dispose();
@@ -567,6 +605,7 @@ public abstract class BenchmarkSessionBase(
             if (count != 100)
             {
                 LogBenchmarkIssue(
+                    "NA",
                     BenchmarkFeatureId.InsertBatch100Parallel,
                     new InvalidOperationException($"Expected 100 rows for {Dialect.DisplayName}, got {count}."));
                 return;

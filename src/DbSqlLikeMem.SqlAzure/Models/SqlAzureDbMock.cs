@@ -1,13 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Data.Common;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using DbSqlLikeMem.SqlServer;
 namespace DbSqlLikeMem.SqlAzure;
 
+/// <summary>
+/// EN: In-memory database mock configured for SQL Azure.
+/// PT: Banco de dados simulado em memória configurado para SQL Azure.
+/// </summary>
 public class SqlAzureDbMock : SqlServerDbMock
 {
     /// <summary>

@@ -8,7 +8,7 @@ public abstract class DbDataReaderMockBase(
     IList<TableResultMock> tables
     ) : DbDataReader
 {
-    private readonly List<List<Dictionary<int, object?>>> _resultSets = [.. tables.Select(table => table.ToList())];
+    private readonly List<TableResultMock> _resultSets = [.. tables];
     private readonly List<Dictionary<int, (string ColumName, DbType DbType, bool IsNullable)>> _columnsDic = [.. tables
         .Select(table => table.Columns
             .ToDictionary(c => c.ColumIndex, c => (

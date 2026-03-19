@@ -340,15 +340,53 @@ public sealed class DbMetrics
         => PerformancePhaseElapsedTicks.AddOrUpdate(phase, elapsedTicks, (_, current) => current + elapsedTicks);
 
     internal string? FormatPerformancePhases()
+        => FormatPerformancePhases(PerformancePhaseHits, PerformancePhaseElapsedTicks);
+
+    internal string? FormatPerformancePhasesDelta(DbMetricsSnapshot before)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(before, nameof(before));
+
+        Dictionary<string, int>? hits = null;
+        Dictionary<string, long>? elapsedTicks = null;
+
+        foreach (var pair in PerformancePhaseElapsedTicks)
+        {
+            before.PerformancePhaseElapsedTicks.TryGetValue(pair.Key, out var beforeTicks);
+            var deltaTicks = pair.Value - beforeTicks;
+            PerformancePhaseHits.TryGetValue(pair.Key, out var currentHits);
+            before.PerformancePhaseHits.TryGetValue(pair.Key, out var beforeHits);
+            var deltaHits = currentHits - beforeHits;
+
+            if (deltaTicks <= 0 && deltaHits <= 0)
+                continue;
+
+            (hits ??= new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase))[pair.Key] = Math.Max(0, deltaHits);
+            (elapsedTicks ??= new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase))[pair.Key] = Math.Max(0, deltaTicks);
+        }
+
+        if (hits is null || elapsedTicks is null || hits.Count == 0)
+            return null;
+
+        return FormatPerformancePhases(hits, elapsedTicks);
+    }
+
+    internal DbMetricsSnapshot CapturePerformanceSnapshot()
+        => new(
+            new Dictionary<string, int>(PerformancePhaseHits, StringComparer.OrdinalIgnoreCase),
+            new Dictionary<string, long>(PerformancePhaseElapsedTicks, StringComparer.OrdinalIgnoreCase));
+
+    private static string? FormatPerformancePhases(
+        IReadOnlyDictionary<string, int> hitsByPhase,
+        IReadOnlyDictionary<string, long> elapsedTicksByPhase)
     {
         List<(string Key, int Hits, long ElapsedTicks)>? items = null;
 
-        foreach (var pair in PerformancePhaseElapsedTicks)
+        foreach (var pair in elapsedTicksByPhase)
         {
             if (pair.Value <= 0)
                 continue;
 
-            PerformancePhaseHits.TryGetValue(pair.Key, out var hits);
+            hitsByPhase.TryGetValue(pair.Key, out var hits);
             (items ??= []).Add((pair.Key, hits, pair.Value));
         }
 

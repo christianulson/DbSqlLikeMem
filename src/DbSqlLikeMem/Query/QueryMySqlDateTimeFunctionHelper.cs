@@ -40,7 +40,7 @@ internal static class QueryMySqlDateTimeFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -74,7 +74,7 @@ internal static class QueryMySqlDateTimeFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -121,7 +121,7 @@ internal static class QueryMySqlDateTimeFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -168,7 +168,7 @@ internal static class QueryMySqlDateTimeFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -200,7 +200,7 @@ internal static class QueryMySqlDateTimeFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -254,7 +254,7 @@ internal static class QueryMySqlDateTimeFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;

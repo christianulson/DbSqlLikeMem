@@ -1,13 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Data.Common;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using DbSqlLikeMem.SqlServer;
 namespace DbSqlLikeMem.SqlAzure;
 
+/// <summary>
+/// EN: Table mock specialized for SQL Azure schema operations.
+/// PT: Tabela simulada especializada para operações de esquema no SQL Azure.
+/// </summary>
 public class SqlAzureTableMock(
     string tableName,
     SqlAzureSchemaMock schema,

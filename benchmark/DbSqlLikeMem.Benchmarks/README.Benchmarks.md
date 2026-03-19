@@ -22,7 +22,14 @@ Estrutura pensada para comparar **DbSqlLikeMem** contra **banco real** usando o 
 dotnet run -c Release --filter *MySql_DbSqlLikeMem_Benchmarks*
 dotnet run -c Release --filter *MySql_Testcontainers_Benchmarks*
 pwsh ./Scripts/export-wiki.ps1 -ArtifactsDir ./BenchmarkDotNet.Artifacts/results -OutFile ./wiki/performance-matrix.md
+dotnet run -c Release -- --validate-catalog
 ```
+
+## Validação de catálogo
+
+- `dotnet run -c Release -- --validate-catalog` valida por reflexão se todas as suítes públicas seguem o catálogo de features e de provedores.
+- Use esse modo quando quiser detectar drift de nomes, benchmarks novos sem catálogo ou catálogo desatualizado sem executar o BenchmarkDotNet completo.
+- O comando não roda benchmarks; ele apenas imprime o relatório de validação e encerra com `exit code` `0` quando tudo está consistente.
 
 ## Observações importantes
 

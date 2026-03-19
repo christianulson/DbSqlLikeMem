@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace DbSqlLikeMem;
 
 /// <summary>
@@ -8,6 +10,8 @@ public sealed class RecordingDbConnectionInterceptor : DbConnectionInterceptor
 {
     private readonly List<DbInterceptionEvent> _events = [];
     private readonly object _gate = new();
+    private readonly ConcurrentDictionary<DbCommand, DbMetricsSnapshot> _commandSnapshots =
+        new(ReferenceEqualityComparer<DbCommand>.Instance);
 
     /// <summary>
     /// EN: Gets the events captured by this interceptor.
@@ -91,7 +95,9 @@ public sealed class RecordingDbConnectionInterceptor : DbConnectionInterceptor
 
     /// <inheritdoc />
     public override void CommandExecuting(DbCommandExecutionContext context)
-        => Add(new DbInterceptionEvent
+    {
+        TryCaptureCommandSnapshot(context.Connection, context.Command);
+        Add(new DbInterceptionEvent
         {
             EventKind = DbInterceptionEventKind.CommandExecuting,
             TimestampUtc = DateTimeOffset.UtcNow,
@@ -99,6 +105,7 @@ public sealed class RecordingDbConnectionInterceptor : DbConnectionInterceptor
             CommandText = context.Command.CommandText,
             CommandExecutionKind = context.ExecutionKind
         });
+    }
 
     /// <inheritdoc />
     public override void CommandExecuted(DbCommandExecutionContext context, object? result)
@@ -109,7 +116,9 @@ public sealed class RecordingDbConnectionInterceptor : DbConnectionInterceptor
             ConnectionState = context.Connection.State,
             CommandText = context.Command.CommandText,
             CommandExecutionKind = context.ExecutionKind,
-            Result = result
+            Result = result,
+            PerformanceMetrics = TryGetPerformanceMetrics(context.Connection),
+            PerformanceMetricsDelta = TryGetPerformanceMetricsDelta(context.Connection, context.Command)
         });
 
     /// <inheritdoc />
@@ -121,6 +130,8 @@ public sealed class RecordingDbConnectionInterceptor : DbConnectionInterceptor
             ConnectionState = context.Connection.State,
             CommandText = context.Command.CommandText,
             CommandExecutionKind = context.ExecutionKind,
+            PerformanceMetrics = TryGetPerformanceMetrics(context.Connection),
+            PerformanceMetricsDelta = TryGetPerformanceMetricsDelta(context.Connection, context.Command),
             Exception = exception
         });
 
@@ -185,4 +196,26 @@ public sealed class RecordingDbConnectionInterceptor : DbConnectionInterceptor
         lock (_gate)
             _events.Add(interceptionEvent);
     }
+
+    private string? TryGetPerformanceMetricsDelta(DbConnection connection, DbCommand command)
+    {
+        if (connection is not DbConnectionMockBase mock)
+            return null;
+
+        if (!_commandSnapshots.TryRemove(command, out var snapshot))
+            return null;
+
+        return mock.Metrics.FormatPerformancePhasesDelta(snapshot);
+    }
+
+    private void TryCaptureCommandSnapshot(DbConnection connection, DbCommand command)
+    {
+        if (connection is DbConnectionMockBase mock)
+            _commandSnapshots[command] = mock.Metrics.CapturePerformanceSnapshot();
+    }
+
+    private static string? TryGetPerformanceMetrics(DbConnection connection)
+        => connection is DbConnectionMockBase mock
+            ? mock.Metrics.FormatPerformancePhases()
+            : null;
 }

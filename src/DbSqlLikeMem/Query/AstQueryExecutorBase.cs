@@ -1822,7 +1822,7 @@ internal abstract class AstQueryExecutorBase(
 
         var key = src.Physical is TableMock
             ? best.BuildIndexKeyFromValues(equalsByColumn)
-            : string.Join("|", best.KeyCols.Select(col =>
+            : new IndexKey(best.KeyCols.Select(col =>
             {
                 var norm = col.NormalizeName();
                 var value = equalsByColumn[norm];
@@ -2005,7 +2005,7 @@ internal abstract class AstQueryExecutorBase(
     private IReadOnlyDictionary<int, Dictionary<string, object?>>? LookupIndexWithMetrics(
         ITableMock table,
         IndexDef indexDef,
-        string key)
+        IndexKey key)
     {
         _cnn.Metrics.IndexLookups++;
         _cnn.Metrics.IncrementIndexHint(indexDef.Name.NormalizeName());
@@ -3365,7 +3365,7 @@ private void FillPercentRankOrCumeDist(
         if (q.OrderBy.Count == 0)
         {
             var limitInput = res.Count;
-            QueryRowLimitHelper.ApplyLimit(res, q);
+            QueryRowLimitHelper.ApplyLimit(res, q.RowLimit, expr => EvalLimitExpr(expr, ctes));
             if (debugTrace is not null && q.RowLimit is not null)
             {
                 debugTrace.AddStep(
@@ -3389,7 +3389,7 @@ private void FillPercentRankOrCumeDist(
         if (!sorted)
         {
             var limitInput = res.Count;
-            QueryRowLimitHelper.ApplyLimit(res, q);
+            QueryRowLimitHelper.ApplyLimit(res, q.RowLimit, expr => EvalLimitExpr(expr, ctes));
             if (debugTrace is not null && q.RowLimit is not null)
             {
                 debugTrace.AddStep(
@@ -3410,7 +3410,7 @@ private void FillPercentRankOrCumeDist(
             QueryDebugTraceFormattingHelper.FormatOrderByDebugDetails(q.OrderBy));
 
         var limitInputRows = res.Count;
-        QueryRowLimitHelper.ApplyLimit(res, q);
+        QueryRowLimitHelper.ApplyLimit(res, q.RowLimit, expr => EvalLimitExpr(expr, ctes));
         if (debugTrace is not null && q.RowLimit is not null)
         {
             debugTrace.AddStep(
@@ -3421,6 +3421,12 @@ private void FillPercentRankOrCumeDist(
                 QueryDebugTraceFormattingHelper.FormatLimitDebugDetails(q.RowLimit));
         }
         return res;
+    }
+
+    private int EvalLimitExpr(SqlExpr expr, IDictionary<string, Source> ctes)
+    {
+        var val = Eval(expr, EvalRow.Empty(), null, ctes);
+        return Convert.ToInt32(val, CultureInfo.InvariantCulture);
     }
 
     private TableResultMock ApplyForJsonIfNeeded(
@@ -4281,8 +4287,16 @@ private void FillPercentRankOrCumeDist(
             SqlBinaryOp.Less => comparison < 0,
             SqlBinaryOp.LessOrEqual => comparison <= 0,
             SqlBinaryOp.Regexp => EvalRegexp(left, right, Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para REGEXP.")),
+            SqlBinaryOp.SoundLike => EvalSoundLike(left, right),
             _ => throw new InvalidOperationException($"Binary op não suportado: {op}")
         };
+    }
+
+    private static bool EvalSoundLike(object left, object right)
+    {
+        var leftSoundex = ComputeSoundex(left.ToString() ?? string.Empty);
+        var rightSoundex = ComputeSoundex(right.ToString() ?? string.Empty);
+        return leftSoundex == rightSoundex;
     }
 
     private static bool EvalRegexp(object l, object r, ISqlDialect dialect)
@@ -4804,6 +4818,12 @@ private void FillPercentRankOrCumeDist(
         {
             return true;
         }
+
+        if (QueryMariaDbFunctionHelper.TryEvalFunctions(fn, dialect, evalArg, out result))
+            return true;
+
+        if (QueryMariaDbSpecialFunctionHelper.TryEvalFunctions(fn, dialect, evalArg, out result))
+            return true;
 
         if (TryEvalMySqlDateSubFunction(fn, dialect, row, group, ctes, evalArg, out result)
             || TryEvalMySqlConvFunction(fn, dialect, evalArg, out result)
@@ -5344,7 +5364,7 @@ private void FillPercentRankOrCumeDist(
 
         // SQL Server/MySQL CHAR(n) and SQL Server NCHAR(n) return the character represented by the numeric code.
         if (dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
-            || dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+            || MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             try
             {
@@ -5374,7 +5394,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             if (fn.Args.Count == 0)
                 throw new InvalidOperationException("CONVERT() espera ao menos um argumento.");
@@ -5456,7 +5476,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -5497,7 +5517,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -5607,7 +5627,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -5689,7 +5709,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -5744,7 +5764,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -5794,7 +5814,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -5834,7 +5854,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -5903,7 +5923,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -5959,7 +5979,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -6025,7 +6045,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -6055,7 +6075,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -6238,7 +6258,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -6345,7 +6365,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -6403,7 +6423,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -6469,7 +6489,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -6512,7 +6532,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -6547,7 +6567,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -8055,7 +8075,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -11330,7 +11350,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        result = dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase)
+        result = MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect)
             ? "root@localhost"
             : "dbo";
         return true;
@@ -12708,7 +12728,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase)
+        if (MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect)
             && dialect.Version < 80)
         {
             throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
@@ -13415,7 +13435,7 @@ private void FillPercentRankOrCumeDist(
 
         if (fn.Name.Equals("JSON_STORAGE_SIZE", StringComparison.OrdinalIgnoreCase))
         {
-            if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+            if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
             {
                 result = null;
                 return false;
@@ -13447,7 +13467,7 @@ private void FillPercentRankOrCumeDist(
 
         if (fn.Name.Equals("JSON_OVERLAPS", StringComparison.OrdinalIgnoreCase))
         {
-            if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+            if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
             {
                 result = null;
                 return false;
@@ -15014,7 +15034,7 @@ private void FillPercentRankOrCumeDist(
 
         if (fn.Name.Equals("JSON_MERGE_PATCH", StringComparison.OrdinalIgnoreCase))
         {
-            if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+            if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
             {
                 result = null;
                 return false;
@@ -15064,7 +15084,7 @@ private void FillPercentRankOrCumeDist(
         if (fn.Name.Equals("JSON_MERGE", StringComparison.OrdinalIgnoreCase)
             || fn.Name.Equals("JSON_MERGE_PRESERVE", StringComparison.OrdinalIgnoreCase))
         {
-            if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+            if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
             {
                 result = null;
                 return false;
@@ -15114,7 +15134,7 @@ private void FillPercentRankOrCumeDist(
         if (fn.Name.Equals("JSON_APPEND", StringComparison.OrdinalIgnoreCase)
             || fn.Name.Equals("JSON_ARRAY_APPEND", StringComparison.OrdinalIgnoreCase))
         {
-            if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+            if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
             {
                 result = null;
                 return false;
@@ -15163,10 +15183,10 @@ private void FillPercentRankOrCumeDist(
 
         if (fn.Name.Equals("JSON_ARRAY_INSERT", StringComparison.OrdinalIgnoreCase))
         {
-            if (dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase) && dialect.Version < 56)
+            if (MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect) && dialect.Version < 56)
                 throw SqlUnsupported.ForDialect(dialect, "JSON_ARRAY_INSERT");
 
-            if (dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+            if (MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
             {
                 if (fn.Args.Count < 3 || fn.Args.Count % 2 == 0)
                     throw new InvalidOperationException("JSON_ARRAY_INSERT() espera um JSON seguido de pares path/valor.");
@@ -19788,7 +19808,7 @@ private void FillPercentRankOrCumeDist(
 
         var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para operações de data.");
 
-        if (dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             if (fn.Args.Count != 2)
                 throw new InvalidOperationException("DATEDIFF() no MySQL espera 2 argumentos.");
@@ -19906,7 +19926,7 @@ private void FillPercentRankOrCumeDist(
         if (name is "JSON_GROUP_OBJECT" or "JSON_OBJECTAGG")
         {
             var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação.");
-            if (dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase)
+            if (MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect)
                 && dialect.Version < 56
                 && name == "JSON_OBJECTAGG")
             {

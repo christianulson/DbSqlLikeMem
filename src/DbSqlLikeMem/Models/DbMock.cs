@@ -768,16 +768,35 @@ public abstract class DbMock
 
     private void ResetVolatileDataCore(bool includeGlobalTemporaryTables)
     {
-        foreach (var schema in Values)
+        var schemas = Values.ToArray();
+        if (ThreadSafe && schemas.Length > 1)
         {
-            foreach (var table in schema.Tables.Values)
-                ResetTableState(table);
+            Parallel.ForEach(schemas, schema =>
+            {
+                foreach (var table in schema.Tables.Values)
+                    ResetTableState(table);
+            });
+        }
+        else
+        {
+            foreach (var schema in schemas)
+            {
+                foreach (var table in schema.Tables.Values)
+                    ResetTableState(table);
+            }
         }
 
         if (!includeGlobalTemporaryTables)
             return;
 
-        foreach (var table in _globalTemporaryTables.Values)
+        var globalTables = _globalTemporaryTables.Values.ToArray();
+        if (ThreadSafe && globalTables.Length > 1)
+        {
+            Parallel.ForEach(globalTables, ResetTableState);
+            return;
+        }
+
+        foreach (var table in globalTables)
             ResetTableState(table);
     }
 
@@ -793,20 +812,41 @@ public abstract class DbMock
 
     internal virtual void BackupAllTablesBestEffort()
     {
-        foreach (var schemas in this)
-            schemas.Value.BackupAllTablesBestEffort();
+        var schemas = Values.ToArray();
+        if (ThreadSafe && schemas.Length > 1)
+        {
+            Parallel.ForEach(schemas, schema => schema.BackupAllTablesBestEffort());
+            return;
+        }
+
+        foreach (var schema in schemas)
+            schema.BackupAllTablesBestEffort();
     }
 
     internal virtual void RestoreAllTablesBestEffort()
     {
-        foreach (var schemas in this)
-            schemas.Value.RestoreAllTablesBestEffort();
+        var schemas = Values.ToArray();
+        if (ThreadSafe && schemas.Length > 1)
+        {
+            Parallel.ForEach(schemas, schema => schema.RestoreAllTablesBestEffort());
+            return;
+        }
+
+        foreach (var schema in schemas)
+            schema.RestoreAllTablesBestEffort();
     }
 
     internal virtual void ClearBackupAllTablesBestEffort()
     {
-        foreach (var schemas in this)
-            schemas.Value.ClearBackupAllTablesBestEffort();
+        var schemas = Values.ToArray();
+        if (ThreadSafe && schemas.Length > 1)
+        {
+            Parallel.ForEach(schemas, schema => schema.ClearBackupAllTablesBestEffort());
+            return;
+        }
+
+        foreach (var schema in schemas)
+            schema.ClearBackupAllTablesBestEffort();
     }
 
     #endregion

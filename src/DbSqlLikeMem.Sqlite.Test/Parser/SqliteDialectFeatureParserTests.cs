@@ -360,8 +360,8 @@ public sealed class SqliteDialectFeatureParserTests
         var normalizedFetch = Assert.IsType<SqlLimitOffset>(offsetFetch.RowLimit);
 
         Assert.Equal(normalizedLimit, normalizedFetch);
-        Assert.Equal(2, normalizedFetch.Count);
-        Assert.Equal(1, normalizedFetch.Offset);
+        Assert.Equal(new LiteralExpr(2), normalizedFetch.Count);
+        Assert.Equal(new LiteralExpr(1), normalizedFetch.Offset);
     }
 
 

@@ -1,12 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Data.Common;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 namespace DbSqlLikeMem.SqlAzure;
 
+/// <summary>
+/// EN: Represents the Sql Azure Data Source Mock type used by provider mocks.
+/// PT: Representa a fonte de dados simulada do SQL Azure usada pelos mocks do provedor.
+/// </summary>
 public sealed class SqlAzureDataSourceMock(SqlAzureDbMock? db = null)
 #if NET7_0_OR_GREATER
     : DbDataSource

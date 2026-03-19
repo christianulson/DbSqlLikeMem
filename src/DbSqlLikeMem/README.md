@@ -101,6 +101,12 @@ using var intercepted = connection.WithInterceptors(
 **EN:** Current scope: connection lifecycle, transaction begin/commit/rollback, command creation, and sync/async interception for `ExecuteNonQuery`, `ExecuteScalar`, and `ExecuteReader`.
 **PT-BR:** Escopo atual: ciclo de vida da conexao, inicio/commit/rollback de transacao, criacao de comando e interceptacao sync/async de `ExecuteNonQuery`, `ExecuteScalar` e `ExecuteReader`.
 
+**EN:** SQL parsing keeps an AST cache by default; set `DBSQLLIKEMEM_AST_CACHE_SIZE=0` to disable it or raise the value to keep more parsed statements hot between calls.
+**PT-BR:** O parsing SQL mantém um cache de AST por padrao; defina `DBSQLLIKEMEM_AST_CACHE_SIZE=0` para desabilita-lo ou aumente o valor para manter mais statements parseados quentes entre chamadas.
+
+**EN:** Structured command logs can now include both `performance=` and `performanceDelta=` when the wrapped connection exposes runtime metrics.
+**PT-BR:** Os logs estruturados de comando agora podem incluir tanto `performance=` quanto `performanceDelta=` quando a conexao encapsulada expõe metricas de runtime.
+
 **EN:** If you only need in-memory tracing of what happened, use `RecordingDbConnectionInterceptor` and inspect `Events`.
 **PT-BR:** Se voce precisa apenas de tracing em memoria do que aconteceu, use `RecordingDbConnectionInterceptor` e inspecione `Events`.
 

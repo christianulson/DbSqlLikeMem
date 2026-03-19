@@ -4,6 +4,12 @@
 
 Esta revisão focou nos fluxos que ficaram mais sensíveis após as mudanças de `IndexDef` e `ForeignDef` (composite FK), além dos pontos quentes de execução no caminho de `SELECT`, `INSERT` e `DELETE`.
 
+## Estado da documentação
+
+- O README principal agora registra o cache de AST controlado por `DBSQLLIKEMEM_AST_CACHE_SIZE`.
+- Os interceptors estruturados de logging passaram a documentar a saída com `performance=` e `performanceDelta=` quando as métricas da conexão estão disponíveis.
+- A revisão de performance continua útil como guia de priorização, mas o acompanhamento do backlog agora ficou alinhado com a instrumentação e com a nova cobertura de testes.
+
 ## Principais pontos com impacto potencial
 
 ## Status rápido — custo de `Immutable` / `ReadOnly`
@@ -81,3 +87,7 @@ A API de `IndexDef` retorna dicionários somente-leitura criando cópias (`ToDic
 3. **Lookup por índice para FK antes de scan completo**
    - Status: **Aplicado** em `SchemaMock` e `DbDeleteStrategy`.
    - Ganho esperado: em cenários com índice aderente ao FK, evita varredura de tabela filha.
+
+4. **Validação em lote de FK para múltiplas linhas pai**
+   - Status: **Aplicado** com `Parallel.ForEach` quando `ThreadSafe=true` e o `DELETE` afeta mais de uma linha pai.
+   - Ganho esperado: reduzir latência em exclusões em lote sem alterar a semântica de bloqueio por referência.

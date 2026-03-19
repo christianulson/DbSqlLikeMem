@@ -26,26 +26,26 @@ internal static class DbUpdateDeleteFromSelectStrategies
     /// EN: Implements ExecuteUpdateSmart.
     /// PT: Implementa ExecuteUpdateSmart.
     /// </summary>
-    public static int ExecuteUpdateSmart(
+    public static DmlExecutionResult ExecuteUpdateSmart(
         this DbConnectionMockBase connection,
         SqlUpdateQuery query,
         DbParameterCollection pars,
         ISqlDialect dialect)
     {
         // Detect UPDATE ... JOIN/UPDATE ... FROM ... JOIN (SELECT ...)
-        var affected = IsUpdateFromSelectSql(query.RawSql)
+        var result = IsUpdateFromSelectSql(query.RawSql)
             ? connection.ExecuteUpdateFromSelect(query, pars, dialect)
             : connection.ExecuteUpdate(query, pars);
 
-        connection.SetLastFoundRows(affected);
-        return affected;
+        connection.SetLastFoundRows(result.AffectedRows);
+        return result;
     }
 
     /// <summary>
     /// EN: Implements ExecuteDeleteSmart.
     /// PT: Implementa ExecuteDeleteSmart.
     /// </summary>
-    public static int ExecuteDeleteSmart(
+    public static DmlExecutionResult ExecuteDeleteSmart(
         this DbConnectionMockBase connection,
         SqlDeleteQuery query,
         DbParameterCollection pars,
@@ -56,7 +56,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
             ? connection.ExecuteDeleteFromSelect(query, pars, dialect)
             : connection.ExecuteDelete(query, pars);
 
-        connection.SetLastFoundRows(affected);
+        connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
     }
 
@@ -64,7 +64,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
     /// EN: Implements ExecuteUpdateFromSelect.
     /// PT: Implementa ExecuteUpdateFromSelect.
     /// </summary>
-    public static int ExecuteUpdateFromSelect(
+    public static DmlExecutionResult ExecuteUpdateFromSelect(
         this DbConnectionMockBase connection,
         SqlUpdateQuery query,
         DbParameterCollection pars,
@@ -78,7 +78,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
         }
     }
 
-    private static int ExecuteUpdateFromSelectImpl(
+    private static DmlExecutionResult ExecuteUpdateFromSelectImpl(
         DbConnectionMockBase connection,
         SqlUpdateQuery query,
         DbParameterCollection pars,
@@ -179,7 +179,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
         var joinInfo = target.GetColumn(targetJoinCol);
         var setInfo = target.GetColumn(targetSetCol);
 
-        int updated = 0;
+        var updated = new DmlExecutionResult();
         for (int i = 0; i < target.Count; i++)
         {
             var row = target[i];
@@ -198,11 +198,13 @@ internal static class DbUpdateDeleteFromSelectStrategies
                     targetTableMock.UpdateIndexesWithRow(i, oldSnapshot, target[i]);
                 else
                     target.UpdateIndexesWithRow(i);
-                updated++;
+                updated.IncreseAffected();
+                updated.AffectedIndexes.Add(i);
+                updated.AffectedRowsData.Add(TableMock.SnapshotRow(target[i]));
             }
         }
 
-        connection.Metrics.Updates += updated;
+        connection.Metrics.Updates += updated.AffectedRows;
         return updated;
     }
 
@@ -254,7 +256,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
     /// EN: Implements ExecuteDeleteFromSelect.
     /// PT: Implementa ExecuteDeleteFromSelect.
     /// </summary>
-    public static int ExecuteDeleteFromSelect(
+    public static DmlExecutionResult ExecuteDeleteFromSelect(
         this DbConnectionMockBase connection,
         SqlDeleteQuery query,
         DbParameterCollection pars,
@@ -266,7 +268,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
             return ExecuteDeleteFromSelectImpl(connection, query, pars, dialect);
     }
 
-    private static int ExecuteDeleteFromSelectImpl(
+    private static DmlExecutionResult ExecuteDeleteFromSelectImpl(
         DbConnectionMockBase connection,
         SqlDeleteQuery query,
         DbParameterCollection pars,
@@ -356,7 +358,13 @@ internal static class DbUpdateDeleteFromSelectStrategies
         }
 
         connection.Metrics.Deletes += deleted;
-        return deleted;
+
+        return new DmlExecutionResult
+        {
+            AffectedRows = deleted,
+            AffectedIndexes = [],//affectedIndexes,
+            AffectedRowsData = []//affectedRowsData
+        };
     }
 
     private static string ExtractJoinConditionFromWhere(string whereSql, string targetAlias, string subAlias, out string? remainingWhere)

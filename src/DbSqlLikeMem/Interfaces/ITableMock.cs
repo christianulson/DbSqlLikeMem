@@ -144,7 +144,7 @@ public interface ITableMock
     /// <param name="def">EN: Index definition. PT: Definição do índice.</param>
     /// <param name="key">EN: Key to search. PT: Chave a buscar.</param>
     /// <returns>EN: List of positions or null if none. PT: Lista de posições ou null se não houver.</returns>
-    IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>? Lookup(IndexDef def, string key);
+    IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>? Lookup(IndexDef def, IndexKey key);
 
     /// <summary>
     /// EN: Adds multiple items by converting them into rows.
@@ -269,4 +269,10 @@ public interface ITableMock
     /// </summary>
     /// <param name="tbl">EN: Referenced table. PT: Tabela referenciada.</param>
     Exception ReferencedRow(string tbl);
+
+    /// <summary>
+    /// EN: Whether the table has any triggers for the specified event.
+    /// PT: Se a tabela possui gatilhos para o evento especificado.
+    /// </summary>
+    bool HasTriggers(TableTriggerEvent evt);
 }

@@ -5,7 +5,8 @@ namespace DbSqlLikeMem.SqlServer;
 /// EN: Represents Sql Server Mock Exception.
 /// PT: Representa Sql Server simulada Exceção.
 /// </summary>
-public sealed class SqlServerMockException : SqlMockException
+public sealed class SqlServerMockException
+    : SqlMockException
 #pragma warning restore CA1032 // Implement standard exception constructors
 {
     /// <summary>

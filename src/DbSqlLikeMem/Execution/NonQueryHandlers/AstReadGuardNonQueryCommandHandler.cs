@@ -5,11 +5,11 @@ internal sealed class AstReadGuardNonQueryCommandHandler : INonQueryCommandHandl
     public bool TryHandle(
         CommandExecutionPipelineContext context,
         string sqlRaw,
-        out int affectedRows)
+        out DmlExecutionResult affectedRows)
     {
         using var _ = context.Connection.Metrics.BeginAmbientScope();
         var query = context.GetParsedQuery(sqlRaw);
-        affectedRows = 0;
+        affectedRows = new DmlExecutionResult();
 
         switch (query)
         {

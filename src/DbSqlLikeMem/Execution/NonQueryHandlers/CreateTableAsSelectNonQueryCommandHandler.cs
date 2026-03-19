@@ -5,9 +5,9 @@ internal sealed class CreateTableAsSelectNonQueryCommandHandler : INonQueryComma
     public bool TryHandle(
         CommandExecutionPipelineContext context,
         string sqlRaw,
-        out int affectedRows)
+        out DmlExecutionResult affectedRows)
     {
-        affectedRows = 0;
+        affectedRows = new DmlExecutionResult();
         if (!sqlRaw.StartsWith("create table", StringComparison.OrdinalIgnoreCase))
             return false;
 

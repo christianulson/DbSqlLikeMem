@@ -6,9 +6,9 @@ internal static class StandardTransactionControlCommandHandler
         this DbConnectionMockBase connection,
         string sqlRaw,
         bool releaseSavepointAsNoOp,
-        out int affectedRows)
+        out DmlExecutionResult affectedRows)
     {
-        affectedRows = 0;
+        affectedRows = new DmlExecutionResult();
 
         if (sqlRaw.Equals("begin", StringComparison.OrdinalIgnoreCase) ||
             sqlRaw.Equals("begin transaction", StringComparison.OrdinalIgnoreCase) ||

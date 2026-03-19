@@ -88,16 +88,24 @@ public abstract class TableMock
 
     private readonly List<Dictionary<int, object?>> _items = [];
 
-    public IReadOnlyList<IReadOnlyDictionary<int, object?>> Items => [.. _items
-        .Select(_=> new ReadOnlyDictionary<int, object?>(_))];
+    public IReadOnlyList<IReadOnlyDictionary<int, object?>> Items => new ItemsView(_items);
+
+    private sealed class ItemsView(List<Dictionary<int, object?>> items) : IReadOnlyList<IReadOnlyDictionary<int, object?>>
+    {
+        public int Count => items.Count;
+        public IReadOnlyDictionary<int, object?> this[int index] => items[index];
+        public IEnumerator<IReadOnlyDictionary<int, object?>> GetEnumerator() => items.GetEnumerator();
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+    }
 
     internal HashSet<int> _primaryKeyIndexes = [];
+    private int[] _pkIndexArray = [];
 
     /// <summary>
     /// EN: Fast lookup dictionary mapping serialized PK values to row positions.
     /// PT: Dicionário rápido que mapeia valores de PK serializados para posições de linha.
     /// </summary>
-    private readonly Dictionary<string, int> _pkIndex = new(StringComparer.Ordinal);
+    private readonly Dictionary<IndexKey, int> _pkIndex = new();
 
     // ---------- Wave D : índices ---------------------------------
     /// <summary>
@@ -112,6 +120,7 @@ public abstract class TableMock
             _primaryKeyIndexes.Add(Columns[colName].Index);
         if (_primaryKeyIndexes.Count != columns.Length)
             throw new InvalidOperationException(Resources.SqlExceptionMessages.DuplicatePrimaryKeyColumns());
+        _pkIndexArray = [.. _primaryKeyIndexes.OrderBy(static i => i)];
         RebuildPkIndex();
     }
 
@@ -119,19 +128,43 @@ public abstract class TableMock
     /// EN: Builds a composite key string from primary key column values of a row.
     /// PT: Constrói uma string de chave composta a partir dos valores das colunas PK de uma linha.
     /// </summary>
-    internal string BuildPkKey(IReadOnlyDictionary<int, object?> row)
+    internal IndexKey BuildPkKey(IReadOnlyDictionary<int, object?> row)
     {
-        if (_primaryKeyIndexes.Count == 0)
-            return string.Empty;
+        if (_pkIndexArray.Length == 0)
+            return default;
 
-        return string.Concat(_primaryKeyIndexes.OrderBy(static i => i).Select(pkIdx =>
+        if (_pkIndexArray.Length == 1)
         {
-            var value = row.TryGetValue(pkIdx, out var v) ? v : null;
-            if (value is null || value is DBNull)
-                return "n;";
-            var text = value.ToString() ?? string.Empty;
-            return $"s{text.Length}:{text};";
-        }));
+            var pk0 = _pkIndexArray[0];
+            return new IndexKey(row.TryGetValue(pk0, out var v) ? v : null);
+        }
+
+        if (_pkIndexArray.Length == 2)
+        {
+            var pk0 = _pkIndexArray[0];
+            var pk1 = _pkIndexArray[1];
+            var v0 = row.TryGetValue(pk0, out var vv0) ? vv0 : null;
+            var v1 = row.TryGetValue(pk1, out var vv1) ? vv1 : null;
+            return new IndexKey(v0, v1);
+        }
+
+        if (_pkIndexArray.Length == 3)
+        {
+            var pk0 = _pkIndexArray[0];
+            var pk1 = _pkIndexArray[1];
+            var pk2 = _pkIndexArray[2];
+            var v0 = row.TryGetValue(pk0, out var vv0) ? vv0 : null;
+            var v1 = row.TryGetValue(pk1, out var vv1) ? vv1 : null;
+            var v2 = row.TryGetValue(pk2, out var vv2) ? vv2 : null;
+            return new IndexKey(v0, v1, v2);
+        }
+
+        var values = new object?[_pkIndexArray.Length];
+        for (int i = 0; i < _pkIndexArray.Length; i++)
+        {
+            values[i] = row.TryGetValue(_pkIndexArray[i], out var v) ? v : null;
+        }
+        return new IndexKey(values);
     }
 
     /// <summary>
@@ -217,6 +250,34 @@ public abstract class TableMock
         var context = new TableTriggerContext(this, oldRow, newRow);
         foreach (var handler in handlers)
             handler(context);
+    }
+
+    /// <inheritdoc />
+    public bool HasTriggers(TableTriggerEvent evt)
+        => _triggers.TryGetValue(evt, out var handlers) && handlers.Count > 0;
+
+    /// <summary>
+    /// EN: Creates a detachable row snapshot without allocating a dictionary.
+    /// PT: Cria um snapshot de linha sem alocar um dicionário.
+    /// </summary>
+    internal static IReadOnlyDictionary<int, object?> SnapshotRow(IReadOnlyDictionary<int, object?>? row)
+    {
+        var metrics = DbMetrics.Current;
+        if (metrics is null)
+            return LazyRowSnapshot.From(row);
+
+        metrics.IncrementPerformancePhaseHit(DbPerformanceMetricKeys.RowSnapshot);
+        var startedAt = Stopwatch.GetTimestamp();
+        try
+        {
+            return LazyRowSnapshot.From(row);
+        }
+        finally
+        {
+            metrics.IncrementPerformancePhaseElapsedTicks(
+                DbPerformanceMetricKeys.RowSnapshot,
+                StopwatchCompatible.GetElapsedTicks(startedAt));
+        }
     }
 
     private void NotifyMutationApplied(
@@ -415,7 +476,7 @@ public abstract class TableMock
     /// <returns>EN: List of positions or null. PT: Lista de posições ou null.</returns>
     public IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>? Lookup(
         IndexDef def,
-        string key)
+        IndexKey key)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(def, nameof(def));
         if (!_indexes.TryGetValue(def.Name.NormalizeName(), out var map))
@@ -454,7 +515,7 @@ public abstract class TableMock
 
     internal void UpdateIndexesWithRow(
         int rowIdx,
-        IReadOnlyDictionary<int, object?> oldRow,
+        IReadOnlyDictionary<int, object?>? oldRow,
         IReadOnlyDictionary<int, object?> newRow)
     {
         foreach (var it in _indexes)
@@ -559,12 +620,21 @@ public abstract class TableMock
 
         if (matchingIndex is not null)
         {
-            var valuesByColumn = fk.References.ToDictionary(
-                _ => _.refCol.Name.NormalizeName(),
-                _ => row[_.col.Index],
-                StringComparer.OrdinalIgnoreCase);
+            IndexKey key;
+            if (fk.References.Count == 1)
+            {
+                var r = fk.References.First();
+                key = new IndexKey(row[r.col.Index]);
+            }
+            else
+            {
+                var valuesByColumn = fk.References.ToDictionary(
+                    _ => _.refCol.Name.NormalizeName(),
+                    _ => row[_.col.Index],
+                    StringComparer.OrdinalIgnoreCase);
+                key = matchingIndex.BuildIndexKeyFromValues(valuesByColumn);
+            }
 
-            var key = matchingIndex.BuildIndexKeyFromValues(valuesByColumn);
             if (matchingIndex.LookupMutable(key)?.Count > 0)
                 return true;
         }
@@ -714,45 +784,75 @@ public abstract class TableMock
         }
 
         var uniqueIndexes = _indexes.GetUnique().ToArray();
+        var allIndexes = _indexes.Values.ToArray();
         var batchPrimaryKeys = _primaryKeyIndexes.Count > 0
-            ? new HashSet<string>(StringComparer.Ordinal)
+            ? new HashSet<IndexKey>()
             : null;
+        
         var previousNextIdentities = new int[values.Count];
-        var batchUniqueKeys = uniqueIndexes.ToDictionary(
+        var batchUniqueDicts = uniqueIndexes.ToDictionary(
             static index => index,
-            static _ => new HashSet<string>(StringComparer.Ordinal));
+            static _ => new HashSet<IndexKey>());
+
+        // Pre-calculate ALL keys for ALL indexes to reuse later
+        var pkKeys = batchPrimaryKeys is null ? null : new IndexKey[values.Count];
+        var indexKeysMatrix = new IndexKey[allIndexes.Length][];
+        for (int i = 0; i < allIndexes.Length; i++) indexKeysMatrix[i] = new IndexKey[values.Count];
 
         for (var valueIndex = 0; valueIndex < values.Count; valueIndex++)
         {
-            var value = values[valueIndex];
+            var row = values[valueIndex];
             previousNextIdentities[valueIndex] = NextIdentity;
-            ApplyDefaultValues(value);
-            RefreshPersistedComputedValues(value);
-            ValidateForeignKeysOnRow(value);
+            ApplyDefaultValues(row);
+            RefreshPersistedComputedValues(row);
+            ValidateForeignKeysOnRow(row);
 
-            if (batchPrimaryKeys is not null)
+            if (pkKeys is not null)
             {
-                var pkKey = BuildPkKey(value);
-                if (_pkIndex.ContainsKey(pkKey) || !batchPrimaryKeys.Add(pkKey))
+                var pkKey = BuildPkKey(row);
+                pkKeys[valueIndex] = pkKey;
+                if (_pkIndex.ContainsKey(pkKey) || !batchPrimaryKeys!.Add(pkKey))
                 {
                     var dupPk = _columns
                         .Where(_ => _primaryKeyIndexes.Contains(_.Value.Index))
-                        .Select(_ => $"{_.Key}: {(value.TryGetValue(_.Value.Index, out var v) ? v : null)}");
+                        .Select(_ => $"{_.Key}: {(row.TryGetValue(_.Value.Index, out var v) ? v : null)}");
                     throw DuplicateKey(TableName, PRIMARY, string.Join(",", dupPk));
                 }
             }
 
-            foreach (var index in uniqueIndexes)
+            for(int i=0; i < allIndexes.Length; i++)
             {
-                var key = index.BuildIndexKey(value);
-                if (index.LookupMutable(key)?.Count > 0 || !batchUniqueKeys[index].Add(key))
-                    throw DuplicateKey(TableName, index.Name, key);
+                var index = allIndexes[i];
+                var key = index.BuildIndexKey(row);
+                indexKeysMatrix[i][valueIndex] = key;
+
+                if (index.Unique)
+                {
+                    if (index.LookupMutable(key)?.Count > 0 || !batchUniqueDicts[index].Add(key))
+                        throw DuplicateKey(TableName, index.Name, key);
+                }
             }
         }
 
         var startIndex = _items.Count;
         _items.AddRange(values);
-        UpdateIndexesWithRows(startIndex, values);
+        
+        // Update indexes using PRE-CALCULATED keys
+        var hasPrimaryKey = _primaryKeyIndexes.Count > 0;
+        for (var rowOffset = 0; rowOffset < values.Count; rowOffset++)
+        {
+            var rowIndex = startIndex + rowOffset;
+            var row = values[rowOffset];
+
+            for (int i = 0; i < allIndexes.Length; i++)
+            {
+                allIndexes[i].UpdateIndexesWithRow(rowIndex, row, indexKeysMatrix[i][rowOffset]);
+            }
+
+            if (hasPrimaryKey)
+                _pkIndex[pkKeys![rowOffset]] = rowIndex;
+        }
+
         for (var rowOffset = 0; rowOffset < values.Count; rowOffset++)
         {
             NotifyMutationApplied(

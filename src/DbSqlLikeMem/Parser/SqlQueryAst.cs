@@ -40,6 +40,7 @@ internal sealed record SqlInsertQuery : SqlQueryBase
     internal IReadOnlyList<List<string>> ValuesRaw { get; init; } = [];      // tokens raw por valor (ou expressão raw)
     internal IReadOnlyList<List<SqlExpr?>> ValuesExpr { get; init; } = [];   // best-effort parsed values (aligned with ValuesRaw)
     internal IReadOnlyList<SqlSelectItem> Returning { get; init; } = [];
+    internal bool IsReplace { get; init; }
     internal bool HasOnDuplicateKeyUpdate { get; init; }
     /// <summary>
     /// EN: Implements this member.
@@ -224,13 +225,26 @@ internal sealed record SqlJsonTableColumn(
     DbType DbType,
     string? Path,
     bool ForOrdinality,
-    bool ExistsPath = false
+    bool ExistsPath = false,
+    SqlJsonTableColumnFallback? OnEmpty = null,
+    SqlJsonTableColumnFallback? OnError = null
 ) : SqlJsonTableEntry;
 
 internal sealed record SqlJsonTableNestedPath(
     string Path,
     SqlJsonTableClause Clause
 ) : SqlJsonTableEntry;
+
+internal enum SqlJsonTableColumnFallbackKind
+{
+    Null,
+    Default,
+    Error
+}
+
+internal sealed record SqlJsonTableColumnFallback(
+    SqlJsonTableColumnFallbackKind Kind,
+    string? DefaultValueRaw = null);
 
 internal enum SqlMySqlIndexHintKind
 {
@@ -309,9 +323,9 @@ internal sealed record SqlJoin(SqlJoinType Type, SqlTableSource Table, SqlExpr O
 internal sealed record SqlOrderByItem(string Raw, bool Desc, bool? NullsFirst = null);
 
 internal abstract record SqlRowLimit;
-internal sealed record SqlLimitOffset(int Count, int? Offset) : SqlRowLimit;
-internal sealed record SqlTop(int Count) : SqlRowLimit;
-internal sealed record SqlFetch(int Count, int? Offset) : SqlRowLimit;
+internal sealed record SqlLimitOffset(SqlExpr Count, SqlExpr? Offset) : SqlRowLimit;
+internal sealed record SqlTop(SqlExpr Count) : SqlRowLimit;
+internal sealed record SqlFetch(SqlExpr Count, SqlExpr? Offset) : SqlRowLimit;
 
 internal sealed record SqlCte(string Name, SqlQueryBase Query);
 

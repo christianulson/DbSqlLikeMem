@@ -6,7 +6,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     /// EN: Dispatches parsed AST commands to ExecuteNonQuery handlers.
     /// PT: Despacha comandos AST parseados para handlers de ExecuteNonQuery.
     /// </summary>
-    public static int ExecuteParsedNonQuery(
+    public static DmlExecutionResult ExecuteParsedNonQuery(
         this DbConnectionMockBase connection,
         SqlQueryBase query,
         DbParameterCollection pars,
@@ -42,7 +42,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     /// EN: Implements ExecuteCreateView.
     /// PT: Implementa ExecuteCreateView.
     /// </summary>
-    public static int ExecuteCreateView(
+    public static DmlExecutionResult ExecuteCreateView(
         this DbConnectionMockBase connection,
         SqlCreateViewQuery query,
         DbParameterCollection pars,
@@ -50,7 +50,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     {
         _ = pars;
         _ = dialect;
-        int affected;
+        DmlExecutionResult affected;
         if (!connection.Db.ThreadSafe)
             affected = ExecuteCreateViewImpl(connection, query);
         else
@@ -59,16 +59,16 @@ internal static class DbSelectIntoAndInsertSelectStrategies
                 affected = ExecuteCreateViewImpl(connection, query);
         }
 
-        connection.SetLastFoundRows(affected);
+        connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
     }
 
-    private static int ExecuteCreateViewImpl(
+    private static DmlExecutionResult ExecuteCreateViewImpl(
         DbConnectionMockBase connection,
         SqlCreateViewQuery query)
     {
         connection.AddView(query);
-        return 0;
+        return new DmlExecutionResult();
     }
 
 
@@ -76,7 +76,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     /// EN: Implements ExecuteDropView.
     /// PT: Implementa ExecuteDropView.
     /// </summary>
-    public static int ExecuteDropView(
+    public static DmlExecutionResult ExecuteDropView(
         this DbConnectionMockBase connection,
         SqlDropViewQuery query,
         DbParameterCollection pars,
@@ -84,7 +84,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     {
         _ = pars;
         _ = dialect;
-        int affected;
+        DmlExecutionResult affected;
         if (!connection.Db.ThreadSafe)
             affected = ExecuteDropViewImpl(connection, query);
         else
@@ -93,25 +93,25 @@ internal static class DbSelectIntoAndInsertSelectStrategies
                 affected = ExecuteDropViewImpl(connection, query);
         }
 
-        connection.SetLastFoundRows(affected);
+        connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
     }
 
-    private static int ExecuteDropViewImpl(
+    private static DmlExecutionResult ExecuteDropViewImpl(
         DbConnectionMockBase connection,
         SqlDropViewQuery query)
     {
         var viewName = query.Table?.Name;
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(viewName, nameof(viewName));
         connection.DropView(viewName!, query.IfExists, query.Table?.DbName);
-        return 0;
+        return new DmlExecutionResult();
     }
 
     /// <summary>
     /// EN: Implements ExecuteDropTable.
     /// PT: Implementa ExecuteDropTable.
     /// </summary>
-    public static int ExecuteDropTable(
+    public static DmlExecutionResult ExecuteDropTable(
         this DbConnectionMockBase connection,
         SqlDropTableQuery query,
         DbParameterCollection pars,
@@ -119,7 +119,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     {
         _ = pars;
         _ = dialect;
-        int affected;
+        DmlExecutionResult affected;
         if (!connection.Db.ThreadSafe)
             affected = ExecuteDropTableImpl(connection, query);
         else
@@ -128,11 +128,11 @@ internal static class DbSelectIntoAndInsertSelectStrategies
                 affected = ExecuteDropTableImpl(connection, query);
         }
 
-        connection.SetLastFoundRows(affected);
+        connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
     }
 
-    private static int ExecuteDropTableImpl(
+    private static DmlExecutionResult ExecuteDropTableImpl(
         DbConnectionMockBase connection,
         SqlDropTableQuery query)
     {
@@ -144,14 +144,14 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             query.Temporary,
             query.Scope,
             query.Table?.DbName);
-        return 0;
+        return new DmlExecutionResult();
     }
 
     /// <summary>
     /// EN: Implements ExecuteAlterTableAddColumn.
     /// PT: Implementa ExecuteAlterTableAddColumn.
     /// </summary>
-    public static int ExecuteAlterTableAddColumn(
+    public static DmlExecutionResult ExecuteAlterTableAddColumn(
         this DbConnectionMockBase connection,
         SqlAlterTableAddColumnQuery query,
         DbParameterCollection pars,
@@ -159,7 +159,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     {
         _ = pars;
         _ = dialect;
-        int affected;
+        DmlExecutionResult affected;
         if (!connection.Db.ThreadSafe)
             affected = ExecuteAlterTableAddColumnImpl(connection, query);
         else
@@ -168,11 +168,11 @@ internal static class DbSelectIntoAndInsertSelectStrategies
                 affected = ExecuteAlterTableAddColumnImpl(connection, query);
         }
 
-        connection.SetLastFoundRows(affected);
+        connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
     }
 
-    private static int ExecuteAlterTableAddColumnImpl(
+    private static DmlExecutionResult ExecuteAlterTableAddColumnImpl(
         DbConnectionMockBase connection,
         SqlAlterTableAddColumnQuery query)
     {
@@ -193,14 +193,14 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             defaultValue,
             query.Table?.DbName);
 
-        return 0;
+        return new DmlExecutionResult();
     }
 
     /// <summary>
     /// EN: Implements ExecuteCreateIndex.
     /// PT: Implementa ExecuteCreateIndex.
     /// </summary>
-    public static int ExecuteCreateIndex(
+    public static DmlExecutionResult ExecuteCreateIndex(
         this DbConnectionMockBase connection,
         SqlCreateIndexQuery query,
         DbParameterCollection pars,
@@ -208,7 +208,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     {
         _ = pars;
         _ = dialect;
-        int affected;
+        DmlExecutionResult affected;
         if (!connection.Db.ThreadSafe)
             affected = ExecuteCreateIndexImpl(connection, query);
         else
@@ -217,25 +217,25 @@ internal static class DbSelectIntoAndInsertSelectStrategies
                 affected = ExecuteCreateIndexImpl(connection, query);
         }
 
-        connection.SetLastFoundRows(affected);
+        connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
     }
 
-    private static int ExecuteCreateIndexImpl(
+    private static DmlExecutionResult ExecuteCreateIndexImpl(
         DbConnectionMockBase connection,
         SqlCreateIndexQuery query)
     {
         var tableName = query.Table?.Name;
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(tableName, nameof(tableName));
         connection.CreateIndex(query.IndexName, tableName!, query.KeyColumns, query.Unique, query.Table?.DbName);
-        return 0;
+        return new DmlExecutionResult();
     }
 
     /// <summary>
     /// EN: Implements ExecuteDropIndex.
     /// PT: Implementa ExecuteDropIndex.
     /// </summary>
-    public static int ExecuteDropIndex(
+    public static DmlExecutionResult ExecuteDropIndex(
         this DbConnectionMockBase connection,
         SqlDropIndexQuery query,
         DbParameterCollection pars,
@@ -243,7 +243,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     {
         _ = pars;
         _ = dialect;
-        int affected;
+        DmlExecutionResult affected;
         if (!connection.Db.ThreadSafe)
             affected = ExecuteDropIndexImpl(connection, query);
         else
@@ -252,23 +252,23 @@ internal static class DbSelectIntoAndInsertSelectStrategies
                 affected = ExecuteDropIndexImpl(connection, query);
         }
 
-        connection.SetLastFoundRows(affected);
+        connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
     }
 
-    private static int ExecuteDropIndexImpl(
+    private static DmlExecutionResult ExecuteDropIndexImpl(
         DbConnectionMockBase connection,
         SqlDropIndexQuery query)
     {
         connection.DropIndex(query.IndexName, query.IfExists, query.Table?.Name, query.Table?.DbName);
-        return 0;
+        return new DmlExecutionResult();
     }
 
     /// <summary>
     /// EN: Implements ExecuteCreateSequence.
     /// PT: Implementa ExecuteCreateSequence.
     /// </summary>
-    public static int ExecuteCreateSequence(
+    public static DmlExecutionResult ExecuteCreateSequence(
         this DbConnectionMockBase connection,
         SqlCreateSequenceQuery query,
         DbParameterCollection pars,
@@ -276,7 +276,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     {
         _ = pars;
         _ = dialect;
-        int affected;
+        DmlExecutionResult affected;
         if (!connection.Db.ThreadSafe)
             affected = ExecuteCreateSequenceImpl(connection, query);
         else
@@ -285,11 +285,11 @@ internal static class DbSelectIntoAndInsertSelectStrategies
                 affected = ExecuteCreateSequenceImpl(connection, query);
         }
 
-        connection.SetLastFoundRows(affected);
+        connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
     }
 
-    private static int ExecuteCreateSequenceImpl(
+    private static DmlExecutionResult ExecuteCreateSequenceImpl(
         DbConnectionMockBase connection,
         SqlCreateSequenceQuery query)
     {
@@ -301,10 +301,10 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             query.StartValue,
             query.IncrementBy,
             query.Table?.DbName);
-        return 0;
+        return new DmlExecutionResult();
     }
 
-    public static int ExecuteCreateFunction(
+    public static DmlExecutionResult ExecuteCreateFunction(
         this DbConnectionMockBase connection,
         SqlCreateFunctionQuery query,
         DbParameterCollection pars,
@@ -312,7 +312,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     {
         _ = pars;
         _ = dialect;
-        int affected;
+        DmlExecutionResult affected;
         if (!connection.Db.ThreadSafe)
             affected = ExecuteCreateFunctionImpl(connection, query);
         else
@@ -321,25 +321,25 @@ internal static class DbSelectIntoAndInsertSelectStrategies
                 affected = ExecuteCreateFunctionImpl(connection, query);
         }
 
-        connection.SetLastFoundRows(affected);
+        connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
     }
 
-    private static int ExecuteCreateFunctionImpl(
+    private static DmlExecutionResult ExecuteCreateFunctionImpl(
         DbConnectionMockBase connection,
         SqlCreateFunctionQuery query)
     {
         var functionName = query.Table?.Name;
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
         connection.CreateFunction(functionName!, query.ReturnTypeSql, query.Parameters, query.Body, query.OrReplace, query.Table?.DbName);
-        return 0;
+        return new DmlExecutionResult();
     }
 
     /// <summary>
     /// EN: Implements ExecuteDropSequence.
     /// PT: Implementa ExecuteDropSequence.
     /// </summary>
-    public static int ExecuteDropSequence(
+    public static DmlExecutionResult ExecuteDropSequence(
         this DbConnectionMockBase connection,
         SqlDropSequenceQuery query,
         DbParameterCollection pars,
@@ -347,7 +347,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     {
         _ = pars;
         _ = dialect;
-        int affected;
+        DmlExecutionResult affected;
         if (!connection.Db.ThreadSafe)
             affected = ExecuteDropSequenceImpl(connection, query);
         else
@@ -356,21 +356,21 @@ internal static class DbSelectIntoAndInsertSelectStrategies
                 affected = ExecuteDropSequenceImpl(connection, query);
         }
 
-        connection.SetLastFoundRows(affected);
+        connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
     }
 
-    private static int ExecuteDropSequenceImpl(
+    private static DmlExecutionResult ExecuteDropSequenceImpl(
         DbConnectionMockBase connection,
         SqlDropSequenceQuery query)
     {
         var sequenceName = query.Table?.Name;
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sequenceName, nameof(sequenceName));
         connection.DropSequence(sequenceName!, query.IfExists, query.Table?.DbName);
-        return 0;
+        return new DmlExecutionResult();
     }
 
-    public static int ExecuteDropFunction(
+    public static DmlExecutionResult ExecuteDropFunction(
         this DbConnectionMockBase connection,
         SqlDropFunctionQuery query,
         DbParameterCollection pars,
@@ -378,7 +378,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     {
         _ = pars;
         _ = dialect;
-        int affected;
+        DmlExecutionResult affected;
         if (!connection.Db.ThreadSafe)
             affected = ExecuteDropFunctionImpl(connection, query);
         else
@@ -387,31 +387,31 @@ internal static class DbSelectIntoAndInsertSelectStrategies
                 affected = ExecuteDropFunctionImpl(connection, query);
         }
 
-        connection.SetLastFoundRows(affected);
+        connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
     }
 
-    private static int ExecuteDropFunctionImpl(
+    private static DmlExecutionResult ExecuteDropFunctionImpl(
         DbConnectionMockBase connection,
         SqlDropFunctionQuery query)
     {
         var functionName = query.Table?.Name;
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
         connection.DropFunction(functionName!, query.IfExists, query.Table?.DbName);
-        return 0;
+        return new DmlExecutionResult();
     }
 
     /// <summary>
     /// EN: Implements ExecuteCreateTableAsSelect.
     /// PT: Implementa ExecuteCreateTableAsSelect.
     /// </summary>
-    public static int ExecuteCreateTableAsSelect(
+    public static DmlExecutionResult ExecuteCreateTableAsSelect(
         this DbConnectionMockBase connection,
         string sql,
         DbParameterCollection pars,
         ISqlDialect dialect)
     {
-        int affected;
+        DmlExecutionResult affected;
         if (!connection.Db.ThreadSafe)
             affected = ExecuteCreateTableAsSelectImpl(connection, sql, pars, dialect);
         else
@@ -420,11 +420,11 @@ internal static class DbSelectIntoAndInsertSelectStrategies
                 affected = ExecuteCreateTableAsSelectImpl(connection, sql, pars, dialect);
         }
 
-        connection.SetLastFoundRows(affected);
+        connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
     }
 
-    private static int ExecuteCreateTableAsSelectImpl(
+    private static DmlExecutionResult ExecuteCreateTableAsSelectImpl(
         this DbConnectionMockBase connection,
         string sql,
         DbParameterCollection pars,
@@ -459,7 +459,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
                 newTable.Add(d);
             }
 
-            return 0;
+            return new DmlExecutionResult();
         }
 
         // CREATE TABLE name (id INT, name VARCHAR(100), ...)
@@ -492,7 +492,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         if (primaryKeyColumns.Count > 0)
             table.AddPrimaryKeyIndexes([.. primaryKeyColumns.Distinct(StringComparer.OrdinalIgnoreCase)]);
 
-        return 0;
+        return new DmlExecutionResult();
     }
 
     private static IEnumerable<string> SplitColumnDefinitions(string columnsSql)
@@ -613,13 +613,13 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     /// EN: Implements ExecuteCreateTemporaryTableAsSelect.
     /// PT: Implementa ExecuteCreateTemporaryTableAsSelect.
     /// </summary>
-    public static int ExecuteCreateTemporaryTableAsSelect(
+    public static DmlExecutionResult ExecuteCreateTemporaryTableAsSelect(
         this DbConnectionMockBase connection,
         SqlCreateTemporaryTableQuery query,
         DbParameterCollection pars,
         ISqlDialect dialect)
     {
-        int affected;
+        DmlExecutionResult affected;
         if (!connection.Db.ThreadSafe)
             affected = ExecuteCreateTemporaryTableAsSelectImpl(connection, query, pars, dialect);
         else
@@ -628,11 +628,11 @@ internal static class DbSelectIntoAndInsertSelectStrategies
                 affected = ExecuteCreateTemporaryTableAsSelectImpl(connection, query, pars, dialect);
         }
 
-        connection.SetLastFoundRows(affected);
+        connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
     }
 
-    private static int ExecuteCreateTemporaryTableAsSelectImpl(
+    private static DmlExecutionResult ExecuteCreateTemporaryTableAsSelectImpl(
         this DbConnectionMockBase connection,
         SqlCreateTemporaryTableQuery query,
         DbParameterCollection pars,
@@ -647,13 +647,13 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         {
             if (connection.TryGetGlobalTemporaryTable(tableName!, out _, schemaName))
             {
-                if (query.IfNotExists) return 0;
+                if (query.IfNotExists) return new DmlExecutionResult();
                 throw new InvalidOperationException(SqlExceptionMessages.TableAlreadyExists(tableName!));
             }
         }
         else if (connection.TryGetTemporaryTable(tableName!, out _, schemaName))
         {
-            if (query.IfNotExists) return 0;
+            if (query.IfNotExists) return new DmlExecutionResult();
             throw new InvalidOperationException(SqlExceptionMessages.TableAlreadyExists(tableName!));
         }
 
@@ -684,14 +684,14 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             newTable.Add(d);
         }
 
-        return 0;
+        return new DmlExecutionResult();
     }
 
     /// <summary>
     /// EN: Implements ExecuteInsertSmart.
     /// PT: Implementa ExecuteInsertSmart.
     /// </summary>
-    public static int ExecuteInsertSmart(
+    public static DmlExecutionResult ExecuteInsertSmart(
             this DbConnectionMockBase connection,
             SqlInsertQuery query,
             DbParameterCollection pars,
@@ -710,7 +710,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     /// EN: Implements ExecuteInsertSelect.
     /// PT: Implementa ExecuteInsertSelect.
     /// </summary>
-    public static int ExecuteInsertSelect(
+    public static DmlExecutionResult ExecuteInsertSelect(
         this DbConnectionMockBase connection,
         SqlInsertQuery query,
         DbParameterCollection pars,
@@ -724,7 +724,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         }
     }
 
-    private static int ExecuteInsertSelectImpl(
+    private static DmlExecutionResult ExecuteInsertSelectImpl(
         DbConnectionMockBase connection,
         SqlInsertQuery query,
         DbParameterCollection pars,
@@ -738,7 +738,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         if (plan.Columns.Count != res.Columns.Count)
             throw new InvalidOperationException(SqlExceptionMessages.ColumnCountDoesNotMatchSelectList());
 
-        var inserted = 0;
+        var inserted = new DmlExecutionResult();
         foreach (var row in res)
         {
             var newRow = CreateInsertSelectRow(plan.Target, plan.Columns, row);
@@ -746,7 +746,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             plan.Target.Add(newRow);
             plan.Target.UpdateIndexesWithRow(plan.Target.Count - 1);
             connection.Metrics.Inserts++;
-            inserted++;
+            inserted.IncreseAffected();
         }
         return inserted;
     }

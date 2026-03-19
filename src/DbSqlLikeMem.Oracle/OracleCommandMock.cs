@@ -106,13 +106,13 @@ public class OracleCommandMock(
         if (CommandType == CommandType.StoredProcedure)
         {
             var affected = connection!.ExecuteStoredProcedure(CommandText, Parameters);
-            connection.SetLastFoundRows(affected);
-            return affected;
+            connection.SetLastFoundRows(affected.AffectedRows);
+            return affected.AffectedRows;
         }
 
         var normalizedCommandText = CommandText.NormalizeString();
         if (TryExecuteOracleFunctionDdl(normalizedCommandText, out var functionDdlAffectedRows))
-            return functionDdlAffectedRows;
+            return functionDdlAffectedRows.AffectedRows;
 
         return connection.ExecuteNonQueryWithPipeline(
             normalizedCommandText,
@@ -123,9 +123,9 @@ public class OracleCommandMock(
             tryExecuteSpecialCommand: TryExecuteNonQuerySpecialCommand);
     }
 
-    private bool TryExecuteOracleFunctionDdl(string sqlRaw, out int affectedRows)
+    private bool TryExecuteOracleFunctionDdl(string sqlRaw, out DmlExecutionResult affectedRows)
     {
-        affectedRows = 0;
+        affectedRows = new DmlExecutionResult();
 
         if (!LooksLikeOracleFunctionDdl(sqlRaw))
             return false;
@@ -145,9 +145,9 @@ public class OracleCommandMock(
             || trimmed.StartsWith("CREATE OR REPLACE FUNCTION ", StringComparison.OrdinalIgnoreCase);
     }
 
-    private bool TryExecuteNonQuerySpecialCommand(string sqlRaw, out int affectedRows)
+    private bool TryExecuteNonQuerySpecialCommand(string sqlRaw, out DmlExecutionResult affectedRows)
     {
-        affectedRows = 0;
+        affectedRows = new DmlExecutionResult();
 
         if (TryExtractOracleReturningIntoClause(sqlRaw, out var rewrittenSql, out var clause))
         {
@@ -224,7 +224,7 @@ public class OracleCommandMock(
         return new OracleDataReaderMock(tables);
     }
 
-    private bool TryExecuteTransactionControlCommand(string sqlRaw, out int affectedRows)
+    private bool TryExecuteTransactionControlCommand(string sqlRaw, out DmlExecutionResult affectedRows)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
         return connection!.TryExecuteStandardTransactionControl(
@@ -237,7 +237,7 @@ public class OracleCommandMock(
     /// EN: Executes DML and populates Oracle RETURNING INTO output parameters.
     /// PT: Executa DML e preenche parâmetros de saída de RETURNING INTO no Oracle.
     /// </summary>
-    private int ExecuteNonQueryWithReturningInto(
+    private DmlExecutionResult ExecuteNonQueryWithReturningInto(
         SqlQueryBase query,
         OracleReturningIntoClause clause)
     {
@@ -256,7 +256,7 @@ public class OracleCommandMock(
     /// EN: Executes INSERT for RETURNING INTO and reads only the first inserted row needed by output parameters.
     /// PT: Executa INSERT para RETURNING INTO e lê apenas a primeira linha inserida necessária aos parâmetros de saída.
     /// </summary>
-    private int ExecuteInsertWithReturningInto(
+    private DmlExecutionResult ExecuteInsertWithReturningInto(
         SqlInsertQuery query,
         OracleReturningIntoClause clause)
     {
@@ -274,7 +274,7 @@ public class OracleCommandMock(
     /// EN: Executes UPDATE for RETURNING INTO and reads only the first updated row needed by output parameters.
     /// PT: Executa UPDATE para RETURNING INTO e lê apenas a primeira linha atualizada necessária aos parâmetros de saída.
     /// </summary>
-    private int ExecuteUpdateWithReturningInto(
+    private DmlExecutionResult ExecuteUpdateWithReturningInto(
         SqlUpdateQuery query,
         OracleReturningIntoClause clause)
     {
@@ -292,7 +292,7 @@ public class OracleCommandMock(
     /// EN: Executes DELETE for RETURNING INTO and snapshots only the first deleted row needed by output parameters.
     /// PT: Executa DELETE para RETURNING INTO e gera snapshot apenas da primeira linha excluída necessária aos parâmetros de saída.
     /// </summary>
-    private int ExecuteDeleteWithReturningInto(
+    private DmlExecutionResult ExecuteDeleteWithReturningInto(
         SqlDeleteQuery query,
         OracleReturningIntoClause clause)
     {

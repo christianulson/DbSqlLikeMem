@@ -162,6 +162,7 @@ internal static class SqlExprPrinter
         SqlBinaryOp.LessOrEqual => "<=",
         SqlBinaryOp.NullSafeEq => "<=>",
         SqlBinaryOp.Regexp => "REGEXP",
+        SqlBinaryOp.SoundLike => "SOUNDS LIKE",
         SqlBinaryOp.Concat => "||",
         _ => op.ToString()
     };

@@ -318,7 +318,7 @@ public static class DbMockConnectionFactory
             "SQLSERVER" => ("DbSqlLikeMem.SqlServer.SqlServerDbMock, DbSqlLikeMem.SqlServer", "DbSqlLikeMem.SqlServer.SqlServerConnectionMock, DbSqlLikeMem.SqlServer"),
             "SQLAZURE" => ("DbSqlLikeMem.SqlAzure.SqlAzureDbMock, DbSqlLikeMem.SqlAzure", "DbSqlLikeMem.SqlAzure.SqlAzureConnectionMock, DbSqlLikeMem.SqlAzure"),
             "MYSQL" => ("DbSqlLikeMem.MySql.MySqlDbMock, DbSqlLikeMem.MySql", "DbSqlLikeMem.MySql.MySqlConnectionMock, DbSqlLikeMem.MySql"),
-            "MARIADB" => ("DbSqlLikeMem.MySql.MariaDbDbMock, DbSqlLikeMem.MySql", "DbSqlLikeMem.MySql.MariaDbConnectionMock, DbSqlLikeMem.MySql"),
+            "MARIADB" => ("DbSqlLikeMem.MariaDb.MariaDbDbMock, DbSqlLikeMem.MariaDb", "DbSqlLikeMem.MariaDb.MariaDbConnectionMock, DbSqlLikeMem.MariaDb"),
             "SQLITE" => ("DbSqlLikeMem.Sqlite.SqliteDbMock, DbSqlLikeMem.Sqlite", "DbSqlLikeMem.Sqlite.SqliteConnectionMock, DbSqlLikeMem.Sqlite"),
             "DB2" => ("DbSqlLikeMem.Db2.Db2DbMock, DbSqlLikeMem.Db2", "DbSqlLikeMem.Db2.Db2ConnectionMock, DbSqlLikeMem.Db2"),
             "NPGSQL" => ("DbSqlLikeMem.Npgsql.NpgsqlDbMock, DbSqlLikeMem.Npgsql", "DbSqlLikeMem.Npgsql.NpgsqlConnectionMock, DbSqlLikeMem.Npgsql"),
@@ -363,6 +363,7 @@ public static class DbMockConnectionFactory
         {
             "DbSqlLikeMem.Sqlite",
             "DbSqlLikeMem.MySql",
+            "DbSqlLikeMem.MariaDb",
             "DbSqlLikeMem.SqlServer",
             "DbSqlLikeMem.SqlAzure",
             "DbSqlLikeMem.Oracle",
@@ -373,7 +374,8 @@ public static class DbMockConnectionFactory
         foreach (var assemblyName in candidates)
         {
             if (providerHint.Contains("MariaDb", StringComparison.OrdinalIgnoreCase)
-                && assemblyName.Equals("DbSqlLikeMem.MySql", StringComparison.OrdinalIgnoreCase))
+                && (assemblyName.Equals("DbSqlLikeMem.MySql", StringComparison.OrdinalIgnoreCase)
+                    || assemblyName.Equals("DbSqlLikeMem.MariaDb", StringComparison.OrdinalIgnoreCase)))
             {
                 try
                 {

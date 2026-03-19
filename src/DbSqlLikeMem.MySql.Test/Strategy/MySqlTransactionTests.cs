@@ -295,6 +295,44 @@ public sealed class MySqlTransactionTests(
     }
 
     /// <summary>
+    /// EN: Ensures rollback restores multiple tables correctly when the database runs in thread-safe mode.
+    /// PT: Garante que rollback restaure varias tabelas corretamente quando o banco executa em modo thread-safe.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Strategy")]
+    public void TransactionRollback_ShouldRestoreMultipleTables_WhenThreadSafe()
+    {
+        var db = new MySqlDbMock
+        {
+            ThreadSafe = true
+        };
+
+        var users = db.AddTable("users");
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("name", DbType.String, false);
+        users.AddPrimaryKeyIndexes("id");
+
+        var orders = db.AddTable("orders");
+        orders.AddColumn("id", DbType.Int32, false);
+        orders.AddColumn("user_id", DbType.Int32, false);
+        orders.AddPrimaryKeyIndexes("id");
+
+        using var connection = new MySqlConnectionMock(db);
+        connection.Open();
+        using var transaction = connection.BeginTransaction();
+
+        users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "Ana" });
+        orders.Add(new Dictionary<int, object?> { [0] = 10, [1] = 1 });
+
+        transaction.Rollback();
+
+        Assert.Empty(users);
+        Assert.Empty(orders);
+        Assert.False(connection.HasActiveTransaction);
+        Assert.Equal(IsolationLevel.Unspecified, connection.CurrentIsolationLevel);
+    }
+
+    /// <summary>
     /// EN: Ensures transaction rollback restores connection temporary-table state.
     /// PT: Garante que rollback de transação restaure o estado de tabela temporária da conexão.
     /// </summary>

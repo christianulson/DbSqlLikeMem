@@ -226,7 +226,14 @@ public abstract class SchemaMock
     /// </summary>
     public virtual void BackupAllTablesBestEffort()
     {
-        foreach (var table in tables.Values)
+        var tableList = tables.Values.ToArray();
+        if (Db.ThreadSafe && tableList.Length > 1)
+        {
+            Parallel.ForEach(tableList, table => table.Backup());
+            return;
+        }
+
+        foreach (var table in tableList)
             table.Backup();
     }
 
@@ -236,7 +243,14 @@ public abstract class SchemaMock
     /// </summary>
     public virtual void RestoreAllTablesBestEffort()
     {
-        foreach (var table in tables.Values)
+        var tableList = tables.Values.ToArray();
+        if (Db.ThreadSafe && tableList.Length > 1)
+        {
+            Parallel.ForEach(tableList, table => table.Restore());
+            return;
+        }
+
+        foreach (var table in tableList)
             table.Restore();
     }
 
@@ -246,7 +260,14 @@ public abstract class SchemaMock
     /// </summary>
     public virtual void ClearBackupAllTablesBestEffort()
     {
-        foreach (var table in tables.Values)
+        var tableList = tables.Values.ToArray();
+        if (Db.ThreadSafe && tableList.Length > 1)
+        {
+            Parallel.ForEach(tableList, table => table.ClearBackup());
+            return;
+        }
+
+        foreach (var table in tableList)
             table.ClearBackup();
     }
 
@@ -258,18 +279,53 @@ public abstract class SchemaMock
         ITableMock table,
         IEnumerable<IReadOnlyDictionary<int, object?>> rowsToDelete)
     {
-        foreach (var parentRow in rowsToDelete)
+        var parentRows = rowsToDelete as IReadOnlyList<IReadOnlyDictionary<int, object?>>
+            ?? [.. rowsToDelete];
+
+        if (!Db.ThreadSafe || parentRows.Count <= 1)
         {
-            foreach (var childTable in tables.Values)
+            foreach (var parentRow in parentRows)
+                ValidateForeignKeysOnDeleteForRow(tableName, table, parentRow);
+            return;
+        }
+
+        Exception? failure = null;
+        var gate = new object();
+        Parallel.ForEach(parentRows, (parentRow, state) =>
+        {
+            try
             {
-                foreach (var fk in childTable.ForeignKeys.Values.Where(f =>
-                    f.RefTable.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase)))
+                ValidateForeignKeysOnDeleteForRow(tableName, table, parentRow);
+            }
+            catch (Exception ex)
+            {
+                lock (gate)
                 {
-                    if (HasReferenceByIndex(childTable, fk, parentRow)
-                        || HasReferenceByScan(childTable, fk, parentRow))
-                    {
-                        throw table.ReferencedRow(tableName);
-                    }
+                    failure ??= ex;
+                }
+
+                state.Stop();
+            }
+        });
+
+        if (failure is not null)
+            throw failure;
+    }
+
+    private void ValidateForeignKeysOnDeleteForRow(
+        string tableName,
+        ITableMock table,
+        IReadOnlyDictionary<int, object?> parentRow)
+    {
+        foreach (var childTable in tables.Values)
+        {
+            foreach (var fk in childTable.ForeignKeys.Values.Where(f =>
+                f.RefTable.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase)))
+            {
+                if (HasReferenceByIndex(childTable, fk, parentRow)
+                    || HasReferenceByScan(childTable, fk, parentRow))
+                {
+                    throw table.ReferencedRow(tableName);
                 }
             }
         }

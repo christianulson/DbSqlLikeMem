@@ -1,13 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Data.Common;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using DbSqlLikeMem.SqlServer;
 namespace DbSqlLikeMem.SqlAzure;
 
+/// <summary>
+/// EN: Schema mock for SQL Azure databases.
+/// PT: Esquema simulado para bancos SQL Azure.
+/// </summary>
 public class SqlAzureSchemaMock(
     string schemaName,
     SqlAzureDbMock db,

@@ -19,6 +19,14 @@ internal static class Program
     {
         var options = BenchmarkRunOptions.Parse(args);
 
+        if (options.ValidateCatalog)
+        {
+            var report = BenchmarkCatalogValidator.Validate();
+            Console.WriteLine(report.Format());
+            Environment.ExitCode = report.IsValid ? 0 : 1;
+            return;
+        }
+
         BenchmarkSwitcher
             .FromAssembly(typeof(Program).Assembly)
             .Run(options.BenchmarkDotNetArgs, new BenchmarkConfig(options));
@@ -29,6 +37,7 @@ public sealed record BenchmarkRunOptions(
     bool IsTest,
     bool UseInProcess,
     bool PreferPreProvisionedDatabases,
+    bool ValidateCatalog,
     string[] BenchmarkDotNetArgs)
 {
     public static BenchmarkRunOptions Parse(string[] args)
@@ -37,6 +46,7 @@ public sealed record BenchmarkRunOptions(
         var isTest = false;
         var useInProcess = false;
         var preferPreProvisionedDatabases = false;
+        var validateCatalog = false;
 
         foreach (var arg in args)
         {
@@ -54,6 +64,9 @@ public sealed record BenchmarkRunOptions(
                 case "--preprovisioned":
                     preferPreProvisionedDatabases = true;
                     break;
+                case "--validate-catalog":
+                    validateCatalog = true;
+                    break;
                 default:
                     benchmarkArgs.Add(arg);
                     break;
@@ -64,6 +77,7 @@ public sealed record BenchmarkRunOptions(
             IsTest: isTest,
             UseInProcess: useInProcess,
             PreferPreProvisionedDatabases: preferPreProvisionedDatabases,
+            ValidateCatalog: validateCatalog,
             BenchmarkDotNetArgs: benchmarkArgs.ToArray());
     }
 }

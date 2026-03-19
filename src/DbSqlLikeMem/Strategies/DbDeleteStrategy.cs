@@ -8,7 +8,7 @@ internal static class DbDeleteStrategy
     /// EN: Implements ExecuteDelete.
     /// PT: Implementa ExecuteDelete.
     /// </summary>
-    public static int ExecuteDelete(
+    public static DmlExecutionResult ExecuteDelete(
         this DbConnectionMockBase connection,
         SqlDeleteQuery query,
         DbParameterCollection? pars = null)
@@ -19,7 +19,7 @@ internal static class DbDeleteStrategy
             return Execute(connection, query, pars);
     }
 
-    private static int Execute(
+    private static DmlExecutionResult Execute(
         this DbConnectionMockBase connection,
         SqlDeleteQuery query,
         DbParameterCollection? pars)
@@ -34,9 +34,6 @@ internal static class DbDeleteStrategy
             throw SqlUnsupported.ForTableDoesNotExist(tableName);
         var rowCountBefore = table.Count;
 
-        // 1. Filtrar linhas
-        // Usa a mesma lógica simplificada de WHERE do UpdateStrategy.
-        // Fallback: se WhereRaw não foi preenchido, extraímos do RawSql.
         var whereRaw = TableMock.ResolveWhereRaw(query.WhereRaw, query.RawSql);
         var conditions = TableMock.ParseWhereSimple(whereRaw);
 
@@ -49,7 +46,10 @@ internal static class DbDeleteStrategy
             var row = table[i];
             if (TableMock.IsMatchSimple(table, pars, conditions, row))
             {
-                rowsToDelete.Add(row);
+                // Para o RETURNING, precisamos capturar o estado ANTES da remoção. 
+                // Usamos snapshots para garantir que se o objeto row for alterado por triggers, 
+                // tenhamos o estado estável da deleção.
+                rowsToDelete.Add(TableMock.SnapshotRow(row));
                 indexesToDelete.Add(i);
             }
         }
@@ -67,10 +67,19 @@ internal static class DbDeleteStrategy
         // 3. Remover (ordem inversa para não quebrar índices durante loop)
         foreach (var idx in indexesToDelete.OrderByDescending(x => x))
         {
-            var oldRow = SnapshotRow(table[idx]);
-            TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeDelete, oldRow, null);
+            IReadOnlyDictionary<int, object?>? oldRow = null;
+            if (dialect.SupportsTriggers && (table.HasTriggers(TableTriggerEvent.BeforeDelete) || table.HasTriggers(TableTriggerEvent.AfterDelete)))
+            {
+                oldRow = TableMock.SnapshotRow(table[idx]);
+            }
+
+            if (dialect.SupportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeDelete))
+                TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeDelete, oldRow, null);
+            
             table.RemoveAt(idx);
-            TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterDelete, oldRow, null);
+            
+            if (dialect.SupportsTriggers && table.HasTriggers(TableTriggerEvent.AfterDelete))
+                TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterDelete, oldRow, null);
         }
 
         connection.Metrics.Deletes += rowsToDelete.Count;
@@ -86,7 +95,12 @@ internal static class DbDeleteStrategy
             metrics,
             new SqlPlanMockRuntimeContext(connection.SimulatedLatencyMs, connection.DropProbability, connection.Db.ThreadSafe));
         connection.RegisterExecutionPlan(plan);
-        return rowsToDelete.Count;
+        return new DmlExecutionResult 
+        { 
+            AffectedRows = rowsToDelete.Count, 
+            AffectedIndexes = indexesToDelete,
+            AffectedRowsData = rowsToDelete
+        };
     }
 
     private static IEnumerable<int> GetCandidateRowIndexes(
@@ -104,9 +118,6 @@ internal static class DbDeleteStrategy
         for (int rowIdx = 0; rowIdx < table.Count; rowIdx++)
             yield return rowIdx;
     }
-
-    private static IReadOnlyDictionary<int, object?> SnapshotRow(IReadOnlyDictionary<int, object?> row)
-        => row.ToDictionary(_ => _.Key, _ => _.Value);
 
     private static void TryExecuteTableTrigger(
         DbConnectionMockBase connection,
@@ -135,18 +146,52 @@ internal static class DbDeleteStrategy
         List<IReadOnlyDictionary<int, object?>> rowsToDelete,
         string? dbName)
     {
-        foreach (var parentRow in rowsToDelete)
+        if (!connection.Db.ThreadSafe || rowsToDelete.Count <= 1)
         {
-            foreach (var childTable in connection.ListTables(dbName))
+            foreach (var parentRow in rowsToDelete)
+                ValidateForeignKeysForRow(connection, tableName, table, parentRow, dbName);
+            return;
+        }
+
+        Exception? failure = null;
+        var gate = new object();
+        Parallel.ForEach(rowsToDelete, (parentRow, state) =>
+        {
+            try
             {
-                foreach (var fk in childTable.ForeignKeys.Values.Where(f =>
-                    f.RefTable.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase)))
+                ValidateForeignKeysForRow(connection, tableName, table, parentRow, dbName);
+            }
+            catch (Exception ex)
+            {
+                lock (gate)
                 {
-                    if (HasReferenceByIndex(childTable, fk, parentRow)
-                        || HasReferenceByScan(childTable, fk, parentRow, connection.Db.ThreadSafe))
-                    {
-                        throw table.ReferencedRow(tableName);
-                    }
+                    failure ??= ex;
+                }
+
+                state.Stop();
+            }
+        });
+
+        if (failure is not null)
+            throw failure;
+    }
+
+    private static void ValidateForeignKeysForRow(
+        DbConnectionMockBase connection,
+        string tableName,
+        ITableMock table,
+        IReadOnlyDictionary<int, object?> parentRow,
+        string? dbName)
+    {
+        foreach (var childTable in connection.ListTables(dbName))
+        {
+            foreach (var fk in childTable.ForeignKeys.Values.Where(f =>
+                f.RefTable.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase)))
+            {
+                if (HasReferenceByIndex(childTable, fk, parentRow)
+                    || HasReferenceByScan(childTable, fk, parentRow, connection.Db.ThreadSafe))
+                {
+                    throw table.ReferencedRow(tableName);
                 }
             }
         }
@@ -191,5 +236,4 @@ internal static class DbDeleteStrategy
         var key = matchingIndex.BuildIndexKeyFromValues(valuesByColumn);
         return matchingIndex.LookupMutable(key)?.Count > 0;
     }
-
 }

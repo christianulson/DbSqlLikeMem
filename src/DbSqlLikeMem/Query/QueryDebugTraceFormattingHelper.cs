@@ -5,11 +5,9 @@ internal static class QueryDebugTraceFormattingHelper
     internal static string FormatLimitDebugDetails(SqlRowLimit rowLimit)
         => rowLimit switch
         {
-            SqlLimitOffset limit when limit.Offset.HasValue => $"count={limit.Count};offset={limit.Offset.Value}",
-            SqlLimitOffset limit => $"count={limit.Count}",
-            SqlFetch fetch when fetch.Offset.HasValue => $"count={fetch.Count};offset={fetch.Offset.Value}",
-            SqlFetch fetch => $"count={fetch.Count}",
-            SqlTop top => $"count={top.Count}",
+            SqlLimitOffset limit => (limit.Offset is not null ? $"count={SqlExprPrinter.Print(limit.Count)};offset={SqlExprPrinter.Print(limit.Offset)}" : $"count={SqlExprPrinter.Print(limit.Count)}"),
+            SqlFetch fetch => (fetch.Offset is not null ? $"count={SqlExprPrinter.Print(fetch.Count)};offset={SqlExprPrinter.Print(fetch.Offset)}" : $"count={SqlExprPrinter.Print(fetch.Count)}"),
+            SqlTop top => $"count={SqlExprPrinter.Print(top.Count)}",
             _ => string.Empty
         };
 

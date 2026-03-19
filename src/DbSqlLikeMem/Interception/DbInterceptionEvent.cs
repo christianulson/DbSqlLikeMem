@@ -61,6 +61,12 @@ public sealed class DbInterceptionEvent
     public string? PerformanceMetrics { get; init; }
 
     /// <summary>
+    /// EN: Serialized performance delta captured for a command when available.
+    /// PT: Delta serializado de performance capturado para um comando quando disponivel.
+    /// </summary>
+    public string? PerformanceMetricsDelta { get; init; }
+
+    /// <summary>
     /// EN: Exception captured for failure events.
     /// PT: Excecao capturada para eventos de falha.
     /// </summary>

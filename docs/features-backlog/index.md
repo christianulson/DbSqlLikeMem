@@ -954,10 +954,13 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 3.0.1 Expansão planejada de famílias SQL
 
-- Implementação estimada: **37%**.
-- A próxima expansão deve continuar por famílias de dialeto, reaproveitando parser/runtime existentes antes de criar providers isolados.
-- Incremento desta sessão: a família MySQL passou a expor um trilho inicial reutilizável para `MariaDB` dentro do próprio assembly da família, com `MariaDbDbMock`/`MariaDbConnectionMock`, resolução dedicada no `DbMockConnectionFactory`, gates de dialeto por versão para `RETURNING`, `SEQUENCE` e `JSON_TABLE`, suporte de runtime compartilhado para `INSERT/DELETE ... RETURNING`, expressões de `SEQUENCE` e um subset inicial executável de `JSON_TABLE(..., path COLUMNS(...))` com colunas `PATH`, `FOR ORDINALITY` e `EXISTS PATH`, além de regressões parser-level e runtime positivas/negativas.
-- TODO: consolidar a cobertura de runtime do `MariaDB` além do subset atual, principalmente ampliando `JSON_TABLE` para `NESTED PATH` e refinando mais cenários executáveis de `RETURNING`.
+- Implementação estimada: **80%**.
+- A próxima expansão deve continuar por famílias de dialeto, reaproveitando parser/runtime existentes antes de isolar o que realmente merecer provider próprio.
+- Incremento desta sessão: o parser do `MariaDB` passou a aceitar a sintaxe oficial de `INSERT/REPLACE` com modificadores `LOW_PRIORITY`/`DELAYED`, `VALUE` singular e `PARTITION (...)`, mantendo o mesmo runtime compartilhado e fechando um dos gaps de gramática mais visíveis da família.
+- Incremento desta sessão: `INSERT ... SET` do `MariaDB` passou a ser aceito no mesmo caminho compartilhado de assignments, reutilizando a infraestrutura já criada para `REPLACE ... SET` e retornando projeções corretamente quando combinado com `RETURNING`.
+- Incremento desta sessão: `RETURNING` do `MariaDB` passou a rejeitar funções de agregação de forma explícita, alinhando o mock com a restrição documentada do banco real e evitando aceitação indevida de expressões como `COUNT(*)`.
+- Incremento desta sessão: `MariaDB` passou a seguir como provider dedicado (`DbSqlLikeMem.MariaDb`) sobre a família compartilhada de runtime MySQL, com `MariaDbDbMock`/`MariaDbConnectionMock`, resolução dedicada no `DbMockConnectionFactory`, contrato próprio de aliases/factory, gates de dialeto por versão para `RETURNING`, `SEQUENCE`, `REPLACE` e `JSON_TABLE`, suporte de runtime compartilhado para `INSERT/DELETE ... RETURNING`, `REPLACE ... RETURNING`, expressões de `SEQUENCE` e um subset executável de `JSON_TABLE(..., path COLUMNS(...))` agora incluindo `PATH`, `FOR ORDINALITY`, `EXISTS PATH`, `NESTED PATH`, `ON EMPTY` e `ON ERROR`, além de regressões parser-level e runtime positivas/negativas, observabilidade textual do `NESTED PATH` no execution plan e cobertura explícita de `EXISTS PATH` dentro de ramo aninhado.
+- TODO: consolidar a cobertura de runtime do `MariaDB` além do subset atual, principalmente ampliando mais cenários executáveis de `RETURNING` e refinando bordas residuais de `JSON_TABLE` e `REPLACE`.
 - TODO: adicionar `FirebirdDialect` com suporte inicial a `SELECT FIRST`, `ROWS` e `GENERATOR`, mantendo gates explícitos para tudo que ainda não entrar no subset.
 - TODO: refatorar a família PostgreSQL para permitir um `DuckDbDialect` compartilhando o máximo possível do caminho `Npgsql/PostgreSQL`.
 - TODO: cobrir no `DuckDbDialect` o subset inicial realmente priorizado (`STRUCT`, `LIST`, `UNNEST`) somente depois da base compartilhada estar pronta.

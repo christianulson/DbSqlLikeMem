@@ -80,5 +80,6 @@ internal enum SqlBinaryOp
     NullSafeEq, // ✅ <=> (MySQL)
 
     // pattern / misc
-    Regexp
+    Regexp,
+    SoundLike
 }

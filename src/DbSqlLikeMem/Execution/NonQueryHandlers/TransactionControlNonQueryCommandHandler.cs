@@ -5,9 +5,9 @@ internal sealed class TransactionControlNonQueryCommandHandler : INonQueryComman
     public bool TryHandle(
         CommandExecutionPipelineContext context,
         string sqlRaw,
-        out int affectedRows)
+        out DmlExecutionResult affectedRows)
     {
-        affectedRows = 0;
+        affectedRows = new DmlExecutionResult();
         return context.Options.TryExecuteTransactionControl is not null &&
                context.Options.TryExecuteTransactionControl(sqlRaw, out affectedRows);
     }

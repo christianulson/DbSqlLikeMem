@@ -11,7 +11,7 @@ public sealed record Idx(
 /// EN: Represents an index definition, including key columns and uniqueness.
 /// PT: Representa a definição de um índice, incluindo colunas-chave e unicidade.
 /// </summary>
-public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>>
+public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>>
 {
     /// <summary>
     /// EN: Initializes the index definition.
@@ -74,8 +74,8 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
     private readonly ColumnDef[] _includeColumns;
 
 
-    private readonly Dictionary<string, Dictionary<int, Dictionary<string, object?>>> _items = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, BucketReadOnlyView> _readonlyBuckets = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<IndexKey, Dictionary<int, Dictionary<string, object?>>> _items = new();
+    private readonly Dictionary<IndexKey, BucketReadOnlyView> _readonlyBuckets = new();
     private bool _isDirty;
 
     internal bool IsDirty => _isDirty;
@@ -113,7 +113,7 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
     }
 
     private IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>> AsReadOnlyBucket(
-        string key,
+        IndexKey key,
         Dictionary<int, Dictionary<string, object?>> bucket)
     {
         if (_readonlyBuckets.TryGetValue(key, out var cached))
@@ -124,7 +124,7 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
         return view;
     }
 
-    private void RemoveBucketIfEmpty(string key, Dictionary<int, Dictionary<string, object?>> bucket)
+    private void RemoveBucketIfEmpty(IndexKey key, Dictionary<int, Dictionary<string, object?>> bucket)
     {
         if (bucket.Count > 0)
             return;
@@ -184,7 +184,7 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
-    public IEnumerable<string> Keys
+    public IEnumerable<IndexKey> Keys
     {
         get
         {
@@ -212,7 +212,7 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
         }
     }
 
-    public IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>> this[string key]
+    public IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>> this[IndexKey key]
     {
         get
         {
@@ -221,13 +221,13 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
         }
     }
 
-    public bool ContainsKey(string key)
+    public bool ContainsKey(IndexKey key)
     {
         EnsureReady();
         return _items.ContainsKey(key);
     }
 
-    public bool TryGetValue(string key, out IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>> value)
+    public bool TryGetValue(IndexKey key, out IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>> value)
     {
         EnsureReady();
         if (!_items.TryGetValue(key, out var v))
@@ -239,11 +239,11 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
         return true;
     }
 
-    public IEnumerator<KeyValuePair<string, IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>>> GetEnumerator()
+    public IEnumerator<KeyValuePair<IndexKey, IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>>> GetEnumerator()
     {
         EnsureReady();
         foreach (var item in _items)
-            yield return new KeyValuePair<string, IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>>(
+            yield return new KeyValuePair<IndexKey, IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>>(
                 item.Key,
                 AsReadOnlyBucket(item.Key, item.Value));
     }
@@ -255,17 +255,17 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
         var startedAt = BeginPerformancePhase(DbPerformanceMetricKeys.IndexRemove);
         try
         {
-        EnsureReady();
-        var key = BuildIndexKey(row);
-        if (_items.TryGetValue(key, out var lstItems))
-        {
-            lstItems.Remove(rowIndex);
-            if (lstItems.Count == 0)
+            EnsureReady();
+            var key = BuildIndexKey(row);
+            if (_items.TryGetValue(key, out var lstItems))
             {
-                _items.Remove(key);
+                lstItems.Remove(rowIndex);
+                if (lstItems.Count == 0)
+                {
+                    _items.Remove(key);
+                }
+                _readonlyBuckets.Remove(key);
             }
-            _readonlyBuckets.Remove(key);
-        }
         }
         finally
         {
@@ -278,20 +278,20 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
         var startedAt = BeginPerformancePhase(DbPerformanceMetricKeys.IndexShift);
         try
         {
-        EnsureReady();
-        foreach (var bucket in _items.Values)
-        {
-            var keysToShift = bucket.Keys.Where(k => k > deletedIndex).OrderBy(k => k).ToList();
-            if (keysToShift.Count == 0) continue;
-
-            foreach (var oldIdx in keysToShift)
+            EnsureReady();
+            foreach (var bucket in _items.Values)
             {
-                var rowData = bucket[oldIdx];
-                bucket.Remove(oldIdx);
-                bucket[oldIdx - 1] = rowData;
+                var keysToShift = bucket.Keys.Where(k => k > deletedIndex).OrderBy(k => k).ToList();
+                if (keysToShift.Count == 0) continue;
+
+                foreach (var oldIdx in keysToShift)
+                {
+                    var rowData = bucket[oldIdx];
+                    bucket.Remove(oldIdx);
+                    bucket[oldIdx - 1] = rowData;
+                }
             }
-        }
-        _readonlyBuckets.Clear();
+            _readonlyBuckets.Clear();
         }
         finally
         {
@@ -304,27 +304,27 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
         var startedAt = BeginPerformancePhase(DbPerformanceMetricKeys.IndexRebuild);
         try
         {
-        _isDirty = false;
-        _items.Clear();
-        _readonlyBuckets.Clear();
-        var pkColumnsByIndex = GetColumnsByIndex();
-        for (int i = 0; i < Table.Count; i++)
-        {
-            var row = Table[i];
-            var key = BuildIndexKey(row);
-
-            if (!_items.TryGetValue(key, out var lstItems))
+            _isDirty = false;
+            _items.Clear();
+            _readonlyBuckets.Clear();
+            var pkColumnsByIndex = GetColumnsByIndex();
+            for (int i = 0; i < Table.Count; i++)
             {
-                lstItems = [];
-                _items.Add(key, lstItems);
-            }
-            else if (Unique)
-                throw Table.DuplicateKey(Table.TableName, Name, $"{key} ({string.Join(",", KeyCols)})");
+                var row = Table[i];
+                var key = BuildIndexKey(row);
 
-            var idxRow = CreateIndexRow(row);
-            lstItems.Add(i, idxRow);
-            AddRowLocatorColumns(idxRow, row, pkColumnsByIndex);
-        }
+                if (!_items.TryGetValue(key, out var lstItems))
+                {
+                    lstItems = [];
+                    _items.Add(key, lstItems);
+                }
+                else if (Unique)
+                    throw Table.DuplicateKey(Table.TableName, Name, $"{key} ({string.Join(",", KeyCols)})");
+
+                var idxRow = CreateIndexRow(row);
+                lstItems.Add(i, idxRow);
+                AddRowLocatorColumns(idxRow, row, pkColumnsByIndex);
+            }
         }
         finally
         {
@@ -332,41 +332,75 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
         }
     }
 
-    internal string BuildIndexKey(
+    internal IndexKey BuildIndexKey(
         IReadOnlyDictionary<int, object?> row)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(row, nameof(row));
-        return string.Concat(_keyColumns.Select(ci =>
-        {
-            if (ci.GetGenValue != null
-                && !ci.PersistComputedValue)
-                return SerializeIndexKeyPart(ci.GetGenValue(row, Table));
 
-            var value = row.TryGetValue(ci.Index, out var v) ? v : null;
-            return SerializeIndexKeyPart(value);
-        }));
+        if (_keyColumns.Length == 1)
+        {
+            var ci = _keyColumns[0];
+            return new IndexKey(GetColVal(ci, row));
+        }
+
+        if (_keyColumns.Length == 2)
+        {
+            return new IndexKey(GetColVal(_keyColumns[0], row), GetColVal(_keyColumns[1], row));
+        }
+
+        if (_keyColumns.Length == 3)
+        {
+            return new IndexKey(GetColVal(_keyColumns[0], row), GetColVal(_keyColumns[1], row), GetColVal(_keyColumns[2], row));
+        }
+
+        var values = new object?[_keyColumns.Length];
+        for (int i = 0; i < _keyColumns.Length; i++)
+        {
+            values[i] = GetColVal(_keyColumns[i], row);
+        }
+        return new IndexKey(values);
     }
 
-    internal string BuildIndexKeyFromValues(
+    private object? GetColVal(ColumnDef ci, IReadOnlyDictionary<int, object?> row)
+    {
+        if (ci.GetGenValue != null && !ci.PersistComputedValue)
+            return ci.GetGenValue(row, Table);
+        return row.TryGetValue(ci.Index, out var v) ? v : null;
+    }
+
+    internal IndexKey BuildIndexKeyFromValues(
         IReadOnlyDictionary<string, object?> valuesByColumn)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(valuesByColumn, nameof(valuesByColumn));
 
-        return string.Concat(KeyCols.Select(colName =>
+        if (KeyCols.Count == 1)
         {
-            var normalized = colName.NormalizeName();
-            valuesByColumn.TryGetValue(normalized, out var value);
-            return SerializeIndexKeyPart(value);
-        }));
-    }
+            valuesByColumn.TryGetValue(KeyCols[0].NormalizeName(), out var value);
+            return new IndexKey(value);
+        }
 
-    private static string SerializeIndexKeyPart(object? value)
-    {
-        if (value is null || value is DBNull)
-            return "n;";
+        if (KeyCols.Count == 2)
+        {
+            valuesByColumn.TryGetValue(KeyCols[0].NormalizeName(), out var v1);
+            valuesByColumn.TryGetValue(KeyCols[1].NormalizeName(), out var v2);
+            return new IndexKey(v1, v2);
+        }
 
-        var text = value.ToString() ?? string.Empty;
-        return $"s{text.Length}:{text};";
+        if (KeyCols.Count == 3)
+        {
+            valuesByColumn.TryGetValue(KeyCols[0].NormalizeName(), out var v1);
+            valuesByColumn.TryGetValue(KeyCols[1].NormalizeName(), out var v2);
+            valuesByColumn.TryGetValue(KeyCols[2].NormalizeName(), out var v3);
+            return new IndexKey(v1, v2, v3);
+        }
+
+        var values = new object?[KeyCols.Count];
+        for (int i = 0; i < KeyCols.Count; i++)
+        {
+            valuesByColumn.TryGetValue(KeyCols[i].NormalizeName(), out var value);
+            values[i] = value;
+        }
+        return new IndexKey(values);
     }
 
     private void AddRowLocatorColumns(
@@ -403,63 +437,59 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
     /// </summary>
     /// <param name="key">EN: Key to search. PT: Chave a buscar.</param>
     /// <returns>EN: List of positions or null. PT: Lista de posições ou null.</returns>
-    public IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>? Lookup(string key)
+    public IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>? Lookup(IndexKey key)
     {
         EnsureReady();
-        // Backward-compatible lookup: callers often pass raw values for single-column
-        // _indexes (e.g. "John"). Internally keys are serialized, so try both formats.
-        var normalizedKey = key.NormalizeName();
-        if (_items.TryGetValue(normalizedKey, out var list))
-            return AsReadOnlyBucket(normalizedKey, list);
+        if (_items.TryGetValue(key, out var list))
+            return AsReadOnlyBucket(key, list);
 
-        var serializedKey = SerializeIndexKeyPart(key);
-        return _items.TryGetValue(serializedKey, out list)
-            ? AsReadOnlyBucket(serializedKey, list)
-            : null;
+        return null;
     }
 
-    internal IReadOnlyDictionary<int, Dictionary<string, object?>>? LookupMutable(string key)
+    internal IReadOnlyDictionary<int, Dictionary<string, object?>>? LookupMutable(IndexKey key)
     {
         EnsureReady();
-        if (_items.TryGetValue(key.NormalizeName(), out var list))
+        if (_items.TryGetValue(key, out var list))
             return list;
 
-        var serializedKey = SerializeIndexKeyPart(key);
-        return _items.TryGetValue(serializedKey, out list)
-            ? list
-            : null;
+        return null;
     }
 
     public void UpdateIndexesWithRow(
         int rowIndex,
         IReadOnlyDictionary<int, object?> newRow)
+        => UpdateIndexesWithRow(rowIndex, newRow, BuildIndexKey(newRow));
+
+    internal void UpdateIndexesWithRow(
+        int rowIndex,
+        IReadOnlyDictionary<int, object?> newRow,
+        IndexKey key)
     {
         var startedAt = BeginPerformancePhase(DbPerformanceMetricKeys.IndexUpdate);
         try
         {
-        EnsureReady();
-        var pkColumnsByIndex = GetColumnsByIndex();
-        var key = BuildIndexKey(newRow);
+            EnsureReady();
+            var pkColumnsByIndex = GetColumnsByIndex();
 
-        if (!_items.TryGetValue(key, out var lstItems))
-        {
-            lstItems = [];
-            _items.Add(key, lstItems);
-        }
+            if (!_items.TryGetValue(key, out var lstItems))
+            {
+                lstItems = [];
+                _items.Add(key, lstItems);
+            }
 
-        if (lstItems.TryGetValue(rowIndex, out var idxRow))
-        {
-            foreach (var column in _includeColumns)
-                idxRow[column.Name] = newRow[column.Index];
+            if (lstItems.TryGetValue(rowIndex, out var idxRow))
+            {
+                foreach (var column in _includeColumns)
+                    idxRow[column.Name] = newRow[column.Index];
+                _readonlyBuckets.Remove(key);
+                return;
+            }
+            if (Unique && lstItems.Count > 0)
+                throw Table.DuplicateKey(Table.TableName, Name, $"{key} ({string.Join(",", KeyCols)})");
+            idxRow = CreateIndexRow(newRow);
+            lstItems.Add(rowIndex, idxRow);
+            AddRowLocatorColumns(idxRow, newRow, pkColumnsByIndex);
             _readonlyBuckets.Remove(key);
-            return;
-        }
-        if (Unique && lstItems.Count > 0)
-            throw Table.DuplicateKey(Table.TableName, Name, $"{key} ({string.Join(",", KeyCols)})");
-        idxRow = CreateIndexRow(newRow);
-        lstItems.Add(rowIndex, idxRow);
-        AddRowLocatorColumns(idxRow, newRow, pkColumnsByIndex);
-        _readonlyBuckets.Remove(key);
         }
         finally
         {
@@ -469,42 +499,46 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
 
     public void UpdateIndexesWithRow(
         int rowIndex,
-        IReadOnlyDictionary<int, object?> oldRow,
+        IReadOnlyDictionary<int, object?>? oldRow,
         IReadOnlyDictionary<int, object?> newRow)
     {
         var startedAt = BeginPerformancePhase(DbPerformanceMetricKeys.IndexUpdate);
         try
         {
-        EnsureReady();
-        var pkColumnsByIndex = GetColumnsByIndex();
-        var oldkey = BuildIndexKey(oldRow);
-        var key = BuildIndexKey(newRow);
-        if (oldkey != key && _items.TryGetValue(oldkey, out var oldLstItems))
-        {
-            oldLstItems.Remove(rowIndex);
-            RemoveBucketIfEmpty(oldkey, oldLstItems);
-            _readonlyBuckets.Remove(oldkey);
-        }
+            EnsureReady();
+            var pkColumnsByIndex = GetColumnsByIndex();
+            var key = BuildIndexKey(newRow);
+            if (oldRow != null)
+            {
+                var oldkey = BuildIndexKey(oldRow);
+                if (!oldkey.Equals(key)
+                        && _items.TryGetValue(oldkey, out var oldLstItems))
+                {
+                    oldLstItems.Remove(rowIndex);
+                    RemoveBucketIfEmpty(oldkey, oldLstItems);
+                    _readonlyBuckets.Remove(oldkey);
+                }
+            }
 
-        if (!_items.TryGetValue(key, out var lstItems))
-        {
-            lstItems = [];
-            _items.Add(key, lstItems);
-        }
+            if (!_items.TryGetValue(key, out var lstItems))
+            {
+                lstItems = [];
+                _items.Add(key, lstItems);
+            }
 
-        if (lstItems.TryGetValue(rowIndex, out var idxRow))
-        {
-            foreach (var column in _includeColumns)
-                idxRow[column.Name] = newRow[column.Index];
+            if (lstItems.TryGetValue(rowIndex, out var idxRow))
+            {
+                foreach (var column in _includeColumns)
+                    idxRow[column.Name] = newRow[column.Index];
+                _readonlyBuckets.Remove(key);
+                return;
+            }
+            if (Unique && lstItems.Count > 0)
+                throw Table.DuplicateKey(Table.TableName, Name, $"{key} ({string.Join(",", KeyCols)})");
+            idxRow = CreateIndexRow(newRow);
+            lstItems.Add(rowIndex, idxRow);
+            AddRowLocatorColumns(idxRow, newRow, pkColumnsByIndex);
             _readonlyBuckets.Remove(key);
-            return;
-        }
-        if (Unique && lstItems.Count > 0)
-            throw Table.DuplicateKey(Table.TableName, Name, $"{key} ({string.Join(",", KeyCols)})");
-        idxRow = CreateIndexRow(newRow);
-        lstItems.Add(rowIndex, idxRow);
-        AddRowLocatorColumns(idxRow, newRow, pkColumnsByIndex);
-        _readonlyBuckets.Remove(key);
         }
         finally
         {
@@ -524,9 +558,9 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
         var oldKey = BuildIndexKey(existingRow);
         var newKey = BuildIndexKey(simulatedRow);
 
-        if (oldKey.Equals(newKey, StringComparison.Ordinal))
+        if (oldKey.Equals(newKey))
             return;
-        
+
         var hits = LookupMutable(newKey);
         if (hits is not null && hits.Keys.Any(idx => idx != rowIndex))
         {

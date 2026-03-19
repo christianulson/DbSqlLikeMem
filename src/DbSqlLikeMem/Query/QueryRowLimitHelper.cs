@@ -2,29 +2,36 @@ namespace DbSqlLikeMem;
 
 internal static class QueryRowLimitHelper
 {
-    internal static void ApplyLimit(TableResultMock result, SqlSelectQuery query)
+    internal static void ApplyLimit(TableResultMock result, SqlRowLimit? rowLimit, Func<SqlExpr, int> eval)
     {
-        int? offset = null;
-        int take;
-        switch (query.RowLimit)
+        if (rowLimit is null)
+            return;
+
+        SqlExpr? takeExpr = null;
+        SqlExpr? offsetExpr = null;
+
+        switch (rowLimit)
         {
             case SqlLimitOffset limitOffset:
-                offset = limitOffset.Offset;
-                take = limitOffset.Count;
+                takeExpr = limitOffset.Count;
+                offsetExpr = limitOffset.Offset;
                 break;
             case SqlFetch fetch:
-                offset = fetch.Offset;
-                take = fetch.Count;
+                takeExpr = fetch.Count;
+                offsetExpr = fetch.Offset;
                 break;
             case SqlTop top:
-                take = top.Count;
+                takeExpr = top.Count;
                 break;
-            default:
-                return;
         }
 
-        var skip = offset ?? 0;
-        var slicedRows = result.Skip(skip).Take(take).ToList();
+        var take = takeExpr is null ? int.MaxValue : eval(takeExpr);
+        var offset = offsetExpr is null ? 0 : eval(offsetExpr);
+
+        if (offset <= 0 && take == int.MaxValue)
+            return;
+
+        var slicedRows = result.Skip(offset).Take(take).ToList();
         result.Clear();
         foreach (var row in slicedRows)
             result.Add(row);

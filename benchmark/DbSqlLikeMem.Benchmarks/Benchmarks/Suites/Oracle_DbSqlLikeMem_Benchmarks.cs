@@ -4,7 +4,8 @@ namespace DbSqlLikeMem.Benchmarks.Suites;
 
 /// <summary>
 /// 
-/// </summary>public class Oracle_DbSqlLikeMem_Benchmarks : BenchmarkSuiteBase
+/// </summary>
+public class Oracle_DbSqlLikeMem_Benchmarks : BenchmarkSuiteBase
 {
     /// <summary>
     /// 

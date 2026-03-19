@@ -376,9 +376,9 @@ public sealed class OracleDialectFeatureParserTests
         var normalizedOffsetFetch = Assert.IsType<SqlLimitOffset>(offsetFetch.RowLimit);
         var normalizedFetchFirst = Assert.IsType<SqlLimitOffset>(fetchFirst.RowLimit);
 
-        Assert.Equal(2, normalizedOffsetFetch.Count);
-        Assert.Equal(1, normalizedOffsetFetch.Offset);
-        Assert.Equal(2, normalizedFetchFirst.Count);
+        Assert.Equal(new LiteralExpr(2), normalizedOffsetFetch.Count);
+        Assert.Equal(new LiteralExpr(1), normalizedOffsetFetch.Offset);
+        Assert.Equal(new LiteralExpr(2), normalizedFetchFirst.Count);
         Assert.Null(normalizedFetchFirst.Offset);
     }
 

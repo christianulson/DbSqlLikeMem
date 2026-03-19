@@ -29,7 +29,7 @@ public class MySqlInsertOnDuplicateTests(
         var q = SqlQueryParser.Parse(sql, db.Dialect);
         var affected = cnn.ExecuteInsert((SqlInsertQuery)q, new MySqlDataParameterCollectionMock(), db.Dialect);
 
-        Assert.Equal(1, affected);
+        Assert.Equal(1, affected.AffectedRows);
         Assert.Single(t);
         Assert.Equal("A", t[0][1]);
     }
@@ -84,7 +84,7 @@ public class MySqlInsertOnDuplicateTests(
         var q = SqlQueryParser.Parse(sql, db.Dialect);
         var affected = cnn.ExecuteInsert((SqlInsertQuery)q, new MySqlDataParameterCollectionMock(), db.Dialect);
 
-        Assert.Equal(2, affected);
+        Assert.Equal(2, affected.AffectedRows);
         Assert.Single(t);
         Assert.Equal("NEW", t[0][1]);
     }

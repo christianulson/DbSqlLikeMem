@@ -15,7 +15,7 @@ public sealed class DbMockConnectionFactoryMySqlTests(
     /// <inheritdoc />
     protected override Type ExpectedConnectionType => typeof(MySqlConnectionMock);
     /// <inheritdoc />
-    protected override IReadOnlyList<string> ProviderAliases => ["MySql", "mysql", "my-sql", "mariadb", "  MYSQL  "];
+    protected override IReadOnlyList<string> ProviderAliases => ["MySql", "mysql", "my-sql", "  MYSQL  "];
 
     /// <inheritdoc />
     protected override (DbMock Db, IDbConnection Connection) CreateViaProviderShortcut(params Action<DbMock>[] tableMappers)

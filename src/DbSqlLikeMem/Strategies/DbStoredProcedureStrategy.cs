@@ -6,7 +6,7 @@ internal static class DbStoredProcedureStrategy
     /// EN: Implements ExecuteStoredProcedure.
     /// PT: Implementa ExecuteStoredProcedure.
     /// </summary>
-    public static int ExecuteStoredProcedure(
+    public static DmlExecutionResult ExecuteStoredProcedure(
         this DbConnectionMockBase connection,
         string procedureName,
         DbParameterCollection parameters)
@@ -22,14 +22,14 @@ internal static class DbStoredProcedureStrategy
         connection.ValidateProcedureParameters(def, parameters);
         PopulateOutDefaults(def, parameters);
         PopulateStatusReturn(parameters);
-        return 0; // signature-only
+        return new DmlExecutionResult(); // signature-only
     }
 
     /// <summary>
     /// EN: Implements ExecuteCall.
     /// PT: Implementa ExecuteCall.
     /// </summary>
-    public static int ExecuteCall(
+    public static DmlExecutionResult ExecuteCall(
         this DbConnectionMockBase connection,
         string callSql,
         DbParameterCollection parameters)

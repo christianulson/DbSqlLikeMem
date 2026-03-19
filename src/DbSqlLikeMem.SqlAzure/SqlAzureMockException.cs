@@ -1,14 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Data.Common;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using DbSqlLikeMem.SqlServer;
 namespace DbSqlLikeMem.SqlAzure;
 
-public sealed class SqlAzureMockException : SqlMockException
+/// <summary>
+/// EN: Represents Sql Server Mock Exception.
+/// PT: Representa Sql Server simulada Exceção.
+/// </summary>
+public sealed class SqlAzureMockException
+    : SqlMockException
 #pragma warning restore CA1032 // Implement standard exception constructors
 {
     /// <summary>

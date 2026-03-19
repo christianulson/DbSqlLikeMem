@@ -128,8 +128,8 @@ public sealed class SqlAzureDialectFeatureParserTests
             dialect));
 
         var rowLimit = Assert.IsType<SqlLimitOffset>(parsed.RowLimit);
-        Assert.Equal(2, rowLimit.Count);
-        Assert.Equal(1, rowLimit.Offset);
+        Assert.Equal(new LiteralExpr(2), rowLimit.Count);
+        Assert.Equal(new LiteralExpr(1), rowLimit.Offset);
     }
 
     /// <summary>

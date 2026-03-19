@@ -5,9 +5,9 @@ internal sealed class SpecialNonQueryCommandHandler : INonQueryCommandHandler
     public bool TryHandle(
         CommandExecutionPipelineContext context,
         string sqlRaw,
-        out int affectedRows)
+        out DmlExecutionResult affectedRows)
     {
-        affectedRows = 0;
+        affectedRows = new DmlExecutionResult();
         return context.Options.TryExecuteSpecialCommand is not null &&
                context.Options.TryExecuteSpecialCommand(sqlRaw, out affectedRows);
     }

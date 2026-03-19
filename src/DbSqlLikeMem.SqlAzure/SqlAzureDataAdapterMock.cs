@@ -1,12 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Data.Common;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 namespace DbSqlLikeMem.SqlAzure;
 
+/// <summary>
+/// EN: Represents the Sql Azure Data Adapter Mock type used by provider mocks.
+/// PT: Representa o adaptador de dados simulado do SQL Azure usado pelos mocks do provedor.
+/// </summary>
 public sealed class SqlAzureDataAdapterMock : DbDataAdapter
 {
     /// <summary>

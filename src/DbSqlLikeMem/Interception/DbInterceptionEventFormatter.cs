@@ -30,6 +30,8 @@ public static class DbInterceptionEventFormatter
             message += $";result={interceptionEvent.Result}";
         if (!string.IsNullOrWhiteSpace(interceptionEvent.PerformanceMetrics))
             message += $";performance={interceptionEvent.PerformanceMetrics}";
+        if (!string.IsNullOrWhiteSpace(interceptionEvent.PerformanceMetricsDelta))
+            message += $";performanceDelta={interceptionEvent.PerformanceMetricsDelta}";
         if (interceptionEvent.Exception is not null)
             message += $";exception={interceptionEvent.Exception.Message}";
 

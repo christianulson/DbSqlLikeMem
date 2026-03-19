@@ -2067,8 +2067,12 @@ public abstract class DbConnectionMockBase(
             journalPosition,
             _transactionJournal.Count - journalPosition);
 
-        foreach (var table in touchedTables)
-            table.RestoreIndexesAfterJournalReplay();
+        var touchedTableList = touchedTables.ToArray();
+        if (Db.ThreadSafe && touchedTableList.Length > 1)
+            Parallel.ForEach(touchedTableList, table => table.RestoreIndexesAfterJournalReplay());
+        else
+            foreach (var table in touchedTableList)
+                table.RestoreIndexesAfterJournalReplay();
     }
 
     private void RegisterTable(
@@ -2111,8 +2115,12 @@ public abstract class DbConnectionMockBase(
 
     private void ClearTransactionStateCore()
     {
-        foreach (var table in _journalObservedTables)
-            table.MutationApplied -= OnTableMutationApplied;
+        var observedTables = _journalObservedTables.ToArray();
+        if (Db.ThreadSafe && observedTables.Length > 1)
+            Parallel.ForEach(observedTables, table => table.MutationApplied -= OnTableMutationApplied);
+        else
+            foreach (var table in observedTables)
+                table.MutationApplied -= OnTableMutationApplied;
 
         _journalObservedTables.Clear();
         _transactionJournal.Clear();

@@ -108,8 +108,8 @@ public class SqliteCommandMock(
         if (CommandType == CommandType.StoredProcedure)
         {
             var affected = connection!.ExecuteStoredProcedure(CommandText, Parameters);
-            connection.SetLastFoundRows(affected);
-            return affected;
+            connection.SetLastFoundRows(affected.AffectedRows);
+            return affected.AffectedRows;
         }
 
         return connection.ExecuteNonQueryWithPipeline(
@@ -502,6 +502,9 @@ public class SqliteCommandMock(
     {
         var resolvedWhere = TableMock.ResolveWhereRaw(whereRaw, rawSql);
         var conditions = TableMock.ParseWhereSimple(resolvedWhere);
+        if (TableMock.TryFindRowByPkConditions(table, Parameters, conditions, out var pkIndex))
+            return new List<int> { pkIndex };
+
         var indexes = new List<int>();
         for (var i = 0; i < table.Count; i++)
         {
@@ -617,7 +620,7 @@ public class SqliteCommandMock(
         string? ParameterName);
 
 
-    private bool TryExecuteTransactionControlCommand(string sqlRaw, out int affectedRows)
+    private bool TryExecuteTransactionControlCommand(string sqlRaw, out DmlExecutionResult affectedRows)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
         return connection!.TryExecuteStandardTransactionControl(

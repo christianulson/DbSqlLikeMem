@@ -10,4 +10,5 @@ internal static class DbPerformanceMetricKeys
     public const string MaterializationLinqPlan = "materialization.linq.plan";
     public const string MaterializationLinqRow = "materialization.linq.row";
     public const string MaterializationObjectRow = "materialization.object.row";
+    public const string RowSnapshot = "row.snapshot";
 }

@@ -570,6 +570,7 @@ public sealed class DbInterceptionPipelineTests(
             ConnectionState = ConnectionState.Open,
             CommandText = "select 1",
             CommandExecutionKind = DbCommandExecutionKind.Reader,
+            PerformanceMetricsDelta = "sql.parse[hits=1,ms=0.123]",
             Exception = new InvalidOperationException("broken")
         });
 
@@ -577,6 +578,7 @@ public sealed class DbInterceptionPipelineTests(
         Assert.Contains("state=Open", text, StringComparison.Ordinal);
         Assert.Contains("sql=select 1", text, StringComparison.Ordinal);
         Assert.Contains("commandKind=Reader", text, StringComparison.Ordinal);
+        Assert.Contains("performanceDelta=sql.parse[hits=1,ms=0.123]", text, StringComparison.Ordinal);
         Assert.Contains("exception=broken", text, StringComparison.Ordinal);
     }
 

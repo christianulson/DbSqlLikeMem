@@ -5,11 +5,11 @@ internal sealed class AstUnsupportedNonQueryCommandHandler : INonQueryCommandHan
     public bool TryHandle(
         CommandExecutionPipelineContext context,
         string sqlRaw,
-        out int affectedRows)
+        out DmlExecutionResult affectedRows)
     {
         using var _ = context.Connection.Metrics.BeginAmbientScope();
         var query = context.GetParsedQuery(sqlRaw);
-        affectedRows = 0;
+        affectedRows = new DmlExecutionResult();
         throw SqlUnsupported.ForCommandType(context.Connection.ExecutionDialect, "ExecuteNonQuery", query.GetType());
     }
 }

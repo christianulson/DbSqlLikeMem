@@ -1,11 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Data.Common;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-
 #if NET6_0_OR_GREATER
 using DbBatch = System.Data.Common.DbBatch;
 using DbBatchCommand = System.Data.Common.DbBatchCommand;
@@ -14,6 +6,10 @@ using DbSqlLikeMem.SqlServer;
 
 namespace DbSqlLikeMem.SqlAzure;
 
+/// <summary>
+/// EN: Represents the Sql Azure Batch Mock type used by provider mocks.
+/// PT: Representa o tipo Sql Azure lote simulado usado pelos mocks do provedor.
+/// </summary>
 public sealed class SqlAzureBatchMock : DbBatch
 {
     private SqlAzureConnectionMock? connection;
@@ -221,6 +217,10 @@ public sealed class SqlAzureBatchMock : DbBatch
     protected override DbBatchCommand CreateDbBatchCommand() => new SqlAzureBatchCommandMock();
 }
 
+/// <summary>
+/// EN: Represents the Sql Azure Batch Command Mock type used by provider mocks.
+/// PT: Representa o tipo Sql Azure comando em lote simulado usado pelos mocks do provedor.
+/// </summary>
 public sealed class SqlAzureBatchCommandMock : DbBatchCommand
 {
     private readonly SqlAzureCommandMock command = new();
@@ -248,6 +248,10 @@ public sealed class SqlAzureBatchCommandMock : DbBatchCommand
     protected override DbParameterCollection DbParameterCollection => command.Parameters;
 }
 
+/// <summary>
+/// EN: Represents the Sql Azure Batch Command Collection Mock type used by provider mocks.
+/// PT: Representa o tipo Sql Azure coleção de comandos de lote simulado usado pelos mocks do provedor.
+/// </summary>
 public sealed class SqlAzureBatchCommandCollectionMock : DbBatchCommandCollection
 {
     internal List<SqlAzureBatchCommandMock> Commands { get; } = [];

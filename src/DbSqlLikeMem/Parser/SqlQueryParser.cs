@@ -113,27 +113,15 @@ internal sealed class SqlQueryParser
         try
         {
 
+
             // Fast feature gate before cache lookup to avoid serving incompatible ASTs for version-gated commands.
-            var (tokens, autoSyntaxFeatures) = GetPrelude(sql, dialect);
-            var first = tokens.Count > 0 ? tokens[0] : default;
+            var (preludeTokens, autoSyntaxFeatures) = GetPrelude(sql, dialect);
+            var first = preludeTokens.Count > 0 ? preludeTokens[0] : default;
             if (IsWord(first, "MERGE") && !dialect.SupportsMerge)
                 throw SqlUnsupported.ForMerge(dialect);
 
-            if (parameters is not null)
-            {
-                var uncached = ParseUncached(tokens, dialect, parameters, autoSyntaxFeatures);
-                EnsureDialectSupport(uncached, dialect);
-                return uncached with { RawSql = sql };
-            }
-
-            // DDL statements are cheap to parse and benefit from deterministic no-cache behavior in tests.
-            if (IsWord(first, "CREATE") || IsWord(first, "ALTER") || IsWord(first, "DROP"))
-            {
-                var uncached = ParseUncached(tokens, dialect, null, autoSyntaxFeatures);
-                EnsureDialectSupport(uncached, dialect);
-                return uncached with { RawSql = sql };
-            }
-
+            // ALWAYS use cache if available. Para evitar dependências de valores de parâmetros no AST (que quebraria o cache),
+            // cláusulas como LIMIT/OFFSET agora armazenam SqlExpr (ParameterExpr) em vez de resolver para int durante o parse.
             var cacheKey = SqlQueryAstCache.BuildKey(sql, dialect.Name, dialect.Version);
             if (_astCache.TryGet(cacheKey, out var cached))
             {
@@ -141,7 +129,15 @@ internal sealed class SqlQueryParser
                 return cached with { RawSql = sql };
             }
 
-            var parsed = ParseUncached(tokens, dialect, null, autoSyntaxFeatures);
+            // DDL statements are cheap to parse and benefit from deterministic no-cache behavior in tests.
+            if (IsWord(first, "CREATE") || IsWord(first, "ALTER") || IsWord(first, "DROP"))
+            {
+                var uncached = ParseUncached(preludeTokens, dialect, null, autoSyntaxFeatures);
+                EnsureDialectSupport(uncached, dialect);
+                return uncached with { RawSql = sql };
+            }
+
+            var parsed = ParseUncached(preludeTokens, dialect, parameters, autoSyntaxFeatures);
             EnsureDialectSupport(parsed, dialect);
             _astCache.Set(cacheKey, parsed);
 
@@ -223,7 +219,7 @@ internal sealed class SqlQueryParser
     {
         if (rowLimit is SqlFetch fetch)
         {
-            if (fetch.Offset.HasValue)
+            if (fetch.Offset != null)
             {
                 if (!dialect.SupportsOffsetFetch)
                     throw SqlUnsupported.ForPagination(dialect, "OFFSET/FETCH");
@@ -249,6 +245,8 @@ internal sealed class SqlQueryParser
             result = q.ParseSelectOrUnionQuery();
         else if (IsWord(first, "INSERT"))
             result = q.ParseInsert();
+        else if (IsWord(first, "REPLACE"))
+            result = q.ParseReplace();
         else if (IsWord(first, "UPDATE"))
             result = q.ParseUpdate();
         else if (IsWord(first, "DELETE"))
@@ -394,27 +392,53 @@ internal sealed class SqlQueryParser
     // ------------------------------------------------------------
 
     private SqlInsertQuery ParseInsert()
+        => ParseInsertLike(false);
+
+    private SqlInsertQuery ParseReplace()
+        => ParseInsertLike(true);
+
+    private SqlInsertQuery ParseInsertLike(bool isReplace)
     {
-        Consume(); // INSERT
+        Consume(); // INSERT / REPLACE
+        ConsumeOptionalInsertModifiers(isReplace);
         if (IsWord(Peek(), "INTO")) Consume();
 
-        var table = ParseTableSource(consumeHints: false, allowFunctionSource: false); // Tabela
+        var table = ParseTableSource(
+            consumeHints: false,
+            allowFunctionSource: false,
+            aliasStopWords: ["VALUE", "PARTITION"]); // Tabela
 
-        // Colunas opcionais: (col1, col2)
-        var hasExplicitColumnList = IsSymbol(Peek(), "(");
-        var cols = ParseCols();
+        ConsumeOptionalPartitionClause();
 
-        // VALUES ou SELECT?
+        // REPLACE ... SET col1 = expr, col2 = expr
         var valuesRaw = new List<List<string>>();
         var valuesExpr = new List<List<SqlExpr?>>();
+        List<string> cols;
+        bool hasExplicitColumnList;
         SqlSelectQuery? insertSelect = null;
-
-        if (IsWord(Peek(), "VALUES"))
+        if (IsWord(Peek(), "SET"))
         {
-            Consume(); // VALUES
+            Consume(); // SET
+            var assignments = ParseReplaceSetAssignments();
+            cols = [.. assignments.Select(a => a.Column)];
+            valuesRaw.Add([.. assignments.Select(a => a.ValueRaw)]);
+            valuesExpr.Add([.. assignments.Select(a => a.ValueExpr)]);
+            hasExplicitColumnList = false;
+        }
+        else
+        {
+            // Colunas opcionais: (col1, col2)
+            hasExplicitColumnList = IsSymbol(Peek(), "(");
+            cols = ParseCols();
+        }
+
+        // VALUES / VALUE ou SELECT?
+        if (valuesRaw.Count == 0 && (IsWord(Peek(), "VALUES") || IsWord(Peek(), "VALUE")))
+        {
+            Consume(); // VALUES / VALUE
             ParseInsertValuesRows(valuesRaw, valuesExpr);
         }
-        else if (IsWord(Peek(), "SELECT") || IsWord(Peek(), "WITH"))
+        else if (valuesRaw.Count == 0 && (IsWord(Peek(), "SELECT") || IsWord(Peek(), "WITH")))
         {
             _allowInsertSelectSuffixBoundary = _dialect.SupportsOnDuplicateKeyUpdate
                 || _dialect.SupportsOnConflictClause
@@ -424,9 +448,9 @@ internal sealed class SqlQueryParser
             _allowInsertSelectSuffixBoundary = false;
         }
 
-        // Must be VALUES(...) or SELECT...
+        // Must be VALUES(...), VALUE(...), or SELECT...
         if (valuesRaw.Count == 0 && insertSelect is null)
-            throw new InvalidOperationException("Invalid INSERT statement: expected VALUES or SELECT.");
+            throw new InvalidOperationException("Invalid INSERT statement: expected VALUES, VALUE, or SELECT.");
 
         // INSERT INTO t () VALUES () -> default row (aceito)
         // INSERT INTO t () VALUES (1) / INSERT INTO t () SELECT ... -> inválido
@@ -442,7 +466,7 @@ internal sealed class SqlQueryParser
         ValidateInsertValuesColumnArity(cols, valuesRaw);
 
         // ON DUPLICATE KEY UPDATE
-        var onDup = ParseOnDuplicated();
+        var onDup = isReplace ? null : ParseOnDuplicated();
         var returning = ParseOptionalReturningItems(ReturningClauseTarget.Insert);
 
         EnsureStatementEnd("INSERT");
@@ -455,6 +479,7 @@ internal sealed class SqlQueryParser
             ValuesExpr = valuesExpr,
             InsertSelect = insertSelect,
             Returning = returning,
+            IsReplace = isReplace,
             HasOnDuplicateKeyUpdate = (onDup != null),
             OnDupAssigns = onDup?.Assignments.Select(a => (a.Column, a.ValueRaw)).ToList() ?? [],
             OnDupAssignsParsed = onDup?.Assignments.ToList() ?? [],
@@ -462,6 +487,35 @@ internal sealed class SqlQueryParser
             OnConflictUpdateWhereRaw = onDup?.UpdateWhereRaw,
             OnConflictUpdateWhereExpr = onDup?.UpdateWhereExpr
         };
+    }
+
+    private void ConsumeOptionalInsertModifiers(bool isReplace)
+    {
+        while (true)
+        {
+            if (IsWord(Peek(), "LOW_PRIORITY")
+                || IsWord(Peek(), "DELAYED")
+                || (!isReplace && IsWord(Peek(), "HIGH_PRIORITY"))
+                || (!isReplace && IsWord(Peek(), "IGNORE")))
+            {
+                Consume();
+                continue;
+            }
+
+            break;
+        }
+    }
+
+    private void ConsumeOptionalPartitionClause()
+    {
+        if (!IsWord(Peek(), "PARTITION"))
+            return;
+
+        Consume(); // PARTITION
+        if (!IsSymbol(Peek(), "("))
+            throw new InvalidOperationException("INSERT PARTITION clause requires a partition list.");
+
+        _ = ReadBalancedParenRawTokens();
     }
 
     private void ParseInsertValuesRows(List<List<string>> valuesRaw, List<List<SqlExpr?>> valuesExpr)
@@ -1202,6 +1256,9 @@ internal sealed class SqlQueryParser
         }
         var returning = ParseOptionalReturningItems(ReturningClauseTarget.Delete);
 
+        if (hasJoin && returning.Count > 0 && !_dialect.SupportsDeleteReturningWithJoin)
+            throw new InvalidOperationException("RETURNING cannot be used with multi-table DELETE statements in this dialect.");
+
         SqlExpr? whereExpr = null;
         if (!string.IsNullOrWhiteSpace(whereRaw))
         {
@@ -1653,6 +1710,76 @@ internal sealed class SqlQueryParser
                 return list;
 
             throw new InvalidOperationException("ON DUPLICATE KEY UPDATE must separate assignments with commas.");
+        }
+    }
+
+    private List<SqlAssignment> ParseReplaceSetAssignments()
+    {
+        var list = new List<SqlAssignment>();
+        while (true)
+        {
+            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "USING") || IsWord(Peek(), "RETURNING"))
+            {
+                if (list.Count == 0)
+                    throw new InvalidOperationException(
+                        $"REPLACE SET requires at least one assignment (found '{DescribeFoundToken(Peek())}').");
+
+                return list;
+            }
+
+            if (IsSymbol(Peek(), ","))
+                throw new InvalidOperationException(
+                    $"REPLACE SET has an unexpected comma before assignment (found '{DescribeFoundToken(Peek())}').");
+
+            if (IsWord(Peek(), "SET"))
+                throw new InvalidOperationException(
+                    $"REPLACE SET must not include SET keyword twice (found '{DescribeFoundToken(Peek())}').");
+
+            var col = ExpectIdentifierWithDots();
+            ExpectAssignmentEquals("REPLACE SET", col);
+
+            var exprRaw = ReadClauseTextUntilTopLevelStop(",", "WHERE", "FROM", "USING", "RETURNING", ";").Trim();
+            if (string.IsNullOrWhiteSpace(exprRaw))
+                throw new InvalidOperationException($"REPLACE SET assignment for '{col}' requires an expression.");
+
+            SqlExpr expr;
+            try
+            {
+                expr = SqlExpressionParser.ParseScalar(exprRaw, _dialect);
+            }
+            catch (InvalidOperationException ex) when (IsTrailingTokenInWherePredicate(ex))
+            {
+                throw new InvalidOperationException("REPLACE SET must separate assignments with commas.", ex);
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new InvalidOperationException($"REPLACE SET assignment for '{col}' has an invalid expression.", ex);
+            }
+            catch (NotSupportedException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"REPLACE SET assignment for '{col}' has an invalid expression.", ex);
+            }
+            list.Add(new SqlAssignment(col, exprRaw, expr));
+
+            if (IsSymbol(Peek(), ","))
+            {
+                Consume();
+
+                if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "USING") || IsWord(Peek(), "RETURNING"))
+                    throw new InvalidOperationException(
+                        $"REPLACE SET has a trailing comma without assignment (found '{DescribeFoundToken(Peek())}').");
+
+                continue;
+            }
+
+            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "USING") || IsWord(Peek(), "RETURNING"))
+                return list;
+
+            throw new InvalidOperationException("REPLACE SET must separate assignments with commas.");
         }
     }
 
@@ -3107,12 +3234,12 @@ internal sealed class SqlQueryParser
         if (IsSymbol(Peek(), "("))
         {
             Consume();
-            var n = ExpectNumberInt();
+            var n = ExpectRowLimitExpr();
             ExpectSymbol(")");
             return new SqlTop(n);
         }
 
-        return new SqlTop(ExpectNumberInt());
+        return new SqlTop(ExpectRowLimitExpr());
     }
 
     /// <summary>
@@ -3148,10 +3275,14 @@ internal sealed class SqlQueryParser
 
             try
             {
-                _ = SqlExpressionParser.ParseScalar(expr, _dialect);
+                var parsedExpr = SqlExpressionParser.ParseScalar(expr, _dialect);
+                ValidateReturningExpression(parsedExpr);
             }
             catch (InvalidOperationException ex)
             {
+                if (ex.Message.Contains("aggregate functions in this dialect", StringComparison.OrdinalIgnoreCase))
+                    throw;
+
                 throw new InvalidOperationException("RETURNING expression is invalid.", ex);
             }
             catch (NotSupportedException)
@@ -3164,6 +3295,90 @@ internal sealed class SqlQueryParser
             }
             return new SqlSelectItem(expr, alias);
         });
+    }
+
+    private void ValidateReturningExpression(SqlExpr expr)
+    {
+        if (_dialect.SupportsAggregateFunctionsInReturningClause)
+            return;
+
+        if (!ContainsAggregateFunction(expr))
+            return;
+
+        throw new InvalidOperationException("RETURNING clause does not allow aggregate functions in this dialect.");
+    }
+
+    private static bool ContainsAggregateFunction(SqlExpr expr)
+    {
+        switch (expr)
+        {
+            case CallExpr call:
+                if (IsAggregateFunctionName(call.Name))
+                    return true;
+                return call.Args.Any(ContainsAggregateFunction);
+            case FunctionCallExpr fn:
+                if (IsAggregateFunctionName(fn.Name))
+                    return true;
+                return fn.Args.Any(ContainsAggregateFunction);
+            case UnaryExpr unary:
+                return ContainsAggregateFunction(unary.Expr);
+            case BinaryExpr binary:
+                return ContainsAggregateFunction(binary.Left) || ContainsAggregateFunction(binary.Right);
+            case InExpr inExpr:
+                return ContainsAggregateFunction(inExpr.Left) || inExpr.Items.Any(ContainsAggregateFunction);
+            case LikeExpr likeExpr:
+                return ContainsAggregateFunction(likeExpr.Left)
+                    || ContainsAggregateFunction(likeExpr.Pattern)
+                    || (likeExpr.Escape is not null && ContainsAggregateFunction(likeExpr.Escape));
+            case IsNullExpr isNullExpr:
+                return ContainsAggregateFunction(isNullExpr.Expr);
+            case RowExpr rowExpr:
+                return rowExpr.Items.Any(ContainsAggregateFunction);
+            case CaseExpr caseExpr:
+                return (caseExpr.BaseExpr is not null && ContainsAggregateFunction(caseExpr.BaseExpr))
+                    || caseExpr.Whens.Any(when => ContainsAggregateFunction(when.When) || ContainsAggregateFunction(when.Then))
+                    || (caseExpr.ElseExpr is not null && ContainsAggregateFunction(caseExpr.ElseExpr));
+            case WindowFunctionExpr windowExpr:
+                return windowExpr.Args.Any(ContainsAggregateFunction)
+                    || windowExpr.Spec.PartitionBy.Any(ContainsAggregateFunction)
+                    || windowExpr.Spec.OrderBy.Any(item => ContainsAggregateFunction(item.Expr));
+            case JsonAccessExpr jsonAccessExpr:
+                return ContainsAggregateFunction(jsonAccessExpr.Target)
+                    || ContainsAggregateFunction(jsonAccessExpr.Path);
+            case QuantifiedComparisonExpr quantifiedComparisonExpr:
+                return ContainsAggregateFunction(quantifiedComparisonExpr.Left);
+            case ExistsExpr:
+                return false;
+            default:
+                return false;
+        }
+    }
+
+    private static bool IsAggregateFunctionName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return false;
+
+        return name.Equals("COUNT", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("SUM", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("AVG", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("MIN", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("MAX", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("LISTAGG", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("JSON_ARRAYAGG", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("JSON_OBJECTAGG", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("STDDEV", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("STDDEV_POP", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("STDDEV_SAMP", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("VARIANCE", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("VAR_POP", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("VAR_SAMP", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("VAR", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("BIT_AND", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("BIT_OR", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("BIT_XOR", StringComparison.OrdinalIgnoreCase);
     }
 
     private List<string> ParseReturningItemsRaw()
@@ -3409,16 +3624,16 @@ internal sealed class SqlQueryParser
                 throw SqlUnsupported.ForPagination(_dialect, "LIMIT");
 
             Consume();
-            int a = ExpectNumberInt();
+            var a = ExpectRowLimitExpr();
             if (IsSymbol(Peek(), ","))
             {
                 Consume();
-                return new SqlLimitOffset(Count: ExpectNumberInt(), Offset: a);
+                return new SqlLimitOffset(Count: ExpectRowLimitExpr(), Offset: a);
             }
             if (IsWord(Peek(), "OFFSET"))
             {
                 Consume();
-                return new SqlLimitOffset(Count: a, Offset: ExpectNumberInt());
+                return new SqlLimitOffset(Count: a, Offset: ExpectRowLimitExpr());
             }
             return new SqlLimitOffset(Count: a, Offset: null);
         }
@@ -3432,7 +3647,7 @@ internal sealed class SqlQueryParser
                 throw SqlUnsupported.ForOffsetFetchRequiresOrderBy(_dialect);
 
             Consume();
-            var offset = ExpectNumberInt();
+            var offset = ExpectRowLimitExpr();
             // Oracle/SQLServer frequentemente exigem ROW/ROWS
             if (IsWord(Peek(), "ROW") || IsWord(Peek(), "ROWS"))
                 Consume();
@@ -3444,7 +3659,7 @@ internal sealed class SqlQueryParser
                 if (IsWord(Peek(), "NEXT") || IsWord(Peek(), "FIRST"))
                     Consume();
 
-                var count = ExpectNumberInt();
+                var count = ExpectRowLimitExpr();
 
                 if (IsWord(Peek(), "ROW") || IsWord(Peek(), "ROWS"))
                     Consume();
@@ -3455,7 +3670,7 @@ internal sealed class SqlQueryParser
                 return new SqlLimitOffset(Count: count, Offset: offset);
             }
 
-            return new SqlLimitOffset(Count: int.MaxValue, Offset: offset);
+            return new SqlLimitOffset(Count: new LiteralExpr(int.MaxValue), Offset: offset);
         }
 
         // Oracle/Postgres: FETCH FIRST n ROWS ONLY
@@ -3468,7 +3683,7 @@ internal sealed class SqlQueryParser
             if (IsWord(Peek(), "NEXT") || IsWord(Peek(), "FIRST"))
                 Consume();
 
-            var count = ExpectNumberInt();
+            var count = ExpectRowLimitExpr();
 
             if (IsWord(Peek(), "ROW") || IsWord(Peek(), "ROWS"))
                 Consume();
@@ -3480,6 +3695,22 @@ internal sealed class SqlQueryParser
         }
 
         return null;
+    }
+
+    private SqlExpr ExpectRowLimitExpr()
+    {
+        var t = Peek();
+        if (t.Kind == SqlTokenKind.Number)
+        {
+            Consume();
+            return new LiteralExpr(int.Parse(t.Text, CultureInfo.InvariantCulture));
+        }
+        if (t.Kind == SqlTokenKind.Parameter)
+        {
+            Consume();
+            return new ParameterExpr(t.Text);
+        }
+        throw new InvalidOperationException($"Esperava número inteiro ou parâmetro para limite de linhas, veio {t.Kind} '{t.Text}'.");
     }
 
     private void TryConsumeQueryHintOption()
@@ -3546,12 +3777,15 @@ internal sealed class SqlQueryParser
         return list;
     }
 
-    private SqlTableSource ParseTableSource(bool consumeHints = true, bool allowFunctionSource = true)
+    private SqlTableSource ParseTableSource(
+        bool consumeHints = true,
+        bool allowFunctionSource = true,
+        IReadOnlyCollection<string>? aliasStopWords = null)
     {
         if (IsSymbol(Peek(), "("))
         {
             var innerSql = ReadBalancedParenRawTokens();
-            var alias = ReadOptionalAlias();
+            var alias = ReadOptionalAlias(aliasStopWords);
 
             // Derived table pode ser um SELECT simples OU um UNION/UNION ALL.
             // O Parse() atual devolve apenas o primeiro SELECT quando existe UNION,
@@ -3601,7 +3835,7 @@ internal sealed class SqlQueryParser
         }
         if (consumeHints)
             mySqlIndexHints.AddRange(ConsumeTableHintsIfPresent());
-        var alias2 = ReadOptionalAlias();
+        var alias2 = ReadOptionalAlias(aliasStopWords);
         if (consumeHints)
             mySqlIndexHints.AddRange(ConsumeTableHintsIfPresent());
         return new SqlTableSource(
@@ -3896,6 +4130,9 @@ internal sealed class SqlQueryParser
                 true);
         }
 
+        var onError = ParseJsonTableColumnFallback(ref item, "ON ERROR");
+        var onEmpty = ParseJsonTableColumnFallback(ref item, "ON EMPTY");
+
         string? path = null;
         var pathMatch = Regex.Match(
             item,
@@ -3924,7 +4161,34 @@ internal sealed class SqlQueryParser
             sqlType,
             ParseOpenJsonColumnDbType(sqlType),
             path,
-            false);
+            false,
+            false,
+            onEmpty,
+            onError);
+    }
+
+    private static SqlJsonTableColumnFallback? ParseJsonTableColumnFallback(ref string item, string clauseName)
+    {
+        var pattern = clauseName.Equals("ON EMPTY", StringComparison.OrdinalIgnoreCase)
+            ? @"^(?<prefix>.*)\s+(?<kind>NULL|ERROR|DEFAULT\s+(?<value>N?'(?:''|[^'])*'))\s+ON\s+EMPTY$"
+            : @"^(?<prefix>.*)\s+(?<kind>NULL|ERROR|DEFAULT\s+(?<value>N?'(?:''|[^'])*'))\s+ON\s+ERROR$";
+
+        var match = Regex.Match(
+            item,
+            pattern,
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline);
+        if (!match.Success)
+            return null;
+
+        item = match.Groups["prefix"].Value.TrimEnd();
+        var kind = match.Groups["kind"].Value.Trim();
+        return kind.Equals("NULL", StringComparison.OrdinalIgnoreCase)
+            ? new SqlJsonTableColumnFallback(SqlJsonTableColumnFallbackKind.Null)
+            : kind.Equals("ERROR", StringComparison.OrdinalIgnoreCase)
+                ? new SqlJsonTableColumnFallback(SqlJsonTableColumnFallbackKind.Error)
+                : new SqlJsonTableColumnFallback(
+                    SqlJsonTableColumnFallbackKind.Default,
+                    UnquoteSqlStringLiteral(match.Groups["value"].Value));
     }
 
     private static int IndexOfTopLevelKeyword(string sql, string keyword)
@@ -4681,14 +4945,14 @@ internal sealed class SqlQueryParser
 
     // --- Helpers de Token Plumbing ---
 
-    private string? ReadOptionalAlias()
+    private string? ReadOptionalAlias(IReadOnlyCollection<string>? additionalStopWords = null)
     {
         if (IsWord(Peek(), "AS"))
         {
             // Se depois do AS vier uma keyword (SELECT/WITH/VALUES/SET/etc),
             // isso NÃƒO é alias â€” é parte da sintaxe do comando (ex: CREATE ... AS SELECT).
             var next = Peek(1);
-            if (next.Kind == SqlTokenKind.Identifier && IsClauseKeywordToken(next))
+            if (next.Kind == SqlTokenKind.Identifier && IsClauseKeywordToken(next, additionalStopWords))
                 return null;
 
             Consume(); // AS
@@ -4696,7 +4960,7 @@ internal sealed class SqlQueryParser
         }
 
         var t = Peek();
-        if (t.Kind == SqlTokenKind.Identifier && !IsClauseKeywordToken(t))
+        if (t.Kind == SqlTokenKind.Identifier && !IsClauseKeywordToken(t, additionalStopWords))
             return Consume().Text;
 
         return null;
@@ -5583,8 +5847,9 @@ internal sealed class SqlQueryParser
       , "RETURNING"
     };
 
-    private static bool IsClauseKeywordToken(SqlToken t)
-        => ClauseKeywordToken.Contains(t.Text);
+    private static bool IsClauseKeywordToken(SqlToken t, IReadOnlyCollection<string>? additionalStopWords = null)
+        => ClauseKeywordToken.Contains(t.Text)
+           || (additionalStopWords?.Contains(t.Text) == true);
 
     // Helpers estáticos de split (mantidos do original)
     internal static List<string> SplitStatementsTopLevel(string sql, ISqlDialect dialect)

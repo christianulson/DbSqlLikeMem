@@ -11,7 +11,7 @@ internal static class CommandReaderLoopControl
     {
         if (tryExecuteTransactionControl(sqlRaw, out var transactionControlResult))
         {
-            connection.SetLastFoundRows(transactionControlResult);
+            connection.SetLastFoundRows(transactionControlResult.AffectedRows);
             connection.Metrics.IncrementReaderControlStatement();
             parsedStatementCount++;
             return true;

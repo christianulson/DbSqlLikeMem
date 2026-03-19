@@ -74,6 +74,8 @@ internal interface ISqlDialect
     bool SupportsInsertReturning { get; }
     bool SupportsUpdateReturning { get; }
     bool SupportsDeleteReturning { get; }
+    bool SupportsDeleteReturningWithJoin { get; }
+    bool SupportsAggregateFunctionsInReturningClause { get; }
     bool SupportsMerge { get; }
     bool SupportsTriggers { get; }
     bool SupportsSequenceDdl { get; }
@@ -812,6 +814,18 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// PT: Obtém se instruções DELETE suportam RETURNING neste dialeto.
     /// </summary>
     public virtual bool SupportsDeleteReturning => SupportsReturning;
+
+    /// <summary>
+    /// EN: Gets whether RETURNING is allowed for joined or multi-table DELETE statements.
+    /// PT: Obtém se RETURNING é permitido em instruções DELETE com join ou multi-tabela.
+    /// </summary>
+    public virtual bool SupportsDeleteReturningWithJoin => true;
+
+    /// <summary>
+    /// EN: Gets whether RETURNING clauses accept aggregate functions in this dialect.
+    /// PT: Obtém se cláusulas RETURNING aceitam funções de agregação neste dialeto.
+    /// </summary>
+    public virtual bool SupportsAggregateFunctionsInReturningClause => true;
 
     /// <summary>
     /// EN: Gets or sets SupportsMerge.

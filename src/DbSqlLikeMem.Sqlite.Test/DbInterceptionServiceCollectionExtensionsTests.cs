@@ -155,6 +155,36 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests(
     }
 
     /// <summary>
+    /// EN: Verifies the built-in interceptors emit performance deltas when a mock command accumulates metrics.
+    /// PT: Verifica se os interceptors nativos emitem deltas de performance quando um comando mock acumula metricas.
+    /// </summary>
+    [Fact]
+    public void Interceptors_ShouldEmitPerformanceDeltaWhenMetricsChange()
+    {
+        var logger = new ListLogger();
+        var recorder = new RecordingDbConnectionInterceptor();
+        var lines = new List<string>();
+        using var writer = new StringWriter();
+        using var connection = new SqliteConnectionMock(new SqliteDbMock()).WithInterception(options =>
+        {
+            options.UseRecording(recorder);
+            options.UseLogging(lines.Add);
+            options.UseTextWriter(writer);
+            options.Logger = logger;
+        });
+
+        connection.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "select 1";
+        _ = command.ExecuteScalar();
+
+        Assert.Contains(recorder.GetFormattedEvents(), x => x.Contains("performanceDelta=", StringComparison.Ordinal));
+        Assert.Contains(lines, x => x.Contains("performanceDelta=", StringComparison.Ordinal));
+        Assert.Contains("performanceDelta=", writer.ToString(), StringComparison.Ordinal);
+        Assert.Contains(logger.Messages, x => x.Contains("performanceDelta=", StringComparison.Ordinal));
+    }
+
+    /// <summary>
     /// EN: Verifies the DI helper can register an interception connection factory from explicit interceptors.
     /// PT: Verifica se o helper de DI consegue registrar uma factory de conexao com interceptacao a partir de interceptors explicitos.
     /// </summary>

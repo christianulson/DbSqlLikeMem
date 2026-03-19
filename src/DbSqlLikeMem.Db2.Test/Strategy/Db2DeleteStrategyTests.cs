@@ -147,6 +147,36 @@ public sealed class Db2CommandDeleteTests(
     }
 
     /// <summary>
+    /// EN: Verifies a thread-safe delete with multiple parent rows stops when one row is still referenced.
+    /// PT: Verifica se um delete thread-safe com varias linhas pai para quando uma linha ainda esta referenciada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Strategy")]
+    public void ExecuteNonQuery_DELETE_multiplas_linhas_com_fk_referencia_em_thread_safe()
+    {
+        var db = new Db2DbMock
+        {
+            ThreadSafe = true
+        };
+        var parent = NewParentTable(db);
+        parent.Add(RowParent(id: 10));
+        parent.Add(RowParent(id: 11));
+
+        var child = NewChildTable(db);
+        child.CreateForeignKey("ix_parent_id", parent.TableName, [("parent_id", "id")]);
+        child.Add(RowChild(id: 1, parentId: 10));
+
+        using var conn = NewConn(threadSafe: true, db);
+        using var cmd = new Db2CommandMock(conn) { CommandText = "DELETE FROM parent WHERE id >= 10" };
+
+        var ex = Assert.ThrowsAny<Exception>(() => cmd.ExecuteNonQuery());
+
+        Assert.Contains("parent", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(2, parent.Count);
+        Assert.Equal(0, conn.Metrics.Deletes);
+    }
+
+    /// <summary>
     /// EN: Tests ExecuteNonQuery_DELETE_funciona_com_ThreadSafe_true_ou_false behavior.
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_funciona_com_ThreadSafe_true_ou_false.
     /// </summary>

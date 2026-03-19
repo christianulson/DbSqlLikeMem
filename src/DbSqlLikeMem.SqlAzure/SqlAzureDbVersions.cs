@@ -1,12 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Data.Common;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 namespace DbSqlLikeMem.SqlAzure;
 
+/// <summary>
+/// EN: Extension for verions SqlAzure versions supported by this provider mock.
+/// PT: Extesão para versões do SqlAzure suportadas por este mock de provedor.
+/// </summary>
 public static class SqlAzureDbVersions
 {
     /// <summary>

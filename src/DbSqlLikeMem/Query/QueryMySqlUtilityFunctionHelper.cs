@@ -31,7 +31,7 @@ internal static class QueryMySqlUtilityFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -89,7 +89,7 @@ internal static class QueryMySqlUtilityFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -127,7 +127,7 @@ internal static class QueryMySqlUtilityFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -162,7 +162,7 @@ internal static class QueryMySqlUtilityFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
@@ -279,7 +279,7 @@ internal static class QueryMySqlUtilityFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
         {
             result = null;
             return false;
