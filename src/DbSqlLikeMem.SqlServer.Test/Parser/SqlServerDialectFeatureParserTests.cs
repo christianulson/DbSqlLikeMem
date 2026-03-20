@@ -804,8 +804,8 @@ public sealed class SqlServerDialectFeatureParserTests
         Assert.Equal(version >= SqlServerDialect.JsonFunctionsMinVersion, dialect.SupportsSqlServerScalarFunction("ISJSON"));
         Assert.True(dialect.SupportsSqlServerScalarFunction("ISNUMERIC"));
         Assert.True(dialect.SupportsSqlServerScalarFunction("CHAR"));
-        Assert.True(dialect.SupportsSqlServerScalarFunction("CONCAT"));
-        Assert.True(dialect.SupportsSqlServerScalarFunction("CONCAT_WS"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction(SqlConst.CONCAT));
+        Assert.True(dialect.SupportsSqlServerScalarFunction(SqlConst.CONCAT_WS));
         Assert.True(dialect.SupportsSqlServerScalarFunction("LEN"));
         Assert.True(dialect.SupportsSqlServerScalarFunction(SqlConst.LEFT));
         Assert.True(dialect.SupportsSqlServerScalarFunction("LOG"));
@@ -922,8 +922,8 @@ public sealed class SqlServerDialectFeatureParserTests
         }
         Assert.Equal("ISNUMERIC", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ISNUMERIC('10.5')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("CHAR", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CHAR(65)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("CONCAT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CONCAT('Ana', 'Maria')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("CONCAT_WS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CONCAT_WS('-', 'Ana', NULL, 'Maria')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.CONCAT, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CONCAT('Ana', 'Maria')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.CONCAT_WS, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CONCAT_WS('-', 'Ana', NULL, 'Maria')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("LEN", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LEN('Ana')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal(SqlConst.LEFT, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LEFT('Ana', 2)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("LOG", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LOG(10, 100)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
@@ -1020,7 +1020,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlExpressionParser.ParseScalar("name ILIKE 'jo%'", new SqlServerDialect(version)));
 
-        Assert.Contains("ILIKE", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.ILIKE, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1037,19 +1037,19 @@ public sealed class SqlServerDialectFeatureParserTests
 
         var nextEx = Assert.Throws<NotSupportedException>(() =>
             SqlExpressionParser.ParseScalar("nextval('sales.seq_orders')", dialect));
-        Assert.Contains("NEXTVAL", nextEx.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.NEXTVAL, nextEx.Message, StringComparison.OrdinalIgnoreCase);
 
         var currEx = Assert.Throws<NotSupportedException>(() =>
             SqlExpressionParser.ParseScalar("currval('sales.seq_orders')", dialect));
-        Assert.Contains("CURRVAL", currEx.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.CURRVAL, currEx.Message, StringComparison.OrdinalIgnoreCase);
 
         var setEx = Assert.Throws<NotSupportedException>(() =>
             SqlExpressionParser.ParseScalar("setval('sales.seq_orders', 30, false)", dialect));
-        Assert.Contains("SETVAL", setEx.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.SETVAL, setEx.Message, StringComparison.OrdinalIgnoreCase);
 
         var lastEx = Assert.Throws<NotSupportedException>(() =>
             SqlExpressionParser.ParseScalar("lastval()", dialect));
-        Assert.Contains("LASTVAL", lastEx.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.LASTVAL, lastEx.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

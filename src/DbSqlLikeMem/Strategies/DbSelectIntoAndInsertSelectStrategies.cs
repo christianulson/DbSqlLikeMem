@@ -26,6 +26,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             SqlCreateIndexQuery createIndexQ => connection.ExecuteCreateIndex(createIndexQ, pars, dialect),
             SqlCreateSequenceQuery createSequenceQ => connection.ExecuteCreateSequence(createSequenceQ, pars, dialect),
             SqlCreateFunctionQuery createFunctionQ => connection.ExecuteCreateFunction(createFunctionQ, pars, dialect),
+            SqlCreateProcedureQuery createProcedureQ => connection.ExecuteCreateProcedure(createProcedureQ, pars, dialect),
             SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, pars, dialect),
             SqlDropTableQuery dropTableQ => connection.ExecuteDropTable(dropTableQ, pars, dialect),
             SqlDropIndexQuery dropIndexQ => connection.ExecuteDropIndex(dropIndexQ, pars, dialect),
@@ -332,6 +333,41 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         var functionName = query.Table?.Name;
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
         connection.CreateFunction(functionName!, query.ReturnTypeSql, query.Parameters, query.Body, query.OrReplace, query.Table?.DbName);
+        return new DmlExecutionResult();
+    }
+
+    /// <summary>
+    /// EN: Implements ExecuteCreateProcedure.
+    /// PT: Implementa ExecuteCreateProcedure.
+    /// </summary>
+    public static DmlExecutionResult ExecuteCreateProcedure(
+        this DbConnectionMockBase connection,
+        SqlCreateProcedureQuery query,
+        DbParameterCollection pars,
+        ISqlDialect dialect)
+    {
+        _ = pars;
+        _ = dialect;
+        DmlExecutionResult affected;
+        if (!connection.Db.ThreadSafe)
+            affected = ExecuteCreateProcedureImpl(connection, query);
+        else
+        {
+            lock (connection.Db.SyncRoot)
+                affected = ExecuteCreateProcedureImpl(connection, query);
+        }
+
+        connection.SetLastFoundRows(affected.AffectedRows);
+        return affected;
+    }
+
+    private static DmlExecutionResult ExecuteCreateProcedureImpl(
+        DbConnectionMockBase connection,
+        SqlCreateProcedureQuery query)
+    {
+        var procedureName = query.Table?.Name;
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(procedureName, nameof(procedureName));
+        connection.CreateProcedure(procedureName!, query.Definition, query.OrReplace, query.Table?.DbName);
         return new DmlExecutionResult();
     }
 

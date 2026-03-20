@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.Db2.Test;
+namespace DbSqlLikeMem.Db2.Test;
 
 /// <summary>
 /// EN: Defines the class Db2MockTests.
@@ -327,6 +327,40 @@ public sealed class Db2MockTests
         Assert.True(reader.Read());
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
     }
+
+    ///// <summary>
+    ///// EN: Tests CreateOrReplaceProcedure_ShouldRegisterProcedureAndAllowCall behavior.
+    ///// PT: Testa o comportamento de CreateOrReplaceProcedure_ShouldRegisterProcedureAndAllowCall.
+    ///// </summary>
+    //[Theory(Skip ="")]
+    //[Trait("Category", "Db2Mock")]
+    //[MemberDataDb2Version]
+    //public void CreateOrReplaceProcedure_ShouldRegisterProcedureAndAllowCall(int version)
+    //{
+        //TODO: Implementar suporte a CREATE OR REPLACE PROCEDURE e descomentar teste.
+        //using var connection = CreateOpenConnection(version);
+
+        //ExecuteNonQuery(connection, "CREATE OR REPLACE PROCEDURE sp_echo(IN tenantId INT) BEGIN END");
+
+        //using var command = new Db2CommandMock(connection)
+        //{
+        //    CommandType = CommandType.StoredProcedure,
+        //    CommandText = "sp_echo"
+        //};
+
+        //var tenantId = command.CreateParameter();
+        //tenantId.ParameterName = "tenantId";
+        //tenantId.DbType = DbType.Int32;
+        //tenantId.Value = 10;
+        //command.Parameters.Add(tenantId);
+
+        //var affectedRows = command.ExecuteNonQuery();
+
+        //Assert.Equal(0, affectedRows);
+        //Assert.True(connection.Db.TryGetProcedure("sp_echo", out var procedure));
+        //Assert.NotNull(procedure);
+        //Assert.Single(procedure!.RequiredIn);
+    //}
 
     /// <summary>
     /// EN: Tests TestBatch_UpdateCommitThenRowCount_ShouldReturnZeroAfterCommit behavior.

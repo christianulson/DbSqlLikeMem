@@ -124,19 +124,52 @@ public sealed class Db2DialectFeatureParserTests
     }
 
     /// <summary>
-    /// EN: Ensures DB2 rejects CREATE OR REPLACE FUNCTION outside the supported provider-real subset.
-    /// PT: Garante que o DB2 rejeite CREATE OR REPLACE FUNCTION fora do subset realista suportado pelo provider.
+    /// EN: Ensures DB2 parses CREATE OR REPLACE FUNCTION and preserves the function contract.
+    /// PT: Garante que o DB2 interprete CREATE OR REPLACE FUNCTION e preserve o contrato da function.
     /// </summary>
     /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
-    public void ParseCreateOrReplaceScalarFunctionDdlSubset_ShouldReject(int version)
+    public void ParseCreateOrReplaceScalarFunctionDdlSubset_ShouldParse(int version)
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+        var dialect = new Db2Dialect(version);
+
+        var create = Assert.IsType<SqlCreateFunctionQuery>(SqlQueryParser.Parse(
             "CREATE OR REPLACE FUNCTION fn_users(baseValue INT, incrementValue INT) RETURNS INT RETURN baseValue + incrementValue",
-            new Db2Dialect(version)));
-        Assert.Contains("CREATE OR REPLACE FUNCTION", ex.Message, StringComparison.OrdinalIgnoreCase);
+            dialect));
+
+        Assert.True(create.OrReplace);
+        Assert.Equal("fn_users", create.Table?.Name, ignoreCase: true);
+        Assert.Equal("INT", create.ReturnTypeSql, ignoreCase: true);
+        Assert.Equal(2, create.Parameters.Count);
+        Assert.Equal("baseValue", create.Parameters[0].Name, ignoreCase: true);
+        Assert.Equal("incrementValue", create.Parameters[1].Name, ignoreCase: true);
+        Assert.IsType<BinaryExpr>(create.Body);
+    }
+
+    /// <summary>
+    /// EN: Ensures DB2 parses CREATE OR REPLACE PROCEDURE and preserves the procedure signature.
+    /// PT: Garante que o DB2 interprete CREATE OR REPLACE PROCEDURE e preserve a assinatura da procedure.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void ParseCreateOrReplaceProcedureDdlSubset_ShouldParse(int version)
+    {
+        var dialect = new Db2Dialect(version);
+
+        var create = Assert.IsType<SqlCreateProcedureQuery>(SqlQueryParser.Parse(
+            "CREATE OR REPLACE PROCEDURE sp_echo(IN tenantId INT) BEGIN END",
+            dialect));
+
+        Assert.True(create.OrReplace);
+        Assert.Equal("sp_echo", create.Table?.Name, ignoreCase: true);
+        Assert.Single(create.Definition.RequiredIn);
+        Assert.Empty(create.Definition.OptionalIn);
+        Assert.Empty(create.Definition.OutParams);
+        Assert.Equal("tenantId", create.Definition.RequiredIn[0].Name, ignoreCase: true);
     }
 
     /// <summary>
@@ -424,6 +457,45 @@ public sealed class Db2DialectFeatureParserTests
 
         var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect));
         Assert.Equal("JSON_VALUE", call.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures JSON_TABLE follows DB2 version support starting in version 11.
+    /// PT: Garante que JSON_TABLE siga o suporte por versao do DB2 a partir da versao 11.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void ParseSelect_FromJsonTable_ShouldFollowDb2VersionSupport(int version)
+    {
+        const string sql = """
+            SELECT jt.ord, jt.id, jt.name
+            FROM JSON_TABLE(payload, '$[*]' COLUMNS(
+                ord FOR ORDINALITY,
+                id INT PATH '$.id',
+                name VARCHAR(50) PATH '$.name'
+            )) jt
+            """;
+
+        var dialect = new Db2Dialect(version);
+
+        if (version < Db2Dialect.JsonFunctionsMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            Assert.Contains(SqlConst.JSON_TABLE, ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, dialect));
+        Assert.NotNull(parsed.Table);
+        Assert.Equal(SqlConst.JSON_TABLE, parsed.Table!.TableFunction?.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("jt", parsed.Table.Alias);
+        Assert.NotNull(parsed.Table.JsonTableClause);
+        Assert.Equal(3, parsed.Table.JsonTableClause!.Columns.Count);
+        Assert.True(parsed.Table.JsonTableClause.Columns[0].ForOrdinality);
+        Assert.Equal("id", parsed.Table.JsonTableClause.Columns[1].Name);
+        Assert.Equal("$.name", parsed.Table.JsonTableClause.Columns[2].Path);
     }
 
     /// <summary>

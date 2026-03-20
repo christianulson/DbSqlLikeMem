@@ -696,7 +696,7 @@ ORDER BY category";
         Assert.True(reader.Read());
         Assert.Equal("A", Convert.ToString(reader[0]));
         Assert.Equal(1, Convert.ToInt32(reader[1]));
-        Assert.Equal("TOP", Convert.ToString(reader[2]));
+        Assert.Equal(SqlConst.TOP, Convert.ToString(reader[2]));
         Assert.False(reader.Read());
     }
 

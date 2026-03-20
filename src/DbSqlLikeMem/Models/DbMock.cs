@@ -638,6 +638,71 @@ public abstract class DbMock
 
     #endregion
 
+    #region Procedures
+
+    /// <summary>
+    /// EN: Replaces or registers a stored procedure in the specified schema.
+    /// PT: Substitui ou registra um procedimento armazenado no schema informado.
+    /// </summary>
+    /// <param name="procedureName">EN: Procedure name. PT: Nome da procedure.</param>
+    /// <param name="procedure">EN: Procedure definition. PT: Definição da procedure.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <param name="orReplace">EN: True to replace an existing definition. PT: True para substituir uma definição existente.</param>
+    internal void CreateProcedure(
+        string procedureName,
+        ProcedureDef procedure,
+        bool orReplace = false,
+        string? schemaName = null)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(procedureName, nameof(procedureName));
+        ArgumentNullExceptionCompatible.ThrowIfNull(procedure, nameof(procedure));
+        var sc = GetSchemaName(schemaName);
+        if (!this.TryGetValue(sc, out var s) || s == null)
+            CreateSchema(sc);
+
+        var normalized = procedureName.NormalizeName();
+        var procedures = this[sc].Procedures;
+        if (procedures.ContainsKey(normalized) && !orReplace)
+            throw new InvalidOperationException($"Procedure '{normalized}' already exists.");
+
+        procedures[normalized] = procedure;
+    }
+
+    /// <summary>
+    /// EN: Restores a stored procedure definition in the specified schema.
+    /// PT: Restaura uma definição de procedimento armazenado no schema informado.
+    /// </summary>
+    /// <param name="procedureName">EN: Procedure name. PT: Nome da procedure.</param>
+    /// <param name="procedure">EN: Procedure definition. PT: Definição da procedure.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    internal void RestoreProcedure(
+        string procedureName,
+        ProcedureDef procedure,
+        string? schemaName = null)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(procedureName, nameof(procedureName));
+        ArgumentNullExceptionCompatible.ThrowIfNull(procedure, nameof(procedure));
+        var sc = GetSchemaName(schemaName);
+        this[sc].Procedures[procedureName.NormalizeName()] = procedure;
+    }
+
+    /// <summary>
+    /// EN: Removes a stored procedure from the specified schema.
+    /// PT: Remove um procedimento armazenado do schema informado.
+    /// </summary>
+    /// <param name="procedureName">EN: Procedure name. PT: Nome da procedure.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    internal void RemoveProcedure(
+        string procedureName,
+        string? schemaName = null)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(procedureName, nameof(procedureName));
+        var sc = GetSchemaName(schemaName);
+        this[sc].Procedures.Remove(procedureName.NormalizeName());
+    }
+
+    #endregion
+
     #region Sequences
 
     /// <summary>

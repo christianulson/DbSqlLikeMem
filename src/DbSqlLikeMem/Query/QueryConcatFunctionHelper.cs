@@ -26,7 +26,7 @@ internal static class QueryConcatFunctionHelper
         bool nullInputReturnsNull,
         out object? result)
     {
-        if (!fn.Name.Equals("CONCAT", StringComparison.OrdinalIgnoreCase))
+        if (!fn.Name.Equals(SqlConst.CONCAT, StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -53,7 +53,7 @@ internal static class QueryConcatFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("CONCAT_WS", StringComparison.OrdinalIgnoreCase))
+        if (!fn.Name.Equals(SqlConst.CONCAT_WS, StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;

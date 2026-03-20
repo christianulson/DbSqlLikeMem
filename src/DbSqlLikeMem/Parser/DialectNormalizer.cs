@@ -196,7 +196,7 @@ internal static class DialectNormalizer
 
     private static bool IsRownum(SqlExpr expr)
         => expr is IdentifierExpr identifier
-            && identifier.Name.Equals("ROWNUM", StringComparison.OrdinalIgnoreCase);
+            && identifier.Name.Equals(SqlConst.ROWNUM, StringComparison.OrdinalIgnoreCase);
 
     private static bool TryResolveExactInteger(
         SqlExpr expr,

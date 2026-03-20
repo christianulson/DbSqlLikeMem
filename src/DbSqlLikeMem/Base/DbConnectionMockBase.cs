@@ -26,7 +26,8 @@ public abstract class DbConnectionMockBase(
         DropSequence,
         UpdateSequence,
         UpsertFunction,
-        DropFunction
+        DropFunction,
+        UpsertProcedure
     }
 
     private enum TransactionTableRegistrationKind
@@ -58,7 +59,8 @@ public abstract class DbConnectionMockBase(
         Idx? IndexDefinition = null,
         TransactionViewState? ViewState = null,
         TransactionSequenceState? SequenceState = null,
-        TransactionFunctionState? FunctionState = null);
+        TransactionFunctionState? FunctionState = null,
+        TransactionProcedureState? ProcedureState = null);
 
     private sealed record TransactionViewState(
         string SchemaName,
@@ -76,6 +78,11 @@ public abstract class DbConnectionMockBase(
         string SchemaName,
         string FunctionName,
         ScalarFunctionDef? PreviousDefinition);
+
+    private sealed record TransactionProcedureState(
+        string SchemaName,
+        string ProcedureName,
+        ProcedureDef? PreviousDefinition);
 
     private bool _disposed;
     private readonly Dictionary<string, int> _savepoints =
@@ -1440,6 +1447,41 @@ public abstract class DbConnectionMockBase(
         ClearSelectPlanCache();
     }
 
+    internal void CreateProcedure(
+        string procedureName,
+        ProcedureDef procedure,
+        bool orReplace = false,
+        string? schemaName = null)
+    {
+        var targetSchema = schemaName ?? Database;
+        ProcedureDef? previousDefinition = null;
+        Db.TryGetProcedure(procedureName, out previousDefinition, targetSchema);
+
+        Db.CreateProcedure(
+            procedureName,
+            procedure,
+            orReplace,
+            targetSchema);
+        ClearSelectPlanCache();
+
+        if (CurrentTransaction == null)
+            return;
+
+        _transactionJournal.Add(new TransactionJournalEntry(
+            null!,
+            TransactionJournalEntryKind.UpsertProcedure,
+            -1,
+            null,
+            null,
+            0,
+            default,
+            string.Empty,
+            ProcedureState: new TransactionProcedureState(
+                targetSchema,
+                procedureName.NormalizeName(),
+                previousDefinition)));
+    }
+
     #endregion
 
     #region Sequences
@@ -2112,6 +2154,18 @@ public abstract class DbConnectionMockBase(
                                 entry.FunctionState.FunctionName,
                                 entry.FunctionState.PreviousDefinition,
                                 entry.FunctionState.SchemaName);
+                        }
+                        break;
+                    case TransactionJournalEntryKind.UpsertProcedure:
+                        if (entry.ProcedureState is not null)
+                        {
+                            if (entry.ProcedureState.PreviousDefinition is null)
+                                Db.RemoveProcedure(entry.ProcedureState.ProcedureName, entry.ProcedureState.SchemaName);
+                            else
+                                Db.RestoreProcedure(
+                                    entry.ProcedureState.ProcedureName,
+                                    entry.ProcedureState.PreviousDefinition,
+                                    entry.ProcedureState.SchemaName);
                         }
                         break;
                 }

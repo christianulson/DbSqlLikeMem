@@ -8,6 +8,7 @@ import json
 import re
 import xml.etree.ElementTree as ET
 from datetime import date
+from dataclasses import dataclass
 from pathlib import Path
 
 from check_cross_dialect_snapshot_format import validate_snapshot
@@ -33,6 +34,79 @@ SUPPORTED_TEMPLATE_TOKENS = {
     "{{DatabaseName}}",
     "{{Namespace}}",
 }
+SEMVER_BREAKING_NOTE_MARKERS = (
+    "breaking change",
+    "breaking changes",
+    "breaking:",
+    "quebra de contrato",
+    "incompatible",
+    "incompatível",
+    "incompativel",
+    "remove public",
+    "removed public",
+    "removes public",
+    "removido",
+    "removida",
+)
+SEMVER_FEATURE_NOTE_MARKERS = (
+    "feature",
+    "features",
+    "suporte",
+    "support",
+    "supported",
+    "agora também",
+    "agora tambem",
+    "passou a",
+    "adicionado",
+    "adicionada",
+    "adicionados",
+    "adicionadas",
+    "implementado",
+    "implementada",
+    "implementados",
+    "implementadas",
+    "ganhou",
+    "materializado",
+    "materializada",
+    "expandido",
+    "expandida",
+)
+SEMVER_FIX_NOTE_MARKERS = (
+    "fix",
+    "fixed",
+    "bug",
+    "corrigido",
+    "corrigida",
+    "corrigidos",
+    "corrigidas",
+    "hardening",
+    "valida",
+    "validation",
+    "rejeita",
+    "bloqueia",
+    "reduz",
+    "normaliza",
+    "alinha",
+    "alinhar",
+    "auditoria",
+    "warning",
+    "warning",
+    "regress",
+    "refator",
+    "documentation",
+    "documentação",
+    "documentacao",
+)
+
+
+@dataclass(frozen=True)
+class SemVerImpactSummary:
+    """Summarizes the inferred release impact from unreleased changelog notes."""
+
+    suggested_bump: str
+    breaking_count: int
+    feature_count: int
+    fix_count: int
 
 
 def load_text(path: Path) -> str:
@@ -92,6 +166,69 @@ def validate_semver(label: str, value: str | None) -> list[str]:
         return [f"{label}: invalid SemVer value '{value}'"]
 
     return []
+
+
+def extract_unreleased_changelog_bullets(changelog_content: str) -> list[str]:
+    bullets: list[str] = []
+    in_unreleased = False
+
+    for raw_line in changelog_content.splitlines():
+        line = raw_line.strip()
+        if line.startswith("## "):
+            if line == "## [Unreleased]":
+                in_unreleased = True
+                continue
+            if in_unreleased:
+                break
+
+        if in_unreleased and line.startswith("- "):
+            bullets.append(line[2:].strip())
+
+    return bullets
+
+
+def classify_release_note_impact(note: str) -> str:
+    lower_note = note.lower()
+    if any(marker in lower_note for marker in SEMVER_BREAKING_NOTE_MARKERS):
+        return "breaking"
+    if any(marker in lower_note for marker in SEMVER_FEATURE_NOTE_MARKERS):
+        return "feature"
+    if any(marker in lower_note for marker in SEMVER_FIX_NOTE_MARKERS):
+        return "fix"
+    return "fix"
+
+
+def analyze_release_semver_impact(changelog_content: str) -> SemVerImpactSummary | None:
+    bullets = extract_unreleased_changelog_bullets(changelog_content)
+    if not bullets:
+        return None
+
+    breaking_count = 0
+    feature_count = 0
+    fix_count = 0
+
+    for bullet in bullets:
+        impact = classify_release_note_impact(bullet)
+        if impact == "breaking":
+            breaking_count += 1
+        elif impact == "feature":
+            feature_count += 1
+        else:
+            fix_count += 1
+
+    if breaking_count > 0:
+        suggested_bump = "MAJOR"
+    elif feature_count > 0:
+        suggested_bump = "MINOR"
+    else:
+        suggested_bump = "PATCH"
+
+    return SemVerImpactSummary(
+        suggested_bump=suggested_bump,
+        breaking_count=breaking_count,
+        feature_count=feature_count,
+        fix_count=fix_count,
+    )
 
 
 def collect_package_nls_tokens(value: object) -> set[str]:
@@ -871,6 +1008,9 @@ def main() -> int:
     failures.extend(check_workflows(root))
     failures.extend(check_release_communication(root))
 
+    changelog_content = load_text(root / "CHANGELOG.md")
+    semver_impact = analyze_release_semver_impact(changelog_content)
+
     if repository_url:
         vscode_failures, vscode_warnings = check_vscode_extension(root, repository_url)
         failures.extend(vscode_failures)
@@ -890,6 +1030,14 @@ def main() -> int:
             print(f"  - {failure}")
     else:
         print(f"[PASS] Release readiness baseline is coherent for version {version}.")
+
+    if semver_impact is not None:
+        print(
+            "[INFO] SemVer impact suggestion from CHANGELOG.md: "
+            f"{semver_impact.suggested_bump} "
+            f"(breaking={semver_impact.breaking_count}, "
+            f"feature={semver_impact.feature_count}, fix={semver_impact.fix_count})"
+        )
 
     if warnings:
         print("[WARN] Remaining release-readiness warnings:")

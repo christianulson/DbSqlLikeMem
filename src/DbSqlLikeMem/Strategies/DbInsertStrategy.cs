@@ -73,6 +73,7 @@ internal static class DbInsertStrategy
             return ExecuteReplaceCore(connection, query, pars, dialect, table, tableMock, newRows, targetRowCountBefore);
 
         if (!query.HasOnDuplicateKeyUpdate
+            && !query.IsOnConflictDoNothing
             && newRows.Count > 1
             && canUseBatchInsert)
         {
@@ -167,6 +168,13 @@ internal static class DbInsertStrategy
                 if (!query.HasOnDuplicateKeyUpdate)
                 {
                     // Inserção normal
+                    if (query.IsOnConflictDoNothing)
+                    {
+                        var conflictIdx1 = tableMock.FindConflictingRowIndex(newRow, out _, out _);
+                        if (conflictIdx1 is not null)
+                            continue;
+                    }
+
                     tableMock.ValidateForeignKeysOnRow(newRow);
                     if (dialect.SupportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeInsert))
                         TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, TableMock.SnapshotRow(newRow));
@@ -1434,7 +1442,7 @@ internal static class DbInsertStrategy
             throw SqlUnsupported.ForDialect(dialect, "NEXT VALUE FOR");
         if (functionName.Equals("PREVIOUS_VALUE_FOR", StringComparison.OrdinalIgnoreCase) && !dialect.SupportsPreviousValueForSequenceExpression)
             throw SqlUnsupported.ForDialect(dialect, "PREVIOUS VALUE FOR");
-        if ((functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase) || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase) || functionName.Equals("SETVAL", StringComparison.OrdinalIgnoreCase) || functionName.Equals("LASTVAL", StringComparison.OrdinalIgnoreCase)) && !SupportsSequenceFunctionCall(dialect, functionName))
+        if ((functionName.Equals(SqlConst.NEXTVAL, StringComparison.OrdinalIgnoreCase) || functionName.Equals(SqlConst.CURRVAL, StringComparison.OrdinalIgnoreCase) || functionName.Equals(SqlConst.SETVAL, StringComparison.OrdinalIgnoreCase) || functionName.Equals(SqlConst.LASTVAL, StringComparison.OrdinalIgnoreCase)) && !SupportsSequenceFunctionCall(dialect, functionName))
             throw SqlUnsupported.ForDialect(dialect, functionName.ToUpperInvariant());
     }
 
@@ -1442,9 +1450,9 @@ internal static class DbInsertStrategy
     {
         if (dialect.SupportsSequenceFunctionCall(functionName)) return true;
         if (dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
-            return functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase) || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase) || functionName.Equals("SETVAL", StringComparison.OrdinalIgnoreCase) || functionName.Equals("LASTVAL", StringComparison.OrdinalIgnoreCase);
+            return functionName.Equals(SqlConst.NEXTVAL, StringComparison.OrdinalIgnoreCase) || functionName.Equals(SqlConst.CURRVAL, StringComparison.OrdinalIgnoreCase) || functionName.Equals(SqlConst.SETVAL, StringComparison.OrdinalIgnoreCase) || functionName.Equals(SqlConst.LASTVAL, StringComparison.OrdinalIgnoreCase);
         if (dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
-            return (functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase) || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase)) && dialect.SupportsSequenceDotValueExpression(functionName);
+            return (functionName.Equals(SqlConst.NEXTVAL, StringComparison.OrdinalIgnoreCase) || functionName.Equals(SqlConst.CURRVAL, StringComparison.OrdinalIgnoreCase)) && dialect.SupportsSequenceDotValueExpression(functionName);
         return false;
     }
 

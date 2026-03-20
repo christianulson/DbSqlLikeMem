@@ -21,10 +21,10 @@ internal static class SequenceFunctionSupportHelper
             throw SqlUnsupported.ForDialect(sqlDialect, "PREVIOUS VALUE FOR");
         }
 
-        if ((functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
-                || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase)
-                || functionName.Equals("SETVAL", StringComparison.OrdinalIgnoreCase)
-                || functionName.Equals("LASTVAL", StringComparison.OrdinalIgnoreCase))
+        if ((functionName.Equals(SqlConst.NEXTVAL, StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals(SqlConst.CURRVAL, StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals(SqlConst.SETVAL, StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals(SqlConst.LASTVAL, StringComparison.OrdinalIgnoreCase))
             && !SupportsSequenceFunctionCall(sqlDialect, functionName))
         {
             throw SqlUnsupported.ForDialect(sqlDialect, functionName.ToUpperInvariant());
@@ -38,16 +38,16 @@ internal static class SequenceFunctionSupportHelper
 
         if (dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
         {
-            return functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
-                || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase)
-                || functionName.Equals("SETVAL", StringComparison.OrdinalIgnoreCase)
-                || functionName.Equals("LASTVAL", StringComparison.OrdinalIgnoreCase);
+            return functionName.Equals(SqlConst.NEXTVAL, StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals(SqlConst.CURRVAL, StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals(SqlConst.SETVAL, StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals(SqlConst.LASTVAL, StringComparison.OrdinalIgnoreCase);
         }
 
         if (dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
         {
-            return (functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
-                    || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase))
+            return (functionName.Equals(SqlConst.NEXTVAL, StringComparison.OrdinalIgnoreCase)
+                    || functionName.Equals(SqlConst.CURRVAL, StringComparison.OrdinalIgnoreCase))
                 && dialect.SupportsSequenceDotValueExpression(functionName);
         }
 

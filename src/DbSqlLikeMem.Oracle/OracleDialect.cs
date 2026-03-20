@@ -149,11 +149,11 @@ internal sealed class OracleDialect : SqlDialectBase
     public override bool SupportsCreateOrReplaceFunctionDdl => true;
     public override bool SupportsSequenceDdl => true;
     public override bool SupportsSequenceDotValueExpression(string suffix)
-        => suffix.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
-            || suffix.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase);
+        => suffix.Equals(SqlConst.NEXTVAL, StringComparison.OrdinalIgnoreCase)
+            || suffix.Equals(SqlConst.CURRVAL, StringComparison.OrdinalIgnoreCase);
     public override bool SupportsSequenceFunctionCall(string functionName)
-        => functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase);
+        => functionName.Equals(SqlConst.NEXTVAL, StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals(SqlConst.CURRVAL, StringComparison.OrdinalIgnoreCase);
     /// <summary>
     /// EN: Gets whether pivot clause is supported.
     /// PT: Obtém se há suporte a pivot clause.

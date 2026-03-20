@@ -738,6 +738,6 @@ internal static class SelectPlanBuilderHelper
 
     private static bool IsSequenceFunctionName(string? name)
         => string.Equals(name, "NEXT_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(name, "NEXTVAL", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, SqlConst.NEXTVAL, StringComparison.OrdinalIgnoreCase)
             || string.Equals(name, "PREVIOUS_VALUE_FOR", StringComparison.OrdinalIgnoreCase);
 }

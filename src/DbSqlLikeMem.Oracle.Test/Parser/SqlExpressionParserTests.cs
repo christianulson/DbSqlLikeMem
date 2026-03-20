@@ -113,10 +113,10 @@ public sealed class SqlExpressionParserTests(
     public void SequenceDotValueExpressions_ShouldParse(int version)
     {
         var nextExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("sales.seq_orders.NEXTVAL", new OracleDialect(version)));
-        Assert.Equal("NEXTVAL", nextExpr.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.NEXTVAL, nextExpr.Name, StringComparer.OrdinalIgnoreCase);
 
         var currExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("sales.seq_orders.CURRVAL", new OracleDialect(version)));
-        Assert.Equal("CURRVAL", currExpr.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.CURRVAL, currExpr.Name, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>

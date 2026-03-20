@@ -280,12 +280,12 @@ public sealed class SqlDialectAutoParserTests(
         Assert.True(dialect.SupportsSequenceDdl);
         Assert.True(dialect.SupportsNextValueForSequenceExpression);
         Assert.True(dialect.SupportsPreviousValueForSequenceExpression);
-        Assert.True(dialect.SupportsSequenceDotValueExpression("NEXTVAL"));
-        Assert.True(dialect.SupportsSequenceDotValueExpression("CURRVAL"));
-        Assert.True(dialect.SupportsSequenceFunctionCall("NEXTVAL"));
-        Assert.True(dialect.SupportsSequenceFunctionCall("CURRVAL"));
-        Assert.True(dialect.SupportsSequenceFunctionCall("SETVAL"));
-        Assert.True(dialect.SupportsSequenceFunctionCall("LASTVAL"));
+        Assert.True(dialect.SupportsSequenceDotValueExpression(SqlConst.NEXTVAL));
+        Assert.True(dialect.SupportsSequenceDotValueExpression(SqlConst.CURRVAL));
+        Assert.True(dialect.SupportsSequenceFunctionCall(SqlConst.NEXTVAL));
+        Assert.True(dialect.SupportsSequenceFunctionCall(SqlConst.CURRVAL));
+        Assert.True(dialect.SupportsSequenceFunctionCall(SqlConst.SETVAL));
+        Assert.True(dialect.SupportsSequenceFunctionCall(SqlConst.LASTVAL));
     }
 
     /// <summary>
@@ -649,11 +649,11 @@ public sealed class SqlDialectAutoParserTests(
 
         Assert.Equal("NEXT_VALUE_FOR", nextValueFor.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("PREVIOUS_VALUE_FOR", previousValueFor.Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("NEXTVAL", dotNextVal.Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("CURRVAL", dotCurrVal.Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("NEXTVAL", nextVal.Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("CURRVAL", currVal.Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("LASTVAL", lastVal.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.NEXTVAL, dotNextVal.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.CURRVAL, dotCurrVal.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.NEXTVAL, nextVal.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.CURRVAL, currVal.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.LASTVAL, lastVal.Name, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>

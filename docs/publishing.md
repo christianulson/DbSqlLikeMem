@@ -65,6 +65,7 @@ Checklist rápido para confirmar **breaking change**:
 Se todas as respostas forem **não**, prefira `PATCH` (sem feature nova) ou `MINOR` (com feature nova).
 
 `python3 scripts/check_release_readiness.py` também passa a validar o formato SemVer das versões configuradas no núcleo (`src/Directory.Build.props`) e nas extensões (`package.json` do VS Code e `source.extension.vsixmanifest` do VSIX), sem impor que todos compartilhem o mesmo número.
+O mesmo auditor também imprime uma sugestão de impacto SemVer baseada nas notas de `CHANGELOG.md` em `## [Unreleased]`, ajudando a padronizar a triagem entre `PATCH`, `MINOR` e `MAJOR`.
 O mesmo auditor agora cobre contratos mínimos de publicação das extensões: scripts/arquivos essenciais do pacote VS Code, activation events apontando para comandos/views existentes e presença do `overview`/tags/categorias no manifesto de publicação VSIX.
 No caso da VSIX, a auditoria também verifica alinhamento entre `MinimumVisualStudioVersion` do projeto e o range suportado no `source.extension.vsixmanifest`, evitando drift de compatibilidade declarada.
 Para a extensão VS Code, a mesma trilha também valida placeholders `%...%` do `package.json` contra `package.nls*.json` e a presença da pasta `l10n`.

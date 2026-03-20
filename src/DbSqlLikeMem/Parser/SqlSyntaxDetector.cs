@@ -151,13 +151,13 @@ internal static class SqlSyntaxDetector
     private static readonly Dictionary<string, AutoSqlSyntaxFeatures> DirectWordLikeFeatures =
         new(StringComparer.OrdinalIgnoreCase)
         {
-            ["TOP"] = AutoSqlSyntaxFeatures.Top,
+            [SqlConst.TOP] = AutoSqlSyntaxFeatures.Top,
             [SqlConst.LIMIT] = AutoSqlSyntaxFeatures.Limit,
             [SqlConst.FETCH] = AutoSqlSyntaxFeatures.Fetch,
             [SqlConst.OFFSET] = AutoSqlSyntaxFeatures.Offset,
-            ["ROWNUM"] = AutoSqlSyntaxFeatures.Rownum,
+            [SqlConst.ROWNUM] = AutoSqlSyntaxFeatures.Rownum,
             [SqlConst.SQL_CALC_FOUND_ROWS] = AutoSqlSyntaxFeatures.SqlCalcFoundRows,
-            ["ILIKE"] = AutoSqlSyntaxFeatures.Ilike,
+            [SqlConst.ILIKE] = AutoSqlSyntaxFeatures.Ilike,
             [SqlConst.PIVOT] = AutoSqlSyntaxFeatures.Pivot,
             [SqlConst.UNPIVOT] = AutoSqlSyntaxFeatures.Pivot,
             [SqlConst.WITH] = AutoSqlSyntaxFeatures.WithCte,
@@ -185,16 +185,16 @@ internal static class SqlSyntaxDetector
         Func<IReadOnlyList<SqlToken>, int, SqlToken, bool> IsMatch);
 
     private static bool IsIdentityMarker(SqlToken token)
-        => token.Text.Equals("IDENTITY", StringComparison.OrdinalIgnoreCase)
-            || token.Text.Equals("AUTO_INCREMENT", StringComparison.OrdinalIgnoreCase)
-            || token.Text.Equals("SERIAL", StringComparison.OrdinalIgnoreCase)
-            || token.Text.Equals("BIGSERIAL", StringComparison.OrdinalIgnoreCase);
+        => token.Text.Equals(SqlConst.IDENTITY, StringComparison.OrdinalIgnoreCase)
+            || token.Text.Equals(SqlConst.AUTO_INCREMENT, StringComparison.OrdinalIgnoreCase)
+            || token.Text.Equals(SqlConst.SERIAL, StringComparison.OrdinalIgnoreCase)
+            || token.Text.Equals(SqlConst.BIGSERIAL, StringComparison.OrdinalIgnoreCase);
 
     private static bool IsConcatFunction(IReadOnlyList<SqlToken> tokens, int index)
     {
         var token = tokens[index];
-        if (!token.Text.Equals("CONCAT", StringComparison.OrdinalIgnoreCase)
-            && !token.Text.Equals("CONCAT_WS", StringComparison.OrdinalIgnoreCase))
+        if (!token.Text.Equals(SqlConst.CONCAT, StringComparison.OrdinalIgnoreCase)
+            && !token.Text.Equals(SqlConst.CONCAT_WS, StringComparison.OrdinalIgnoreCase))
             return false;
 
         var next = index + 1 < tokens.Count ? tokens[index + 1] : SqlToken.EOF;
@@ -225,8 +225,8 @@ internal static class SqlSyntaxDetector
                 && next2.Text.Equals(SqlConst.FOR, StringComparison.OrdinalIgnoreCase);
         }
 
-        if (token.Text.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
-            || token.Text.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase))
+        if (token.Text.Equals(SqlConst.NEXTVAL, StringComparison.OrdinalIgnoreCase)
+            || token.Text.Equals(SqlConst.CURRVAL, StringComparison.OrdinalIgnoreCase))
         {
             var next = index + 1 < tokens.Count ? tokens[index + 1] : SqlToken.EOF;
             var previous = index > 0 ? tokens[index - 1] : SqlToken.EOF;
@@ -234,8 +234,8 @@ internal static class SqlSyntaxDetector
                 || (previous.Kind == SqlTokenKind.Symbol && previous.Text == ".");
         }
 
-        if (token.Text.Equals("LASTVAL", StringComparison.OrdinalIgnoreCase)
-            || token.Text.Equals("SETVAL", StringComparison.OrdinalIgnoreCase))
+        if (token.Text.Equals(SqlConst.LASTVAL, StringComparison.OrdinalIgnoreCase)
+            || token.Text.Equals(SqlConst.SETVAL, StringComparison.OrdinalIgnoreCase))
         {
             var next = index + 1 < tokens.Count ? tokens[index + 1] : SqlToken.EOF;
             return next.Kind == SqlTokenKind.Symbol && next.Text == "(";

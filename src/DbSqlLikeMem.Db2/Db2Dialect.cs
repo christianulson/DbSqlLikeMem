@@ -111,10 +111,29 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// PT: Obtém se há suporte a merge.
     /// </summary>
     public override bool SupportsMerge => Version >= MergeMinVersion;
+    /// <summary>
+    /// EN: Gets whether JSON_QUERY is supported.
+    /// PT: Obtém se há suporte a JSON_QUERY.
+    /// </summary>
     public override bool SupportsJsonQueryFunction => Version >= JsonFunctionsMinVersion;
+    /// <summary>
+    /// EN: Gets whether JSON_VALUE is supported.
+    /// PT: Obtém se há suporte a JSON_VALUE.
+    /// </summary>
     public override bool SupportsJsonValueFunction => Version >= JsonFunctionsMinVersion;
+    /// <summary>
+    /// EN: Gets whether JSON_TABLE is supported.
+    /// PT: Obtém se há suporte a JSON_TABLE.
+    /// </summary>
+    public override bool SupportsJsonTableFunction => Version >= JsonFunctionsMinVersion;
+
     public override bool SupportsAlterTableAddColumn => true;
     public override bool SupportsFunctionDdl => true;
+    /// <summary>
+    /// EN: Gets whether CREATE OR REPLACE FUNCTION is supported.
+    /// PT: Obtém se CREATE OR REPLACE FUNCTION é suportado.
+    /// </summary>
+    public override bool SupportsCreateOrReplaceFunctionDdl => true;
     public override bool SupportsSequenceDdl => true;
     public override bool SupportsNextValueForSequenceExpression => true;
     public override bool SupportsPreviousValueForSequenceExpression => true;
@@ -215,8 +234,4 @@ internal sealed class Db2Dialect : SqlDialectBase
     public override bool SupportsLastFoundRowsFunction(string functionName)
         => functionName.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase);
 }
-
-
-
-
 

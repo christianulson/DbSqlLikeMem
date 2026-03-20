@@ -176,10 +176,10 @@ public sealed class NpgsqlDialectFeatureParserTests
     {
         var dialect = new NpgsqlDialect(version);
 
-        Assert.Equal("NEXTVAL", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("nextval('sales.seq_orders')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("CURRVAL", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("currval('sales.seq_orders')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("SETVAL", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("setval('sales.seq_orders', 30, false)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("LASTVAL", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("lastval()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.NEXTVAL, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("nextval('sales.seq_orders')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.CURRVAL, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("currval('sales.seq_orders')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.SETVAL, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("setval('sales.seq_orders', 30, false)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.LASTVAL, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("lastval()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>

@@ -96,8 +96,8 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
             var canonicalKeywordKeys = new Dictionary<string, string[]>(StringComparer.Ordinal)
             {
-                ["WarningOrderByWithoutLimitMessage"] = ["ORDER BY", SqlConst.LIMIT, "TOP", SqlConst.FETCH],
-                ["WarningOrderByWithoutLimitAction"] = [SqlConst.LIMIT, "TOP", SqlConst.FETCH],
+                ["WarningOrderByWithoutLimitMessage"] = ["ORDER BY", SqlConst.LIMIT, SqlConst.TOP, SqlConst.FETCH],
+                ["WarningOrderByWithoutLimitAction"] = [SqlConst.LIMIT, SqlConst.TOP, SqlConst.FETCH],
                 ["WarningNoWhereHighReadMessage"] = [SqlConst.WHERE],
                 ["WarningNoWhereHighReadHighImpactMessage"] = [SqlConst.WHERE],
                 ["WarningNoWhereHighReadAction"] = [SqlConst.WHERE],

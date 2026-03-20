@@ -6,6 +6,21 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+$allowedRootLevelProjectStems = @(
+    "DbSqlLikeMem",
+    "DbSqlLikeMem.CsvReader",
+    "DbSqlLikeMem.Dapper.TestTools",
+    "DbSqlLikeMem.EfCore",
+    "DbSqlLikeMem.EfCore.TestTools",
+    "DbSqlLikeMem.LinqToDb",
+    "DbSqlLikeMem.LinqToDb.TestTools",
+    "DbSqlLikeMem.MiniProfiler.TestTools",
+    "DbSqlLikeMem.NHibernate.TestTools",
+    "DbSqlLikeMem.Test",
+    "DbSqlLikeMem.TestTools",
+    "DbSqlLikeMem.XUnit"
+)
+
 if (-not (Test-Path -LiteralPath $SrcDir -PathType Container)) {
     Write-Error "ERROR: src-dir not found or not a directory: $SrcDir"
     exit 2
@@ -23,6 +38,11 @@ $allProjects = Get-ChildItem -Path $SrcDir -Recurse -Filter *.csproj -File |
     } |
     Sort-Object -Unique
 
+$rootLevelProjects = Get-ChildItem -Path $SrcDir -Recurse -Filter *.csproj -File |
+    Where-Object { $_.Directory.FullName -eq $srcRoot } |
+    ForEach-Object { $_.Name } |
+    Sort-Object -Unique
+
 $slnxContent = Get-Content -LiteralPath $Slnx -Raw
 $includedProjects = [regex]::Matches($slnxContent, 'Project Path="([^"]+\.csproj)"') |
     ForEach-Object {
@@ -32,8 +52,14 @@ $includedProjects = [regex]::Matches($slnxContent, 'Project Path="([^"]+\.csproj
 
 $missing = @($allProjects | Where-Object { $_ -notin $includedProjects })
 $extra = @($includedProjects | Where-Object { $_ -notin $allProjects })
+$organizationDrift = @(
+    $rootLevelProjects | Where-Object {
+        $stem = [System.IO.Path]::GetFileNameWithoutExtension($_)
+        $stem -notin $allowedRootLevelProjectStems
+    }
+)
 
-Write-Output "csproj_total=$($allProjects.Count) included_total=$($includedProjects.Count) missing=$($missing.Count) extra=$($extra.Count)"
+Write-Output "csproj_total=$($allProjects.Count) included_total=$($includedProjects.Count) missing=$($missing.Count) extra=$($extra.Count) root_level_unbalanced=$($organizationDrift.Count)"
 
 if ($missing.Count -gt 0) {
     Write-Output ""
@@ -51,7 +77,15 @@ if ($extra.Count -gt 0) {
     }
 }
 
-if ($missing.Count -eq 0 -and $extra.Count -eq 0) {
+if ($organizationDrift.Count -gt 0) {
+    Write-Output ""
+    Write-Output "Root-level projects outside the shared organization buckets:"
+    foreach ($item in $organizationDrift) {
+        Write-Output "  - $item"
+    }
+}
+
+if ($missing.Count -eq 0 -and $extra.Count -eq 0 -and $organizationDrift.Count -eq 0) {
     exit 0
 }
 

@@ -111,6 +111,63 @@ class CheckReleaseReadinessCommunicationTests(unittest.TestCase):
         path.write_text(content, encoding="utf-8")
 
 
+class CheckReleaseReadinessSemVerImpactTests(unittest.TestCase):
+    def test_analyze_release_semver_impact_prefers_major_when_breaking_note_exists(self) -> None:
+        content = "\n".join(
+            [
+                "## [Unreleased]",
+                "### Tooling and docs",
+                "- Breaking change: remove the legacy public contract.",
+                "- Added support for automated impact classification.",
+                "- Fixed the release notes wording.",
+            ]
+        )
+
+        summary = sut.analyze_release_semver_impact(content)
+
+        self.assertIsNotNone(summary)
+        self.assertEqual(summary.suggested_bump, "MAJOR")
+        self.assertEqual(summary.breaking_count, 1)
+        self.assertEqual(summary.feature_count, 1)
+        self.assertEqual(summary.fix_count, 1)
+
+    def test_analyze_release_semver_impact_prefers_minor_for_feature_notes(self) -> None:
+        content = "\n".join(
+            [
+                "## [Unreleased]",
+                "### Tooling and docs",
+                "- Added support for automated release notes grouping.",
+                "- Updated documentation references.",
+            ]
+        )
+
+        summary = sut.analyze_release_semver_impact(content)
+
+        self.assertIsNotNone(summary)
+        self.assertEqual(summary.suggested_bump, "MINOR")
+        self.assertEqual(summary.breaking_count, 0)
+        self.assertEqual(summary.feature_count, 1)
+        self.assertEqual(summary.fix_count, 1)
+
+    def test_analyze_release_semver_impact_defaults_to_patch_for_fix_notes(self) -> None:
+        content = "\n".join(
+            [
+                "## [Unreleased]",
+                "### Tooling and docs",
+                "- Fixed the wording of the release checklist.",
+                "- Hardened the release audit output.",
+            ]
+        )
+
+        summary = sut.analyze_release_semver_impact(content)
+
+        self.assertIsNotNone(summary)
+        self.assertEqual(summary.suggested_bump, "PATCH")
+        self.assertEqual(summary.breaking_count, 0)
+        self.assertEqual(summary.feature_count, 0)
+        self.assertEqual(summary.fix_count, 2)
+
+
 class CheckReleaseReadinessWorkflowTests(unittest.TestCase):
     def test_check_workflows_accepts_tag_and_version_source_contract(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

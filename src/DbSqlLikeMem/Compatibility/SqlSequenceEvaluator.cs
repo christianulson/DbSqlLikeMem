@@ -20,9 +20,9 @@ internal static class SqlSequenceEvaluator
 
         value = functionName.ToUpperInvariant() switch
         {
-            "NEXT_VALUE_FOR" or "NEXTVAL" => connection.GetNextSequenceValue(sequenceRef!),
-            "CURRVAL" or "PREVIOUS_VALUE_FOR" => connection.GetCurrentSequenceValue(sequenceRef!),
-            "SETVAL" => connection.SetSequenceValue(sequenceRef!, args, evalArg),
+            "NEXT_VALUE_FOR" or SqlConst.NEXTVAL => connection.GetNextSequenceValue(sequenceRef!),
+            SqlConst.CURRVAL or "PREVIOUS_VALUE_FOR" => connection.GetCurrentSequenceValue(sequenceRef!),
+            SqlConst.SETVAL => connection.SetSequenceValue(sequenceRef!, args, evalArg),
             _ => null
         };
 
@@ -48,7 +48,7 @@ internal static class SqlSequenceEvaluator
             throw new InvalidOperationException($"Sequence not found: {sequenceRef.DisplayName}");
 
         if (!functionName.Equals("NEXT_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
-            && !functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase))
+            && !functionName.Equals(SqlConst.NEXTVAL, StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException($"{functionName} requires a connection-scoped session context.");
         }
@@ -97,8 +97,8 @@ internal static class SqlSequenceEvaluator
     {
         sequenceRef = null;
         if ((functionName.Equals("NEXT_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
-                || functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
-                || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals(SqlConst.NEXTVAL, StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals(SqlConst.CURRVAL, StringComparison.OrdinalIgnoreCase)
                 || functionName.Equals("PREVIOUS_VALUE_FOR", StringComparison.OrdinalIgnoreCase))
             && args.Count == 1)
         {
@@ -106,7 +106,7 @@ internal static class SqlSequenceEvaluator
             return sequenceRef is not null;
         }
 
-        if (functionName.Equals("SETVAL", StringComparison.OrdinalIgnoreCase)
+        if (functionName.Equals(SqlConst.SETVAL, StringComparison.OrdinalIgnoreCase)
             && (args.Count == 2 || args.Count == 3))
         {
             sequenceRef = TryReadSequenceReference(args[0], evalArg);
@@ -164,7 +164,7 @@ internal static class SqlSequenceEvaluator
         out object? value)
     {
         value = null;
-        if (!functionName.Equals("LASTVAL", StringComparison.OrdinalIgnoreCase) || args.Count != 0)
+        if (!functionName.Equals(SqlConst.LASTVAL, StringComparison.OrdinalIgnoreCase) || args.Count != 0)
             return false;
 
         if (!connection.TryGetLastSessionSequenceValue(out var currentValue))

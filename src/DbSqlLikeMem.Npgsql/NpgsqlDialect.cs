@@ -9,7 +9,7 @@ internal sealed class NpgsqlDialect : SqlDialectBase
         ) : base(
         name: DialectName,
         version: version,
-        keywords: ["ILIKE"],
+        keywords: [SqlConst.ILIKE],
         binOps:
         [
             new KeyValuePair<string, SqlBinaryOp>(SqlConst.AND, SqlBinaryOp.And),
@@ -113,10 +113,10 @@ internal sealed class NpgsqlDialect : SqlDialectBase
 
     public override bool SupportsSequenceDdl => true;
     public override bool SupportsSequenceFunctionCall(string functionName)
-        => functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("SETVAL", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("LASTVAL", StringComparison.OrdinalIgnoreCase);
+        => functionName.Equals(SqlConst.NEXTVAL, StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals(SqlConst.CURRVAL, StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals(SqlConst.SETVAL, StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals(SqlConst.LASTVAL, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// EN: Gets whether delete target alias is supported.

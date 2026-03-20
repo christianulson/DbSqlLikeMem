@@ -31,9 +31,13 @@ public sealed class Db2FunctionTests
     {
         using var connection = CreateOpenConnection(version);
 
-        ExecuteNonQuery(connection, "CREATE FUNCTION fn_users(baseValue INT, incrementValue INT) RETURNS INT RETURN baseValue + incrementValue");
+        ExecuteNonQuery(connection, "CREATE OR REPLACE FUNCTION fn_users(baseValue INT, incrementValue INT) RETURNS INT RETURN baseValue + incrementValue");
 
         Assert.Equal(42, Convert.ToInt32(ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+
+        ExecuteNonQuery(connection, "CREATE OR REPLACE FUNCTION fn_users(baseValue INT, incrementValue INT) RETURNS INT RETURN baseValue * incrementValue");
+
+        Assert.Equal(80, Convert.ToInt32(ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
 
         ExecuteNonQuery(connection, "DROP FUNCTION IF EXISTS fn_users(INT, INT)");
 
@@ -214,6 +218,54 @@ public sealed class Db2FunctionTests
 
         Assert.Equal("{\"active\":true,\"name\":\"Ana\"}", ExecuteScalar(connection, "SELECT JSON_QUERY(Email, '$.profile') FROM Users WHERE Id = 1"));
         Assert.Equal("Ana", ExecuteScalar(connection, "SELECT JSON_VALUE(Email, '$.profile.name') FROM Users WHERE Id = 1"));
+    }
+
+    /// <summary>
+    /// EN: Ensures DB2 JSON_TABLE materializes rows when the dialect version enables SQL/JSON table functions.
+    /// PT: Garante que o JSON_TABLE do DB2 materialize linhas quando a versao do dialeto habilita funcoes de tabela SQL/JSON.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    [Theory]
+    [MemberDataDb2Version]
+    [Trait("Category", "Db2Mock")]
+    public void JsonTable_ShouldReturnExpectedRows(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+        using var command = new Db2CommandMock(connection)
+        {
+            CommandText = """
+                SELECT jt.ord, jt.Id, jt.Name
+                FROM JSON_TABLE(
+                    '[{"id":1,"name":"Ana"},{"id":2,"name":"Bia"}]',
+                    '$[*]' COLUMNS(
+                        ord FOR ORDINALITY,
+                        Id INT PATH '$.id',
+                        Name VARCHAR(50) PATH '$.name'
+                    )
+                ) jt
+                ORDER BY jt.ord
+                """
+        };
+
+        if (version < Db2Dialect.JsonFunctionsMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+            Assert.Contains(SqlConst.JSON_TABLE, ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("ord")));
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.Equal("Ana", reader.GetString(reader.GetOrdinal("Name")));
+
+        Assert.True(reader.Read());
+        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("ord")));
+        Assert.Equal(2, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.Equal("Bia", reader.GetString(reader.GetOrdinal("Name")));
+        Assert.False(reader.Read());
     }
 
 
@@ -604,5 +656,4 @@ public sealed class Db2FunctionTests
         command.ExecuteNonQuery();
     }
 }
-
 

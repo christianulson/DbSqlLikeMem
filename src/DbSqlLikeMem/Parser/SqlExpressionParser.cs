@@ -220,7 +220,7 @@ internal sealed class SqlExpressionParser(
         if (IsKeyword(t2, SqlConst.IN))
             return TryParseNotIn(ref left, minBp);
 
-        if (IsKeyword(t2, "LIKE") || IsKeywordOrIdentifierWord(t2, "ILIKE"))
+        if (IsKeyword(t2, "LIKE") || IsKeywordOrIdentifierWord(t2, SqlConst.ILIKE))
             return TryParseNotLike(ref left, minBp);
 
         if (IsKeywordOrIdentifierWord(t2, "REGEXP"))
@@ -406,7 +406,7 @@ internal sealed class SqlExpressionParser(
             if (IsKeyword(next, "LIKE"))
             {
             }
-            else if (IsKeywordOrIdentifierWord(next, "ILIKE"))
+            else if (IsKeywordOrIdentifierWord(next, SqlConst.ILIKE))
             {
                 caseInsensitive = true;
             }
@@ -417,7 +417,7 @@ internal sealed class SqlExpressionParser(
         else if (IsKeyword(t, "LIKE"))
         {
         }
-        else if (IsKeywordOrIdentifierWord(t, "ILIKE"))
+        else if (IsKeywordOrIdentifierWord(t, SqlConst.ILIKE))
         {
             caseInsensitive = true;
         }
@@ -440,7 +440,7 @@ internal sealed class SqlExpressionParser(
         }
 
         if (caseInsensitive && !_dialect.SupportsIlikeOperator)
-            throw SqlUnsupported.ForDialect(_dialect, "ILIKE");
+            throw SqlUnsupported.ForDialect(_dialect, SqlConst.ILIKE);
 
         var expr = (SqlExpr)ParseLikeExpression(left, rbp, caseInsensitive);
         left = negate ? new UnaryExpr(SqlUnaryOp.Not, expr) : expr;
@@ -1819,10 +1819,10 @@ internal sealed class SqlExpressionParser(
             throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
         }
 
-        if ((name.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("SETVAL", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("LASTVAL", StringComparison.OrdinalIgnoreCase))
+        if ((name.Equals(SqlConst.NEXTVAL, StringComparison.OrdinalIgnoreCase)
+                || name.Equals(SqlConst.CURRVAL, StringComparison.OrdinalIgnoreCase)
+                || name.Equals(SqlConst.SETVAL, StringComparison.OrdinalIgnoreCase)
+                || name.Equals(SqlConst.LASTVAL, StringComparison.OrdinalIgnoreCase))
             && !_dialect.SupportsSequenceFunctionCall(name))
         {
             throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
@@ -1984,8 +1984,8 @@ internal sealed class SqlExpressionParser(
                 || name.Equals("ISJSON", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("ISNUMERIC", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("CHAR", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("CONCAT", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("CONCAT_WS", StringComparison.OrdinalIgnoreCase)
+                || name.Equals(SqlConst.CONCAT, StringComparison.OrdinalIgnoreCase)
+                || name.Equals(SqlConst.CONCAT_WS, StringComparison.OrdinalIgnoreCase)
                 || name.Equals("LEN", StringComparison.OrdinalIgnoreCase)
                 || name.Equals(SqlConst.LEFT, StringComparison.OrdinalIgnoreCase)
                 || name.Equals("LOG", StringComparison.OrdinalIgnoreCase)
@@ -2911,8 +2911,8 @@ internal sealed class SqlExpressionParser(
             return false;
 
         var suffix = parts[^1];
-        if (!suffix.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
-            && !suffix.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase))
+        if (!suffix.Equals(SqlConst.NEXTVAL, StringComparison.OrdinalIgnoreCase)
+            && !suffix.Equals(SqlConst.CURRVAL, StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }

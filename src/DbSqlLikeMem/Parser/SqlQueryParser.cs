@@ -400,7 +400,7 @@ internal sealed class SqlQueryParser
     private SqlInsertQuery ParseInsertLike(bool isReplace)
     {
         Consume(); // INSERT / REPLACE
-        ConsumeOptionalInsertModifiers(isReplace);
+        var insertIgnore = ConsumeOptionalInsertModifiers(isReplace);
         if (IsWord(Peek(), SqlConst.INTO)) Consume();
 
         var table = ParseTableSource(
@@ -483,14 +483,15 @@ internal sealed class SqlQueryParser
             HasOnDuplicateKeyUpdate = (onDup != null),
             OnDupAssigns = onDup?.Assignments.Select(a => (a.Column, a.ValueRaw)).ToList() ?? [],
             OnDupAssignsParsed = onDup?.Assignments.ToList() ?? [],
-            IsOnConflictDoNothing = onDup?.IsDoNothing == true,
+            IsOnConflictDoNothing = onDup?.IsDoNothing == true || (insertIgnore && onDup is null),
             OnConflictUpdateWhereRaw = onDup?.UpdateWhereRaw,
             OnConflictUpdateWhereExpr = onDup?.UpdateWhereExpr
         };
     }
 
-    private void ConsumeOptionalInsertModifiers(bool isReplace)
+    private bool ConsumeOptionalInsertModifiers(bool isReplace)
     {
+        var sawIgnore = false;
         while (true)
         {
             if (IsWord(Peek(), SqlConst.LOW_PRIORITY)
@@ -498,12 +499,16 @@ internal sealed class SqlQueryParser
                 || (!isReplace && IsWord(Peek(), SqlConst.HIGH_PRIORITY))
                 || (!isReplace && IsWord(Peek(), SqlConst.IGNORE)))
             {
+                if (!isReplace && IsWord(Peek(), SqlConst.IGNORE))
+                    sawIgnore = true;
                 Consume();
                 continue;
             }
 
             break;
         }
+
+        return sawIgnore;
     }
 
     private void ConsumeOptionalPartitionClause()
@@ -1952,8 +1957,11 @@ internal sealed class SqlQueryParser
         if (IsWord(Peek(), SqlConst.FUNCTION))
             return ParseCreateFunction(orReplace);
 
+        if (IsWord(Peek(), SqlConst.PROCEDURE))
+            return ParseCreateProcedure(orReplace);
+
         if (orReplace)
-            throw new InvalidOperationException("CREATE OR REPLACE is only supported for VIEW and FUNCTION statements.");
+            throw new InvalidOperationException("CREATE OR REPLACE is only supported for VIEW, FUNCTION and PROCEDURE statements.");
 
         var isTemporary = false;
         var tempScope = TemporaryTableScope.None;
@@ -2598,6 +2606,147 @@ internal sealed class SqlQueryParser
         };
     }
 
+    private SqlCreateProcedureQuery ParseCreateProcedure(bool orReplace)
+    {
+        if (!_dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+            throw SqlUnsupported.ForDialect(_dialect, "CREATE PROCEDURE");
+
+        ExpectWord(SqlConst.PROCEDURE);
+
+        var procedureNameToken = Peek();
+        if (IsEnd(procedureNameToken) || IsSymbol(procedureNameToken, ";"))
+            throw new InvalidOperationException("CREATE PROCEDURE requires a procedure name.");
+
+        var procedure = ParseQualifiedObjectName();
+        var definition = ParseProcedureDefinition();
+
+        while (!IsEnd(Peek()) && !IsSymbol(Peek(), ";"))
+            Consume();
+
+        EnsureStatementEnd("CREATE PROCEDURE");
+
+        return new SqlCreateProcedureQuery
+        {
+            Table = procedure,
+            OrReplace = orReplace,
+            Definition = definition
+        };
+    }
+
+    private ProcedureDef ParseProcedureDefinition()
+    {
+        if (!IsSymbol(Peek(), "("))
+            throw new InvalidOperationException("CREATE PROCEDURE requires a parameter list.");
+
+        var rawParameterList = ReadBalancedParenRawTokens().Trim();
+        if (string.IsNullOrWhiteSpace(rawParameterList))
+            return new ProcedureDef([], [], []);
+
+        var defs = SplitRawByComma(rawParameterList);
+        if (defs.Any(string.IsNullOrWhiteSpace))
+            throw new InvalidOperationException("CREATE PROCEDURE parameter list cannot contain empty entries.");
+
+        var requiredIn = new List<ProcParam>();
+        var optionalIn = new List<ProcParam>();
+        var outParams = new List<ProcParam>();
+
+        foreach (var rawDefinition in defs)
+        {
+            var (parameter, direction) = ParseProcedureParameter(rawDefinition);
+            switch (direction)
+            {
+                case ParameterDirection.Input:
+                    requiredIn.Add(parameter);
+                    break;
+                case ParameterDirection.Output:
+                    outParams.Add(parameter);
+                    break;
+                case ParameterDirection.InputOutput:
+                    requiredIn.Add(parameter);
+                    outParams.Add(parameter);
+                    break;
+                default:
+                    optionalIn.Add(parameter);
+                    break;
+            }
+        }
+
+        return new ProcedureDef(requiredIn, optionalIn, outParams);
+    }
+
+    private (ProcParam Parameter, ParameterDirection Direction) ParseProcedureParameter(string rawDefinition)
+    {
+        var tokens = new SqlTokenizer(rawDefinition, _dialect).Tokenize()
+            .Where(static token => token.Kind != SqlTokenKind.EndOfFile)
+            .ToList();
+        if (tokens.Count == 0)
+            throw new InvalidOperationException("CREATE PROCEDURE parameter list requires at least one parameter definition.");
+
+        var index = 0;
+        var direction = ParameterDirection.Input;
+
+        if (IsProcedureDirectionWord(tokens[index], SqlConst.IN))
+        {
+            index++;
+            if (index < tokens.Count && IsProcedureDirectionWord(tokens[index], SqlConst.OUT))
+            {
+                direction = ParameterDirection.InputOutput;
+                index++;
+            }
+        }
+        else if (IsProcedureDirectionWord(tokens[index], SqlConst.OUT))
+        {
+            direction = ParameterDirection.Output;
+            index++;
+        }
+        else if (IsProcedureDirectionWord(tokens[index], SqlConst.INOUT))
+        {
+            direction = ParameterDirection.InputOutput;
+            index++;
+        }
+
+        if (index >= tokens.Count)
+            throw new InvalidOperationException("CREATE PROCEDURE parameter definition requires a parameter name.");
+
+        var nameToken = tokens[index++];
+        if (nameToken.Kind is not (SqlTokenKind.Parameter or SqlTokenKind.Identifier or SqlTokenKind.Keyword))
+            throw new InvalidOperationException($"CREATE PROCEDURE parameter definition requires a parameter name, found {nameToken.Kind} '{nameToken.Text}'.");
+
+        var typeTokens = tokens.Skip(index).ToList();
+        if (typeTokens.Count == 0)
+            throw new InvalidOperationException($"CREATE PROCEDURE parameter '{nameToken.Text}' requires a type.");
+
+        if (typeTokens.Any(token => token.Text.Equals(SqlConst.DEFAULT, StringComparison.OrdinalIgnoreCase) || token.Text == "="))
+            throw new NotSupportedException("CREATE PROCEDURE parameter default values are not supported in the mock yet.");
+
+        var typeSql = TokensToSql(typeTokens).Trim();
+        if (string.IsNullOrWhiteSpace(typeSql))
+            throw new InvalidOperationException($"CREATE PROCEDURE parameter '{nameToken.Text}' requires a type.");
+
+        var dbType = ParseProcedureParameterDbType(typeSql);
+        var parameter = new ProcParam(nameToken.Text, dbType, Required: direction != ParameterDirection.Output);
+        return (parameter, direction);
+    }
+
+    private static bool IsProcedureDirectionWord(SqlToken token, string word)
+        => token.Kind is SqlTokenKind.Identifier or SqlTokenKind.Keyword
+           && token.Text.Equals(word, StringComparison.OrdinalIgnoreCase);
+
+    private static DbType ParseProcedureParameterDbType(string typeSql)
+        => typeSql.Trim().NormalizeName().Split(' ').First(_=>!string.IsNullOrWhiteSpace(_)).ToUpperInvariant() switch
+        {
+            "INT" or "INTEGER" or "SMALLINT" => DbType.Int32,
+            "BIGINT" => DbType.Int64,
+            "DECIMAL" or "NUMERIC" => DbType.Decimal,
+            "FLOAT" or "REAL" or "DOUBLE" => DbType.Double,
+            "BOOLEAN" or "BOOL" => DbType.Boolean,
+            "DATE" => DbType.Date,
+            "TIMESTAMP" or "DATETIME" => DbType.DateTime,
+            "GUID" or "UUID" => DbType.Guid,
+            "BLOB" or "BINARY" or "VARBINARY" => DbType.Binary,
+            _ => DbType.String,
+        };
+
     private SqlTableSource ParseCreateIndexTableName()
     {
         var tableNameToken = Peek();
@@ -3236,7 +3385,7 @@ internal sealed class SqlQueryParser
     private SqlTop? TryParseTop()
     {
         // SQL Server: SELECT TOP (10) ... / SELECT TOP 10 ...
-        if (!IsWord(Peek(), "TOP")) return null;
+        if (!IsWord(Peek(), SqlConst.TOP)) return null;
 
         // Se o dialeto não suporta, deixa o SQL cair como erro em validação ou corpo
         if (!_dialect.SupportsTop)

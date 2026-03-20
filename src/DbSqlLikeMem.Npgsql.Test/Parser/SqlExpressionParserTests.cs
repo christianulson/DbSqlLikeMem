@@ -114,11 +114,11 @@ public sealed class SqlExpressionParserTests(
     {
         var nextEx = Assert.Throws<NotSupportedException>(() =>
             SqlExpressionParser.ParseScalar("sales.seq_orders.NEXTVAL", new NpgsqlDialect(version)));
-        Assert.Contains("NEXTVAL", nextEx.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.NEXTVAL, nextEx.Message, StringComparison.OrdinalIgnoreCase);
 
         var currEx = Assert.Throws<NotSupportedException>(() =>
             SqlExpressionParser.ParseScalar("sales.seq_orders.CURRVAL", new NpgsqlDialect(version)));
-        Assert.Contains("CURRVAL", currEx.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.CURRVAL, currEx.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

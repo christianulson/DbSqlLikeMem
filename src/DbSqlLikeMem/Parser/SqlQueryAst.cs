@@ -161,6 +161,12 @@ internal sealed record SqlCreateFunctionQuery : SqlQueryBase
     internal SqlExpr Body { get; init; } = null!;
 }
 
+internal sealed record SqlCreateProcedureQuery : SqlQueryBase
+{
+    internal bool OrReplace { get; init; }
+    internal ProcedureDef Definition { get; init; } = null!;
+}
+
 internal sealed record SqlDropFunctionQuery : SqlQueryBase
 {
     internal bool IfExists { get; init; }

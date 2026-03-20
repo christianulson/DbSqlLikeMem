@@ -112,15 +112,15 @@ internal sealed class AutoSqlDialect : SqlDialectBase
 
     /// <inheritdoc />
     public override bool SupportsSequenceDotValueExpression(string suffix)
-        => suffix.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
-            || suffix.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase);
+        => suffix.Equals(SqlConst.NEXTVAL, StringComparison.OrdinalIgnoreCase)
+            || suffix.Equals(SqlConst.CURRVAL, StringComparison.OrdinalIgnoreCase);
 
     /// <inheritdoc />
     public override bool SupportsSequenceFunctionCall(string functionName)
-        => functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("SETVAL", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("LASTVAL", StringComparison.OrdinalIgnoreCase);
+        => functionName.Equals(SqlConst.NEXTVAL, StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals(SqlConst.CURRVAL, StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals(SqlConst.SETVAL, StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals(SqlConst.LASTVAL, StringComparison.OrdinalIgnoreCase);
 
     /// <inheritdoc />
     public override bool SupportsJsonArrowOperators => true;
