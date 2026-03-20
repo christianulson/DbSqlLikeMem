@@ -12,8 +12,8 @@ internal sealed class NpgsqlDialect : SqlDialectBase
         keywords: ["ILIKE"],
         binOps:
         [
-            new KeyValuePair<string, SqlBinaryOp>("AND", SqlBinaryOp.And),
-            new KeyValuePair<string, SqlBinaryOp>("OR", SqlBinaryOp.Or),
+            new KeyValuePair<string, SqlBinaryOp>(SqlConst.AND, SqlBinaryOp.And),
+            new KeyValuePair<string, SqlBinaryOp>(SqlConst.OR, SqlBinaryOp.Or),
             new KeyValuePair<string, SqlBinaryOp>("=", SqlBinaryOp.Eq),
             new KeyValuePair<string, SqlBinaryOp>("<>", SqlBinaryOp.Neq),
             new KeyValuePair<string, SqlBinaryOp>("!=", SqlBinaryOp.Neq),

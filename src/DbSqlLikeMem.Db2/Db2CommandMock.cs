@@ -126,6 +126,7 @@ public class Db2CommandMock(
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
         connection!.ClearExecutionPlans();
         ArgumentNullExceptionCompatible.ThrowIfNull(CommandText, nameof(CommandText));
+        using var _ = connection.Metrics.BeginAmbientScope();
 
         if (connection.TryHandleExecuteReaderPrelude(
             CommandType,
@@ -193,9 +194,22 @@ public class Db2CommandMock(
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
+        using var _ = connection!.Metrics.BeginAmbientScope();
 
         if (TryExecuteValuesSequenceScalar(CommandText, out var specialValue))
             return specialValue!;
+
+        if (connection.TryHandleExecuteScalarPrelude(
+            CommandType,
+            CommandText,
+            Parameters,
+            static () => new Db2DataReaderMock([[]]),
+            normalizeSqlInput: true,
+            TryExecuteTransactionControlCommand,
+            out var scalar))
+        {
+            return scalar!;
+        }
 
         using var reader = ExecuteReader();
         if (reader.Read())

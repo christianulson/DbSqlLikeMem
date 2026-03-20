@@ -3,6 +3,8 @@ using System.Data.Common;
 using System.Globalization;
 using System.Text;
 using Dapper;
+using DbSqlLikeMem;
+using DbSqlLikeMem.VisualStudioExtension.Core;
 using DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 using Microsoft.Extensions.Configuration;
@@ -237,13 +239,13 @@ static partial class Program
             var col = ReadString(row, "ColumnName");
             if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(col))
                 continue;
-            if (name.Equals("PRIMARY", StringComparison.OrdinalIgnoreCase)
+            if (name.Equals(SqlConst.PRIMARY, StringComparison.OrdinalIgnoreCase)
                 || name.Equals("PK", StringComparison.OrdinalIgnoreCase)
                 || name.StartsWith("PK_", StringComparison.OrdinalIgnoreCase))
                 continue;
 
             var unique = ReadBoolFlexible(row, "IsUnique")
-                         || ReadString(row, "Uniqueness").Equals("UNIQUE", StringComparison.OrdinalIgnoreCase)
+                         || ReadString(row, "Uniqueness").Equals(SqlConst.UNIQUE, StringComparison.OrdinalIgnoreCase)
                          || ReadString(row, "UniqueRule").Equals("U", StringComparison.OrdinalIgnoreCase)
                          || ReadInt(row, "NonUnique") == 0;
 

@@ -22,7 +22,32 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     private static readonly HashSet<string> _sqlAliasReservedTokens = new(StringComparer.OrdinalIgnoreCase)
     {
-        "SELECT","FROM","JOIN","INNER","LEFT","RIGHT","FULL","CROSS","OUTER","APPLY","ON","WHERE","GROUP","BY","ORDER","HAVING","LIMIT","OFFSET","UNION","ALL","AS","USING","WHEN","THEN","ELSE","END"
+        SqlConst.SELECT,
+        SqlConst.FROM,
+        SqlConst.JOIN,
+        SqlConst.INNER,
+        SqlConst.LEFT,
+        SqlConst.RIGHT,
+        SqlConst.FULL,
+        SqlConst.CROSS,
+        SqlConst.OUTER,
+        SqlConst.APPLY,
+        SqlConst.ON,
+        SqlConst.WHERE,
+        SqlConst.GROUP,
+        SqlConst.BY,
+        SqlConst.ORDER,
+        SqlConst.HAVING,
+        SqlConst.LIMIT,
+        SqlConst.OFFSET,
+        SqlConst.UNION,
+        SqlConst.ALL,
+        SqlConst.AS,
+        SqlConst.USING,
+        SqlConst.WHEN,
+        SqlConst.THEN,
+        SqlConst.ELSE,
+        SqlConst.END
     };
 
     internal static string Build(string operation, string? subquerySql, AstQueryExecutorBase.EvalRow row)
@@ -76,13 +101,13 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
         if (string.IsNullOrWhiteSpace(normalizedSubquerySql))
             return string.Empty;
 
-        if (string.Equals(operation, "EXISTS", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(operation, SqlConst.EXISTS, StringComparison.OrdinalIgnoreCase))
             return NormalizeExistsProjectionPayloadForCacheKey(normalizedSubquerySql);
 
-        if (string.Equals(operation, "IN", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(operation, "SCALAR", StringComparison.OrdinalIgnoreCase)
-            || operation.StartsWith("QANY_", StringComparison.OrdinalIgnoreCase)
-            || operation.StartsWith("QALL_", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(operation, SqlConst.IN, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(operation, SqlConst.SCALAR, StringComparison.OrdinalIgnoreCase)
+            || operation.StartsWith(SqlConst.QANY, StringComparison.OrdinalIgnoreCase)
+            || operation.StartsWith(SqlConst.QALL, StringComparison.OrdinalIgnoreCase))
             return NormalizeSelectProjectionAliasesForCacheKey(normalizedSubquerySql);
 
         return normalizedSubquerySql;
@@ -120,7 +145,45 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
     }
 
     private static List<KeyValuePair<string, object?>> GetOrderedCorrelatedSubqueryCacheFields(AstQueryExecutorBase.EvalRow row)
-        => [.. row.Fields.OrderBy(static kv => kv.Key, StringComparer.OrdinalIgnoreCase)];
+    {
+        if (row.OrdinalIndexes is null
+            || row.OrdinalValues is null
+            || row.OrdinalIndexes.Count == 0)
+        {
+            return [.. row.Fields.OrderBy(static kv => kv.Key, StringComparer.OrdinalIgnoreCase)];
+        }
+
+        var ordered = new List<KeyValuePair<string, object?>>(row.Fields.Count);
+        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var grouping in row.OrdinalIndexes
+            .Where(static kv => kv.Value >= 0)
+            .GroupBy(static kv => kv.Value)
+            .OrderBy(static group => group.Key))
+        {
+            foreach (var kv in grouping.OrderBy(static kv => kv.Key, StringComparer.OrdinalIgnoreCase))
+            {
+                if (kv.Value >= row.OrdinalValues.Length)
+                    continue;
+
+                if (!visited.Add(kv.Key))
+                    continue;
+
+                ordered.Add(new KeyValuePair<string, object?>(kv.Key, row.OrdinalValues[kv.Value]));
+            }
+        }
+
+        if (visited.Count < row.Fields.Count)
+        {
+            foreach (var kv in row.Fields.OrderBy(static kv => kv.Key, StringComparer.OrdinalIgnoreCase))
+            {
+                if (visited.Add(kv.Key))
+                    ordered.Add(kv);
+            }
+        }
+
+        return ordered;
+    }
 
     private static List<KeyValuePair<string, object?>> GetQualifiedCorrelatedSubqueryCacheFieldMatches(
         IReadOnlyList<KeyValuePair<string, object?>> allFields,
@@ -650,18 +713,14 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
     /// PT: Canoniza o payload de projeção de subquery EXISTS no nível de topo substituindo a lista do SELECT por token fixo preservando cláusulas relacionais.
     /// </summary>
     private static string NormalizeExistsProjectionPayloadForCacheKey(string sql)
-    {
-        return RewriteTopLevelSelectPayloadForCacheKey(sql, static _ => "<EXISTS_PAYLOAD>");
-    }
+        => RewriteTopLevelSelectPayloadForCacheKey(sql, static _ => "<EXISTS_PAYLOAD>");
 
     /// <summary>
     /// EN: Canonicalizes top-level SELECT projection aliases by removing explicit AS aliases while preserving projection expressions and relational clauses.
     /// PT: Canoniza aliases da projeção SELECT no nível de topo removendo aliases explícitos AS e preservando expressões projetadas e cláusulas relacionais.
     /// </summary>
     private static string NormalizeSelectProjectionAliasesForCacheKey(string sql)
-    {
-        return RewriteTopLevelSelectPayloadForCacheKey(sql, NormalizeSelectListAliasesForCacheKey);
-    }
+        => RewriteTopLevelSelectPayloadForCacheKey(sql, NormalizeSelectListAliasesForCacheKey);
 
     private static string RewriteTopLevelSelectPayloadForCacheKey(
         string sql,
@@ -691,11 +750,11 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
         if (string.IsNullOrWhiteSpace(sql))
             return false;
 
-        if (!TryFindTopLevelKeywordIndex(sql, "SELECT", 0, out var selectIndex))
+        if (!TryFindTopLevelKeywordIndex(sql, SqlConst.SELECT, 0, out var selectIndex))
             return false;
 
-        afterSelect = selectIndex + "SELECT".Length;
-        if (!TryFindTopLevelKeywordIndex(sql, "FROM", afterSelect, out fromIndex))
+        afterSelect = selectIndex + SqlConst.SELECT.Length;
+        if (!TryFindTopLevelKeywordIndex(sql, SqlConst.FROM, afterSelect, out fromIndex))
             return false;
 
         return fromIndex > afterSelect;
@@ -794,7 +853,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
         if (string.IsNullOrWhiteSpace(expression))
             return false;
 
-        if (!TryFindTopLevelKeywordIndex(expression, "AS", 0, out var asIndex))
+        if (!TryFindTopLevelKeywordIndex(expression, SqlConst.AS, 0, out var asIndex))
             return false;
 
         beforeAs = expression[..asIndex].TrimEnd();
@@ -904,8 +963,8 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
         if (string.IsNullOrWhiteSpace(sql))
             return string.Empty;
 
-        var normalizedWhere = RewritePredicateClauseForCacheKey(sql, _cacheKeyWherePredicateRegex, "WHERE");
-        return RewritePredicateClauseForCacheKey(normalizedWhere, _cacheKeyHavingPredicateRegex, "HAVING");
+        var normalizedWhere = RewritePredicateClauseForCacheKey(sql, _cacheKeyWherePredicateRegex, SqlConst.WHERE);
+        return RewritePredicateClauseForCacheKey(normalizedWhere, _cacheKeyHavingPredicateRegex, SqlConst.HAVING);
     }
 
     private static string RewritePredicateClauseForCacheKey(
@@ -935,8 +994,8 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     private static bool ShouldNormalizeTopLevelAndPredicateForCacheKey(string predicate)
         => !string.IsNullOrWhiteSpace(predicate)
-            && !ContainsTokenOutsideQuotedSegments(predicate, "OR")
-            && !ContainsTokenOutsideQuotedSegments(predicate, "BETWEEN");
+            && !ContainsTokenOutsideQuotedSegments(predicate, SqlConst.OR)
+            && !ContainsTokenOutsideQuotedSegments(predicate, SqlConst.BETWEEN);
 
     private static string JoinNormalizedTopLevelAndSegments(
         string originalPredicate,
@@ -946,7 +1005,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
             return originalPredicate;
 
         segments.Sort(StringComparer.Ordinal);
-        return string.Join(" AND ", segments);
+        return string.Join(SqlConst._AND_, segments);
     }
 
     /// <summary>
@@ -981,7 +1040,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
                 continue;
             }
 
-            if (depth == 0 && MatchesKeywordTokenAt(predicate, i, "AND"))
+            if (depth == 0 && MatchesKeywordTokenAt(predicate, i, SqlConst.AND))
             {
                 AppendNormalizedPredicateSegment(segments, predicate[start..i]);
                 start = i + 3;

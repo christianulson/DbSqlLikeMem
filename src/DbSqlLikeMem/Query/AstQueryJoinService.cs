@@ -182,37 +182,39 @@ internal sealed class AstQueryJoinService(
         AstQueryExecutorBase.EvalRow leftRow,
         AstQueryExecutorBase.Source rightSource,
         Dictionary<string, object?> rightFields)
-    {
-        var merged = leftRow.CloneRow();
-        merged.AddSource(rightSource);
-        merged.AddFields(rightFields);
-        return merged;
-    }
+        => leftRow.MergeJoinRow(rightSource, rightFields);
 
     private static AstQueryExecutorBase.EvalRow CreateNullExtendedRow(
         AstQueryExecutorBase.EvalRow leftRow,
         AstQueryExecutorBase.Source rightSource)
-    {
-        var merged = leftRow.CloneRow();
-        merged.AddSource(rightSource);
-        foreach (var columnName in rightSource.ColumnNames)
-            merged.Fields[$"{rightSource.Alias}.{columnName}"] = null;
-
-        return merged;
-    }
+        => leftRow.CreateNullExtendedJoinRow(rightSource);
 
     private static AstQueryExecutorBase.EvalRow CreateRightOnlyRow(
         AstQueryExecutorBase.Source rightSource,
         Dictionary<string, object?> rightFields)
     {
-        var fields = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-        var sources = new Dictionary<string, AstQueryExecutorBase.Source>(StringComparer.OrdinalIgnoreCase)
+        var ordinalValues = new object?[rightSource.ColumnNames.Count];
+        var ordinalIndexes = new Dictionary<string, int>(Math.Max(1, rightSource.ColumnNames.Count * 3), StringComparer.OrdinalIgnoreCase);
+        for (var i = 0; i < rightSource.ColumnNames.Count; i++)
+        {
+            var columnName = rightSource.ColumnNames[i];
+            var qualifiedName = $"{rightSource.Alias}.{columnName}";
+            ordinalValues[i] = rightFields.TryGetValue(qualifiedName, out var value) ? value : null;
+            ordinalIndexes.TryAdd(qualifiedName, i);
+            ordinalIndexes.TryAdd(columnName, i);
+            if (!rightSource.Name.Equals(rightSource.Alias, StringComparison.OrdinalIgnoreCase))
+                ordinalIndexes.TryAdd($"{rightSource.Name}.{columnName}", i);
+        }
+
+        var sources = new Dictionary<string, AstQueryExecutorBase.Source>(1, StringComparer.OrdinalIgnoreCase)
         {
             [rightSource.Alias] = rightSource
         };
 
-        var row = new AstQueryExecutorBase.EvalRow(fields, sources);
-        row.AddFields(rightFields);
-        return row;
+        return new AstQueryExecutorBase.EvalRow(rightFields, sources)
+        {
+            OrdinalValues = ordinalValues,
+            OrdinalIndexes = ordinalIndexes
+        };
     }
 }

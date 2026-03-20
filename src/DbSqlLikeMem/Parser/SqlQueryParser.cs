@@ -14,7 +14,7 @@ internal sealed class SqlQueryParser
     private readonly IDataParameterCollection? _parameters;
     private readonly AutoSqlSyntaxFeatures _autoSyntaxFeatures;
     private int _i;
-    // INSERT ... SELECT pode ter um sufixo de UPSERT apÃ³s o SELECT (MySQL ON DUPLICATE..., Postgres ON CONFLICT ...)
+    // INSERT ... SELECT pode ter um sufixo de UPSERT após o SELECT (MySQL ON DUPLICATE..., Postgres ON CONFLICT ...)
     private bool _allowInsertSelectSuffixBoundary;
 
     private static readonly SqlQueryAstCache _astCache = SqlQueryAstCache.CreateFromEnvironment();
@@ -117,7 +117,7 @@ internal sealed class SqlQueryParser
             // Fast feature gate before cache lookup to avoid serving incompatible ASTs for version-gated commands.
             var (preludeTokens, autoSyntaxFeatures) = GetPrelude(sql, dialect);
             var first = preludeTokens.Count > 0 ? preludeTokens[0] : default;
-            if (IsWord(first, "MERGE") && !dialect.SupportsMerge)
+            if (IsWord(first, SqlConst.MERGE) && !dialect.SupportsMerge)
                 throw SqlUnsupported.ForMerge(dialect);
 
             // ALWAYS use cache if available. Para evitar dependências de valores de parâmetros no AST (que quebraria o cache),
@@ -130,7 +130,7 @@ internal sealed class SqlQueryParser
             }
 
             // DDL statements are cheap to parse and benefit from deterministic no-cache behavior in tests.
-            if (IsWord(first, "CREATE") || IsWord(first, "ALTER") || IsWord(first, "DROP"))
+            if (IsWord(first, SqlConst.CREATE) || IsWord(first, SqlConst.ALTER) || IsWord(first, SqlConst.DROP))
             {
                 var uncached = ParseUncached(preludeTokens, dialect, null, autoSyntaxFeatures);
                 EnsureDialectSupport(uncached, dialect);
@@ -198,12 +198,12 @@ internal sealed class SqlQueryParser
     private static void EnsureSelectDialectSupport(SqlSelectQuery select, ISqlDialect dialect)
     {
         if (select.Ctes.Count > 0 && !dialect.SupportsWithCte)
-            throw SqlUnsupported.ForDialect(dialect, "WITH/CTE");
+            throw SqlUnsupported.ForDialect(dialect, SqlConst.WITH_CTE);
 
         EnsureRowLimitDialectSupport(select.RowLimit, dialect);
 
         if (select.ForJson is not null && !dialect.SupportsForJsonClause)
-            throw SqlUnsupported.ForDialect(dialect, "FOR JSON");
+            throw SqlUnsupported.ForDialect(dialect, SqlConst.FOR_JSON);
 
         if (select.Table?.Derived is not null)
             EnsureSelectDialectSupport(select.Table.Derived, dialect);
@@ -222,12 +222,12 @@ internal sealed class SqlQueryParser
             if (fetch.Offset != null)
             {
                 if (!dialect.SupportsOffsetFetch)
-                    throw SqlUnsupported.ForPagination(dialect, "OFFSET/FETCH");
+                    throw SqlUnsupported.ForPagination(dialect, SqlConst.OFFSET_FETCH);
                 return;
             }
 
             if (!dialect.SupportsFetchFirst)
-                throw SqlUnsupported.ForPagination(dialect, "FETCH FIRST/NEXT");
+                throw SqlUnsupported.ForPagination(dialect, SqlConst.FETCH_FIRST_NEXT);
         }
     }
 
@@ -241,23 +241,23 @@ internal sealed class SqlQueryParser
         var first = q.Peek();
 
         SqlQueryBase? result;
-        if (IsWord(first, "SELECT") || IsWord(first, "WITH"))
+        if (IsWord(first, SqlConst.SELECT) || IsWord(first, SqlConst.WITH))
             result = q.ParseSelectOrUnionQuery();
-        else if (IsWord(first, "INSERT"))
+        else if (IsWord(first, SqlConst.INSERT))
             result = q.ParseInsert();
-        else if (IsWord(first, "REPLACE"))
+        else if (IsWord(first, SqlConst.REPLACE))
             result = q.ParseReplace();
-        else if (IsWord(first, "UPDATE"))
+        else if (IsWord(first, SqlConst.UPDATE))
             result = q.ParseUpdate();
-        else if (IsWord(first, "DELETE"))
+        else if (IsWord(first, SqlConst.DELETE))
             result = q.ParseDelete();
-        else if (IsWord(first, "CREATE"))
+        else if (IsWord(first, SqlConst.CREATE))
             result = q.ParseCreate();
-        else if (IsWord(first, "ALTER"))
+        else if (IsWord(first, SqlConst.ALTER))
             result = q.ParseAlter();
-        else if (IsWord(first, "DROP"))
+        else if (IsWord(first, SqlConst.DROP))
             result = q.ParseDrop();
-        else if (IsWord(first, "MERGE"))
+        else if (IsWord(first, SqlConst.MERGE))
         {
             // Para MySQL, MERGE simplesmente não existe (é sintaxe inválida para o dialeto).
             // Os testes de corpus esperam ThrowInvalid aqui, não NotSupported.
@@ -318,7 +318,7 @@ internal sealed class SqlQueryParser
         ISqlDialect dialect,
         IDataParameterCollection? parameters)
     {
-        // O split top-level ainda é Ãºtil para separar statements por ';'
+        // O split top-level ainda é útil para separar statements por ';'
         foreach (var s in SplitStatementsTopLevel(sql, dialect))
         {
             if (string.IsNullOrWhiteSpace(s)) continue;
@@ -347,7 +347,7 @@ internal sealed class SqlQueryParser
     public static IEnumerable<string> SplitStatementsAuto(string sql)
         => SplitStatementsTopLevel(sql, new AutoSqlDialect());
 
-    // Mantido para compatibilidade com lÃ³gica de Union
+    // Mantido para compatibilidade com lógica de Union
     /// <summary>
     /// EN: Represents a normalized UNION parsing result including parts, ALL flags, final ORDER BY and row-limit tail.
     /// PT: Representa um resultado normalizado de parsing de UNION incluindo partes, flags ALL, ORDER BY final e cauda de limite de linhas.
@@ -361,7 +361,7 @@ internal sealed class SqlQueryParser
 
     /// <summary>
     /// EN: Parses SQL into a normalized UNION chain contract used by callers that expect UNION metadata even for single SELECT.
-    /// PT: Faz o parsing de SQL para um contrato normalizado de cadeia UNION usado por chamadores que esperam metadados de UNION mesmo para SELECT Ãºnico.
+    /// PT: Faz o parsing de SQL para um contrato normalizado de cadeia UNION usado por chamadores que esperam metadados de UNION mesmo para SELECT único.
     /// </summary>
     /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
     /// <param name="dialect">EN: Dialect used for parsing. PT: Dialeto usado no parsing.</param>
@@ -401,12 +401,12 @@ internal sealed class SqlQueryParser
     {
         Consume(); // INSERT / REPLACE
         ConsumeOptionalInsertModifiers(isReplace);
-        if (IsWord(Peek(), "INTO")) Consume();
+        if (IsWord(Peek(), SqlConst.INTO)) Consume();
 
         var table = ParseTableSource(
             consumeHints: false,
             allowFunctionSource: false,
-            aliasStopWords: ["VALUE", "PARTITION"]); // Tabela
+            aliasStopWords: [SqlConst.VALUE, SqlConst.PARTITION]); // Tabela
 
         ConsumeOptionalPartitionClause();
 
@@ -416,7 +416,7 @@ internal sealed class SqlQueryParser
         List<string> cols;
         bool hasExplicitColumnList;
         SqlSelectQuery? insertSelect = null;
-        if (IsWord(Peek(), "SET"))
+        if (IsWord(Peek(), SqlConst.SET))
         {
             Consume(); // SET
             var assignments = ParseReplaceSetAssignments();
@@ -433,12 +433,12 @@ internal sealed class SqlQueryParser
         }
 
         // VALUES / VALUE ou SELECT?
-        if (valuesRaw.Count == 0 && (IsWord(Peek(), "VALUES") || IsWord(Peek(), "VALUE")))
+        if (valuesRaw.Count == 0 && (IsWord(Peek(), SqlConst.VALUES) || IsWord(Peek(), SqlConst.VALUE)))
         {
             Consume(); // VALUES / VALUE
             ParseInsertValuesRows(valuesRaw, valuesExpr);
         }
-        else if (valuesRaw.Count == 0 && (IsWord(Peek(), "SELECT") || IsWord(Peek(), "WITH")))
+        else if (valuesRaw.Count == 0 && (IsWord(Peek(), SqlConst.SELECT) || IsWord(Peek(), SqlConst.WITH)))
         {
             _allowInsertSelectSuffixBoundary = _dialect.SupportsOnDuplicateKeyUpdate
                 || _dialect.SupportsOnConflictClause
@@ -469,7 +469,7 @@ internal sealed class SqlQueryParser
         var onDup = isReplace ? null : ParseOnDuplicated();
         var returning = ParseOptionalReturningItems(ReturningClauseTarget.Insert);
 
-        EnsureStatementEnd("INSERT");
+        EnsureStatementEnd(SqlConst.INSERT);
 
         return new SqlInsertQuery
         {
@@ -493,10 +493,10 @@ internal sealed class SqlQueryParser
     {
         while (true)
         {
-            if (IsWord(Peek(), "LOW_PRIORITY")
-                || IsWord(Peek(), "DELAYED")
-                || (!isReplace && IsWord(Peek(), "HIGH_PRIORITY"))
-                || (!isReplace && IsWord(Peek(), "IGNORE")))
+            if (IsWord(Peek(), SqlConst.LOW_PRIORITY)
+                || IsWord(Peek(), SqlConst.DELAYED)
+                || (!isReplace && IsWord(Peek(), SqlConst.HIGH_PRIORITY))
+                || (!isReplace && IsWord(Peek(), SqlConst.IGNORE)))
             {
                 Consume();
                 continue;
@@ -508,7 +508,7 @@ internal sealed class SqlQueryParser
 
     private void ConsumeOptionalPartitionClause()
     {
-        if (!IsWord(Peek(), "PARTITION"))
+        if (!IsWord(Peek(), SqlConst.PARTITION))
             return;
 
         Consume(); // PARTITION
@@ -550,7 +550,7 @@ internal sealed class SqlQueryParser
             var rowValues = rowValuesRaw;
             var rowNumber = valuesRaw.Count + 1;
 
-            valuesRaw.Add(rowValues);
+            valuesRaw.Add([.. rowValues.Select(NormalizeInsertValueRaw)]);
             valuesExpr.Add(ParseInsertValuesRowExpressions(rowValues, rowNumber));
 
             if (IsSymbol(Peek(), ","))
@@ -669,13 +669,13 @@ internal sealed class SqlQueryParser
 
     private SqlOnDuplicateKeyUpdate? ParseOnDuplicated()
     {
-        if (!IsWord(Peek(), "ON"))
+        if (!IsWord(Peek(), SqlConst.ON))
             return null;
 
         var next = Peek(1);
 
         // MySQL: ON DUPLICATE KEY UPDATE
-        if (IsWord(next, "DUPLICATE"))
+        if (IsWord(next, SqlConst.DUPLICATE))
         {
             if (!_dialect.SupportsOnDuplicateKeyUpdate && !_dialect.AllowsParserInsertSelectUpsertSuffix)
             {
@@ -684,25 +684,25 @@ internal sealed class SqlQueryParser
             }
 
             Consume(); // ON
-            ExpectWord("DUPLICATE");
+            ExpectWord(SqlConst.DUPLICATE);
             ExpectWord("KEY");
-            ExpectWord("UPDATE");
+            ExpectWord(SqlConst.UPDATE);
 
-            if (IsWord(Peek(), "WHERE"))
+            if (IsWord(Peek(), SqlConst.WHERE))
                 throw new InvalidOperationException(
                     $"ON DUPLICATE KEY UPDATE does not support a WHERE clause (found '{Peek().Text}').");
 
-            if (IsWord(Peek(), "FROM") || IsWord(Peek(), "USING"))
+            if (IsWord(Peek(), SqlConst.FROM) || IsWord(Peek(), SqlConst.USING))
                 throw new InvalidOperationException(
                     $"ON DUPLICATE KEY UPDATE does not support table-source clauses after assignments (found '{Peek().Text}').");
 
             var assigns = ParseAssignmentsList().AsReadOnly();
 
-            if (IsWord(Peek(), "WHERE"))
+            if (IsWord(Peek(), SqlConst.WHERE))
                 throw new InvalidOperationException(
                     $"ON DUPLICATE KEY UPDATE does not support a WHERE clause (found '{Peek().Text}').");
 
-            if (IsWord(Peek(), "FROM") || IsWord(Peek(), "USING"))
+            if (IsWord(Peek(), SqlConst.FROM) || IsWord(Peek(), SqlConst.USING))
                 throw new InvalidOperationException(
                     $"ON DUPLICATE KEY UPDATE does not support table-source clauses after assignments (found '{Peek().Text}').");
 
@@ -727,37 +727,37 @@ internal sealed class SqlQueryParser
             // - [target] WHERE predicate
             ParsePostgreSqlOnConflictTarget();
 
-            if (!IsWord(Peek(), "DO"))
+            if (!IsWord(Peek(), SqlConst.DO))
                 throw new InvalidOperationException(
                     $"ON CONFLICT requires DO NOTHING or DO UPDATE SET (found '{DescribeFoundToken(Peek())}').");
 
             Consume(); // DO
 
-            if (IsWord(Peek(), "NOTHING"))
+            if (IsWord(Peek(), SqlConst.NOTHING))
             {
                 Consume();
 
                 var afterDoNothing = Peek();
-                if (!IsEnd(afterDoNothing) && !IsSymbol(afterDoNothing, ";") && !IsWord(afterDoNothing, "RETURNING"))
+                if (!IsEnd(afterDoNothing) && !IsSymbol(afterDoNothing, ";") && !IsWord(afterDoNothing, SqlConst.RETURNING))
                     throw new InvalidOperationException(
                         $"ON CONFLICT DO NOTHING does not support additional clauses before RETURNING (found '{afterDoNothing.Text}').");
 
                 return new SqlOnDuplicateKeyUpdate([], IsDoNothing: true);
             }
 
-            if (!IsWord(Peek(), "UPDATE"))
+            if (!IsWord(Peek(), SqlConst.UPDATE))
                 throw new InvalidOperationException(
                     $"ON CONFLICT DO must be followed by NOTHING or UPDATE SET (found '{DescribeFoundToken(Peek())}').");
 
             Consume(); // UPDATE
 
-            if (!IsWord(Peek(), "SET"))
+            if (!IsWord(Peek(), SqlConst.SET))
                 throw new InvalidOperationException(
                     $"ON CONFLICT DO UPDATE requires SET assignments (found '{DescribeFoundToken(Peek())}').");
 
             Consume(); // SET
 
-            if (IsWord(Peek(), "FROM") || IsWord(Peek(), "USING"))
+            if (IsWord(Peek(), SqlConst.FROM) || IsWord(Peek(), SqlConst.USING))
                 throw new InvalidOperationException(
                     $"ON CONFLICT DO UPDATE does not support table-source clauses after assignments (found '{Peek().Text}').");
 
@@ -765,17 +765,17 @@ internal sealed class SqlQueryParser
             string? updateWhereRaw = null;
             SqlExpr? updateWhereExpr = null;
 
-            if (IsWord(Peek(), "FROM") || IsWord(Peek(), "USING"))
+            if (IsWord(Peek(), SqlConst.FROM) || IsWord(Peek(), SqlConst.USING))
                 throw new InvalidOperationException(
                     $"ON CONFLICT DO UPDATE does not support table-source clauses after assignments (found '{Peek().Text}').");
 
             // PostgreSQL permite: DO UPDATE SET ... WHERE <predicate>.
             // O predicado é validado e materializado na AST para uso no executor.
-            if (IsWord(Peek(), "WHERE"))
+            if (IsWord(Peek(), SqlConst.WHERE))
             {
                 Consume();
                 (updateWhereRaw, updateWhereExpr) = ParseOnConflictWherePredicate(
-                    ReadClauseTextUntilTopLevelStop("RETURNING"),
+                    ReadClauseTextUntilTopLevelStop(SqlConst.RETURNING),
                     "ON CONFLICT DO UPDATE WHERE",
                     Peek());
             }
@@ -789,7 +789,7 @@ internal sealed class SqlQueryParser
     private void ParsePostgreSqlOnConflictTarget()
     {
         // ON CONFLICT ON CONSTRAINT constraint_name
-        if (IsWord(Peek(), "ON") && IsWord(Peek(1), "CONSTRAINT"))
+        if (IsWord(Peek(), SqlConst.ON) && IsWord(Peek(1), "CONSTRAINT"))
         {
             Consume(); // ON
             Consume(); // CONSTRAINT
@@ -801,11 +801,11 @@ internal sealed class SqlQueryParser
 
             Consume(); // constraint name
 
-            if (IsWord(Peek(), "WHERE"))
+            if (IsWord(Peek(), SqlConst.WHERE))
             {
                 Consume();
                 _ = ParseOnConflictWherePredicate(
-                    ReadClauseTextUntilTopLevelStop("DO"),
+                    ReadClauseTextUntilTopLevelStop(SqlConst.DO),
                     "ON CONFLICT target WHERE",
                     Peek());
             }
@@ -818,11 +818,11 @@ internal sealed class SqlQueryParser
             Consume(); // (
             ParseOnConflictTargetItems();
 
-            if (IsWord(Peek(), "WHERE"))
+            if (IsWord(Peek(), SqlConst.WHERE))
             {
                 Consume();
                 _ = ParseOnConflictWherePredicate(
-                    ReadClauseTextUntilTopLevelStop("DO"),
+                    ReadClauseTextUntilTopLevelStop(SqlConst.DO),
                     "ON CONFLICT target WHERE",
                     Peek());
             }
@@ -926,12 +926,12 @@ internal sealed class SqlQueryParser
         if (token.Kind == SqlTokenKind.Symbol && token.Text == ";")
             return true;
 
-        return token.Text.Equals("DO", StringComparison.OrdinalIgnoreCase)
-            || token.Text.Equals("NOTHING", StringComparison.OrdinalIgnoreCase)
-            || token.Text.Equals("UPDATE", StringComparison.OrdinalIgnoreCase)
-            || token.Text.Equals("SET", StringComparison.OrdinalIgnoreCase)
-            || token.Text.Equals("WHERE", StringComparison.OrdinalIgnoreCase)
-            || token.Text.Equals("RETURNING", StringComparison.OrdinalIgnoreCase);
+        return token.Text.Equals(SqlConst.DO, StringComparison.OrdinalIgnoreCase)
+            || token.Text.Equals(SqlConst.NOTHING, StringComparison.OrdinalIgnoreCase)
+            || token.Text.Equals(SqlConst.UPDATE, StringComparison.OrdinalIgnoreCase)
+            || token.Text.Equals(SqlConst.SET, StringComparison.OrdinalIgnoreCase)
+            || token.Text.Equals(SqlConst.WHERE, StringComparison.OrdinalIgnoreCase)
+            || token.Text.Equals(SqlConst.RETURNING, StringComparison.OrdinalIgnoreCase);
     }
 
 
@@ -941,7 +941,7 @@ internal sealed class SqlQueryParser
 
         while (true)
         {
-            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "USING") || IsWord(Peek(), "RETURNING"))
+            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), SqlConst.WHERE) || IsWord(Peek(), SqlConst.FROM) || IsWord(Peek(), SqlConst.USING) || IsWord(Peek(), SqlConst.RETURNING))
             {
                 if (list.Count == 0)
                     throw new InvalidOperationException(
@@ -954,14 +954,14 @@ internal sealed class SqlQueryParser
                 throw new InvalidOperationException(
                     $"ON CONFLICT DO UPDATE SET has an unexpected comma before assignment (found '{DescribeFoundToken(Peek())}').");
 
-            if (IsWord(Peek(), "SET"))
+            if (IsWord(Peek(), SqlConst.SET))
                 throw new InvalidOperationException(
                     $"ON CONFLICT DO UPDATE SET must not repeat SET keyword (found '{DescribeFoundToken(Peek())}').");
 
             var col = ExpectIdentifierWithDots();
             ExpectAssignmentEquals("ON CONFLICT DO UPDATE SET", col);
 
-            var exprRaw = ReadClauseTextUntilTopLevelStop(",", "WHERE", "FROM", "USING", "RETURNING", ";").Trim();
+            var exprRaw = ReadClauseTextUntilTopLevelStop(",", SqlConst.WHERE, SqlConst.FROM, SqlConst.USING, SqlConst.RETURNING, ";").Trim();
             if (string.IsNullOrWhiteSpace(exprRaw))
                 throw new InvalidOperationException($"ON CONFLICT DO UPDATE SET assignment for '{col}' requires an expression.");
 
@@ -986,20 +986,20 @@ internal sealed class SqlQueryParser
             {
                 throw new InvalidOperationException($"ON CONFLICT DO UPDATE SET assignment for '{col}' has an invalid expression.", ex);
             }
-            list.Add(new SqlAssignment(col, exprRaw, expr));
+            list.Add(new SqlAssignment(col, NormalizeInsertValueRaw(exprRaw), expr));
 
             if (IsSymbol(Peek(), ","))
             {
                 Consume();
 
-                if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "USING") || IsWord(Peek(), "RETURNING"))
+                if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), SqlConst.WHERE) || IsWord(Peek(), SqlConst.FROM) || IsWord(Peek(), SqlConst.USING) || IsWord(Peek(), SqlConst.RETURNING))
                     throw new InvalidOperationException(
                         $"ON CONFLICT DO UPDATE SET has a trailing comma without assignment (found '{DescribeFoundToken(Peek())}').");
 
                 continue;
             }
 
-            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "USING") || IsWord(Peek(), "RETURNING"))
+            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), SqlConst.WHERE) || IsWord(Peek(), SqlConst.FROM) || IsWord(Peek(), SqlConst.USING) || IsWord(Peek(), SqlConst.RETURNING))
                 return list;
 
             throw new InvalidOperationException("ON CONFLICT DO UPDATE SET must separate assignments with commas.");
@@ -1032,10 +1032,10 @@ internal sealed class SqlQueryParser
         if (Peek().Kind is SqlTokenKind.Identifier or SqlTokenKind.Keyword)
         {
             var maybeAlias = Peek();
-            if (!IsWord(maybeAlias, "SET")
-                && !IsWord(maybeAlias, "FROM")
-                && !IsWord(maybeAlias, "WHERE")
-                && !IsWord(maybeAlias, "RETURNING")
+            if (!IsWord(maybeAlias, SqlConst.SET)
+                && !IsWord(maybeAlias, SqlConst.FROM)
+                && !IsWord(maybeAlias, SqlConst.WHERE)
+                && !IsWord(maybeAlias, SqlConst.RETURNING)
                 && !IsJoinStart(maybeAlias)
                 && !IsEnd(maybeAlias)
                 && !IsSymbol(maybeAlias, ";"))
@@ -1054,36 +1054,36 @@ internal sealed class SqlQueryParser
                 throw SqlUnsupported.ForDialect(_dialect, "UPDATE ... JOIN (subquery)");
 
             hasJoin = true;
-            SkipUntilTopLevelWord("SET");
+            SkipUntilTopLevelWord(SqlConst.SET);
         }
 
-        ExpectWord("SET");
+        ExpectWord(SqlConst.SET);
 
         var assignsList = ParseUpdateAssignmentsList();
         var setList = assignsList.ConvertAll(a => (a.Column, a.ValueRaw));
 
         // SQL Server/PostgreSQL: UPDATE <alias> SET ... FROM ... [WHERE ...]
-        if (IsWord(Peek(), "FROM"))
+        if (IsWord(Peek(), SqlConst.FROM))
         {
             hasJoin = true;
             Consume(); // FROM
-            if (HasTopLevelWordInRemaining("WHERE"))
-                SkipUntilTopLevelWord("WHERE");
+            if (HasTopLevelWordInRemaining(SqlConst.WHERE))
+                SkipUntilTopLevelWord(SqlConst.WHERE);
             else
                 while (!IsEnd(Peek()))
                     Consume();
         }
 
         // Fallback: algumas variações de DELETE ... JOIN podem deixar o JOIN
-        // pendente apÃ³s o cabeçalho. Consumimos a cláusula aqui para não
+        // pendente após o cabeçalho. Consumimos a cláusula aqui para não
         // falhar no EnsureStatementEnd, preservando parse de WHERE/RETURNING.
         if (IsJoinStart(Peek()))
         {
             hasJoin = true;
-            if (HasTopLevelWordInRemaining("WHERE"))
-                SkipUntilTopLevelWord("WHERE");
-            else if (HasTopLevelWordInRemaining("RETURNING"))
-                SkipUntilTopLevelWord("RETURNING");
+            if (HasTopLevelWordInRemaining(SqlConst.WHERE))
+                SkipUntilTopLevelWord(SqlConst.WHERE);
+            else if (HasTopLevelWordInRemaining(SqlConst.RETURNING))
+                SkipUntilTopLevelWord(SqlConst.RETURNING);
             else
                 while (!IsEnd(Peek()))
                     Consume();
@@ -1095,20 +1095,20 @@ internal sealed class SqlQueryParser
         if (IsJoinStart(Peek()))
         {
             hasJoin = true;
-            if (HasTopLevelWordInRemaining("WHERE"))
-                SkipUntilTopLevelWord("WHERE");
-            else if (HasTopLevelWordInRemaining("RETURNING"))
-                SkipUntilTopLevelWord("RETURNING");
+            if (HasTopLevelWordInRemaining(SqlConst.WHERE))
+                SkipUntilTopLevelWord(SqlConst.WHERE);
+            else if (HasTopLevelWordInRemaining(SqlConst.RETURNING))
+                SkipUntilTopLevelWord(SqlConst.RETURNING);
             else
                 while (!IsEnd(Peek()))
                     Consume();
         }
 
         string? whereRaw = null;
-        if (IsWord(Peek(), "WHERE"))
+        if (IsWord(Peek(), SqlConst.WHERE))
         {
             Consume(); // WHERE
-            whereRaw = NormalizeClauseText(ReadClauseTextUntilTopLevelStop("RETURNING"));
+            whereRaw = NormalizeClauseText(ReadClauseTextUntilTopLevelStop(SqlConst.RETURNING));
             if (string.IsNullOrWhiteSpace(whereRaw))
                 throw new InvalidOperationException(
                     $"UPDATE WHERE requires a predicate (found '{DescribeFoundToken(Peek())}').");
@@ -1140,7 +1140,7 @@ internal sealed class SqlQueryParser
 #pragma warning restore CA1031 // Do not catch general exception types
         }
 
-        EnsureStatementEnd("UPDATE");
+        EnsureStatementEnd(SqlConst.UPDATE);
 
         return new SqlUpdateQuery
         {
@@ -1150,7 +1150,7 @@ internal sealed class SqlQueryParser
             WhereRaw = whereRaw,
             Where = whereExpr,
             Returning = returning,
-            // SÃ³ o "!= null" importa para acionar a estratégia smart; o SQL bruto está em RawSql.
+            // Só o "!= null" importa para acionar a estratégia smart; o SQL bruto está em RawSql.
             UpdateFromSelect = hasJoin
                 ? new SqlSelectQuery([], false, [], [], null, [], null, [], null)
                 : null
@@ -1169,18 +1169,18 @@ internal sealed class SqlQueryParser
         SqlTableSource table;
         bool hasJoin = false;
 
-        if (IsWord(Peek(), "FROM"))
+        if (IsWord(Peek(), SqlConst.FROM))
         {
             // DELETE FROM t WHERE ...
             Consume();
             table = ParseTableSource(allowFunctionSource: false);
 
-            if (IsWord(Peek(), "USING"))
+            if (IsWord(Peek(), SqlConst.USING))
             {
                 hasJoin = true;
                 Consume(); // USING
-                if (HasTopLevelWordInRemaining("WHERE"))
-                    SkipUntilTopLevelWord("WHERE");
+                if (HasTopLevelWordInRemaining(SqlConst.WHERE))
+                    SkipUntilTopLevelWord(SqlConst.WHERE);
                 else
                     while (!IsEnd(Peek()))
                         Consume();
@@ -1194,13 +1194,13 @@ internal sealed class SqlQueryParser
             // Para (b) precisamos guardar a tabela real (t), não o alias (a).
             var allowsTargetAlias = (_dialect.SupportsDeleteTargetAlias || _dialect.AllowsParserDeleteWithoutFromCompatibility)
                 && Peek().Kind == SqlTokenKind.Identifier
-                && IsWord(Peek(1), "FROM");
+                && IsWord(Peek(1), SqlConst.FROM);
             if (!_dialect.SupportsDeleteWithoutFrom && !_dialect.AllowsParserDeleteWithoutFromCompatibility && !allowsTargetAlias)
                 throw SqlUnsupported.ForDeleteWithoutFrom(_dialect);
 
             var first = ParseTableSource(allowFunctionSource: false); // pode ser tabela ou alvo
 
-            if (IsWord(Peek(), "FROM"))
+            if (IsWord(Peek(), SqlConst.FROM))
             {
                 if (!_dialect.SupportsDeleteTargetAlias && !_dialect.AllowsParserDeleteWithoutFromCompatibility)
                     throw SqlUnsupported.ForDeleteTargetAliasFrom(_dialect);
@@ -1209,19 +1209,19 @@ internal sealed class SqlQueryParser
                 Consume(); // FROM
                 table = ParseTableSource(allowFunctionSource: false); // ex: users
 
-                // alias pÃ³s-tabela (ex: users u)
-                if (Peek().Kind == SqlTokenKind.Identifier && !IsWord(Peek(), "WHERE") && !IsJoinStart(Peek()))
+                // alias pós-tabela (ex: users u)
+                if (Peek().Kind == SqlTokenKind.Identifier && !IsWord(Peek(), SqlConst.WHERE) && !IsJoinStart(Peek()))
                     Consume();
 
                 if (IsJoinStart(Peek()))
                 {
                     hasJoin = true;
                     // A estratégia smart faz o parsing completo a partir do RawSql.
-                    // Aqui sÃ³ precisamos consumir a cláusula JOIN para evitar token sobrando no fim.
-                    if (HasTopLevelWordInRemaining("WHERE"))
-                        SkipUntilTopLevelWord("WHERE");
-                    else if (HasTopLevelWordInRemaining("RETURNING"))
-                        SkipUntilTopLevelWord("RETURNING");
+                    // Aqui só precisamos consumir a cláusula JOIN para evitar token sobrando no fim.
+                    if (HasTopLevelWordInRemaining(SqlConst.WHERE))
+                        SkipUntilTopLevelWord(SqlConst.WHERE);
+                    else if (HasTopLevelWordInRemaining(SqlConst.RETURNING))
+                        SkipUntilTopLevelWord(SqlConst.RETURNING);
                     else
                         while (!IsEnd(Peek()))
                             Consume();
@@ -1234,9 +1234,9 @@ internal sealed class SqlQueryParser
 
                 // alias opcional (DELETE users u WHERE ...) - tolerado
                 if (Peek().Kind == SqlTokenKind.Identifier &&
-                    !IsWord(Peek(), "WHERE") &&
-                    !IsWord(Peek(), "ORDER") &&
-                    !IsWord(Peek(), "LIMIT") &&
+                    !IsWord(Peek(), SqlConst.WHERE) &&
+                    !IsWord(Peek(), SqlConst.ORDER) &&
+                    !IsWord(Peek(), SqlConst.LIMIT) &&
                     !IsJoinStart(Peek()))
                 {
                     Consume();
@@ -1246,10 +1246,10 @@ internal sealed class SqlQueryParser
 
         string? whereRaw = null;
 
-        if (IsWord(Peek(), "WHERE"))
+        if (IsWord(Peek(), SqlConst.WHERE))
         {
             Consume();
-            whereRaw = NormalizeClauseText(ReadClauseTextUntilTopLevelStop("RETURNING"));
+            whereRaw = NormalizeClauseText(ReadClauseTextUntilTopLevelStop(SqlConst.RETURNING));
             if (string.IsNullOrWhiteSpace(whereRaw))
                 throw new InvalidOperationException(
                     $"DELETE WHERE requires a predicate (found '{DescribeFoundToken(Peek())}').");
@@ -1283,7 +1283,7 @@ internal sealed class SqlQueryParser
 #pragma warning restore CA1031 // Do not catch general exception types
         }
 
-        EnsureStatementEnd("DELETE");
+        EnsureStatementEnd(SqlConst.DELETE);
 
         return new SqlDeleteQuery
         {
@@ -1300,22 +1300,22 @@ internal sealed class SqlQueryParser
     private SqlMergeQuery ParseMerge()
     {
         Consume(); // MERGE
-        if (IsWord(Peek(), "INTO")) Consume();
+        if (IsWord(Peek(), SqlConst.INTO)) Consume();
 
         // target table + alias (ex: stats target)
         var target = ParseTableSource(allowFunctionSource: false);
 
-        if (!HasTopLevelWordInRemaining("USING"))
+        if (!HasTopLevelWordInRemaining(SqlConst.USING))
             throw new InvalidOperationException("MERGE requer cláusula USING. Ex.: MERGE INTO <target> USING <source> ON ...");
 
-        if (!HasTopLevelWordInRemaining("ON"))
+        if (!HasTopLevelWordInRemaining(SqlConst.ON))
             throw new InvalidOperationException("MERGE requer cláusula ON. Ex.: MERGE INTO <target> USING <source> ON <condição>");
 
         if (!HasTopLevelMergeWhenClause())
             throw new InvalidOperationException("MERGE requer ao menos uma cláusula WHEN (MATCHED/NOT MATCHED).");
 
         // O resto do MERGE é grande demais pra agora.
-        // SÃ³ avançamos tokens até o fim pra não deixar lixo se você evoluir o parser.
+        // Só avançamos tokens até o fim pra não deixar lixo se você evoluir o parser.
         while (Peek().Kind != SqlTokenKind.EndOfFile)
             Consume();
 
@@ -1365,14 +1365,14 @@ internal sealed class SqlQueryParser
                 continue;
             }
 
-            if (depth != 0 || !IsWord(t, "WHEN"))
+            if (depth != 0 || !IsWord(t, SqlConst.WHEN))
                 continue;
 
             var next = PeekTokenFrom(idx + 1);
-            if (IsWord(next, "MATCHED"))
+            if (IsWord(next, SqlConst.MATCHED))
                 return true;
 
-            if (IsWord(next, "NOT") && IsWord(PeekTokenFrom(idx + 2), "MATCHED"))
+            if (IsWord(next, SqlConst.NOT) && IsWord(PeekTokenFrom(idx + 2), SqlConst.MATCHED))
                 return true;
         }
 
@@ -1383,7 +1383,7 @@ internal sealed class SqlQueryParser
         => (index >= 0 && index < _toks.Count) ? _toks[index] : SqlToken.EOF;
 
     // ------------------------------------------------------------
-    // SELECT (LÃ³gica já existente, mantida e integrada)
+    // SELECT (Lógica já existente, mantida e integrada)
     // ------------------------------------------------------------
 
     /// <summary>
@@ -1394,7 +1394,7 @@ internal sealed class SqlQueryParser
     {
         var first = ParseSelectQuery(allowOrderByAndLimit: false);
 
-        if (!IsWord(Peek(), "UNION"))
+        if (!IsWord(Peek(), SqlConst.UNION))
         {
             var orderBy = TryParseOrderBy();
             var rowLimit = TryParseRowLimitTail(orderBy.Count > 0);
@@ -1414,11 +1414,11 @@ internal sealed class SqlQueryParser
         var parts = new List<SqlSelectQuery> { first };
         var allFlags = new List<bool>();
 
-        while (IsWord(Peek(), "UNION"))
+        while (IsWord(Peek(), SqlConst.UNION))
         {
             Consume();
             var isAll = false;
-            if (IsWord(Peek(), "ALL"))
+            if (IsWord(Peek(), SqlConst.ALL))
             {
                 Consume();
                 isAll = true;
@@ -1442,13 +1442,13 @@ internal sealed class SqlQueryParser
     /// </summary>
     /// <param name="allowCtes">EN: When true, WITH/CTE clauses are parsed before SELECT. PT: Quando verdadeiro, cláusulas WITH/CTE são parseadas antes do SELECT.</param>
     /// <param name="allowOrderByAndLimit">EN: When true, ORDER BY and row-limit tails are parsed. PT: Quando verdadeiro, caudas ORDER BY e limite de linhas são parseadas.</param>
-    /// <returns>EN: Parsed SELECT AST node. PT: NÃ³ AST de SELECT parseado.</returns>
+    /// <returns>EN: Parsed SELECT AST node. PT: Nó AST de SELECT parseado.</returns>
     public SqlSelectQuery ParseSelectQuery(bool allowCtes = true, bool allowOrderByAndLimit = true)
     {
         var ctes = allowCtes ? TryParseCtes() : [];
 
-        ExpectWord("SELECT");
-        if (IsWord(Peek(), "SELECT"))
+        ExpectWord(SqlConst.SELECT);
+        if (IsWord(Peek(), SqlConst.SELECT))
             throw new InvalidOperationException("invalid: duplicated SELECT keyword");
         var distinct = TryParseDistinct();
         var top = TryParseTop();
@@ -1475,16 +1475,16 @@ internal sealed class SqlQueryParser
         {
             var t = Peek();
             if (!IsEnd(t)
-                && !IsWord(t, "UNION")
-                && !IsWord(t, "ORDER")
-                && !IsWord(t, "LIMIT")
-                && !IsWord(t, "OFFSET")
-                && !IsWord(t, "FETCH")
-                && !IsWord(t, "FOR")
-                && !IsWord(t, "OPTION")
+                && !IsWord(t, SqlConst.UNION)
+                && !IsWord(t, SqlConst.ORDER)
+                && !IsWord(t, SqlConst.LIMIT)
+                && !IsWord(t, SqlConst.OFFSET)
+                && !IsWord(t, SqlConst.FETCH)
+                && !IsWord(t, SqlConst.FOR)
+                && !IsWord(t, SqlConst.OPTION)
                 && !IsSymbol(t, ";"))
             {
-                throw new InvalidOperationException($"Token inesperado apÃ³s SELECT: {t.Kind} '{t.Text}'");
+                throw new InvalidOperationException($"Token inesperado após SELECT: {t.Kind} '{t.Text}'");
             }
         }
 
@@ -1517,7 +1517,7 @@ internal sealed class SqlQueryParser
 
     private void TryParseSelectModifiers()
     {
-        while (IsWord(Peek(), "SQL_CALC_FOUND_ROWS"))
+        while (IsWord(Peek(), SqlConst.SQL_CALC_FOUND_ROWS))
         {
             if (!_dialect.SupportsSqlCalcFoundRowsModifier)
                 throw SqlUnsupported.ForDialect(_dialect, "SELECT modifier SQL_CALC_FOUND_ROWS");
@@ -1578,7 +1578,7 @@ internal sealed class SqlQueryParser
 
         while (true)
         {
-            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "RETURNING"))
+            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), SqlConst.WHERE) || IsWord(Peek(), SqlConst.FROM) || IsWord(Peek(), SqlConst.RETURNING))
             {
                 if (list.Count == 0)
                     throw new InvalidOperationException(
@@ -1591,14 +1591,14 @@ internal sealed class SqlQueryParser
                 throw new InvalidOperationException(
                     $"UPDATE SET has an unexpected comma before assignment (found '{DescribeFoundToken(Peek())}').");
 
-            if (IsWord(Peek(), "SET"))
+            if (IsWord(Peek(), SqlConst.SET))
                 throw new InvalidOperationException(
                     $"UPDATE SET must not repeat SET keyword (found '{DescribeFoundToken(Peek())}').");
 
             var col = ExpectIdentifierWithDots();
             ExpectAssignmentEquals("UPDATE SET", col);
 
-            var exprRaw = ReadClauseTextUntilTopLevelStop(",", "WHERE", "FROM", "RETURNING", ";").Trim();
+            var exprRaw = ReadClauseTextUntilTopLevelStop(",", SqlConst.WHERE, SqlConst.FROM, SqlConst.RETURNING, ";").Trim();
             if (string.IsNullOrWhiteSpace(exprRaw))
                 throw new InvalidOperationException($"UPDATE SET assignment for '{col}' requires an expression.");
 
@@ -1623,20 +1623,20 @@ internal sealed class SqlQueryParser
             {
                 throw new InvalidOperationException($"UPDATE SET assignment for '{col}' has an invalid expression.", ex);
             }
-            list.Add(new SqlAssignment(col, exprRaw, expr));
+            list.Add(new SqlAssignment(col, NormalizeInsertValueRaw(exprRaw), expr));
 
             if (IsSymbol(Peek(), ","))
             {
                 Consume();
 
-                if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "RETURNING"))
+                if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), SqlConst.WHERE) || IsWord(Peek(), SqlConst.FROM) || IsWord(Peek(), SqlConst.RETURNING))
                     throw new InvalidOperationException(
                         $"UPDATE SET has a trailing comma without assignment (found '{DescribeFoundToken(Peek())}').");
 
                 continue;
             }
 
-            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "RETURNING"))
+            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), SqlConst.WHERE) || IsWord(Peek(), SqlConst.FROM) || IsWord(Peek(), SqlConst.RETURNING))
                 return list;
 
             throw new InvalidOperationException("UPDATE SET must separate assignments with commas.");
@@ -1648,7 +1648,7 @@ internal sealed class SqlQueryParser
         var list = new List<SqlAssignment>();
         while (true)
         {
-            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "USING") || IsWord(Peek(), "RETURNING"))
+            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), SqlConst.WHERE) || IsWord(Peek(), SqlConst.FROM) || IsWord(Peek(), SqlConst.USING) || IsWord(Peek(), SqlConst.RETURNING))
             {
                 if (list.Count == 0)
                     throw new InvalidOperationException(
@@ -1661,14 +1661,14 @@ internal sealed class SqlQueryParser
                 throw new InvalidOperationException(
                     $"ON DUPLICATE KEY UPDATE has an unexpected comma before assignment (found '{DescribeFoundToken(Peek())}').");
 
-            if (IsWord(Peek(), "SET"))
+            if (IsWord(Peek(), SqlConst.SET))
                 throw new InvalidOperationException(
                     $"ON DUPLICATE KEY UPDATE must not include SET keyword; provide assignments directly (found '{DescribeFoundToken(Peek())}').");
 
             var col = ExpectIdentifierWithDots();
             ExpectAssignmentEquals("ON DUPLICATE KEY UPDATE", col);
 
-            var exprRaw = ReadClauseTextUntilTopLevelStop(",", "WHERE", "FROM", "USING", "RETURNING", ";").Trim();
+            var exprRaw = ReadClauseTextUntilTopLevelStop(",", SqlConst.WHERE, SqlConst.FROM, SqlConst.USING, SqlConst.RETURNING, ";").Trim();
             if (string.IsNullOrWhiteSpace(exprRaw))
                 throw new InvalidOperationException($"ON DUPLICATE KEY UPDATE assignment for '{col}' requires an expression.");
 
@@ -1693,20 +1693,20 @@ internal sealed class SqlQueryParser
             {
                 throw new InvalidOperationException($"ON DUPLICATE KEY UPDATE assignment for '{col}' has an invalid expression.", ex);
             }
-            list.Add(new SqlAssignment(col, exprRaw, expr));
+            list.Add(new SqlAssignment(col, NormalizeInsertValueRaw(exprRaw), expr));
 
             if (IsSymbol(Peek(), ","))
             {
                 Consume();
 
-                if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "USING") || IsWord(Peek(), "RETURNING"))
+                if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), SqlConst.WHERE) || IsWord(Peek(), SqlConst.FROM) || IsWord(Peek(), SqlConst.USING) || IsWord(Peek(), SqlConst.RETURNING))
                     throw new InvalidOperationException(
                         $"ON DUPLICATE KEY UPDATE has a trailing comma without assignment (found '{DescribeFoundToken(Peek())}').");
 
                 continue;
             }
 
-            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "USING") || IsWord(Peek(), "RETURNING"))
+            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), SqlConst.WHERE) || IsWord(Peek(), SqlConst.FROM) || IsWord(Peek(), SqlConst.USING) || IsWord(Peek(), SqlConst.RETURNING))
                 return list;
 
             throw new InvalidOperationException("ON DUPLICATE KEY UPDATE must separate assignments with commas.");
@@ -1718,7 +1718,7 @@ internal sealed class SqlQueryParser
         var list = new List<SqlAssignment>();
         while (true)
         {
-            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "USING") || IsWord(Peek(), "RETURNING"))
+            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), SqlConst.WHERE) || IsWord(Peek(), SqlConst.FROM) || IsWord(Peek(), SqlConst.USING) || IsWord(Peek(), SqlConst.RETURNING))
             {
                 if (list.Count == 0)
                     throw new InvalidOperationException(
@@ -1731,14 +1731,14 @@ internal sealed class SqlQueryParser
                 throw new InvalidOperationException(
                     $"REPLACE SET has an unexpected comma before assignment (found '{DescribeFoundToken(Peek())}').");
 
-            if (IsWord(Peek(), "SET"))
+            if (IsWord(Peek(), SqlConst.SET))
                 throw new InvalidOperationException(
                     $"REPLACE SET must not include SET keyword twice (found '{DescribeFoundToken(Peek())}').");
 
             var col = ExpectIdentifierWithDots();
             ExpectAssignmentEquals("REPLACE SET", col);
 
-            var exprRaw = ReadClauseTextUntilTopLevelStop(",", "WHERE", "FROM", "USING", "RETURNING", ";").Trim();
+            var exprRaw = ReadClauseTextUntilTopLevelStop(",", SqlConst.WHERE, SqlConst.FROM, SqlConst.USING, SqlConst.RETURNING, ";").Trim();
             if (string.IsNullOrWhiteSpace(exprRaw))
                 throw new InvalidOperationException($"REPLACE SET assignment for '{col}' requires an expression.");
 
@@ -1763,20 +1763,20 @@ internal sealed class SqlQueryParser
             {
                 throw new InvalidOperationException($"REPLACE SET assignment for '{col}' has an invalid expression.", ex);
             }
-            list.Add(new SqlAssignment(col, exprRaw, expr));
+            list.Add(new SqlAssignment(col, NormalizeInsertValueRaw(exprRaw), expr));
 
             if (IsSymbol(Peek(), ","))
             {
                 Consume();
 
-                if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "USING") || IsWord(Peek(), "RETURNING"))
+                if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), SqlConst.WHERE) || IsWord(Peek(), SqlConst.FROM) || IsWord(Peek(), SqlConst.USING) || IsWord(Peek(), SqlConst.RETURNING))
                     throw new InvalidOperationException(
                         $"REPLACE SET has a trailing comma without assignment (found '{DescribeFoundToken(Peek())}').");
 
                 continue;
             }
 
-            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "USING") || IsWord(Peek(), "RETURNING"))
+            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), SqlConst.WHERE) || IsWord(Peek(), SqlConst.FROM) || IsWord(Peek(), SqlConst.USING) || IsWord(Peek(), SqlConst.RETURNING))
                 return list;
 
             throw new InvalidOperationException("REPLACE SET must separate assignments with commas.");
@@ -1879,6 +1879,23 @@ internal sealed class SqlQueryParser
         return res;
     }
 
+    private string NormalizeInsertValueRaw(string raw)
+    {
+        raw = raw.Trim();
+        if (string.IsNullOrWhiteSpace(raw))
+            return raw;
+
+        var tokens = new SqlTokenizer(raw, _dialect).Tokenize();
+        if (tokens.Count == 2
+            && tokens[0].Kind == SqlTokenKind.String
+            && tokens[1].Kind == SqlTokenKind.EndOfFile)
+        {
+            return tokens[0].Text;
+        }
+
+        return raw;
+    }
+
     private string ReadBalancedParenRawTokens()
     {
         ExpectSymbol("(");
@@ -1904,35 +1921,35 @@ internal sealed class SqlQueryParser
 
     private SqlQueryBase ParseCreate()
     {
-        ExpectWord("CREATE");
+        ExpectWord(SqlConst.CREATE);
 
         // CREATE OR REPLACE ...
         var orReplace = false;
-        if (IsWord(Peek(), "OR"))
+        if (IsWord(Peek(), SqlConst.OR))
         {
             Consume();
-            ExpectWord("REPLACE");
+            ExpectWord(SqlConst.REPLACE);
             orReplace = true;
         }
 
         // CREATE VIEW ...
-        if (IsWord(Peek(), "VIEW"))
+        if (IsWord(Peek(), SqlConst.VIEW))
             return ParseCreateView(orReplace);
 
         var uniqueIndex = false;
-        if (IsWord(Peek(), "UNIQUE"))
+        if (IsWord(Peek(), SqlConst.UNIQUE))
         {
             Consume();
             uniqueIndex = true;
         }
 
-        if (IsWord(Peek(), "INDEX"))
+        if (IsWord(Peek(), SqlConst.INDEX))
             return ParseCreateIndex(orReplace, uniqueIndex);
 
-        if (IsWord(Peek(), "SEQUENCE"))
+        if (IsWord(Peek(), SqlConst.SEQUENCE))
             return ParseCreateSequence(orReplace);
 
-        if (IsWord(Peek(), "FUNCTION"))
+        if (IsWord(Peek(), SqlConst.FUNCTION))
             return ParseCreateFunction(orReplace);
 
         if (orReplace)
@@ -1940,10 +1957,10 @@ internal sealed class SqlQueryParser
 
         var isTemporary = false;
         var tempScope = TemporaryTableScope.None;
-        if (IsWord(Peek(), "GLOBAL"))
+        if (IsWord(Peek(), SqlConst.GLOBAL))
         {
             Consume();
-            if (IsWord(Peek(), "TEMPORARY") || IsWord(Peek(), "TEMP"))
+            if (IsWord(Peek(), SqlConst.TEMPORARY) || IsWord(Peek(), SqlConst.TEMP))
             {
                 Consume();
                 isTemporary = true;
@@ -1955,22 +1972,22 @@ internal sealed class SqlQueryParser
             }
         }
 
-        if (!isTemporary && (IsWord(Peek(), "TEMPORARY") || IsWord(Peek(), "TEMP")))
+        if (!isTemporary && (IsWord(Peek(), SqlConst.TEMPORARY) || IsWord(Peek(), SqlConst.TEMP)))
         {
             Consume();
             isTemporary = true;
             tempScope = TemporaryTableScope.Connection;
         }
 
-        ExpectWord("TABLE");
+        ExpectWord(SqlConst.TABLE);
 
         var ifNotExists = false;
-        if (IsWord(Peek(), "IF"))
+        if (IsWord(Peek(), SqlConst.IF))
         {
             // IF NOT EXISTS
             Consume(); // IF
-            ExpectWord("NOT");
-            ExpectWord("EXISTS");
+            ExpectWord(SqlConst.NOT);
+            ExpectWord(SqlConst.EXISTS);
             ifNotExists = true;
         }
 
@@ -2036,8 +2053,8 @@ internal sealed class SqlQueryParser
 
         // CREATE TEMPORARY TABLE ... AS SELECT ...
         // find AS at top-level (paren depth 0)
-        if (!IsWord(Peek(), "AS"))
-            ExpectWord("AS");
+        if (!IsWord(Peek(), SqlConst.AS))
+            ExpectWord(SqlConst.AS);
         else
             Consume();
 
@@ -2085,11 +2102,11 @@ internal sealed class SqlQueryParser
 
     private SqlCreateViewQuery ParseCreateView(bool orReplace)
     {
-        ExpectWord("VIEW");
+        ExpectWord(SqlConst.VIEW);
 
         // IF NOT EXISTS is not supported for CREATE VIEW in the mocked dialects.
         var ifNotExists = false;
-        if (IsWord(Peek(), "IF"))
+        if (IsWord(Peek(), SqlConst.IF))
         {
             throw new InvalidOperationException("CREATE VIEW IF NOT EXISTS is not supported.");
         }
@@ -2150,7 +2167,7 @@ internal sealed class SqlQueryParser
             }
         }
 
-        ExpectWord("AS");
+        ExpectWord(SqlConst.AS);
 
         var rest = new List<SqlToken>();
         while (!IsEnd(Peek()))
@@ -2182,14 +2199,14 @@ internal sealed class SqlQueryParser
         if (!_dialect.SupportsSequenceDdl)
             throw SqlUnsupported.ForDialect(_dialect, "CREATE SEQUENCE");
 
-        ExpectWord("SEQUENCE");
+        ExpectWord(SqlConst.SEQUENCE);
 
         var ifNotExists = false;
-        if (IsWord(Peek(), "IF"))
+        if (IsWord(Peek(), SqlConst.IF))
         {
             Consume();
-            ExpectWord("NOT");
-            ExpectWord("EXISTS");
+            ExpectWord(SqlConst.NOT);
+            ExpectWord(SqlConst.EXISTS);
             ifNotExists = true;
         }
 
@@ -2205,13 +2222,13 @@ internal sealed class SqlQueryParser
 
         while (!IsEnd(Peek()) && !IsSymbol(Peek(), ";"))
         {
-            if (IsWord(Peek(), "START"))
+            if (IsWord(Peek(), SqlConst.START))
             {
                 if (parsedStart)
                     throw new InvalidOperationException("CREATE SEQUENCE START can only be specified once.");
 
                 Consume();
-                if (IsWord(Peek(), "WITH"))
+                if (IsWord(Peek(), SqlConst.WITH))
                     Consume();
 
                 startValue = ExpectSignedNumberLong("CREATE SEQUENCE START");
@@ -2219,13 +2236,13 @@ internal sealed class SqlQueryParser
                 continue;
             }
 
-            if (IsWord(Peek(), "INCREMENT"))
+            if (IsWord(Peek(), SqlConst.INCREMENT))
             {
                 if (parsedIncrement)
                     throw new InvalidOperationException("CREATE SEQUENCE INCREMENT can only be specified once.");
 
                 Consume();
-                if (IsWord(Peek(), "BY"))
+                if (IsWord(Peek(), SqlConst.BY))
                     Consume();
 
                 incrementBy = ExpectSignedNumberLong("CREATE SEQUENCE INCREMENT");
@@ -2264,7 +2281,7 @@ internal sealed class SqlQueryParser
             throw new InvalidOperationException("CREATE INDEX requires an index name.");
 
         var indexName = ExpectIdentifier();
-        ExpectWord("ON");
+        ExpectWord(SqlConst.ON);
         var table = ParseCreateIndexTableName();
 
         if (!IsSymbol(Peek(), "("))
@@ -2301,7 +2318,7 @@ internal sealed class SqlQueryParser
         if (!_dialect.SupportsFunctionDdl)
             throw SqlUnsupported.ForDialect(_dialect, "CREATE FUNCTION");
 
-        ExpectWord("FUNCTION");
+        ExpectWord(SqlConst.FUNCTION);
 
         var functionNameToken = Peek();
         if (IsEnd(functionNameToken) || IsSymbol(functionNameToken, ";"))
@@ -2371,21 +2388,21 @@ internal sealed class SqlQueryParser
             throw new InvalidOperationException($"CREATE FUNCTION parameter definition requires a parameter name, found {nameToken.Kind} '{nameToken.Text}'.");
 
         var index = 1;
-        if (index < tokens.Count && IsFunctionParameterWord(tokens[index], "IN"))
+        if (index < tokens.Count && IsFunctionParameterWord(tokens[index], SqlConst.IN))
         {
             index++;
-            if (index < tokens.Count && IsFunctionParameterWord(tokens[index], "OUT"))
+            if (index < tokens.Count && IsFunctionParameterWord(tokens[index], SqlConst.OUT))
                 throw new NotSupportedException("CREATE FUNCTION currently supports only input parameters in the mock.");
         }
         else if (index < tokens.Count
-            && (IsFunctionParameterWord(tokens[index], "OUT")
-                || IsFunctionParameterWord(tokens[index], "INOUT")
-                || IsFunctionParameterWord(tokens[index], "INOUT")))
+            && (IsFunctionParameterWord(tokens[index], SqlConst.OUT)
+                || IsFunctionParameterWord(tokens[index], SqlConst.INOUT)
+                || IsFunctionParameterWord(tokens[index], SqlConst.INOUT)))
         {
             throw new NotSupportedException("CREATE FUNCTION currently supports only input parameters in the mock.");
         }
 
-        if (tokens.Skip(index).Any(static token => token.Text.Equals("DEFAULT", StringComparison.OrdinalIgnoreCase) || token.Text == "="))
+        if (tokens.Skip(index).Any(static token => token.Text.Equals(SqlConst.DEFAULT, StringComparison.OrdinalIgnoreCase) || token.Text == "="))
             throw new NotSupportedException("CREATE FUNCTION parameter default values are not supported in the mock yet.");
 
         var typeSql = TokensToSql([.. tokens.Skip(index)]).Trim();
@@ -2404,9 +2421,9 @@ internal sealed class SqlQueryParser
         IReadOnlyList<ScalarFunctionParameterDef> parameters,
         bool orReplace)
     {
-        ExpectWord("RETURNS");
-        var returnTypeSql = ParseFunctionReturnTypeSql("AS");
-        ExpectWord("AS");
+        ExpectWord(SqlConst.RETURNS);
+        var returnTypeSql = ParseFunctionReturnTypeSql(SqlConst.AS);
+        ExpectWord(SqlConst.AS);
         var body = ParseFunctionReturnBody(allowBeginEndBlock: true, requireBeginEndBlock: false);
         return BuildCreateFunctionQuery(function, parameters, returnTypeSql, body, orReplace);
     }
@@ -2416,8 +2433,8 @@ internal sealed class SqlQueryParser
         IReadOnlyList<ScalarFunctionParameterDef> parameters,
         bool orReplace)
     {
-        ExpectWord("RETURNS");
-        var returnTypeSql = ParseFunctionReturnTypeSql("RETURN", "BEGIN");
+        ExpectWord(SqlConst.RETURNS);
+        var returnTypeSql = ParseFunctionReturnTypeSql(SqlConst.RETURN, SqlConst.BEGIN);
         var body = ParseFunctionReturnBody(allowBeginEndBlock: true, requireBeginEndBlock: false);
         return BuildCreateFunctionQuery(function, parameters, returnTypeSql, body, orReplace);
     }
@@ -2427,10 +2444,10 @@ internal sealed class SqlQueryParser
         IReadOnlyList<ScalarFunctionParameterDef> parameters,
         bool orReplace)
     {
-        ExpectWord("RETURN");
-        var returnTypeSql = ParseFunctionReturnTypeSql("IS", "AS");
+        ExpectWord(SqlConst.RETURN);
+        var returnTypeSql = ParseFunctionReturnTypeSql(SqlConst.IS, SqlConst.AS);
 
-        if (!IsWord(Peek(), "IS") && !IsWord(Peek(), "AS"))
+        if (!IsWord(Peek(), SqlConst.IS) && !IsWord(Peek(), SqlConst.AS))
             throw new InvalidOperationException("CREATE FUNCTION in Oracle syntax requires IS or AS before the body.");
 
         Consume();
@@ -2443,25 +2460,25 @@ internal sealed class SqlQueryParser
         IReadOnlyList<ScalarFunctionParameterDef> parameters,
         bool orReplace)
     {
-        ExpectWord("RETURNS");
-        var returnTypeSql = ParseFunctionReturnTypeSql("AS", "LANGUAGE");
+        ExpectWord(SqlConst.RETURNS);
+        var returnTypeSql = ParseFunctionReturnTypeSql(SqlConst.AS, SqlConst.LANGUAGE);
 
         string? bodySql = null;
         string? language = null;
 
-        if (IsWord(Peek(), "AS"))
+        if (IsWord(Peek(), SqlConst.AS))
         {
             Consume();
             bodySql = ParseQuotedFunctionBodySql();
         }
 
-        if (IsWord(Peek(), "LANGUAGE"))
+        if (IsWord(Peek(), SqlConst.LANGUAGE))
         {
             Consume();
             language = ExpectIdentifier();
         }
 
-        if (bodySql is null && IsWord(Peek(), "AS"))
+        if (bodySql is null && IsWord(Peek(), SqlConst.AS))
         {
             Consume();
             bodySql = ParseQuotedFunctionBodySql();
@@ -2487,7 +2504,7 @@ internal sealed class SqlQueryParser
         if (string.IsNullOrWhiteSpace(returnTypeSql))
             throw new InvalidOperationException("CREATE FUNCTION requires a scalar return type.");
 
-        if (returnTypeSql.Equals("TABLE", StringComparison.OrdinalIgnoreCase))
+        if (returnTypeSql.Equals(SqlConst.TABLE, StringComparison.OrdinalIgnoreCase))
             throw new NotSupportedException("CREATE FUNCTION currently supports only scalar return types in the mock.");
 
         return returnTypeSql;
@@ -2496,7 +2513,7 @@ internal sealed class SqlQueryParser
     private SqlExpr ParseFunctionReturnBody(bool allowBeginEndBlock, bool requireBeginEndBlock)
     {
         var hasBeginEndBlock = false;
-        if (allowBeginEndBlock && IsWord(Peek(), "BEGIN"))
+        if (allowBeginEndBlock && IsWord(Peek(), SqlConst.BEGIN))
         {
             Consume();
             hasBeginEndBlock = true;
@@ -2506,12 +2523,12 @@ internal sealed class SqlQueryParser
             throw new InvalidOperationException("CREATE FUNCTION body requires BEGIN ... END in this syntax subset.");
         }
 
-        ExpectWord("RETURN");
+        ExpectWord(SqlConst.RETURN);
 
         var bodyTokens = new List<SqlToken>();
         while (!IsEnd(Peek()))
         {
-            if (hasBeginEndBlock && IsWord(Peek(), "END"))
+            if (hasBeginEndBlock && IsWord(Peek(), SqlConst.END))
                 break;
 
             if (IsSymbol(Peek(), ";"))
@@ -2533,7 +2550,7 @@ internal sealed class SqlQueryParser
             throw new InvalidOperationException("CREATE FUNCTION requires a scalar expression after RETURN.");
 
         if (hasBeginEndBlock)
-            ExpectWord("END");
+            ExpectWord(SqlConst.END);
 
         return SqlExpressionParser.ParseScalar(bodySql, _dialect);
     }
@@ -2553,7 +2570,7 @@ internal sealed class SqlQueryParser
         if (trimmed.EndsWith(";", StringComparison.Ordinal))
             trimmed = trimmed[..^1].TrimEnd();
 
-        if (!trimmed.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
+        if (!trimmed.StartsWith(SqlConst.SELECT, StringComparison.OrdinalIgnoreCase))
             throw new NotSupportedException("CREATE FUNCTION currently supports only PostgreSQL LANGUAGE SQL bodies with a single SELECT <expr> statement in the mock.");
 
         trimmed = trimmed[6..].TrimStart();
@@ -2592,7 +2609,7 @@ internal sealed class SqlQueryParser
 
         var table = ParseQualifiedObjectName();
 
-        if (IsWord(Peek(), "AS") || Peek().Kind is SqlTokenKind.Identifier or SqlTokenKind.Keyword)
+        if (IsWord(Peek(), SqlConst.AS) || Peek().Kind is SqlTokenKind.Identifier or SqlTokenKind.Keyword)
             throw new InvalidOperationException("CREATE INDEX requires a table name without alias.");
 
         return table;
@@ -2600,9 +2617,9 @@ internal sealed class SqlQueryParser
 
     private SqlQueryBase ParseAlter()
     {
-        ExpectWord("ALTER");
+        ExpectWord(SqlConst.ALTER);
 
-        if (IsWord(Peek(), "TABLE"))
+        if (IsWord(Peek(), SqlConst.TABLE))
             return ParseAlterTable();
 
         throw new InvalidOperationException("Apenas ALTER TABLE pragmático é suportado no mock no momento.");
@@ -2613,14 +2630,14 @@ internal sealed class SqlQueryParser
         if (!_dialect.SupportsAlterTableAddColumn)
             throw SqlUnsupported.ForDialect(_dialect, "ALTER TABLE ... ADD [COLUMN]");
 
-        ExpectWord("TABLE");
+        ExpectWord(SqlConst.TABLE);
         var table = ParseAlterTableName();
 
-        if (!IsWord(Peek(), "ADD"))
+        if (!IsWord(Peek(), SqlConst.ADD))
             throw new InvalidOperationException("Only ALTER TABLE ... ADD [COLUMN] is supported in the mock.");
 
         Consume(); // ADD
-        if (IsWord(Peek(), "COLUMN"))
+        if (IsWord(Peek(), SqlConst.COLUMN))
             Consume();
 
         var columnNameToken = Peek();
@@ -2635,7 +2652,7 @@ internal sealed class SqlQueryParser
 
         while (!IsEnd(Peek()) && !IsSymbol(Peek(), ";"))
         {
-            if (IsWord(Peek(), "DEFAULT"))
+            if (IsWord(Peek(), SqlConst.DEFAULT))
             {
                 if (defaultValueRaw is not null)
                     throw new InvalidOperationException("ALTER TABLE ADD COLUMN DEFAULT can only be specified once.");
@@ -2645,19 +2662,19 @@ internal sealed class SqlQueryParser
                 continue;
             }
 
-            if (IsWord(Peek(), "NOT"))
+            if (IsWord(Peek(), SqlConst.NOT))
             {
                 if (sawNullability)
                     throw new InvalidOperationException("ALTER TABLE ADD COLUMN nullability can only be specified once.");
 
                 Consume();
-                ExpectWord("NULL");
+                ExpectWord(SqlConst.NULL);
                 nullable = false;
                 sawNullability = true;
                 continue;
             }
 
-            if (IsWord(Peek(), "NULL"))
+            if (IsWord(Peek(), SqlConst.NULL))
             {
                 if (sawNullability)
                     throw new InvalidOperationException("ALTER TABLE ADD COLUMN nullability can only be specified once.");
@@ -2675,7 +2692,7 @@ internal sealed class SqlQueryParser
 
         if (!nullable
             && defaultValueRaw is not null
-            && string.Equals(defaultValueRaw.Trim(), "NULL", StringComparison.OrdinalIgnoreCase))
+            && string.Equals(defaultValueRaw.Trim(), SqlConst.NULL, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("ALTER TABLE ADD COLUMN NOT NULL cannot use DEFAULT NULL.");
 
         EnsureStatementEnd("ALTER TABLE");
@@ -2704,8 +2721,8 @@ internal sealed class SqlQueryParser
         var table = ParseQualifiedObjectName();
         var next = Peek();
 
-        if (IsWord(next, "AS")
-            || (next.Kind == SqlTokenKind.Identifier && !IsWord(next, "ADD")))
+        if (IsWord(next, SqlConst.AS)
+            || (next.Kind == SqlTokenKind.Identifier && !IsWord(next, SqlConst.ADD)))
             throw new InvalidOperationException("ALTER TABLE requires a table name without alias.");
 
         return table;
@@ -2713,24 +2730,24 @@ internal sealed class SqlQueryParser
 
     private SqlQueryBase ParseDrop()
     {
-        ExpectWord("DROP");
+        ExpectWord(SqlConst.DROP);
 
-        if (IsWord(Peek(), "VIEW"))
+        if (IsWord(Peek(), SqlConst.VIEW))
             return ParseDropView();
 
-        if (IsWord(Peek(), "SEQUENCE"))
+        if (IsWord(Peek(), SqlConst.SEQUENCE))
             return ParseDropSequence();
 
-        if (IsWord(Peek(), "TABLE")
-            || IsWord(Peek(), "TEMP")
-            || IsWord(Peek(), "TEMPORARY")
-            || IsWord(Peek(), "GLOBAL"))
+        if (IsWord(Peek(), SqlConst.TABLE)
+            || IsWord(Peek(), SqlConst.TEMP)
+            || IsWord(Peek(), SqlConst.TEMPORARY)
+            || IsWord(Peek(), SqlConst.GLOBAL))
             return ParseDropTable();
 
-        if (IsWord(Peek(), "INDEX"))
+        if (IsWord(Peek(), SqlConst.INDEX))
             return ParseDropIndex();
 
-        if (IsWord(Peek(), "FUNCTION"))
+        if (IsWord(Peek(), SqlConst.FUNCTION))
             return ParseDropFunction();
 
         throw new InvalidOperationException("Apenas DROP VIEW, DROP TABLE, DROP INDEX e DROP SEQUENCE são suportados no mock no momento.");
@@ -2741,10 +2758,10 @@ internal sealed class SqlQueryParser
         Consume(); // VIEW
 
         var ifExists = false;
-        if (IsWord(Peek(), "IF"))
+        if (IsWord(Peek(), SqlConst.IF))
         {
             Consume(); // IF
-            ExpectWord("EXISTS");
+            ExpectWord(SqlConst.EXISTS);
             ifExists = true;
         }
 
@@ -2793,10 +2810,10 @@ internal sealed class SqlQueryParser
         Consume(); // SEQUENCE
 
         var ifExists = false;
-        if (IsWord(Peek(), "IF"))
+        if (IsWord(Peek(), SqlConst.IF))
         {
             Consume();
-            ExpectWord("EXISTS");
+            ExpectWord(SqlConst.EXISTS);
             ifExists = true;
         }
 
@@ -2823,10 +2840,10 @@ internal sealed class SqlQueryParser
         Consume(); // FUNCTION
 
         var ifExists = false;
-        if (IsWord(Peek(), "IF"))
+        if (IsWord(Peek(), SqlConst.IF))
         {
             Consume();
-            ExpectWord("EXISTS");
+            ExpectWord(SqlConst.EXISTS);
             ifExists = true;
         }
 
@@ -2853,10 +2870,10 @@ internal sealed class SqlQueryParser
         var isTemporary = false;
         var tempScope = TemporaryTableScope.None;
 
-        if (IsWord(Peek(), "GLOBAL"))
+        if (IsWord(Peek(), SqlConst.GLOBAL))
         {
             Consume();
-            if (IsWord(Peek(), "TEMPORARY") || IsWord(Peek(), "TEMP"))
+            if (IsWord(Peek(), SqlConst.TEMPORARY) || IsWord(Peek(), SqlConst.TEMP))
             {
                 Consume();
                 isTemporary = true;
@@ -2868,20 +2885,20 @@ internal sealed class SqlQueryParser
             }
         }
 
-        if (!isTemporary && (IsWord(Peek(), "TEMPORARY") || IsWord(Peek(), "TEMP")))
+        if (!isTemporary && (IsWord(Peek(), SqlConst.TEMPORARY) || IsWord(Peek(), SqlConst.TEMP)))
         {
             Consume();
             isTemporary = true;
             tempScope = TemporaryTableScope.Connection;
         }
 
-        ExpectWord("TABLE");
+        ExpectWord(SqlConst.TABLE);
 
         var ifExists = false;
-        if (IsWord(Peek(), "IF"))
+        if (IsWord(Peek(), SqlConst.IF))
         {
             Consume();
-            ExpectWord("EXISTS");
+            ExpectWord(SqlConst.EXISTS);
             ifExists = true;
         }
 
@@ -2907,10 +2924,10 @@ internal sealed class SqlQueryParser
         Consume(); // INDEX
 
         var ifExists = false;
-        if (IsWord(Peek(), "IF"))
+        if (IsWord(Peek(), SqlConst.IF))
         {
             Consume();
-            ExpectWord("EXISTS");
+            ExpectWord(SqlConst.EXISTS);
             ifExists = true;
         }
 
@@ -2921,7 +2938,7 @@ internal sealed class SqlQueryParser
         var indexName = ExpectIdentifier();
         SqlTableSource? table = null;
 
-        if (IsWord(Peek(), "ON"))
+        if (IsWord(Peek(), SqlConst.ON))
         {
             Consume();
             table = ParseDropIndexOnTableName();
@@ -2952,7 +2969,7 @@ internal sealed class SqlQueryParser
 
         var table = ParseQualifiedObjectName();
 
-        if (IsWord(Peek(), "AS") || Peek().Kind is SqlTokenKind.Identifier or SqlTokenKind.Keyword)
+        if (IsWord(Peek(), SqlConst.AS) || Peek().Kind is SqlTokenKind.Identifier or SqlTokenKind.Keyword)
             throw new InvalidOperationException("DROP INDEX ... ON requires a table name without alias.");
 
         if (IsSymbol(Peek(), "("))
@@ -3065,7 +3082,7 @@ internal sealed class SqlQueryParser
             return TokensToSql(tokens);
         }
 
-        if (IsWord(token, "NULL") || IsWord(token, "TRUE") || IsWord(token, "FALSE"))
+        if (IsWord(token, SqlConst.NULL) || IsWord(token, SqlConst.TRUE) || IsWord(token, SqlConst.FALSE))
         {
             tokens.Add(Consume());
             return TokensToSql(tokens);
@@ -3171,49 +3188,46 @@ internal sealed class SqlQueryParser
             throw new InvalidOperationException($"{statementName} requires a SELECT/WITH body.");
     }
 
-    private static bool IsLikelyColumnTypeToken(SqlToken token)
-    {
-        if (token.Kind is not (SqlTokenKind.Identifier or SqlTokenKind.Keyword))
-            return false;
+    private static readonly HashSet<string> setTypes = new(){
+            "INT",
+            "INTEGER",
+            "BIGINT" ,
+            "SMALLINT" ,
+            "TINYINT",
+            "DECIMAL" ,
+            "NUMERIC",
+            "FLOAT" ,
+            "DOUBLE" ,
+            "REAL" ,
+            "VARCHAR",
+            "CHAR" ,
+            "NVARCHAR" ,
+            "NCHAR" ,
+            "TEXT" ,
+            "DATE" ,
+            "DATETIME" ,
+            "TIME" ,
+            "TIMESTAMP" ,
+            "BOOLEAN" ,
+            "BIT" ,
+            "UUID" ,
+            "JSON" ,
+            "BLOB" ,
+            "CLOB"
+    };
 
-        return token.Text.ToUpperInvariant() switch
-        {
-            "INT" or
-            "INTEGER" or
-            "BIGINT" or
-            "SMALLINT" or
-            "TINYINT" or
-            "DECIMAL" or
-            "NUMERIC" or
-            "FLOAT" or
-            "DOUBLE" or
-            "REAL" or
-            "VARCHAR" or
-            "CHAR" or
-            "NVARCHAR" or
-            "NCHAR" or
-            "TEXT" or
-            "DATE" or
-            "DATETIME" or
-            "TIME" or
-            "TIMESTAMP" or
-            "BOOLEAN" or
-            "BIT" or
-            "UUID" or
-            "JSON" or
-            "BLOB" or
-            "CLOB" => true,
-            _ => false
-        };
-    }
+    private static bool IsLikelyColumnTypeToken(SqlToken token)
+        => token.Kind is SqlTokenKind.Identifier
+            or SqlTokenKind.Keyword
+        && setTypes.Contains(token.Text.ToUpperInvariant());
 
     // --- Helpers de SELECT trazidos do arquivo original ---
 
     private bool TryParseDistinct()
     {
-        if (!IsWord(Peek(), "DISTINCT")) return false;
+        if (!IsWord(Peek(), SqlConst.DISTINCT)) return false;
         Consume();
-        if (IsWord(Peek(), "DISTINCT"))
+        if (IsWord(Peek(), SqlConst.DISTINCT))
             throw new InvalidOperationException("invalid: duplicated DISTINCT keyword");
         return true;
     }
@@ -3249,7 +3263,7 @@ internal sealed class SqlQueryParser
     /// <returns>EN: Returning items when clause is present; otherwise empty list. PT: Itens de retorno quando a cláusula estiver presente; caso contrário, lista vazia.</returns>
     private IReadOnlyList<SqlSelectItem> ParseOptionalReturningItems(ReturningClauseTarget target)
     {
-        if (!IsWord(Peek(), "RETURNING"))
+        if (!IsWord(Peek(), SqlConst.RETURNING))
             return [];
 
         var isSupported = target switch
@@ -3261,7 +3275,7 @@ internal sealed class SqlQueryParser
         };
 
         if (!isSupported)
-            throw SqlUnsupported.ForDialect(_dialect, "RETURNING");
+            throw SqlUnsupported.ForDialect(_dialect, SqlConst.RETURNING);
 
         Consume(); // RETURNING
 
@@ -3354,31 +3368,36 @@ internal sealed class SqlQueryParser
         }
     }
 
+    private static readonly HashSet<string> aggregateFunctionNames = new()
+    {
+        "COUNT",
+        "SUM",
+        "AVG",
+        "MIN",
+        "MAX",
+        "GROUP_CONCAT",
+        "STRING_AGG",
+        "LISTAGG",
+        "JSON_ARRAYAGG",
+        "JSON_OBJECTAGG",
+        "STDDEV",
+        "STDDEV_POP",
+        "STDDEV_SAMP",
+        "VARIANCE",
+        "VAR_POP",
+        "VAR_SAMP",
+        "VAR",
+        "BIT_AND",
+        "BIT_OR",
+        "BIT_XOR"
+    };
+
     private static bool IsAggregateFunctionName(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
             return false;
 
-        return name.Equals("COUNT", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("SUM", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("AVG", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("MIN", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("MAX", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("LISTAGG", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("JSON_ARRAYAGG", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("JSON_OBJECTAGG", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("STDDEV", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("STDDEV_POP", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("STDDEV_SAMP", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("VARIANCE", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("VAR_POP", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("VAR_SAMP", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("VAR", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("BIT_AND", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("BIT_OR", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("BIT_XOR", StringComparison.OrdinalIgnoreCase);
+        return aggregateFunctionNames.Contains(name.ToUpperInvariant());
     }
 
     private List<string> ParseReturningItemsRaw()
@@ -3488,7 +3507,17 @@ internal sealed class SqlQueryParser
 
     private List<SqlSelectItem> ParseSelectItemsWithValidation()
     {
-        var raws = ParseCommaSeparatedRawItemsUntilAny("FROM", "WHERE", "GROUP", "HAVING", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "FOR");
+        var raws = ParseCommaSeparatedRawItemsUntilAny(
+            SqlConst.FROM,
+            SqlConst.WHERE,
+            SqlConst.GROUP,
+            SqlConst.HAVING,
+            SqlConst.ORDER,
+            SqlConst.LIMIT,
+            SqlConst.OFFSET,
+            SqlConst.FETCH,
+            SqlConst.UNION,
+            SqlConst.FOR);
         return raws.ConvertAll(r =>
         {
             // Fail fast on known-invalid patterns before any splitting/normalization.
@@ -3525,14 +3554,14 @@ internal sealed class SqlQueryParser
 
     private SqlTableSource ParseFromOrDual()
     {
-        if (IsWord(Peek(), "FROM"))
+        if (IsWord(Peek(), SqlConst.FROM))
         {
             Consume();
-            if (IsWord(Peek(), "FROM"))
+            if (IsWord(Peek(), SqlConst.FROM))
                 throw new InvalidOperationException("invalid: duplicated FROM keyword");
             var ts = ParseTableSource();
             ts = TryParseTableTransforms(ts);
-            if (IsWord(Peek(), "FROM"))
+            if (IsWord(Peek(), SqlConst.FROM))
                 throw new InvalidOperationException("invalid: FROM inside FROM");
             return ts;
         }
@@ -3549,20 +3578,20 @@ internal sealed class SqlQueryParser
 
     private SqlExpr? TryParseWhereExpr()
     {
-        if (!IsWord(Peek(), "WHERE")) return null;
+        if (!IsWord(Peek(), SqlConst.WHERE)) return null;
         Consume();
-        // "ON" here is important for INSERT ... SELECT ... WHERE ... ON DUPLICATE ...
-        var txt = ReadClauseTextUntilTopLevelStop("GROUP", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "HAVING", "FOR", "ON", "RETURNING");
+        // SqlConst.ON here is important for INSERT ... SELECT ... WHERE ... ON DUPLICATE ...
+        var txt = ReadClauseTextUntilTopLevelStop(SqlConst.GROUP, SqlConst.ORDER, SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.UNION, SqlConst.HAVING, SqlConst.FOR, SqlConst.ON, SqlConst.RETURNING);
         return SqlExpressionParser.ParseWhere(txt, _dialect, _parameters);
     }
 
     private List<string> TryParseGroupBy()
     {
         var list = new List<string>();
-        if (!IsWord(Peek(), "GROUP")) return list;
+        if (!IsWord(Peek(), SqlConst.GROUP)) return list;
         Consume();
-        ExpectWord("BY");
-        list.AddRange(ParseRawItemsUntil("HAVING", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "FOR", "RETURNING"));
+        ExpectWord(SqlConst.BY);
+        list.AddRange(ParseRawItemsUntil(SqlConst.HAVING, SqlConst.ORDER, SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING));
         if (list.Count == 0)
             throw new InvalidOperationException("GROUP BY sem expressões.");
         return list;
@@ -3570,20 +3599,20 @@ internal sealed class SqlQueryParser
 
     private SqlExpr? TryParseHavingExpr()
     {
-        if (!IsWord(Peek(), "HAVING")) return null;
+        if (!IsWord(Peek(), SqlConst.HAVING)) return null;
         Consume();
-        var txt = ReadClauseTextUntilTopLevelStop("ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "FOR", "RETURNING");
+        var txt = ReadClauseTextUntilTopLevelStop(SqlConst.ORDER, SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING);
         return SqlExpressionParser.ParseWhere(txt, _dialect, _parameters);
     }
 
     private List<SqlOrderByItem> TryParseOrderBy()
     {
         var list = new List<SqlOrderByItem>();
-        if (!IsWord(Peek(), "ORDER")) return list;
+        if (!IsWord(Peek(), SqlConst.ORDER)) return list;
         Consume();
-        ExpectWord("BY");
-        // Reutiliza lÃ³gica simplificada
-        var raws = ParseCommaSeparatedRawItemsUntilAny("LIMIT", "OFFSET", "FETCH", "UNION", "FOR", "RETURNING");
+        ExpectWord(SqlConst.BY);
+        // Reutiliza lógica simplificada
+        var raws = ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING);
         foreach (var r in raws)
         {
             var raw = r.Trim();
@@ -3618,10 +3647,10 @@ internal sealed class SqlQueryParser
     private SqlRowLimit? TryParseRowLimitTail(bool hasOrderBy)
     {
         // MySQL/Postgres: LIMIT ...
-        if (IsWord(Peek(), "LIMIT"))
+        if (IsWord(Peek(), SqlConst.LIMIT))
         {
             if (!_dialect.SupportsLimitOffset && !_dialect.AllowsParserLimitOffsetCompatibility)
-                throw SqlUnsupported.ForPagination(_dialect, "LIMIT");
+                throw SqlUnsupported.ForPagination(_dialect, SqlConst.LIMIT);
 
             Consume();
             var a = ExpectRowLimitExpr();
@@ -3630,7 +3659,7 @@ internal sealed class SqlQueryParser
                 Consume();
                 return new SqlLimitOffset(Count: ExpectRowLimitExpr(), Offset: a);
             }
-            if (IsWord(Peek(), "OFFSET"))
+            if (IsWord(Peek(), SqlConst.OFFSET))
             {
                 Consume();
                 return new SqlLimitOffset(Count: a, Offset: ExpectRowLimitExpr());
@@ -3639,32 +3668,32 @@ internal sealed class SqlQueryParser
         }
 
         // Oracle/SQL Server/Postgres: OFFSET ... FETCH ...
-        if (IsWord(Peek(), "OFFSET"))
+        if (IsWord(Peek(), SqlConst.OFFSET))
         {
             if (!_dialect.SupportsOffsetFetch)
-                throw SqlUnsupported.ForPagination(_dialect, "OFFSET/FETCH");
+                throw SqlUnsupported.ForPagination(_dialect, SqlConst.OFFSET_FETCH);
             if (_dialect.RequiresOrderByForOffsetFetch && !hasOrderBy)
                 throw SqlUnsupported.ForOffsetFetchRequiresOrderBy(_dialect);
 
             Consume();
             var offset = ExpectRowLimitExpr();
             // Oracle/SQLServer frequentemente exigem ROW/ROWS
-            if (IsWord(Peek(), "ROW") || IsWord(Peek(), "ROWS"))
+            if (IsWord(Peek(), SqlConst.ROW) || IsWord(Peek(), SqlConst.ROWS))
                 Consume();
 
-            if (IsWord(Peek(), "FETCH"))
+            if (IsWord(Peek(), SqlConst.FETCH))
             {
                 Consume();
                 // NEXT/FIRST
-                if (IsWord(Peek(), "NEXT") || IsWord(Peek(), "FIRST"))
+                if (IsWord(Peek(), SqlConst.NEXT) || IsWord(Peek(), SqlConst.FIRST))
                     Consume();
 
                 var count = ExpectRowLimitExpr();
 
-                if (IsWord(Peek(), "ROW") || IsWord(Peek(), "ROWS"))
+                if (IsWord(Peek(), SqlConst.ROW) || IsWord(Peek(), SqlConst.ROWS))
                     Consume();
 
-                if (IsWord(Peek(), "ONLY"))
+                if (IsWord(Peek(), SqlConst.ONLY))
                     Consume();
 
                 return new SqlLimitOffset(Count: count, Offset: offset);
@@ -3674,21 +3703,21 @@ internal sealed class SqlQueryParser
         }
 
         // Oracle/Postgres: FETCH FIRST n ROWS ONLY
-        if (IsWord(Peek(), "FETCH"))
+        if (IsWord(Peek(), SqlConst.FETCH))
         {
             if (!_dialect.SupportsFetchFirst)
-                throw SqlUnsupported.ForPagination(_dialect, "FETCH FIRST/NEXT");
+                throw SqlUnsupported.ForPagination(_dialect, SqlConst.FETCH_FIRST_NEXT);
 
             Consume();
-            if (IsWord(Peek(), "NEXT") || IsWord(Peek(), "FIRST"))
+            if (IsWord(Peek(), SqlConst.NEXT) || IsWord(Peek(), SqlConst.FIRST))
                 Consume();
 
             var count = ExpectRowLimitExpr();
 
-            if (IsWord(Peek(), "ROW") || IsWord(Peek(), "ROWS"))
+            if (IsWord(Peek(), SqlConst.ROW) || IsWord(Peek(), SqlConst.ROWS))
                 Consume();
 
-            if (IsWord(Peek(), "ONLY"))
+            if (IsWord(Peek(), SqlConst.ONLY))
                 Consume();
 
             return new SqlLimitOffset(Count: count, Offset: null);
@@ -3715,7 +3744,7 @@ internal sealed class SqlQueryParser
 
     private void TryConsumeQueryHintOption()
     {
-        if (!IsWord(Peek(), "OPTION"))
+        if (!IsWord(Peek(), SqlConst.OPTION))
             return;
 
         if (!_dialect.SupportsSqlServerQueryHints)
@@ -3730,12 +3759,12 @@ internal sealed class SqlQueryParser
     private List<SqlCte> TryParseCtes()
     {
         var list = new List<SqlCte>();
-        if (!IsWord(Peek(), "WITH")) return list;
+        if (!IsWord(Peek(), SqlConst.WITH)) return list;
         Consume();
         if (!_dialect.SupportsWithCte)
-            throw SqlUnsupported.ForDialect(_dialect, "WITH/CTE");
+            throw SqlUnsupported.ForDialect(_dialect, SqlConst.WITH_CTE);
 
-        if (IsWord(Peek(), "RECURSIVE"))
+        if (IsWord(Peek(), SqlConst.RECURSIVE))
         {
             if (!_dialect.SupportsWithRecursive)
                 throw SqlUnsupported.ForWithRecursive(_dialect);
@@ -3752,15 +3781,15 @@ internal sealed class SqlQueryParser
                 while (!IsSymbol(Peek(), ")")) { Consume(); } // Pula tokens
                 Consume(); // )
             }
-            ExpectWord("AS");
-            if (IsWord(Peek(), "NOT") && IsWord(Peek(1), "MATERIALIZED"))
+            ExpectWord(SqlConst.AS);
+            if (IsWord(Peek(), SqlConst.NOT) && IsWord(Peek(1), SqlConst.MATERIALIZED))
             {
                 if (!_dialect.SupportsWithMaterializedHint)
                     throw SqlUnsupported.ForDialect(_dialect, "WITH ... AS NOT MATERIALIZED");
                 Consume(); // NOT
                 Consume(); // MATERIALIZED
             }
-            else if (IsWord(Peek(), "MATERIALIZED"))
+            else if (IsWord(Peek(), SqlConst.MATERIALIZED))
             {
                 if (!_dialect.SupportsWithMaterializedHint)
                     throw SqlUnsupported.ForDialect(_dialect, "WITH ... AS MATERIALIZED");
@@ -3851,7 +3880,7 @@ internal sealed class SqlQueryParser
 
     private SqlTableSource ParseTableFunctionSource(string functionName, string? schemaName = null)
     {
-        if (functionName.Equals("JSON_TABLE", StringComparison.OrdinalIgnoreCase))
+        if (functionName.Equals(SqlConst.JSON_TABLE, StringComparison.OrdinalIgnoreCase))
             return ParseJsonTableSource(functionName, schemaName);
 
         var argsSql = ReadBalancedParenRawTokens();
@@ -3864,8 +3893,8 @@ internal sealed class SqlQueryParser
 
         ValidateTableFunctionSource(function);
 
-        if (function.Name.Equals("OPENJSON", StringComparison.OrdinalIgnoreCase)
-            && IsWord(Peek(), "WITH") && IsSymbol(Peek(1), "("))
+        if (function.Name.Equals(SqlConst.OPENJSON, StringComparison.OrdinalIgnoreCase)
+            && IsWord(Peek(), SqlConst.WITH) && IsSymbol(Peek(1), "("))
         {
             Consume(); // WITH
             var rawSchema = ReadBalancedParenRawTokens();
@@ -3908,7 +3937,7 @@ internal sealed class SqlQueryParser
         if (parts.Count != 2)
             throw new NotSupportedException("JSON_TABLE table source currently supports json document plus path/COLUMNS clause in the mock.");
 
-        var columnsKeywordIndex = IndexOfTopLevelKeyword(parts[1], "COLUMNS");
+        var columnsKeywordIndex = IndexOfTopLevelKeyword(parts[1], SqlConst.COLUMNS);
         if (columnsKeywordIndex < 0)
             throw new InvalidOperationException("JSON_TABLE requires a COLUMNS clause.");
 
@@ -3916,7 +3945,7 @@ internal sealed class SqlQueryParser
         if (string.IsNullOrWhiteSpace(pathSql))
             throw new InvalidOperationException("JSON_TABLE requires a row path expression before COLUMNS.");
 
-        var columnsSegment = parts[1][(columnsKeywordIndex + "COLUMNS".Length)..].TrimStart();
+        var columnsSegment = parts[1][(columnsKeywordIndex + SqlConst.COLUMNS.Length)..].TrimStart();
         if (!TryExtractSingleParenthesizedBlock(columnsSegment, out var rawColumns, out var trailingSql))
             throw new InvalidOperationException("JSON_TABLE COLUMNS clause must be enclosed in parentheses.");
 
@@ -3949,10 +3978,10 @@ internal sealed class SqlQueryParser
 
     private void ValidateTableFunctionSource(FunctionCallExpr function)
     {
-        if (function.Name.Equals("OPENJSON", StringComparison.OrdinalIgnoreCase))
+        if (function.Name.Equals(SqlConst.OPENJSON, StringComparison.OrdinalIgnoreCase))
         {
             if (!_dialect.SupportsOpenJsonFunction)
-                throw SqlUnsupported.ForDialect(_dialect, "OPENJSON");
+                throw SqlUnsupported.ForDialect(_dialect, SqlConst.OPENJSON);
 
             if (function.Args.Count is < 1 or > 2)
                 throw new NotSupportedException("OPENJSON table source currently supports one or two arguments in the mock.");
@@ -3960,13 +3989,13 @@ internal sealed class SqlQueryParser
             return;
         }
 
-        if (function.Name.Equals("STRING_SPLIT", StringComparison.OrdinalIgnoreCase))
+        if (function.Name.Equals(SqlConst.STRING_SPLIT, StringComparison.OrdinalIgnoreCase))
         {
             if (function.Args.Count == 3 && !_dialect.SupportsStringSplitOrdinalArgument)
                 throw SqlUnsupported.ForDialect(_dialect, "STRING_SPLIT enable_ordinal");
 
             if (!_dialect.SupportsStringSplitFunction)
-                throw SqlUnsupported.ForDialect(_dialect, "STRING_SPLIT");
+                throw SqlUnsupported.ForDialect(_dialect, SqlConst.STRING_SPLIT);
 
             if (function.Args.Count is < 2 or > 3)
                 throw new NotSupportedException("STRING_SPLIT table source currently supports two or three arguments in the mock.");
@@ -3974,10 +4003,10 @@ internal sealed class SqlQueryParser
             return;
         }
 
-        if (function.Name.Equals("JSON_TABLE", StringComparison.OrdinalIgnoreCase))
+        if (function.Name.Equals(SqlConst.JSON_TABLE, StringComparison.OrdinalIgnoreCase))
         {
             if (!_dialect.SupportsJsonTableFunction)
-                throw SqlUnsupported.ForDialect(_dialect, "JSON_TABLE");
+                throw SqlUnsupported.ForDialect(_dialect, SqlConst.JSON_TABLE);
 
             if (function.Args.Count != 2)
                 throw new NotSupportedException("JSON_TABLE table source currently supports exactly two arguments in the mock.");
@@ -3989,9 +4018,9 @@ internal sealed class SqlQueryParser
     }
 
     private static bool IsSupportedTableFunctionName(string functionName)
-        => functionName.Equals("OPENJSON", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("STRING_SPLIT", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("JSON_TABLE", StringComparison.OrdinalIgnoreCase);
+        => functionName.Equals(SqlConst.OPENJSON, StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals(SqlConst.STRING_SPLIT, StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals(SqlConst.JSON_TABLE, StringComparison.OrdinalIgnoreCase);
 
     private static SqlOpenJsonWithClause ParseOpenJsonWithClause(string rawSchema)
     {
@@ -4067,7 +4096,7 @@ internal sealed class SqlQueryParser
     private static SqlJsonTableEntry ParseJsonTableEntry(string rawItem)
     {
         var item = rawItem.Trim();
-        if (!item.StartsWith("NESTED", StringComparison.OrdinalIgnoreCase))
+        if (!item.StartsWith(SqlConst.NESTED, StringComparison.OrdinalIgnoreCase))
             return ParseJsonTableColumn(rawItem);
 
         var nestedMatch = Regex.Match(
@@ -4078,10 +4107,10 @@ internal sealed class SqlQueryParser
             throw new InvalidOperationException($"JSON_TABLE nested path definition is invalid: '{rawItem}'.");
 
         var rest = nestedMatch.Groups["rest"].Value.TrimStart();
-        if (!rest.StartsWith("COLUMNS", StringComparison.OrdinalIgnoreCase))
+        if (!rest.StartsWith(SqlConst.COLUMNS, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException($"JSON_TABLE nested path requires COLUMNS clause: '{rawItem}'.");
 
-        var rawColumns = rest["COLUMNS".Length..].TrimStart();
+        var rawColumns = rest[SqlConst.COLUMNS.Length..].TrimStart();
         if (!TryExtractSingleParenthesizedBlock(rawColumns, out var nestedColumnsRaw, out var trailingSql))
             throw new InvalidOperationException("JSON_TABLE nested COLUMNS clause must be enclosed in parentheses.");
 
@@ -4182,7 +4211,7 @@ internal sealed class SqlQueryParser
 
         item = match.Groups["prefix"].Value.TrimEnd();
         var kind = match.Groups["kind"].Value.Trim();
-        return kind.Equals("NULL", StringComparison.OrdinalIgnoreCase)
+        return kind.Equals(SqlConst.NULL, StringComparison.OrdinalIgnoreCase)
             ? new SqlJsonTableColumnFallback(SqlJsonTableColumnFallbackKind.Null)
             : kind.Equals("ERROR", StringComparison.OrdinalIgnoreCase)
                 ? new SqlJsonTableColumnFallback(SqlJsonTableColumnFallbackKind.Error)
@@ -4352,46 +4381,39 @@ internal sealed class SqlQueryParser
         return trimmed;
     }
 
+    private static readonly Dictionary<string, DbType> fnDtType = new()
+    {
+        { "DATETIMEOFFSET", DbType.DateTimeOffset},
+        { "DATETIME2", DbType.DateTime},
+        { "DATETIME", DbType.DateTime},
+        { "SMALLDATETIME", DbType.DateTime },
+        { "DATE", DbType.Date },
+        { "TIME", DbType.Time },
+        { "BIGINT", DbType.Int64 },
+        { "INT", DbType.Int32 },
+        { "INTEGER", DbType.Int32 },
+        { "SMALLINT", DbType.Int16 },
+        { "TINYINT", DbType.Byte },
+        { "DECIMAL", DbType.Decimal },
+        { "NUMERIC", DbType.Decimal },
+        { "MONEY", DbType.Currency },
+        { "SMALLMONEY", DbType.Currency },
+        { "FLOAT", DbType.Single },
+        { "REAL", DbType.Double },
+        { "BIT", DbType.Boolean },
+        { "UNIQUEIDENTIFIER", DbType.Guid },
+        { "VARBINARY", DbType.Binary },
+        { "BINARY", DbType.Binary },
+        { "IMAGE", DbType.Binary },
+        { "XML", DbType.Binary },
+    };
+
     private static DbType ParseOpenJsonColumnDbType(string sqlType)
     {
-        var normalized = sqlType.Trim().NormalizeName().ToUpperInvariant();
-        if (normalized.StartsWith("DATETIMEOFFSET", StringComparison.Ordinal))
-            return DbType.DateTimeOffset;
-        if (normalized.StartsWith("DATETIME2", StringComparison.Ordinal)
-            || normalized.StartsWith("DATETIME", StringComparison.Ordinal)
-            || normalized.StartsWith("SMALLDATETIME", StringComparison.Ordinal))
-            return DbType.DateTime;
-        if (normalized.StartsWith("DATE", StringComparison.Ordinal))
-            return DbType.Date;
-        if (normalized.StartsWith("TIME", StringComparison.Ordinal))
-            return DbType.Time;
-        if (normalized.StartsWith("BIGINT", StringComparison.Ordinal))
-            return DbType.Int64;
-        if (normalized.StartsWith("INT", StringComparison.Ordinal)
-            || normalized.StartsWith("INTEGER", StringComparison.Ordinal)
-            || normalized.StartsWith("SMALLINT", StringComparison.Ordinal)
-            || normalized.StartsWith("TINYINT", StringComparison.Ordinal))
-            return DbType.Int32;
-        if (normalized.StartsWith("DECIMAL", StringComparison.Ordinal)
-            || normalized.StartsWith("NUMERIC", StringComparison.Ordinal)
-            || normalized.StartsWith("MONEY", StringComparison.Ordinal)
-            || normalized.StartsWith("SMALLMONEY", StringComparison.Ordinal))
-            return DbType.Decimal;
-        if (normalized.StartsWith("FLOAT", StringComparison.Ordinal)
-            || normalized.StartsWith("REAL", StringComparison.Ordinal))
-            return DbType.Double;
-        if (normalized.StartsWith("BIT", StringComparison.Ordinal))
-            return DbType.Boolean;
-        if (normalized.StartsWith("UNIQUEIDENTIFIER", StringComparison.Ordinal))
-            return DbType.Guid;
-        if (normalized.StartsWith("VARBINARY", StringComparison.Ordinal)
-            || normalized.StartsWith("BINARY", StringComparison.Ordinal)
-            || normalized.StartsWith("IMAGE", StringComparison.Ordinal))
-            return DbType.Binary;
-        if (normalized.StartsWith("XML", StringComparison.Ordinal))
-            return DbType.String;
-
-        return DbType.String;
+        var normalized = sqlType.Trim().NormalizeName().ToUpperInvariant().Split(' ')[0];
+        return fnDtType.TryGetValue(normalized, out var dt)
+            ? dt
+            : DbType.String;
     }
 
     private SqlTableSource TryParseTableTransforms(SqlTableSource source)
@@ -4403,11 +4425,11 @@ internal sealed class SqlQueryParser
 
     private SqlTableSource TryParsePivot(SqlTableSource source)
     {
-        if (!IsWord(Peek(), "PIVOT"))
+        if (!IsWord(Peek(), SqlConst.PIVOT))
             return source;
 
         if (!_dialect.SupportsPivotClause)
-            throw SqlUnsupported.ForDialect(_dialect, "PIVOT");
+            throw SqlUnsupported.ForDialect(_dialect, SqlConst.PIVOT);
 
         Consume(); // PIVOT
         var raw = ReadBalancedParenRawTokens();
@@ -4423,11 +4445,11 @@ internal sealed class SqlQueryParser
 
     private SqlTableSource TryParseUnpivot(SqlTableSource source)
     {
-        if (!IsWord(Peek(), "UNPIVOT"))
+        if (!IsWord(Peek(), SqlConst.UNPIVOT))
             return source;
 
         if (!_dialect.SupportsUnpivotClause)
-            throw SqlUnsupported.ForDialect(_dialect, "UNPIVOT");
+            throw SqlUnsupported.ForDialect(_dialect, SqlConst.UNPIVOT);
 
         Consume(); // UNPIVOT
         var raw = ReadBalancedParenRawTokens();
@@ -4522,22 +4544,22 @@ internal sealed class SqlQueryParser
 
     private SqlForJsonClause? TryParseForJsonClause()
     {
-        if (!IsWord(Peek(), "FOR") || !IsWord(Peek(1), "JSON"))
+        if (!IsWord(Peek(), SqlConst.FOR) || !IsWord(Peek(1), "JSON"))
             return null;
 
         if (!_dialect.SupportsForJsonClause)
-            throw SqlUnsupported.ForDialect(_dialect, "FOR JSON");
+            throw SqlUnsupported.ForDialect(_dialect, SqlConst.FOR_JSON);
 
         Consume(); // FOR
         Consume(); // JSON
 
         SqlForJsonMode mode;
-        if (IsWord(Peek(), "PATH"))
+        if (IsWord(Peek(), SqlConst.PATH))
         {
             mode = SqlForJsonMode.Path;
             Consume();
         }
-        else if (IsWord(Peek(), "AUTO"))
+        else if (IsWord(Peek(), SqlConst.AUTO))
         {
             mode = SqlForJsonMode.Auto;
             Consume();
@@ -4555,7 +4577,7 @@ internal sealed class SqlQueryParser
         {
             Consume();
 
-            if (IsWord(Peek(), "ROOT"))
+            if (IsWord(Peek(), SqlConst.ROOT))
             {
                 if (rootName is not null)
                     throw new InvalidOperationException("FOR JSON ROOT option cannot be specified more than once.");
@@ -4569,7 +4591,7 @@ internal sealed class SqlQueryParser
                 continue;
             }
 
-            if (IsWord(Peek(), "INCLUDE_NULL_VALUES"))
+            if (IsWord(Peek(), SqlConst.INCLUDE_NULL_VALUES))
             {
                 if (includeNullValues)
                     throw new InvalidOperationException("FOR JSON INCLUDE_NULL_VALUES option cannot be specified more than once.");
@@ -4579,7 +4601,7 @@ internal sealed class SqlQueryParser
                 continue;
             }
 
-            if (IsWord(Peek(), "WITHOUT_ARRAY_WRAPPER"))
+            if (IsWord(Peek(), SqlConst.WITHOUT_ARRAY_WRAPPER))
             {
                 if (withoutArrayWrapper)
                     throw new InvalidOperationException("FOR JSON WITHOUT_ARRAY_WRAPPER option cannot be specified more than once.");
@@ -4640,7 +4662,7 @@ internal sealed class SqlQueryParser
 
         while (true)
         {
-            if (IsWord(Peek(), "WITH") && IsSymbol(Peek(1), "("))
+            if (IsWord(Peek(), SqlConst.WITH) && IsSymbol(Peek(1), "("))
             {
                 if (!_dialect.SupportsSqlServerTableHints)
                     throw SqlUnsupported.ForDialect(_dialect, "WITH(table hints)");
@@ -4659,7 +4681,7 @@ internal sealed class SqlQueryParser
                 continue;
             }
 
-            if (IsWord(Peek(), "USE") || IsWord(Peek(), "IGNORE") || IsWord(Peek(), "FORCE"))
+            if (IsWord(Peek(), SqlConst.USE) || IsWord(Peek(), SqlConst.IGNORE) || IsWord(Peek(), SqlConst.FORCE))
             {
                 if (!_dialect.SupportsMySqlIndexHints)
                     throw SqlUnsupported.ForDialect(_dialect, "INDEX hints");
@@ -4688,7 +4710,7 @@ internal sealed class SqlQueryParser
         else
             throw new InvalidOperationException("MySQL index hint inválido: tipo de hint desconhecido.");
 
-        if (IsWord(Peek(), "INDEX") || IsWord(Peek(), "KEY"))
+        if (IsWord(Peek(), SqlConst.INDEX) || IsWord(Peek(), "KEY"))
         {
             Consume();
         }
@@ -4698,29 +4720,29 @@ internal sealed class SqlQueryParser
         }
 
         var scope = SqlMySqlIndexHintScope.Any;
-        if (IsWord(Peek(), "FOR"))
+        if (IsWord(Peek(), SqlConst.FOR))
         {
             Consume();
-            if (IsWord(Peek(), "JOIN"))
+            if (IsWord(Peek(), SqlConst.JOIN))
             {
                 Consume();
                 scope = SqlMySqlIndexHintScope.Join;
             }
-            else if (IsWord(Peek(), "ORDER"))
+            else if (IsWord(Peek(), SqlConst.ORDER))
             {
                 Consume();
-                ExpectWord("BY");
+                ExpectWord(SqlConst.BY);
                 scope = SqlMySqlIndexHintScope.OrderBy;
             }
-            else if (IsWord(Peek(), "GROUP"))
+            else if (IsWord(Peek(), SqlConst.GROUP))
             {
                 Consume();
-                ExpectWord("BY");
+                ExpectWord(SqlConst.BY);
                 scope = SqlMySqlIndexHintScope.GroupBy;
             }
             else
             {
-                throw new InvalidOperationException("MySQL index hint inválido: esperado JOIN, ORDER BY ou GROUP BY apÃ³s FOR.");
+                throw new InvalidOperationException("MySQL index hint inválido: esperado JOIN, ORDER BY ou GROUP BY após FOR.");
             }
         }
 
@@ -4746,9 +4768,9 @@ internal sealed class SqlQueryParser
         var parsedItems = new List<string>(rawItems.Count);
         foreach (var item in rawItems)
         {
-            if (item.Equals("PRIMARY", StringComparison.OrdinalIgnoreCase))
+            if (item.Equals(SqlConst.PRIMARY, StringComparison.OrdinalIgnoreCase))
             {
-                parsedItems.Add("PRIMARY");
+                parsedItems.Add(SqlConst.PRIMARY);
                 continue;
             }
 
@@ -4777,7 +4799,7 @@ internal sealed class SqlQueryParser
 
     private SqlJoin ParseJoin()
     {
-        if (IsWord(Peek(), "CROSS") && IsWord(Peek(1), "APPLY"))
+        if (IsWord(Peek(), SqlConst.CROSS) && IsWord(Peek(1), SqlConst.APPLY))
         {
             if (!_dialect.SupportsApplyClause)
                 throw CreateApplyUnsupportedException("CROSS APPLY", 2);
@@ -4790,7 +4812,7 @@ internal sealed class SqlQueryParser
             return new SqlJoin(SqlJoinType.CrossApply, tableCross, new LiteralExpr(true));
         }
 
-        if (IsWord(Peek(), "OUTER") && IsWord(Peek(1), "APPLY"))
+        if (IsWord(Peek(), SqlConst.OUTER) && IsWord(Peek(1), SqlConst.APPLY))
         {
             if (!_dialect.SupportsApplyClause)
                 throw CreateApplyUnsupportedException("OUTER APPLY", 2);
@@ -4804,12 +4826,12 @@ internal sealed class SqlQueryParser
         }
 
         var type = SqlJoinType.Inner;
-        if (IsWord(Peek(), "LEFT")) { Consume(); type = SqlJoinType.Left; }
-        else if (IsWord(Peek(), "RIGHT")) { Consume(); type = SqlJoinType.Right; }
-        else if (IsWord(Peek(), "CROSS")) { Consume(); type = SqlJoinType.Cross; }
-        else if (IsWord(Peek(), "INNER")) { Consume(); type = SqlJoinType.Inner; }
-        if (IsWord(Peek(), "OUTER")) Consume();
-        ExpectWord("JOIN");
+        if (IsWord(Peek(), SqlConst.LEFT)) { Consume(); type = SqlJoinType.Left; }
+        else if (IsWord(Peek(), SqlConst.RIGHT)) { Consume(); type = SqlJoinType.Right; }
+        else if (IsWord(Peek(), SqlConst.CROSS)) { Consume(); type = SqlJoinType.Cross; }
+        else if (IsWord(Peek(), SqlConst.INNER)) { Consume(); type = SqlJoinType.Inner; }
+        if (IsWord(Peek(), SqlConst.OUTER)) Consume();
+        ExpectWord(SqlConst.JOIN);
 
         var isLateral = false;
         if (IsWord(Peek(), "LATERAL"))
@@ -4825,8 +4847,8 @@ internal sealed class SqlQueryParser
 
         if (type != SqlJoinType.Cross)
         {
-            ExpectWord("ON");
-            var txt = ReadClauseTextUntilTopLevelStop("JOIN", "LEFT", "RIGHT", "INNER", "CROSS", "OUTER", "APPLY", "WHERE", "GROUP", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION");
+            ExpectWord(SqlConst.ON);
+            var txt = ReadClauseTextUntilTopLevelStop(SqlConst.JOIN, SqlConst.LEFT, SqlConst.RIGHT, SqlConst.INNER, SqlConst.CROSS, SqlConst.OUTER, SqlConst.APPLY, SqlConst.WHERE, SqlConst.GROUP, SqlConst.ORDER, SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.UNION);
             onExpr = SqlExpressionParser.ParseWhere(txt, _dialect, _parameters);
         }
         return new SqlJoin(type, table, onExpr);
@@ -4839,16 +4861,16 @@ internal sealed class SqlQueryParser
         {
             var (functionName, argCount) = functionInfo.Value;
 
-            if (functionName.Equals("OPENJSON", StringComparison.OrdinalIgnoreCase) && !_dialect.SupportsOpenJsonFunction)
-                return SqlUnsupported.ForDialect(_dialect, "OPENJSON");
+            if (functionName.Equals(SqlConst.OPENJSON, StringComparison.OrdinalIgnoreCase) && !_dialect.SupportsOpenJsonFunction)
+                return SqlUnsupported.ForDialect(_dialect, SqlConst.OPENJSON);
 
-            if (functionName.Equals("STRING_SPLIT", StringComparison.OrdinalIgnoreCase))
+            if (functionName.Equals(SqlConst.STRING_SPLIT, StringComparison.OrdinalIgnoreCase))
             {
                 if (argCount == 3 && !_dialect.SupportsStringSplitOrdinalArgument)
                     return SqlUnsupported.ForDialect(_dialect, "STRING_SPLIT enable_ordinal");
 
                 if (!_dialect.SupportsStringSplitFunction)
-                    return SqlUnsupported.ForDialect(_dialect, "STRING_SPLIT");
+                    return SqlUnsupported.ForDialect(_dialect, SqlConst.STRING_SPLIT);
             }
         }
 
@@ -4947,7 +4969,7 @@ internal sealed class SqlQueryParser
 
     private string? ReadOptionalAlias(IReadOnlyCollection<string>? additionalStopWords = null)
     {
-        if (IsWord(Peek(), "AS"))
+        if (IsWord(Peek(), SqlConst.AS))
         {
             // Se depois do AS vier uma keyword (SELECT/WITH/VALUES/SET/etc),
             // isso NÃƒO é alias â€” é parte da sintaxe do comando (ex: CREATE ... AS SELECT).
@@ -5027,14 +5049,14 @@ internal sealed class SqlQueryParser
 
         // Keep shared sequence syntax like NEXT VALUE FOR / PREVIOUS VALUE FOR
         // inside the same SELECT expression.
-        if (IsWord(current, "FOR") && EndsWithWords(buffer, "NEXT", "VALUE"))
+        if (IsWord(current, SqlConst.FOR) && EndsWithWords(buffer, SqlConst.NEXT, SqlConst.VALUE))
             return false;
 
-        if (IsWord(current, "FOR") && EndsWithWords(buffer, "PREVIOUS", "VALUE"))
+        if (IsWord(current, SqlConst.FOR) && EndsWithWords(buffer, SqlConst.PREVIOUS, SqlConst.VALUE))
             return false;
 
         // Keep "WITHIN GROUP (...)" inside the same SELECT expression.
-        if (IsWord(current, "GROUP") && EndsWithWord(buffer, "WITHIN"))
+        if (IsWord(current, SqlConst.GROUP) && EndsWithWord(buffer, SqlConst.WITHIN))
             return false;
 
         return true;
@@ -5072,7 +5094,7 @@ internal sealed class SqlQueryParser
 
     private string TokensToSql(List<SqlToken> toks)
     {
-        // ReconstrÃ³i SQL "bom o bastante" para reparse, sem inserir espaços que mudem a semântica.
+        // Reconstrói SQL "bom o bastante" para reparse, sem inserir espaços que mudem a semântica.
         // Regra de ouro: não colocar espaços ao redor de '.', parênteses e vírgulas, senão "u.id" vira "u . id"
         // e o splitter de alias pode achar que "id" é alias.
         var sb = new StringBuilder();
@@ -5656,18 +5678,6 @@ internal sealed class SqlQueryParser
         if (t.Kind == SqlTokenKind.Identifier || t.Kind == SqlTokenKind.Keyword) return t.Text;
         throw new InvalidOperationException($"Esperava identifier, veio {t.Kind}");
     }
-    private int ExpectNumberInt()
-    {
-        var t = Consume();
-
-        if (t.Kind == SqlTokenKind.Number)
-            return int.Parse(t.Text, CultureInfo.InvariantCulture);
-
-        if (t.Kind == SqlTokenKind.Parameter)
-            return ResolveParameterInt(t.Text);
-
-        throw new InvalidOperationException($"Esperava nÃºmero inteiro ou parâmetro, veio {t.Kind} '{t.Text}'.");
-    }
 
     private long ExpectSignedNumberLong(string clauseName)
     {
@@ -5761,23 +5771,23 @@ internal sealed class SqlQueryParser
 
     private void ExpectEndOrUnionBoundary()
     {
-        // ApÃ³s um SELECT completo, sÃ³ é válido terminar o statement ou seguir com UNION.
+        // Após um SELECT completo, só é válido terminar o statement ou seguir com UNION.
         // No MySQL, quando SELECT está dentro de INSERT ... SELECT, pode haver ON DUPLICATE KEY UPDATE depois.
         var t = Peek();
-        if (IsEnd(t) || IsWord(t, "UNION")) return;
+        if (IsEnd(t) || IsWord(t, SqlConst.UNION)) return;
 
         // boundary especial: INSERT ... SELECT ... ON DUPLICATE / ON CONFLICT / RETURNING
-        if (_allowInsertSelectSuffixBoundary && (IsWord(t, "ON") || IsWord(t, "RETURNING"))) return;
+        if (_allowInsertSelectSuffixBoundary && (IsWord(t, SqlConst.ON) || IsWord(t, SqlConst.RETURNING))) return;
 
         // tolera ';' final se o split top-level não removeu
         if (IsSymbol(t, ";")) { Consume(); return; }
 
-        throw new InvalidOperationException($"Token inesperado apÃ³s SELECT: {t.Kind} '{t.Text}'");
+        throw new InvalidOperationException($"Token inesperado após SELECT: {t.Kind} '{t.Text}'");
     }
 
     private static readonly HashSet<string> JoinStart = new(StringComparer.OrdinalIgnoreCase)
     {
-        "JOIN", "INNER", "LEFT", "RIGHT", "CROSS", "OUTER"
+        SqlConst.JOIN, SqlConst.INNER, SqlConst.LEFT, SqlConst.RIGHT, SqlConst.CROSS, SqlConst.OUTER
     };
 
     private static bool IsJoinStart(SqlToken t)
@@ -5816,35 +5826,35 @@ internal sealed class SqlQueryParser
 
     private static readonly HashSet<string> ClauseKeywordToken = new(StringComparer.OrdinalIgnoreCase)
     {
-        "FROM"   ,
-        "WHERE"  ,
-        "GROUP"  ,
-        "HAVING" ,
-        "ORDER"  ,
-        "LIMIT"  ,
-        "UNION"  ,
-        "ON"     ,
-        "JOIN"   ,
-        "INNER"  ,
-        "LEFT"   ,
-        "RIGHT"  ,
-        "CROSS"  ,
-        "OUTER"  ,
-        "APPLY"  ,
-        "OFFSET" ,
-        "FETCH"  ,
-        "OPTION" ,
-        "SET"    ,  // UPDATE
-        "VALUES" ,  // INSERT
-        "SELECT" ,  // INSERT...SELECT (e derived cases)
-        "INTO"   , // Ãºtil em variações/dialetos
-        "USING"  ,
-        "WHEN"   ,
-        "MATCHED",
-        "THEN"
-      , "PIVOT"
-      , "UNPIVOT"
-      , "RETURNING"
+        SqlConst.FROM   ,
+        SqlConst.WHERE  ,
+        SqlConst.GROUP  ,
+        SqlConst.HAVING ,
+        SqlConst.ORDER  ,
+        SqlConst.LIMIT  ,
+        SqlConst.UNION  ,
+        SqlConst.ON     ,
+        SqlConst.JOIN   ,
+        SqlConst.INNER  ,
+        SqlConst.LEFT   ,
+        SqlConst.RIGHT  ,
+        SqlConst.CROSS  ,
+        SqlConst.OUTER  ,
+        SqlConst.APPLY  ,
+        SqlConst.OFFSET ,
+        SqlConst.FETCH  ,
+        SqlConst.OPTION ,
+        SqlConst.SET    ,  // UPDATE
+        SqlConst.VALUES ,  // INSERT
+        SqlConst.SELECT ,  // INSERT...SELECT (e derived cases)
+        SqlConst.INTO   , // útil em variações/dialetos
+        SqlConst.USING  ,
+        SqlConst.WHEN   ,
+        SqlConst.MATCHED,
+        SqlConst.THEN
+      , SqlConst.PIVOT
+      , SqlConst.UNPIVOT
+      , SqlConst.RETURNING
     };
 
     private static bool IsClauseKeywordToken(SqlToken t, IReadOnlyCollection<string>? additionalStopWords = null)
@@ -6100,9 +6110,9 @@ internal sealed class SqlQueryParser
     /// </summary>
     /// <param name="sql">EN: SQL fragment to parse as subquery. PT: Fragmento SQL para parsear como subquery.</param>
     /// <param name="t">EN: Current token used for contextual error composition. PT: Token atual usado para composição contextual de erro.</param>
-    /// <param name="ctx">EN: Context label appended to validation error messages. PT: RÃ³tulo de contexto anexado Ã s mensagens de erro de validação.</param>
+    /// <param name="ctx">EN: Context label appended to validation error messages. PT: Rótulo de contexto anexado Ã s mensagens de erro de validação.</param>
     /// <param name="dialect">EN: Dialect used for parsing. PT: Dialeto usado no parsing.</param>
-    /// <returns>EN: Parsed subquery expression node. PT: NÃ³ de expressão de subquery parseado.</returns>
+    /// <returns>EN: Parsed subquery expression node. PT: Nó de expressão de subquery parseado.</returns>
     public static SubqueryExpr ParseSubqueryExprOrThrow(
         string sql,
         SqlToken t,

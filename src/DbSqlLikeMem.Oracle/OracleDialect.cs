@@ -11,8 +11,8 @@ internal sealed class OracleDialect : SqlDialectBase
         keywords: [],
         binOps:
         [
-            new KeyValuePair<string, SqlBinaryOp>("AND", SqlBinaryOp.And),
-            new KeyValuePair<string, SqlBinaryOp>("OR", SqlBinaryOp.Or),
+            new KeyValuePair<string, SqlBinaryOp>(SqlConst.AND, SqlBinaryOp.And),
+            new KeyValuePair<string, SqlBinaryOp>(SqlConst.OR, SqlBinaryOp.Or),
             new KeyValuePair<string, SqlBinaryOp>("=", SqlBinaryOp.Eq),
             new KeyValuePair<string, SqlBinaryOp>("<>", SqlBinaryOp.Neq),
             new KeyValuePair<string, SqlBinaryOp>("!=", SqlBinaryOp.Neq),
@@ -159,6 +159,11 @@ internal sealed class OracleDialect : SqlDialectBase
     /// PT: Obtém se há suporte a pivot clause.
     /// </summary>
     public override bool SupportsPivotClause => true;
+    /// <summary>
+    /// EN: Gets whether CROSS APPLY and OUTER APPLY are supported.
+    /// PT: Obtém se CROSS APPLY e OUTER APPLY são suportados.
+    /// </summary>
+    public override bool SupportsApplyClause => Version >= 12;
     public override bool PivotAvgReturnsDecimalForIntegralInputs => true;
     /// <summary>
     /// EN: Gets or sets null substitute function names.

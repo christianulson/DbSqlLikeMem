@@ -349,19 +349,20 @@ public sealed class DbMetrics
         Dictionary<string, int>? hits = null;
         Dictionary<string, long>? elapsedTicks = null;
 
-        foreach (var pair in PerformancePhaseElapsedTicks)
+        foreach (var key in PerformancePhaseElapsedTicks.Keys.Union(PerformancePhaseHits.Keys, StringComparer.OrdinalIgnoreCase))
         {
-            before.PerformancePhaseElapsedTicks.TryGetValue(pair.Key, out var beforeTicks);
-            var deltaTicks = pair.Value - beforeTicks;
-            PerformancePhaseHits.TryGetValue(pair.Key, out var currentHits);
-            before.PerformancePhaseHits.TryGetValue(pair.Key, out var beforeHits);
+            PerformancePhaseElapsedTicks.TryGetValue(key, out var currentTicks);
+            before.PerformancePhaseElapsedTicks.TryGetValue(key, out var beforeTicks);
+            var deltaTicks = currentTicks - beforeTicks;
+            PerformancePhaseHits.TryGetValue(key, out var currentHits);
+            before.PerformancePhaseHits.TryGetValue(key, out var beforeHits);
             var deltaHits = currentHits - beforeHits;
 
             if (deltaTicks <= 0 && deltaHits <= 0)
                 continue;
 
-            (hits ??= new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase))[pair.Key] = Math.Max(0, deltaHits);
-            (elapsedTicks ??= new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase))[pair.Key] = Math.Max(0, deltaTicks);
+            (hits ??= new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase))[key] = Math.Max(0, deltaHits);
+            (elapsedTicks ??= new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase))[key] = Math.Max(0, deltaTicks);
         }
 
         if (hits is null || elapsedTicks is null || hits.Count == 0)
@@ -381,13 +382,14 @@ public sealed class DbMetrics
     {
         List<(string Key, int Hits, long ElapsedTicks)>? items = null;
 
-        foreach (var pair in elapsedTicksByPhase)
+        foreach (var key in elapsedTicksByPhase.Keys.Union(hitsByPhase.Keys, StringComparer.OrdinalIgnoreCase))
         {
-            if (pair.Value <= 0)
+            elapsedTicksByPhase.TryGetValue(key, out var elapsedTicks);
+            hitsByPhase.TryGetValue(key, out var hits);
+            if (elapsedTicks <= 0 && hits <= 0)
                 continue;
 
-            hitsByPhase.TryGetValue(pair.Key, out var hits);
-            (items ??= []).Add((pair.Key, hits, pair.Value));
+            (items ??= []).Add((key, hits, elapsedTicks));
         }
 
         if (items is null || items.Count == 0)
@@ -402,11 +404,16 @@ public sealed class DbMetrics
         });
 
         var builder = new StringBuilder();
+        var wroteAny = false;
         for (var i = 0; i < items.Count; i++)
         {
             var item = items[i];
-            if (i > 0)
+            if (item.ElapsedTicks <= 0 && item.Hits <= 0)
+                continue;
+            if (wroteAny)
                 builder.Append(',');
+            else
+                wroteAny = true;
 
             builder.Append(item.Key);
             builder.Append("[hits=");
@@ -416,7 +423,7 @@ public sealed class DbMetrics
             builder.Append(']');
         }
 
-        return builder.ToString();
+        return wroteAny ? builder.ToString() : null;
     }
 
     internal IDisposable BeginAmbientScope()

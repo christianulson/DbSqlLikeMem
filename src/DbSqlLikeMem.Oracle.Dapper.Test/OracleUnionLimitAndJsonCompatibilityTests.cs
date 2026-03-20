@@ -39,7 +39,7 @@ public sealed class OracleUnionLimitAndJsonCompatibilityTests : DapperUnionLimit
         {
             var ex = Assert.Throws<NotSupportedException>(() =>
                 connection.Query<dynamic>("SELECT id FROM t ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY").ToList());
-            Assert.Contains("OFFSET", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.OFFSET, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 

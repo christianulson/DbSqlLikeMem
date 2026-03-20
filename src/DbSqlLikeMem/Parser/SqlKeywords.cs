@@ -4,13 +4,13 @@ internal static class SqlKeywords
     private static readonly HashSet<string> _keywords =
         new(StringComparer.OrdinalIgnoreCase)
         {
-            "AND","OR","NOT",
-            "IN","LIKE","IS","NULL","ESCAPE",
-            "TRUE","FALSE",
-            "AS",
-            "BETWEEN",
-            "DISTINCT",
-            "CASE","WHEN","THEN","ELSE","END"
+            SqlConst.AND,SqlConst.OR,SqlConst.NOT,
+            SqlConst.IN,"LIKE",SqlConst.IS,SqlConst.NULL,"ESCAPE",
+            SqlConst.TRUE,SqlConst.FALSE,
+            SqlConst.AS,
+            SqlConst.BETWEEN,
+            SqlConst.DISTINCT,
+            "CASE",SqlConst.WHEN,SqlConst.THEN,SqlConst.ELSE,SqlConst.END
         };
 
     /// <summary>

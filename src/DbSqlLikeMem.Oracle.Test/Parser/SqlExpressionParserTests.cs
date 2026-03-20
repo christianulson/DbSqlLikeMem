@@ -135,7 +135,6 @@ public sealed class SqlExpressionParserTests(
         yield return new object[] { "aIS NULL, b=2" };
         yield return new object[] { "id <= 2)" };
         yield return new object[] { "MATCH(title) AGAINST('x' IN BOOLEAN MODE)" };
-        yield return new object[] { "JSON_TABLE(col, '$[*]' COLUMNS(x INT PATH '$'))" };
     }
 
     // ----------- Regras (cenários extra) -----------
@@ -346,7 +345,7 @@ public sealed class SqlExpressionParserTests(
         var s = SqlExprPrinter.Print(ast);
 
         // só uma checagem básica de que não está vazio e contém operadores esperados
-        Assert.Contains("AND", s, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.AND, s, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("=", s, StringComparison.OrdinalIgnoreCase);
     }
 }

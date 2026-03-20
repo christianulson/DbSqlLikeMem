@@ -387,7 +387,7 @@ public sealed class SqlAzureDialectBehaviorTests(
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
             var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
-            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -436,7 +436,7 @@ public sealed class SqlAzureDialectBehaviorTests(
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
             var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
-            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -484,7 +484,7 @@ public sealed class SqlAzureDialectBehaviorTests(
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
             var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
-            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -1107,7 +1107,7 @@ public sealed class SqlAzureDialectBehaviorTests(
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
             var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteScalar());
-            Assert.Contains("FOR JSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.FOR_JSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
         var json = Assert.IsType<string>(command.ExecuteScalar());
@@ -1154,7 +1154,7 @@ public sealed class SqlAzureDialectBehaviorTests(
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
             var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteScalar());
-            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
         var json = Assert.IsType<string>(command.ExecuteScalar());
@@ -1189,7 +1189,7 @@ public sealed class SqlAzureDialectBehaviorTests(
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
             var ex2 = Assert.Throws<NotSupportedException>(() => command.ExecuteScalar());
-            Assert.Contains("FOR JSON", ex2.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.FOR_JSON, ex2.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
         var ex = Assert.Throws<InvalidOperationException>(() => command.ExecuteScalar());
@@ -1330,7 +1330,7 @@ public sealed class SqlAzureDialectBehaviorTests(
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
             var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteScalar());
-            Assert.Contains("FOR JSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.FOR_JSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
         var json = Assert.IsType<string>(command.ExecuteScalar());
@@ -1372,7 +1372,7 @@ public sealed class SqlAzureDialectBehaviorTests(
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
             var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
-            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -1417,7 +1417,7 @@ public sealed class SqlAzureDialectBehaviorTests(
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
             var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
-            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -1457,7 +1457,7 @@ public sealed class SqlAzureDialectBehaviorTests(
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2022)
         {
             var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
-            Assert.Contains("STRING_SPLIT", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.STRING_SPLIT, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
         using var reader = command.ExecuteReader();
@@ -1502,7 +1502,7 @@ public sealed class SqlAzureDialectBehaviorTests(
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2022)
         {
             var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
-            Assert.Contains("STRING_SPLIT", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.STRING_SPLIT, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
         using var reader = command.ExecuteReader();
@@ -1543,7 +1543,7 @@ public sealed class SqlAzureDialectBehaviorTests(
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2022)
         {
             var ex2 = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
-            Assert.Contains("STRING_SPLIT", ex2.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.STRING_SPLIT, ex2.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
         var ex = Assert.Throws<InvalidOperationException>(() => command.ExecuteReader());
@@ -1581,7 +1581,7 @@ public sealed class SqlAzureDialectBehaviorTests(
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2022)
         {
             var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
-            Assert.Contains("STRING_SPLIT", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.STRING_SPLIT, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
         using var reader = command.ExecuteReader();
@@ -1628,7 +1628,7 @@ public sealed class SqlAzureDialectBehaviorTests(
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2022)
         {
             var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
-            Assert.Contains("STRING_SPLIT", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.STRING_SPLIT, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
         using var reader = command.ExecuteReader();
@@ -1672,7 +1672,7 @@ public sealed class SqlAzureDialectBehaviorTests(
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2022)
         {
             var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
-            Assert.Contains("STRING_SPLIT", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.STRING_SPLIT, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
         using var reader = command.ExecuteReader();
@@ -1716,7 +1716,7 @@ public sealed class SqlAzureDialectBehaviorTests(
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2022)
         {
             var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
-            Assert.Contains("STRING_SPLIT", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.STRING_SPLIT, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
         using var reader = command.ExecuteReader();
@@ -1759,7 +1759,7 @@ public sealed class SqlAzureDialectBehaviorTests(
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2022)
         {
             var ex2 = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
-            Assert.Contains("STRING_SPLIT", ex2.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.STRING_SPLIT, ex2.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
         var ex = Assert.Throws<InvalidOperationException>(() => command.ExecuteReader());

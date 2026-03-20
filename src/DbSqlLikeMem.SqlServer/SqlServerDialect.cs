@@ -11,8 +11,8 @@ internal sealed class SqlServerDialect : SqlDialectBase
         keywords: [],
         binOps:
         [
-            new KeyValuePair<string, SqlBinaryOp>("AND", SqlBinaryOp.And),
-            new KeyValuePair<string, SqlBinaryOp>("OR", SqlBinaryOp.Or),
+            new KeyValuePair<string, SqlBinaryOp>(SqlConst.AND, SqlBinaryOp.And),
+            new KeyValuePair<string, SqlBinaryOp>(SqlConst.OR, SqlBinaryOp.Or),
             new KeyValuePair<string, SqlBinaryOp>("=", SqlBinaryOp.Eq),
             new KeyValuePair<string, SqlBinaryOp>("<>", SqlBinaryOp.Neq),
             new KeyValuePair<string, SqlBinaryOp>("!=", SqlBinaryOp.Neq),
@@ -325,7 +325,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
             || functionName.Equals("CONCAT", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("CONCAT_WS", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("LEN", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("LEFT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals(SqlConst.LEFT, StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("LOG", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("LOG10", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("LOWER", StringComparison.OrdinalIgnoreCase)
@@ -339,8 +339,8 @@ internal sealed class SqlServerDialect : SqlDialectBase
             || functionName.Equals("POWER", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("RADIANS", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("RAND", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("REPLACE", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("RIGHT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals(SqlConst.REPLACE, StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals(SqlConst.RIGHT, StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("ROUND", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("SIGN", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("SIN", StringComparison.OrdinalIgnoreCase)

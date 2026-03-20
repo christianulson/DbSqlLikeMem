@@ -13,6 +13,7 @@ using DbSqlLikeMem.VisualStudioExtension.Core.Services;
 using DbSqlLikeMem.VisualStudioExtension.Core.Validation;
 using DbSqlLikeMem.VisualStudioExtension.Properties;
 using DbSqlLikeMem.VisualStudioExtension.Services;
+using DbSqlLikeMem.VisualStudioExtension.Core;
 
 namespace DbSqlLikeMem.VisualStudioExtension.UI;
 
@@ -1614,13 +1615,13 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     private static string FormatSqlLiteral(object value)
         => value switch
         {
-            null => "NULL",
+            null => Const.NULL,
             string s => $"'{s.Replace("'", "''")}'",
             DateTime dt => $"'{dt:yyyy-MM-dd HH:mm:ss.fffffff}'",
             DateTimeOffset dto => $"'{dto:yyyy-MM-dd HH:mm:ss.fffffff zzz}'",
             bool b => b ? "1" : "0",
             Guid g => $"'{g}'",
-            _ when value is IFormattable f => f.ToString(null, System.Globalization.CultureInfo.InvariantCulture) ?? "NULL",
+            _ when value is IFormattable f => f.ToString(null, System.Globalization.CultureInfo.InvariantCulture) ?? Const.NULL,
             _ => $"'{value.ToString()?.Replace("'", "''")}'"
         };
 

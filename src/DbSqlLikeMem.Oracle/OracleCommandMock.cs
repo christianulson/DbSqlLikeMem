@@ -168,6 +168,7 @@ public class OracleCommandMock(
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
         connection!.ClearExecutionPlans();
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
+        using var _ = connection.Metrics.BeginAmbientScope();
 
         if (connection.TryHandleExecuteReaderPrelude(
             CommandType,
@@ -365,8 +366,8 @@ public class OracleCommandMock(
         rewrittenSql = sql;
         clause = null!;
 
-        const string returningKeyword = "RETURNING";
-        const string intoKeyword = "INTO";
+        const string returningKeyword = SqlConst.RETURNING;
+        const string intoKeyword = SqlConst.INTO;
 
         var returningIndex = FindLastTopLevelKeyword(sql, returningKeyword);
         if (returningIndex < 0)
@@ -639,6 +640,20 @@ public class OracleCommandMock(
     /// </summary>
     public override object ExecuteScalar()
     {
+        ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
+        using var _ = connection!.Metrics.BeginAmbientScope();
+        if (connection.TryHandleExecuteScalarPrelude(
+            CommandType,
+            CommandText,
+            Parameters,
+            static () => new OracleDataReaderMock([[]]),
+            normalizeSqlInput: true,
+            TryExecuteTransactionControlCommand,
+            out var scalar))
+        {
+            return scalar!;
+        }
+
         using var reader = ExecuteReader();
         if (reader.Read())
             return reader.GetValue(0);

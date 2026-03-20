@@ -242,7 +242,7 @@ public sealed class DbTypeCoercionTests(
     public void DbTypeParser_String_QuotedNull_ShouldRemainText()
     {
         Assert.Equal("null", DbType.String.Parse("'null'"));
-        Assert.Equal("NULL", DbType.AnsiString.Parse("\"NULL\""));
+        Assert.Equal(SqlConst.NULL, DbType.AnsiString.Parse("\"NULL\""));
     }
 
     /// <summary>

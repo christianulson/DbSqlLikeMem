@@ -23,7 +23,7 @@ public sealed class PostgreSqlMergeUpsertTests(ITestOutputHelper helper) : XUnit
             var ex = Assert.Throws<NotSupportedException>(() =>
                 SqlQueryParser.Parse("MERGE INTO users t USING (SELECT 1 AS Id) s ON t.Id = s.Id WHEN MATCHED THEN UPDATE SET Name = 'x'", db.Dialect));
 
-            Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.MERGE, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -59,7 +59,7 @@ public sealed class PostgreSqlMergeUpsertTests(ITestOutputHelper helper) : XUnit
                     INSERT (Id, Name) VALUES (src.Id, src.Name);
                 """));
 
-            Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.MERGE, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -108,7 +108,7 @@ WHEN NOT MATCHED THEN
                     INSERT (Id, Name) VALUES (s.Id, s.Name);
                 """));
 
-            Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.MERGE, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 

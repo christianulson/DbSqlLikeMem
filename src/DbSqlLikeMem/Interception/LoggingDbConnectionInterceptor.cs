@@ -112,13 +112,14 @@ public sealed class LoggingDbConnectionInterceptor : DbConnectionInterceptor
         });
 
     private static string? TryGetPerformanceMetrics(DbConnection connection)
-        => connection is DbConnectionMockBase mock
+        => connection.AsMockConnection() is DbConnectionMockBase mock
             ? mock.Metrics.FormatPerformancePhases()
             : null;
 
     private string? TryGetPerformanceMetricsDelta(DbConnection connection, DbCommand command)
     {
-        if (connection is not DbConnectionMockBase mock)
+        var mock = connection.AsMockConnection();
+        if (mock is null)
             return null;
 
         if (!_commandSnapshots.TryRemove(command, out var snapshot))
@@ -129,7 +130,7 @@ public sealed class LoggingDbConnectionInterceptor : DbConnectionInterceptor
 
     private void TryCaptureCommandSnapshot(DbConnection connection, DbCommand command)
     {
-        if (connection is DbConnectionMockBase mock)
+        if (connection.AsMockConnection() is DbConnectionMockBase mock)
             _commandSnapshots[command] = mock.Metrics.CapturePerformanceSnapshot();
     }
 

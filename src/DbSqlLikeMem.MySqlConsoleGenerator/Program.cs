@@ -249,7 +249,7 @@ SELECT INDEX_NAME
             }
         }
         // Remove PRIMARY daqui; trataremos separado
-        idx.Remove("PRIMARY");
+        idx.Remove(SqlConst.PRIMARY);
 
         // FKs
         var fks = new Dictionary<string, (string RefTable, List<(string Col, string RefCol)> Cols)>();

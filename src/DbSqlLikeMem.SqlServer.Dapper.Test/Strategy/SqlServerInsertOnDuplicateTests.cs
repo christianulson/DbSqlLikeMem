@@ -34,7 +34,7 @@ WHEN NOT MATCHED THEN
         if (version < SqlServerDialect.MergeMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(() => cnn.Execute(sql));
-            Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.MERGE, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -78,7 +78,7 @@ WHEN NOT MATCHED THEN
         if (version < SqlServerDialect.MergeMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(() => cnn.Execute(sql));
-            Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.MERGE, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -118,7 +118,7 @@ WHEN NOT MATCHED THEN
         if (version < SqlServerDialect.MergeMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(() => cnn.Execute(sql));
-            Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.MERGE, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 

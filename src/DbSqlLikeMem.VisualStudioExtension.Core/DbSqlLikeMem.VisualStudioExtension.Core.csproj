@@ -7,7 +7,5 @@
 	<ItemGroup>
 	  <Compile Include="..\DbSqlLikeMem\Compatibility\FrameworkPolyfills.cs" Link="Compatibility\FrameworkPolyfills.cs" />
 	</ItemGroup>
-	<ItemGroup>
-	  <Folder Include="Compatibility\" />
-	</ItemGroup>
+	
 </Project>

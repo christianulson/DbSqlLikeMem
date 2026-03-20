@@ -252,7 +252,7 @@ public sealed class SqliteWhereParserAndExecutorTests : XUnitTestBase
     [Trait("Category", "SqliteWhereParserAndExecutor")]
     public void Where_AND_ShouldBeCaseInsensitive_InRealLife()
     {
-        // esse teste é pra pegar o bug clássico: split só em " AND " / " and "
+        // esse teste é pra pegar o bug clássico: split só em SqlConst._AND_ / " and "
         // Se falhar, você sabe o que arrumar: split por regex com IgnoreCase.
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id = 1 aNd name = 'John'").ToList();
         Assert.Single(rows);

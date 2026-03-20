@@ -34,8 +34,8 @@ internal class MySqlDialect : SqlDialectBase
         keywords: ["REGEXP"],
         binOps:
         [
-            new KeyValuePair<string, SqlBinaryOp>("AND", SqlBinaryOp.And),
-            new KeyValuePair<string, SqlBinaryOp>("OR", SqlBinaryOp.Or),
+            new KeyValuePair<string, SqlBinaryOp>(SqlConst.AND, SqlBinaryOp.And),
+            new KeyValuePair<string, SqlBinaryOp>(SqlConst.OR, SqlBinaryOp.Or),
             new KeyValuePair<string, SqlBinaryOp>("=", SqlBinaryOp.Eq),
             new KeyValuePair<string, SqlBinaryOp>("<>", SqlBinaryOp.Neq),
             new KeyValuePair<string, SqlBinaryOp>("!=", SqlBinaryOp.Neq),
@@ -283,7 +283,7 @@ internal class MySqlDialect : SqlDialectBase
             || functionName.Equals("RADIANS", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("RAND", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("REVERSE", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("RIGHT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals(SqlConst.RIGHT, StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("ROUND", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("SIN", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("SPACE", StringComparison.OrdinalIgnoreCase)

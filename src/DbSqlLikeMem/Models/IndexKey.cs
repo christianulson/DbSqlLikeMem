@@ -135,11 +135,11 @@ public readonly struct IndexKey : IEquatable<IndexKey>
     public override string ToString()
     {
         if (_more is not null)
-            return string.Join(" | ", _more.Select(v => v?.ToString() ?? "NULL"));
-        if (_count == 1) return _v1?.ToString() ?? "NULL";
-        if (_count == 2) return $"{_v1?.ToString() ?? "NULL"} | {_v2?.ToString() ?? "NULL"}";
-        if (_count == 3) return $"{_v1?.ToString() ?? "NULL"} | {_v2?.ToString() ?? "NULL"} | {_v3?.ToString() ?? "NULL"}";
-        return "NULL";
+            return string.Join(" | ", _more.Select(v => v?.ToString() ?? SqlConst.NULL));
+        if (_count == 1) return _v1?.ToString() ?? SqlConst.NULL;
+        if (_count == 2) return $"{_v1?.ToString() ?? SqlConst.NULL} | {_v2?.ToString() ?? SqlConst.NULL}";
+        if (_count == 3) return $"{_v1?.ToString() ?? SqlConst.NULL} | {_v2?.ToString() ?? SqlConst.NULL} | {_v3?.ToString() ?? SqlConst.NULL}";
+        return SqlConst.NULL;
     }
 
     /// <inheritdoc />
@@ -188,7 +188,7 @@ public readonly struct IndexKey : IEquatable<IndexKey>
         if (val is null || val is DBNull)
             hash.Add(0);
         else if (val is string s)
-            hash.Add(s.GetHashCode());
+            hash.Add(StringComparer.OrdinalIgnoreCase.GetHashCode(s));
         else
             hash.Add(val);
     }

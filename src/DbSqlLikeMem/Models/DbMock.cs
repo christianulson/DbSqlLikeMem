@@ -20,6 +20,12 @@ public abstract class DbMock
     /// </summary>
     public bool ThreadSafe { get; set; }
 
+    /// <summary>
+    /// EN: Controls whether execution plans are formatted and captured during command execution.
+    /// PT: Controla se planos de execução serão formatados e capturados durante a execução dos comandos.
+    /// </summary>
+    public bool CaptureExecutionPlans { get; set; } = true;
+
     internal object SyncRoot { get; } = new();
 
     internal abstract SqlDialectBase Dialect { get; set; }

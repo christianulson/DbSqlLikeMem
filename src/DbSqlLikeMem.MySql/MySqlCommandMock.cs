@@ -96,9 +96,9 @@ public class MySqlCommandMock(
 
     private static bool IsInsertCommandText(string commandText)
         => (commandText.Length >= 6
-               && string.Compare(commandText[..6], "INSERT", StringComparison.OrdinalIgnoreCase) == 0)
+               && string.Compare(commandText[..6], SqlConst.INSERT, StringComparison.OrdinalIgnoreCase) == 0)
            || (commandText.Length >= 7
-               && string.Compare(commandText[..7], "REPLACE", StringComparison.OrdinalIgnoreCase) == 0);
+               && string.Compare(commandText[..7], SqlConst.REPLACE, StringComparison.OrdinalIgnoreCase) == 0);
 
     private string? BuildInsertBatchableCommandText()
     {
@@ -134,8 +134,8 @@ public class MySqlCommandMock(
 
     private static bool IsValuesKeyword(SqlToken token)
         => token.Kind != SqlTokenKind.Symbol
-           && (string.Equals(token.Text, "VALUES", StringComparison.OrdinalIgnoreCase)
-               || string.Equals(token.Text, "VALUE", StringComparison.OrdinalIgnoreCase));
+           && (string.Equals(token.Text, SqlConst.VALUES, StringComparison.OrdinalIgnoreCase)
+               || string.Equals(token.Text, SqlConst.VALUE, StringComparison.OrdinalIgnoreCase));
 
     private static bool TryReadValuesTuple(
         IReadOnlyList<SqlToken> tokens,
@@ -184,7 +184,7 @@ public class MySqlCommandMock(
             return false;
 
         var text = tokens[startIndex].Text;
-        return text == "," || string.Equals(text, "ON", StringComparison.OrdinalIgnoreCase);
+        return text == "," || string.Equals(text, SqlConst.ON, StringComparison.OrdinalIgnoreCase);
     }
 
     private readonly MySqlDataParameterCollectionMock collectionMock = [];
@@ -298,6 +298,7 @@ public class MySqlCommandMock(
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
         connection!.ClearExecutionPlans();
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
+        using var _ = connection.Metrics.BeginAmbientScope();
 
         if (connection.TryHandleExecuteReaderPrelude(
             CommandType,
@@ -592,7 +593,7 @@ public class MySqlCommandMock(
                         ParameterName: parameterExpr.Name));
                     break;
                 default:
-                    throw SqlUnsupported.ForDmlProjectionExpressionNotSupportedInExecutor("RETURNING", raw);
+                    throw SqlUnsupported.ForDmlProjectionExpressionNotSupportedInExecutor(SqlConst.RETURNING, raw);
             }
         }
 
@@ -761,6 +762,20 @@ public class MySqlCommandMock(
     /// </summary>
     public override object ExecuteScalar()
     {
+        ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
+        using var _ = connection!.Metrics.BeginAmbientScope();
+        if (connection.TryHandleExecuteScalarPrelude(
+            CommandType,
+            CommandText,
+            Parameters,
+            static () => new MySqlDataReaderMock([[]]),
+            normalizeSqlInput: true,
+            TryExecuteTransactionControlCommand,
+            out var scalar))
+        {
+            return scalar!;
+        }
+
         using var reader = ExecuteReader();
         if (reader.Read())
         {

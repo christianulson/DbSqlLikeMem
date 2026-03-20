@@ -49,7 +49,7 @@ internal static class QueryRowValueHelper
     internal static string NormalizeDistinctKey(object? value, ISqlDialect? dialect = null)
     {
         if (value is null or DBNull)
-            return "NULL";
+            return SqlConst.NULL;
 
         return value switch
         {
@@ -124,7 +124,7 @@ internal static class QueryRowValueHelper
     {
         foreach (var source in row.Sources.Values)
         {
-            if (row.Fields.TryGetValue($"{source.Alias}.{name}", out value))
+            if (row.TryGetValue($"{source.Alias}.{name}", out value))
                 return true;
         }
 
@@ -136,13 +136,13 @@ internal static class QueryRowValueHelper
         string name,
         AstQueryExecutorBase.EvalRow row,
         out object? value)
-        => row.Fields.TryGetValue(name, out value);
+        => row.TryGetValue(name, out value);
 
     private static bool TryResolveUnqualifiedColumn(
         string columnName,
         AstQueryExecutorBase.EvalRow row,
         out object? value)
-        => row.Fields.TryGetValue(columnName, out value);
+        => row.TryGetValue(columnName, out value);
 
     private static bool TryResolveColumnFromSources(
         string columnName,
@@ -200,9 +200,16 @@ internal static class QueryRowValueHelper
             return source;
         }
 
-        return row.Sources.Values.FirstOrDefault(candidate =>
-            candidate.Name.Equals(qualifier, StringComparison.OrdinalIgnoreCase)
-            || candidate.Name.Equals(lastQualifier, StringComparison.OrdinalIgnoreCase));
+        foreach (var candidate in row.Sources.Values)
+        {
+            if (candidate.Name.Equals(qualifier, StringComparison.OrdinalIgnoreCase)
+                || candidate.Name.Equals(lastQualifier, StringComparison.OrdinalIgnoreCase))
+            {
+                return candidate;
+            }
+        }
+
+        return null;
     }
 
     private static bool TryResolveDirectQualifiedField(
@@ -212,10 +219,10 @@ internal static class QueryRowValueHelper
         AstQueryExecutorBase.EvalRow row,
         out object? value)
     {
-        if (row.Fields.TryGetValue($"{lastQualifier}.{columnName}", out value))
+        if (row.TryGetValue($"{lastQualifier}.{columnName}", out value))
             return true;
 
-        return row.Fields.TryGetValue($"{qualifier}.{columnName}", out value);
+        return row.TryGetValue($"{qualifier}.{columnName}", out value);
     }
 
     private static bool TryResolveColumnFromSource(
@@ -224,12 +231,16 @@ internal static class QueryRowValueHelper
         AstQueryExecutorBase.EvalRow row,
         out object? value)
     {
-        if (row.Fields.TryGetValue($"{source.Alias}.{columnName}", out value))
+        if (row.TryGetValue($"{source.Alias}.{columnName}", out value))
             return true;
 
-        var matchedColumn = source.ColumnNames.FirstOrDefault(name => name.Equals(columnName, StringComparison.OrdinalIgnoreCase));
-        if (matchedColumn is not null)
-            return row.Fields.TryGetValue($"{source.Alias}.{matchedColumn}", out value);
+        foreach (var matchedColumn in source.ColumnNames)
+        {
+            if (!matchedColumn.Equals(columnName, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            return row.TryGetValue($"{source.Alias}.{matchedColumn}", out value);
+        }
 
         value = null;
         return false;
@@ -244,13 +255,34 @@ internal static class QueryRowValueHelper
             if (source.Physical is null || source.Physical.PrimaryKeyIndexes.Count != 1)
                 continue;
 
-            var pkIndex = source.Physical.PrimaryKeyIndexes.First();
-            var pkColumn = source.Physical.Columns.FirstOrDefault(col => col.Value.Index == pkIndex).Key;
+            var pkIndex = default(int);
+            foreach (var candidatePkIndex in source.Physical.PrimaryKeyIndexes)
+            {
+                pkIndex = candidatePkIndex;
+                break;
+            }
+            string? pkColumn = null;
+            foreach (var column in source.Physical.Columns)
+            {
+                if (column.Value.Index == pkIndex)
+                {
+                    pkColumn = column.Key;
+                    break;
+                }
+            }
+
             if (string.IsNullOrWhiteSpace(pkColumn))
                 continue;
 
-            rowId = ResolveColumn(source.Alias, pkColumn!, row);
-            return true;
+            if (row.TryGetValue($"{source.Alias}.{pkColumn}", out var resolvedRowId)
+                || row.TryGetValue(pkColumn!, out resolvedRowId))
+            {
+                if (resolvedRowId is not DBNull)
+                {
+                    rowId = resolvedRowId;
+                    return true;
+                }
+            }
         }
 
         rowId = null;

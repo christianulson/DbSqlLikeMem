@@ -143,14 +143,20 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
     public override string TemporalNowWhere(string tableName) =>
         $"SELECT COUNT(*) FROM {tableName} WHERE CURRENT_TIMESTAMP IS NOT NULL";
     public override string TemporalNowOrderBy(string tableName) =>
-        $"SELECT Name FROM (SELECT Name FROM {tableName} ORDER BY CURRENT_TIMESTAMP, Name) WHERE ROWNUM = 1";
+            $"SELECT Name FROM (SELECT Name FROM {tableName} ORDER BY CURRENT_TIMESTAMP, Name) WHERE ROWNUM = 1";
 
+    /// <summary>
+    /// EN: Returns a valid Oracle no-op command for the release-savepoint benchmark.
+    /// PT: Retorna um comando Oracle sem efeito valido para o benchmark de release-savepoint.
+    /// </summary>
+    public override string ReleaseSavepoint(string savepointName) =>
+        "BEGIN NULL; END;";
 
 
     public override string CrossApplyProjection(string usersTable, string ordersTable) =>
-        $"SELECT COUNT(*) FROM {usersTable} u CROSS APPLY (SELECT o.Note FROM {ordersTable} o WHERE o.UserId = u.Id ORDER BY o.Id DESC FETCH FIRST 1 ROW ONLY) x";
+        $"SELECT COUNT(*) FROM {usersTable} u JOIN LATERAL (SELECT o.Note FROM {ordersTable} o WHERE o.UserId = u.Id ORDER BY o.Id DESC FETCH FIRST 1 ROW ONLY) x ON 1 = 1";
 
     public override string OuterApplyProjection(string usersTable, string ordersTable) =>
-        $"SELECT COUNT(*) FROM {usersTable} u OUTER APPLY (SELECT o.Note FROM {ordersTable} o WHERE o.UserId = u.Id ORDER BY o.Id DESC FETCH FIRST 1 ROW ONLY) x";
+        $"SELECT COUNT(*) FROM {usersTable} u LEFT JOIN LATERAL (SELECT o.Note FROM {ordersTable} o WHERE o.UserId = u.Id ORDER BY o.Id DESC FETCH FIRST 1 ROW ONLY) x ON 1 = 1";
 
 }

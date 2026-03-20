@@ -130,6 +130,7 @@ public class NpgsqlCommandMock(
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
         connection!.ClearExecutionPlans();
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
+        using var _ = connection.Metrics.BeginAmbientScope();
 
         if (connection.TryHandleExecuteReaderPrelude(
             CommandType,
@@ -193,7 +194,7 @@ public class NpgsqlCommandMock(
             return null;
         }
         if (table is null)
-            throw SqlUnsupported.ForDmlProjectionRequiresValidTargetTable("RETURNING");
+            throw SqlUnsupported.ForDmlProjectionRequiresValidTargetTable(SqlConst.RETURNING);
         var targetTable = table;
 
         var hadReturning = query.Returning.Count > 0;
@@ -222,7 +223,7 @@ public class NpgsqlCommandMock(
             return null;
         }
         if (table is null)
-            throw SqlUnsupported.ForDmlProjectionRequiresValidTargetTable("RETURNING");
+            throw SqlUnsupported.ForDmlProjectionRequiresValidTargetTable(SqlConst.RETURNING);
         var targetTable = table;
 
         var hadReturning = query.Returning.Count > 0;
@@ -251,7 +252,7 @@ public class NpgsqlCommandMock(
             return null;
         }
         if (table is null)
-            throw SqlUnsupported.ForDmlProjectionRequiresValidTargetTable("RETURNING");
+            throw SqlUnsupported.ForDmlProjectionRequiresValidTargetTable(SqlConst.RETURNING);
         var targetTable = table;
 
         var hadReturning = query.Returning.Count > 0;
@@ -443,7 +444,7 @@ public class NpgsqlCommandMock(
                     break;
                 }
                 default:
-                    throw SqlUnsupported.ForDmlProjectionExpressionNotSupportedInExecutor("RETURNING", raw);
+                    throw SqlUnsupported.ForDmlProjectionExpressionNotSupportedInExecutor(SqlConst.RETURNING, raw);
             }
         }
 
@@ -641,6 +642,20 @@ public class NpgsqlCommandMock(
     /// </summary>
     public override object ExecuteScalar()
     {
+        ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
+        using var _ = connection!.Metrics.BeginAmbientScope();
+        if (connection.TryHandleExecuteScalarPrelude(
+            CommandType,
+            CommandText,
+            Parameters,
+            static () => new NpgsqlDataReaderMock([[]]),
+            normalizeSqlInput: true,
+            TryExecuteTransactionControlCommand,
+            out var scalar))
+        {
+            return scalar!;
+        }
+
         using var reader = ExecuteReader();
         if (reader.Read())
             return reader.GetValue(0);

@@ -251,18 +251,23 @@ internal static class DbInsertStrategy
         connection.SetLastFoundRows(affected);
         sw.Stop();
 
-        var affectedRowsData = affectedIndexes.ConvertAll(idx => TableMock.SnapshotRow(table[idx]));
+        var affectedRowsData = connection.CaptureAffectedRowSnapshots
+            ? affectedIndexes.ConvertAll(idx => TableMock.SnapshotRow(table[idx]))
+            : new List<IReadOnlyDictionary<int, object?>>();
 
         var metrics = new SqlPlanRuntimeMetrics(
             InputTables: query.InsertSelect is null ? 1 : 1 + CountInputTables(query.InsertSelect),
             EstimatedRowsRead: targetRowCountBefore + newRows.Count,
             ActualRows: affected,
             ElapsedMs: sw.ElapsedMilliseconds);
-        var plan = SqlExecutionPlanFormatter.FormatInsert(
-            query,
-            metrics,
-            new SqlPlanMockRuntimeContext(connection.SimulatedLatencyMs, connection.DropProbability, connection.Db.ThreadSafe));
-        connection.RegisterExecutionPlan(plan);
+        if (connection.Db.CaptureExecutionPlans)
+        {
+            var plan = SqlExecutionPlanFormatter.FormatInsert(
+                query,
+                metrics,
+                new SqlPlanMockRuntimeContext(connection.SimulatedLatencyMs, connection.DropProbability, connection.Db.ThreadSafe));
+            connection.RegisterExecutionPlan(plan);
+        }
 
         return new DmlExecutionResult
         {
@@ -284,7 +289,9 @@ internal static class DbInsertStrategy
     {
         var sw = Stopwatch.StartNew();
         var affectedIndexes = new List<int>();
-        var affectedRowsData = new List<IReadOnlyDictionary<int, object?>>();
+        var affectedRowsData = connection.CaptureAffectedRowSnapshots
+            ? new List<IReadOnlyDictionary<int, object?>>()
+            : new List<IReadOnlyDictionary<int, object?>>();
         var insertedCount = 0;
         var deletedCount = 0;
 
@@ -348,11 +355,14 @@ internal static class DbInsertStrategy
             EstimatedRowsRead: targetRowCountBefore + newRows.Count,
             ActualRows: affected,
             ElapsedMs: sw.ElapsedMilliseconds);
-        var plan = SqlExecutionPlanFormatter.FormatInsert(
-            query,
-            metrics,
-            new SqlPlanMockRuntimeContext(connection.SimulatedLatencyMs, connection.DropProbability, connection.Db.ThreadSafe));
-        connection.RegisterExecutionPlan(plan);
+        if (connection.Db.CaptureExecutionPlans)
+        {
+            var plan = SqlExecutionPlanFormatter.FormatInsert(
+                query,
+                metrics,
+                new SqlPlanMockRuntimeContext(connection.SimulatedLatencyMs, connection.DropProbability, connection.Db.ThreadSafe));
+            connection.RegisterExecutionPlan(plan);
+        }
 
         return new DmlExecutionResult
         {
@@ -1019,7 +1029,7 @@ internal static class DbInsertStrategy
             if (SqlSequenceEvaluator.TryEvaluateCall(table, fn.Name, fn.Args, Eval, out var sequenceValue))
                 return sequenceValue;
 
-            if (fn.Name.Equals("VALUES", StringComparison.OrdinalIgnoreCase)
+            if (fn.Name.Equals(SqlConst.VALUES, StringComparison.OrdinalIgnoreCase)
                 && fn.Args.Count == 1)
             {
                 var col = fn.Args[0] switch
@@ -1042,7 +1052,7 @@ internal static class DbInsertStrategy
             if (SqlSequenceEvaluator.TryEvaluateCall(table, call.Name, call.Args, Eval, out var sequenceValue))
                 return sequenceValue;
 
-            if (call.Name.Equals("VALUES", StringComparison.OrdinalIgnoreCase)
+            if (call.Name.Equals(SqlConst.VALUES, StringComparison.OrdinalIgnoreCase)
                 && call.Args.Count == 1)
             {
                 var col = call.Args[0] switch
@@ -1226,7 +1236,7 @@ internal static class DbInsertStrategy
             if (fn.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, name, out var temporalValue))
                 return temporalValue;
 
-            if (name.Equals("VALUES", StringComparison.OrdinalIgnoreCase)
+            if (name.Equals(SqlConst.VALUES, StringComparison.OrdinalIgnoreCase)
                 && fn.Args.Count == 1)
             {
                 var col = fn.Args[0] switch
@@ -1249,7 +1259,7 @@ internal static class DbInsertStrategy
             if (SqlSequenceEvaluator.TryEvaluateCall(table, name, call.Args, Eval, out var sequenceValue))
                 return sequenceValue;
 
-            if (name.Equals("VALUES", StringComparison.OrdinalIgnoreCase)
+            if (name.Equals(SqlConst.VALUES, StringComparison.OrdinalIgnoreCase)
                 && call.Args.Count == 1)
             {
                 var col = call.Args[0] switch
@@ -1344,7 +1354,7 @@ internal static class DbInsertStrategy
             if (SqlSequenceEvaluator.TryEvaluateCall(table, fn.Name, fn.Args, Eval, out var sequenceValue))
                 return sequenceValue;
 
-            if (fn.Name.Equals("VALUES", StringComparison.OrdinalIgnoreCase) && fn.Args.Count == 1)
+            if (fn.Name.Equals(SqlConst.VALUES, StringComparison.OrdinalIgnoreCase) && fn.Args.Count == 1)
             {
                 var col = fn.Args[0] switch { IdentifierExpr id => id.Name, ColumnExpr c => c.Name, _ => null };
                 if (!string.IsNullOrWhiteSpace(col)) return GetInsertedColumnValue(col!);
@@ -1359,7 +1369,7 @@ internal static class DbInsertStrategy
             EnsureDialectSupportsSequenceFunction(dialect, call.Name);
             if (SqlSequenceEvaluator.TryEvaluateCall(table, call.Name, call.Args, Eval, out var sequenceValue))
                 return sequenceValue;
-            if (call.Name.Equals("VALUES", StringComparison.OrdinalIgnoreCase) && call.Args.Count == 1)
+            if (call.Name.Equals(SqlConst.VALUES, StringComparison.OrdinalIgnoreCase) && call.Args.Count == 1)
             {
                 var col = call.Args[0] switch { IdentifierExpr id => id.Name, ColumnExpr c => c.Name, _ => null };
                 if (string.IsNullOrWhiteSpace(col)) throw new InvalidOperationException("VALUES() espera 1 coluna");

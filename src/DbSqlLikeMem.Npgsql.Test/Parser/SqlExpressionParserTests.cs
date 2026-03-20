@@ -334,7 +334,7 @@ public sealed class SqlExpressionParserTests(
         var s = SqlExprPrinter.Print(ast);
 
         // só uma checagem básica de que não está vazio e contém operadores esperados
-        Assert.Contains("AND", s, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.AND, s, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("=", s, StringComparison.OrdinalIgnoreCase);
     }
 }

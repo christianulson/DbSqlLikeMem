@@ -157,7 +157,7 @@ public sealed class MySqlDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlExpressionParser.ParseScalar("JSON_TABLE(payload, '$[*]' COLUMNS(x INT PATH '$'))", new MySqlDialect(version)));
 
-        Assert.Contains("JSON_TABLE", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.JSON_TABLE, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1871,7 +1871,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1888,7 +1888,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1905,7 +1905,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1922,7 +1922,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1939,7 +1939,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1956,7 +1956,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1973,7 +1973,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1990,7 +1990,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2007,7 +2007,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2024,7 +2024,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2041,7 +2041,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2058,7 +2058,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2075,7 +2075,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2092,7 +2092,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2109,7 +2109,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2126,7 +2126,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2143,7 +2143,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2160,7 +2160,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2177,7 +2177,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2194,7 +2194,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2211,7 +2211,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2228,7 +2228,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2370,7 +2370,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2387,7 +2387,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2404,7 +2404,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2421,7 +2421,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2438,7 +2438,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2834,7 +2834,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse("WITH RECURSIVE cte(n) AS (SELECT 1) SELECT n FROM cte", new MySqlDialect(version)));
 
-        Assert.Contains("WITH/CTE", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.WITH_CTE, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2917,7 +2917,7 @@ WHERE users.id = EXCLUDED.id";
         var hint = Assert.Single(parsed.Table!.MySqlIndexHints ?? []);
         Assert.Equal(SqlMySqlIndexHintKind.Force, hint.Kind);
         Assert.Equal(SqlMySqlIndexHintScope.Join, hint.Scope);
-        Assert.Equal(["PRIMARY", "idx_users_id"], hint.IndexNames);
+        Assert.Equal([SqlConst.PRIMARY, "idx_users_id"], hint.IndexNames);
     }
 
     /// <summary>
@@ -3034,8 +3034,8 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse("SELECT id FROM users ORDER BY id FETCH FIRST 5 ROWS ONLY", new MySqlDialect(version)));
 
-        Assert.Contains("FETCH FIRST/NEXT", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("LIMIT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.FETCH_FIRST_NEXT, ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.LIMIT, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3052,7 +3052,7 @@ WHERE users.id = EXCLUDED.id";
 
         var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.Contains("PIVOT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.PIVOT, ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("mysql", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -3200,7 +3200,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse("MERGE INTO users u USING users s ON u.id = s.id WHEN MATCHED THEN UPDATE SET name = 'x'", new MySqlDialect(version)));
 
-        Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.MERGE, ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 

@@ -137,20 +137,20 @@ public static class DbTypeParser
         {
             case "1":
             case "true":
-            case "TRUE":
+            case SqlConst.TRUE:
             case "yes":
             case "YES":
             case "y":
             case "Y":
             case "on":
-            case "ON":
+            case SqlConst.ON:
             case "t":
             case "T":
                 parsed = true;
                 return true;
             case "0":
             case "false":
-            case "FALSE":
+            case SqlConst.FALSE:
             case "no":
             case "NO":
             case "n":

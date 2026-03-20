@@ -175,10 +175,39 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests(
 
         connection.Open();
         using var command = connection.CreateCommand();
-        command.CommandText = "select 1";
-        _ = command.ExecuteScalar();
+        command.CommandText = "create table metrics_test(id integer primary key, name text); insert into metrics_test(id, name) values (1, 'alpha'); update metrics_test set name = 'beta' where id = 1";
+        _ = command.ExecuteNonQuery();
 
-        Assert.Contains(recorder.GetFormattedEvents(), x => x.Contains("performanceDelta=", StringComparison.Ordinal));
+        Console.WriteLine($"[Interceptors][ConnectionType] {connection.GetType().FullName}");
+        foreach (var interceptionEvent in recorder.Events)
+        {
+            Console.WriteLine(
+                "[Interceptors][Raw] "
+                + $"event={interceptionEvent.EventKind};"
+                + $"state={interceptionEvent.ConnectionState};"
+                + $"sql={interceptionEvent.CommandText ?? "<null>"};"
+                + $"result={interceptionEvent.Result ?? "<null>"};"
+                + $"performance={interceptionEvent.PerformanceMetrics ?? "<null>"};"
+                + $"performanceDelta={interceptionEvent.PerformanceMetricsDelta ?? "<null>"}");
+        }
+
+        var formattedEvents = recorder.GetFormattedEvents();
+        Console.WriteLine("[Interceptors][Recording]");
+        foreach (var formattedEvent in formattedEvents)
+            Console.WriteLine(formattedEvent);
+
+        Console.WriteLine("[Interceptors][Logging]");
+        foreach (var line in lines)
+            Console.WriteLine(line);
+
+        Console.WriteLine("[Interceptors][Writer]");
+        Console.WriteLine(writer.ToString());
+
+        Console.WriteLine("[Interceptors][Logger]");
+        foreach (var message in logger.Messages)
+            Console.WriteLine(message);
+
+        Assert.Contains(formattedEvents, x => x.Contains("performanceDelta=", StringComparison.Ordinal));
         Assert.Contains(lines, x => x.Contains("performanceDelta=", StringComparison.Ordinal));
         Assert.Contains("performanceDelta=", writer.ToString(), StringComparison.Ordinal);
         Assert.Contains(logger.Messages, x => x.Contains("performanceDelta=", StringComparison.Ordinal));

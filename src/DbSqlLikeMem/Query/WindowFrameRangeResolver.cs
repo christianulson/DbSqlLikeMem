@@ -189,7 +189,7 @@ internal static class WindowFrameRangeResolver
             var rawOrderValue = orderValuesByRow[partition[i]].Length == 0 ? null : orderValuesByRow[partition[i]][0];
             if (!TryConvertRangeOrderToDecimal(rawOrderValue, out var scalar))
             {
-                var valueType = rawOrderValue?.GetType().Name ?? "NULL";
+                var valueType = rawOrderValue?.GetType().Name ?? SqlConst.NULL;
                 throw new InvalidOperationException(
                     $"RANGE with PRECEDING/FOLLOWING offset requires numeric/date ORDER BY values. Actual ORDER BY value type: {valueType}.");
             }

@@ -74,8 +74,8 @@ WHERE tenantid = 10",
         // TDD contract: these statements must parse without throwing.
         var q = SqlQueryParser.Parse(sql, new SqlServerDialect(version));
         Assert.NotNull(q);
-        Assert.Contains("CREATE", q.RawSql, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("TEMPORARY", q.RawSql, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.CREATE, q.RawSql, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.TEMPORARY, q.RawSql, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

@@ -171,7 +171,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
         var trace = cnn.DebugSql("SELECT Id FROM users WHERE Active = 1 ORDER BY Id LIMIT 1");
 
-        trace.QueryType.Should().Be("SELECT");
+        trace.QueryType.Should().Be(SqlConst.SELECT);
         trace.StatementIndex.Should().Be(0);
         trace.SqlText.Should().Be("SELECT Id FROM users WHERE Active = 1 ORDER BY Id LIMIT 1");
         trace.Steps.Should().NotBeEmpty();
@@ -235,7 +235,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
             LIMIT 2
             """);
 
-        trace.QueryType.Should().Be("UNION");
+        trace.QueryType.Should().Be(SqlConst.UNION);
         trace.Steps.Select(step => step.Operator).Should().Contain(["UnionInputs", "UnionCombine", "Sort", "Limit"]);
         trace.Steps.First(step => step.Operator == "UnionInputs").Details.Should().Contain("parts=2");
         trace.Steps.First(step => step.Operator == "UnionCombine").Details.Should().Contain("mode=UNION DISTINCT");
@@ -290,7 +290,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
         var traces = cnn.DebugSqlBatch("SELECT 1 AS Id; SELECT 2 AS Id;");
 
         traces.Should().HaveCount(2);
-        traces.Select(trace => trace.QueryType).Should().Equal("SELECT", "SELECT");
+        traces.Select(trace => trace.QueryType).Should().Equal(SqlConst.SELECT, SqlConst.SELECT);
         traces.Select(trace => trace.StatementIndex).Should().Equal(0, 1);
         traces.Select(trace => trace.SqlText).Should().Equal("SELECT 1 AS Id", "SELECT 2 AS Id");
         cnn.LastDebugTraces.Should().HaveCount(2);
@@ -498,7 +498,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
 
-        root.GetProperty("queryType").GetString().Should().Be("SELECT");
+        root.GetProperty("queryType").GetString().Should().Be(SqlConst.SELECT);
         root.GetProperty("statementIndex").GetInt32().Should().Be(0);
         root.GetProperty("sqlText").GetString().Should().Be("SELECT 1 AS Id");
         root.GetProperty("stepCount").GetInt32().Should().BeGreaterThan(0);

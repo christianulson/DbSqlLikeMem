@@ -494,6 +494,186 @@ public sealed class SqliteMockTests
     }
 
     /// <summary>
+    /// EN: Verifies COUNT(*) over UNION ALL uses the simplified runtime count path.
+    /// PT: Verifica se COUNT(*) sobre UNION ALL usa o caminho simplificado de contagem em runtime.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteScalar_ShouldCountUnionAllRows()
+    {
+        using (var seed = new SqliteCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (2, 'Bia', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (3, 'Caio', NULL);
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT COUNT(*)
+                FROM (
+                    SELECT Id FROM Users
+                    UNION ALL
+                    SELECT Id FROM Users
+                ) t
+                """
+        };
+
+        Assert.Equal(6L, Convert.ToInt64(command.ExecuteScalar()));
+    }
+
+    /// <summary>
+    /// EN: Verifies COUNT(*) over UNION ALL still works when the subquery has ORDER BY.
+    /// PT: Verifica se COUNT(*) sobre UNION ALL continua funcionando quando a subquery tem ORDER BY.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteScalar_ShouldCountUnionAllRowsWithOrderBy()
+    {
+        using (var seed = new SqliteCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (2, 'Bia', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (3, 'Caio', NULL);
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT COUNT(*)
+                FROM (
+                    SELECT Id FROM Users
+                    UNION ALL
+                    SELECT Id FROM Users
+                    ORDER BY Id DESC
+                ) t
+                """
+        };
+
+        Assert.Equal(6L, Convert.ToInt64(command.ExecuteScalar()));
+    }
+
+    /// <summary>
+    /// EN: Verifies COUNT(*) over UNION ALL still works when the outer query applies LIMIT.
+    /// PT: Verifica se COUNT(*) sobre UNION ALL continua funcionando quando a query externa aplica LIMIT.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteScalar_ShouldCountUnionAllRowsWithLimit()
+    {
+        using (var seed = new SqliteCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (2, 'Bia', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (3, 'Caio', NULL);
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT COUNT(*)
+                FROM (
+                    SELECT Id FROM Users
+                    UNION ALL
+                    SELECT Id FROM Users
+                ) t
+                LIMIT 1
+                """
+        };
+
+        Assert.Equal(6L, Convert.ToInt64(command.ExecuteScalar()));
+    }
+
+    /// <summary>
+    /// EN: Verifies UNION ALL projection preserves rows from both inputs.
+    /// PT: Verifica se a projeção UNION ALL preserva linhas das duas entradas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteReader_ShouldReturnUnionAllProjectionRows()
+    {
+        using (var seed = new SqliteCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (2, 'Bia', NULL);
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT Name
+                FROM Users
+                WHERE Id = 1
+                UNION ALL
+                SELECT Name
+                FROM Users
+                WHERE Id = 2
+                """
+        };
+
+        using var reader = command.ExecuteReader();
+        var values = new List<string>();
+        while (reader.Read())
+            values.Add(reader.GetString(0));
+
+        Assert.Equal(["Ana", "Bia"], values);
+    }
+
+    /// <summary>
+    /// EN: Verifies UNION ALL projection still applies ORDER BY and LIMIT after the fast path.
+    /// PT: Verifica se a projeção UNION ALL ainda aplica ORDER BY e LIMIT após o caminho rapido.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteReader_ShouldReturnUnionAllProjectionRowsWithOrderByAndLimit()
+    {
+        using (var seed = new SqliteCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (2, 'Bia', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (3, 'Caio', NULL);
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT Name
+                FROM Users
+                WHERE Id = 1
+                UNION ALL
+                SELECT Name
+                FROM Users
+                WHERE Id = 2
+                ORDER BY Name DESC
+                LIMIT 1
+                """
+        };
+
+        using var reader = command.ExecuteReader();
+        var values = new List<string>();
+        while (reader.Read())
+            values.Add(reader.GetString(0));
+
+        Assert.Equal(["Bia"], values);
+    }
+
+    /// <summary>
     /// EN: Verifies automatic dialect mode executes shared rowcount helpers through the SQLite runtime pipeline.
     /// PT: Verifica se o modo automatico de dialeto executa helpers compartilhados de rowcount pelo pipeline de runtime do SQLite.
     /// </summary>
@@ -728,6 +908,60 @@ public sealed class SqliteMockTests
         Assert.Equal(2, Convert.ToInt32(reader.GetValue(2)));
 
         Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies window-function plans can be reused safely across repeated executions.
+    /// PT: Verifica se planos com funcoes de janela podem ser reutilizados com seguranca em execucoes repetidas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteReader_WithAutoSqlDialect_ShouldReuseWindowFunctionPlanSafely()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using (var seed = new SqliteCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Orders (OrderId, UserId, Amount) VALUES (1, 10, 10.00);
+                INSERT INTO Orders (OrderId, UserId, Amount) VALUES (2, 10, 15.00);
+                INSERT INTO Orders (OrderId, UserId, Amount) VALUES (3, 20, 8.00);
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT
+                    OrderId,
+                    ROW_NUMBER() OVER (ORDER BY OrderId) AS rn,
+                    LAG(OrderId, 1, 0) OVER (ORDER BY OrderId) AS prev_id
+                FROM Orders
+                ORDER BY OrderId
+                """
+        };
+
+        List<(int OrderId, long RowNumber, int PrevId)> ReadRows()
+        {
+            using var reader = command.ExecuteReader();
+            var rows = new List<(int, long, int)>();
+            while (reader.Read())
+            {
+                rows.Add((
+                    reader.GetInt32(0),
+                    Convert.ToInt64(reader.GetValue(1)),
+                    Convert.ToInt32(reader.GetValue(2))));
+            }
+
+            return rows;
+        }
+
+        var firstPass = ReadRows();
+        var secondPass = ReadRows();
+
+        Assert.Equal(firstPass, secondPass);
+        Assert.Equal([(1, 1L, 0), (2, 2L, 1), (3, 3L, 2)], firstPass);
     }
 
     /// <summary>

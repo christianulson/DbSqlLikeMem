@@ -11,7 +11,7 @@ namespace DbSqlLikeMem;
 public abstract class TableMock
     : ITableMock
 {
-    private const string PRIMARY = "PRIMARY";
+    private const string PRIMARY = SqlConst.PRIMARY;
     private static readonly ConcurrentDictionary<Type, IReadOnlyDictionary<string, Func<object, object?>>> _itemAccessorCache = new();
 
     /// <summary>
@@ -776,7 +776,7 @@ public abstract class TableMock
         if (values.Count == 0)
             return this;
 
-        if (values.Count == 1 || ForeignKeys.Count > 0)
+        if (values.Count == 1 || HasSelfReferencingForeignKey())
         {
             foreach (var value in values)
                 Add(value);
@@ -864,6 +864,9 @@ public abstract class TableMock
 
         return this;
     }
+
+    private bool HasSelfReferencingForeignKey()
+        => _foreignKeys.Values.Any(fk => ReferenceEquals(fk.RefTable, this));
 
     /// <summary>
     /// EN: Adds a row ensuring default values and uniqueness.
@@ -1203,7 +1206,7 @@ public abstract class TableMock
             var min = Regex.Match(s, @"^(?<c>[\w`\.]+)\s+IN\s*(?<v>.+)$", RegexOptions.IgnoreCase);
             if (min.Success)
             {
-                list.Add((min.Groups["c"].Value.Trim(), "IN", min.Groups["v"].Value.Trim()));
+                list.Add((min.Groups["c"].Value.Trim(), SqlConst.IN, min.Groups["v"].Value.Trim()));
                 continue;
             }
 
@@ -1283,7 +1286,7 @@ public abstract class TableMock
         if (TryMatchComparison(table, pars, cond, info, actual, out var value))
             return value;
 
-        if (!cond.Op.Equals("IN", StringComparison.OrdinalIgnoreCase))
+        if (!cond.Op.Equals(SqlConst.IN, StringComparison.OrdinalIgnoreCase))
             return false;
 
         var rhs = cond.V.Trim();

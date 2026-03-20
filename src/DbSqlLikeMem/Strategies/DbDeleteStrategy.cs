@@ -90,16 +90,19 @@ internal static class DbDeleteStrategy
             EstimatedRowsRead: rowCountBefore,
             ActualRows: rowsToDelete.Count,
             ElapsedMs: sw.ElapsedMilliseconds);
-        var plan = SqlExecutionPlanFormatter.FormatDelete(
-            query,
-            metrics,
-            new SqlPlanMockRuntimeContext(connection.SimulatedLatencyMs, connection.DropProbability, connection.Db.ThreadSafe));
-        connection.RegisterExecutionPlan(plan);
+        if (connection.Db.CaptureExecutionPlans)
+        {
+            var plan = SqlExecutionPlanFormatter.FormatDelete(
+                query,
+                metrics,
+                new SqlPlanMockRuntimeContext(connection.SimulatedLatencyMs, connection.DropProbability, connection.Db.ThreadSafe));
+            connection.RegisterExecutionPlan(plan);
+        }
         return new DmlExecutionResult 
         { 
             AffectedRows = rowsToDelete.Count, 
             AffectedIndexes = indexesToDelete,
-            AffectedRowsData = rowsToDelete
+            AffectedRowsData = connection.CaptureAffectedRowSnapshots ? rowsToDelete : new List<IReadOnlyDictionary<int, object?>>()
         };
     }
 

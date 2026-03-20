@@ -30,7 +30,7 @@ public sealed class MySqlPerformanceTests : XUnitTestBase
             new("Email", DbType.String, true)
         ]);
         tb.AddPrimaryKeyIndexes("Id");
-        tb.CreateIndex("PRIMARY", ["Id"], unique: true);
+        tb.CreateIndex(SqlConst.PRIMARY, ["Id"], unique: true);
         tb.CreateIndex("Name", ["Name"], include: ["Email"], unique: true);
 
         _connection = new MySqlConnectionMock(db);

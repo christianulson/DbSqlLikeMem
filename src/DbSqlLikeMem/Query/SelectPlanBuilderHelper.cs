@@ -14,7 +14,7 @@ internal static class SelectPlanBuilderHelper
         var columns = new List<TableResultColMock>();
         var evaluators = new List<Func<AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, object?>>();
         var windowSlots = new List<WindowSlot>();
-        var sampleFirst = sampleRows.FirstOrDefault();
+        var sampleFirst = sampleRows.Count > 0 ? sampleRows[0] : null;
 
         foreach (var selectItem in query.SelectItems)
         {
@@ -27,13 +27,14 @@ internal static class SelectPlanBuilderHelper
             if (!SelectPlanProjectionHelper.ExpandSelectAsterisk(columns, evaluators, sampleFirst, rawExpression, resolveColumn))
                 continue;
 
-            if (!SelectPlanProjectionHelper.IncludeExtraColumns(sampleRows, columns, evaluators, rawExpression, resolveColumn))
+            if (!SelectPlanProjectionHelper.IncludeExtraColumns(sampleFirst, columns, evaluators, rawExpression, resolveColumn))
                 continue;
 
             var expression = ParseSelectPlanExpression(rawInput, rawExpression, extractedAlias, selectItem.Alias, parseExpression);
             AppendSelectPlanProjection(
                 query,
                 sampleRows,
+                sampleFirst,
                 ctes,
                 dialect,
                 columns,
@@ -82,6 +83,7 @@ internal static class SelectPlanBuilderHelper
     private static void AppendSelectPlanProjection(
         SqlSelectQuery query,
         List<AstQueryExecutorBase.EvalRow> sampleRows,
+        AstQueryExecutorBase.EvalRow? sampleFirst,
         IDictionary<string, AstQueryExecutorBase.Source> ctes,
         ISqlDialect? dialect,
         List<TableResultColMock> columns,
@@ -96,15 +98,15 @@ internal static class SelectPlanBuilderHelper
         var tableAlias = SelectPlanProjectionHelper.GetSelectProjectionTableAlias(query);
         var preferredAlias = selectItemAlias ?? extractedAlias ?? SelectPlanProjectionHelper.InferColumnAlias(rawExpression);
         var columnAlias = SelectPlanProjectionHelper.MakeUniqueAlias(columns, preferredAlias, tableAlias);
-        var inferredDbType = InferDbTypeFromExpression(expression, sampleRows, ctes, dialect, evalExpression);
-        var isNullable = InferNullabilityFromExpression(expression, sampleRows);
-        var isJsonFragment = TryInferProjectedJsonFragment(expression, sampleRows);
+        var inferredDbType = InferDbTypeFromExpression(expression, sampleRows, sampleFirst, ctes, dialect, evalExpression);
+        var isNullable = InferNullabilityFromExpression(expression, sampleFirst);
+        var isJsonFragment = TryInferProjectedJsonFragment(expression, sampleFirst);
 
         columns.Add(SelectPlanProjectionHelper.CreateSelectPlanColumn(tableAlias, columnAlias, columns.Count, inferredDbType, isNullable, isJsonFragment));
         evaluators.Add(CreateSelectPlanEvaluator(expression, ctes, dialect, windowSlots, evalExpression));
     }
 
-    private static bool TryInferProjectedJsonFragment(SqlExpr expression, List<AstQueryExecutorBase.EvalRow> sampleRows)
+    private static bool TryInferProjectedJsonFragment(SqlExpr expression, AstQueryExecutorBase.EvalRow? sampleRow)
     {
         if (expression is FunctionCallExpr jsonFunction
             && jsonFunction.Name.Equals("JSON_QUERY", StringComparison.OrdinalIgnoreCase))
@@ -121,17 +123,18 @@ internal static class SelectPlanBuilderHelper
         if (expression is not ColumnExpr column)
             return false;
 
-        var sampleRow = sampleRows.FirstOrDefault();
         if (sampleRow is null)
             return false;
 
         if (!string.IsNullOrWhiteSpace(column.Qualifier))
         {
-            var matchedKey = sampleRow.Sources.Keys.FirstOrDefault(key => key.Equals(column.Qualifier, StringComparison.OrdinalIgnoreCase));
-            if (matchedKey is null)
+            if (!SelectPlanProjectionHelper.TryGetSourceByAlias(sampleRow, column.Qualifier, out var source))
                 return false;
 
-            return sampleRow.Sources[matchedKey].TryGetColumnMetadata(column.Name, out var metadata) && metadata.IsJsonFragment;
+            if (source is null)
+                return false;
+
+            return source.TryGetColumnMetadata(column.Name, out var metadata) && metadata.IsJsonFragment;
         }
 
         TableResultColMock? matchedMetadata = null;
@@ -173,6 +176,7 @@ internal static class SelectPlanBuilderHelper
     private static DbType InferDbTypeFromExpression(
         SqlExpr expression,
         List<AstQueryExecutorBase.EvalRow> sampleRows,
+        AstQueryExecutorBase.EvalRow? sampleFirst,
         IDictionary<string, AstQueryExecutorBase.Source> ctes,
         ISqlDialect? dialect,
         Func<SqlExpr, AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, IDictionary<string, AstQueryExecutorBase.Source>, object?> evalExpression)
@@ -180,14 +184,14 @@ internal static class SelectPlanBuilderHelper
         if (IsSequenceExpression(expression))
             return DbType.Int64;
 
-        if (TryInferDbTypeFromColumnMetadata(expression, sampleRows, out var columnDbType))
+        if (TryInferDbTypeFromColumnMetadata(expression, sampleFirst, out var columnDbType))
             return columnDbType;
 
         if (expression is WindowFunctionExpr windowFunction)
         {
             return dialect?.InferWindowFunctionDbType(
                     windowFunction,
-                    arg => InferDbTypeFromExpression(arg, sampleRows, ctes, dialect, evalExpression))
+                    arg => InferDbTypeFromExpression(arg, sampleRows, sampleFirst, ctes, dialect, evalExpression))
                 ?? DbType.Object;
         }
 
@@ -216,23 +220,22 @@ internal static class SelectPlanBuilderHelper
 
     private static bool TryInferDbTypeFromColumnMetadata(
         SqlExpr expression,
-        List<AstQueryExecutorBase.EvalRow> sampleRows,
+        AstQueryExecutorBase.EvalRow? sampleRow,
         out DbType dbType)
     {
         dbType = DbType.Object;
-
-        var sampleRow = sampleRows.FirstOrDefault();
         if (sampleRow is null)
             return false;
 
         if (expression is ColumnExpr qualifiedColumn)
         {
-            var matchedKey = sampleRow.Sources.Keys.FirstOrDefault(key =>
-                key.Equals(qualifiedColumn.Qualifier, StringComparison.OrdinalIgnoreCase));
-            if (matchedKey is null)
+            if (!SelectPlanProjectionHelper.TryGetSourceByAlias(sampleRow, qualifiedColumn.Qualifier, out var source))
                 return false;
 
-            return TryGetSourceColumnDbType(sampleRow.Sources[matchedKey], qualifiedColumn.Name, out dbType);
+            if (source is null)
+                return false;
+
+            return TryGetSourceColumnDbType(source, qualifiedColumn.Name, out dbType);
         }
 
         if (expression is not IdentifierExpr identifier)
@@ -267,20 +270,20 @@ internal static class SelectPlanBuilderHelper
         return true;
     }
 
-    private static bool InferNullabilityFromExpression(SqlExpr expression, List<AstQueryExecutorBase.EvalRow> sampleRows)
+    private static bool InferNullabilityFromExpression(SqlExpr expression, AstQueryExecutorBase.EvalRow? sampleRow)
     {
-        var sampleRow = sampleRows.FirstOrDefault();
         if (sampleRow is null)
             return true;
 
         if (expression is ColumnExpr qualifiedColumn)
         {
-            var matchedKey = sampleRow.Sources.Keys.FirstOrDefault(key =>
-                key.Equals(qualifiedColumn.Qualifier, StringComparison.OrdinalIgnoreCase));
-            if (matchedKey is null)
+            if (!SelectPlanProjectionHelper.TryGetSourceByAlias(sampleRow, qualifiedColumn.Qualifier, out var source))
                 return true;
 
-            return TryGetSourceColumnNullability(sampleRow.Sources[matchedKey], qualifiedColumn.Name, out var isNullable)
+            if (source is null)
+                return true;
+
+            return TryGetSourceColumnNullability(source, qualifiedColumn.Name, out var isNullable)
                 ? isNullable
                 : true;
         }

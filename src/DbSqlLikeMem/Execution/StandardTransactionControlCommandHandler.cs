@@ -25,7 +25,7 @@ internal static class StandardTransactionControlCommandHandler
 
         if (sqlRaw.StartsWith("savepoint ", StringComparison.OrdinalIgnoreCase))
         {
-            connection.CreateSavepoint(sqlRaw[10..].Trim());
+            connection.CreateSavepoint(ExtractSavepointName(sqlRaw, "savepoint ".Length));
             return true;
         }
 
@@ -56,4 +56,16 @@ internal static class StandardTransactionControlCommandHandler
 
         return false;
     }
+    private static string ExtractSavepointName(string sqlRaw, int prefixLength)
+    {
+        var remainder = sqlRaw[prefixLength..].Trim();
+        if (string.IsNullOrWhiteSpace(remainder))
+            return remainder;
+
+        var end = remainder.IndexOfAny([' ', '\t', '\r', '\n']);
+        return end < 0
+            ? remainder
+            : remainder[..end];
+    }
 }
+

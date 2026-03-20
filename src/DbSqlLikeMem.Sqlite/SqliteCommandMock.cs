@@ -129,6 +129,7 @@ public class SqliteCommandMock(
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
         connection!.ClearExecutionPlans();
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
+        using var _ = connection.Metrics.BeginAmbientScope();
 
         if (connection.TryHandleExecuteReaderPrelude(
             CommandType,
@@ -434,7 +435,7 @@ public class SqliteCommandMock(
                     break;
                 }
                 default:
-                    throw SqlUnsupported.ForDmlProjectionExpressionNotSupportedInExecutor("RETURNING", raw);
+                    throw SqlUnsupported.ForDmlProjectionExpressionNotSupportedInExecutor(SqlConst.RETURNING, raw);
             }
         }
 
@@ -633,8 +634,20 @@ public class SqliteCommandMock(
     /// EN: Executes the command and returns a scalar value.
     /// PT: Executa o comando e retorna um valor escalar.
     /// </summary>
-    public override object ExecuteScalar()
+    public override object? ExecuteScalar()
     {
+        ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
+        using var _ = connection!.Metrics.BeginAmbientScope();
+        if (connection.TryHandleExecuteScalarPrelude(
+            CommandType,
+            CommandText,
+            Parameters,
+            static () => new SqliteDataReaderMock([[]]),
+            normalizeSqlInput: true,
+            TryExecuteTransactionControlCommand,
+            out var scalar))
+            return scalar;
+
         using var reader = ExecuteReader();
         if (reader.Read())
         {

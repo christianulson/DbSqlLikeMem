@@ -110,7 +110,7 @@ internal static class AggregateExpressionInspector
         while (cursor < text.Length && char.IsWhiteSpace(text[cursor]))
             cursor++;
 
-        if (!StartsWithKeyword(text, cursor, "SELECT") && !StartsWithKeyword(text, cursor, "WITH"))
+        if (!StartsWithKeyword(text, cursor, SqlConst.SELECT) && !StartsWithKeyword(text, cursor, SqlConst.WITH))
             return false;
 
         var depth = 1;

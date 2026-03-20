@@ -99,10 +99,10 @@ public sealed class SqlExpressionParserTests(
     {
         Console.WriteLine("Where: @\"" + whereExpr + "\"");
 
-        if (whereExpr.Contains("JSON_TABLE", StringComparison.OrdinalIgnoreCase))
+        if (whereExpr.Contains(SqlConst.JSON_TABLE, StringComparison.OrdinalIgnoreCase))
         {
             var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseWhere(whereExpr, new MySqlDialect(version)));
-            Assert.Contains("JSON_TABLE", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.JSON_TABLE, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -321,7 +321,7 @@ public sealed class SqlExpressionParserTests(
         var s = SqlExprPrinter.Print(ast);
 
         // só uma checagem básica de que não está vazio e contém operadores esperados
-        Assert.Contains("AND", s, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.AND, s, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("=", s, StringComparison.OrdinalIgnoreCase);
     }
 }

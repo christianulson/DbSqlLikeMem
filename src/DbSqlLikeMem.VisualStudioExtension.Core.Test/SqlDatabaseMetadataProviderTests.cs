@@ -26,7 +26,7 @@ public sealed class SqlDatabaseMetadataProviderTests
             Row(("ColumnName", "Id"))
         ]);
         executor.WhenContains("FROM INFORMATION_SCHEMA.STATISTICS", [
-            Row(("IndexName", "PRIMARY"), ("NonUnique", 0), ("ColumnName", "Id"), ("Seq", 1)),
+            Row(("IndexName", Const.PRIMARY), ("NonUnique", 0), ("ColumnName", "Id"), ("Seq", 1)),
             Row(("IndexName", "IX_Orders_CustomerId"), ("NonUnique", 1), ("ColumnName", "CustomerId"), ("Seq", 1))
         ]);
         executor.WhenContains("FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE", [
@@ -45,7 +45,7 @@ public sealed class SqlDatabaseMetadataProviderTests
         Assert.NotNull(result);
         Assert.Contains("Id|int|1|0|1", result!.Properties!["Columns"]);
         Assert.Equal("Id", result.Properties["PrimaryKey"]);
-        Assert.DoesNotContain("PRIMARY", result.Properties["Indexes"], StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(Const.PRIMARY, result.Properties["Indexes"], StringComparison.OrdinalIgnoreCase);
         Assert.Contains("IX_Orders_CustomerId|0|CustomerId", result.Properties["Indexes"]);
         Assert.Equal("CustomerId|Customers|Id", result.Properties["ForeignKeys"]);
         Assert.Equal("trg_orders_audit", result.Properties["Triggers"]);

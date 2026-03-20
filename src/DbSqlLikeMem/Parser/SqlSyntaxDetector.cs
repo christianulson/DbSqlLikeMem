@@ -152,16 +152,16 @@ internal static class SqlSyntaxDetector
         new(StringComparer.OrdinalIgnoreCase)
         {
             ["TOP"] = AutoSqlSyntaxFeatures.Top,
-            ["LIMIT"] = AutoSqlSyntaxFeatures.Limit,
-            ["FETCH"] = AutoSqlSyntaxFeatures.Fetch,
-            ["OFFSET"] = AutoSqlSyntaxFeatures.Offset,
+            [SqlConst.LIMIT] = AutoSqlSyntaxFeatures.Limit,
+            [SqlConst.FETCH] = AutoSqlSyntaxFeatures.Fetch,
+            [SqlConst.OFFSET] = AutoSqlSyntaxFeatures.Offset,
             ["ROWNUM"] = AutoSqlSyntaxFeatures.Rownum,
-            ["SQL_CALC_FOUND_ROWS"] = AutoSqlSyntaxFeatures.SqlCalcFoundRows,
+            [SqlConst.SQL_CALC_FOUND_ROWS] = AutoSqlSyntaxFeatures.SqlCalcFoundRows,
             ["ILIKE"] = AutoSqlSyntaxFeatures.Ilike,
-            ["PIVOT"] = AutoSqlSyntaxFeatures.Pivot,
-            ["UNPIVOT"] = AutoSqlSyntaxFeatures.Pivot,
-            ["WITH"] = AutoSqlSyntaxFeatures.WithCte,
-            ["RETURNING"] = AutoSqlSyntaxFeatures.Returning
+            [SqlConst.PIVOT] = AutoSqlSyntaxFeatures.Pivot,
+            [SqlConst.UNPIVOT] = AutoSqlSyntaxFeatures.Pivot,
+            [SqlConst.WITH] = AutoSqlSyntaxFeatures.WithCte,
+            [SqlConst.RETURNING] = AutoSqlSyntaxFeatures.Returning
         };
 
     private static readonly ComputedWordLikeRule[] ComputedWordLikeRules =
@@ -213,16 +213,16 @@ internal static class SqlSyntaxDetector
     private static bool IsSequenceMarker(IReadOnlyList<SqlToken> tokens, int index)
     {
         var token = tokens[index];
-        if (token.Text.Equals("SEQUENCE", StringComparison.OrdinalIgnoreCase))
+        if (token.Text.Equals(SqlConst.SEQUENCE, StringComparison.OrdinalIgnoreCase))
             return true;
 
-        if (token.Text.Equals("NEXT", StringComparison.OrdinalIgnoreCase)
-            || token.Text.Equals("PREVIOUS", StringComparison.OrdinalIgnoreCase))
+        if (token.Text.Equals(SqlConst.NEXT, StringComparison.OrdinalIgnoreCase)
+            || token.Text.Equals(SqlConst.PREVIOUS, StringComparison.OrdinalIgnoreCase))
         {
             var next = index + 1 < tokens.Count ? tokens[index + 1] : SqlToken.EOF;
             var next2 = index + 2 < tokens.Count ? tokens[index + 2] : SqlToken.EOF;
-            return next.Text.Equals("VALUE", StringComparison.OrdinalIgnoreCase)
-                && next2.Text.Equals("FOR", StringComparison.OrdinalIgnoreCase);
+            return next.Text.Equals(SqlConst.VALUE, StringComparison.OrdinalIgnoreCase)
+                && next2.Text.Equals(SqlConst.FOR, StringComparison.OrdinalIgnoreCase);
         }
 
         if (token.Text.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
@@ -256,7 +256,7 @@ internal static class SqlSyntaxDetector
         var token = tokens[index];
         if (!token.Text.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
             && !token.Text.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
-            && !token.Text.Equals("OPENJSON", StringComparison.OrdinalIgnoreCase))
+            && !token.Text.Equals(SqlConst.OPENJSON, StringComparison.OrdinalIgnoreCase))
             return false;
 
         var next = index + 1 < tokens.Count ? tokens[index + 1] : SqlToken.EOF;
@@ -338,7 +338,7 @@ internal static class SqlSyntaxDetector
     private static bool IsConditionalNullFunctionMarker(IReadOnlyList<SqlToken> tokens, int index)
     {
         var token = tokens[index];
-        if (!token.Text.Equals("IF", StringComparison.OrdinalIgnoreCase)
+        if (!token.Text.Equals(SqlConst.IF, StringComparison.OrdinalIgnoreCase)
             && !token.Text.Equals("IIF", StringComparison.OrdinalIgnoreCase)
             && !token.Text.Equals("IFNULL", StringComparison.OrdinalIgnoreCase)
             && !token.Text.Equals("ISNULL", StringComparison.OrdinalIgnoreCase)
@@ -378,7 +378,7 @@ internal static class SqlSyntaxDetector
             return false;
 
         var next = index + 1 < tokens.Count ? tokens[index + 1] : SqlToken.EOF;
-        return next.Text.Equals("FIRST", StringComparison.OrdinalIgnoreCase)
+        return next.Text.Equals(SqlConst.FIRST, StringComparison.OrdinalIgnoreCase)
             || next.Text.Equals("LAST", StringComparison.OrdinalIgnoreCase);
     }
 

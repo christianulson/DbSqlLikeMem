@@ -214,7 +214,7 @@ public sealed class Db2DialectFeatureParserTests
 
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new Db2Dialect(version)));
 
-        Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.MERGE, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -644,7 +644,7 @@ public sealed class Db2DialectFeatureParserTests
 
         var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new Db2Dialect(version)));
 
-        Assert.Contains("PIVOT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.PIVOT, ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("db2", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 

@@ -49,19 +49,19 @@ public sealed class SqlQueryParserCorpusTests(
             var expectation = SqlCaseExpectation.ParseOk;
 
             var trimmed = sql.TrimStart();
-            if (trimmed.StartsWith("MERGE", StringComparison.OrdinalIgnoreCase))
+            if (trimmed.StartsWith(SqlConst.MERGE, StringComparison.OrdinalIgnoreCase))
                 minVersion = OracleDialect.MergeMinVersion;
             else if (trimmed.StartsWith("WITH RECURSIVE", StringComparison.OrdinalIgnoreCase))
                 expectation = SqlCaseExpectation.ThrowNotSupported;
-            else if (trimmed.Contains("WITH", StringComparison.OrdinalIgnoreCase))
+            else if (trimmed.Contains(SqlConst.WITH, StringComparison.OrdinalIgnoreCase))
                 minVersion = OracleDialect.WithCteMinVersion;
-            else if (trimmed.Contains("OFFSET", StringComparison.OrdinalIgnoreCase))
+            else if (trimmed.Contains(SqlConst.OFFSET, StringComparison.OrdinalIgnoreCase))
                 minVersion = OracleDialect.OffsetFetchMinVersion;
-            else if (trimmed.Contains("FETCH", StringComparison.OrdinalIgnoreCase))
+            else if (trimmed.Contains(SqlConst.FETCH, StringComparison.OrdinalIgnoreCase))
                 minVersion = OracleDialect.FetchFirstMinVersion;
             else if (trimmed.Contains("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
                 || trimmed.Contains("JSON_QUERY", StringComparison.OrdinalIgnoreCase)
-                || trimmed.Contains("JSON_TABLE", StringComparison.OrdinalIgnoreCase)
+                || trimmed.Contains(SqlConst.JSON_TABLE, StringComparison.OrdinalIgnoreCase)
                 || trimmed.Contains("JSON_TRANSFORM", StringComparison.OrdinalIgnoreCase))
                 minVersion = OracleDialect.OracleJsonSqlFunctionMinVersion;
 
@@ -76,7 +76,7 @@ public sealed class SqlQueryParserCorpusTests(
             var minVersion = 0;
 
             var trimmed = sql.TrimStart();
-            if (trimmed.Contains("WITH", StringComparison.OrdinalIgnoreCase))
+            if (trimmed.Contains(SqlConst.WITH, StringComparison.OrdinalIgnoreCase))
                 minVersion = OracleDialect.WithCteMinVersion;
 
             yield return Case(sql, why, SqlCaseExpectation.ThrowInvalid, minVersion);
@@ -90,7 +90,7 @@ public sealed class SqlQueryParserCorpusTests(
             var minVersion = 0;
 
             var trimmed = sql.TrimStart();
-            if (trimmed.Contains("WITH", StringComparison.OrdinalIgnoreCase))
+            if (trimmed.Contains(SqlConst.WITH, StringComparison.OrdinalIgnoreCase))
                 minVersion = OracleDialect.WithCteMinVersion;
 
             yield return Case(sql, why, SqlCaseExpectation.ThrowInvalid, minVersion);
@@ -667,7 +667,7 @@ select id
         if (minVersion == 0
             && (trimmed.Contains("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
                 || trimmed.Contains("JSON_QUERY", StringComparison.OrdinalIgnoreCase)
-                || trimmed.Contains("JSON_TABLE", StringComparison.OrdinalIgnoreCase)
+                || trimmed.Contains(SqlConst.JSON_TABLE, StringComparison.OrdinalIgnoreCase)
                 || trimmed.Contains("JSON_TRANSFORM", StringComparison.OrdinalIgnoreCase)))
         {
             minVersion = OracleDialect.OracleJsonSqlFunctionMinVersion;

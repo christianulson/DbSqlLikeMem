@@ -33,6 +33,21 @@ public sealed class SqliteSelectAndWhereMoreCoverageTests : XUnitTestBase
         orders.Add(new Dictionary<int, object?> { [0] = 11, [1] = 2, [2] = 200m });
         orders.Add(new Dictionary<int, object?> { [0] = 12, [1] = 2, [2] = 10m });
 
+        var pairs = db.AddTable("pairs");
+        pairs.AddColumn("a", DbType.Int32, false);
+        pairs.AddColumn("b", DbType.Int32, false);
+        pairs.Add(new Dictionary<int, object?> { [0] = 1, [1] = 10 });
+        pairs.Add(new Dictionary<int, object?> { [0] = 1, [1] = 20 });
+        pairs.Add(new Dictionary<int, object?> { [0] = 2, [1] = 10 });
+        pairs.Add(new Dictionary<int, object?> { [0] = 3, [1] = 30 });
+
+        var allowedPairs = db.AddTable("allowed_pairs");
+        allowedPairs.AddColumn("a", DbType.Int32, false);
+        allowedPairs.AddColumn("b", DbType.Int32, false);
+        allowedPairs.Add(new Dictionary<int, object?> { [0] = 1, [1] = 10 });
+        allowedPairs.Add(new Dictionary<int, object?> { [0] = 2, [1] = 10 });
+        allowedPairs.Add(new Dictionary<int, object?> { [0] = 4, [1] = 40 });
+
         _cnn = new SqliteConnectionMock(db);
 
         _cnn.Open();
@@ -83,6 +98,55 @@ WHERE EXISTS (
 ORDER BY u.id").ToList();
 
         Assert.Equal([2], [.. rows.Select(r => (int)r.id)]);
+    }
+
+    /// <summary>
+    /// EN: Tests Where_RowInSubquery_ShouldWork behavior.
+    /// PT: Testa o comportamento de Where_RowInSubquery_ShouldWork.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteSelectAndWhereMoreCoverage")]
+    public void Where_RowInSubquery_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT a, b
+FROM pairs
+WHERE (a, b) IN (
+    SELECT a, b
+    FROM allowed_pairs
+)
+ORDER BY a, b").ToList();
+
+        Assert.Equal(2, rows.Count);
+        Assert.Equal(1, (int)rows[0].a);
+        Assert.Equal(10, (int)rows[0].b);
+        Assert.Equal(2, (int)rows[1].a);
+        Assert.Equal(10, (int)rows[1].b);
+    }
+
+    /// <summary>
+    /// EN: Tests Where_CorrelatedRowInSubquery_ShouldWork behavior.
+    /// PT: Testa o comportamento de Where_CorrelatedRowInSubquery_ShouldWork.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteSelectAndWhereMoreCoverage")]
+    public void Where_CorrelatedRowInSubquery_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT p.a, p.b
+FROM pairs p
+WHERE (p.a, p.b) IN (
+    SELECT ap.a, ap.b
+    FROM allowed_pairs ap
+    WHERE ap.a = p.a
+)
+ORDER BY p.a, p.b").ToList();
+
+        Assert.Equal(2, rows.Count);
+        Assert.Equal(1, (int)rows[0].a);
+        Assert.Equal(10, (int)rows[0].b);
+        Assert.Equal(2, (int)rows[1].a);
+        Assert.Equal(10, (int)rows[1].b);
     }
 
     /// <summary>

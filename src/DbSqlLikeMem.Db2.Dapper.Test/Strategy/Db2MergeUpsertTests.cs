@@ -23,7 +23,7 @@ public sealed class Db2MergeUpsertTests(ITestOutputHelper helper) : XUnitTestBas
             var ex = Assert.Throws<NotSupportedException>(() =>
                 SqlQueryParser.Parse("MERGE INTO users t USING (SELECT 1 AS Id) s ON t.Id = s.Id WHEN MATCHED THEN UPDATE SET t.Id = s.Id", db.Dialect));
 
-            Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.MERGE, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -59,7 +59,7 @@ public sealed class Db2MergeUpsertTests(ITestOutputHelper helper) : XUnitTestBas
                     INSERT (Id, Name) VALUES (src.Id, src.Name)
                 """));
 
-            Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.MERGE, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -109,7 +109,7 @@ WHEN NOT MATCHED THEN
                     INSERT (Id, Name) VALUES (s.Id, s.Name)
                 """));
 
-            Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.MERGE, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 

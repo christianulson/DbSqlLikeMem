@@ -145,9 +145,9 @@ public sealed class SqlAzureDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse("SELECT id FROM users ORDER BY id LIMIT 5", CreateDialect(compatibilityLevel)));
 
-        Assert.Contains("LIMIT", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("OFFSET", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("FETCH", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.LIMIT, ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.OFFSET, ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.FETCH, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -234,7 +234,7 @@ public sealed class SqlAzureDialectFeatureParserTests
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
             var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
-            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -242,7 +242,7 @@ public sealed class SqlAzureDialectFeatureParserTests
         var join = Assert.Single(parsed.Joins);
         Assert.Equal("dbo", join.Table.DbName, ignoreCase: true);
         var function = Assert.IsType<FunctionCallExpr>(join.Table.TableFunction);
-        Assert.Equal("OPENJSON", function.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.OPENJSON, function.Name, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -268,7 +268,7 @@ public sealed class SqlAzureDialectFeatureParserTests
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
             var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
-            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -408,14 +408,14 @@ public sealed class SqlAzureDialectFeatureParserTests
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
             var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
-            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, dialect));
         var join = Assert.Single(parsed.Joins);
         Assert.NotNull(join.Table.TableFunction);
-        Assert.Equal("OPENJSON", join.Table.TableFunction!.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.OPENJSON, join.Table.TableFunction!.Name, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -442,7 +442,7 @@ public sealed class SqlAzureDialectFeatureParserTests
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
             var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
-            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -475,7 +475,7 @@ public sealed class SqlAzureDialectFeatureParserTests
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
             var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
-            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -506,14 +506,14 @@ public sealed class SqlAzureDialectFeatureParserTests
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
             var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
-            Assert.Contains("STRING_SPLIT", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.STRING_SPLIT, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, dialect));
         var join = Assert.Single(parsed.Joins);
         Assert.NotNull(join.Table.TableFunction);
-        Assert.Equal("STRING_SPLIT", join.Table.TableFunction!.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.STRING_SPLIT, join.Table.TableFunction!.Name, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -543,7 +543,7 @@ public sealed class SqlAzureDialectFeatureParserTests
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, dialect));
         var join = Assert.Single(parsed.Joins);
         var function = Assert.IsType<FunctionCallExpr>(join.Table.TableFunction);
-        Assert.Equal("STRING_SPLIT", function.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.STRING_SPLIT, function.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal(3, function.Args.Count);
     }
 
@@ -594,7 +594,7 @@ public sealed class SqlAzureDialectFeatureParserTests
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
             var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
-            Assert.Contains("FOR JSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.FOR_JSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -625,7 +625,7 @@ public sealed class SqlAzureDialectFeatureParserTests
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
             var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
-            Assert.Contains("FOR JSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.FOR_JSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -688,13 +688,13 @@ public sealed class SqlAzureDialectFeatureParserTests
             var ex = Assert.Throws<NotSupportedException>(() =>
                 SqlExpressionParser.ParseScalar(sql, dialect));
 
-            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
         var expr = SqlExpressionParser.ParseScalar(sql, dialect);
         var call = Assert.IsType<CallExpr>(expr);
-        Assert.Equal("OPENJSON", call.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.OPENJSON, call.Name, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>

@@ -137,8 +137,8 @@ WHERE u.tenantid = 10";
         if (!SupportsUpdateDeleteJoinRuntime)
         {
             var ex = Assert.Throws<NotSupportedException>(() => ExecuteNonQuery(db, sql));
-            Assert.Contains("UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("JOIN", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.UPDATE, ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.JOIN, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -169,8 +169,8 @@ WHERE u.tenantid = 10";
         if (!SupportsUpdateDeleteJoinRuntime)
         {
             var ex = Assert.Throws<InvalidOperationException>(() => ExecuteNonQuery(db, DeleteJoinDerivedSelectSql));
-            Assert.Contains("DELETE", ex.Message, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("FROM", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.DELETE, ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.FROM, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 

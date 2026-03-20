@@ -70,7 +70,8 @@ internal static class DbUpdateStrategy
             tableMock.UpdateIndexesWithRow(rowIdx, oldSnapshot, table[rowIdx]);
             updated++;
             affectedIndexes.Add(rowIdx);
-            affectedRowsData.Add(TableMock.SnapshotRow(table[rowIdx]));
+            if (connection.CaptureAffectedRowSnapshots)
+                affectedRowsData.Add(TableMock.SnapshotRow(table[rowIdx]));
         }
 
         connection.Metrics.Updates += updated;
@@ -81,11 +82,14 @@ internal static class DbUpdateStrategy
             EstimatedRowsRead: rowCountBefore,
             ActualRows: updated,
             ElapsedMs: sw.ElapsedMilliseconds);
-        var plan = SqlExecutionPlanFormatter.FormatUpdate(
-            query,
-            metrics,
-            new SqlPlanMockRuntimeContext(connection.SimulatedLatencyMs, connection.DropProbability, connection.Db.ThreadSafe));
-        connection.RegisterExecutionPlan(plan);
+        if (connection.Db.CaptureExecutionPlans)
+        {
+            var plan = SqlExecutionPlanFormatter.FormatUpdate(
+                query,
+                metrics,
+                new SqlPlanMockRuntimeContext(connection.SimulatedLatencyMs, connection.DropProbability, connection.Db.ThreadSafe));
+            connection.RegisterExecutionPlan(plan);
+        }
         return new DmlExecutionResult
         {
             AffectedRows= updated,

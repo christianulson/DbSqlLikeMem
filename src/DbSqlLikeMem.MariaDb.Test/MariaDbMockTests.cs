@@ -213,7 +213,7 @@ public sealed class MariaDbMockTests : XUnitTestBase
 
         var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -657,11 +657,12 @@ public sealed class MariaDbMockTests : XUnitTestBase
     private static MariaDbConnectionMock CreateOpenConnection(int version)
     {
         var db = new MariaDbDbMock(version);
-        db.AddTable("Users", [
+        var users = db.AddTable("Users", [
             new("Id", DbType.Int32, false),
             new("Name", DbType.String, false),
             new("Email", DbType.String, true)
         ]);
+        users.AddPrimaryKeyIndexes("Id");
 
         var connection = new MariaDbConnectionMock(db);
         connection.Open();

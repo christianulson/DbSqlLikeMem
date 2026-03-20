@@ -177,20 +177,20 @@ internal sealed class SqlExpressionParser(
     private bool TryParseIsNullPostfix(ref SqlExpr left)
     {
         var t = Peek();
-        if (!IsKeyword(t, "IS"))
+        if (!IsKeyword(t, SqlConst.IS))
             return false;
 
         var save = _i;
         Consume(); // IS
 
         bool neg = false;
-        if (IsKeyword(Peek(), "NOT"))
+        if (IsKeyword(Peek(), SqlConst.NOT))
         {
             Consume();
             neg = true;
         }
 
-        if (IsKeyword(Peek(), "NULL"))
+        if (IsKeyword(Peek(), SqlConst.NULL))
         {
             Consume();
             left = new IsNullExpr(left, neg);
@@ -208,16 +208,16 @@ internal sealed class SqlExpressionParser(
     private bool TryParseNotInfix(ref SqlExpr left, int minBp)
     {
         var t = Peek();
-        if (!IsKeyword(t, "NOT"))
+        if (!IsKeyword(t, SqlConst.NOT))
             return false;
 
         var t2 = Peek(1);
 
         // Dispatch: NOT <op>
-        if (IsKeyword(t2, "BETWEEN"))
+        if (IsKeyword(t2, SqlConst.BETWEEN))
             return TryParseNotBetween(ref left, minBp);
 
-        if (IsKeyword(t2, "IN"))
+        if (IsKeyword(t2, SqlConst.IN))
             return TryParseNotIn(ref left, minBp);
 
         if (IsKeyword(t2, "LIKE") || IsKeywordOrIdentifierWord(t2, "ILIKE"))
@@ -240,7 +240,7 @@ internal sealed class SqlExpressionParser(
 
         var low = ParseExpression(51);
 
-        ExpectWord("AND"); // garante AND como keyword/identifier-word
+        ExpectWord(SqlConst.AND); // garante AND como keyword/identifier-word
         var high = ParseExpression(51);
 
         left = new BetweenExpr(left, low, high, Negated: true);
@@ -329,8 +329,8 @@ internal sealed class SqlExpressionParser(
             throw Error("IN requires at least one element or a subquery", contextToken);
 
         // subquery: SELECT ou WITH
-        if (IsKeywordOrIdentifierWord(Peek(), "SELECT")
-            || IsKeywordOrIdentifierWord(Peek(), "WITH"))
+        if (IsKeywordOrIdentifierWord(Peek(), SqlConst.SELECT)
+            || IsKeywordOrIdentifierWord(Peek(), SqlConst.WITH))
         {
             var subSql = ReadRawUntilMatchingParen(); // lê até fechar o ')' do SELECT/WITH
 
@@ -375,7 +375,7 @@ internal sealed class SqlExpressionParser(
     private bool TryParseInInfix(ref SqlExpr left, int minBp)
     {
         var t = Peek();
-        if (!IsKeyword(t, "IN"))
+        if (!IsKeyword(t, SqlConst.IN))
             return false;
 
         var (lbp, rbp) = (50, 51);
@@ -387,7 +387,7 @@ internal sealed class SqlExpressionParser(
         if (left is RowExpr && !IsSymbol(Peek(), "("))
             throw Error("Row value IN requires parentheses", inTok);
 
-        var payload = ParseInPayload(inTok, "IN");
+        var payload = ParseInPayload(inTok, SqlConst.IN);
 
         left = new InExpr(left, payload);
         return true;
@@ -400,7 +400,7 @@ internal sealed class SqlExpressionParser(
 
         var caseInsensitive = false;
 
-        if (IsKeyword(t, "NOT"))
+        if (IsKeyword(t, SqlConst.NOT))
         {
             var next = Peek(1);
             if (IsKeyword(next, "LIKE"))
@@ -458,7 +458,7 @@ internal sealed class SqlExpressionParser(
         var t = Peek();
         var negate = false;
 
-        if (IsKeyword(t, "NOT"))
+        if (IsKeyword(t, SqlConst.NOT))
         {
             var next = Peek(1);
             if (!IsKeywordOrIdentifierWord(next, "REGEXP"))
@@ -659,7 +659,7 @@ internal sealed class SqlExpressionParser(
     private bool TryParseBetweenInfix(ref SqlExpr left, int minBp)
     {
         var t = Peek();
-        if (!IsKeyword(t, "BETWEEN"))
+        if (!IsKeyword(t, SqlConst.BETWEEN))
             return false;
 
         var (lbp, rbp) = (50, 51);
@@ -669,7 +669,7 @@ internal sealed class SqlExpressionParser(
 
         var low = ParseExpression(rbp);
 
-        if (!IsKeyword(Peek(), "AND"))
+        if (!IsKeyword(Peek(), SqlConst.AND))
             throw new InvalidOperationException("Esperava AND no BETWEEN");
 
         Consume(); // AND
@@ -705,10 +705,10 @@ internal sealed class SqlExpressionParser(
     private bool TryParseAndOrInfix(ref SqlExpr left, int minBp)
     {
         var t = Peek();
-        if (!(IsKeyword(t, "AND") || IsKeyword(t, "OR")))
+        if (!(IsKeyword(t, SqlConst.AND) || IsKeyword(t, SqlConst.OR)))
             return false;
 
-        var op = IsKeyword(t, "AND") ? SqlBinaryOp.And : SqlBinaryOp.Or;
+        var op = IsKeyword(t, SqlConst.AND) ? SqlBinaryOp.And : SqlBinaryOp.Or;
         var (lbp, rbp) = op == SqlBinaryOp.And ? (20, 21) : (10, 11);
         if (lbp < minBp) return false;
 
@@ -755,7 +755,7 @@ internal sealed class SqlExpressionParser(
         var qTok = Peek();
         if (!IsKeywordOrIdentifierWord(qTok, "ANY")
             && !IsKeywordOrIdentifierWord(qTok, "SOME")
-            && !IsKeywordOrIdentifierWord(qTok, "ALL"))
+            && !IsKeywordOrIdentifierWord(qTok, SqlConst.ALL))
             return false;
 
         var quantifier = IsKeywordOrIdentifierWord(qTok, "ANY")
@@ -841,7 +841,7 @@ internal sealed class SqlExpressionParser(
     {
         expr = default!;
 
-        if (!IsKeywordOrIdentifierWord(t, "EXISTS"))
+        if (!IsKeywordOrIdentifierWord(t, SqlConst.EXISTS))
             return false;
 
         Consume(); // EXISTS
@@ -853,7 +853,7 @@ internal sealed class SqlExpressionParser(
 
         // ✅ use o token t
         expr = new ExistsExpr(
-            SqlQueryParser.ParseSubqueryExprOrThrow(subSql, t, "EXISTS", _dialect)
+            SqlQueryParser.ParseSubqueryExprOrThrow(subSql, t, SqlConst.EXISTS, _dialect)
         );
 
         return true;
@@ -869,29 +869,29 @@ internal sealed class SqlExpressionParser(
         Consume(); // CASE
 
         SqlExpr? baseExpr = null;
-        if (!IsKeywordOrIdentifierWord(Peek(), "WHEN"))
+        if (!IsKeywordOrIdentifierWord(Peek(), SqlConst.WHEN))
             baseExpr = ParseExpression(0);
 
         var whens = new List<CaseWhenThen>();
-        while (IsKeywordOrIdentifierWord(Peek(), "WHEN"))
+        while (IsKeywordOrIdentifierWord(Peek(), SqlConst.WHEN))
         {
             Consume(); // WHEN
             var whenExpr = ParseExpression(0);
 
-            ExpectWord("THEN");
+            ExpectWord(SqlConst.THEN);
             var thenExpr = ParseExpression(0);
 
             whens.Add(new CaseWhenThen(whenExpr, thenExpr));
         }
 
         SqlExpr? elseExpr = null;
-        if (IsKeywordOrIdentifierWord(Peek(), "ELSE"))
+        if (IsKeywordOrIdentifierWord(Peek(), SqlConst.ELSE))
         {
             Consume(); // ELSE
             elseExpr = ParseExpression(0);
         }
 
-        ExpectWord("END");
+        ExpectWord(SqlConst.END);
         expr = new CaseExpr(baseExpr, whens, elseExpr);
         return true;
     }
@@ -900,7 +900,7 @@ internal sealed class SqlExpressionParser(
     {
         expr = default!;
 
-        if (!IsKeyword(t, "NOT"))
+        if (!IsKeyword(t, SqlConst.NOT))
             return false;
 
         Consume();
@@ -965,11 +965,11 @@ internal sealed class SqlExpressionParser(
     {
         expr = default!;
 
-        if (!IsKeywordOrIdentifierWord(t, "NEXT"))
+        if (!IsKeywordOrIdentifierWord(t, SqlConst.NEXT))
             return false;
 
-        if (!IsKeywordOrIdentifierWord(Peek(1), "VALUE")
-            || !IsKeywordOrIdentifierWord(Peek(2), "FOR"))
+        if (!IsKeywordOrIdentifierWord(Peek(1), SqlConst.VALUE)
+            || !IsKeywordOrIdentifierWord(Peek(2), SqlConst.FOR))
             return false;
 
         if (!_dialect.SupportsNextValueForSequenceExpression)
@@ -992,11 +992,11 @@ internal sealed class SqlExpressionParser(
     {
         expr = default!;
 
-        if (!IsKeywordOrIdentifierWord(t, "PREVIOUS"))
+        if (!IsKeywordOrIdentifierWord(t, SqlConst.PREVIOUS))
             return false;
 
-        if (!IsKeywordOrIdentifierWord(Peek(1), "VALUE")
-            || !IsKeywordOrIdentifierWord(Peek(2), "FOR"))
+        if (!IsKeywordOrIdentifierWord(Peek(1), SqlConst.VALUE)
+            || !IsKeywordOrIdentifierWord(Peek(2), SqlConst.FOR))
             return false;
 
         if (!_dialect.SupportsPreviousValueForSequenceExpression)
@@ -1038,7 +1038,7 @@ internal sealed class SqlExpressionParser(
         Consume(); // '('
 
         // ✅ scalar subquery: (SELECT ... ) / (WITH ... )
-        if (IsKeywordOrIdentifierWord(Peek(), "SELECT") || IsKeywordOrIdentifierWord(Peek(), "WITH"))
+        if (IsKeywordOrIdentifierWord(Peek(), SqlConst.SELECT) || IsKeywordOrIdentifierWord(Peek(), SqlConst.WITH))
         {
             var subSql = ReadRawUntilMatchingParen(); // lê até antes do ')'
             ExpectSymbol(")");
@@ -1075,15 +1075,15 @@ internal sealed class SqlExpressionParser(
         if (t.Kind != SqlTokenKind.Keyword)
             return false;
 
-        if (!(IsKeyword(t, "NULL") || IsKeyword(t, "TRUE") || IsKeyword(t, "FALSE")))
+        if (!(IsKeyword(t, SqlConst.NULL) || IsKeyword(t, SqlConst.TRUE) || IsKeyword(t, SqlConst.FALSE)))
             return false;
 
         Consume();
 
         object? val =
-            IsKeyword(t, "NULL")
+            IsKeyword(t, SqlConst.NULL)
             ? null
-            : IsKeyword(t, "TRUE");
+            : IsKeyword(t, SqlConst.TRUE);
 
         expr = new LiteralExpr(val);
         return true;
@@ -1327,10 +1327,10 @@ internal sealed class SqlExpressionParser(
             .Select(t => t.Text.ToUpperInvariant())
             .ToArray();
 
-        if (WordsEqual(words, "IN", "BOOLEAN", "MODE")
-            || WordsEqual(words, "IN", "NATURAL", "LANGUAGE", "MODE")
-            || WordsEqual(words, "IN", "NATURAL", "LANGUAGE", "MODE", "WITH", "QUERY", "EXPANSION")
-            || WordsEqual(words, "WITH", "QUERY", "EXPANSION"))
+        if (WordsEqual(words, SqlConst.IN, "BOOLEAN", "MODE")
+            || WordsEqual(words, SqlConst.IN, "NATURAL", SqlConst.LANGUAGE, "MODE")
+            || WordsEqual(words, SqlConst.IN, "NATURAL", SqlConst.LANGUAGE, "MODE", SqlConst.WITH, "QUERY", "EXPANSION")
+            || WordsEqual(words, SqlConst.WITH, "QUERY", "EXPANSION"))
             return string.Join(" ", modeTokens.Select(TokenToSql)).Trim();
 
         throw Error(
@@ -1379,7 +1379,7 @@ internal sealed class SqlExpressionParser(
             if (depth != 0)
                 continue;
 
-            if (IsKeywordOrIdentifierWord(token, "IN")
+            if (IsKeywordOrIdentifierWord(token, SqlConst.IN)
                 && i + 1 < payloadTokens.Count
                 && (IsKeywordOrIdentifierWord(payloadTokens[i + 1], "BOOLEAN")
                     || IsKeywordOrIdentifierWord(payloadTokens[i + 1], "NATURAL")
@@ -1389,7 +1389,7 @@ internal sealed class SqlExpressionParser(
                 break;
             }
 
-            if (IsKeywordOrIdentifierWord(token, "WITH")
+            if (IsKeywordOrIdentifierWord(token, SqlConst.WITH)
                 && i + 1 < payloadTokens.Count
                 && IsKeywordOrIdentifierWord(payloadTokens[i + 1], "QUERY"))
             {
@@ -1608,16 +1608,16 @@ internal sealed class SqlExpressionParser(
             throw SqlUnsupported.ForDialect(_dialect, "JSON_QUERY");
         }
 
-        if (name.Equals("OPENJSON", StringComparison.OrdinalIgnoreCase)
+        if (name.Equals(SqlConst.OPENJSON, StringComparison.OrdinalIgnoreCase)
             && !_dialect.SupportsOpenJsonFunction)
         {
-            throw SqlUnsupported.ForDialect(_dialect, "OPENJSON");
+            throw SqlUnsupported.ForDialect(_dialect, SqlConst.OPENJSON);
         }
 
-        if (name.Equals("JSON_TABLE", StringComparison.OrdinalIgnoreCase)
+        if (name.Equals(SqlConst.JSON_TABLE, StringComparison.OrdinalIgnoreCase)
             && !_dialect.SupportsJsonTableFunction)
         {
-            throw SqlUnsupported.ForDialect(_dialect, "JSON_TABLE");
+            throw SqlUnsupported.ForDialect(_dialect, SqlConst.JSON_TABLE);
         }
 
         if (name.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
@@ -1987,7 +1987,7 @@ internal sealed class SqlExpressionParser(
                 || name.Equals("CONCAT", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("CONCAT_WS", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("LEN", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("LEFT", StringComparison.OrdinalIgnoreCase)
+                || name.Equals(SqlConst.LEFT, StringComparison.OrdinalIgnoreCase)
                 || name.Equals("LOG", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("LOG10", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("LOWER", StringComparison.OrdinalIgnoreCase)
@@ -1999,8 +1999,8 @@ internal sealed class SqlExpressionParser(
                 || name.Equals("JSON_MODIFY", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("NEWID", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("NEWSEQUENTIALID", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("REPLACE", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("RIGHT", StringComparison.OrdinalIgnoreCase)
+                || name.Equals(SqlConst.REPLACE, StringComparison.OrdinalIgnoreCase)
+                || name.Equals(SqlConst.RIGHT, StringComparison.OrdinalIgnoreCase)
                 || name.Equals("ROUND", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("SIGN", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("SIN", StringComparison.OrdinalIgnoreCase)
@@ -2055,7 +2055,7 @@ internal sealed class SqlExpressionParser(
 
             Consume(); // unit
 
-            if (!IsKeywordOrIdentifierWord(Peek(), "FROM"))
+            if (!IsKeywordOrIdentifierWord(Peek(), SqlConst.FROM))
                 throw Error("EXTRACT requires FROM", Peek());
 
             Consume(); // FROM
@@ -2084,7 +2084,7 @@ internal sealed class SqlExpressionParser(
             // expr
             var inner = ParseExpression(0);
 
-            if (!IsKeywordOrIdentifierWord(Peek(), "AS"))
+            if (!IsKeywordOrIdentifierWord(Peek(), SqlConst.AS))
                 throw Error("CAST requires AS", Peek());
 
             Consume(); // AS
@@ -2135,7 +2135,7 @@ internal sealed class SqlExpressionParser(
         {
             var inner = ParseExpression(0);
 
-            if (!IsKeywordOrIdentifierWord(Peek(), "AS"))
+            if (!IsKeywordOrIdentifierWord(Peek(), SqlConst.AS))
                 throw Error("TRY_CAST requires AS", Peek());
 
             Consume(); // AS
@@ -2231,7 +2231,7 @@ internal sealed class SqlExpressionParser(
             var functionName = name.ToUpperInvariant();
             var inner = ParseExpression(0);
 
-            if (!IsKeywordOrIdentifierWord(Peek(), "AS"))
+            if (!IsKeywordOrIdentifierWord(Peek(), SqlConst.AS))
                 throw Error($"{functionName} requires AS", Peek());
             Consume();
 
@@ -2242,7 +2242,7 @@ internal sealed class SqlExpressionParser(
                 if (t.Kind == SqlTokenKind.EndOfFile)
                     throw Error($"{functionName} type not closed", t);
 
-                if (IsKeywordOrIdentifierWord(t, "USING") || IsSymbol(t, ")"))
+                if (IsKeywordOrIdentifierWord(t, SqlConst.USING) || IsSymbol(t, ")"))
                     break;
 
                 typeToks.Add(Consume());
@@ -2257,7 +2257,7 @@ internal sealed class SqlExpressionParser(
                 new RawSqlExpr(string.Join(" ", typeToks.Select(TokenToSql)).Trim())
             };
 
-            if (IsKeywordOrIdentifierWord(Peek(), "USING"))
+            if (IsKeywordOrIdentifierWord(Peek(), SqlConst.USING))
             {
                 Consume();
                 parseArgs.Add(ParseExpression(0));
@@ -2271,17 +2271,17 @@ internal sealed class SqlExpressionParser(
         // Funções normais
         // ================================
 
-        if (name.Equals("JSON_TABLE", StringComparison.OrdinalIgnoreCase))
+        if (name.Equals(SqlConst.JSON_TABLE, StringComparison.OrdinalIgnoreCase))
             return ParseJsonTableCall(name);
 
         var distinct = false;
-        if (IsKeywordOrIdentifierWord(Peek(), "DISTINCT"))
+        if (IsKeywordOrIdentifierWord(Peek(), SqlConst.DISTINCT))
         {
             Consume();
             distinct = true;
 
             // MySQL does not allow duplicated DISTINCT in functions: COUNT(DISTINCT DISTINCT id)
-            if (IsKeywordOrIdentifierWord(Peek(), "DISTINCT"))
+            if (IsKeywordOrIdentifierWord(Peek(), SqlConst.DISTINCT))
                 throw Error("duplicated DISTINCT", Peek());
 
             if (IsSymbol(Peek(), ")"))
@@ -2320,7 +2320,7 @@ internal sealed class SqlExpressionParser(
 
             // Oracle: JSON_VALUE(json_doc, path RETURNING NUMBER)
             if (name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
-                && IsKeywordOrIdentifierWord(Peek(), "RETURNING"))
+                && IsKeywordOrIdentifierWord(Peek(), SqlConst.RETURNING))
             {
                 if (!_dialect.SupportsJsonValueReturningClause)
                     throw SqlUnsupported.ForDialect(_dialect, "JSON_VALUE ... RETURNING");
@@ -2374,7 +2374,7 @@ internal sealed class SqlExpressionParser(
 
     private IReadOnlyList<WindowOrderItem>? ParseAggregateOrderByInsideCallIfPresent(string functionName)
     {
-        if (!IsKeywordOrIdentifierWord(Peek(), "ORDER"))
+        if (!IsKeywordOrIdentifierWord(Peek(), SqlConst.ORDER))
             return null;
 
         var normalizedName = functionName.ToUpperInvariant();
@@ -2388,7 +2388,7 @@ internal sealed class SqlExpressionParser(
             throw SqlUnsupported.ForDialect(_dialect, $"aggregate ORDER BY for function '{functionName}'");
 
         Consume(); // ORDER
-        if (!IsKeywordOrIdentifierWord(Peek(), "BY"))
+        if (!IsKeywordOrIdentifierWord(Peek(), SqlConst.BY))
             throw Error("aggregate ORDER BY requires BY", Peek());
         Consume();
 
@@ -2465,7 +2465,7 @@ internal sealed class SqlExpressionParser(
                 if (IsSymbol(token, ",")
                     || IsSymbol(token, ")")
                     || (_dialect.SupportsAggregateOrderByStringAggregateFunction(functionName)
-                        && IsKeywordOrIdentifierWord(token, "ORDER"))
+                        && IsKeywordOrIdentifierWord(token, SqlConst.ORDER))
                     || (_dialect.SupportsAggregateSeparatorKeywordStringAggregateFunction(functionName)
                         && IsKeywordOrIdentifierWord(token, "SEPARATOR")))
                 {
@@ -2502,7 +2502,7 @@ internal sealed class SqlExpressionParser(
 
     private CallExpr ParseWithinGroupOrderByIfPresent(CallExpr call)
     {
-        if (!IsKeywordOrIdentifierWord(Peek(), "WITHIN"))
+        if (!IsKeywordOrIdentifierWord(Peek(), SqlConst.WITHIN))
             return call;
 
         var normalizedName = call.Name.ToUpperInvariant();
@@ -2520,14 +2520,14 @@ internal sealed class SqlExpressionParser(
             throw SqlUnsupported.ForDialect(_dialect, $"ordered-set aggregate syntax WITHIN GROUP for function '{call.Name}'");
 
         Consume(); // WITHIN
-        ExpectWord("GROUP");
+        ExpectWord(SqlConst.GROUP);
         ExpectSymbol("(");
 
-        if (!IsKeywordOrIdentifierWord(Peek(), "ORDER"))
+        if (!IsKeywordOrIdentifierWord(Peek(), SqlConst.ORDER))
             throw Error("WITHIN GROUP requires ORDER BY", Peek());
         Consume();
 
-        if (!IsKeywordOrIdentifierWord(Peek(), "BY"))
+        if (!IsKeywordOrIdentifierWord(Peek(), SqlConst.BY))
             throw Error("WITHIN GROUP requires ORDER BY", Peek());
         Consume();
 
@@ -2545,7 +2545,7 @@ internal sealed class SqlExpressionParser(
         Consume(); // FILTER
         ExpectSymbol("(");
 
-        if (!IsKeywordOrIdentifierWord(Peek(), "WHERE"))
+        if (!IsKeywordOrIdentifierWord(Peek(), SqlConst.WHERE))
             throw Error("FILTER requires WHERE", Peek());
 
         Consume(); // WHERE
@@ -2678,10 +2678,10 @@ internal sealed class SqlExpressionParser(
         WindowFrameSpec? frame = null;
 
         // PARTITION BY ...
-        if (IsKeywordOrIdentifierWord(Peek(), "PARTITION"))
+        if (IsKeywordOrIdentifierWord(Peek(), SqlConst.PARTITION))
         {
             Consume(); // PARTITION
-            if (!IsKeywordOrIdentifierWord(Peek(), "BY"))
+            if (!IsKeywordOrIdentifierWord(Peek(), SqlConst.BY))
                 throw Error("Esperava BY após PARTITION", Peek());
             Consume(); // BY
 
@@ -2689,10 +2689,10 @@ internal sealed class SqlExpressionParser(
         }
 
         // ORDER BY ...
-        if (IsKeywordOrIdentifierWord(Peek(), "ORDER"))
+        if (IsKeywordOrIdentifierWord(Peek(), SqlConst.ORDER))
         {
             Consume(); // ORDER
-            if (!IsKeywordOrIdentifierWord(Peek(), "BY"))
+            if (!IsKeywordOrIdentifierWord(Peek(), SqlConst.BY))
                 throw Error("Esperava BY após ORDER", Peek());
             Consume(); // BY
 
@@ -2719,7 +2719,7 @@ internal sealed class SqlExpressionParser(
             }
         }
 
-        if (IsKeywordOrIdentifierWord(Peek(), "ROWS")
+        if (IsKeywordOrIdentifierWord(Peek(), SqlConst.ROWS)
             || IsKeywordOrIdentifierWord(Peek(), "RANGE")
             || IsKeywordOrIdentifierWord(Peek(), "GROUPS"))
         {
@@ -2743,11 +2743,11 @@ internal sealed class SqlExpressionParser(
 
         WindowFrameBound start;
         WindowFrameBound end;
-        if (IsKeywordOrIdentifierWord(Peek(), "BETWEEN"))
+        if (IsKeywordOrIdentifierWord(Peek(), SqlConst.BETWEEN))
         {
             Consume(); // BETWEEN
             start = ParseWindowFrameBound();
-            if (!IsKeywordOrIdentifierWord(Peek(), "AND"))
+            if (!IsKeywordOrIdentifierWord(Peek(), SqlConst.AND))
                 throw Error("Expected AND in window frame clause.", Peek());
             Consume(); // AND
             end = ParseWindowFrameBound();
@@ -2763,7 +2763,7 @@ internal sealed class SqlExpressionParser(
 
     private WindowFrameUnit ParseWindowFrameUnit()
     {
-        if (IsKeywordOrIdentifierWord(Peek(), "ROWS"))
+        if (IsKeywordOrIdentifierWord(Peek(), SqlConst.ROWS))
         {
             Consume();
             return WindowFrameUnit.Rows;
@@ -2807,7 +2807,7 @@ internal sealed class SqlExpressionParser(
         if (IsKeywordOrIdentifierWord(Peek(), "CURRENT"))
         {
             Consume();
-            if (!IsKeywordOrIdentifierWord(Peek(), "ROW"))
+            if (!IsKeywordOrIdentifierWord(Peek(), SqlConst.ROW))
                 throw Error("Expected ROW after CURRENT in window frame clause.", Peek());
             Consume();
             return new WindowFrameBound(WindowFrameBoundKind.CurrentRow, null);
@@ -2836,7 +2836,7 @@ internal sealed class SqlExpressionParser(
     {
         var items = new List<SqlExpr>();
 
-        if (IsSymbol(Peek(), ")") || IsKeywordOrIdentifierWord(Peek(), "ORDER"))
+        if (IsSymbol(Peek(), ")") || IsKeywordOrIdentifierWord(Peek(), SqlConst.ORDER))
             return items;
 
         while (true)

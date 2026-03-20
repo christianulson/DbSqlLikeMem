@@ -6,6 +6,7 @@ internal sealed class AstSubqueryEvaluationCache
 {
     private readonly ConcurrentDictionary<string, bool> _exists = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, List<object?>> _firstColumnValues = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, object> _operationData = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, ScalarValueBox> _scalars = new(StringComparer.Ordinal);
 
     public bool GetOrAddExists(string cacheKey, Func<string, bool> valueFactory)
@@ -14,6 +15,10 @@ internal sealed class AstSubqueryEvaluationCache
     public List<object?> GetOrAddFirstColumnValues(string cacheKey, Func<string, List<object?>> valueFactory)
         => _firstColumnValues.GetOrAdd(cacheKey, valueFactory);
 
+    public T GetOrAddOperationData<T>(string cacheKey, Func<string, T> valueFactory)
+        where T : class
+        => (T)_operationData.GetOrAdd(cacheKey, key => valueFactory(key)!);
+
     public object? GetOrAddScalar(string cacheKey, Func<string, object?> valueFactory)
         => _scalars.GetOrAdd(cacheKey, key => new ScalarValueBox(valueFactory(key))).Value;
 
@@ -21,6 +26,7 @@ internal sealed class AstSubqueryEvaluationCache
     {
         _exists.Clear();
         _firstColumnValues.Clear();
+        _operationData.Clear();
         _scalars.Clear();
     }
 

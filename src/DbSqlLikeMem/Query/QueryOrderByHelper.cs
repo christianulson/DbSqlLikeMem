@@ -9,19 +9,28 @@ internal static class QueryOrderByHelper
         Func<SqlExpr, AstQueryExecutorBase.EvalRow, object?> evalExpression,
         Func<object?, object?, int> compareSql)
     {
-        var joinFieldsByRow = BuildJoinFieldsByRow(result);
-        var keySelectors = BuildKeySelectors(result, orderBy, parseExpression, evalExpression, joinFieldsByRow);
+        Dictionary<Dictionary<int, object?>, Dictionary<string, object?>>? joinFieldsByRow = null;
+        var keySelectors = BuildKeySelectors(
+            result,
+            orderBy,
+            parseExpression,
+            evalExpression,
+            () => joinFieldsByRow ??= BuildJoinFieldsByRow(result));
         if (keySelectors.Count == 0)
             return false;
 
         var sortedRows = result.ToList();
         sortedRows.Sort((left, right) => CompareRows(left, right, keySelectors, compareSql));
 
+        if (result.JoinFields.Count > 0 && joinFieldsByRow is null)
+            joinFieldsByRow = BuildJoinFieldsByRow(result);
+
         result.Clear();
         foreach (var row in sortedRows)
             result.Add(row);
 
-        ReorderJoinFields(result, sortedRows, joinFieldsByRow);
+        if (joinFieldsByRow is not null)
+            ReorderJoinFields(result, sortedRows, joinFieldsByRow);
         return true;
     }
 
@@ -30,7 +39,7 @@ internal static class QueryOrderByHelper
         IReadOnlyList<SqlOrderByItem> orderBy,
         Func<string, SqlExpr> parseExpression,
         Func<SqlExpr, AstQueryExecutorBase.EvalRow, object?> evalExpression,
-        Dictionary<Dictionary<int, object?>, Dictionary<string, object?>> joinFieldsByRow)
+        Func<Dictionary<Dictionary<int, object?>, Dictionary<string, object?>>> getJoinFieldsByRow)
     {
         var keySelectors = new List<OrderByKeySelector>(orderBy.Count);
         Dictionary<string, int>? aliasToIndex = null;
@@ -58,8 +67,13 @@ internal static class QueryOrderByHelper
             keySelectors.Add(new OrderByKeySelector(
                 row =>
                 {
-                    var projectedRow = AstQueryExecutorBase.EvalRow.FromProjected(result, row, aliasToIndex);
-                    MergeJoinFields(projectedRow.Fields, row, joinFieldsByRow);
+                    var joinFieldsByRow = getJoinFieldsByRow();
+                    joinFieldsByRow.TryGetValue(row, out var joinFields);
+                    var projectedRow = AstQueryExecutorBase.EvalRow.FromProjected(
+                        result,
+                        row,
+                        aliasToIndex,
+                        joinFields);
                     return evalExpression(parsedExpression, projectedRow);
                 },
                 item.Desc,
@@ -144,35 +158,13 @@ internal static class QueryOrderByHelper
     private static Dictionary<Dictionary<int, object?>, Dictionary<string, object?>> BuildJoinFieldsByRow(TableResultMock result)
     {
         var joinFieldsByRow = new Dictionary<Dictionary<int, object?>, Dictionary<string, object?>>(
+            Math.Max(1, result.Count),
             ReferenceEqualityComparer<Dictionary<int, object?>>.Instance);
 
         for (var i = 0; i < result.Count && i < result.JoinFields.Count; i++)
             joinFieldsByRow[result[i]] = result.JoinFields[i];
 
         return joinFieldsByRow;
-    }
-
-    private static void MergeJoinFields(
-        Dictionary<string, object?> projectedFields,
-        Dictionary<int, object?> row,
-        Dictionary<Dictionary<int, object?>, Dictionary<string, object?>> joinFieldsByRow)
-    {
-        if (!joinFieldsByRow.TryGetValue(row, out var rowFields))
-            return;
-
-        foreach (var pair in rowFields)
-        {
-            if (!projectedFields.ContainsKey(pair.Key))
-                projectedFields[pair.Key] = pair.Value;
-
-            var dot = pair.Key.IndexOf('.');
-            if (dot <= 0 || dot + 1 >= pair.Key.Length)
-                continue;
-
-            var unqualified = pair.Key[(dot + 1)..];
-            if (!projectedFields.ContainsKey(unqualified))
-                projectedFields[unqualified] = pair.Value;
-        }
     }
 
     private static int CompareRows(

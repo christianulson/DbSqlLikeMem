@@ -381,7 +381,7 @@ public sealed class SqliteDialectFeatureParserTests
 
         var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqliteDialect(version)));
 
-        Assert.Contains("PIVOT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.PIVOT, ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("sqlite", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -529,7 +529,7 @@ public sealed class SqliteDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse("MERGE INTO users u USING users s ON u.id = s.id WHEN MATCHED THEN UPDATE SET name = 'x'", new SqliteDialect(version)));
 
-        Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.MERGE, ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 

@@ -26,8 +26,8 @@ internal sealed class AutoSqlDialect : SqlDialectBase
 
     private static readonly KeyValuePair<string, SqlBinaryOp>[] _binaryOperators =
     [
-        new("AND", SqlBinaryOp.And),
-        new("OR", SqlBinaryOp.Or),
+        new(SqlConst.AND, SqlBinaryOp.And),
+        new(SqlConst.OR, SqlBinaryOp.Or),
         new("=", SqlBinaryOp.Eq),
         new("<=>", SqlBinaryOp.NullSafeEq),
         new("<>", SqlBinaryOp.Neq),

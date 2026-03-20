@@ -40,29 +40,40 @@ internal static class DbMergeStrategy
             throw new InvalidOperationException(SqlExceptionMessages.MergeCouldNotIdentifyTargetTable());
 
         var targetName = targetMatch.Groups["target"].Value;
-        var targetAlias = targetMatch.Groups["alias"].Success
-            ? targetMatch.Groups["alias"].Value
-            : "target";
-
         var target = connection.GetTable(targetName, query.Table?.DbName);
         var table = (TableMock)target;
 
         var usingIndex = CultureInfo.InvariantCulture.CompareInfo
-            .IndexOf(sql, "USING", CompareOptions.IgnoreCase);
+            .IndexOf(sql, SqlConst.USING, CompareOptions.IgnoreCase);
         if (usingIndex < 0)
             throw new InvalidOperationException(SqlExceptionMessages.MergeUsingClauseNotFound());
 
-        var selectSql = ExtractParenthesized(sql, sql.IndexOf('(', usingIndex));
+        var selectSql = ExtractParenthesized(sql, sql.IndexOf('(', usingIndex), out var usingCloseIndex);
+        var sourceTail = sql[usingCloseIndex..];
         var srcAliasMatch = Regex.Match(
-            sql,
-            @"USING\s*\(.*?\)\s+(?:AS\s+)?(?<alias>(?!ON\b|WHEN\b)[A-Za-z0-9_]+)",
+            sourceTail,
+            @"^\s+(?:AS\s+)?(?<alias>(?!ON\b|WHEN\b)[A-Za-z0-9_]+)",
             RegexOptions.IgnoreCase | RegexOptions.Singleline);
         var sourceAlias = srcAliasMatch.Success ? srcAliasMatch.Groups["alias"].Value : "src";
+        var srcColumnsMatch = Regex.Match(
+            sourceTail,
+            @"^\s+(?:AS\s+)?[A-Za-z0-9_]+\s*\((?<cols>[^)]*)\)",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        List<string> sourceColumnNames = srcColumnsMatch.Success
+            ? [.. SplitByComma(srcColumnsMatch.Groups["cols"].Value).Where(static col => !string.IsNullOrWhiteSpace(col))]
+            : [];
 
-        var executor = AstQueryExecutorFactory.Create(dialect, connection, pars);
-        var parsedSource = SqlQueryParser.Parse(selectSql, dialect) as SqlSelectQuery
-            ?? throw new InvalidOperationException(SqlExceptionMessages.MergeSourceSelectInvalid());
-        var sourceTable = executor.ExecuteSelect(parsedSource);
+        TableResultMock sourceTable;
+        if (!TryBuildValuesSource(
+                selectSql,
+                sourceAlias,
+                sourceColumnNames,
+                dialect,
+                pars,
+                out sourceTable))
+        {
+            sourceTable = ExecuteMergeSourceSelect(selectSql, connection, pars, dialect);
+        }
 
         var onMatch = Regex.Match(
             sql,
@@ -94,7 +105,7 @@ internal static class DbMergeStrategy
         var insertCols = insertMatch.Success ? SplitByComma(insertMatch.Groups["cols"].Value) : [];
         var insertVals = insertMatch.Success ? SplitByComma(insertMatch.Groups["vals"].Value) : [];
         var targetJoinCol = table.GetColumn(targetJoinColumn);
-        string[] sourceColumnNames = [.. sourceTable.Columns.Select(col => col.ColumnName)];
+        string[] sourceColumnNames2 = [.. sourceTable.Columns.Select(col => col.ColumnName)];
         var parsedUpdates = ParseMergeAssignments(table, updates);
         ColumnDef[] insertTargets = [.. insertCols.Select(table.GetColumn)];
         var pendingInsertRows = new List<Dictionary<int, object?>>();
@@ -103,10 +114,10 @@ internal static class DbMergeStrategy
         var affected = new DmlExecutionResult();
         foreach (var srcRow in sourceTable)
         {
-            var srcValues = new Dictionary<string, object?>(sourceColumnNames.Length, StringComparer.OrdinalIgnoreCase);
-            for (int i = 0; i < sourceColumnNames.Length; i++)
+            var srcValues = new Dictionary<string, object?>(sourceColumnNames2.Length, StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < sourceColumnNames2.Length; i++)
             {
-                srcValues[sourceColumnNames[i]] = srcRow.TryGetValue(i, out var v) ? v : null;
+                srcValues[sourceColumnNames2[i]] = srcRow.TryGetValue(i, out var v) ? v : null;
             }
 
             srcValues.TryGetValue(sourceJoinColumn, out var srcKeyRaw);
@@ -141,7 +152,7 @@ internal static class DbMergeStrategy
                 var newRow = new Dictionary<int, object?>(insertTargets.Length);
                 for (int i = 0; i < insertTargets.Length; i++)
                 {
-                    var valueToken = i < insertVals.Count ? insertVals[i] : "NULL";
+                    var valueToken = i < insertVals.Count ? insertVals[i] : SqlConst.NULL;
                     var targetColumn = insertTargets[i];
                     var value = ResolveMergeValue(valueToken, sourceAlias, srcValues, table, targetColumn.Name, pars);
                     newRow[targetColumn.Index] = value is DBNull ? null : value;
@@ -222,7 +233,7 @@ internal static class DbMergeStrategy
             return CoerceToColumnType(v, table.GetColumn(columnName).DbType);
         }
 
-        if (token.Equals("NULL", StringComparison.OrdinalIgnoreCase))
+        if (token.Equals(SqlConst.NULL, StringComparison.OrdinalIgnoreCase))
             return null;
 
         var col = table.GetColumn(columnName);
@@ -262,7 +273,293 @@ internal static class DbMergeStrategy
 
     private readonly record struct MergeAssignment(ColumnDef TargetColumn, string ValueToken);
 
-    private static string ExtractParenthesized(string sql, int startIndex)
+    private static TableResultMock ExecuteMergeSourceSelect(
+        string selectSql,
+        DbConnectionMockBase connection,
+        DbParameterCollection pars,
+        ISqlDialect dialect)
+    {
+        var executor = AstQueryExecutorFactory.Create(dialect, connection, pars);
+        var parsedSource = SqlQueryParser.Parse(selectSql, dialect) as SqlSelectQuery
+            ?? throw new InvalidOperationException(SqlExceptionMessages.MergeSourceSelectInvalid());
+
+        return executor.ExecuteSelect(parsedSource);
+    }
+
+    private static bool TryBuildValuesSource(
+        string sourceSql,
+        string sourceAlias,
+        IReadOnlyList<string> sourceColumnNames,
+        ISqlDialect dialect,
+        DbParameterCollection pars,
+        out TableResultMock sourceTable)
+    {
+        sourceTable = new TableResultMock();
+
+        if (!sourceSql.TrimStart().StartsWith(SqlConst.VALUES, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var valuesBody = sourceSql.TrimStart();
+        valuesBody = valuesBody[SqlConst.VALUES.Length..].TrimStart();
+        if (string.IsNullOrWhiteSpace(valuesBody))
+            throw new InvalidOperationException("MERGE USING VALUES requires at least one row.");
+
+        var rows = SplitValuesRows(valuesBody);
+        if (rows.Count == 0)
+            throw new InvalidOperationException("MERGE USING VALUES requires at least one row.");
+
+        var firstRowItems = SplitTopLevelCommaSeparated(rows[0]);
+        if (firstRowItems.Count == 0)
+            throw new InvalidOperationException("MERGE USING VALUES row requires at least one expression.");
+
+        var columnNames = sourceColumnNames.Count > 0
+            ? sourceColumnNames
+            : [.. Enumerable.Range(0, firstRowItems.Count).Select(i => $"C{i + 1}")];
+
+        if (columnNames.Count != firstRowItems.Count)
+            throw new InvalidOperationException(
+                $"MERGE USING VALUES column count ({columnNames.Count}) does not match row 1 expression count ({firstRowItems.Count}).");
+
+        sourceTable.Columns = [
+            .. columnNames.Select((columnName, index) => new TableResultColMock(
+                sourceAlias,
+                columnName,
+                columnName,
+                index,
+                DbType.Object,
+                true))
+        ];
+
+        for (var rowIndex = 0; rowIndex < rows.Count; rowIndex++)
+        {
+            var items = SplitTopLevelCommaSeparated(rows[rowIndex]);
+            if (items.Count != columnNames.Count)
+                throw new InvalidOperationException(
+                    $"MERGE USING VALUES row {rowIndex + 1} expression count ({items.Count}) does not match row 1 expression count ({columnNames.Count}).");
+
+            var row = new Dictionary<int, object?>(columnNames.Count);
+            for (var columnIndex = 0; columnIndex < items.Count; columnIndex++)
+            {
+                var expr = SqlExpressionParser.ParseScalar(items[columnIndex], dialect, pars);
+                row[columnIndex] = EvaluateValuesSourceExpression(expr, pars, dialect);
+            }
+
+            sourceTable.Add(row);
+        }
+
+        return true;
+    }
+
+    private static object? EvaluateValuesSourceExpression(
+        SqlExpr expr,
+        DbParameterCollection pars,
+        ISqlDialect dialect)
+    {
+        return expr switch
+        {
+            LiteralExpr lit => lit.Value is DBNull ? null : lit.Value,
+            ParameterExpr p => TryResolveParameterValue(pars, p.Name, out var value) ? value : null,
+            UnaryExpr { Op: SqlUnaryOp.Not, Expr: var inner } => !Convert.ToBoolean(EvaluateValuesSourceExpression(inner, pars, dialect) ?? false),
+            BinaryExpr { Op: SqlBinaryOp.Add } b => Convert.ToDecimal(EvaluateValuesSourceExpression(b.Left, pars, dialect) ?? 0m)
+                + Convert.ToDecimal(EvaluateValuesSourceExpression(b.Right, pars, dialect) ?? 0m),
+            BinaryExpr { Op: SqlBinaryOp.Subtract } b => Convert.ToDecimal(EvaluateValuesSourceExpression(b.Left, pars, dialect) ?? 0m)
+                - Convert.ToDecimal(EvaluateValuesSourceExpression(b.Right, pars, dialect) ?? 0m),
+            BinaryExpr { Op: SqlBinaryOp.Multiply } b => Convert.ToDecimal(EvaluateValuesSourceExpression(b.Left, pars, dialect) ?? 0m)
+                * Convert.ToDecimal(EvaluateValuesSourceExpression(b.Right, pars, dialect) ?? 0m),
+            BinaryExpr { Op: SqlBinaryOp.Divide } b => Convert.ToDecimal(EvaluateValuesSourceExpression(b.Left, pars, dialect) ?? 0m)
+                / Convert.ToDecimal(EvaluateValuesSourceExpression(b.Right, pars, dialect) ?? 0m),
+            BinaryExpr { Op: SqlBinaryOp.Concat } b => string.Concat(
+                EvaluateValuesSourceExpression(b.Left, pars, dialect)?.ToString() ?? string.Empty,
+                EvaluateValuesSourceExpression(b.Right, pars, dialect)?.ToString() ?? string.Empty),
+            CallExpr call when call.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, call.Name, out var temporal) => temporal,
+            FunctionCallExpr fn when fn.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, fn.Name, out var temporal) => temporal,
+            IdentifierExpr id when string.Equals(id.Name, SqlConst.NULL, StringComparison.OrdinalIgnoreCase) => null,
+            IdentifierExpr id when string.Equals(id.Name, SqlConst.TRUE, StringComparison.OrdinalIgnoreCase) => true,
+            IdentifierExpr id when string.Equals(id.Name, SqlConst.FALSE, StringComparison.OrdinalIgnoreCase) => false,
+            _ => throw new NotSupportedException(
+                $"MERGE USING VALUES expression '{expr.GetType().Name}' is not supported yet.")
+        };
+    }
+
+    private static bool TryResolveParameterValue(
+        DbParameterCollection? pars,
+        string parameterToken,
+        out object? value)
+    {
+        value = null;
+        if (pars is null)
+            return false;
+
+        if (parameterToken == "?")
+        {
+            if (pars.Count <= 0 || pars[0] is not IDataParameter first)
+                return false;
+
+            value = first.Value is DBNull ? null : first.Value;
+            return true;
+        }
+
+        var normalized = parameterToken.TrimStart('@', ':', '?');
+        foreach (IDataParameter p in pars)
+        {
+            var candidate = (p.ParameterName ?? string.Empty).TrimStart('@', ':', '?');
+            if (!string.Equals(candidate, normalized, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            value = p.Value is DBNull ? null : p.Value;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static List<string> SplitTopLevelCommaSeparated(string raw)
+    {
+        var items = new List<string>();
+        var start = 0;
+        var depth = 0;
+        var inString = false;
+
+        for (var i = 0; i < raw.Length; i++)
+        {
+            var ch = raw[i];
+            if (inString)
+            {
+                if (ch == '\'' && i + 1 < raw.Length && raw[i + 1] == '\'')
+                {
+                    i++;
+                    continue;
+                }
+
+                if (ch == '\'')
+                    inString = false;
+
+                continue;
+            }
+
+            if (ch == '\'')
+            {
+                inString = true;
+                continue;
+            }
+
+            if (ch == '(')
+            {
+                depth++;
+                continue;
+            }
+
+            if (ch == ')' && depth > 0)
+            {
+                depth--;
+                continue;
+            }
+
+            if (ch == ',' && depth == 0)
+            {
+                var item = raw[start..i].Trim();
+                if (!string.IsNullOrWhiteSpace(item))
+                    items.Add(item);
+                start = i + 1;
+            }
+        }
+
+        var last = raw[start..].Trim();
+        if (!string.IsNullOrWhiteSpace(last))
+            items.Add(last);
+
+        return items;
+    }
+
+    private static List<string> SplitValuesRows(string raw)
+    {
+        var rows = new List<string>();
+        var i = 0;
+
+        while (i < raw.Length)
+        {
+            while (i < raw.Length && char.IsWhiteSpace(raw[i]))
+                i++;
+
+            if (i >= raw.Length)
+                break;
+
+            if (raw[i] != '(')
+                throw new InvalidOperationException("MERGE USING VALUES expects row tuples enclosed in parentheses.");
+
+            rows.Add(ReadParenthesizedContent(raw, ref i));
+
+            while (i < raw.Length && char.IsWhiteSpace(raw[i]))
+                i++;
+
+            if (i >= raw.Length)
+                break;
+
+            if (raw[i] != ',')
+                throw new InvalidOperationException("MERGE USING VALUES must separate row tuples with commas.");
+
+            i++;
+        }
+
+        return rows;
+    }
+
+    private static string ReadParenthesizedContent(
+        string raw,
+        ref int index)
+    {
+        if (index < 0 || index >= raw.Length || raw[index] != '(')
+            throw new InvalidOperationException("MERGE USING VALUES row tuple was not opened correctly.");
+
+        var start = ++index;
+        var depth = 0;
+        var inString = false;
+        for (; index < raw.Length; index++)
+        {
+            var ch = raw[index];
+            if (inString)
+            {
+                if (ch == '\'' && index + 1 < raw.Length && raw[index + 1] == '\'')
+                {
+                    index++;
+                    continue;
+                }
+
+                if (ch == '\'')
+                    inString = false;
+
+                continue;
+            }
+
+            if (ch == '\'')
+            {
+                inString = true;
+                continue;
+            }
+
+            if (ch == '(')
+            {
+                depth++;
+                continue;
+            }
+
+            if (ch == ')')
+            {
+                if (depth == 0)
+                {
+                    var content = raw[start..index].Trim();
+                    index++;
+                    return content;
+                }
+
+                depth--;
+            }
+        }
+
+        throw new InvalidOperationException("MERGE USING VALUES row tuple was not closed correctly.");
+    }
+
+    private static string ExtractParenthesized(string sql, int startIndex, out int endIndex)
     {
         if (startIndex < 0 || startIndex >= sql.Length || sql[startIndex] != '(')
             throw new InvalidOperationException(SqlExceptionMessages.MergeCouldNotReadUsingSubquery());
@@ -286,6 +583,7 @@ internal static class DbMergeStrategy
         if (depth != 0)
             throw new InvalidOperationException(SqlExceptionMessages.MergeUsingClauseUnbalancedParentheses());
 
+        endIndex = end;
         return sql[(startIndex + 1)..(end - 1)].Trim();
     }
 }

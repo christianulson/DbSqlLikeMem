@@ -218,7 +218,7 @@ public class NpgsqlTranslator : ExpressionVisitor
             case ExpressionType.Equal: _sb.Append(" = "); break;
             case ExpressionType.GreaterThan: _sb.Append(" > "); break;
             case ExpressionType.LessThan: _sb.Append(" < "); break;
-            case ExpressionType.AndAlso: _sb.Append(" AND "); break;
+            case ExpressionType.AndAlso: _sb.Append(SqlConst._AND_); break;
             case ExpressionType.OrElse: _sb.Append(" OR "); break;
             default: _sb.Append(' '); break;
         }

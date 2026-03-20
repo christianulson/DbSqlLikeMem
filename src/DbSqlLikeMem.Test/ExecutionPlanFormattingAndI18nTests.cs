@@ -96,14 +96,14 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
             var canonicalKeywordKeys = new Dictionary<string, string[]>(StringComparer.Ordinal)
             {
-                ["WarningOrderByWithoutLimitMessage"] = ["ORDER BY", "LIMIT", "TOP", "FETCH"],
-                ["WarningOrderByWithoutLimitAction"] = ["LIMIT", "TOP", "FETCH"],
-                ["WarningNoWhereHighReadMessage"] = ["WHERE"],
-                ["WarningNoWhereHighReadHighImpactMessage"] = ["WHERE"],
-                ["WarningNoWhereHighReadAction"] = ["WHERE"],
-                ["WarningDistinctHighReadMessage"] = ["DISTINCT"],
-                ["WarningDistinctHighReadHighImpactMessage"] = ["DISTINCT"],
-                ["WarningDistinctHighReadAction"] = ["DISTINCT"],
+                ["WarningOrderByWithoutLimitMessage"] = ["ORDER BY", SqlConst.LIMIT, "TOP", SqlConst.FETCH],
+                ["WarningOrderByWithoutLimitAction"] = [SqlConst.LIMIT, "TOP", SqlConst.FETCH],
+                ["WarningNoWhereHighReadMessage"] = [SqlConst.WHERE],
+                ["WarningNoWhereHighReadHighImpactMessage"] = [SqlConst.WHERE],
+                ["WarningNoWhereHighReadAction"] = [SqlConst.WHERE],
+                ["WarningDistinctHighReadMessage"] = [SqlConst.DISTINCT],
+                ["WarningDistinctHighReadHighImpactMessage"] = [SqlConst.DISTINCT],
+                ["WarningDistinctHighReadAction"] = [SqlConst.DISTINCT],
                 ["WarningSelectStarMessage"] = ["SELECT *"],
                 ["WarningSelectStarHighImpactMessage"] = ["SELECT *"],
                 ["WarningSelectStarCriticalImpactMessage"] = ["SELECT *"],
@@ -385,7 +385,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
                 DerivedUnion: null,
                 DerivedSql: null,
                 Pivot: null,
-                TableFunction: new FunctionCallExpr("JSON_TABLE", [new IdentifierExpr("payload"), new LiteralExpr("strict $.items[*]")]),
+                TableFunction: new FunctionCallExpr(SqlConst.JSON_TABLE, [new IdentifierExpr("payload"), new LiteralExpr("strict $.items[*]")]),
                 JsonTableClause: new SqlJsonTableClause(
                 [
                     new SqlJsonTableColumn("ord", "BIGINT", DbType.Int64, null, true),
@@ -415,7 +415,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
                 DerivedUnion: null,
                 DerivedSql: null,
                 Pivot: null,
-                TableFunction: new FunctionCallExpr("JSON_TABLE", [new IdentifierExpr("payload"), new LiteralExpr("$[*]")]),
+                TableFunction: new FunctionCallExpr(SqlConst.JSON_TABLE, [new IdentifierExpr("payload"), new LiteralExpr("$[*]")]),
                 JsonTableClause: new SqlJsonTableClause(
                 [
                     new SqlJsonTableColumn("Id", "INT", DbType.Int32, "$.id", false),

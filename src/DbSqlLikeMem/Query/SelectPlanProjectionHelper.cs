@@ -3,7 +3,7 @@ namespace DbSqlLikeMem;
 internal static class SelectPlanProjectionHelper
 {
     internal static bool IncludeExtraColumns(
-        List<AstQueryExecutorBase.EvalRow> sampleRows,
+        AstQueryExecutorBase.EvalRow? sampleRow,
         List<TableResultColMock> columns,
         List<Func<AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, object?>> evaluators,
         string rawExpression,
@@ -14,21 +14,40 @@ internal static class SelectPlanProjectionHelper
             return true;
 
         var prefix = starMatch.Groups["p"].Value.Trim().Trim('`');
-        var sample = sampleRows.FirstOrDefault();
-        if (sample is null)
+        if (sampleRow is null)
             return true;
 
-        if (!sample.Sources.TryGetValue(prefix, out var source))
-        {
-            var matchedKey = sample.Sources.Keys.FirstOrDefault(key => key.Equals(prefix, StringComparison.OrdinalIgnoreCase));
-            if (matchedKey is not null)
-                source = sample.Sources[matchedKey];
-        }
+        if (!TryGetSourceByAlias(sampleRow, prefix, out var source))
+            return true;
 
         if (source is null)
             return true;
 
         AppendSourceColumns(columns, evaluators, source, resolveColumn);
+        return false;
+    }
+
+    internal static bool TryGetSourceByAlias(
+        AstQueryExecutorBase.EvalRow sampleRow,
+        string alias,
+        out AstQueryExecutorBase.Source? source)
+    {
+        if (sampleRow.Sources.TryGetValue(alias, out var directSource))
+        {
+            source = directSource;
+            return true;
+        }
+
+        foreach (var candidate in sampleRow.Sources)
+        {
+            if (!candidate.Key.Equals(alias, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            source = candidate.Value;
+            return true;
+        }
+
+        source = null;
         return false;
     }
 

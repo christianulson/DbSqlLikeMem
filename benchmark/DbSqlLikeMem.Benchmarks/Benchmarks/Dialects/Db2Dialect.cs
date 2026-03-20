@@ -63,6 +63,13 @@ public sealed class Db2Dialect : ProviderSqlDialect
             $"SELECT Name FROM {tableName} WHERE Id = {id}";
 
     /// <summary>
+    /// EN: Returns the DB2 scalar-subquery benchmark SQL with the required dummy table reference.
+    /// PT: Retorna a SQL do benchmark de subconsulta escalar para DB2 com a referencia obrigatoria de tabela dummy.
+    /// </summary>
+    public override string SelectScalarSubquery(string usersTable, string ordersTable) =>
+        $"SELECT (SELECT COUNT(*) FROM {ordersTable} o WHERE o.UserId = 1) FROM SYSIBM.SYSDUMMY1";
+
+    /// <summary>
     /// 
     /// </summary>
     public override string CountJoinForUser(string usersTable, string ordersTable, int userId) =>

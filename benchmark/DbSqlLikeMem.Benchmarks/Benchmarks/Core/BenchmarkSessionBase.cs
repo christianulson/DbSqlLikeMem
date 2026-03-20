@@ -588,11 +588,11 @@ public abstract class BenchmarkSessionBase(
             ExecuteNonQuery(setupConnection, Dialect.CreateUsersTable(users));
 
             var tasks = Enumerable.Range(1, 100)
-                .Select(i => Task.Run(async () =>
+                .Select(i => Task.Run(() =>
                 {
                     using var connection = CreateConnection();
                     connection.Open();
-                    await ExecuteNonQueryAsync(connection, Dialect.InsertUser(users, i, $"User-{i}"));
+                    ExecuteNonQuery(connection, Dialect.InsertUser(users, i, $"User-{i}"));
                 }))
                 .ToArray();
 
@@ -1208,7 +1208,7 @@ public abstract class BenchmarkSessionBase(
         return command.ExecuteNonQuery();
     }
 
-    protected static Task<int> ExecuteNonQueryAsync(DbConnection connection, string sql, DbTransaction? transaction = null)
+    protected static async Task<int> ExecuteNonQueryAsync(DbConnection connection, string sql, DbTransaction? transaction = null)
     {
         using var command = connection.CreateCommand();
         command.CommandText = sql;
@@ -1216,7 +1216,7 @@ public abstract class BenchmarkSessionBase(
         {
             command.Transaction = transaction;
         }
-        return command.ExecuteNonQueryAsync();
+        return await command.ExecuteNonQueryAsync().ConfigureAwait(false);
     }
 
     /// <summary>
@@ -1238,7 +1238,7 @@ public abstract class BenchmarkSessionBase(
         return command.ExecuteScalar();
     }
 
-    protected static Task<object?> ExecuteScalarAsync(DbConnection connection, string sql, DbTransaction? transaction = null)
+    protected static async Task<object?> ExecuteScalarAsync(DbConnection connection, string sql, DbTransaction? transaction = null)
     {
         using var command = connection.CreateCommand();
         command.CommandText = sql;
@@ -1246,7 +1246,7 @@ public abstract class BenchmarkSessionBase(
         {
             command.Transaction = transaction;
         }
-        return command.ExecuteScalarAsync();
+        return await command.ExecuteScalarAsync().ConfigureAwait(false);
     }
 
     /// <summary>

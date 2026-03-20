@@ -392,7 +392,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
                 continue;
 
             parts.RemoveAt(i);
-            remainingWhere = parts.Count == 0 ? null : string.Join(" AND ", parts);
+            remainingWhere = parts.Count == 0 ? null : string.Join(SqlConst._AND_, parts);
             return candidate;
         }
 

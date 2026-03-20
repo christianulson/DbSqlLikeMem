@@ -19,7 +19,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlExpressionParser.ParseScalar("JSON_TABLE(payload, '$[*]' COLUMNS(x INT PATH '$'))", new SqlServerDialect(version)));
 
-        Assert.Contains("JSON_TABLE", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.JSON_TABLE, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -250,7 +250,7 @@ public sealed class SqlServerDialectFeatureParserTests
         if (version < SqlServerDialect.JsonFunctionsMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
-            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -258,7 +258,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var join = Assert.Single(parsed.Joins);
         Assert.Equal(SqlJoinType.CrossApply, join.Type);
         Assert.NotNull(join.Table.TableFunction);
-        Assert.Equal("OPENJSON", join.Table.TableFunction!.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.OPENJSON, join.Table.TableFunction!.Name, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -285,7 +285,7 @@ public sealed class SqlServerDialectFeatureParserTests
         if (version < SqlServerDialect.JsonFunctionsMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
-            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -322,7 +322,7 @@ public sealed class SqlServerDialectFeatureParserTests
         if (version < SqlServerDialect.JsonFunctionsMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
-            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -352,7 +352,7 @@ public sealed class SqlServerDialectFeatureParserTests
         if (version < SqlServerDialect.JsonFunctionsMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
-            Assert.Contains("STRING_SPLIT", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.STRING_SPLIT, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -360,7 +360,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var join = Assert.Single(parsed.Joins);
         Assert.Equal(SqlJoinType.OuterApply, join.Type);
         Assert.NotNull(join.Table.TableFunction);
-        Assert.Equal("STRING_SPLIT", join.Table.TableFunction!.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.STRING_SPLIT, join.Table.TableFunction!.Name, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -390,7 +390,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
         var join = Assert.Single(parsed.Joins);
         var function = Assert.IsType<FunctionCallExpr>(join.Table.TableFunction);
-        Assert.Equal("STRING_SPLIT", function.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.STRING_SPLIT, function.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal(3, function.Args.Count);
     }
 
@@ -442,7 +442,7 @@ public sealed class SqlServerDialectFeatureParserTests
         if (version < SqlServerDialect.JsonFunctionsMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
-            Assert.Contains("FOR JSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.FOR_JSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -474,7 +474,7 @@ public sealed class SqlServerDialectFeatureParserTests
         if (version < SqlServerDialect.JsonFunctionsMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
-            Assert.Contains("FOR JSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.FOR_JSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -807,7 +807,7 @@ public sealed class SqlServerDialectFeatureParserTests
         Assert.True(dialect.SupportsSqlServerScalarFunction("CONCAT"));
         Assert.True(dialect.SupportsSqlServerScalarFunction("CONCAT_WS"));
         Assert.True(dialect.SupportsSqlServerScalarFunction("LEN"));
-        Assert.True(dialect.SupportsSqlServerScalarFunction("LEFT"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction(SqlConst.LEFT));
         Assert.True(dialect.SupportsSqlServerScalarFunction("LOG"));
         Assert.True(dialect.SupportsSqlServerScalarFunction("LOG10"));
         Assert.True(dialect.SupportsSqlServerScalarFunction("LOWER"));
@@ -819,8 +819,8 @@ public sealed class SqlServerDialectFeatureParserTests
         Assert.True(dialect.SupportsSqlServerScalarFunction("POWER"));
         Assert.True(dialect.SupportsSqlServerScalarFunction("RADIANS"));
         Assert.True(dialect.SupportsSqlServerScalarFunction("RAND"));
-        Assert.True(dialect.SupportsSqlServerScalarFunction("REPLACE"));
-        Assert.True(dialect.SupportsSqlServerScalarFunction("RIGHT"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction(SqlConst.REPLACE));
+        Assert.True(dialect.SupportsSqlServerScalarFunction(SqlConst.RIGHT));
         Assert.True(dialect.SupportsSqlServerScalarFunction("ROUND"));
         Assert.True(dialect.SupportsSqlServerScalarFunction("SIGN"));
         Assert.True(dialect.SupportsSqlServerScalarFunction("SIN"));
@@ -925,7 +925,7 @@ public sealed class SqlServerDialectFeatureParserTests
         Assert.Equal("CONCAT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CONCAT('Ana', 'Maria')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("CONCAT_WS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CONCAT_WS('-', 'Ana', NULL, 'Maria')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("LEN", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LEN('Ana')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("LEFT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LEFT('Ana', 2)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.LEFT, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LEFT('Ana', 2)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("LOG", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LOG(10, 100)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("LOG10", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LOG10(100)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("LOWER", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LOWER('Ana')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
@@ -944,8 +944,8 @@ public sealed class SqlServerDialectFeatureParserTests
         Assert.Equal("POWER", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("POWER(2, 3)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("RADIANS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("RADIANS(180)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("RAND", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("RAND(7)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("REPLACE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("REPLACE('Ban', 'a', '')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("RIGHT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("RIGHT('Ana', 2)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.REPLACE, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("REPLACE('Ban', 'a', '')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.RIGHT, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("RIGHT('Ana', 2)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("ROUND", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROUND(1.235, 2)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("SIGN", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SIGN(-10)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("SIN", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SIN(1.5707963267948966)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
@@ -1551,9 +1551,9 @@ public sealed class SqlServerDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse("SELECT id FROM users ORDER BY id LIMIT 5", new SqlServerDialect(version)));
 
-        Assert.Contains("LIMIT", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("OFFSET", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("FETCH", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.LIMIT, ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.OFFSET, ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.FETCH, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 
@@ -1590,7 +1590,7 @@ public sealed class SqlServerDialectFeatureParserTests
 
         Assert.Contains("JSON_VALUE", ex.Message, StringComparison.OrdinalIgnoreCase);
         if (version >= SqlServerDialect.JsonFunctionsMinVersion)
-            Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1885,13 +1885,13 @@ public sealed class SqlServerDialectFeatureParserTests
             var ex = Assert.Throws<NotSupportedException>(() =>
                 SqlExpressionParser.ParseScalar(sql, dialect));
 
-            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
         var expr = SqlExpressionParser.ParseScalar(sql, dialect);
         var call = Assert.IsType<CallExpr>(expr);
-        Assert.Equal("OPENJSON", call.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.OPENJSON, call.Name, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1913,7 +1913,7 @@ public sealed class SqlServerDialectFeatureParserTests
         if (version < SqlServerDialect.JsonFunctionsMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
-            Assert.Contains("STRING_SPLIT", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.STRING_SPLIT, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -1921,7 +1921,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var join = Assert.Single(parsed.Joins);
         Assert.Equal("dbo", join.Table.DbName, ignoreCase: true);
         var function = Assert.IsType<FunctionCallExpr>(join.Table.TableFunction);
-        Assert.Equal("STRING_SPLIT", function.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.STRING_SPLIT, function.Name, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1946,7 +1946,7 @@ public sealed class SqlServerDialectFeatureParserTests
         if (version < SqlServerDialect.JsonFunctionsMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
-            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -2414,7 +2414,7 @@ public sealed class SqlServerDialectFeatureParserTests
 
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
-        Assert.Contains("PIVOT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.PIVOT, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2884,7 +2884,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 
@@ -2902,7 +2902,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2919,7 +2919,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2936,7 +2936,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2953,7 +2953,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2970,7 +2970,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 
@@ -3183,7 +3183,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3201,7 +3201,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3219,7 +3219,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3237,7 +3237,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3255,7 +3255,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3273,7 +3273,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3290,7 +3290,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 
@@ -3380,7 +3380,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3397,7 +3397,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3414,7 +3414,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3431,7 +3431,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3448,7 +3448,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3465,7 +3465,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -5754,7 +5754,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -5771,7 +5771,7 @@ WHERE users.id = EXCLUDED.id";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 

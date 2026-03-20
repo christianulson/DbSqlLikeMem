@@ -65,7 +65,7 @@ internal static class SqlExecutionPlanFormatter
     {
         var sb = new StringBuilder();
         sb.AppendLine(SqlExecutionPlanMessages.ExecutionPlanTitle());
-        sb.AppendLine($"- {SqlExecutionPlanMessages.QueryTypeLabel()}: {(query.IsReplace ? "REPLACE" : "INSERT")}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.QueryTypeLabel()}: {(query.IsReplace ? SqlConst.REPLACE : SqlConst.INSERT)}");
         sb.AppendLine($"- {SqlExecutionPlanMessages.EstimatedCostLabel()}: {EstimateInsertCost(query)}");
         sb.AppendLine($"- {SqlExecutionPlanMessages.TableLabel()}: {FormatSource(query.Table)}");
         sb.AppendLine($"- {SqlExecutionPlanMessages.ProjectionLabel()}: {query.Columns.Count} item(s)");
@@ -210,9 +210,9 @@ internal static class SqlExecutionPlanFormatter
             if (query.ForJson.RootName is not null)
                 options.Add($"ROOT('{query.ForJson.RootName}')");
             if (query.ForJson.IncludeNullValues)
-                options.Add("INCLUDE_NULL_VALUES");
+                options.Add(SqlConst.INCLUDE_NULL_VALUES);
             if (query.ForJson.WithoutArrayWrapper)
-                options.Add("WITHOUT_ARRAY_WRAPPER");
+                options.Add(SqlConst.WITHOUT_ARRAY_WRAPPER);
             sb.AppendLine($"- FOR JSON: {string.Join(", ", options)}");
         }
 
@@ -718,7 +718,7 @@ internal static class SqlExecutionPlanFormatter
 
         var payload = new Dictionary<string, object?>
         {
-            ["queryType"] = "SELECT",
+            ["queryType"] = SqlConst.SELECT,
             ["estimatedCost"] = EstimateSelectCost(query),
             ["performanceDisclaimer"] = SqlExecutionPlanMessages.PerformanceDisclaimerMessage(),
             ["planMetadataVersion"] = 1,
@@ -952,13 +952,13 @@ internal static class SqlExecutionPlanFormatter
             ? source.TableFunction?.Name ?? "<unknown_function>"
             : $"{source.DbName}.{source.TableFunction?.Name ?? "<unknown_function>"}";
 
-        if (source.TableFunction?.Name.Equals("STRING_SPLIT", StringComparison.OrdinalIgnoreCase) == true
+        if (source.TableFunction?.Name.Equals(SqlConst.STRING_SPLIT, StringComparison.OrdinalIgnoreCase) == true
             && source.TableFunction.Args.Count == 3)
         {
             return $"{functionName}(..., ..., enable_ordinal)";
         }
 
-        if (source.TableFunction?.Name.Equals("OPENJSON", StringComparison.OrdinalIgnoreCase) == true
+        if (source.TableFunction?.Name.Equals(SqlConst.OPENJSON, StringComparison.OrdinalIgnoreCase) == true
             && source.TableFunction.Args.Count == 2)
         {
             var pathShape = TryFormatOpenJsonPathShape(source.TableFunction.Args[1]);
@@ -967,7 +967,7 @@ internal static class SqlExecutionPlanFormatter
                 : $"{functionName}(..., {pathShape}) WITH (...)";
         }
 
-        if (source.TableFunction?.Name.Equals("JSON_TABLE", StringComparison.OrdinalIgnoreCase) == true
+        if (source.TableFunction?.Name.Equals(SqlConst.JSON_TABLE, StringComparison.OrdinalIgnoreCase) == true
             && source.TableFunction.Args.Count == 2)
         {
             var pathShape = TryFormatOpenJsonPathShape(source.TableFunction.Args[1]);
@@ -1363,14 +1363,14 @@ internal static class SqlExecutionPlanFormatter
             return 0;
 
         var cost = 0;
-        cost += CountSqlKeywordOccurrences(raw, "AND");
-        cost += CountSqlKeywordOccurrences(raw, "OR");
+        cost += CountSqlKeywordOccurrences(raw, SqlConst.AND);
+        cost += CountSqlKeywordOccurrences(raw, SqlConst.OR);
         cost += CountLogicalOperatorTransitions(raw);
         cost += EstimateRawLogicalNestingDepthPenalty(raw);
         cost += CountSqlKeywordOccurrences(raw, "CASE") * 2;
-        cost += CountSqlKeywordOccurrences(raw, "SELECT") * 5;
-        cost += CountSqlKeywordOccurrences(raw, "EXISTS") * 4;
-        cost += CountSqlKeywordOccurrences(raw, "IN");
+        cost += CountSqlKeywordOccurrences(raw, SqlConst.SELECT) * 5;
+        cost += CountSqlKeywordOccurrences(raw, SqlConst.EXISTS) * 4;
+        cost += CountSqlKeywordOccurrences(raw, SqlConst.IN);
         cost += CountJsonFunctionCalls(raw) * 2;
         cost += CountJsonOperatorTokens(raw) * 2;
         return cost;
@@ -1426,7 +1426,7 @@ internal static class SqlExecutionPlanFormatter
         {
             var raw = key ?? string.Empty;
             cost += CountSqlKeywordOccurrences(raw, "CASE") * 2;
-            cost += CountSqlKeywordOccurrences(raw, "SELECT") * 5;
+            cost += CountSqlKeywordOccurrences(raw, SqlConst.SELECT) * 5;
             cost += CountJsonFunctionCalls(raw) * 2;
             cost += CountJsonOperatorTokens(raw) * 2;
         }
@@ -1445,7 +1445,7 @@ internal static class SqlExecutionPlanFormatter
         {
             var raw = item.Raw ?? string.Empty;
             cost += CountSqlKeywordOccurrences(raw, "CASE") * 2;
-            cost += CountSqlKeywordOccurrences(raw, "SELECT") * 5;
+            cost += CountSqlKeywordOccurrences(raw, SqlConst.SELECT) * 5;
             cost += CountSqlKeywordOccurrences(raw, "OVER") * 3;
             cost += CountJsonFunctionCalls(raw) * 2;
             cost += CountJsonOperatorTokens(raw) * 2;
@@ -1497,7 +1497,7 @@ internal static class SqlExecutionPlanFormatter
         {
             var raw = key ?? string.Empty;
             markers += CountSqlKeywordOccurrences(raw, "CASE");
-            markers += CountSqlKeywordOccurrences(raw, "SELECT") * 2;
+            markers += CountSqlKeywordOccurrences(raw, SqlConst.SELECT) * 2;
             markers += CountJsonFunctionCalls(raw);
             markers += CountJsonOperatorTokens(raw);
         }
@@ -1506,7 +1506,7 @@ internal static class SqlExecutionPlanFormatter
         {
             var raw = item.Raw ?? string.Empty;
             markers += CountSqlKeywordOccurrences(raw, "CASE");
-            markers += CountSqlKeywordOccurrences(raw, "SELECT") * 2;
+            markers += CountSqlKeywordOccurrences(raw, SqlConst.SELECT) * 2;
             markers += CountSqlKeywordOccurrences(raw, "OVER");
             markers += CountJsonFunctionCalls(raw);
             markers += CountJsonOperatorTokens(raw);
@@ -1584,7 +1584,7 @@ internal static class SqlExecutionPlanFormatter
             var raw = item.Raw ?? string.Empty;
             cost += CountSqlKeywordOccurrences(raw, "OVER") * 12;
             cost += CountSqlKeywordOccurrences(raw, "CASE") * 4;
-            cost += CountSqlKeywordOccurrences(raw, "SELECT") * 10;
+            cost += CountSqlKeywordOccurrences(raw, SqlConst.SELECT) * 10;
             cost += CountJsonFunctionCalls(raw) * 3;
             cost += CountJsonOperatorTokens(raw) * 3;
             cost += EstimateAggregateProjectionFunctionCost(raw);
@@ -1685,7 +1685,7 @@ internal static class SqlExecutionPlanFormatter
             while (argPos < raw.Length && char.IsWhiteSpace(raw[argPos]))
                 argPos++;
 
-            const string distinctToken = "DISTINCT";
+            const string distinctToken = SqlConst.DISTINCT;
             if (argPos + distinctToken.Length <= raw.Length
                 && raw.AsSpan(argPos, distinctToken.Length).Equals(distinctToken, StringComparison.OrdinalIgnoreCase)
                 && (argPos + distinctToken.Length == raw.Length || !IsSqlIdentifierChar(raw[argPos + distinctToken.Length])))
@@ -1986,7 +1986,7 @@ internal static class SqlExecutionPlanFormatter
         if (string.IsNullOrWhiteSpace(raw))
             return 0;
 
-        var logicalOperatorCount = CountSqlKeywordOccurrences(raw, "AND") + CountSqlKeywordOccurrences(raw, "OR");
+        var logicalOperatorCount = CountSqlKeywordOccurrences(raw, SqlConst.AND) + CountSqlKeywordOccurrences(raw, SqlConst.OR);
         if (logicalOperatorCount == 0)
             return 0;
 
@@ -2018,8 +2018,8 @@ internal static class SqlExecutionPlanFormatter
         out string op,
         out int nextIndex)
     {
-        var andIndex = FindSqlKeywordIndex(raw, "AND", startIndex);
-        var orIndex = FindSqlKeywordIndex(raw, "OR", startIndex);
+        var andIndex = FindSqlKeywordIndex(raw, SqlConst.AND, startIndex);
+        var orIndex = FindSqlKeywordIndex(raw, SqlConst.OR, startIndex);
 
         if (andIndex < 0 && orIndex < 0)
         {
@@ -2031,12 +2031,12 @@ internal static class SqlExecutionPlanFormatter
         var useAnd = andIndex >= 0 && (orIndex < 0 || andIndex < orIndex);
         if (useAnd)
         {
-            op = "AND";
+            op = SqlConst.AND;
             nextIndex = andIndex + 3;
             return true;
         }
 
-        op = "OR";
+        op = SqlConst.OR;
         nextIndex = orIndex + 2;
         return true;
     }

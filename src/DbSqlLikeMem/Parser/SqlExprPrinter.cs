@@ -32,11 +32,11 @@ internal static class SqlExprPrinter
 
             case LiteralExpr l:
                 sb.Append(l.Value is null
-                    ? "NULL"
+                    ? SqlConst.NULL
                     : l.Value is bool b
                         ? b
-                            ? "TRUE"
-                            : "FALSE"
+                            ? SqlConst.TRUE
+                            : SqlConst.FALSE
                         : l.Value is string s
                             ? $"'{s}'"
                             : l.Value);
@@ -81,7 +81,7 @@ internal static class SqlExprPrinter
             case QuantifiedComparisonExpr qc:
                 Wrap(qc.Left, sb);
                 sb.Append(' ').Append(OpText(qc.Op)).Append(' ');
-                sb.Append(qc.Quantifier == SqlQuantifier.Any ? "ANY" : "ALL");
+                sb.Append(qc.Quantifier == SqlQuantifier.Any ? "ANY" : SqlConst.ALL);
                 sb.Append(" (").Append(qc.Subquery.Sql).Append(')');
                 break;
             case JsonAccessExpr j:
@@ -128,7 +128,7 @@ internal static class SqlExprPrinter
                 if (bt.Negated) sb.Append(" NOT");
                 sb.Append(" BETWEEN ");
                 Wrap(bt.Low, sb);
-                sb.Append(" AND ");
+                sb.Append(SqlConst._AND_);
                 Wrap(bt.High, sb);
                 break;
 
@@ -152,8 +152,8 @@ internal static class SqlExprPrinter
 
     private static string OpText(SqlBinaryOp op) => op switch
     {
-        SqlBinaryOp.And => "AND",
-        SqlBinaryOp.Or => "OR",
+        SqlBinaryOp.And => SqlConst.AND,
+        SqlBinaryOp.Or => SqlConst.OR,
         SqlBinaryOp.Eq => "=",
         SqlBinaryOp.Neq => "!=",
         SqlBinaryOp.Greater => ">",

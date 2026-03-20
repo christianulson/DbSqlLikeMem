@@ -23,9 +23,9 @@ internal sealed class AstQuerySourceResolver
         _executeUnion = executeUnion;
         _tableFunctionHandlers = new Dictionary<string, Func<SqlTableSource, IDictionary<string, AstQueryExecutorBase.Source>, AstQueryExecutorBase.EvalRow?, TableResultMock>>(StringComparer.OrdinalIgnoreCase)
         {
-            ["OPENJSON"] = ExecuteOpenJsonTableFunction,
-            ["STRING_SPLIT"] = ExecuteStringSplitTableFunction,
-            ["JSON_TABLE"] = ExecuteJsonTableFunction
+            [SqlConst.OPENJSON] = ExecuteOpenJsonTableFunction,
+            [SqlConst.STRING_SPLIT] = ExecuteStringSplitTableFunction,
+            [SqlConst.JSON_TABLE] = ExecuteJsonTableFunction
         };
     }
 
@@ -112,7 +112,7 @@ internal sealed class AstQuerySourceResolver
         var openJsonWithClause = tableSource.OpenJsonWithClause;
         var dialect = _dialectAccessor() ?? throw new InvalidOperationException("Dialeto SQL não disponível para OPENJSON.");
         if (!dialect.SupportsOpenJsonFunction)
-            throw SqlUnsupported.ForDialect(dialect, "OPENJSON");
+            throw SqlUnsupported.ForDialect(dialect, SqlConst.OPENJSON);
 
         if (function.Args.Count is < 1 or > 2)
             throw new NotSupportedException("OPENJSON table source currently supports one or two arguments in the mock.");
@@ -203,7 +203,7 @@ internal sealed class AstQuerySourceResolver
 
         var dialect = _dialectAccessor() ?? throw new InvalidOperationException("Dialeto SQL não disponível para STRING_SPLIT.");
         if (!dialect.SupportsStringSplitFunction)
-            throw SqlUnsupported.ForDialect(dialect, "STRING_SPLIT");
+            throw SqlUnsupported.ForDialect(dialect, SqlConst.STRING_SPLIT);
 
         if (function.Args.Count is < 2 or > 3)
             throw new NotSupportedException("STRING_SPLIT table source currently supports two or three arguments in the mock.");
@@ -258,7 +258,7 @@ internal sealed class AstQuerySourceResolver
 
         var dialect = _dialectAccessor() ?? throw new InvalidOperationException("Dialeto SQL não disponível para JSON_TABLE.");
         if (!dialect.SupportsJsonTableFunction)
-            throw SqlUnsupported.ForDialect(dialect, "JSON_TABLE");
+            throw SqlUnsupported.ForDialect(dialect, SqlConst.JSON_TABLE);
 
         if (function.Args.Count != 2)
             throw new NotSupportedException("JSON_TABLE table source currently supports exactly two arguments in the mock.");

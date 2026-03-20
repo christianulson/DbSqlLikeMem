@@ -41,7 +41,7 @@ public sealed class MariaDbDialectFeatureParserTests
         if (version < MariaDbDialect.ReturningMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
-            Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -127,7 +127,7 @@ public sealed class MariaDbDialectFeatureParserTests
         if (version < MariaDbDialect.ReturningMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
-            Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -167,7 +167,7 @@ public sealed class MariaDbDialectFeatureParserTests
         if (version < MariaDbDialect.ReturningMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
-            Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -191,7 +191,7 @@ public sealed class MariaDbDialectFeatureParserTests
 
         var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new MariaDbDialect(version)));
 
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -297,12 +297,12 @@ public sealed class MariaDbDialectFeatureParserTests
         if (version < MariaDbDialect.JsonTableMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, dialect));
-            Assert.Contains("JSON_TABLE", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.JSON_TABLE, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
         var expr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect));
-        Assert.Equal("JSON_TABLE", expr.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.JSON_TABLE, expr.Name, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -328,7 +328,7 @@ public sealed class MariaDbDialectFeatureParserTests
         Assert.NotNull(source.JsonTableClause);
         var clause = source.JsonTableClause;
 
-        Assert.Equal("JSON_TABLE", source.TableFunction?.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.JSON_TABLE, source.TableFunction?.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("jt", source.Alias);
         Assert.Equal(3, clause.Columns.Count);
         Assert.True(clause.Columns[0].ForOrdinality);
@@ -471,7 +471,7 @@ public sealed class MariaDbDialectFeatureParserTests
 
         var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_5)));
 
-        Assert.Contains("JSON_TABLE", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.JSON_TABLE, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

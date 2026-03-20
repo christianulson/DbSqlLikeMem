@@ -41,6 +41,24 @@ internal abstract class AstQueryExecutorBase(
 
     private readonly DbConnectionMockBase _cnn = cnn ?? throw new ArgumentNullException(nameof(cnn));
     private readonly IDataParameterCollection _pars = pars ?? throw new ArgumentNullException(nameof(pars));
+
+    private sealed record InSubqueryLookupState(
+        List<object?> Values,
+        HashSet<InLookupScalarKey>? ScalarCandidates,
+        List<object?[]>? RowValues,
+        HashSet<string>? RowCandidates,
+        bool HasNullCandidate);
+
+    private sealed record CorrelatedCountLookupState(
+        IReadOnlyDictionary<string, int> Counts,
+        IReadOnlyList<CorrelatedLookupKeyPair> KeyPairs,
+        SqlExpr? InnerFilterExpr);
+
+    private sealed record CorrelatedLookupKeyPair(
+        SqlExpr InnerExpr,
+        SqlExpr OuterExpr);
+
+    private readonly record struct InLookupScalarKey(string Kind, string Value);
     private readonly object _dialect = dialect ?? throw new ArgumentNullException(nameof(dialect));
     private readonly AstSubqueryEvaluationCache _subqueryEvaluationCache = new();
     private readonly Stack<IReadOnlyDictionary<string, object?>> _localParameterScopes = new();
@@ -168,7 +186,8 @@ internal abstract class AstQueryExecutorBase(
 
     private static readonly HashSet<string> _aggFns = new(StringComparer.OrdinalIgnoreCase)
     {
-        "COUNT","COUNT_BIG","SUM","MIN","MAX","AVG","GROUP_CONCAT","STRING_AGG","LISTAGG","ANY_VALUE","BIT_AND","BIT_OR","BIT_XOR","JSON_ARRAYAGG","JSON_GROUP_OBJECT","TOTAL","MEDIAN","PERCENTILE","PERCENTILE_CONT","PERCENTILE_DISC","VAR_POP","VAR_SAMP","VARIANCE","VARIANCE_SAMP","VAR","VARP",
+        "COUNT","COUNT_BIG","SUM","MIN","MAX","AVG","GROUP_CONCAT","STRING_AGG","LISTAGG","ANY_VALUE","BIT_AND","BIT_OR","BIT_XOR","JSON_ARRAYAGG",
+        "JSON_GROUP_OBJECT","TOTAL","MEDIAN","PERCENTILE","PERCENTILE_CONT","PERCENTILE_DISC","VAR_POP","VAR_SAMP","VARIANCE","VARIANCE_SAMP","VAR","VARP",
         "COLLECT","CORR","CORR_K","CORR_S","CORRELATION","COVAR_POP","COVAR_SAMP","COVARIANCE","COVARIANCE_SAMP","CV","JSON_OBJECTAGG","GROUP_ID",
         "CHECKSUM_AGG","STDEV","STDEVP",
         "APPROX_COUNT_DISTINCT","APPROX_COUNT_DISTINCT_AGG","APPROX_COUNT_DISTINCT_DETAIL","APPROX_MEDIAN","APPROX_PERCENTILE","APPROX_PERCENTILE_AGG","APPROX_PERCENTILE_DETAIL",
@@ -189,8 +208,8 @@ internal abstract class AstQueryExecutorBase(
 
     private SqlExpr ParseScalarExpr(string raw)
     {
-        var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para parse de expressão escalar.");
-        return SqlExpressionParser.ParseScalar(raw, dialect, _pars);
+        var dialect1 = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para parse de expressão escalar.");
+        return SqlExpressionParser.ParseScalar(raw, dialect1, _pars);
     }
 
     private static List<List<WindowSlot>> GroupWindowSlotsBySpec(List<WindowSlot> slots)
@@ -236,7 +255,7 @@ internal abstract class AstQueryExecutorBase(
         sb.Append(";FRAME:");
         if (spec.Frame is null)
         {
-            sb.Append("NULL");
+            sb.Append(SqlConst.NULL);
             return sb.ToString();
         }
 
@@ -270,7 +289,7 @@ internal abstract class AstQueryExecutorBase(
         var sw = Stopwatch.StartNew();
         ClearSubqueryEvaluationCaches();
         QueryDebugTraceBuilder? debugTrace = _cnn.IsDebugTraceCaptureEnabled
-            ? new QueryDebugTraceBuilder("UNION")
+            ? new QueryDebugTraceBuilder(SqlConst.UNION)
             : null;
 
         if (parts is null || parts.Count == 0)
@@ -285,18 +304,20 @@ internal abstract class AstQueryExecutorBase(
         // Executa cada SELECT
         var tables = new TableResultMock[parts.Count];
 
-        if (parts.Count == 1)
+        if (parts.Count <= 2)
         {
-            tables[0] = ExecuteSelect(parts[0], null, null);
+            for (var i = 0; i < parts.Count; i++)
+                tables[i] = ExecuteSelect(parts[i], null, null);
         }
         else
         {
             Parallel.For(0, parts.Count, i => tables[i] = ExecuteSelect(parts[i], null, null));
         }
 
+        var totalRows = tables.Sum(static table => table.Count);
         debugTrace?.AddStep(
             "UnionInputs",
-            tables.Sum(static table => table.Count),
+            totalRows,
             tables.Length,
             TimeSpan.Zero,
             QueryDebugTraceFormattingHelper.FormatUnionInputsDebugDetails(parts, allFlags));
@@ -309,6 +330,12 @@ internal abstract class AstQueryExecutorBase(
         };
 
         var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para UNION.");
+
+        if (TryUseSimpleUnionAllProjectionPath(tables, allFlags, orderBy, rowLimit, dialect, out var fastUnionResult))
+        {
+            result = fastUnionResult;
+            return FinalizeUnionResult(parts, allFlags, orderBy, rowLimit, sw, result, debugTrace);
+        }
 
         // valida colunas compatíveis
         var total = tables.Count();
@@ -328,7 +355,10 @@ internal abstract class AstQueryExecutorBase(
             UnionQueryValidationHelper.ValidateUnionColumnTypes(result.Columns, tables[i].Columns, i, sqlContextForErrors, dialect);
         }
 
-        result.Columns = MergeUnionColumnMetadata([.. tables.Select(static table => table.Columns)]);
+        result.Columns = AreUnionColumnMetadataIdentical(tables)
+            ? tables[0].Columns
+            : MergeUnionColumnMetadata(tables);
+        result.Capacity = totalRows;
 
         // merge
         // - entre 0 e 1 usa allFlags[0]
@@ -365,7 +395,7 @@ internal abstract class AstQueryExecutorBase(
 
         debugTrace?.AddStep(
             "UnionCombine",
-            tables.Sum(static table => table.Count),
+            totalRows,
             result.Count,
             TimeSpan.Zero,
             QueryDebugTraceFormattingHelper.FormatUnionCombineDebugDetails(parts, allFlags));
@@ -399,15 +429,18 @@ internal abstract class AstQueryExecutorBase(
             ElapsedMs: sw.ElapsedMilliseconds);
         var runtimeContext = BuildPlanMockRuntimeContext();
 
-        var plan = SqlExecutionPlanFormatter.FormatUnion(
-            parts,
-            allFlags,
-            orderBy,
-            rowLimit,
-            unionMetrics,
-            runtimeContext);
-        result.ExecutionPlan = plan;
-        _cnn.RegisterExecutionPlan(plan);
+        if (_cnn.Db.CaptureExecutionPlans)
+        {
+            var plan = SqlExecutionPlanFormatter.FormatUnion(
+                parts,
+                allFlags,
+                orderBy,
+                rowLimit,
+                unionMetrics,
+                runtimeContext);
+            result.ExecutionPlan = plan;
+            _cnn.RegisterExecutionPlan(plan);
+        }
         _cnn.SetLastFoundRows(result.Count);
         if (debugTrace is not null)
             _cnn.RegisterDebugTrace(debugTrace.Build());
@@ -415,21 +448,117 @@ internal abstract class AstQueryExecutorBase(
         return result;
     }
 
-    private static IList<TableResultColMock> MergeUnionColumnMetadata(IReadOnlyList<IList<TableResultColMock>> columnSets)
+    private TableResultMock FinalizeUnionResult(
+        IReadOnlyList<SqlSelectQuery> parts,
+        IReadOnlyList<bool> allFlags,
+        IReadOnlyList<SqlOrderByItem>? orderBy,
+        SqlRowLimit? rowLimit,
+        Stopwatch sw,
+        TableResultMock result,
+        QueryDebugTraceBuilder? debugTrace)
     {
-        if (columnSets.Count == 0)
+        if ((orderBy?.Count ?? 0) > 0 || rowLimit is not null)
+        {
+            var finalQ = new SqlSelectQuery(
+                Ctes: [],
+                Distinct: false,
+                SelectItems: [],
+                Joins: [],
+                Where: null,
+                OrderBy: orderBy ?? [],
+                RowLimit: rowLimit,
+                GroupBy: [],
+                Having: null);
+
+            var ctes = new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase);
+            result = ApplyOrderAndLimit(result, finalQ, ctes, debugTrace);
+        }
+
+        sw.Stop();
+
+        var unionInputTables = parts.Sum(CountKnownInputTables);
+        var unionEstimatedRead = parts.Sum(EstimateRowsRead);
+        var unionMetrics = new SqlPlanRuntimeMetrics(
+            InputTables: unionInputTables,
+            EstimatedRowsRead: unionEstimatedRead,
+            ActualRows: result.Count,
+            ElapsedMs: sw.ElapsedMilliseconds);
+        var runtimeContext = BuildPlanMockRuntimeContext();
+
+        if (_cnn.Db.CaptureExecutionPlans)
+        {
+            var plan = SqlExecutionPlanFormatter.FormatUnion(
+                parts,
+                allFlags,
+                orderBy,
+                rowLimit,
+                unionMetrics,
+                runtimeContext);
+            result.ExecutionPlan = plan;
+            _cnn.RegisterExecutionPlan(plan);
+        }
+
+        _cnn.SetLastFoundRows(result.Count);
+        if (debugTrace is not null)
+            _cnn.RegisterDebugTrace(debugTrace.Build());
+
+        return result;
+    }
+
+    private bool TryUseSimpleUnionAllProjectionPath(
+        IReadOnlyList<TableResultMock> tables,
+        IReadOnlyList<bool> allFlags,
+        IReadOnlyList<SqlOrderByItem>? orderBy,
+        SqlRowLimit? rowLimit,
+        ISqlDialect dialect,
+        out TableResultMock result)
+    {
+        result = null!;
+
+        if (tables.Count == 0
+            || allFlags.Any(static flag => !flag))
+        {
+            return false;
+        }
+
+        if (tables[0].Columns.Count == 0)
+            return false;
+
+        if (!TryValidateUnionAllProjectionTables(tables, dialect, out var useFirstColumns))
+            return false;
+
+        var totalRows = tables.Sum(static table => table.Count);
+        var fastResult = new TableResultMock
+        {
+            Columns = useFirstColumns
+                ? tables[0].Columns
+                : MergeUnionColumnMetadata(tables),
+            JoinFields = tables[0].JoinFields
+        };
+        fastResult.Capacity = totalRows;
+
+        foreach (var table in tables)
+            fastResult.AddRange(table);
+
+        result = fastResult;
+        return true;
+    }
+
+    private static IList<TableResultColMock> MergeUnionColumnMetadata(IReadOnlyList<TableResultMock> tables)
+    {
+        if (tables.Count == 0)
             return [];
 
-        var merged = new List<TableResultColMock>(columnSets[0].Count);
-        for (var index = 0; index < columnSets[0].Count; index++)
+        var merged = new List<TableResultColMock>(tables[0].Columns.Count);
+        for (var index = 0; index < tables[0].Columns.Count; index++)
         {
-            var first = columnSets[0][index];
+            var first = tables[0].Columns[index];
             var dbType = first.DbType;
             var isNullable = first.IsNullable;
 
-            for (var setIndex = 1; setIndex < columnSets.Count; setIndex++)
+            for (var setIndex = 1; setIndex < tables.Count; setIndex++)
             {
-                var current = columnSets[setIndex][index];
+                var current = tables[setIndex].Columns[index];
                 dbType = MergeUnionDbType(dbType, current.DbType);
                 isNullable |= current.IsNullable;
             }
@@ -445,6 +574,80 @@ internal abstract class AstQueryExecutorBase(
         }
 
         return merged;
+    }
+
+    private static bool AreUnionColumnMetadataIdentical(IReadOnlyList<TableResultMock> tables)
+    {
+        if (tables.Count <= 1)
+            return true;
+
+        var firstColumns = tables[0].Columns;
+        for (var tableIndex = 1; tableIndex < tables.Count; tableIndex++)
+        {
+            var currentColumns = tables[tableIndex].Columns;
+            if (currentColumns.Count != firstColumns.Count)
+                return false;
+
+            for (var columnIndex = 0; columnIndex < firstColumns.Count; columnIndex++)
+            {
+                var left = firstColumns[columnIndex];
+                var right = currentColumns[columnIndex];
+                if (!string.Equals(left.TableAlias, right.TableAlias, StringComparison.OrdinalIgnoreCase)
+                    || !string.Equals(left.ColumnAlias, right.ColumnAlias, StringComparison.OrdinalIgnoreCase)
+                    || !string.Equals(left.ColumnName, right.ColumnName, StringComparison.OrdinalIgnoreCase)
+                    || left.ColumIndex != right.ColumIndex
+                    || left.DbType != right.DbType
+                    || left.IsNullable != right.IsNullable
+                    || left.IsJsonFragment != right.IsJsonFragment)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private static bool TryValidateUnionAllProjectionTables(
+        IReadOnlyList<TableResultMock> tables,
+        ISqlDialect dialect,
+        out bool useFirstColumns)
+    {
+        useFirstColumns = true;
+        if (tables.Count <= 1)
+            return true;
+
+        var first = tables[0].Columns;
+        if (first.Count == 0)
+            return false;
+
+        for (var setIndex = 1; setIndex < tables.Count; setIndex++)
+        {
+            var current = tables[setIndex].Columns;
+            if (current.Count != first.Count)
+                return false;
+
+            for (var columnIndex = 0; columnIndex < first.Count; columnIndex++)
+            {
+                var left = first[columnIndex];
+                var right = current[columnIndex];
+                if (!dialect.AreUnionColumnTypesCompatible(left.DbType, right.DbType))
+                    return false;
+
+                if (useFirstColumns
+                    && (!string.Equals(left.TableAlias, right.TableAlias, StringComparison.OrdinalIgnoreCase)
+                    || !string.Equals(left.ColumnAlias, right.ColumnAlias, StringComparison.OrdinalIgnoreCase)
+                    || !string.Equals(left.ColumnName, right.ColumnName, StringComparison.OrdinalIgnoreCase)
+                    || left.ColumIndex != right.ColumIndex
+                    || left.IsNullable != right.IsNullable
+                    || left.IsJsonFragment != right.IsJsonFragment))
+                {
+                    useFirstColumns = false;
+                }
+            }
+        }
+
+        return true;
     }
 
     private static DbType MergeUnionDbType(DbType left, DbType right)
@@ -493,7 +696,7 @@ internal abstract class AstQueryExecutorBase(
         var sw = Stopwatch.StartNew();
         ClearSubqueryEvaluationCaches();
         QueryDebugTraceBuilder? debugTrace = _cnn.IsDebugTraceCaptureEnabled
-            ? new QueryDebugTraceBuilder("SELECT")
+            ? new QueryDebugTraceBuilder(SqlConst.SELECT)
             : null;
         var result = ExecuteSelect(q, null, null, debugTrace);
         sw.Stop();
@@ -505,14 +708,17 @@ internal abstract class AstQueryExecutorBase(
         var indexRecommendations = BuildIndexRecommendations(q, metrics);
         var planWarnings = QueryPlanWarningHelper.BuildPlanWarnings(q, metrics);
         var runtimeContext = BuildPlanMockRuntimeContext();
-        var plan = SqlExecutionPlanFormatter.FormatSelect(
-            q,
-            metrics,
-            indexRecommendations,
-            planWarnings,
-            runtimeContext: runtimeContext);
-        result.ExecutionPlan = plan;
-        _cnn.RegisterExecutionPlan(plan);
+        if (_cnn.Db.CaptureExecutionPlans)
+        {
+            var plan = SqlExecutionPlanFormatter.FormatSelect(
+                q,
+                metrics,
+                indexRecommendations,
+                planWarnings,
+                runtimeContext: runtimeContext);
+            result.ExecutionPlan = plan;
+            _cnn.RegisterExecutionPlan(plan);
+        }
         if (debugTrace is not null)
             _cnn.RegisterDebugTrace(debugTrace.Build());
         return result;
@@ -733,7 +939,10 @@ internal abstract class AstQueryExecutorBase(
         SqlTableSource? source,
         Dictionary<string, SqlTableSource> map)
     {
-        if (source is null || source.Name is null || source.Derived is not null || source.DerivedUnion is not null)
+        if (source is null
+            || source.Name is null
+            || source.Derived is not null
+            || source.DerivedUnion is not null)
             return;
 
         map[source.Name] = source;
@@ -946,13 +1155,13 @@ internal abstract class AstQueryExecutorBase(
             ? source.TableFunction?.Name ?? "<unknown_function>"
             : $"{source.DbName}.{source.TableFunction?.Name ?? "<unknown_function>"}";
 
-        if (source.TableFunction?.Name.Equals("STRING_SPLIT", StringComparison.OrdinalIgnoreCase) == true
+        if (source.TableFunction?.Name.Equals(SqlConst.STRING_SPLIT, StringComparison.OrdinalIgnoreCase) == true
             && source.TableFunction.Args.Count == 3)
         {
             return $"{functionName}(..., ..., enable_ordinal)";
         }
 
-        if (source.TableFunction?.Name.Equals("OPENJSON", StringComparison.OrdinalIgnoreCase) == true
+        if (source.TableFunction?.Name.Equals(SqlConst.OPENJSON, StringComparison.OrdinalIgnoreCase) == true
             && source.TableFunction.Args.Count == 2)
         {
             var pathShape = TryFormatOpenJsonPathShape(source.TableFunction.Args[1]);
@@ -961,7 +1170,7 @@ internal abstract class AstQueryExecutorBase(
                 : $"{functionName}(..., {pathShape}) WITH (...)";
         }
 
-        if (source.TableFunction?.Name.Equals("JSON_TABLE", StringComparison.OrdinalIgnoreCase) == true
+        if (source.TableFunction?.Name.Equals(SqlConst.JSON_TABLE, StringComparison.OrdinalIgnoreCase) == true
             && source.TableFunction.Args.Count == 2)
         {
             var pathShape = TryFormatOpenJsonPathShape(source.TableFunction.Args[1]);
@@ -1061,6 +1270,9 @@ internal abstract class AstQueryExecutorBase(
                 cte.Name);
         }
 
+        if (TryEvaluateSimpleUnionAllCount(selectQuery, ctes, outerRow, out var fastCountResult))
+            return fastCountResult;
+
         // 1) FROM
         var fromStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
         var rows = BuildFrom(
@@ -1136,7 +1348,13 @@ internal abstract class AstQueryExecutorBase(
         bool needsGrouping = selectQuery.GroupBy.Count > 0 || selectQuery.Having is not null || ContainsAggregate(selectQuery);
 
         if (needsGrouping)
-            return ExecuteGroup(selectQuery, ctes, rows, debugTrace);
+        {
+            var groupedRows = rows as List<EvalRow> ?? [.. rows];
+            if (debugTrace is null && TryEvaluateSimpleStringAggregate(selectQuery, groupedRows, ctes, out var fastStringAggregateResult))
+                return fastStringAggregateResult;
+
+            return ExecuteGroup(selectQuery, ctes, groupedRows, debugTrace);
+        }
 
         // 5) Project non-grouped
         var projectedRows = rows as List<EvalRow> ?? [.. rows];
@@ -1170,6 +1388,262 @@ internal abstract class AstQueryExecutorBase(
         projected = ApplyOrderAndLimit(projected, selectQuery, ctes, debugTrace);
         projected = ApplyForJsonIfNeeded(projected, selectQuery, debugTrace);
         return projected;
+    }
+
+    private bool TryEvaluateSimpleUnionAllCount(
+        SqlSelectQuery query,
+        IDictionary<string, Source> ctes,
+        EvalRow? outerRow,
+        out TableResultMock result)
+    {
+        result = null!;
+
+        if (query.Table?.DerivedUnion is null
+            || query.Joins.Count > 0
+            || query.Where is not null
+            || query.GroupBy.Count > 0
+            || query.Having is not null
+            || query.ForJson is not null
+            || query.SelectItems.Count != 1)
+        {
+            return false;
+        }
+
+        var (exprRaw, _) = SplitTrailingAsAlias(query.SelectItems[0].Raw, query.SelectItems[0].Alias);
+        if (!TryParseScalarCountAggregate(exprRaw, out var countArg) || countArg is not StarExpr)
+            return false;
+
+        var union = query.Table.DerivedUnion;
+        if (union.RowLimit is not null
+            || union.AllFlags.Any(static flag => !flag))
+        {
+            return false;
+        }
+
+        long count = 0;
+        foreach (var part in union.Parts)
+        {
+            if (!TryCountSimpleRows(part, ctes, outerRow, out var partCount))
+                return false;
+
+            count += partCount;
+        }
+
+        var tableAlias = query.Table?.Alias ?? query.Table?.TableFunction?.Name ?? query.Table?.Name ?? string.Empty;
+        var columnAlias = SelectPlanProjectionHelper.InferColumnAlias(exprRaw);
+        result = new TableResultMock
+        {
+            Columns =
+            [
+                SelectPlanProjectionHelper.CreateSelectPlanColumn(
+                    tableAlias,
+                    columnAlias,
+                    0,
+                    DbType.Int64,
+                    isNullable: false)
+            ]
+        };
+        result.Add(new Dictionary<int, object?> { [0] = count });
+        result.JoinFields.Add(new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase));
+
+        if (query.OrderBy.Count > 0 || query.RowLimit is not null)
+        {
+            var orderCtes = new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase);
+            result = ApplyOrderAndLimit(result, query, orderCtes);
+        }
+
+        return true;
+    }
+
+    private bool TryEvaluateSimpleStringAggregate(
+        SqlSelectQuery query,
+        List<EvalRow> rows,
+        IDictionary<string, Source> ctes,
+        out TableResultMock result)
+    {
+        result = null!;
+
+        if (query.GroupBy.Count > 0
+            || query.Having is not null
+            || query.SelectItems.Count != 1)
+        {
+            return false;
+        }
+
+        var (exprRaw, _) = SplitTrailingAsAlias(query.SelectItems[0].Raw, query.SelectItems[0].Alias);
+        if (!TryParseStringAggregateCall(exprRaw, out var aggregateCall))
+            return false;
+
+        var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação.");
+        if (!dialect.SupportsStringAggregateFunction(aggregateCall.Name))
+            return false;
+
+        if (aggregateCall.Distinct)
+            return false;
+
+        var firstRow = rows.Count > 0 ? rows[0] : EvalRow.Empty();
+        var aggregateGroup = new EvalGroup(rows);
+        var resultValue = EvalStringAggregateForCallExpr(aggregateCall, aggregateGroup, ctes, aggregateCall.Name);
+
+        result = new TableResultMock
+        {
+            Columns =
+            [
+                SelectPlanProjectionHelper.CreateSelectPlanColumn(
+                    query.Table?.Alias ?? query.Table?.TableFunction?.Name ?? query.Table?.Name ?? string.Empty,
+                    SelectPlanProjectionHelper.InferColumnAlias(exprRaw),
+                    0,
+                    DbType.String,
+                    isNullable: true)
+            ]
+        };
+        result.Add(new Dictionary<int, object?> { [0] = resultValue });
+        result.JoinFields.Add(firstRow.Fields);
+
+        if (HasSqlCalcFoundRows(query))
+            _cnn.SetLastFoundRows(result.Count);
+
+        if (query.Distinct)
+            result = ApplyDistinct(result, Dialect);
+
+        result = ApplyOrderAndLimit(result, query, ctes);
+        result = ApplyForJsonIfNeeded(result, query);
+        return true;
+    }
+
+    private bool TryParseStringAggregateCall(string exprRaw, out CallExpr call)
+    {
+        call = null!;
+
+        SqlExpr expr;
+        try
+        {
+            expr = ParseScalarExpr(exprRaw);
+        }
+        catch
+        {
+            return false;
+        }
+
+        if (expr is not CallExpr parsedCall)
+            return false;
+
+        if (parsedCall.Name is not ("GROUP_CONCAT" or "STRING_AGG" or "LISTAGG"))
+            return false;
+
+        if (parsedCall.WithinGroupOrderBy is not null)
+            return false;
+
+        call = parsedCall;
+        return true;
+    }
+
+    private bool TryCountSimpleRows(
+        SqlSelectQuery query,
+        IDictionary<string, Source> ctes,
+        EvalRow? outerRow,
+        out long count)
+    {
+        count = 0;
+
+        if (query.Ctes.Count > 0
+            || query.Joins.Count > 0
+            || query.Distinct
+            || query.GroupBy.Count > 0
+            || query.Having is not null
+            || query.RowLimit is not null
+            || query.ForJson is not null)
+        {
+            return false;
+        }
+
+        if (outerRow is null && query.Where is null)
+        {
+            if (query.Table is null)
+            {
+                count = 1;
+                return true;
+            }
+
+            if (HasKnownPhysicalTable(query.Table))
+            {
+                count = GetKnownSourceRows(query.Table);
+                return true;
+            }
+        }
+
+        if (outerRow is null
+            && query.Table is not null
+            && query.Where is not null
+            && TryCountRowsFromPrimaryKey(query, ctes, out count))
+        {
+            return true;
+        }
+
+        var rows = BuildFrom(
+            query.Table,
+            ctes,
+            query.Where,
+            hasOrderBy: query.OrderBy.Count > 0,
+            hasGroupBy: false);
+
+        if (outerRow is not null && query.Where is not null)
+            rows = rows.Select(r => AttachOuterRow(r, outerRow));
+
+        if (query.Where is null)
+        {
+            foreach (var _ in rows)
+                count++;
+            return true;
+        }
+
+        foreach (var candidate in rows)
+        {
+            if (Eval(query.Where, candidate, group: null, ctes).ToBool())
+                count++;
+        }
+
+        return true;
+    }
+
+    private bool TryCountRowsFromPrimaryKey(
+        SqlSelectQuery query,
+        IDictionary<string, Source> ctes,
+        out long count)
+    {
+        count = 0;
+
+        var src = ResolveSource(query.Table!, ctes);
+        if (src.Physical is not TableMock tableMock || tableMock.PrimaryKeyIndexes.Count == 0)
+            return false;
+
+        var hintPlan = BuildMySqlIndexHintPlan(query.Table!.MySqlIndexHints, src.Physical, hasOrderBy: query.OrderBy.Count > 0, hasGroupBy: false);
+        if (hintPlan?.MissingForcedIndexes.Count > 0)
+            throw new InvalidOperationException($"MySQL FORCE INDEX referencia índice inexistente: {string.Join(", ", hintPlan.MissingForcedIndexes)}.");
+
+        if (!TryCollectColumnEqualities(query.Where!, src, out var equalsByColumn))
+            return false;
+
+        var pkValues = new Dictionary<int, object?>();
+        foreach (var pkIdx in tableMock.PrimaryKeyIndexes)
+        {
+            var pkColumn = tableMock.Columns.FirstOrDefault(col => col.Value.Index == pkIdx);
+            if (string.IsNullOrWhiteSpace(pkColumn.Key))
+                return false;
+
+            var normalizedColumn = pkColumn.Key.NormalizeName();
+            if (!equalsByColumn.TryGetValue(normalizedColumn, out var value))
+                return false;
+
+            pkValues[pkIdx] = value;
+        }
+
+        TryRecordPrimaryKeyHintMetric(tableMock, hintPlan);
+        _cnn.Metrics.IndexLookups++;
+        count = tableMock.TryFindRowByPk(pkValues, out _)
+            ? 1
+            : 0;
+        return true;
     }
 
     private TableResultMock ExecuteGroup(
@@ -1267,14 +1741,12 @@ internal abstract class AstQueryExecutorBase(
         SqlExpr havingExpr,
         IReadOnlyList<(string Alias, SqlExpr Ast)> aliasExprs,
         IDictionary<string, Source> ctes)
-    {
-        return grouped.Where(g =>
+        => grouped.Where(g =>
         {
             var evalCtx = BuildHavingEvaluationContext(g, aliasExprs, ctes, out var evalGroup);
             EnsureHavingIdentifiersAreBound(havingExpr, evalCtx, Dialect!);
             return Eval(havingExpr, evalCtx, evalGroup, ctes).ToBool();
         });
-    }
 
     private EvalRow BuildHavingEvaluationContext(
         IGrouping<GroupKey, EvalRow> grouped,
@@ -1286,11 +1758,37 @@ internal abstract class AstQueryExecutorBase(
         evalGroup = new EvalGroup(rows);
         var first = rows[0];
 
-        var ctx = first.CloneRow();
-        foreach (var (alias, ast) in aliasExprs)
-            ctx.Fields[alias] = Eval(ast, first, evalGroup, ctes);
+        var fields = new Dictionary<string, object?>(first.Fields, StringComparer.OrdinalIgnoreCase);
+        fields.EnsureCapacity(first.Fields.Count + aliasExprs.Count);
 
-        return ctx;
+        var sources = new Dictionary<string, Source>(first.Sources, StringComparer.OrdinalIgnoreCase);
+        sources.EnsureCapacity(first.Sources.Count);
+
+        var baseOrdinalValues = first.OrdinalValues is null ? [] : first.OrdinalValues;
+        var ordinalValues = new object?[baseOrdinalValues.Length + aliasExprs.Count];
+        if (baseOrdinalValues.Length > 0)
+            Array.Copy(baseOrdinalValues, ordinalValues, baseOrdinalValues.Length);
+
+        var ordinalIndexes = first.OrdinalIndexes is null
+            ? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            : new Dictionary<string, int>(first.OrdinalIndexes, StringComparer.OrdinalIgnoreCase);
+
+        for (var i = 0; i < aliasExprs.Count; i++)
+        {
+            var (alias, ast) = aliasExprs[i];
+            var value = Eval(ast, first, evalGroup, ctes);
+            fields[alias] = value;
+
+            var ordinalIndex = baseOrdinalValues.Length + i;
+            ordinalValues[ordinalIndex] = value;
+            ordinalIndexes[alias] = ordinalIndex;
+        }
+
+        return new EvalRow(fields, sources)
+        {
+            OrdinalValues = ordinalValues,
+            OrdinalIndexes = ordinalIndexes
+        };
     }
 
     private SqlExpr NormalizeHavingExpression(SqlExpr expr, SqlSelectQuery q)
@@ -1587,22 +2085,26 @@ internal abstract class AstQueryExecutorBase(
             if (qualifier.Length == 0 || col.Length == 0)
                 return false;
 
-            if (row.Fields.ContainsKey($"{qualifier}.{col}"))
+            if (row.TryGetValue($"{qualifier}.{col}", out _))
                 return true;
 
             if (row.Sources.TryGetValue(qualifier, out var src))
             {
-                var hit = src.ColumnNames.FirstOrDefault(c => c.Equals(col, StringComparison.OrdinalIgnoreCase));
-                return hit is not null && row.Fields.ContainsKey($"{src.Alias}.{hit}");
+                foreach (var hit in src.ColumnNames)
+                {
+                    if (!hit.Equals(col, StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    return row.TryGetValue($"{src.Alias}.{hit}", out _);
+                }
+
+                return false;
             }
 
             return false;
         }
 
-        if (row.Fields.ContainsKey(name))
-            return true;
-
-        return row.Fields.Keys.Any(k => k.EndsWith($".{name}", StringComparison.OrdinalIgnoreCase));
+        return row.TryGetValue(name, out _);
     }
 
     private static IEnumerable<string> EnumerateIdentifiers(SqlExpr expr)
@@ -1753,27 +2255,14 @@ internal abstract class AstQueryExecutorBase(
         if (from is null)
         {
             // SELECT without FROM => one synthetic row
-            yield return new EvalRow(
-                new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase),
-                new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase));
+            yield return EvalRow.Empty();
             yield break;
         }
 
         var src = ResolveSource(from, ctes);
         var sourceRows = TryRowsFromIndex(src, from, where, hasOrderBy, hasGroupBy) ?? src.Rows();
         foreach (var r in sourceRows)
-        {
-            var fields = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-            foreach (var it in r)
-                fields[it.Key] = it.Value;
-
-            var sources = new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase)
-            {
-                [src.Alias] = src
-            };
-
-            yield return new EvalRow(fields, sources);
-        }
+            yield return CreateSourceEvalRow(src, r);
     }
 
     private IEnumerable<Dictionary<string, object?>>? TryRowsFromIndex(
@@ -2194,7 +2683,7 @@ internal abstract class AstQueryExecutorBase(
             ReferenceEqualityComparer<EvalRow>.Instance);
 
         var inItems = pivot.InItems
-            .Select(i => new { i.Alias, Value = Eval(ParseExpr(i.ValueRaw), new EvalRow(new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase), new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase)), group: null, ctes) })
+            .Select(i => new { i.Alias, Value = Eval(ParseExpr(i.ValueRaw), EvalRow.Empty(), group: null, ctes) })
             .ToList();
 
         var forColumnNormalized = pivot.ForColumnRaw[(pivot.ForColumnRaw.LastIndexOf('.') + 1)..];
@@ -2480,17 +2969,38 @@ internal abstract class AstQueryExecutorBase(
     }
 
     private static List<EvalRow> MaterializeSourceRows(Source source)
-        => [.. source.Rows()
-            .Select(fields =>
-            {
-                var rowSources = new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase)
-                {
-                    [source.Alias] = source
-                };
-                if (!source.Name.Equals(source.Alias, StringComparison.OrdinalIgnoreCase))
-                    rowSources[source.Name] = source;
-                return new EvalRow(new Dictionary<string, object?>(fields, StringComparer.OrdinalIgnoreCase), rowSources);
-            })];
+        => [.. source.Rows().Select(fields => CreateSourceEvalRow(source, fields))];
+
+    private static EvalRow CreateSourceEvalRow(Source source, Dictionary<string, object?> fields)
+    {
+        var sourceColumns = source.ColumnNames;
+        var ordinalValues = new object?[sourceColumns.Count];
+        var ordinalIndexes = new Dictionary<string, int>(sourceColumns.Count * 3, StringComparer.OrdinalIgnoreCase);
+        for (var i = 0; i < sourceColumns.Count; i++)
+        {
+            var columnName = sourceColumns[i];
+            var qualifiedName = $"{source.Alias}.{columnName}";
+            var value = fields.TryGetValue(qualifiedName, out var current) ? current : null;
+            ordinalValues[i] = value;
+            ordinalIndexes.TryAdd(qualifiedName, i);
+            ordinalIndexes.TryAdd(columnName, i);
+            if (!source.Name.Equals(source.Alias, StringComparison.OrdinalIgnoreCase))
+                ordinalIndexes.TryAdd($"{source.Name}.{columnName}", i);
+        }
+
+        var rowSources = new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase)
+        {
+            [source.Alias] = source
+        };
+        if (!source.Name.Equals(source.Alias, StringComparison.OrdinalIgnoreCase))
+            rowSources[source.Name] = source;
+
+        return new EvalRow(fields, rowSources)
+        {
+            OrdinalValues = ordinalValues,
+            OrdinalIndexes = ordinalIndexes
+        };
+    }
 
     private object? AggregatePivotBucket(string aggregateFunction, SqlExpr aggArgExpr, List<EvalRow> rows, IDictionary<string, Source> ctes)
     {
@@ -2607,14 +3117,15 @@ internal abstract class AstQueryExecutorBase(
             res.Columns.Add(selectPlan.Columns[i]);
 
         // rows
+        var projectedColumnCount = selectPlan.Evaluators.Count;
         foreach (var r in rows)
         {
-            var outRow = new Dictionary<int, object?>();
-            for (int i = 0; i < selectPlan.Evaluators.Count; i++)
+            var outRow = new Dictionary<int, object?>(projectedColumnCount);
+            for (int i = 0; i < projectedColumnCount; i++)
                 outRow[i] = selectPlan.Evaluators[i](r, null);
 
             res.Add(outRow);
-            res.JoinFields.Add(new Dictionary<string, object?>(r.Fields, StringComparer.OrdinalIgnoreCase));
+            res.JoinFields.Add(r.Fields);
         }
 
         return res;
@@ -2648,17 +3159,18 @@ internal abstract class AstQueryExecutorBase(
             res.Columns.Add(selectPlan.Columns[i]);
 
         // rows
+        var groupedColumnCount = selectPlan.Evaluators.Count;
         foreach (var g in groupsList)
         {
             var eg = new EvalGroup(g.Rows);
-            var outRow = new Dictionary<int, object?>();
+            var outRow = new Dictionary<int, object?>(groupedColumnCount);
 
             var first = g.Rows.Count > 0 ? g.Rows[0] : EvalRow.Empty();
-            for (int i = 0; i < selectPlan.Evaluators.Count; i++)
+            for (int i = 0; i < groupedColumnCount; i++)
                 outRow[i] = selectPlan.Evaluators[i](first, eg);
 
             res.Add(outRow);
-            res.JoinFields.Add(new Dictionary<string, object?>(first.Fields, StringComparer.OrdinalIgnoreCase));
+            res.JoinFields.Add(first.Fields);
         }
 
         if (q.Distinct)
@@ -3331,7 +3843,11 @@ private void FillPercentRankOrCumeDist(
             SqlSelectQuery q,
             List<EvalRow> sampleRows,
             IDictionary<string, Source> ctes)
-        => SelectPlanBuilderHelper.Build(
+    {
+        if (TryGetCachedSelectPlan(q, sampleRows, ctes, out var cachedPlan) && cachedPlan != null)
+            return cachedPlan;
+
+        var plan = SelectPlanBuilderHelper.Build(
             q,
             sampleRows,
             ctes,
@@ -3340,12 +3856,96 @@ private void FillPercentRankOrCumeDist(
             Eval,
             ResolveColumn);
 
+        if (TryCacheSelectPlan(q, sampleRows, ctes, plan))
+            return plan;
+
+        return plan;
+    }
+
+    private bool TryGetCachedSelectPlan(
+        SqlSelectQuery query,
+        List<EvalRow> sampleRows,
+        IDictionary<string, Source> ctes,
+        out SelectPlan? cachedPlan)
+    {
+        cachedPlan = null;
+        if (ctes.Count > 0)
+            return false;
+
+        var cacheKey = BuildSelectPlanCacheKey(query, sampleRows);
+        if (cacheKey is null)
+            return false;
+
+        if (!_cnn.TryGetCachedSelectPlan(cacheKey, out cachedPlan))
+            return false;
+
+        if (cachedPlan is null)
+            return false;
+
+        cachedPlan = cachedPlan.CloneForExecution();
+        return true;
+    }
+
+    private bool TryCacheSelectPlan(
+        SqlSelectQuery query,
+        List<EvalRow> sampleRows,
+        IDictionary<string, Source> ctes,
+        SelectPlan plan)
+    {
+        if (ctes.Count > 0)
+            return false;
+
+        var cacheKey = BuildSelectPlanCacheKey(query, sampleRows);
+        if (cacheKey is null)
+            return false;
+
+        _cnn.TryCacheSelectPlan(cacheKey, plan.CloneForCache());
+        return true;
+    }
+
+    private string? BuildSelectPlanCacheKey(SqlSelectQuery query, List<EvalRow> sampleRows)
+    {
+        if (string.IsNullOrWhiteSpace(query.RawSql))
+            return null;
+
+        var cacheDialect = Dialect ?? _cnn.ExecutionDialect;
+        var sb = new StringBuilder(query.RawSql.Length + 160);
+        sb.Append(query.RawSql);
+        sb.Append("|dialect:");
+        sb.Append(cacheDialect.Name);
+        sb.Append(':');
+        sb.Append(cacheDialect.Version);
+        sb.Append("|sources:");
+        sb.Append(sampleRows.Count);
+
+        if (sampleRows.Count == 0)
+        {
+            sb.Append("|<empty>");
+            return sb.ToString();
+        }
+
+        var firstRow = sampleRows[0];
+        foreach (var sourceEntry in firstRow.Sources.OrderBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase))
+        {
+            sb.Append('|');
+            sb.Append(sourceEntry.Key);
+            sb.Append('=');
+            sb.Append(sourceEntry.Value.Name);
+            sb.Append('/');
+            sb.Append(sourceEntry.Value.Alias);
+            sb.Append(':');
+            sb.Append(string.Join(",", sourceEntry.Value.ColumnNames));
+        }
+
+        return sb.ToString();
+    }
+
     private void EnsureDialectSupportsSequenceFunction(string? functionName)
         => SequenceFunctionSupportHelper.EnsureSupported(Dialect, functionName);
 
     // Remove "AS alias" somente quando:
     // - está no FINAL do select item
-    // - e esse "AS" está fora de parênteses (pra não quebrar CAST(x AS CHAR))
+    // - e esse SqlConst.AS está fora de parênteses (pra não quebrar CAST(x AS CHAR))
     private static (string expr, string? alias) SplitTrailingAsAlias(
         string raw,
         string? alreadyAlias)
@@ -3808,13 +4408,17 @@ private void FillPercentRankOrCumeDist(
         IDictionary<string, Source> ctes,
         EvalRow row)
     {
-        var cacheKey = BuildCorrelatedSubqueryCacheKey("SCALAR", sq.Sql, row);
+        var cacheKey = BuildCorrelatedSubqueryCacheKey(SqlConst.SCALAR, sq.Sql, row);
 
         return _subqueryEvaluationCache.GetOrAddScalar(
             cacheKey,
             _ =>
             {
-                var r = ExecuteSelect(GetSingleSubqueryOrThrow(sq, "EVAL subquery"), ctes, row);
+                var query = GetSingleSubqueryOrThrow(sq, "EVAL subquery");
+                if (TryEvaluateScalarSubqueryFast(query, row, ctes, out var fastValue))
+                    return fastValue;
+
+                var r = ExecuteSelect(LimitToSingleRow(query), ctes, row);
                 return r.Count > 0 && r[0].TryGetValue(0, out var v) ? v : null;
             });
     }
@@ -4056,6 +4660,9 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalLogicalBinary(b, row, group, ctes, out var logicalResult))
             return logicalResult;
 
+        if (TryEvaluateCorrelatedCountComparisonFast(b, row, ctes, out var countComparisonResult))
+            return countComparisonResult;
+
         var l = Eval(b.Left, row, group, ctes);
         var r = Eval(b.Right, row, group, ctes);
 
@@ -4076,6 +4683,570 @@ private void FillPercentRankOrCumeDist(
 
         return EvalComparisonBinary(b.Op, l, r);
     }
+
+    private bool TryEvaluateCorrelatedCountComparisonFast(
+        BinaryExpr expression,
+        EvalRow row,
+        IDictionary<string, Source> ctes,
+        out object? result)
+    {
+        result = null;
+
+        if (expression.Op is not (SqlBinaryOp.Eq or SqlBinaryOp.Neq or SqlBinaryOp.Greater or SqlBinaryOp.GreaterOrEqual or SqlBinaryOp.Less or SqlBinaryOp.LessOrEqual))
+            return false;
+
+        if (TryEvaluateCountComparisonAgainstLiteral(expression.Left, expression.Right, expression.Op, row, ctes, out result))
+            return true;
+
+        if (TryEvaluateCountComparisonAgainstLiteral(expression.Right, expression.Left, ReverseComparisonOperator(expression.Op), row, ctes, out result))
+            return true;
+
+        return false;
+    }
+
+    private bool TryEvaluateCountComparisonAgainstLiteral(
+        SqlExpr candidate,
+        SqlExpr otherSide,
+        SqlBinaryOp comparisonOp,
+        EvalRow row,
+        IDictionary<string, Source> ctes,
+        out object? result)
+    {
+        result = null;
+
+        if (candidate is not SubqueryExpr subquery || !TryGetDecimalLiteral(otherSide, out var literalValue))
+            return false;
+
+        var query = GetSingleSubqueryOrThrow(subquery, "COUNT comparison");
+        if (query.SelectItems.Count != 1)
+            return false;
+
+        var (exprRaw, _) = SplitTrailingAsAlias(query.SelectItems[0].Raw, query.SelectItems[0].Alias);
+        if (!TryParseScalarCountAggregate(exprRaw, out var countArg) || countArg is not StarExpr)
+            return false;
+
+        if (TryEvaluateCorrelatedCountPreAggregation(query, row, ctes, comparisonOp, literalValue, out result))
+            return true;
+
+        if (literalValue != 0m || !TryEvaluateExistsFast(query, row, ctes, out var exists))
+            return false;
+
+        result = comparisonOp switch
+        {
+            SqlBinaryOp.Eq => !exists,
+            SqlBinaryOp.Neq => exists,
+            SqlBinaryOp.Greater => exists,
+            SqlBinaryOp.GreaterOrEqual => true,
+            SqlBinaryOp.Less => false,
+            SqlBinaryOp.LessOrEqual => !exists,
+            _ => throw new InvalidOperationException($"Comparador não suportado para COUNT: {comparisonOp}")
+        };
+
+        return true;
+    }
+
+    private bool TryEvaluateCorrelatedCountPreAggregation(
+        SqlSelectQuery query,
+        EvalRow row,
+        IDictionary<string, Source> ctes,
+        SqlBinaryOp comparisonOp,
+        decimal literalValue,
+        out object? result)
+    {
+        result = null;
+
+        if (query.Table is null
+            || query.Ctes.Count > 0
+            || query.Joins.Count > 0
+            || query.GroupBy.Count > 0
+            || query.Having is not null
+            || query.RowLimit is not null
+            || query.ForJson is not null
+            || query.Where is null)
+        {
+            return false;
+        }
+
+        if (!TryBuildCorrelatedCountLookupState(query, ctes, out var state))
+            return false;
+
+        if (!TryBuildCorrelatedLookupCompositeKey(state.KeyPairs, row, ctes, useInnerSide: false, out var outerKey))
+            return false;
+
+        var count = state.Counts.TryGetValue(outerKey, out var matchedCount)
+            ? matchedCount
+            : 0;
+        var comparison = CompareSql((decimal)count, literalValue);
+        result = comparisonOp switch
+        {
+            SqlBinaryOp.Eq => comparison == 0,
+            SqlBinaryOp.Neq => comparison != 0,
+            SqlBinaryOp.Greater => comparison > 0,
+            SqlBinaryOp.GreaterOrEqual => comparison >= 0,
+            SqlBinaryOp.Less => comparison < 0,
+            SqlBinaryOp.LessOrEqual => comparison <= 0,
+            _ => throw new InvalidOperationException($"Comparador não suportado para COUNT: {comparisonOp}")
+        };
+
+        return true;
+    }
+
+    private bool TryBuildCorrelatedCountLookupState(
+        SqlSelectQuery query,
+        IDictionary<string, Source> ctes,
+        out CorrelatedCountLookupState state)
+    {
+        state = null!;
+
+        if (!TryGetCorrelatedCountLookupPattern(
+                query.Where!,
+                ResolveSource(query.Table!, ctes),
+                out var keyPairs,
+                out var innerFilterExpr))
+            return false;
+
+        var cacheKey = AstCorrelatedSubqueryCacheKeyBuilder.Build("COUNT_PREAGG", query.RawSql, EvalRow.Empty());
+        var built = BuildCorrelatedCountLookupState(query, ctes, keyPairs, innerFilterExpr);
+        if (built is null)
+            return false;
+
+        var cached = _subqueryEvaluationCache.GetOrAddOperationData(
+            cacheKey,
+            _ => built);
+
+        if (cached is not CorrelatedCountLookupState cachedState)
+            return false;
+
+        state = cachedState;
+        return true;
+    }
+
+    private CorrelatedCountLookupState? BuildCorrelatedCountLookupState(
+        SqlSelectQuery query,
+        IDictionary<string, Source> ctes,
+        IReadOnlyList<CorrelatedLookupKeyPair> keyPairs,
+        SqlExpr? innerFilterExpr)
+    {
+        var rows = BuildFrom(
+            query.Table,
+            ctes,
+            where: null,
+            hasOrderBy: false,
+            hasGroupBy: false);
+
+        var estimatedCount = rows is ICollection<EvalRow> collection ? collection.Count : 0;
+        var compositeCounts = estimatedCount > 0
+            ? new Dictionary<string, int>(estimatedCount, StringComparer.Ordinal)
+            : new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var candidate in rows)
+        {
+            if (innerFilterExpr is not null && !Eval(innerFilterExpr, candidate, group: null, ctes).ToBool())
+                continue;
+
+            if (!TryBuildCorrelatedLookupCompositeKey(keyPairs, candidate, ctes, useInnerSide: true, out var compositeKey))
+                return null;
+
+            if (compositeCounts.TryGetValue(compositeKey, out var currentCount))
+                compositeCounts[compositeKey] = currentCount + 1;
+            else
+                compositeCounts[compositeKey] = 1;
+        }
+
+        return new CorrelatedCountLookupState(compositeCounts, keyPairs, innerFilterExpr);
+    }
+
+    private bool TryGetCorrelatedCountLookupPattern(
+        SqlExpr where,
+        Source source,
+        out IReadOnlyList<CorrelatedLookupKeyPair> keyPairs,
+        out SqlExpr? innerFilterExpr)
+    {
+        keyPairs = [];
+        innerFilterExpr = null;
+
+        var conjuncts = new List<SqlExpr>();
+        FlattenConjuncts(where, conjuncts);
+        if (conjuncts.Count == 0)
+            return false;
+
+        var pairs = new List<CorrelatedLookupKeyPair>();
+        var filterParts = new List<SqlExpr>();
+
+        foreach (var conjunct in conjuncts)
+        {
+            if (TryGetCorrelatedCountEquality(conjunct, source, out var innerKeyExpr, out var outerKeyExpr))
+            {
+                pairs.Add(new CorrelatedLookupKeyPair(innerKeyExpr, outerKeyExpr));
+                continue;
+            }
+
+            if (!ExpressionUsesOnlyInnerColumnsOrConstants(conjunct, source))
+                return false;
+
+            filterParts.Add(conjunct);
+        }
+
+        if (pairs.Count == 0)
+            return false;
+
+        keyPairs = pairs;
+        innerFilterExpr = filterParts.Count switch
+        {
+            0 => null,
+            1 => filterParts[0],
+            _ => CombineConjuncts(filterParts)
+        };
+        return true;
+    }
+
+    private static void FlattenConjuncts(SqlExpr expr, List<SqlExpr> conjuncts)
+    {
+        if (expr is BinaryExpr binary && binary.Op == SqlBinaryOp.And)
+        {
+            FlattenConjuncts(binary.Left, conjuncts);
+            FlattenConjuncts(binary.Right, conjuncts);
+            return;
+        }
+
+        conjuncts.Add(expr);
+    }
+
+    private static SqlExpr CombineConjuncts(IReadOnlyList<SqlExpr> conjuncts)
+    {
+        if (conjuncts.Count == 0)
+            throw new InvalidOperationException("Nenhum conjuncto para combinar.");
+
+        var combined = conjuncts[0];
+        for (var i = 1; i < conjuncts.Count; i++)
+            combined = new BinaryExpr(SqlBinaryOp.And, combined, conjuncts[i]);
+
+        return combined;
+    }
+
+    private bool TryGetCorrelatedCountEquality(
+        SqlExpr expression,
+        Source source,
+        out SqlExpr innerKeyExpr,
+        out SqlExpr outerKeyExpr)
+    {
+        innerKeyExpr = null!;
+        outerKeyExpr = null!;
+
+        if (expression is not BinaryExpr eq || eq.Op != SqlBinaryOp.Eq)
+            return false;
+
+        var leftIsInner = TryResolveInnerColumnName(eq.Left, source, out _);
+        var rightIsInner = TryResolveInnerColumnName(eq.Right, source, out _);
+
+        if (leftIsInner == rightIsInner)
+            return false;
+
+        var otherSide = leftIsInner ? eq.Right : eq.Left;
+        if (ExpressionReferencesInnerColumns(otherSide, source))
+            return false;
+
+        innerKeyExpr = leftIsInner ? eq.Left : eq.Right;
+        outerKeyExpr = otherSide;
+        return true;
+    }
+
+    private bool TryBuildCorrelatedLookupCompositeKey(
+        IReadOnlyList<CorrelatedLookupKeyPair> keyPairs,
+        EvalRow row,
+        IDictionary<string, Source> ctes,
+        bool useInnerSide,
+        out string key)
+    {
+        key = string.Empty;
+
+        if (keyPairs.Count == 0)
+            return false;
+
+        var sb = new StringBuilder();
+        for (var i = 0; i < keyPairs.Count; i++)
+        {
+            var expr = useInnerSide ? keyPairs[i].InnerExpr : keyPairs[i].OuterExpr;
+            var value = Eval(expr, row, group: null, ctes);
+            if (IsNullish(value))
+                return false;
+
+            if (!TryCreateInLookupScalarKey(value, null, out var component))
+                return false;
+
+            AppendLookupScalarKeyComponent(sb, component);
+        }
+
+        key = sb.ToString();
+        return true;
+    }
+
+    private static bool TryBuildInLookupCompositeKey(
+        IReadOnlyList<object?> values,
+        out string key)
+    {
+        key = string.Empty;
+
+        if (values.Count == 0)
+            return false;
+
+        var sb = new StringBuilder();
+        foreach (var value in values)
+        {
+            if (!TryCreateInLookupScalarKey(value, null, out var component))
+                return false;
+
+            AppendLookupScalarKeyComponent(sb, component);
+        }
+
+        key = sb.ToString();
+        return true;
+    }
+
+    private static void AppendLookupScalarKeyComponent(StringBuilder sb, InLookupScalarKey component)
+    {
+        if (sb.Length > 0)
+            sb.Append('|');
+
+        sb.Append(component.Kind.Length);
+        sb.Append(':');
+        sb.Append(component.Kind);
+        sb.Append(';');
+        sb.Append(component.Value.Length);
+        sb.Append(':');
+        sb.Append(component.Value);
+    }
+
+    private InMembershipState EvaluateRowMembershipCandidates(
+        object?[] leftRow,
+        IEnumerable<object?[]> candidates,
+        ref bool hasNullCandidate)
+    {
+        foreach (var candidate in candidates)
+        {
+            if (TryEvaluateRowCandidateMembership(leftRow, candidate, ref hasNullCandidate, out var state)
+                && state.Matched)
+            {
+                return state;
+            }
+        }
+
+        return CreateMembershipState(matched: false, hasNullCandidate);
+    }
+
+    private static bool TryResolveInnerColumnName(
+        SqlExpr expr,
+        Source source,
+        out string column)
+    {
+        column = "";
+
+        switch (expr)
+        {
+            case IdentifierExpr id:
+                {
+                    var dot = id.Name.IndexOf('.');
+                    if (dot < 0)
+                    {
+                        if (!source.ColumnNames.Any(c => c.Equals(id.Name, StringComparison.OrdinalIgnoreCase)))
+                            return false;
+
+                        column = id.Name.NormalizeName();
+                        return true;
+                    }
+
+                    var qualifier = id.Name[..dot].NormalizeName();
+                    var sourceAlias = source.Alias.NormalizeName();
+                    var sourceName = source.Name.NormalizeName();
+                    if (!qualifier.Equals(sourceAlias, StringComparison.OrdinalIgnoreCase)
+                        && !qualifier.Equals(sourceName, StringComparison.OrdinalIgnoreCase))
+                        return false;
+
+                    var resolved = id.Name[(dot + 1)..].NormalizeName();
+                    if (!source.ColumnNames.Any(c => c.Equals(resolved, StringComparison.OrdinalIgnoreCase)))
+                        return false;
+
+                    column = resolved;
+                    return true;
+                }
+
+            case ColumnExpr col:
+                {
+                    if (!string.IsNullOrWhiteSpace(col.Qualifier))
+                    {
+                        var qualifier = col.Qualifier.NormalizeName();
+                        var sourceAlias = source.Alias.NormalizeName();
+                        var sourceName = source.Name.NormalizeName();
+                        if (!qualifier.Equals(sourceAlias, StringComparison.OrdinalIgnoreCase)
+                            && !qualifier.Equals(sourceName, StringComparison.OrdinalIgnoreCase))
+                            return false;
+                    }
+
+                    var resolved = col.Name.NormalizeName();
+                    if (!source.ColumnNames.Any(c => c.Equals(resolved, StringComparison.OrdinalIgnoreCase)))
+                        return false;
+
+                    column = resolved;
+                    return true;
+                }
+
+            default:
+                return false;
+        }
+    }
+
+    private static bool ExpressionReferencesInnerColumns(
+        SqlExpr expr,
+        Source source)
+    {
+        switch (expr)
+        {
+            case IdentifierExpr id:
+                return TryResolveInnerColumnName(id, source, out _);
+            case ColumnExpr col:
+                return TryResolveInnerColumnName(col, source, out _);
+            case LiteralExpr:
+            case ParameterExpr:
+                return false;
+            case UnaryExpr unary:
+                return ExpressionReferencesInnerColumns(unary.Expr, source);
+            case IsNullExpr isNull:
+                return ExpressionReferencesInnerColumns(isNull.Expr, source);
+            case BinaryExpr binary:
+                return ExpressionReferencesInnerColumns(binary.Left, source)
+                    || ExpressionReferencesInnerColumns(binary.Right, source);
+            case LikeExpr like:
+                return ExpressionReferencesInnerColumns(like.Left, source)
+                    || ExpressionReferencesInnerColumns(like.Pattern, source)
+                    || (like.Escape is not null && ExpressionReferencesInnerColumns(like.Escape, source));
+            case InExpr inExpr:
+                if (ExpressionReferencesInnerColumns(inExpr.Left, source))
+                    return true;
+                foreach (var item in inExpr.Items)
+                {
+                    if (ExpressionReferencesInnerColumns(item, source))
+                        return true;
+                }
+                return false;
+            case BetweenExpr between:
+                return ExpressionReferencesInnerColumns(between.Expr, source)
+                    || ExpressionReferencesInnerColumns(between.Low, source)
+                    || ExpressionReferencesInnerColumns(between.High, source);
+            case FunctionCallExpr fn:
+                return fn.Args.Any(arg => ExpressionReferencesInnerColumns(arg, source));
+            case CallExpr call:
+                return call.Args.Any(arg => ExpressionReferencesInnerColumns(arg, source));
+            case JsonAccessExpr json:
+                return ExpressionReferencesInnerColumns(json.Target, source)
+                    || ExpressionReferencesInnerColumns(json.Path, source);
+            case RowExpr row:
+                return row.Items.Any(item => ExpressionReferencesInnerColumns(item, source));
+            case CaseExpr c:
+                if (c.BaseExpr is not null && ExpressionReferencesInnerColumns(c.BaseExpr, source))
+                    return true;
+                foreach (var when in c.Whens)
+                {
+                    if (ExpressionReferencesInnerColumns(when.When, source)
+                        || ExpressionReferencesInnerColumns(when.Then, source))
+                        return true;
+                }
+                return c.ElseExpr is not null && ExpressionReferencesInnerColumns(c.ElseExpr, source);
+            case SubqueryExpr:
+            case RawSqlExpr:
+            case StarExpr:
+            default:
+                return false;
+        }
+    }
+
+    private static bool ExpressionUsesOnlyInnerColumnsOrConstants(
+        SqlExpr expr,
+        Source source)
+    {
+        switch (expr)
+        {
+            case IdentifierExpr id:
+                return TryResolveInnerColumnName(id, source, out _);
+            case ColumnExpr col:
+                return TryResolveInnerColumnName(col, source, out _);
+            case LiteralExpr:
+            case ParameterExpr:
+                return true;
+            case UnaryExpr unary:
+                return ExpressionUsesOnlyInnerColumnsOrConstants(unary.Expr, source);
+            case IsNullExpr isNull:
+                return ExpressionUsesOnlyInnerColumnsOrConstants(isNull.Expr, source);
+            case BinaryExpr binary:
+                return ExpressionUsesOnlyInnerColumnsOrConstants(binary.Left, source)
+                    && ExpressionUsesOnlyInnerColumnsOrConstants(binary.Right, source);
+            case LikeExpr like:
+                return ExpressionUsesOnlyInnerColumnsOrConstants(like.Left, source)
+                    && ExpressionUsesOnlyInnerColumnsOrConstants(like.Pattern, source)
+                    && (like.Escape is null || ExpressionUsesOnlyInnerColumnsOrConstants(like.Escape, source));
+            case InExpr inExpr:
+                if (!ExpressionUsesOnlyInnerColumnsOrConstants(inExpr.Left, source))
+                    return false;
+                return inExpr.Items.All(item => ExpressionUsesOnlyInnerColumnsOrConstants(item, source));
+            case BetweenExpr between:
+                return ExpressionUsesOnlyInnerColumnsOrConstants(between.Expr, source)
+                    && ExpressionUsesOnlyInnerColumnsOrConstants(between.Low, source)
+                    && ExpressionUsesOnlyInnerColumnsOrConstants(between.High, source);
+            case FunctionCallExpr fn:
+                return fn.Args.All(arg => ExpressionUsesOnlyInnerColumnsOrConstants(arg, source));
+            case CallExpr call:
+                return call.Args.All(arg => ExpressionUsesOnlyInnerColumnsOrConstants(arg, source));
+            case JsonAccessExpr json:
+                return ExpressionUsesOnlyInnerColumnsOrConstants(json.Target, source)
+                    && ExpressionUsesOnlyInnerColumnsOrConstants(json.Path, source);
+            case RowExpr row:
+                return row.Items.All(item => ExpressionUsesOnlyInnerColumnsOrConstants(item, source));
+            case CaseExpr c:
+                if (c.BaseExpr is not null && !ExpressionUsesOnlyInnerColumnsOrConstants(c.BaseExpr, source))
+                    return false;
+                foreach (var when in c.Whens)
+                {
+                    if (!ExpressionUsesOnlyInnerColumnsOrConstants(when.When, source)
+                        || !ExpressionUsesOnlyInnerColumnsOrConstants(when.Then, source))
+                        return false;
+                }
+                return c.ElseExpr is null || ExpressionUsesOnlyInnerColumnsOrConstants(c.ElseExpr, source);
+            case SubqueryExpr:
+            case RawSqlExpr:
+            case StarExpr:
+            default:
+                return false;
+        }
+    }
+
+    private static bool TryGetDecimalLiteral(SqlExpr expression, out decimal value)
+    {
+        value = default;
+
+        if (expression is not LiteralExpr literal || literal.Value is null)
+            return false;
+
+        try
+        {
+            value = Convert.ToDecimal(literal.Value, CultureInfo.InvariantCulture);
+        }
+        catch
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static SqlBinaryOp ReverseComparisonOperator(SqlBinaryOp op)
+        => op switch
+        {
+            SqlBinaryOp.Eq => SqlBinaryOp.Eq,
+            SqlBinaryOp.Neq => SqlBinaryOp.Neq,
+            SqlBinaryOp.Greater => SqlBinaryOp.Less,
+            SqlBinaryOp.GreaterOrEqual => SqlBinaryOp.LessOrEqual,
+            SqlBinaryOp.Less => SqlBinaryOp.Greater,
+            SqlBinaryOp.LessOrEqual => SqlBinaryOp.GreaterOrEqual,
+            _ => throw new InvalidOperationException($"Operador não reversível: {op}")
+        };
 
     private bool TryEvalLogicalBinary(
         BinaryExpr expression,
@@ -4166,7 +5337,7 @@ private void FillPercentRankOrCumeDist(
     {
         result = null;
 
-        if (left is not DateTime dateTime)
+        if (!TryCoerceDateTime(left, out var dateTime))
             return false;
 
         if (right is IntervalValue interval)
@@ -4403,11 +5574,48 @@ private void FillPercentRankOrCumeDist(
         if (expression.Items.Count != 1 || expression.Items[0] is not SubqueryExpr subquery)
             return false;
 
+        if (leftVal is object?[] leftRow)
+        {
+            var rowLookup = GetOrEvaluateInSubqueryRowLookup(subquery, row, ctes);
+            hasNullCandidate |= rowLookup.HasNullCandidate;
+
+            if (rowLookup.RowCandidates is not null
+                && TryBuildInLookupCompositeKey(leftRow, out var rowKey))
+            {
+                state = CreateMembershipState(rowLookup.RowCandidates.Contains(rowKey), hasNullCandidate);
+                return true;
+            }
+
+            state = EvaluateRowMembershipCandidates(leftRow, rowLookup.RowValues ?? [], ref hasNullCandidate);
+            return true;
+        }
+
+        var scalarLookup = GetOrEvaluateInSubqueryLookup(subquery, row, ctes);
+        hasNullCandidate |= scalarLookup.HasNullCandidate;
+
+        if (scalarLookup.ScalarCandidates is not null
+            && TryCreateInLookupScalarKey(leftVal, Dialect, out var scalarKey))
+        {
+            state = CreateMembershipState(scalarLookup.ScalarCandidates.Contains(scalarKey), hasNullCandidate);
+            return true;
+        }
+
         state = EvaluateMembershipCandidates(
             leftVal,
-            GetOrEvaluateInSubqueryFirstColumnValues(subquery, row, ctes),
+            scalarLookup.Values,
             ref hasNullCandidate);
         return true;
+    }
+
+    private InSubqueryLookupState GetOrEvaluateInSubqueryRowLookup(
+        SubqueryExpr sq,
+        EvalRow row,
+        IDictionary<string, Source> ctes)
+    {
+        var cacheKey = BuildCorrelatedSubqueryCacheKey("IN_ROW_LOOKUP", sq.Sql, row);
+        return _subqueryEvaluationCache.GetOrAddOperationData(
+            cacheKey,
+            _ => BuildInSubqueryRowLookupState(sq, row, ctes));
     }
 
     private bool TryEvaluateEnumerableMembership(
@@ -4530,16 +5738,214 @@ private void FillPercentRankOrCumeDist(
         IDictionary<string, Source> ctes)
     {
         var sq = ex.Subquery;
-        var cacheKey = BuildCorrelatedSubqueryCacheKey("EXISTS", sq.Sql, row);
+        var cacheKey = BuildCorrelatedSubqueryCacheKey(SqlConst.EXISTS, sq.Sql, row);
 
         return _subqueryEvaluationCache.GetOrAddExists(
             cacheKey,
             _ =>
             {
-                var sub = ExecuteSelect(GetSingleSubqueryOrThrow(sq, "EXISTS"), ctes, row);
+                var query = GetSingleSubqueryOrThrow(sq, SqlConst.EXISTS);
+                if (TryEvaluateCorrelatedExistsPreAggregation(query, row, ctes, out var correlatedExists))
+                    return correlatedExists;
+
+                if (TryEvaluateExistsFast(query, row, ctes, out var exists))
+                    return exists;
+
+                var sub = ExecuteSelect(LimitToSingleRow(query), ctes, row);
                 return sub.Count > 0;
             });
     }
+
+    private bool TryEvaluateCorrelatedExistsPreAggregation(
+        SqlSelectQuery query,
+        EvalRow row,
+        IDictionary<string, Source> ctes,
+        out bool exists)
+    {
+        exists = false;
+
+        if (query.Table is null
+            || query.Ctes.Count > 0
+            || query.Joins.Count > 0
+            || query.GroupBy.Count > 0
+            || query.Having is not null
+            || query.RowLimit is not null
+            || query.ForJson is not null
+            || query.Where is null)
+        {
+            return false;
+        }
+
+        if (!TryBuildCorrelatedCountLookupState(query, ctes, out var state))
+            return false;
+
+        if (!TryBuildCorrelatedLookupCompositeKey(state.KeyPairs, row, ctes, useInnerSide: false, out var outerKey))
+            return false;
+
+        exists = state.Counts.TryGetValue(outerKey, out var count) && count > 0;
+        return true;
+    }
+
+    private bool TryEvaluateExistsFast(
+        SqlSelectQuery query,
+        EvalRow row,
+        IDictionary<string, Source> ctes,
+        out bool exists)
+    {
+        exists = false;
+
+        if (query.Ctes.Count > 0
+            || query.Joins.Count > 0
+            || query.GroupBy.Count > 0
+            || query.Having is not null
+            || query.RowLimit is not null
+            || query.ForJson is not null)
+        {
+            return false;
+        }
+
+        var rows = BuildFrom(
+            query.Table,
+            ctes,
+            query.Where,
+            hasOrderBy: query.OrderBy.Count > 0,
+            hasGroupBy: false);
+
+        if (row is not null && query.Where is not null)
+            rows = rows.Select(r => AttachOuterRow(r, row));
+
+        if (query.Where is null)
+        {
+            using var enumerator = rows.GetEnumerator();
+            exists = enumerator.MoveNext();
+            return true;
+        }
+
+        foreach (var candidate in rows)
+        {
+            if (Eval(query.Where, candidate, group: null, ctes).ToBool())
+            {
+                exists = true;
+                return true;
+            }
+        }
+
+        return true;
+    }
+
+    private bool TryEvaluateScalarSubqueryFast(
+        SqlSelectQuery query,
+        EvalRow row,
+        IDictionary<string, Source> ctes,
+        out object? value)
+    {
+        value = null;
+
+        if (query.Ctes.Count > 0
+            || query.Joins.Count > 0
+            || query.GroupBy.Count > 0
+            || query.Having is not null
+            || query.RowLimit is not null
+            || query.ForJson is not null)
+        {
+            return false;
+        }
+
+        if (query.SelectItems.Count != 1)
+            return false;
+
+        var (exprRaw, _) = SplitTrailingAsAlias(query.SelectItems[0].Raw, query.SelectItems[0].Alias);
+        if (!TryParseScalarCountAggregate(exprRaw, out var countArg))
+            return false;
+
+        var rows = BuildFrom(
+            query.Table,
+            ctes,
+            query.Where,
+            hasOrderBy: query.OrderBy.Count > 0,
+            hasGroupBy: false);
+
+        if (row is not null && query.Where is not null)
+            rows = rows.Select(r => AttachOuterRow(r, row));
+
+        long count = 0;
+        foreach (var candidate in rows)
+        {
+            if (query.Where is not null && !Eval(query.Where, candidate, group: null, ctes).ToBool())
+                continue;
+
+            if (countArg is StarExpr)
+            {
+                count++;
+                continue;
+            }
+
+            var evaluated = Eval(countArg, candidate, group: null, ctes);
+            if (!IsNullish(evaluated))
+                count++;
+        }
+
+        value = count;
+        return true;
+    }
+
+    private bool TryParseScalarCountAggregate(string exprRaw, out SqlExpr countArg)
+    {
+        countArg = null!;
+
+        SqlExpr expr;
+        try
+        {
+            expr = ParseScalarExpr(exprRaw);
+        }
+        catch
+        {
+            return false;
+        }
+
+        switch (expr)
+        {
+            case CallExpr call when IsCountAggregateCall(call.Name):
+                if (call.Distinct || call.WithinGroupOrderBy is not null || call.Filter is not null)
+                    return false;
+
+                if (call.Args.Count == 0)
+                {
+                    countArg = new StarExpr();
+                    return true;
+                }
+
+                if (call.Args.Count == 1)
+                {
+                    countArg = call.Args[0];
+                    return true;
+                }
+
+                return false;
+
+            case FunctionCallExpr fn when IsCountAggregateCall(fn.Name):
+                if (fn.Args.Count == 0)
+                {
+                    countArg = new StarExpr();
+                    return true;
+                }
+
+                if (fn.Args.Count == 1)
+                {
+                    countArg = fn.Args[0];
+                    return true;
+                }
+
+                return false;
+
+            default:
+                return false;
+        }
+    }
+
+    private static bool IsCountAggregateCall(string name)
+        => name.Equals("COUNT", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("COUNT_BIG", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// EN: Evaluates quantified comparison expressions (`ANY`/`ALL`) against the first column of a subquery result using SQL three-valued logic semantics.
@@ -4639,7 +6045,76 @@ private void FillPercentRankOrCumeDist(
         SubqueryExpr sq,
         EvalRow row,
         IDictionary<string, Source> ctes)
-        => GetOrEvaluateSubqueryFirstColumnValuesForOperation(sq, "IN", row, ctes);
+        => GetOrEvaluateSubqueryFirstColumnValuesForOperation(sq, SqlConst.IN, row, ctes);
+
+    private InSubqueryLookupState GetOrEvaluateInSubqueryLookup(
+        SubqueryExpr sq,
+        EvalRow row,
+        IDictionary<string, Source> ctes)
+    {
+        var cacheKey = BuildCorrelatedSubqueryCacheKey("IN_LOOKUP", sq.Sql, row);
+        return _subqueryEvaluationCache.GetOrAddOperationData(
+            cacheKey,
+            _ => BuildInSubqueryLookupState(sq, row, ctes));
+    }
+
+    private InSubqueryLookupState BuildInSubqueryLookupState(
+        SubqueryExpr sq,
+        EvalRow row,
+        IDictionary<string, Source> ctes)
+    {
+        var values = GetOrEvaluateInSubqueryFirstColumnValues(sq, row, ctes);
+        if (values.Count == 0)
+            return new InSubqueryLookupState(values, new HashSet<InLookupScalarKey>(), null, null, HasNullCandidate: false);
+
+        var hasNullCandidate = false;
+        var scalarCandidates = new HashSet<InLookupScalarKey>();
+
+        foreach (var value in values)
+        {
+            if (IsSqlNullLike(value))
+            {
+                hasNullCandidate = true;
+                continue;
+            }
+
+            if (!TryCreateInLookupScalarKey(value, null, out var key))
+                return new InSubqueryLookupState(values, null, null, null, hasNullCandidate);
+
+            scalarCandidates.Add(key);
+        }
+
+        return new InSubqueryLookupState(values, scalarCandidates, null, null, hasNullCandidate);
+    }
+
+    private InSubqueryLookupState BuildInSubqueryRowLookupState(
+        SubqueryExpr sq,
+        EvalRow row,
+        IDictionary<string, Source> ctes)
+    {
+        var values = GetOrEvaluateSubqueryRowValuesForOperation(sq, "IN_ROWS", row, ctes);
+        if (values.Count == 0)
+            return new InSubqueryLookupState([], null, values, new HashSet<string>(StringComparer.Ordinal), HasNullCandidate: false);
+
+        var hasNullCandidate = false;
+        var rowCandidates = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var value in values)
+        {
+            if (HasNullElement(value))
+            {
+                hasNullCandidate = true;
+                continue;
+            }
+
+            if (!TryBuildInLookupCompositeKey(value, out var key))
+                return new InSubqueryLookupState([], null, values, null, hasNullCandidate);
+
+            rowCandidates.Add(key);
+        }
+
+        return new InSubqueryLookupState([], null, values, rowCandidates, hasNullCandidate);
+    }
 
     /// <summary>
     /// EN: Resolves and caches first-column values for subquery-based operations using operation-specific correlated cache keys.
@@ -4658,6 +6133,19 @@ private void FillPercentRankOrCumeDist(
             _ => EvaluateSubqueryFirstColumnValues(sq, operation, row, ctes));
     }
 
+    private List<object?[]> GetOrEvaluateSubqueryRowValuesForOperation(
+        SubqueryExpr sq,
+        string operation,
+        EvalRow row,
+        IDictionary<string, Source> ctes)
+    {
+        var cacheKey = BuildCorrelatedSubqueryCacheKey(operation, sq.Sql, row);
+
+        return _subqueryEvaluationCache.GetOrAddOperationData(
+            cacheKey,
+            _ => EvaluateSubqueryRowValues(sq, operation, row, ctes));
+    }
+
     private List<object?> EvaluateSubqueryFirstColumnValues(
         SubqueryExpr sq,
         string operation,
@@ -4672,12 +6160,165 @@ private void FillPercentRankOrCumeDist(
         return values;
     }
 
+    private List<object?[]> EvaluateSubqueryRowValues(
+        SubqueryExpr sq,
+        string operation,
+        EvalRow row,
+        IDictionary<string, Source> ctes)
+    {
+        var subqueryResult = ExecuteSelect(GetSingleSubqueryOrThrow(sq, operation), ctes, row);
+        var values = new List<object?[]>(subqueryResult.Count);
+        foreach (var resultRow in subqueryResult)
+        {
+            var tuple = new object?[subqueryResult.Columns.Count];
+            for (var i = 0; i < tuple.Length; i++)
+                tuple[i] = resultRow.TryGetValue(i, out var cell) ? cell : null;
+
+            values.Add(tuple);
+        }
+
+        return values;
+    }
+
     /// <summary>
     /// EN: Builds a deterministic cache key for correlated subquery evaluation using operation kind, raw subquery text and normalized outer-row values.
     /// PT: Monta uma chave de cache determinística para avaliação de subquery correlacionada usando tipo de operação, texto bruto da subquery e valores normalizados da linha externa.
     /// </summary>
     private static string BuildCorrelatedSubqueryCacheKey(string operation, string? subquerySql, EvalRow row)
         => AstCorrelatedSubqueryCacheKeyBuilder.Build(operation, subquerySql, row);
+
+    private static SqlSelectQuery LimitToSingleRow(SqlSelectQuery query)
+        => query with
+        {
+            RowLimit = query.RowLimit switch
+            {
+                SqlLimitOffset limit => new SqlLimitOffset(new LiteralExpr(1m), limit.Offset),
+                SqlTop => new SqlTop(new LiteralExpr(1m)),
+                SqlFetch fetch => new SqlFetch(new LiteralExpr(1m), fetch.Offset),
+                _ => new SqlLimitOffset(new LiteralExpr(1m), null)
+            }
+        };
+
+    private static bool TryCreateInLookupScalarKey(object? value, ISqlDialect? dialect, out InLookupScalarKey key)
+    {
+        key = default;
+
+        if (value is null or DBNull)
+            return false;
+
+        if (value is byte[] || value is object?[])
+            return false;
+
+        if (value is string text)
+        {
+            key = new InLookupScalarKey("s", NormalizeLookupText(text, dialect));
+            return true;
+        }
+
+        if (value is char character)
+        {
+            key = new InLookupScalarKey("s", NormalizeLookupText(character.ToString(), dialect));
+            return true;
+        }
+
+        if (value is bool boolean)
+        {
+            key = new InLookupScalarKey("b", boolean ? "1" : "0");
+            return true;
+        }
+
+        if (TryConvertLookupNumericValue(value, out var numericValue))
+        {
+            key = new InLookupScalarKey("n", numericValue.ToString(CultureInfo.InvariantCulture));
+            return true;
+        }
+
+        if (value is DateTime dateTime)
+        {
+            key = new InLookupScalarKey("dt", dateTime.Ticks.ToString(CultureInfo.InvariantCulture));
+            return true;
+        }
+
+        if (value is DateTimeOffset dateTimeOffset)
+        {
+            key = new InLookupScalarKey("dto", dateTimeOffset.Ticks.ToString(CultureInfo.InvariantCulture));
+            return true;
+        }
+
+        if (value is Guid guid)
+        {
+            key = new InLookupScalarKey("g", guid.ToString("D"));
+            return true;
+        }
+
+        var type = value.GetType();
+        if (type.IsEnum)
+        {
+            key = new InLookupScalarKey("e", Convert.ToInt64(value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture));
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryConvertLookupNumericValue(object value, out decimal numericValue)
+    {
+        try
+        {
+            switch (value)
+            {
+                case byte byteValue:
+                    numericValue = byteValue;
+                    return true;
+                case sbyte sbyteValue:
+                    numericValue = sbyteValue;
+                    return true;
+                case short shortValue:
+                    numericValue = shortValue;
+                    return true;
+                case ushort ushortValue:
+                    numericValue = ushortValue;
+                    return true;
+                case int intValue:
+                    numericValue = intValue;
+                    return true;
+                case uint uintValue:
+                    numericValue = uintValue;
+                    return true;
+                case long longValue:
+                    numericValue = longValue;
+                    return true;
+                case ulong ulongValue:
+                    numericValue = ulongValue;
+                    return true;
+                case float floatValue:
+                    numericValue = Convert.ToDecimal(floatValue, CultureInfo.InvariantCulture);
+                    return true;
+                case double doubleValue:
+                    numericValue = Convert.ToDecimal(doubleValue, CultureInfo.InvariantCulture);
+                    return true;
+                case decimal decimalValue:
+                    numericValue = decimalValue;
+                    return true;
+                case string textValue when decimal.TryParse(textValue, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed):
+                    numericValue = parsed;
+                    return true;
+                default:
+                    numericValue = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+                    return true;
+            }
+        }
+        catch
+        {
+            numericValue = default;
+            return false;
+        }
+    }
+
+    private static string NormalizeLookupText(string value, ISqlDialect? dialect)
+        => (dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase) == StringComparison.Ordinal
+            ? value
+            : value.ToUpperInvariant();
 
     /// <summary>
     /// EN: Clears per-query correlated subquery caches so memoized values do not leak across independent top-level executions.
@@ -6252,7 +7893,7 @@ private void FillPercentRankOrCumeDist(
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("DEFAULT", StringComparison.OrdinalIgnoreCase))
+        if (!fn.Name.Equals(SqlConst.DEFAULT, StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -11676,7 +13317,7 @@ private void FillPercentRankOrCumeDist(
 
         return propertyName!.Trim().ToUpperInvariant() switch
         {
-            "ISTABLE" => entry.ObjectKind == "TABLE" ? 1 : 0,
+            "ISTABLE" => entry.ObjectKind == SqlConst.TABLE ? 1 : 0,
             "ISPROCEDURE" => entry.ObjectKind == "PROCEDURE" ? 1 : 0,
             _ => null
         };
@@ -11713,7 +13354,7 @@ private void FillPercentRankOrCumeDist(
         {
             foreach (var table in schema.Tables.Values.OrderBy(static t => t.TableName, StringComparer.OrdinalIgnoreCase))
             {
-                objects.Add((nextId++, schema.SchemaName, table.TableName, $"{schema.SchemaName}.{table.TableName}", "TABLE"));
+                objects.Add((nextId++, schema.SchemaName, table.TableName, $"{schema.SchemaName}.{table.TableName}", SqlConst.TABLE));
             }
 
             foreach (var procedure in schema.Procedures.Keys.OrderBy(static p => p, StringComparer.OrdinalIgnoreCase))
@@ -13388,7 +15029,7 @@ private void FillPercentRankOrCumeDist(
                     : "DOUBLE",
                 System.Text.Json.JsonValueKind.True => "BOOLEAN",
                 System.Text.Json.JsonValueKind.False => "BOOLEAN",
-                System.Text.Json.JsonValueKind.Null => "NULL",
+                System.Text.Json.JsonValueKind.Null => SqlConst.NULL,
                 _ => null
             };
             return true;
@@ -14470,7 +16111,7 @@ private void FillPercentRankOrCumeDist(
     private static string QuoteFormatLiteral(object? value)
     {
         if (value is null || value is DBNull)
-            return "NULL";
+            return SqlConst.NULL;
 
         var text = value.ToString() ?? string.Empty;
         return $"'{text.Replace("'", "''")}'";
@@ -17132,7 +18773,7 @@ private void FillPercentRankOrCumeDist(
         var value = evalArg(0);
         if (IsNullish(value))
         {
-            result = "NULL";
+            result = SqlConst.NULL;
             return true;
         }
 
@@ -17408,7 +19049,7 @@ private void FillPercentRankOrCumeDist(
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("LEFT", StringComparison.OrdinalIgnoreCase))
+        if (!fn.Name.Equals(SqlConst.LEFT, StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -17445,7 +19086,7 @@ private void FillPercentRankOrCumeDist(
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("RIGHT", StringComparison.OrdinalIgnoreCase))
+        if (!fn.Name.Equals(SqlConst.RIGHT, StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -18490,7 +20131,7 @@ private void FillPercentRankOrCumeDist(
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("REPLACE", StringComparison.OrdinalIgnoreCase))
+        if (!fn.Name.Equals(SqlConst.REPLACE, StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -19052,14 +20693,14 @@ private void FillPercentRankOrCumeDist(
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("OPENJSON", StringComparison.OrdinalIgnoreCase))
+        if (!fn.Name.Equals(SqlConst.OPENJSON, StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
         }
 
         if (!dialect.SupportsOpenJsonFunction)
-            throw SqlUnsupported.ForDialect(dialect, "OPENJSON");
+            throw SqlUnsupported.ForDialect(dialect, SqlConst.OPENJSON);
 
         var json = evalArg(0);
         result = IsNullish(json) ? null : json?.ToString();
@@ -19456,50 +21097,38 @@ private void FillPercentRankOrCumeDist(
         return trimmed.Contains(':');
     }
 
-    private static DateTime ApplyDateDelta(DateTime dt, string unit, int amount)
-        => ApplyDateDelta(dt, ResolveTemporalUnit(unit), amount);
-
-    private static DateTime ApplyDateDelta(DateTime dt, TemporalUnit unit, int amount)
+    private static DateTime ApplyDateDelta(DateTime dt, TemporalUnit unit, int amount) => unit switch
     {
-        return unit switch
-        {
-            TemporalUnit.Year => dt.AddYears(amount),
-            TemporalUnit.Month => dt.AddMonths(amount),
-            TemporalUnit.Day => dt.AddDays(amount),
-            TemporalUnit.Hour => dt.AddHours(amount),
-            TemporalUnit.Minute => dt.AddMinutes(amount),
-            TemporalUnit.Second => dt.AddSeconds(amount),
-            _ => dt
-        };
-    }
+        TemporalUnit.Year => dt.AddYears(amount),
+        TemporalUnit.Month => dt.AddMonths(amount),
+        TemporalUnit.Day => dt.AddDays(amount),
+        TemporalUnit.Hour => dt.AddHours(amount),
+        TemporalUnit.Minute => dt.AddMinutes(amount),
+        TemporalUnit.Second => dt.AddSeconds(amount),
+        _ => dt
+    };
 
-    private static DateTime TruncateDateTime(DateTime dateTime, TemporalUnit unit)
+    private static DateTime TruncateDateTime(DateTime dateTime, TemporalUnit unit) => unit switch
     {
-        return unit switch
-        {
-            TemporalUnit.Year => new DateTime(dateTime.Year, 1, 1),
-            TemporalUnit.Month => new DateTime(dateTime.Year, dateTime.Month, 1),
-            TemporalUnit.Day => dateTime.Date,
-            TemporalUnit.Hour => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, 0, 0),
-            TemporalUnit.Minute => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, 0),
-            TemporalUnit.Second => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, dateTime.Second),
-            _ => dateTime
-        };
-    }
+        TemporalUnit.Year => new DateTime(dateTime.Year, 1, 1),
+        TemporalUnit.Month => new DateTime(dateTime.Year, dateTime.Month, 1),
+        TemporalUnit.Day => dateTime.Date,
+        TemporalUnit.Hour => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, 0, 0),
+        TemporalUnit.Minute => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, 0),
+        TemporalUnit.Second => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, dateTime.Second),
+        _ => dateTime
+    };
 
-    private static int? GetTemporalPartValue(DateTime dateTime, TemporalUnit unit)
+    private static int? GetTemporalPartValue(DateTime dateTime, TemporalUnit unit) => unit switch
     {
-        return unit switch
-        {
-            TemporalUnit.Year => dateTime.Year,
-            TemporalUnit.Month => dateTime.Month,
-            TemporalUnit.Day => dateTime.Day,
-            TemporalUnit.Hour => dateTime.Hour,
-            TemporalUnit.Minute => dateTime.Minute,
-            TemporalUnit.Second => dateTime.Second,
-            _ => null
-        };
-    }
+        TemporalUnit.Year => dateTime.Year,
+        TemporalUnit.Month => dateTime.Month,
+        TemporalUnit.Day => dateTime.Day,
+        TemporalUnit.Hour => dateTime.Hour,
+        TemporalUnit.Minute => dateTime.Minute,
+        TemporalUnit.Second => dateTime.Second,
+        _ => null
+    };
 
     private static bool TryParseDateModifier(string modifier, out TemporalUnit unit, out int amount)
     {
@@ -19863,19 +21492,16 @@ private void FillPercentRankOrCumeDist(
         return years;
     }
 
-    private static long? GetTemporalDifference(DateTime start, DateTime end, TemporalUnit unit)
+    private static long? GetTemporalDifference(DateTime start, DateTime end, TemporalUnit unit) => unit switch
     {
-        return unit switch
-        {
-            TemporalUnit.Day => (long)(end.Date - start.Date).TotalDays,
-            TemporalUnit.Hour => (long)(end - start).TotalHours,
-            TemporalUnit.Minute => (long)(end - start).TotalMinutes,
-            TemporalUnit.Second => (long)(end - start).TotalSeconds,
-            TemporalUnit.Month => DiffMonths(start, end),
-            TemporalUnit.Year => DiffYears(start, end),
-            _ => null
-        };
-    }
+        TemporalUnit.Day => (long)(end.Date - start.Date).TotalDays,
+        TemporalUnit.Hour => (long)(end - start).TotalHours,
+        TemporalUnit.Minute => (long)(end - start).TotalMinutes,
+        TemporalUnit.Second => (long)(end - start).TotalSeconds,
+        TemporalUnit.Month => DiffMonths(start, end),
+        TemporalUnit.Year => DiffYears(start, end),
+        _ => null
+    };
 
     private static int? GetTemporalDifferenceOrNull(DateTime start, DateTime end, TemporalUnit unit)
     {
@@ -20646,6 +22272,15 @@ private void FillPercentRankOrCumeDist(
 
         var separator = GetAggregateSeparator(fn, group, ctes);
         var rows = GetStringAggregateRows(fn, group, ctes);
+        if (rows.Count == 1)
+        {
+            var singleValue = Eval(fn.Args[0], rows[0], null, ctes);
+            if (IsNullish(singleValue))
+                return null;
+
+            return singleValue?.ToString();
+        }
+
         return EvalStringAggregateRows(fn, rows, ctes, separator, GetStringAggregateDefaultSeparator(name));
     }
 
@@ -20666,7 +22301,9 @@ private void FillPercentRankOrCumeDist(
         if (orderBy is not { Count: > 0 })
             return group.Rows;
 
-        var sortedRows = new List<EvalRow>(group.Rows);
+        var sortedRows = group.Rows;
+        if (sortedRows.Count < 2)
+            return sortedRows;
 
         if (orderBy.Count == 1)
         {
@@ -20780,6 +22417,15 @@ private void FillPercentRankOrCumeDist(
     {
         if (fn.Args.Count == 0)
             return null;
+
+        if (group.Rows.Count == 1)
+        {
+            var singleValue = Eval(fn.Args[0], group.Rows[0], null, ctes);
+            if (IsNullish(singleValue))
+                return null;
+
+            return singleValue?.ToString();
+        }
 
         var separator = separatorObj?.ToString() ?? defaultSeparator;
         StringBuilder? builder = null;
@@ -21041,7 +22687,7 @@ private void FillPercentRankOrCumeDist(
             {
                 foreach (var row in Physical)
                 {
-                    var dict = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+                    var dict = new Dictionary<string, object?>(Math.Max(ColumnNames.Count, 1), StringComparer.OrdinalIgnoreCase);
                     foreach (var col in ColumnNames)
                     {
                         var idx = Physical.Columns[col].Index;
@@ -21057,7 +22703,7 @@ private void FillPercentRankOrCumeDist(
             {
                 foreach (var row in _result)
                 {
-                    var dict = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+                    var dict = new Dictionary<string, object?>(Math.Max(_result.Columns.Count, 1), StringComparer.OrdinalIgnoreCase);
                     for (int i = 0; i < _result.Columns.Count; i++)
                     {
                         var c = _result.Columns[i];
@@ -21092,7 +22738,7 @@ private void FillPercentRankOrCumeDist(
                     continue;
 
                 var row = Physical[raw];
-                var dict = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+                var dict = new Dictionary<string, object?>(Math.Max(ColumnNames.Count, 1), StringComparer.OrdinalIgnoreCase);
                 foreach (var col in ColumnNames)
                 {
                     var idx = Physical.Columns[col].Index;
@@ -21183,6 +22829,9 @@ private void FillPercentRankOrCumeDist(
         Dictionary<string, object?> Fields,
         Dictionary<string, Source> Sources)
     {
+        internal object?[]? OrdinalValues { get; init; }
+        internal Dictionary<string, int>? OrdinalIndexes { get; init; }
+
         /// <summary>
         /// EN: Implements FromProjected.
         /// PT: Implementa FromProjected.
@@ -21190,14 +22839,39 @@ private void FillPercentRankOrCumeDist(
         public static EvalRow FromProjected(
             TableResultMock res,
             Dictionary<int, object?> row,
-            Dictionary<string, int> aliasToIndex)
+            Dictionary<string, int> aliasToIndex,
+            Dictionary<string, object?>? joinFields = null)
         {
-            var fields = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+            var fields = new Dictionary<string, object?>(
+                Math.Max(aliasToIndex.Count + (joinFields?.Count ?? 0) * 2, 1),
+                StringComparer.OrdinalIgnoreCase);
+            var ordinalValues = new object?[res.Columns.Count];
             foreach (var kv in aliasToIndex)
             {
-                fields[kv.Key] = row.TryGetValue(kv.Value, out var v) ? v : null;
+                var value = row.TryGetValue(kv.Value, out var v) ? v : null;
+                fields[kv.Key] = value;
+                if (kv.Value >= 0 && kv.Value < ordinalValues.Length)
+                    ordinalValues[kv.Value] = value;
             }
-            return new EvalRow(fields, new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase));
+            if (joinFields is not null)
+            {
+                foreach (var pair in joinFields)
+                {
+                    fields.TryAdd(pair.Key, pair.Value);
+
+                    var dot = pair.Key.IndexOf('.');
+                    if (dot <= 0 || dot + 1 >= pair.Key.Length)
+                        continue;
+
+                    fields.TryAdd(pair.Key[(dot + 1)..], pair.Value);
+                }
+            }
+
+            return new EvalRow(fields, new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase))
+            {
+                OrdinalValues = ordinalValues,
+                OrdinalIndexes = new Dictionary<string, int>(aliasToIndex, StringComparer.OrdinalIgnoreCase)
+            };
         }
 
         /// <summary>
@@ -21206,15 +22880,199 @@ private void FillPercentRankOrCumeDist(
         /// </summary>
         public EvalRow CloneRow()
             => new(new Dictionary<string, object?>(Fields, StringComparer.OrdinalIgnoreCase),
-                   new Dictionary<string, Source>(Sources, StringComparer.OrdinalIgnoreCase));
+                   new Dictionary<string, Source>(Sources, StringComparer.OrdinalIgnoreCase))
+            {
+                OrdinalValues = OrdinalValues is null ? null : [.. OrdinalValues],
+                OrdinalIndexes = OrdinalIndexes is null
+                    ? null
+                    : new Dictionary<string, int>(OrdinalIndexes, StringComparer.OrdinalIgnoreCase)
+            };
+
+        /// <summary>
+        /// EN: Clones the row with extra dictionary capacity for upcoming field and source additions.
+        /// PT: Clona a linha com capacidade extra nos dicionarios para futuras adicoes de campos e fontes.
+        /// </summary>
+        /// <param name="extraFieldCapacity">EN: Extra capacity hint for fields. PT: Capacidade extra sugerida para campos.</param>
+        /// <param name="extraSourceCapacity">EN: Extra capacity hint for sources. PT: Capacidade extra sugerida para fontes.</param>
+        public EvalRow CloneRow(int extraFieldCapacity, int extraSourceCapacity)
+        {
+            var fields = new Dictionary<string, object?>(Fields, StringComparer.OrdinalIgnoreCase);
+            fields.EnsureCapacity(Fields.Count + extraFieldCapacity);
+
+            var sources = new Dictionary<string, Source>(Sources, StringComparer.OrdinalIgnoreCase);
+            sources.EnsureCapacity(Sources.Count + extraSourceCapacity);
+
+            return new EvalRow(fields, sources)
+            {
+                OrdinalValues = OrdinalValues is null ? null : [.. OrdinalValues],
+                OrdinalIndexes = OrdinalIndexes is null
+                    ? null
+                    : new Dictionary<string, int>(OrdinalIndexes, StringComparer.OrdinalIgnoreCase)
+            };
+        }
+
+        /// <summary>
+        /// EN: Merges the current row with fields from a joined row and appends the joined source.
+        /// PT: Combina a linha atual com campos de uma linha associada e adiciona a source associada.
+        /// </summary>
+        /// <param name="rightSource">EN: Joined source to append. PT: Source associada a adicionar.</param>
+        /// <param name="rightFields">EN: Fields produced by the joined row. PT: Campos produzidos pela linha associada.</param>
+        internal EvalRow MergeJoinRow(Source rightSource, Dictionary<string, object?> rightFields)
+        {
+            var fields = new Dictionary<string, object?>(Fields, StringComparer.OrdinalIgnoreCase);
+            fields.EnsureCapacity(Fields.Count + rightSource.ColumnNames.Count * 2);
+
+            var sources = new Dictionary<string, Source>(Sources, StringComparer.OrdinalIgnoreCase);
+            sources.EnsureCapacity(Sources.Count + 1);
+            sources[rightSource.Alias] = rightSource;
+
+            object?[]? ordinalValues = null;
+            Dictionary<string, int>? ordinalIndexes = null;
+            var hasLeftOrdinalMetadata = OrdinalValues is not null && OrdinalIndexes is not null;
+            var rightOrdinalCount = rightSource.ColumnNames.Count;
+            if (hasLeftOrdinalMetadata || rightOrdinalCount > 0)
+            {
+                var leftOrdinalCount = hasLeftOrdinalMetadata ? OrdinalValues!.Length : 0;
+                ordinalValues = new object?[leftOrdinalCount + rightOrdinalCount];
+                ordinalIndexes = hasLeftOrdinalMetadata
+                    ? new Dictionary<string, int>(OrdinalIndexes!, StringComparer.OrdinalIgnoreCase)
+                    : new Dictionary<string, int>(Math.Max(1, rightOrdinalCount * 3), StringComparer.OrdinalIgnoreCase);
+
+                if (hasLeftOrdinalMetadata && leftOrdinalCount > 0)
+                    Array.Copy(OrdinalValues!, ordinalValues, leftOrdinalCount);
+
+                if (rightOrdinalCount > 0)
+                {
+                    ordinalIndexes.EnsureCapacity(ordinalIndexes.Count + rightOrdinalCount * 3);
+                    PopulateJoinedSourceColumns(rightSource, rightFields, fields, ordinalValues, ordinalIndexes, leftOrdinalCount, nullValue: null);
+                }
+            }
+
+            return new EvalRow(fields, sources)
+            {
+                OrdinalValues = ordinalValues,
+                OrdinalIndexes = ordinalIndexes
+            };
+        }
+
+        /// <summary>
+        /// EN: Creates a null-extended join row for an unmatched right source.
+        /// PT: Cria uma linha de join com extensao nula para uma source direita sem correspondencia.
+        /// </summary>
+        /// <param name="rightSource">EN: Right-side source to append. PT: Source do lado direito a adicionar.</param>
+        internal EvalRow CreateNullExtendedJoinRow(Source rightSource)
+        {
+            var fields = new Dictionary<string, object?>(Fields, StringComparer.OrdinalIgnoreCase);
+            fields.EnsureCapacity(Fields.Count + rightSource.ColumnNames.Count * 2);
+
+            var sources = new Dictionary<string, Source>(Sources, StringComparer.OrdinalIgnoreCase);
+            sources.EnsureCapacity(Sources.Count + 1);
+            sources[rightSource.Alias] = rightSource;
+
+            object?[]? ordinalValues = null;
+            Dictionary<string, int>? ordinalIndexes = null;
+            var hasLeftOrdinalMetadata = OrdinalValues is not null && OrdinalIndexes is not null;
+            var rightOrdinalCount = rightSource.ColumnNames.Count;
+            if (hasLeftOrdinalMetadata || rightOrdinalCount > 0)
+            {
+                var leftOrdinalCount = hasLeftOrdinalMetadata ? OrdinalValues!.Length : 0;
+                ordinalValues = new object?[leftOrdinalCount + rightOrdinalCount];
+                ordinalIndexes = hasLeftOrdinalMetadata
+                    ? new Dictionary<string, int>(OrdinalIndexes!, StringComparer.OrdinalIgnoreCase)
+                    : new Dictionary<string, int>(Math.Max(1, rightOrdinalCount * 3), StringComparer.OrdinalIgnoreCase);
+
+                if (hasLeftOrdinalMetadata && leftOrdinalCount > 0)
+                    Array.Copy(OrdinalValues!, ordinalValues, leftOrdinalCount);
+
+                if (rightOrdinalCount > 0)
+                {
+                    ordinalIndexes.EnsureCapacity(ordinalIndexes.Count + rightOrdinalCount * 3);
+                    PopulateJoinedSourceColumns(rightSource, null, fields, ordinalValues, ordinalIndexes, leftOrdinalCount, nullValue: null);
+                }
+            }
+
+            return new EvalRow(fields, sources)
+            {
+                OrdinalValues = ordinalValues,
+                OrdinalIndexes = ordinalIndexes
+            };
+        }
+
+        /// <summary>
+        /// EN: Attaches outer-row values without overwriting fields already produced by the inner row.
+        /// PT: Anexa valores da linha externa sem sobrescrever campos ja produzidos pela linha interna.
+        /// </summary>
+        /// <param name="outer">EN: Outer row to overlay. PT: Linha externa a sobrepor.</param>
+        internal EvalRow AttachOuterRow(EvalRow outer)
+        {
+            var fields = new Dictionary<string, object?>(Fields, StringComparer.OrdinalIgnoreCase);
+            fields.EnsureCapacity(Fields.Count + outer.Fields.Count * 2);
+
+            foreach (var it in outer.Fields)
+            {
+                fields.TryAdd(it.Key, it.Value);
+            }
+
+            foreach (var it in outer.Fields)
+            {
+                var dot = it.Key.IndexOf('.');
+                if (dot > 0)
+                {
+                    var col = it.Key[(dot + 1)..];
+                    fields.TryAdd(col, it.Value);
+                }
+            }
+
+            var sources = new Dictionary<string, Source>(Sources, StringComparer.OrdinalIgnoreCase);
+            sources.EnsureCapacity(Sources.Count + outer.Sources.Count);
+
+            foreach (var it in outer.Sources)
+            {
+                sources.TryAdd(it.Key, it.Value);
+            }
+
+            object?[]? ordinalValues = null;
+            Dictionary<string, int>? ordinalIndexes = null;
+            var hasInnerOrdinalMetadata = OrdinalValues is not null && OrdinalIndexes is not null;
+            var hasOuterOrdinalMetadata = outer.OrdinalValues is not null && outer.OrdinalIndexes is not null;
+            if (hasInnerOrdinalMetadata || hasOuterOrdinalMetadata)
+            {
+                var innerOrdinalCount = hasInnerOrdinalMetadata ? OrdinalValues!.Length : 0;
+                var outerOrdinalCount = hasOuterOrdinalMetadata ? outer.OrdinalValues!.Length : 0;
+                ordinalValues = new object?[innerOrdinalCount + outerOrdinalCount];
+                ordinalIndexes = hasInnerOrdinalMetadata
+                    ? new Dictionary<string, int>(OrdinalIndexes!, StringComparer.OrdinalIgnoreCase)
+                    : new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+                if (hasInnerOrdinalMetadata && innerOrdinalCount > 0)
+                    Array.Copy(OrdinalValues!, ordinalValues, innerOrdinalCount);
+
+                if (hasOuterOrdinalMetadata && outerOrdinalCount > 0)
+                {
+                    ordinalIndexes.EnsureCapacity(ordinalIndexes.Count + outer.OrdinalIndexes!.Count);
+                    AppendOrdinalMetadata(outer, ordinalValues, ordinalIndexes, innerOrdinalCount);
+                }
+            }
+
+            return new EvalRow(fields, sources)
+            {
+                OrdinalValues = ordinalValues,
+                OrdinalIndexes = ordinalIndexes
+            };
+        }
 
         /// <summary>
         /// EN: Returns an empty evaluation row placeholder.
         /// PT: Retorna um placeholder de linha de avaliação vazia.
         /// </summary>
         public static EvalRow Empty()
-            => new(new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase),
-                   new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase));
+            => new(
+                new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase),
+                new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase))
+            {
+                OrdinalValues = [],
+                OrdinalIndexes = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            };
 
         /// <summary>
         /// EN: Implements AddSource.
@@ -21229,7 +23087,10 @@ private void FillPercentRankOrCumeDist(
         public void AddFields(Dictionary<string, object?> fields)
         {
             foreach (var it in fields)
+            {
                 Fields[it.Key] = it.Value;
+                UpdateOrdinalValue(it.Key, it.Value);
+            }
 
             // also expose unqualified columns (first wins) for convenience
             foreach (var it in fields)
@@ -21238,9 +23099,90 @@ private void FillPercentRankOrCumeDist(
                 if (dot > 0)
                 {
                     var col = it.Key[(dot + 1)..];
-                    if (!Fields.ContainsKey(col))
-                        Fields[col] = it.Value;
+                    if (Fields.TryAdd(col, it.Value))
+                    {
+                        UpdateOrdinalValue(col, it.Value);
+                    }
                 }
+            }
+        }
+
+        private static void PopulateJoinedSourceColumns(
+            Source source,
+            Dictionary<string, object?>? sourceFields,
+            Dictionary<string, object?> targetFields,
+            object?[] ordinalValues,
+            Dictionary<string, int> ordinalIndexes,
+            int ordinalOffset,
+            object? nullValue)
+        {
+            for (var i = 0; i < source.ColumnNames.Count; i++)
+            {
+                var columnName = source.ColumnNames[i];
+                var qualifiedName = $"{source.Alias}.{columnName}";
+                var ordinalIndex = ordinalOffset + i;
+                var value = sourceFields is not null && sourceFields.TryGetValue(qualifiedName, out var current)
+                    ? current
+                    : nullValue;
+
+                targetFields[qualifiedName] = value;
+                targetFields.TryAdd(columnName, value);
+
+                ordinalValues[ordinalIndex] = value;
+                ordinalIndexes.TryAdd(qualifiedName, ordinalIndex);
+                ordinalIndexes.TryAdd(columnName, ordinalIndex);
+                if (!source.Name.Equals(source.Alias, StringComparison.OrdinalIgnoreCase))
+                    ordinalIndexes.TryAdd($"{source.Name}.{columnName}", ordinalIndex);
+            }
+        }
+
+        private static void AppendOrdinalMetadata(
+            EvalRow sourceRow,
+            object?[] ordinalValues,
+            Dictionary<string, int> ordinalIndexes,
+            int ordinalOffset)
+        {
+            if (sourceRow.OrdinalValues is null || sourceRow.OrdinalIndexes is null)
+                return;
+
+            var sourceOrdinalCount = Math.Min(sourceRow.OrdinalValues.Length, Math.Max(0, ordinalValues.Length - ordinalOffset));
+            if (sourceOrdinalCount > 0)
+                Array.Copy(sourceRow.OrdinalValues, 0, ordinalValues, ordinalOffset, sourceOrdinalCount);
+
+            foreach (var kv in sourceRow.OrdinalIndexes)
+            {
+                if (kv.Value < 0 || kv.Value >= sourceOrdinalCount)
+                    continue;
+
+                ordinalIndexes.TryAdd(kv.Key, ordinalOffset + kv.Value);
+            }
+        }
+
+        private void UpdateOrdinalValue(string fieldName, object? value)
+        {
+            if (OrdinalIndexes is null
+                || OrdinalValues is null)
+            {
+                return;
+            }
+
+            if (OrdinalIndexes.TryGetValue(fieldName, out var ordinalIndex)
+                && ordinalIndex >= 0
+                && ordinalIndex < OrdinalValues.Length)
+            {
+                OrdinalValues[ordinalIndex] = value;
+                return;
+            }
+
+            var dot = fieldName.IndexOf('.');
+            if (dot <= 0)
+                return;
+
+            if (OrdinalIndexes.TryGetValue(fieldName[(dot + 1)..], out ordinalIndex)
+                && ordinalIndex >= 0
+                && ordinalIndex < OrdinalValues.Length)
+            {
+                OrdinalValues[ordinalIndex] = value;
             }
         }
 
@@ -21252,50 +23194,65 @@ private void FillPercentRankOrCumeDist(
         /// <param name="columnName">EN: Column name to read. PT: Nome da coluna a ler.</param>
         /// <returns>EN: The field value when present; otherwise null. PT: O valor do campo quando presente; caso contrário, null.</returns>
         public object? GetByName(string columnName)
-        {
-            if (Fields.TryGetValue(columnName, out var direct))
-                return direct;
+            => TryGetValue(columnName, out var value) ? value : null;
 
-            var hit = Fields.FirstOrDefault(kv => kv.Key.EndsWith($".{columnName}", StringComparison.OrdinalIgnoreCase));
-            return hit.Equals(default(KeyValuePair<string, object?>)) ? null : hit.Value;
+        internal bool TryGetValue(string columnName, out object? value)
+        {
+            var hasOrdinalMetadata = OrdinalIndexes is not null
+                && OrdinalValues is not null;
+
+            if (OrdinalIndexes is not null
+                && OrdinalValues is not null
+                && OrdinalIndexes.TryGetValue(columnName, out var ordinalIndex)
+                && ordinalIndex >= 0
+                && ordinalIndex < OrdinalValues.Length)
+            {
+                value = OrdinalValues[ordinalIndex];
+                return true;
+            }
+
+            var dot = columnName.IndexOf('.');
+            if (dot > 0
+                && OrdinalIndexes is not null
+                && OrdinalValues is not null
+                && OrdinalIndexes.TryGetValue(columnName[(dot + 1)..], out ordinalIndex)
+                && ordinalIndex >= 0
+                && ordinalIndex < OrdinalValues.Length)
+            {
+                value = OrdinalValues[ordinalIndex];
+                return true;
+            }
+
+            if (Fields.TryGetValue(columnName, out var direct))
+            {
+                value = direct;
+                return true;
+            }
+
+            if (hasOrdinalMetadata)
+            {
+                value = null;
+                return false;
+            }
+
+            foreach (var hit in Fields)
+            {
+                if (!hit.Key.EndsWith($".{columnName}", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                value = hit.Value;
+                return true;
+            }
+
+            value = null;
+            return false;
         }
     }
 
     private static EvalRow AttachOuterRow(
         EvalRow inner,
         EvalRow outer)
-    {
-        // inner vence sempre (regra: o que o subselect produziu não deve ser sobrescrito)
-        var merged = inner.CloneRow();
-
-        // 1) Fields do outer entram só se não existirem no inner
-        foreach (var it in outer.Fields)
-        {
-            if (!merged.Fields.ContainsKey(it.Key))
-                merged.Fields[it.Key] = it.Value;
-        }
-
-        // 2) Também expõe colunas não qualificadas do outer (sem sobrescrever)
-        foreach (var it in outer.Fields)
-        {
-            var dot = it.Key.IndexOf('.');
-            if (dot > 0)
-            {
-                var col = it.Key[(dot + 1)..];
-                if (!merged.Fields.ContainsKey(col))
-                    merged.Fields[col] = it.Value;
-            }
-        }
-
-        // 3) Sources: não sobrescreve alias do inner
-        foreach (var it in outer.Sources)
-        {
-            if (!merged.Sources.ContainsKey(it.Key))
-                merged.Sources[it.Key] = it.Value;
-        }
-
-        return merged;
-    }
+        => inner.AttachOuterRow(outer);
 
     internal sealed class EvalGroup
     {

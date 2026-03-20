@@ -232,7 +232,7 @@ public sealed class NpgsqlDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse("SELECT SQL_CALC_FOUND_ROWS name FROM users LIMIT 1", new NpgsqlDialect(version)));
 
-        Assert.Contains("SQL_CALC_FOUND_ROWS", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.SQL_CALC_FOUND_ROWS, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -4129,7 +4129,7 @@ WHERE id = 1";
 
         var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
-        Assert.Contains("PIVOT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.PIVOT, ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("npgsql", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4203,7 +4203,7 @@ WHERE id = 1";
         {
             var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
-            Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.MERGE, ex.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("npgsql", ex.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("não suportado", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;

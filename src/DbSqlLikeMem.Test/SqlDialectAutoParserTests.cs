@@ -717,7 +717,7 @@ public sealed class SqlDialectAutoParserTests(
         Assert.Equal("JSON_EXTRACT", extract.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("JSON_VALUE", value.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("JSON_VALUE", valueReturning.Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("OPENJSON", openJson.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.OPENJSON, openJson.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("RETURNING NUMBER", Assert.IsType<RawSqlExpr>(valueReturning.Args[2]).Sql, ignoreCase: true);
     }
 
@@ -1044,7 +1044,7 @@ public sealed class SqlDialectAutoParserTests(
         var coalesceExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("COALESCE(name, 'n/a')"));
         var nullIfExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("NULLIF(name, 'n/a')"));
 
-        Assert.Equal("IF", ifExpr.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.IF, ifExpr.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("IIF", iifExpr.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("IFNULL", ifNullExpr.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("ISNULL", isNullExpr.Name, StringComparer.OrdinalIgnoreCase);
@@ -1215,7 +1215,7 @@ public sealed class SqlDialectAutoParserTests(
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.ParseAuto(
             "SELECT SQL_CALC_FOUND_ROWS Name FROM users ORDER BY Id LIMIT 1"));
 
-        Assert.Contains("SQL_CALC_FOUND_ROWS", parsed.RawSql ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.SQL_CALC_FOUND_ROWS, parsed.RawSql ?? string.Empty, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

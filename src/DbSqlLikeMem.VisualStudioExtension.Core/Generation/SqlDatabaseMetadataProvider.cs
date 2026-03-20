@@ -85,18 +85,20 @@ public sealed class SqlDatabaseMetadataProvider : IDatabaseMetadataProvider
         return reference with { Properties = properties };
     }
 
+    private static readonly HashSet<string> DatabaseTypesRequiringNameParsing = new(StringComparer.Ordinal)
+    {
+        "mysql",
+        "sqlserver",
+        "sqlazure",
+        "azuresql",
+        "postgresql"
+    };
 
     private static string ResolveDatabaseNameForMetadata(ConnectionDefinition connection)
     {
         var databaseType = NormalizeDatabaseType(connection.DatabaseType);
-        if (!databaseType.Equals("mysql", StringComparison.Ordinal)
-            && !databaseType.Equals("sqlserver", StringComparison.Ordinal)
-            && !databaseType.Equals("sqlazure", StringComparison.Ordinal)
-            && !databaseType.Equals("azuresql", StringComparison.Ordinal)
-            && !databaseType.Equals("postgresql", StringComparison.Ordinal))
-        {
+        if (!DatabaseTypesRequiringNameParsing.Contains(databaseType))
             return connection.DatabaseName;
-        }
 
         try
         {
@@ -185,7 +187,7 @@ public sealed class SqlDatabaseMetadataProvider : IDatabaseMetadataProvider
             .Select(r => new
             {
                 IndexName = ReadString(r, "IndexName"),
-                IsUnique = ReadBoolFlexible(r, "IsUnique") || ReadString(r, "Uniqueness").Equals("UNIQUE", StringComparison.OrdinalIgnoreCase) || ReadString(r, "UniqueRule").Equals("U", StringComparison.OrdinalIgnoreCase) || ReadInt(r, "NonUnique") == 0,
+                IsUnique = ReadBoolFlexible(r, "IsUnique") || ReadString(r, "Uniqueness").Equals(Const.UNIQUE, StringComparison.OrdinalIgnoreCase) || ReadString(r, "UniqueRule").Equals("U", StringComparison.OrdinalIgnoreCase) || ReadInt(r, "NonUnique") == 0,
                 Column = ReadString(r, "ColumnName"),
                 Seq = ReadInt(r, "Seq")
             })
@@ -203,7 +205,7 @@ public sealed class SqlDatabaseMetadataProvider : IDatabaseMetadataProvider
     }
 
     private static bool IsPrimaryIndexName(string indexName)
-        => indexName.Equals("PRIMARY", StringComparison.OrdinalIgnoreCase)
+        => indexName.Equals(Const.PRIMARY, StringComparison.OrdinalIgnoreCase)
            || indexName.Equals("PK", StringComparison.OrdinalIgnoreCase)
            || indexName.StartsWith("PK_", StringComparison.OrdinalIgnoreCase);
 
@@ -246,7 +248,9 @@ public sealed class SqlDatabaseMetadataProvider : IDatabaseMetadataProvider
         var name = ReadString(row, "ObjectName");
         var typeRaw = ReadString(row, "ObjectType");
 
-        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(typeRaw) || !Enum.TryParse<DatabaseObjectType>(typeRaw, true, out var type))
+        if (string.IsNullOrWhiteSpace(name)
+            || string.IsNullOrWhiteSpace(typeRaw)
+            || !Enum.TryParse<DatabaseObjectType>(typeRaw, true, out var type))
         {
             return null;
         }
@@ -258,7 +262,10 @@ public sealed class SqlDatabaseMetadataProvider : IDatabaseMetadataProvider
     {
         var s = ReadString(row, key);
         if (string.IsNullOrWhiteSpace(s)) return false;
-        return s.Equals("1", StringComparison.OrdinalIgnoreCase) || s.Equals("true", StringComparison.OrdinalIgnoreCase) || s.Equals("yes", StringComparison.OrdinalIgnoreCase) || s.Equals("y", StringComparison.OrdinalIgnoreCase);
+        return s.Equals("1", StringComparison.OrdinalIgnoreCase)
+            || s.Equals("true", StringComparison.OrdinalIgnoreCase)
+            || s.Equals("yes", StringComparison.OrdinalIgnoreCase)
+            || s.Equals("y", StringComparison.OrdinalIgnoreCase);
     }
 
     private static long? ReadNullableLong(IReadOnlyDictionary<string, object?> row, string key)

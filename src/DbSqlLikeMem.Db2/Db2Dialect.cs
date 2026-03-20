@@ -12,8 +12,8 @@ internal sealed class Db2Dialect : SqlDialectBase
         keywords: [],
         binOps:
         [
-            new KeyValuePair<string, SqlBinaryOp>("AND", SqlBinaryOp.And),
-            new KeyValuePair<string, SqlBinaryOp>("OR", SqlBinaryOp.Or),
+            new KeyValuePair<string, SqlBinaryOp>(SqlConst.AND, SqlBinaryOp.And),
+            new KeyValuePair<string, SqlBinaryOp>(SqlConst.OR, SqlBinaryOp.Or),
             new KeyValuePair<string, SqlBinaryOp>("=", SqlBinaryOp.Eq),
             new KeyValuePair<string, SqlBinaryOp>("<>", SqlBinaryOp.Neq),
             new KeyValuePair<string, SqlBinaryOp>("!=", SqlBinaryOp.Neq),
@@ -155,8 +155,8 @@ internal sealed class Db2Dialect : SqlDialectBase
             || functionName.Equals("POWER", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("RADIANS", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("RAND", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("REPLACE", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("RIGHT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals(SqlConst.REPLACE, StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals(SqlConst.RIGHT, StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("ROUND", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("SIGN", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("SIN", StringComparison.OrdinalIgnoreCase)
@@ -174,7 +174,7 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// EN: Gets the null substitute function names supported by DB2 compatibility behavior.
     /// PT: Obtém os nomes de funções de substituição de nulos suportados pelo comportamento de compatibilidade do DB2.
     /// </summary>
-    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["COALESCE", "VALUE", "IFNULL", "NVL"];
+    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["COALESCE", SqlConst.VALUE, "IFNULL", "NVL"];
     public override IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames
         => new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase)
         {

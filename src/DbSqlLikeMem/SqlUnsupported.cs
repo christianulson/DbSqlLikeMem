@@ -35,11 +35,11 @@ internal static class SqlUnsupported
     {
         var hint = feature.ToUpperInvariant() switch
         {
-            "LIMIT" when string.Equals(dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase)
+            SqlConst.LIMIT when string.Equals(dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase)
                 => "Use OFFSET ... FETCH com ORDER BY.",
-            "FETCH FIRST/NEXT" when string.Equals(dialect.Name, "mysql", StringComparison.OrdinalIgnoreCase)
+            SqlConst.FETCH_FIRST_NEXT when string.Equals(dialect.Name, "mysql", StringComparison.OrdinalIgnoreCase)
                 => "Use LIMIT [offset,] count.",
-            "OFFSET/FETCH" when string.Equals(dialect.Name, "sqlite", StringComparison.OrdinalIgnoreCase)
+            SqlConst.OFFSET_FETCH when string.Equals(dialect.Name, "sqlite", StringComparison.OrdinalIgnoreCase)
                 => "Use LIMIT ... OFFSET.",
             _ => "Use a sintaxe de paginação suportada pelo dialeto/versão atual."
         };

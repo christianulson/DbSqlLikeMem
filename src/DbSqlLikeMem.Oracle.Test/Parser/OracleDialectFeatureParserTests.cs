@@ -236,7 +236,7 @@ public sealed class OracleDialectFeatureParserTests
 
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
 
-        Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.MERGE, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -261,6 +261,24 @@ public sealed class OracleDialectFeatureParserTests
         Assert.NotNull(parsed.Table);
         Assert.Equal("users", parsed.Table!.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("target", parsed.Table.Alias, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures Oracle accepts OUTER APPLY in versions that support APPLY semantics.
+    /// PT: Garante que o Oracle aceite OUTER APPLY nas versoes que suportam semantica APPLY.
+    /// </summary>
+    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion(VersionGraterOrEqual = 12)]
+    public void ParseSelect_OuterApply_ShouldParse(int version)
+    {
+        const string sql = "SELECT COUNT(*) FROM users u OUTER APPLY (SELECT o.Note FROM orders o WHERE o.UserId = u.Id ORDER BY o.Id DESC FETCH FIRST 1 ROW ONLY) x";
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new OracleDialect(version)));
+
+        Assert.Single(parsed.Joins);
+        Assert.Equal(SqlJoinType.OuterApply, parsed.Joins[0].Type);
     }
 
 
@@ -786,7 +804,7 @@ public sealed class OracleDialectFeatureParserTests
         AssertOracleVersionedParsing(version, dialect, "JSON_TRANSFORM(amount)", "JSON_TRANSFORM", OracleDialect.OracleJsonTransformMinVersion);
         AssertOracleVersionedParsing(version, dialect, "JSON_VALUE(amount, '$.a')", "JSON_VALUE", OracleDialect.OracleJsonSqlFunctionMinVersion);
         AssertOracleVersionedParsing(version, dialect, "JSON_QUERY(amount, '$.a')", "JSON_QUERY", OracleDialect.OracleJsonSqlFunctionMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "JSON_TABLE(amount, '$')", "JSON_TABLE", OracleDialect.OracleJsonSqlFunctionMinVersion);
+        AssertOracleVersionedParsing(version, dialect, "JSON_TABLE(amount, '$')", SqlConst.JSON_TABLE, OracleDialect.OracleJsonSqlFunctionMinVersion);
         AssertOracleVersionedParsing(version, dialect, "COLLATION(amount)", "COLLATION", OracleDialect.OracleCollationFunctionMinVersion);
         AssertOracleVersionedParsing(version, dialect, "NLS_CHARSET_DECL_LEN(amount)", "NLS_CHARSET_DECL_LEN", 7);
         AssertOracleVersionedParsing(version, dialect, "NLS_CHARSET_ID(amount)", "NLS_CHARSET_ID", 7);

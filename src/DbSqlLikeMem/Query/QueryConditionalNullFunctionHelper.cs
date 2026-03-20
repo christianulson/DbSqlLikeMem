@@ -22,7 +22,7 @@ internal static class QueryConditionalNullFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        var isIf = fn.Name.Equals("IF", StringComparison.OrdinalIgnoreCase);
+        var isIf = fn.Name.Equals(SqlConst.IF, StringComparison.OrdinalIgnoreCase);
         var isIif = fn.Name.Equals("IIF", StringComparison.OrdinalIgnoreCase);
         if (!((isIf && dialect.SupportsIfFunction) || (isIif && dialect.SupportsIifFunction)))
         {

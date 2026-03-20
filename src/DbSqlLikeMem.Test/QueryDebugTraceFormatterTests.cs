@@ -19,7 +19,7 @@ public sealed class QueryDebugTraceFormatterTests(
     public void Format_ShouldRenderStatementContext_AndOrderedSteps()
     {
         var trace = new QueryDebugTrace(
-            "SELECT",
+            SqlConst.SELECT,
             0,
             "SELECT Id FROM users",
             [
@@ -74,12 +74,12 @@ public sealed class QueryDebugTraceFormatterTests(
         List<QueryDebugTrace> traces =
         [
             new QueryDebugTrace(
-                "SELECT",
+                SqlConst.SELECT,
                 0,
                 "SELECT 1",
                 [new QueryDebugTraceStep("Project", 1, 1, Ms(0.1m))]),
             new QueryDebugTrace(
-                "UNION",
+                SqlConst.UNION,
                 1,
                 "SELECT 2",
                 [
@@ -123,7 +123,7 @@ public sealed class QueryDebugTraceFormatterTests(
     public void FormatJson_ShouldEmitStableStructuredPayload()
     {
         var trace = new QueryDebugTrace(
-            "SELECT",
+            SqlConst.SELECT,
             2,
             "SELECT Id FROM users",
             [new QueryDebugTraceStep("Project", 3, 3, Ms(0.4m), "columns=1")]);
@@ -133,7 +133,7 @@ public sealed class QueryDebugTraceFormatterTests(
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
 
-        root.GetProperty("queryType").GetString().Should().Be("SELECT");
+        root.GetProperty("queryType").GetString().Should().Be(SqlConst.SELECT);
         root.GetProperty("statementIndex").GetInt32().Should().Be(2);
         root.GetProperty("sqlText").GetString().Should().Be("SELECT Id FROM users");
         root.GetProperty("stepCount").GetInt32().Should().Be(1);
@@ -172,7 +172,7 @@ public sealed class QueryDebugTraceFormatterTests(
     public void QueryDebugTrace_ShouldKeepEarliestStep_WhenMetricsTie()
     {
         var trace = new QueryDebugTrace(
-            "SELECT",
+            SqlConst.SELECT,
             0,
             "SELECT 1",
             [
@@ -202,9 +202,9 @@ public sealed class QueryDebugTraceFormatterTests(
     {
         List<QueryDebugTrace> traces =
         [
-            new QueryDebugTrace("SELECT", 0, "SELECT 1", [new QueryDebugTraceStep("Project", 1, 1, Ms(0.1m))]),
+            new QueryDebugTrace(SqlConst.SELECT, 0, "SELECT 1", [new QueryDebugTraceStep("Project", 1, 1, Ms(0.1m))]),
             new QueryDebugTrace(
-                "UNION",
+                SqlConst.UNION,
                 1,
                 "SELECT 2",
                 [
@@ -265,8 +265,8 @@ public sealed class QueryDebugTraceFormatterTests(
     {
         List<QueryDebugTrace> traces =
         [
-            new QueryDebugTrace("SELECT", 0, "SELECT 1", [new QueryDebugTraceStep("Project", 2, 2, Ms(0.5m))]),
-            new QueryDebugTrace("SELECT", 1, "SELECT 2", [new QueryDebugTraceStep("Project", 2, 2, Ms(0.5m))])
+            new QueryDebugTrace(SqlConst.SELECT, 0, "SELECT 1", [new QueryDebugTraceStep("Project", 2, 2, Ms(0.5m))]),
+            new QueryDebugTrace(SqlConst.SELECT, 1, "SELECT 2", [new QueryDebugTraceStep("Project", 2, 2, Ms(0.5m))])
         ];
 
         var text = QueryDebugTraceFormatter.FormatBatch(traces);

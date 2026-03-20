@@ -54,16 +54,16 @@ public sealed class SqlQueryParserCorpusTests(
                 : SqlCaseExpectation.ParseOk;
 
             var trimmed = sql.TrimStart();
-            if (trimmed.StartsWith("MERGE", StringComparison.OrdinalIgnoreCase))
+            if (trimmed.StartsWith(SqlConst.MERGE, StringComparison.OrdinalIgnoreCase))
                 minVersion = SqlServerDialect.MergeMinVersion;
-            else if (trimmed.Contains("WITH", StringComparison.OrdinalIgnoreCase))
+            else if (trimmed.Contains(SqlConst.WITH, StringComparison.OrdinalIgnoreCase))
                 minVersion = SqlServerDialect.WithCteMinVersion;
-            else if (trimmed.Contains("FETCH", StringComparison.OrdinalIgnoreCase))
+            else if (trimmed.Contains(SqlConst.FETCH, StringComparison.OrdinalIgnoreCase))
                 minVersion = SqlServerDialect.OffsetFetchMinVersion;
-            else if (trimmed.Contains("FOR JSON", StringComparison.OrdinalIgnoreCase))
+            else if (trimmed.Contains(SqlConst.FOR_JSON, StringComparison.OrdinalIgnoreCase))
                 minVersion = SqlServerDialect.JsonFunctionsMinVersion;
             else if (trimmed.Contains("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
-                || trimmed.Contains("OPENJSON", StringComparison.OrdinalIgnoreCase))
+                || trimmed.Contains(SqlConst.OPENJSON, StringComparison.OrdinalIgnoreCase))
                 minVersion = SqlServerDialect.JsonFunctionsMinVersion;
 
             yield return Case(sql, why, expectation, minVersion);
@@ -77,7 +77,7 @@ public sealed class SqlQueryParserCorpusTests(
             var minVersion = 0;
 
             var trimmed = sql.TrimStart();
-            if (trimmed.Contains("WITH", StringComparison.OrdinalIgnoreCase))
+            if (trimmed.Contains(SqlConst.WITH, StringComparison.OrdinalIgnoreCase))
                 minVersion = SqlServerDialect.WithCteMinVersion;
 
             yield return Case(sql, why, SqlCaseExpectation.ThrowInvalid, minVersion);
@@ -91,7 +91,7 @@ public sealed class SqlQueryParserCorpusTests(
             var minVersion = 0;
 
             var trimmed = sql.TrimStart();
-            if (trimmed.Contains("WITH", StringComparison.OrdinalIgnoreCase))
+            if (trimmed.Contains(SqlConst.WITH, StringComparison.OrdinalIgnoreCase))
                 minVersion = SqlServerDialect.WithCteMinVersion;
 
 
