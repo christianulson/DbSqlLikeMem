@@ -5,15 +5,23 @@ internal static class SelectPlanProjectionHelper
     internal static bool IncludeExtraColumns(
         AstQueryExecutorBase.EvalRow? sampleRow,
         List<TableResultColMock> columns,
+        HashSet<string> usedAliases,
         List<Func<AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, object?>> evaluators,
         string rawExpression,
         Func<string?, string, AstQueryExecutorBase.EvalRow, object?> resolveColumn)
     {
-        var starMatch = Regex.Match(rawExpression, @"^(?<p>.+?)\s*\.\s*\*\s*$");
-        if (!starMatch.Success)
+        var trimmedExpression = rawExpression.Trim();
+        if (trimmedExpression.Length < 3 || trimmedExpression[^1] != '*')
             return true;
 
-        var prefix = starMatch.Groups["p"].Value.Trim().Trim('`');
+        var dotIndex = trimmedExpression.LastIndexOf('.');
+        if (dotIndex <= 0)
+            return true;
+
+        var prefix = trimmedExpression[..dotIndex].Trim().Trim('`');
+        if (prefix.Length == 0)
+            return true;
+
         if (sampleRow is null)
             return true;
 
@@ -23,7 +31,7 @@ internal static class SelectPlanProjectionHelper
         if (source is null)
             return true;
 
-        AppendSourceColumns(columns, evaluators, source, resolveColumn);
+        AppendSourceColumns(columns, usedAliases, evaluators, source, resolveColumn);
         return false;
     }
 
@@ -31,28 +39,11 @@ internal static class SelectPlanProjectionHelper
         AstQueryExecutorBase.EvalRow sampleRow,
         string alias,
         out AstQueryExecutorBase.Source? source)
-    {
-        if (sampleRow.Sources.TryGetValue(alias, out var directSource))
-        {
-            source = directSource;
-            return true;
-        }
-
-        foreach (var candidate in sampleRow.Sources)
-        {
-            if (!candidate.Key.Equals(alias, StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            source = candidate.Value;
-            return true;
-        }
-
-        source = null;
-        return false;
-    }
+        => sampleRow.Sources.TryGetValue(alias, out source);
 
     internal static bool ExpandSelectAsterisk(
         List<TableResultColMock> columns,
+        HashSet<string> usedAliases,
         List<Func<AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, object?>> evaluators,
         AstQueryExecutorBase.EvalRow? sampleRow,
         string rawExpression,
@@ -65,7 +56,7 @@ internal static class SelectPlanProjectionHelper
             return false;
 
         foreach (var source in sampleRow.Sources.Values)
-            AppendSourceColumns(columns, evaluators, source, resolveColumn);
+            AppendSourceColumns(columns, usedAliases, evaluators, source, resolveColumn);
 
         return false;
     }
@@ -75,7 +66,7 @@ internal static class SelectPlanProjectionHelper
 
     internal static string InferColumnAlias(string rawExpression)
     {
-        var normalized = Regex.Replace(rawExpression.Trim(), @"\s*\.\s*", ".");
+        var normalized = rawExpression.Trim();
         var dotIndex = normalized.LastIndexOf('.');
         if (dotIndex >= 0 && dotIndex + 1 < normalized.Length)
             return normalized[(dotIndex + 1)..].Trim().Trim('`');
@@ -84,22 +75,22 @@ internal static class SelectPlanProjectionHelper
     }
 
     internal static string MakeUniqueAlias(
-        List<TableResultColMock> columns,
+        HashSet<string> usedAliases,
         string preferredAlias,
         string tableAlias)
     {
-        if (!columns.Any(column => column.ColumnAlias.Equals(preferredAlias, StringComparison.OrdinalIgnoreCase)))
+        if (usedAliases.Add(preferredAlias))
             return preferredAlias;
 
         var alternativeAlias = $"{tableAlias}_{preferredAlias}";
-        if (!columns.Any(column => column.ColumnAlias.Equals(alternativeAlias, StringComparison.OrdinalIgnoreCase)))
+        if (usedAliases.Add(alternativeAlias))
             return alternativeAlias;
 
         var suffix = 2;
         while (true)
         {
             var candidateAlias = $"{alternativeAlias}_{suffix}";
-            if (!columns.Any(column => column.ColumnAlias.Equals(candidateAlias, StringComparison.OrdinalIgnoreCase)))
+            if (usedAliases.Add(candidateAlias))
                 return candidateAlias;
 
             suffix++;
@@ -124,14 +115,17 @@ internal static class SelectPlanProjectionHelper
 
     private static void AppendSourceColumns(
         List<TableResultColMock> columns,
+        HashSet<string> usedAliases,
         List<Func<AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, object?>> evaluators,
         AstQueryExecutorBase.Source source,
         Func<string?, string, AstQueryExecutorBase.EvalRow, object?> resolveColumn)
     {
         foreach (var columnName in source.ColumnNames)
         {
-            var alias = MakeUniqueAlias(columns, columnName, source.Alias);
-            var isJsonFragment = source.TryGetColumnMetadata(columnName, out var metadata) && metadata.IsJsonFragment;
+            var alias = MakeUniqueAlias(usedAliases, columnName, source.Alias);
+            var isJsonFragment = source.TryGetColumnMetadata(columnName, out var metadata)
+                && metadata is not null
+                && metadata.IsJsonFragment;
             var dbType = metadata?.DbType ?? DbType.Object;
             var isNullable = metadata?.IsNullable ?? true;
             columns.Add(new TableResultColMock(source.Alias, alias, columnName, columns.Count, dbType, isNullable, isJsonFragment));

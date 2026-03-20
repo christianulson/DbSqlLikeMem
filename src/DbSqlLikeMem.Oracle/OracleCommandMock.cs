@@ -169,6 +169,7 @@ public class OracleCommandMock(
         connection!.ClearExecutionPlans();
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
         using var _ = connection.Metrics.BeginAmbientScope();
+        using var currentQueryScope = connection.BeginCurrentQueryScope(CommandText);
 
         if (connection.TryHandleExecuteReaderPrelude(
             CommandType,
@@ -203,6 +204,7 @@ public class OracleCommandMock(
             var query = SqlQueryParser.Parse(sqlRaw, connection.ExecutionDialect, Parameters);
             parsedStatementCount++;
 
+            using var statementQueryScope = connection.BeginCurrentQueryScope(sqlRaw);
             connection.DispatchParsedReaderQuery(
                 query,
                 Parameters,
@@ -642,6 +644,7 @@ public class OracleCommandMock(
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
         using var _ = connection!.Metrics.BeginAmbientScope();
+        using var currentQueryScope = connection.BeginCurrentQueryScope(CommandText);
         if (connection.TryHandleExecuteScalarPrelude(
             CommandType,
             CommandText,

@@ -1310,7 +1310,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
         if (value is object?[] tuple)
             return "[" + string.Join(",", tuple.Select(NormalizeSubqueryCacheValue)) + "]";
 
-        return Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+        return Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
     }
 
 

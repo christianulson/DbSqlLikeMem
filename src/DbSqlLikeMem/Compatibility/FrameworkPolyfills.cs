@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 #if NET462 || NETSTANDARD2_0
 
 namespace System.Runtime.CompilerServices
@@ -220,8 +222,8 @@ namespace DbSqlLikeMem
         /// </summary>
         public static long GetElapsedTicks(long startTimestamp)
         {
-            var delta = System.Diagnostics.Stopwatch.GetTimestamp() - startTimestamp;
-            return (delta * TimeSpan.TicksPerSecond) / System.Diagnostics.Stopwatch.Frequency;
+            var delta = Stopwatch.GetTimestamp() - startTimestamp;
+            return (delta * TimeSpan.TicksPerSecond) / Stopwatch.Frequency;
         }
     }
 }

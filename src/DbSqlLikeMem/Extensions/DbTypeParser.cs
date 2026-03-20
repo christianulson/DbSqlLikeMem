@@ -91,7 +91,7 @@ public static class DbTypeParser
     private static object ParseObject(string value)
     {
         if (LooksLikeJson(value))
-            return System.Text.Json.JsonDocument.Parse(value);
+            return JsonDocument.Parse(value);
 
         if (TryParseBool(value, out var boolValue))
             return boolValue;

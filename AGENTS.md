@@ -79,6 +79,7 @@ Example:
 - Do not reformat unrelated code.
 - Do not replace meaningful summaries with generic summaries.
 - Do not remove existing valid XML comments just to restyle them unless consistency is the goal of the current task.
+- nunca deixe um erros do tipo: CS8600, CS8602, CS8604
 
 ## Validation Guidance
 

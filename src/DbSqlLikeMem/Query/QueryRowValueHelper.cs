@@ -122,9 +122,12 @@ internal static class QueryRowValueHelper
         AstQueryExecutorBase.EvalRow row,
         out object? value)
     {
+        if (row.TryGetSingleSource(out var singleSource))
+            return TryResolveQualifiedNameValue(singleSource!, name, row, out value);
+
         foreach (var source in row.Sources.Values)
         {
-            if (row.TryGetValue($"{source.Alias}.{name}", out value))
+            if (TryResolveQualifiedNameValue(source, name, row, out value))
                 return true;
         }
 
@@ -149,6 +152,9 @@ internal static class QueryRowValueHelper
         AstQueryExecutorBase.EvalRow row,
         out object? value)
     {
+        if (row.TryGetSingleSource(out var singleSource))
+            return TryResolveColumnFromSource(singleSource!, columnName, row, out value);
+
         foreach (var source in row.Sources.Values)
         {
             if (TryResolveColumnFromSource(source, columnName, row, out value))
@@ -179,15 +185,16 @@ internal static class QueryRowValueHelper
         if (col == "*")
             return null;
 
-        return TryResolveColumnFromSource(source, col, row, out var value)
+        return TryResolveQualifiedNameValue(source, col, row, out var value)
             ? value
             : null;
     }
 
     private static string GetLastQualifierSegment(string qualifier)
-        => qualifier.Contains('.')
-            ? qualifier.Split('.').Last()
-            : qualifier;
+    {
+        var dot = qualifier.LastIndexOf('.');
+        return dot >= 0 ? qualifier[(dot + 1)..] : qualifier;
+    }
 
     private static AstQueryExecutorBase.Source? FindQualifiedSource(
         string qualifier,
@@ -198,6 +205,13 @@ internal static class QueryRowValueHelper
             || row.Sources.TryGetValue(lastQualifier, out source))
         {
             return source;
+        }
+
+        if (row.TryGetSingleSource(out var singleSource)
+            && (singleSource!.Name.Equals(qualifier, StringComparison.OrdinalIgnoreCase)
+                || singleSource.Name.Equals(lastQualifier, StringComparison.OrdinalIgnoreCase)))
+        {
+            return singleSource;
         }
 
         foreach (var candidate in row.Sources.Values)
@@ -219,10 +233,26 @@ internal static class QueryRowValueHelper
         AstQueryExecutorBase.EvalRow row,
         out object? value)
     {
-        if (row.TryGetValue($"{lastQualifier}.{columnName}", out value))
+        if (TryResolveQualifiedFieldFromSources(row, columnName, out value))
             return true;
 
-        return row.TryGetValue($"{qualifier}.{columnName}", out value);
+        var directQualifiedName = $"{qualifier}.{columnName}";
+        if (row.Fields.TryGetValue(directQualifiedName, out value))
+            return true;
+
+        if (!string.Equals(lastQualifier, qualifier, StringComparison.OrdinalIgnoreCase))
+        {
+            var lastQualifiedName = $"{lastQualifier}.{columnName}";
+            if (row.Fields.TryGetValue(lastQualifiedName, out value))
+                return true;
+        }
+
+        if (row.TryGetSingleSource(out var singleSource)
+            && TryResolveQualifiedFieldFromSource(singleSource!, columnName, row, out value))
+            return true;
+
+        value = null;
+        return false;
     }
 
     private static bool TryResolveColumnFromSource(
@@ -231,16 +261,8 @@ internal static class QueryRowValueHelper
         AstQueryExecutorBase.EvalRow row,
         out object? value)
     {
-        if (row.TryGetValue($"{source.Alias}.{columnName}", out value))
+        if (TryResolveQualifiedNameValue(source, columnName, row, out value))
             return true;
-
-        foreach (var matchedColumn in source.ColumnNames)
-        {
-            if (!matchedColumn.Equals(columnName, StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            return row.TryGetValue($"{source.Alias}.{matchedColumn}", out value);
-        }
 
         value = null;
         return false;
@@ -250,42 +272,94 @@ internal static class QueryRowValueHelper
         AstQueryExecutorBase.EvalRow row,
         out object? rowId)
     {
+        if (row.TryGetSingleSource(out var singleSource))
+            return TryResolveRowIdFromSource(singleSource!, row, out rowId);
+
         foreach (var source in row.Sources.Values)
         {
-            if (source.Physical is null || source.Physical.PrimaryKeyIndexes.Count != 1)
-                continue;
-
-            var pkIndex = default(int);
-            foreach (var candidatePkIndex in source.Physical.PrimaryKeyIndexes)
-            {
-                pkIndex = candidatePkIndex;
-                break;
-            }
-            string? pkColumn = null;
-            foreach (var column in source.Physical.Columns)
-            {
-                if (column.Value.Index == pkIndex)
-                {
-                    pkColumn = column.Key;
-                    break;
-                }
-            }
-
-            if (string.IsNullOrWhiteSpace(pkColumn))
-                continue;
-
-            if (row.TryGetValue($"{source.Alias}.{pkColumn}", out var resolvedRowId)
-                || row.TryGetValue(pkColumn!, out resolvedRowId))
-            {
-                if (resolvedRowId is not DBNull)
-                {
-                    rowId = resolvedRowId;
-                    return true;
-                }
-            }
+            if (TryResolveRowIdFromSource(source, row, out rowId))
+                return true;
         }
 
         rowId = null;
+        return false;
+    }
+
+    private static bool TryResolveRowIdFromSource(
+        AstQueryExecutorBase.Source source,
+        AstQueryExecutorBase.EvalRow row,
+        out object? rowId)
+    {
+        rowId = null;
+        string pkColumn = string.Empty;
+        if (source.Physical is null || !source.TryGetSinglePrimaryKeyColumnName(out pkColumn) || pkColumn.Length == 0)
+            return false;
+
+        if (!TryResolveQualifiedNameValue(source, pkColumn, row, out var resolvedRowId)
+            && !row.TryGetValue(pkColumn, out resolvedRowId))
+        {
+            return false;
+        }
+
+        if (resolvedRowId is DBNull)
+            return false;
+
+        rowId = resolvedRowId;
+        return true;
+    }
+
+    private static bool TryResolveQualifiedNameValue(
+        AstQueryExecutorBase.Source source,
+        string columnName,
+        AstQueryExecutorBase.EvalRow row,
+        out object? value)
+    {
+        value = null;
+
+        string? qualifiedName = null;
+        if (!source.TryGetQualifiedColumnName(columnName, out qualifiedName)
+            || string.IsNullOrEmpty(qualifiedName))
+            return false;
+
+        return row.TryGetValue(qualifiedName!, out value);
+    }
+
+    private static bool TryResolveQualifiedFieldFromSource(
+        AstQueryExecutorBase.Source source,
+        string columnName,
+        AstQueryExecutorBase.EvalRow row,
+        out object? value)
+    {
+        value = null;
+
+        string? qualifiedName = null;
+        if (!source.TryGetQualifiedColumnName(columnName, out qualifiedName))
+            return false;
+
+        if (string.IsNullOrWhiteSpace(qualifiedName))
+            return false;
+
+        return row.Fields.TryGetValue(qualifiedName!, out value);
+    }
+
+    private static bool TryResolveQualifiedFieldFromSources(
+        AstQueryExecutorBase.EvalRow row,
+        string columnName,
+        out object? value)
+    {
+        if (row.TryGetSingleSource(out var singleSource)
+            && TryResolveQualifiedFieldFromSource(singleSource!, columnName, row, out value))
+        {
+            return true;
+        }
+
+        foreach (var source in row.Sources.Values)
+        {
+            if (TryResolveQualifiedFieldFromSource(source, columnName, row, out value))
+                return true;
+        }
+
+        value = null;
         return false;
     }
 

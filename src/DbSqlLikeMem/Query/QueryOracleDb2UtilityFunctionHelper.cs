@@ -46,7 +46,7 @@ internal static class QueryOracleDb2UtilityFunctionHelper
         }
 
         if (value is System.Text.Json.JsonElement element
-            && element.ValueKind == System.Text.Json.JsonValueKind.Array)
+            && element.ValueKind == JsonValueKind.Array)
         {
             result = element.GetArrayLength();
             return true;
@@ -111,7 +111,7 @@ internal static class QueryOracleDb2UtilityFunctionHelper
 
         try
         {
-            var code = Convert.ToInt32(value.ToDec(), System.Globalization.CultureInfo.InvariantCulture);
+            var code = Convert.ToInt32(value.ToDec(), CultureInfo.InvariantCulture);
             if (code < 0 || code > 0x10FFFF)
             {
                 result = null;

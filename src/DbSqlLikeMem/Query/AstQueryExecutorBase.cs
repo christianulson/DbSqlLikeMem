@@ -32,7 +32,6 @@ internal abstract class AstQueryExecutorBase(
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTimeOffsetParseCacheEntry> _dateTimeOffsetParseCache = new(StringComparer.Ordinal);
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTimeOffsetParseCacheEntry> _dateTimeOffsetExactParseCache = new(StringComparer.Ordinal);
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, TimeSpanParseCacheEntry> _timeSpanParseCache = new(StringComparer.Ordinal);
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _mySqlDateFormatCache = new(StringComparer.Ordinal);
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, OracleFormatMaskCacheEntry> _oracleFormatMaskCache = new(StringComparer.Ordinal);
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, JsonPathTokenCacheEntry> _jsonPathTokenCache = new(StringComparer.Ordinal);
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, JsonPathTokenCacheEntry> _postgresJsonPathTokenCache = new(StringComparer.Ordinal);
@@ -41,6 +40,7 @@ internal abstract class AstQueryExecutorBase(
 
     private readonly DbConnectionMockBase _cnn = cnn ?? throw new ArgumentNullException(nameof(cnn));
     private readonly IDataParameterCollection _pars = pars ?? throw new ArgumentNullException(nameof(pars));
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, ITableMock> _resolvedBaseTableCache = new(StringComparer.OrdinalIgnoreCase);
 
     private sealed record InSubqueryLookupState(
         List<object?> Values,
@@ -51,6 +51,11 @@ internal abstract class AstQueryExecutorBase(
 
     private sealed record CorrelatedCountLookupState(
         IReadOnlyDictionary<string, int> Counts,
+        IReadOnlyList<CorrelatedLookupKeyPair> KeyPairs,
+        SqlExpr? InnerFilterExpr);
+
+    private sealed record CorrelatedExistsLookupState(
+        HashSet<string> Presence,
         IReadOnlyList<CorrelatedLookupKeyPair> KeyPairs,
         SqlExpr? InnerFilterExpr);
 
@@ -326,12 +331,12 @@ internal abstract class AstQueryExecutorBase(
         var result = new TableResultMock
         {
             Columns = tables[0].Columns,
-            JoinFields = tables[0].JoinFields
+            JoinFields = new List<Dictionary<string, object?>>(totalRows)
         };
 
-        var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para UNION.");
+        var dialect2 = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para UNION.");
 
-        if (TryUseSimpleUnionAllProjectionPath(tables, allFlags, orderBy, rowLimit, dialect, out var fastUnionResult))
+        if (TryUseSimpleUnionAllProjectionPath(tables, allFlags, orderBy, rowLimit, dialect2, out var fastUnionResult))
         {
             result = fastUnionResult;
             return FinalizeUnionResult(parts, allFlags, orderBy, rowLimit, sw, result, debugTrace);
@@ -352,7 +357,7 @@ internal abstract class AstQueryExecutorBase(
                 throw new InvalidOperationException(msg);
             }
 
-            UnionQueryValidationHelper.ValidateUnionColumnTypes(result.Columns, tables[i].Columns, i, sqlContextForErrors, dialect);
+            UnionQueryValidationHelper.ValidateUnionColumnTypes(result.Columns, tables[i].Columns, i, sqlContextForErrors, dialect2);
         }
 
         result.Columns = AreUnionColumnMetadataIdentical(tables)
@@ -366,11 +371,13 @@ internal abstract class AstQueryExecutorBase(
         // etc.
         // Começa com o primeiro
         var needsDistinct = allFlags.Any(flag => !flag);
-        var seenRows = needsDistinct ? new HashSet<Dictionary<int, object?>>(new SqlRowDictionaryComparer(dialect)) : null;
+        var seenRows = needsDistinct ? new HashSet<Dictionary<int, object?>>(new SqlRowDictionaryComparer(dialect2)) : null;
 
-        foreach (var row in tables[0])
+        for (var rowIndex = 0; rowIndex < tables[0].Count; rowIndex++)
         {
+            var row = tables[0][rowIndex];
             result.Add(row);
+            result.JoinFields.Add(GetJoinFieldsForUnionRow(tables[0], rowIndex));
             seenRows?.Add(row);
         }
 
@@ -380,16 +387,24 @@ internal abstract class AstQueryExecutorBase(
 
             if (isUnionAll)
             {
-                foreach (var row in tables[i])
+                for (var rowIndex = 0; rowIndex < tables[i].Count; rowIndex++)
+                {
+                    var row = tables[i][rowIndex];
                     result.Add(row);
+                    result.JoinFields.Add(GetJoinFieldsForUnionRow(tables[i], rowIndex));
+                }
                 continue;
             }
 
             // UNION => DISTINCT
-            foreach (var row in tables[i])
+            for (var rowIndex = 0; rowIndex < tables[i].Count; rowIndex++)
             {
+                var row = tables[i][rowIndex];
                 if (seenRows!.Add(row))
+                {
                     result.Add(row);
+                    result.JoinFields.Add(GetJoinFieldsForUnionRow(tables[i], rowIndex));
+                }
             }
         }
 
@@ -533,12 +548,18 @@ internal abstract class AstQueryExecutorBase(
             Columns = useFirstColumns
                 ? tables[0].Columns
                 : MergeUnionColumnMetadata(tables),
-            JoinFields = tables[0].JoinFields
+            JoinFields = new List<Dictionary<string, object?>>(totalRows)
         };
         fastResult.Capacity = totalRows;
 
         foreach (var table in tables)
-            fastResult.AddRange(table);
+        {
+            for (var rowIndex = 0; rowIndex < table.Count; rowIndex++)
+            {
+                fastResult.Add(table[rowIndex]);
+                fastResult.JoinFields.Add(GetJoinFieldsForUnionRow(table, rowIndex));
+            }
+        }
 
         result = fastResult;
         return true;
@@ -648,6 +669,16 @@ internal abstract class AstQueryExecutorBase(
         }
 
         return true;
+    }
+
+    private static Dictionary<string, object?> GetJoinFieldsForUnionRow(
+        TableResultMock table,
+        int rowIndex)
+    {
+        if (rowIndex >= 0 && rowIndex < table.JoinFields.Count)
+            return table.JoinFields[rowIndex];
+
+        return new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
     }
 
     private static DbType MergeUnionDbType(DbType left, DbType right)
@@ -1117,11 +1148,7 @@ internal abstract class AstQueryExecutorBase(
         if (query.Table is not null && HasKnownPhysicalTable(query.Table))
             count++;
 
-        foreach (var join in query.Joins)
-        {
-            if (HasKnownPhysicalTable(join.Table))
-                count++;
-        }
+        count += query.Joins.Count(j => HasKnownPhysicalTable(j.Table));
 
         return count;
     }
@@ -1214,8 +1241,7 @@ internal abstract class AstQueryExecutorBase(
         long total = 0;
 
         total += GetKnownSourceRows(query.Table);
-        foreach (var join in query.Joins)
-            total += GetKnownSourceRows(join.Table);
+        total += query.Joins.Sum(j => GetKnownSourceRows(j.Table));
 
         return total;
     }
@@ -1321,7 +1347,7 @@ internal abstract class AstQueryExecutorBase(
 
         // 2.5) Correlated subquery: expose outer row fields/sources to subquery evaluation (EXISTS, IN subselect, etc.)
         if (outerRow is not null)
-            rows = rows.Select(r => AttachOuterRow(r, outerRow));
+            rows = AttachOuterRows(rows, outerRow);
 
         // 3) WHERE
         if (selectQuery.Where is not null)
@@ -1405,9 +1431,7 @@ internal abstract class AstQueryExecutorBase(
             || query.Having is not null
             || query.ForJson is not null
             || query.SelectItems.Count != 1)
-        {
             return false;
-        }
 
         var (exprRaw, _) = SplitTrailingAsAlias(query.SelectItems[0].Raw, query.SelectItems[0].Alias);
         if (!TryParseScalarCountAggregate(exprRaw, out var countArg) || countArg is not StarExpr)
@@ -1416,9 +1440,7 @@ internal abstract class AstQueryExecutorBase(
         var union = query.Table.DerivedUnion;
         if (union.RowLimit is not null
             || union.AllFlags.Any(static flag => !flag))
-        {
             return false;
-        }
 
         long count = 0;
         foreach (var part in union.Parts)
@@ -1474,8 +1496,8 @@ internal abstract class AstQueryExecutorBase(
         if (!TryParseStringAggregateCall(exprRaw, out var aggregateCall))
             return false;
 
-        var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação.");
-        if (!dialect.SupportsStringAggregateFunction(aggregateCall.Name))
+        var dialect2 = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação.");
+        if (!dialect2.SupportsStringAggregateFunction(aggregateCall.Name))
             return false;
 
         if (aggregateCall.Distinct)
@@ -1587,13 +1609,21 @@ internal abstract class AstQueryExecutorBase(
             hasOrderBy: query.OrderBy.Count > 0,
             hasGroupBy: false);
 
-        if (outerRow is not null && query.Where is not null)
-            rows = rows.Select(r => AttachOuterRow(r, outerRow));
-
         if (query.Where is null)
         {
             foreach (var _ in rows)
                 count++;
+            return true;
+        }
+
+        if (outerRow is not null)
+        {
+            foreach (var candidate in rows)
+            {
+                if (Eval(query.Where, AttachOuterRow(candidate, outerRow), group: null, ctes).ToBool())
+                    count++;
+            }
+
             return true;
         }
 
@@ -2085,26 +2115,67 @@ internal abstract class AstQueryExecutorBase(
             if (qualifier.Length == 0 || col.Length == 0)
                 return false;
 
-            if (row.TryGetValue($"{qualifier}.{col}", out _))
-                return true;
-
-            if (row.Sources.TryGetValue(qualifier, out var src))
+            if (row.Sources.TryGetValue(qualifier, out var source)
+                && source.TryGetQualifiedColumnName(col, out var qualifiedColumnName))
             {
-                foreach (var hit in src.ColumnNames)
+                var qualifiedName = qualifiedColumnName ?? string.Empty;
+                if (qualifiedName.Length > 0
+                    && row.TryGetValue(qualifiedName, out _))
                 {
-                    if (!hit.Equals(col, StringComparison.OrdinalIgnoreCase))
-                        continue;
-
-                    return row.TryGetValue($"{src.Alias}.{hit}", out _);
+                    return true;
                 }
+            }
 
-                return false;
+            var lastQualifier = GetLastQualifierSegment(qualifier);
+            if (TryHasQualifiedField(row, qualifier, col)
+                || (lastQualifier != qualifier && TryHasQualifiedField(row, lastQualifier, col)))
+            {
+                return true;
             }
 
             return false;
         }
 
         return row.TryGetValue(name, out _);
+    }
+
+    private static bool TryHasQualifiedField(EvalRow row, string qualifier, string columnName)
+    {
+        if (row.TryGetSingleSource(out var singleSource)
+            && TryHasQualifiedFieldFromSource(singleSource!, row, columnName, out var singleSourceQualifiedValue))
+        {
+            return true;
+        }
+
+        foreach (var source in row.Sources.Values)
+        {
+            if (TryHasQualifiedFieldFromSource(source, row, columnName, out var sourceQualifiedValue))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryHasQualifiedFieldFromSource(
+        Source source,
+        EvalRow row,
+        string columnName,
+        out object? value)
+    {
+        value = null;
+
+        string? qualifiedName = null;
+        if (!source.TryGetQualifiedColumnName(columnName, out qualifiedName)
+            || string.IsNullOrWhiteSpace(qualifiedName))
+            return false;
+
+        return row.Fields.TryGetValue(qualifiedName!, out value);
+    }
+
+    private static string GetLastQualifierSegment(string qualifier)
+    {
+        var dot = qualifier.LastIndexOf('.');
+        return dot >= 0 ? qualifier[(dot + 1)..] : qualifier;
     }
 
     private static IEnumerable<string> EnumerateIdentifiers(SqlExpr expr)
@@ -2458,7 +2529,7 @@ internal abstract class AstQueryExecutorBase(
             .ToList();
 
         if (pkColumnNames.Count == 0)
-            return new ReadOnlyHashSet<string>(); ;
+            return new ReadOnlyHashSet<string>();
 
         var primaryEquivalent = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var index in allIndexes)
@@ -2915,7 +2986,7 @@ internal abstract class AstQueryExecutorBase(
         return resolved;
     }
 
-    private Source ApplyUnpivotIfNeeded(Source source, SqlUnpivotSpec? unpivot)
+    private static Source ApplyUnpivotIfNeeded(Source source, SqlUnpivotSpec? unpivot)
     {
         if (unpivot is null)
             return source;
@@ -2998,7 +3069,8 @@ internal abstract class AstQueryExecutorBase(
         return new EvalRow(fields, rowSources)
         {
             OrdinalValues = ordinalValues,
-            OrdinalIndexes = ordinalIndexes
+            OrdinalIndexes = ordinalIndexes,
+            SingleSource = source
         };
     }
 
@@ -3299,14 +3371,7 @@ internal abstract class AstQueryExecutorBase(
         }
     }
 
-
-
-
-
-
-
-
-        /// <summary>
+    /// <summary>
     /// EN: Fills FIRST_VALUE/LAST_VALUE results for all rows in the current partition.
     /// PT: Preenche os resultados de FIRST_VALUE/LAST_VALUE para todas as linhas da partição atual.
     /// </summary>
@@ -3353,15 +3418,15 @@ internal abstract class AstQueryExecutorBase(
     }
 
 
-        /// <summary>
+    /// <summary>
     /// EN: Fills NTH_VALUE results using the resolved 1-based index in the ordered partition.
     /// PT: Preenche os resultados de NTH_VALUE usando o índice 1-based resolvido na partição ordenada.
     /// </summary>
-private void FillNthValue(
-        Dictionary<EvalRow, object?> map,
-        WindowPartitionExecutionContext partitionContext,
-        WindowFunctionExpr windowFunctionExpr,
-        IDictionary<string, Source> ctes)
+    private void FillNthValue(
+            Dictionary<EvalRow, object?> map,
+            WindowPartitionExecutionContext partitionContext,
+            WindowFunctionExpr windowFunctionExpr,
+            IDictionary<string, Source> ctes)
     {
         var part = partitionContext.Part;
         if (part.Count == 0 || windowFunctionExpr.Args.Count == 0)
@@ -3445,28 +3510,29 @@ private void FillNthValue(
             (left, right) => WindowOrderValueHelper.WindowOrderValuesEqual(left, right, CompareSql));
     }
 
-        private static bool TryReadIntLiteral(SqlExpr expr, out int value)
+    private static bool TryReadIntLiteral(SqlExpr expr, out int value)
     {
         value = default;
-        if (expr is LiteralExpr lit)
-        {
-            var raw = lit.Value;
-            if (raw is null || raw is DBNull)
-                return false;
+        if (expr is not LiteralExpr lit)
+            return false;
 
-            if (raw is IConvertible)
+        var raw = lit.Value;
+        if (raw is null || raw is DBNull)
+            return false;
+
+        if (raw is IConvertible)
+        {
+            try
             {
-                try
-                {
-                    value = Convert.ToInt32(raw, CultureInfo.InvariantCulture);
-                    return true;
-                }
-                catch
-                {
-                    return false;
-                }
+                value = Convert.ToInt32(raw, CultureInfo.InvariantCulture);
+                return true;
+            }
+            catch
+            {
+                return false;
             }
         }
+
 
         return false;
     }
@@ -3474,23 +3540,23 @@ private void FillNthValue(
     private static bool TryReadLongLiteral(SqlExpr expr, out long value)
     {
         value = default;
-        if (expr is LiteralExpr lit)
-        {
-            var raw = lit.Value;
-            if (raw is null || raw is DBNull)
-                return false;
+        if (expr is not LiteralExpr lit)
+            return false;
 
-            if (raw is IConvertible)
+        var raw = lit.Value;
+        if (raw is null || raw is DBNull)
+            return false;
+
+        if (raw is IConvertible)
+        {
+            try
             {
-                try
-                {
-                    value = Convert.ToInt64(raw, CultureInfo.InvariantCulture);
-                    return true;
-                }
-                catch
-                {
-                    return false;
-                }
+                value = Convert.ToInt64(raw, CultureInfo.InvariantCulture);
+                return true;
+            }
+            catch
+            {
+                return false;
             }
         }
 
@@ -3501,10 +3567,10 @@ private void FillNthValue(
     /// EN: Resolves NTH_VALUE index from literal or evaluated expression with safe fallback.
     /// PT: Resolve o índice do NTH_VALUE a partir de literal ou expressão avaliada com fallback seguro.
     /// </summary>
-private int ResolveNthValueIndex(
-        IReadOnlyList<SqlExpr> args,
-        EvalRow sampleRow,
-        IDictionary<string, Source> ctes)
+    private int ResolveNthValueIndex(
+            IReadOnlyList<SqlExpr> args,
+            EvalRow sampleRow,
+            IDictionary<string, Source> ctes)
     {
         if (args.Count < 2)
             return 1;
@@ -3531,16 +3597,16 @@ private int ResolveNthValueIndex(
 
         return 1;
     }
-        /// <summary>
+    /// <summary>
     /// EN: Fills LAG/LEAD values for rows in the current ordered partition.
     /// PT: Preenche valores de LAG/LEAD para as linhas da partição ordenada atual.
     /// </summary>
-private void FillLagOrLead(
-        Dictionary<EvalRow, object?> map,
-        WindowPartitionExecutionContext partitionContext,
-        WindowFunctionExpr windowFunctionExpr,
-        IDictionary<string, Source> ctes,
-        bool fillLead)
+    private void FillLagOrLead(
+            Dictionary<EvalRow, object?> map,
+            WindowPartitionExecutionContext partitionContext,
+            WindowFunctionExpr windowFunctionExpr,
+            IDictionary<string, Source> ctes,
+            bool fillLead)
     {
         var part = partitionContext.Part;
         if (part.Count == 0 || windowFunctionExpr.Args.Count == 0)
@@ -3581,14 +3647,14 @@ private void FillLagOrLead(
         }
     }
 
-        /// <summary>
+    /// <summary>
     /// EN: Resolves LAG/LEAD offset from literal or evaluated expression with safe fallback.
     /// PT: Resolve o offset de LAG/LEAD a partir de literal ou expressão avaliada com fallback seguro.
     /// </summary>
-private int ResolveLagLeadOffset(
-        IReadOnlyList<SqlExpr> args,
-        EvalRow sampleRow,
-        IDictionary<string, Source> ctes)
+    private int ResolveLagLeadOffset(
+            IReadOnlyList<SqlExpr> args,
+            EvalRow sampleRow,
+            IDictionary<string, Source> ctes)
     {
         if (args.Count < 2)
             return 1;
@@ -3678,14 +3744,14 @@ private int ResolveLagLeadOffset(
             map[part[i]] = fillRank ? rank : denseRank;
         }
     }
-        /// <summary>
+    /// <summary>
     /// EN: Computes and fills PERCENT_RANK or CUME_DIST values for the current partition.
     /// PT: Calcula e preenche valores de PERCENT_RANK ou CUME_DIST para a partição atual.
     /// </summary>
-private void FillPercentRankOrCumeDist(
-        Dictionary<EvalRow, object?> map,
-        WindowPartitionExecutionContext partitionContext,
-        bool fillPercentRank)
+    private void FillPercentRankOrCumeDist(
+            Dictionary<EvalRow, object?> map,
+            WindowPartitionExecutionContext partitionContext,
+            bool fillPercentRank)
     {
         var part = partitionContext.Part;
         if (part.Count == 0)
@@ -3844,8 +3910,13 @@ private void FillPercentRankOrCumeDist(
             List<EvalRow> sampleRows,
             IDictionary<string, Source> ctes)
     {
-        if (TryGetCachedSelectPlan(q, sampleRows, ctes, out var cachedPlan) && cachedPlan != null)
-            return cachedPlan;
+        var cacheKey = ctes.Count == 0 ? BuildSelectPlanCacheKey(q, sampleRows) : null;
+        if (cacheKey is not null
+            && _cnn.TryGetCachedSelectPlan(cacheKey, out var cachedPlan)
+            && cachedPlan is not null)
+        {
+            return cachedPlan.CloneForExecution();
+        }
 
         var plan = SelectPlanBuilderHelper.Build(
             q,
@@ -3856,51 +3927,10 @@ private void FillPercentRankOrCumeDist(
             Eval,
             ResolveColumn);
 
-        if (TryCacheSelectPlan(q, sampleRows, ctes, plan))
-            return plan;
+        if (cacheKey is not null)
+            _cnn.TryCacheSelectPlan(cacheKey, plan.CloneForCache());
 
         return plan;
-    }
-
-    private bool TryGetCachedSelectPlan(
-        SqlSelectQuery query,
-        List<EvalRow> sampleRows,
-        IDictionary<string, Source> ctes,
-        out SelectPlan? cachedPlan)
-    {
-        cachedPlan = null;
-        if (ctes.Count > 0)
-            return false;
-
-        var cacheKey = BuildSelectPlanCacheKey(query, sampleRows);
-        if (cacheKey is null)
-            return false;
-
-        if (!_cnn.TryGetCachedSelectPlan(cacheKey, out cachedPlan))
-            return false;
-
-        if (cachedPlan is null)
-            return false;
-
-        cachedPlan = cachedPlan.CloneForExecution();
-        return true;
-    }
-
-    private bool TryCacheSelectPlan(
-        SqlSelectQuery query,
-        List<EvalRow> sampleRows,
-        IDictionary<string, Source> ctes,
-        SelectPlan plan)
-    {
-        if (ctes.Count > 0)
-            return false;
-
-        var cacheKey = BuildSelectPlanCacheKey(query, sampleRows);
-        if (cacheKey is null)
-            return false;
-
-        _cnn.TryCacheSelectPlan(cacheKey, plan.CloneForCache());
-        return true;
     }
 
     private string? BuildSelectPlanCacheKey(SqlSelectQuery query, List<EvalRow> sampleRows)
@@ -3915,6 +3945,8 @@ private void FillPercentRankOrCumeDist(
         sb.Append(cacheDialect.Name);
         sb.Append(':');
         sb.Append(cacheDialect.Version);
+        sb.Append("|schema:");
+        sb.Append(_cnn.GetSelectPlanCacheGeneration());
         sb.Append("|sources:");
         sb.Append(sampleRows.Count);
 
@@ -3925,7 +3957,13 @@ private void FillPercentRankOrCumeDist(
         }
 
         var firstRow = sampleRows[0];
-        foreach (var sourceEntry in firstRow.Sources.OrderBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase))
+        var sources = new List<KeyValuePair<string, Source>>(firstRow.Sources.Count);
+        foreach (var sourceEntry in firstRow.Sources)
+            sources.Add(sourceEntry);
+
+        sources.Sort(static (left, right) => StringComparer.OrdinalIgnoreCase.Compare(left.Key, right.Key));
+
+        foreach (var sourceEntry in sources)
         {
             sb.Append('|');
             sb.Append(sourceEntry.Key);
@@ -3934,7 +3972,13 @@ private void FillPercentRankOrCumeDist(
             sb.Append('/');
             sb.Append(sourceEntry.Value.Alias);
             sb.Append(':');
-            sb.Append(string.Join(",", sourceEntry.Value.ColumnNames));
+            for (var i = 0; i < sourceEntry.Value.ColumnNames.Count; i++)
+            {
+                if (i > 0)
+                    sb.Append(',');
+
+                sb.Append(sourceEntry.Value.ColumnNames[i]);
+            }
         }
 
         return sb.ToString();
@@ -4075,7 +4119,7 @@ private void FillPercentRankOrCumeDist(
 
         var rowJson = new List<string>(result.Count);
         foreach (var row in result)
-            rowJson.Add(System.Text.Json.JsonSerializer.Serialize(BuildPathJsonObject(result, row, clause.IncludeNullValues)));
+            rowJson.Add(JsonSerializer.Serialize(BuildPathJsonObject(result, row, clause.IncludeNullValues)));
 
         return WrapForJsonPayload(rowJson, clause);
     }
@@ -4119,7 +4163,7 @@ private void FillPercentRankOrCumeDist(
                     nestedHasNonNullValueByAlias[projection.Qualifier] = true;
             }
 
-            var rootKey = System.Text.Json.JsonSerializer.Serialize(rootProperties);
+            var rootKey = JsonSerializer.Serialize(rootProperties);
             if (!groupedIndex.TryGetValue(rootKey, out var rootIndex))
             {
                 rootIndex = grouped.Count;
@@ -4146,7 +4190,7 @@ private void FillPercentRankOrCumeDist(
         }
 
         var serializedRows = grouped
-            .Select(static groupedRow => System.Text.Json.JsonSerializer.Serialize(groupedRow.ToJsonObject()))
+            .Select(static groupedRow => JsonSerializer.Serialize(groupedRow.ToJsonObject()))
             .ToList();
 
         return WrapForJsonPayload(serializedRows, clause);
@@ -4166,7 +4210,7 @@ private void FillPercentRankOrCumeDist(
         if (clause.RootName is null)
             return payload;
 
-        return "{" + System.Text.Json.JsonSerializer.Serialize(clause.RootName) + ":" + payload + "}";
+        return "{" + JsonSerializer.Serialize(clause.RootName) + ":" + payload + "}";
     }
 
     private static Dictionary<string, object?> BuildPathJsonObject(
@@ -4264,8 +4308,8 @@ private void FillPercentRankOrCumeDist(
 
         var segments = propertyPath
             .Split('.')
-            .Select(_=>_.Trim())
-            .Where(_=>!string.IsNullOrWhiteSpace(_))
+            .Select(_ => _.Trim())
+            .Where(_ => !string.IsNullOrWhiteSpace(_))
             .ToArray();
         if (segments.Length == 0)
             return;
@@ -4332,7 +4376,7 @@ private void FillPercentRankOrCumeDist(
         try
         {
             QueryJsonFunctionHelper.TryGetJsonRootElement(trimmed, out var root);
-            return root.ValueKind is System.Text.Json.JsonValueKind.Object or System.Text.Json.JsonValueKind.Array
+            return root.ValueKind is JsonValueKind.Object or JsonValueKind.Array
                 ? root
                 : value;
         }
@@ -4725,10 +4769,67 @@ private void FillPercentRankOrCumeDist(
         if (!TryParseScalarCountAggregate(exprRaw, out var countArg) || countArg is not StarExpr)
             return false;
 
-        if (TryEvaluateCorrelatedCountPreAggregation(query, row, ctes, comparisonOp, literalValue, out result))
-            return true;
+        if (literalValue < 0m)
+        {
+            result = comparisonOp switch
+            {
+                SqlBinaryOp.Eq => false,
+                SqlBinaryOp.Neq => true,
+                SqlBinaryOp.Greater => true,
+                SqlBinaryOp.GreaterOrEqual => true,
+                SqlBinaryOp.Less => false,
+                SqlBinaryOp.LessOrEqual => false,
+                _ => throw new InvalidOperationException($"Comparador não suportado para COUNT: {comparisonOp}")
+            };
 
-        if (literalValue != 0m || !TryEvaluateExistsFast(query, row, ctes, out var exists))
+            return true;
+        }
+
+        if (literalValue == 0m
+            && comparisonOp is SqlBinaryOp.GreaterOrEqual or SqlBinaryOp.Less)
+        {
+            result = comparisonOp == SqlBinaryOp.GreaterOrEqual;
+            return true;
+        }
+
+        if (literalValue == 1m
+            && comparisonOp is SqlBinaryOp.GreaterOrEqual or SqlBinaryOp.Less)
+        {
+            if (TryEvaluateCorrelatedExistsPreAggregation(query, row, ctes, out var correlatedExistsForOne))
+            {
+                result = comparisonOp == SqlBinaryOp.GreaterOrEqual
+                    ? correlatedExistsForOne
+                    : !correlatedExistsForOne;
+                return true;
+            }
+        }
+
+        if (literalValue == 0m
+            && TryEvaluateCorrelatedExistsPreAggregation(query, row, ctes, out var correlatedExists))
+        {
+            result = comparisonOp switch
+            {
+                SqlBinaryOp.Eq => !correlatedExists,
+                SqlBinaryOp.Neq => correlatedExists,
+                SqlBinaryOp.Greater => correlatedExists,
+                SqlBinaryOp.GreaterOrEqual => true,
+                SqlBinaryOp.Less => false,
+                SqlBinaryOp.LessOrEqual => !correlatedExists,
+                _ => throw new InvalidOperationException($"Comparador não suportado para COUNT: {comparisonOp}")
+            };
+
+            return true;
+        }
+
+        if (literalValue != 0m)
+        {
+            if (TryEvaluateCorrelatedCountPreAggregation(query, row, ctes, comparisonOp, literalValue, out result))
+                return true;
+
+            return false;
+        }
+
+        if (!TryEvaluateExistsFast(query, row, ctes, out var exists))
             return false;
 
         result = comparisonOp switch
@@ -4805,7 +4906,19 @@ private void FillPercentRankOrCumeDist(
                 out var innerFilterExpr))
             return false;
 
-        var cacheKey = AstCorrelatedSubqueryCacheKeyBuilder.Build("COUNT_PREAGG", query.RawSql, EvalRow.Empty());
+        var cacheKey = BuildCorrelatedLookupStateCacheKey(
+            "COUNT_PREAGG",
+            query.Table!,
+            keyPairs,
+            innerFilterExpr);
+
+        if (_subqueryEvaluationCache.TryGetOperationData(cacheKey, out CorrelatedCountLookupState? cachedState)
+            && cachedState is not null)
+        {
+            state = cachedState;
+            return true;
+        }
+
         var built = BuildCorrelatedCountLookupState(query, ctes, keyPairs, innerFilterExpr);
         if (built is null)
             return false;
@@ -4814,10 +4927,10 @@ private void FillPercentRankOrCumeDist(
             cacheKey,
             _ => built);
 
-        if (cached is not CorrelatedCountLookupState cachedState)
+        if (cached is not CorrelatedCountLookupState cachedState2)
             return false;
 
-        state = cachedState;
+        state = cachedState2;
         return true;
     }
 
@@ -4830,26 +4943,42 @@ private void FillPercentRankOrCumeDist(
         var rows = BuildFrom(
             query.Table,
             ctes,
-            where: null,
+            where: innerFilterExpr,
             hasOrderBy: false,
             hasGroupBy: false);
 
-        var estimatedCount = rows is ICollection<EvalRow> collection ? collection.Count : 0;
+        if (innerFilterExpr is not null)
+            rows = ApplyRowPredicate(rows, innerFilterExpr, ctes);
+
+        var estimatedCount = GetKnownRowCount(rows);
         var compositeCounts = estimatedCount > 0
             ? new Dictionary<string, int>(estimatedCount, StringComparer.Ordinal)
             : new Dictionary<string, int>(StringComparer.Ordinal);
-        foreach (var candidate in rows)
+        if (rows is List<EvalRow> rowList)
         {
-            if (innerFilterExpr is not null && !Eval(innerFilterExpr, candidate, group: null, ctes).ToBool())
-                continue;
+            for (var i = 0; i < rowList.Count; i++)
+            {
+                if (!TryBuildCorrelatedLookupCompositeKey(keyPairs, rowList[i], ctes, useInnerSide: true, out var compositeKey))
+                    return null;
 
-            if (!TryBuildCorrelatedLookupCompositeKey(keyPairs, candidate, ctes, useInnerSide: true, out var compositeKey))
-                return null;
+                if (compositeCounts.TryGetValue(compositeKey, out var currentCount))
+                    compositeCounts[compositeKey] = currentCount + 1;
+                else
+                    compositeCounts[compositeKey] = 1;
+            }
+        }
+        else
+        {
+            foreach (var candidate in rows)
+            {
+                if (!TryBuildCorrelatedLookupCompositeKey(keyPairs, candidate, ctes, useInnerSide: true, out var compositeKey))
+                    return null;
 
-            if (compositeCounts.TryGetValue(compositeKey, out var currentCount))
-                compositeCounts[compositeKey] = currentCount + 1;
-            else
-                compositeCounts[compositeKey] = 1;
+                if (compositeCounts.TryGetValue(compositeKey, out var currentCount))
+                    compositeCounts[compositeKey] = currentCount + 1;
+                else
+                    compositeCounts[compositeKey] = 1;
+            }
         }
 
         return new CorrelatedCountLookupState(compositeCounts, keyPairs, innerFilterExpr);
@@ -5613,6 +5742,9 @@ private void FillPercentRankOrCumeDist(
         IDictionary<string, Source> ctes)
     {
         var cacheKey = BuildCorrelatedSubqueryCacheKey("IN_ROW_LOOKUP", sq.Sql, row);
+        if (_subqueryEvaluationCache.TryGetOperationData(cacheKey, out InSubqueryLookupState? cachedState) && cachedState != null)
+            return cachedState;
+
         return _subqueryEvaluationCache.GetOrAddOperationData(
             cacheKey,
             _ => BuildInSubqueryRowLookupState(sq, row, ctes));
@@ -5738,22 +5870,194 @@ private void FillPercentRankOrCumeDist(
         IDictionary<string, Source> ctes)
     {
         var sq = ex.Subquery;
-        var cacheKey = BuildCorrelatedSubqueryCacheKey(SqlConst.EXISTS, sq.Sql, row);
+        var query = GetSingleSubqueryOrThrow(sq, SqlConst.EXISTS);
+
+        if (TryEvaluateCorrelatedExistsPreAggregation(query, row, ctes, out var correlatedExists))
+        {
+            return correlatedExists;
+        }
+
+        var cacheKey = TryBuildCorrelatedExistsPatternCacheKey(query, row, ctes, out var correlatedCacheKey)
+            ? correlatedCacheKey
+            : BuildCorrelatedSubqueryCacheKey(SqlConst.EXISTS, sq.Sql, row);
 
         return _subqueryEvaluationCache.GetOrAddExists(
             cacheKey,
             _ =>
             {
-                var query = GetSingleSubqueryOrThrow(sq, SqlConst.EXISTS);
-                if (TryEvaluateCorrelatedExistsPreAggregation(query, row, ctes, out var correlatedExists))
-                    return correlatedExists;
-
                 if (TryEvaluateExistsFast(query, row, ctes, out var exists))
+                {
                     return exists;
+                }
 
                 var sub = ExecuteSelect(LimitToSingleRow(query), ctes, row);
                 return sub.Count > 0;
             });
+    }
+
+    private bool TryBuildCorrelatedExistsPatternCacheKey(
+        SqlSelectQuery query,
+        EvalRow row,
+        IDictionary<string, Source> ctes,
+        out string cacheKey)
+    {
+        cacheKey = string.Empty;
+
+        if (query.Table is null
+            || query.Where is null
+            || query.Ctes.Count > 0
+            || query.Joins.Count > 0
+            || query.GroupBy.Count > 0
+            || query.Having is not null
+            || query.RowLimit is not null
+            || query.ForJson is not null)
+        {
+            return false;
+        }
+
+        if (!TryGetCorrelatedCountLookupPattern(
+                query.Where,
+                ResolveCorrelatedExistsPatternSource(query.Table, ctes),
+                out var keyPairs,
+                out var innerFilterExpr))
+        {
+            return false;
+        }
+
+        var canonicalSql = BuildCorrelatedLookupCanonicalSql(query.Table, keyPairs, innerFilterExpr);
+        if (string.IsNullOrWhiteSpace(canonicalSql))
+        {
+            return false;
+        }
+
+        var cacheFields = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        for (var i = 0; i < keyPairs.Count; i++)
+        {
+            var outerExpr = keyPairs[i].OuterExpr;
+            var outerName = FormatCorrelatedLookupCacheFieldName(outerExpr);
+            if (string.IsNullOrWhiteSpace(outerName))
+                continue;
+
+            cacheFields.TryAdd(outerName, Eval(outerExpr, row, group: null, ctes));
+        }
+
+        var syntheticRow = new EvalRow(
+            cacheFields,
+            new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase));
+
+        cacheKey = BuildCorrelatedSubqueryCacheKey(SqlConst.EXISTS, canonicalSql, syntheticRow);
+        return true;
+    }
+
+    private static string FormatCorrelatedLookupCacheFieldName(SqlExpr expr)
+        => expr switch
+        {
+            IdentifierExpr id => id.Name.NormalizeName(),
+            ColumnExpr column when string.IsNullOrWhiteSpace(column.Qualifier)
+                => column.Name.NormalizeName(),
+            ColumnExpr column => $"{column.Qualifier.NormalizeName()}.{column.Name.NormalizeName()}",
+            _ => SqlExprPrinter.Print(expr).NormalizeName()
+        };
+
+    private static string NormalizeCorrelatedExistsPredicateForCacheKey(
+        SqlExpr predicate,
+        SqlTableSource source)
+    {
+        var conjuncts = new List<SqlExpr>();
+        FlattenConjuncts(predicate, conjuncts);
+        if (conjuncts.Count == 0)
+            return string.Empty;
+
+        var segments = conjuncts
+            .Select(conjunct => NormalizeCorrelatedExistsConjunctForCacheKey(conjunct, source))
+            .Where(segment => !string.IsNullOrWhiteSpace(segment))
+            .OrderBy(segment => segment, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return segments.Count switch
+        {
+            0 => string.Empty,
+            1 => segments[0],
+            _ => string.Join(" AND ", segments)
+        };
+    }
+
+    private static string NormalizeCorrelatedExistsConjunctForCacheKey(
+        SqlExpr conjunct,
+        SqlTableSource source)
+    {
+        if (conjunct is BinaryExpr binary && binary.Op == SqlBinaryOp.Eq)
+        {
+            var left = NormalizeCorrelatedExistsExpressionForCacheKey(binary.Left, source);
+            var right = NormalizeCorrelatedExistsExpressionForCacheKey(binary.Right, source);
+            return StringComparer.Ordinal.Compare(left, right) <= 0
+                ? $"{left} = {right}"
+                : $"{right} = {left}";
+        }
+
+        return NormalizeCorrelatedExistsExpressionForCacheKey(conjunct, source);
+    }
+
+    private static string NormalizeCorrelatedExistsExpressionForCacheKey(
+        SqlExpr expr,
+        SqlTableSource source)
+    {
+        var text = SqlExprPrinter.Print(expr);
+        text = ReplaceIdentifierQualifierForCacheKey(text, source.Alias, "T1");
+        text = ReplaceIdentifierQualifierForCacheKey(text, source.Name, "T1");
+        return text;
+    }
+
+    private static string ReplaceIdentifierQualifierForCacheKey(
+        string sql,
+        string? qualifier,
+        string replacement)
+    {
+        if (string.IsNullOrWhiteSpace(sql) || string.IsNullOrWhiteSpace(qualifier) || string.IsNullOrWhiteSpace(replacement))
+            return sql;
+
+        var safeQualifier = qualifier!;
+        var sb = new StringBuilder(sql.Length);
+        for (var i = 0; i < sql.Length; i++)
+        {
+            if (IsIdentifierQualifierReferenceAt(sql, i, safeQualifier))
+            {
+                sb.Append(replacement);
+                sb.Append('.');
+                i += safeQualifier.Length;
+                continue;
+            }
+
+            sb.Append(sql[i]);
+        }
+
+        return sb.ToString();
+    }
+
+    private static bool IsSqlIdentifierChar(char c)
+        => char.IsLetterOrDigit(c) || c is '_' or '$';
+
+    private static bool IsIdentifierQualifierReferenceAt(
+        string sql,
+        int startIndex,
+        string qualifier)
+    {
+        if (startIndex < 0 || startIndex >= sql.Length || string.IsNullOrWhiteSpace(qualifier))
+            return false;
+
+        if (startIndex + qualifier.Length >= sql.Length)
+            return false;
+
+        if (startIndex > 0 && IsSqlIdentifierChar(sql[startIndex - 1]))
+            return false;
+
+        for (var i = 0; i < qualifier.Length; i++)
+        {
+            if (char.ToUpperInvariant(sql[startIndex + i]) != char.ToUpperInvariant(qualifier[i]))
+                return false;
+        }
+
+        return sql[startIndex + qualifier.Length] == '.';
     }
 
     private bool TryEvaluateCorrelatedExistsPreAggregation(
@@ -5776,14 +6080,226 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!TryBuildCorrelatedCountLookupState(query, ctes, out var state))
+        if (!TryBuildCorrelatedExistsLookupState(query, ctes, out var state))
             return false;
 
         if (!TryBuildCorrelatedLookupCompositeKey(state.KeyPairs, row, ctes, useInnerSide: false, out var outerKey))
             return false;
 
-        exists = state.Counts.TryGetValue(outerKey, out var count) && count > 0;
+        exists = state.Presence.Contains(outerKey);
         return true;
+    }
+
+    private bool TryBuildCorrelatedExistsLookupState(
+        SqlSelectQuery query,
+        IDictionary<string, Source> ctes,
+        out CorrelatedExistsLookupState state)
+    {
+        state = null!;
+
+        var resolvedSource = ResolveCorrelatedExistsPatternSource(query.Table!, ctes);
+        if (!TryGetCorrelatedCountLookupPattern(
+                query.Where!,
+                resolvedSource,
+                out var keyPairs,
+                out var innerFilterExpr))
+            return false;
+
+        var cacheKey = BuildCorrelatedLookupStateCacheKey(
+            "EXISTS_PREAGG",
+            query.Table!,
+            keyPairs,
+            innerFilterExpr);
+
+        if (_subqueryEvaluationCache.TryGetOperationData(cacheKey, out CorrelatedExistsLookupState? cachedState)
+            && cachedState is not null)
+        {
+            state = cachedState;
+            return true;
+        }
+
+        var built = BuildCorrelatedExistsLookupState(query, ctes, resolvedSource, keyPairs, innerFilterExpr);
+        if (built is null)
+            return false;
+
+        var cached = _subqueryEvaluationCache.GetOrAddOperationData(
+            cacheKey,
+            _ => built);
+
+        if (cached is not CorrelatedExistsLookupState cachedState2)
+            return false;
+
+        state = cachedState2;
+        return true;
+    }
+
+    private Source ResolveCorrelatedExistsPatternSource(
+        SqlTableSource tableSource,
+        IDictionary<string, Source> ctes)
+    {
+        if (tableSource.Derived is null
+            && tableSource.DerivedUnion is null
+            && tableSource.TableFunction is null
+            && tableSource.Pivot is null
+            && tableSource.Unpivot is null
+            && !string.IsNullOrWhiteSpace(tableSource.Name)
+            && !tableSource.Name!.Equals("DUAL", StringComparison.OrdinalIgnoreCase)
+            && !ctes.ContainsKey(tableSource.Name!))
+        {
+            var cacheKey = string.Concat(
+                tableSource.DbName ?? string.Empty,
+                '\u001F',
+                tableSource.Name?.NormalizeName());
+
+            return BuildCorrelatedExistsPatternSource(cacheKey, tableSource, ctes);
+        }
+
+        return ResolveSource(tableSource, ctes);
+    }
+
+    private Source BuildCorrelatedExistsPatternSource(
+        string cacheKey,
+        SqlTableSource tableSource,
+        IDictionary<string, Source> ctes)
+    {
+        var physical = _resolvedBaseTableCache.GetOrAdd(
+            cacheKey,
+            _ =>
+            {
+                if (_cnn.TryGetTable(tableSource.Name!, out var table, tableSource.DbName)
+                    && table is not null)
+                {
+                    _cnn.Metrics.IncrementTableHint(tableSource.Name!.NormalizeName());
+                    return table;
+                }
+
+                return _cnn.GetTable(tableSource.Name!, tableSource.DbName);
+            });
+
+        return Source.FromPhysical(
+            tableSource.Name!.NormalizeName(),
+            tableSource.Alias ?? tableSource.Name!,
+            physical,
+            tableSource.MySqlIndexHints);
+    }
+
+    private CorrelatedExistsLookupState? BuildCorrelatedExistsLookupState(
+        SqlSelectQuery query,
+        IDictionary<string, Source> ctes,
+        Source resolvedSource,
+        IReadOnlyList<CorrelatedLookupKeyPair> keyPairs,
+        SqlExpr? innerFilterExpr)
+    {
+        var rows = BuildFromResolvedSource(
+            resolvedSource,
+            query.Table,
+            ctes,
+            where: innerFilterExpr,
+            hasOrderBy: false,
+            hasGroupBy: false);
+
+        if (innerFilterExpr is not null)
+            rows = ApplyRowPredicate(rows, innerFilterExpr, ctes);
+
+        var estimatedCount = GetKnownRowCount(rows);
+        var presence = estimatedCount > 0
+            ? new HashSet<string>(StringComparer.Ordinal)
+            : new HashSet<string>(StringComparer.Ordinal);
+
+        if (rows is List<EvalRow> rowList)
+        {
+            for (var i = 0; i < rowList.Count; i++)
+            {
+                if (!TryBuildCorrelatedLookupCompositeKey(keyPairs, rowList[i], ctes, useInnerSide: true, out var compositeKey))
+                    return null;
+
+                presence.Add(compositeKey);
+            }
+        }
+        else
+        {
+            foreach (var candidate in rows)
+            {
+                if (!TryBuildCorrelatedLookupCompositeKey(keyPairs, candidate, ctes, useInnerSide: true, out var compositeKey))
+                    return null;
+
+                presence.Add(compositeKey);
+            }
+        }
+
+        return new CorrelatedExistsLookupState(presence, keyPairs, innerFilterExpr);
+    }
+
+    private IEnumerable<EvalRow> BuildFromResolvedSource(
+        Source src,
+        SqlTableSource? from,
+        IDictionary<string, Source> ctes,
+        SqlExpr? where,
+        bool hasOrderBy,
+        bool hasGroupBy)
+    {
+        var sourceRows = TryRowsFromIndex(src, from, where, hasOrderBy, hasGroupBy) ?? src.Rows();
+        foreach (var r in sourceRows)
+            yield return CreateSourceEvalRow(src, r);
+    }
+
+    private static string BuildCorrelatedLookupStateCacheKey(
+        string operation,
+        SqlTableSource table,
+        IReadOnlyList<CorrelatedLookupKeyPair> keyPairs,
+        SqlExpr? innerFilterExpr)
+    {
+        var canonicalSql = BuildCorrelatedLookupCanonicalSql(table, keyPairs, innerFilterExpr);
+        if (string.IsNullOrWhiteSpace(canonicalSql))
+            return string.Empty;
+
+        return string.Concat(operation, '\u001F', canonicalSql);
+    }
+
+    private static string BuildCorrelatedLookupCanonicalSql(
+        SqlTableSource table,
+        IReadOnlyList<CorrelatedLookupKeyPair> keyPairs,
+        SqlExpr? innerFilterExpr)
+    {
+        if (table.Name is null)
+            return string.Empty;
+
+        var sourceSql = table.Name.NormalizeName();
+        if (string.IsNullOrWhiteSpace(sourceSql) || keyPairs.Count == 0)
+            return string.Empty;
+
+        var source = table;
+        var fragments = new List<string>(keyPairs.Count + 4);
+
+        foreach (var pair in keyPairs)
+        {
+            var left = NormalizeCorrelatedExistsExpressionForCacheKey(pair.InnerExpr, source);
+            var right = NormalizeCorrelatedExistsExpressionForCacheKey(pair.OuterExpr, source);
+            if (string.IsNullOrWhiteSpace(left) || string.IsNullOrWhiteSpace(right))
+                continue;
+
+            fragments.Add(StringComparer.Ordinal.Compare(left, right) <= 0
+                ? $"{left} = {right}"
+                : $"{right} = {left}");
+        }
+
+        if (innerFilterExpr is not null)
+        {
+            var conjuncts = new List<SqlExpr>();
+            FlattenConjuncts(innerFilterExpr, conjuncts);
+            foreach (var conjunct in conjuncts)
+            {
+                var normalized = NormalizeCorrelatedExistsExpressionForCacheKey(conjunct, source);
+                if (!string.IsNullOrWhiteSpace(normalized))
+                    fragments.Add(normalized);
+            }
+        }
+
+        if (fragments.Count == 0)
+            return string.Empty;
+
+        fragments.Sort(StringComparer.OrdinalIgnoreCase);
+        return $"SELECT 1 FROM {sourceSql} T1 WHERE {string.Join(" AND ", fragments)}";
     }
 
     private bool TryEvaluateExistsFast(
@@ -5811,13 +6327,30 @@ private void FillPercentRankOrCumeDist(
             hasOrderBy: query.OrderBy.Count > 0,
             hasGroupBy: false);
 
-        if (row is not null && query.Where is not null)
-            rows = rows.Select(r => AttachOuterRow(r, row));
-
         if (query.Where is null)
         {
+            if (rows is ICollection<EvalRow> collection)
+            {
+                exists = collection.Count > 0;
+                return true;
+            }
+
             using var enumerator = rows.GetEnumerator();
             exists = enumerator.MoveNext();
+            return true;
+        }
+
+        if (row is not null)
+        {
+            foreach (var candidate in rows)
+            {
+                if (Eval(query.Where, AttachOuterRow(candidate, row), group: null, ctes).ToBool())
+                {
+                    exists = true;
+                    return true;
+                }
+            }
+
             return true;
         }
 
@@ -5865,24 +6398,43 @@ private void FillPercentRankOrCumeDist(
             hasOrderBy: query.OrderBy.Count > 0,
             hasGroupBy: false);
 
-        if (row is not null && query.Where is not null)
-            rows = rows.Select(r => AttachOuterRow(r, row));
-
         long count = 0;
-        foreach (var candidate in rows)
+        if (row is not null)
         {
-            if (query.Where is not null && !Eval(query.Where, candidate, group: null, ctes).ToBool())
-                continue;
-
-            if (countArg is StarExpr)
+            foreach (var candidate in rows)
             {
-                count++;
-                continue;
-            }
+                var attached = AttachOuterRow(candidate, row);
+                if (query.Where is not null && !Eval(query.Where, attached, group: null, ctes).ToBool())
+                    continue;
 
-            var evaluated = Eval(countArg, candidate, group: null, ctes);
-            if (!IsNullish(evaluated))
-                count++;
+                if (countArg is StarExpr)
+                {
+                    count++;
+                    continue;
+                }
+
+                var evaluated = Eval(countArg, attached, group: null, ctes);
+                if (!IsNullish(evaluated))
+                    count++;
+            }
+        }
+        else
+        {
+            foreach (var candidate in rows)
+            {
+                if (query.Where is not null && !Eval(query.Where, candidate, group: null, ctes).ToBool())
+                    continue;
+
+                if (countArg is StarExpr)
+                {
+                    count++;
+                    continue;
+                }
+
+                var evaluated = Eval(countArg, candidate, group: null, ctes);
+                if (!IsNullish(evaluated))
+                    count++;
+            }
         }
 
         value = count;
@@ -6053,6 +6605,10 @@ private void FillPercentRankOrCumeDist(
         IDictionary<string, Source> ctes)
     {
         var cacheKey = BuildCorrelatedSubqueryCacheKey("IN_LOOKUP", sq.Sql, row);
+        if (_subqueryEvaluationCache.TryGetOperationData(cacheKey, out InSubqueryLookupState? cachedState)
+            && cachedState is not null)
+            return cachedState;
+
         return _subqueryEvaluationCache.GetOrAddOperationData(
             cacheKey,
             _ => BuildInSubqueryLookupState(sq, row, ctes));
@@ -6069,9 +6625,9 @@ private void FillPercentRankOrCumeDist(
 
         var hasNullCandidate = false;
         var scalarCandidates = new HashSet<InLookupScalarKey>();
-
-        foreach (var value in values)
+        for (var i = 0; i < values.Count; i++)
         {
+            var value = values[i];
             if (IsSqlNullLike(value))
             {
                 hasNullCandidate = true;
@@ -6098,9 +6654,9 @@ private void FillPercentRankOrCumeDist(
 
         var hasNullCandidate = false;
         var rowCandidates = new HashSet<string>(StringComparer.Ordinal);
-
-        foreach (var value in values)
+        for (var i = 0; i < values.Count; i++)
         {
+            var value = values[i];
             if (HasNullElement(value))
             {
                 hasNullCandidate = true;
@@ -6127,6 +6683,8 @@ private void FillPercentRankOrCumeDist(
         IDictionary<string, Source> ctes)
     {
         var cacheKey = BuildCorrelatedSubqueryCacheKey(operation, sq.Sql, row);
+        if (_subqueryEvaluationCache.TryGetFirstColumnValues(cacheKey, out var cachedValues))
+            return cachedValues!;
 
         return _subqueryEvaluationCache.GetOrAddFirstColumnValues(
             cacheKey,
@@ -6154,8 +6712,16 @@ private void FillPercentRankOrCumeDist(
     {
         var subqueryResult = ExecuteSelect(GetSingleSubqueryOrThrow(sq, operation), ctes, row);
         var values = new List<object?>(subqueryResult.Count);
-        foreach (var resultRow in subqueryResult)
-            values.Add(resultRow.TryGetValue(0, out var cell) ? cell : null);
+        if (subqueryResult is List<Dictionary<int, object?>> rowList)
+        {
+            for (var i = 0; i < rowList.Count; i++)
+                values.Add(rowList[i].TryGetValue(0, out var cell) ? cell : null);
+        }
+        else
+        {
+            foreach (var resultRow in subqueryResult)
+                values.Add(resultRow.TryGetValue(0, out var cell) ? cell : null);
+        }
 
         return values;
     }
@@ -6168,13 +6734,27 @@ private void FillPercentRankOrCumeDist(
     {
         var subqueryResult = ExecuteSelect(GetSingleSubqueryOrThrow(sq, operation), ctes, row);
         var values = new List<object?[]>(subqueryResult.Count);
-        foreach (var resultRow in subqueryResult)
+        if (subqueryResult is List<Dictionary<int, object?>> rowList)
         {
-            var tuple = new object?[subqueryResult.Columns.Count];
-            for (var i = 0; i < tuple.Length; i++)
-                tuple[i] = resultRow.TryGetValue(i, out var cell) ? cell : null;
+            for (var rowIndex = 0; rowIndex < rowList.Count; rowIndex++)
+            {
+                var tuple = new object?[subqueryResult.Columns.Count];
+                for (var i = 0; i < tuple.Length; i++)
+                    tuple[i] = rowList[rowIndex].TryGetValue(i, out var cell) ? cell : null;
 
-            values.Add(tuple);
+                values.Add(tuple);
+            }
+        }
+        else
+        {
+            foreach (var resultRow in subqueryResult)
+            {
+                var tuple = new object?[subqueryResult.Columns.Count];
+                for (var i = 0; i < tuple.Length; i++)
+                    tuple[i] = resultRow.TryGetValue(i, out var cell) ? cell : null;
+
+                values.Add(tuple);
+            }
         }
 
         return values;
@@ -6423,7 +7003,7 @@ private void FillPercentRankOrCumeDist(
             && SqlTemporalFunctionEvaluator.IsKnownTemporalFunctionName(fn.Name))
             throw new InvalidOperationException($"Temporal function '{fn.Name}' is not supported for dialect '{dialect.Name}'.");
 
-// Unknown scalar => null (don't explode tests)
+        // Unknown scalar => null (don't explode tests)
         return null;
 
         object? EvalArg(int i) => i < fn.Args.Count ? Eval(fn.Args[i], row, group, ctes) : null;
@@ -8033,7 +8613,7 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
-        if (jsonElement.ValueKind != System.Text.Json.JsonValueKind.Array)
+        if (jsonElement.ValueKind != JsonValueKind.Array)
         {
             result = null;
             return true;
@@ -11648,7 +12228,7 @@ private void FillPercentRankOrCumeDist(
             var options = writeIndented
                 ? new System.Text.Json.JsonSerializerOptions { WriteIndented = true }
                 : null;
-            result = System.Text.Json.JsonSerializer.Serialize(list, options);
+            result = JsonSerializer.Serialize(list, options);
             return true;
         }
 
@@ -11724,7 +12304,7 @@ private void FillPercentRankOrCumeDist(
         if (name is "TO_JSON" or "TO_JSONB" or "ROW_TO_JSON")
         {
             var value = evalArg(0);
-            result = IsNullish(value) ? null : System.Text.Json.JsonSerializer.Serialize(value);
+            result = IsNullish(value) ? null : JsonSerializer.Serialize(value);
             return true;
         }
 
@@ -11811,13 +12391,13 @@ private void FillPercentRankOrCumeDist(
 
             result = element.ValueKind switch
             {
-                System.Text.Json.JsonValueKind.Object => "object",
-                System.Text.Json.JsonValueKind.Array => "array",
-                System.Text.Json.JsonValueKind.String => "string",
-                System.Text.Json.JsonValueKind.Number => "number",
-                System.Text.Json.JsonValueKind.True => "boolean",
-                System.Text.Json.JsonValueKind.False => "boolean",
-                System.Text.Json.JsonValueKind.Null => "null",
+                JsonValueKind.Object => "object",
+                JsonValueKind.Array => "array",
+                JsonValueKind.String => "string",
+                JsonValueKind.Number => "number",
+                JsonValueKind.True => "boolean",
+                JsonValueKind.False => "boolean",
+                JsonValueKind.Null => "null",
                 _ => null
             };
             return true;
@@ -11833,7 +12413,7 @@ private void FillPercentRankOrCumeDist(
             }
 
             if (!TryParseJsonElement(value!, out var element)
-                || element.ValueKind != System.Text.Json.JsonValueKind.Array)
+                || element.ValueKind != JsonValueKind.Array)
             {
                 result = null;
                 return true;
@@ -11909,8 +12489,8 @@ private void FillPercentRankOrCumeDist(
             {
                 result = element.ValueKind switch
                 {
-                    System.Text.Json.JsonValueKind.String => element.GetString(),
-                    System.Text.Json.JsonValueKind.Null => null,
+                    JsonValueKind.String => element.GetString(),
+                    JsonValueKind.Null => null,
                     _ => element.GetRawText()
                 };
                 return true;
@@ -12100,7 +12680,7 @@ private void FillPercentRankOrCumeDist(
             {
                 WriteIndented = true
             };
-            result = System.Text.Json.JsonSerializer.Serialize(element, options)
+            result = JsonSerializer.Serialize(element, options)
                 .Replace(@"
 ", "\n");
             return true;
@@ -13538,7 +14118,7 @@ private void FillPercentRankOrCumeDist(
         }
 
         var text = value?.ToString() ?? string.Empty;
-        result = System.Text.Encoding.Unicode.GetByteCount(text);
+        result = Encoding.Unicode.GetByteCount(text);
         return true;
     }
 
@@ -14804,7 +15384,7 @@ private void FillPercentRankOrCumeDist(
         }
 
         var text = value?.ToString() ?? string.Empty;
-        if (!System.Net.IPAddress.TryParse(text, out var ip))
+        if (!IPAddress.TryParse(text, out var ip))
         {
             result = 0;
             return true;
@@ -15021,15 +15601,15 @@ private void FillPercentRankOrCumeDist(
 
             result = element.ValueKind switch
             {
-                System.Text.Json.JsonValueKind.Object => "OBJECT",
-                System.Text.Json.JsonValueKind.Array => "ARRAY",
-                System.Text.Json.JsonValueKind.String => "STRING",
-                System.Text.Json.JsonValueKind.Number => element.TryGetInt64(out _)
+                JsonValueKind.Object => "OBJECT",
+                JsonValueKind.Array => "ARRAY",
+                JsonValueKind.String => "STRING",
+                JsonValueKind.Number => element.TryGetInt64(out _)
                     ? "INTEGER"
                     : "DOUBLE",
-                System.Text.Json.JsonValueKind.True => "BOOLEAN",
-                System.Text.Json.JsonValueKind.False => "BOOLEAN",
-                System.Text.Json.JsonValueKind.Null => SqlConst.NULL,
+                JsonValueKind.True => "BOOLEAN",
+                JsonValueKind.False => "BOOLEAN",
+                JsonValueKind.Null => SqlConst.NULL,
                 _ => null
             };
             return true;
@@ -15067,8 +15647,8 @@ private void FillPercentRankOrCumeDist(
 
             result = element.ValueKind switch
             {
-                System.Text.Json.JsonValueKind.Array => element.GetArrayLength(),
-                System.Text.Json.JsonValueKind.Object => element.EnumerateObject().Count(),
+                JsonValueKind.Array => element.GetArrayLength(),
+                JsonValueKind.Object => element.EnumerateObject().Count(),
                 _ => 1
             };
             return true;
@@ -15166,7 +15746,7 @@ private void FillPercentRankOrCumeDist(
             }
 
             var text = value?.ToString() ?? string.Empty;
-            result = System.Text.Json.JsonSerializer.Serialize(text);
+            result = JsonSerializer.Serialize(text);
             return true;
         }
 
@@ -15189,7 +15769,7 @@ private void FillPercentRankOrCumeDist(
             {
                 WriteIndented = true
             };
-            result = System.Text.Json.JsonSerializer.Serialize(element, options)
+            result = JsonSerializer.Serialize(element, options)
                 .Replace(@"
 ", "\n");
             return true;
@@ -15225,7 +15805,7 @@ private void FillPercentRankOrCumeDist(
                 }
             }
 
-            if (element.ValueKind != System.Text.Json.JsonValueKind.Object)
+            if (element.ValueKind != JsonValueKind.Object)
             {
                 result = null;
                 return true;
@@ -16313,7 +16893,7 @@ private void FillPercentRankOrCumeDist(
         out System.Net.IPAddress address,
         out int prefixLength)
     {
-        address = System.Net.IPAddress.None;
+        address = IPAddress.None;
         prefixLength = 0;
 
         var text = value?.ToString()?.Trim() ?? string.Empty;
@@ -16322,7 +16902,7 @@ private void FillPercentRankOrCumeDist(
 
         var slashIndex = text.IndexOf('/');
         var addressText = slashIndex >= 0 ? text[..slashIndex] : text;
-        if (!System.Net.IPAddress.TryParse(addressText, out var parsedAddress))
+        if (!IPAddress.TryParse(addressText, out var parsedAddress))
             return false;
 
         address = parsedAddress;
@@ -16468,10 +17048,10 @@ private void FillPercentRankOrCumeDist(
         var builder = new StringBuilder(decomposed.Length);
         foreach (var ch in decomposed)
         {
-            var category = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(ch);
-            if (category is System.Globalization.UnicodeCategory.NonSpacingMark
-                or System.Globalization.UnicodeCategory.SpacingCombiningMark
-                or System.Globalization.UnicodeCategory.EnclosingMark)
+            var category = CharUnicodeInfo.GetUnicodeCategory(ch);
+            if (category is UnicodeCategory.NonSpacingMark
+                or UnicodeCategory.SpacingCombiningMark
+                or UnicodeCategory.EnclosingMark)
             {
                 continue;
             }
@@ -16611,7 +17191,7 @@ private void FillPercentRankOrCumeDist(
                 return true;
             }
 
-            result = element.ValueKind == System.Text.Json.JsonValueKind.Array
+            result = element.ValueKind == JsonValueKind.Array
                 ? element.GetArrayLength()
                 : 0;
             return true;
@@ -17158,8 +17738,8 @@ private void FillPercentRankOrCumeDist(
         }
 
         var text = value?.ToString() ?? string.Empty;
-        var bytes = System.Text.Encoding.UTF8.GetBytes(text);
-        using var md5 = System.Security.Cryptography.MD5.Create();
+        var bytes = Encoding.UTF8.GetBytes(text);
+        using var md5 = MD5.Create();
         var hash = ComputeHash(md5, bytes);
         var sb = new StringBuilder(hash.Length * 2);
         foreach (var b in hash)
@@ -17231,15 +17811,15 @@ private void FillPercentRankOrCumeDist(
             }
         }
 
-        element = System.Text.Json.JsonSerializer.SerializeToElement(text);
+        element = JsonSerializer.SerializeToElement(text);
         return true;
     }
 
     private static bool JsonContains(System.Text.Json.JsonElement target, System.Text.Json.JsonElement candidate)
     {
-        if (candidate.ValueKind == System.Text.Json.JsonValueKind.Object)
+        if (candidate.ValueKind == JsonValueKind.Object)
         {
-            if (target.ValueKind != System.Text.Json.JsonValueKind.Object)
+            if (target.ValueKind != JsonValueKind.Object)
                 return false;
 
             foreach (var prop in candidate.EnumerateObject())
@@ -17254,9 +17834,9 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
-        if (candidate.ValueKind == System.Text.Json.JsonValueKind.Array)
+        if (candidate.ValueKind == JsonValueKind.Array)
         {
-            if (target.ValueKind != System.Text.Json.JsonValueKind.Array)
+            if (target.ValueKind != JsonValueKind.Array)
                 return false;
 
             var targetItems = target.EnumerateArray().ToArray();
@@ -17276,8 +17856,8 @@ private void FillPercentRankOrCumeDist(
     {
         if (left.ValueKind != right.ValueKind)
         {
-            if (left.ValueKind == System.Text.Json.JsonValueKind.Number
-                && right.ValueKind == System.Text.Json.JsonValueKind.Number)
+            if (left.ValueKind == JsonValueKind.Number
+                && right.ValueKind == JsonValueKind.Number)
             {
                 if (left.TryGetDecimal(out var ldec) && right.TryGetDecimal(out var rdec))
                     return ldec == rdec;
@@ -17289,20 +17869,20 @@ private void FillPercentRankOrCumeDist(
 
         return left.ValueKind switch
         {
-            System.Text.Json.JsonValueKind.String => left.GetString() == right.GetString(),
-            System.Text.Json.JsonValueKind.Number => left.TryGetDecimal(out var ldec) && right.TryGetDecimal(out var rdec)
+            JsonValueKind.String => left.GetString() == right.GetString(),
+            JsonValueKind.Number => left.TryGetDecimal(out var ldec) && right.TryGetDecimal(out var rdec)
                 ? ldec == rdec
                 : left.GetDouble().Equals(right.GetDouble()),
-            System.Text.Json.JsonValueKind.True => right.ValueKind == System.Text.Json.JsonValueKind.True,
-            System.Text.Json.JsonValueKind.False => right.ValueKind == System.Text.Json.JsonValueKind.False,
-            System.Text.Json.JsonValueKind.Null => true,
+            JsonValueKind.True => right.ValueKind == JsonValueKind.True,
+            JsonValueKind.False => right.ValueKind == JsonValueKind.False,
+            JsonValueKind.Null => true,
             _ => left.GetRawText() == right.GetRawText()
         };
     }
 
     private static bool JsonOverlaps(System.Text.Json.JsonElement left, System.Text.Json.JsonElement right)
     {
-        if (left.ValueKind == System.Text.Json.JsonValueKind.Array)
+        if (left.ValueKind == JsonValueKind.Array)
         {
             foreach (var item in left.EnumerateArray())
             {
@@ -17313,7 +17893,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (right.ValueKind == System.Text.Json.JsonValueKind.Array)
+        if (right.ValueKind == JsonValueKind.Array)
         {
             foreach (var item in right.EnumerateArray())
             {
@@ -17324,8 +17904,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (left.ValueKind == System.Text.Json.JsonValueKind.Object
-            && right.ValueKind == System.Text.Json.JsonValueKind.Object)
+        if (left.ValueKind == JsonValueKind.Object
+            && right.ValueKind == JsonValueKind.Object)
         {
             foreach (var prop in left.EnumerateObject())
             {
@@ -17339,8 +17919,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (left.ValueKind == System.Text.Json.JsonValueKind.Object
-            || right.ValueKind == System.Text.Json.JsonValueKind.Object)
+        if (left.ValueKind == JsonValueKind.Object
+            || right.ValueKind == JsonValueKind.Object)
             return false;
 
         return JsonElementEquals(left, right);
@@ -17476,7 +18056,7 @@ private void FillPercentRankOrCumeDist(
         if (string.IsNullOrEmpty(pathSegment))
             return false;
 
-        if (element.ValueKind == System.Text.Json.JsonValueKind.Object)
+        if (element.ValueKind == JsonValueKind.Object)
         {
             if (element.TryGetProperty(pathSegment, out target))
                 return true;
@@ -17484,7 +18064,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (element.ValueKind == System.Text.Json.JsonValueKind.Array
+        if (element.ValueKind == JsonValueKind.Array
             && int.TryParse(pathSegment, NumberStyles.Integer, CultureInfo.InvariantCulture, out var index)
             && index >= 0)
         {
@@ -17541,7 +18121,7 @@ private void FillPercentRankOrCumeDist(
         string search,
         List<string> results)
     {
-        if (element.ValueKind == System.Text.Json.JsonValueKind.String)
+        if (element.ValueKind == JsonValueKind.String)
         {
             var text = element.GetString() ?? string.Empty;
             if (text.IndexOf(search, StringComparison.Ordinal) >= 0)
@@ -17549,7 +18129,7 @@ private void FillPercentRankOrCumeDist(
             return;
         }
 
-        if (element.ValueKind == System.Text.Json.JsonValueKind.Array)
+        if (element.ValueKind == JsonValueKind.Array)
         {
             var index = 0;
             foreach (var item in element.EnumerateArray())
@@ -17561,7 +18141,7 @@ private void FillPercentRankOrCumeDist(
             return;
         }
 
-        if (element.ValueKind == System.Text.Json.JsonValueKind.Object)
+        if (element.ValueKind == JsonValueKind.Object)
         {
             foreach (var prop in element.EnumerateObject())
             {
@@ -17580,7 +18160,7 @@ private void FillPercentRankOrCumeDist(
             if (value is System.Text.Json.JsonElement element)
                 return element.GetRawText();
 
-            return System.Text.Json.JsonSerializer.Serialize(value);
+            return JsonSerializer.Serialize(value);
         });
 
         return "[" + string.Join(",", parts) + "]";
@@ -17590,7 +18170,7 @@ private void FillPercentRankOrCumeDist(
     {
         var parts = pairs.Select(static pair =>
         {
-            var key = System.Text.Json.JsonSerializer.Serialize(pair.Key ?? string.Empty);
+            var key = JsonSerializer.Serialize(pair.Key ?? string.Empty);
             var value = pair.Value;
             if (value is null or DBNull)
                 return $"{key}:null";
@@ -17598,7 +18178,7 @@ private void FillPercentRankOrCumeDist(
             if (value is System.Text.Json.JsonElement element)
                 return $"{key}:{element.GetRawText()}";
 
-            return $"{key}:{System.Text.Json.JsonSerializer.Serialize(value)}";
+            return $"{key}:{JsonSerializer.Serialize(value)}";
         });
 
         return "{" + string.Join(",", parts) + "}";
@@ -17838,7 +18418,7 @@ private void FillPercentRankOrCumeDist(
             return node;
 
         return System.Text.Json.Nodes.JsonValue.Create(value)
-            ?? System.Text.Json.Nodes.JsonNode.Parse(System.Text.Json.JsonSerializer.Serialize(value))!;
+            ?? System.Text.Json.Nodes.JsonNode.Parse(JsonSerializer.Serialize(value))!;
     }
 
     private static System.Text.Json.Nodes.JsonNode CreateJsonContainer(JsonPathToken nextToken)
@@ -18462,7 +19042,7 @@ private void FillPercentRankOrCumeDist(
         }
 
         var text = value?.ToString() ?? string.Empty;
-        result = BytesToHex(System.Text.Encoding.UTF8.GetBytes(text));
+        result = BytesToHex(Encoding.UTF8.GetBytes(text));
         return true;
     }
 
@@ -18531,7 +19111,7 @@ private void FillPercentRankOrCumeDist(
         }
 
         var text = value?.ToString() ?? string.Empty;
-        result = System.Text.Encoding.UTF8.GetByteCount(text);
+        result = Encoding.UTF8.GetByteCount(text);
         return true;
     }
 
@@ -18583,7 +19163,7 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
-        var bytes = System.Text.Encoding.UTF8.GetBytes(text);
+        var bytes = Encoding.UTF8.GetBytes(text);
         result = bytes[0];
         return true;
     }
@@ -18798,129 +19378,129 @@ private void FillPercentRankOrCumeDist(
         switch (name)
         {
             case "QUOTENAME":
-            {
-                var value = evalArg(0);
-                if (IsNullish(value))
                 {
-                    result = null;
+                    var value = evalArg(0);
+                    if (IsNullish(value))
+                    {
+                        result = null;
+                        return true;
+                    }
+
+                    var text = value?.ToString() ?? string.Empty;
+                    var delimiter = fn.Args.Count > 1 ? evalArg(1)?.ToString() : null;
+                    var quoteChar = string.IsNullOrEmpty(delimiter) ? "[" : delimiter![0].ToString();
+                    var closingChar = quoteChar switch
+                    {
+                        "[" => "]",
+                        "(" => ")",
+                        "<" => ">",
+                        "{" => "}",
+                        _ => quoteChar
+                    };
+                    var escaped = text.Replace(closingChar, closingChar + closingChar);
+                    result = quoteChar + escaped + closingChar;
                     return true;
                 }
-
-                var text = value?.ToString() ?? string.Empty;
-                var delimiter = fn.Args.Count > 1 ? evalArg(1)?.ToString() : null;
-                var quoteChar = string.IsNullOrEmpty(delimiter) ? "[" : delimiter![0].ToString();
-                var closingChar = quoteChar switch
-                {
-                    "[" => "]",
-                    "(" => ")",
-                    "<" => ">",
-                    "{" => "}",
-                    _ => quoteChar
-                };
-                var escaped = text.Replace(closingChar, closingChar + closingChar);
-                result = quoteChar + escaped + closingChar;
-                return true;
-            }
             case "REPLICATE":
-            {
-                var textValue = evalArg(0);
-                var countValue = evalArg(1);
-                if (IsNullish(textValue) || IsNullish(countValue))
                 {
-                    result = null;
+                    var textValue = evalArg(0);
+                    var countValue = evalArg(1);
+                    if (IsNullish(textValue) || IsNullish(countValue))
+                    {
+                        result = null;
+                        return true;
+                    }
+
+                    var text = textValue?.ToString() ?? string.Empty;
+                    var count = Convert.ToInt32(countValue.ToDec());
+                    if (count <= 0)
+                    {
+                        result = string.Empty;
+                        return true;
+                    }
+
+                    var sb = new StringBuilder(text.Length * count);
+                    for (var i = 0; i < count; i++)
+                        sb.Append(text);
+                    result = sb.ToString();
                     return true;
                 }
-
-                var text = textValue?.ToString() ?? string.Empty;
-                var count = Convert.ToInt32(countValue.ToDec());
-                if (count <= 0)
-                {
-                    result = string.Empty;
-                    return true;
-                }
-
-                var sb = new StringBuilder(text.Length * count);
-                for (var i = 0; i < count; i++)
-                    sb.Append(text);
-                result = sb.ToString();
-                return true;
-            }
             case "SQUARE":
-            {
-                var value = evalArg(0);
-                if (IsNullish(value))
                 {
-                    result = null;
-                    return true;
-                }
+                    var value = evalArg(0);
+                    if (IsNullish(value))
+                    {
+                        result = null;
+                        return true;
+                    }
 
-                try
-                {
-                    var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
-                    result = number * number;
-                    return true;
+                    try
+                    {
+                        var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+                        result = number * number;
+                        return true;
+                    }
+                    catch
+                    {
+                        result = null;
+                        return true;
+                    }
                 }
-                catch
-                {
-                    result = null;
-                    return true;
-                }
-            }
             case "STUFF":
-            {
-                if (fn.Args.Count < 4)
-                    throw new InvalidOperationException("STUFF() espera 4 argumentos.");
-
-                var sourceValue = evalArg(0);
-                var startValue = evalArg(1);
-                var lengthValue = evalArg(2);
-                var replaceValue = evalArg(3);
-                if (IsNullish(sourceValue) || IsNullish(startValue) || IsNullish(lengthValue) || IsNullish(replaceValue))
                 {
-                    result = null;
+                    if (fn.Args.Count < 4)
+                        throw new InvalidOperationException("STUFF() espera 4 argumentos.");
+
+                    var sourceValue = evalArg(0);
+                    var startValue = evalArg(1);
+                    var lengthValue = evalArg(2);
+                    var replaceValue = evalArg(3);
+                    if (IsNullish(sourceValue) || IsNullish(startValue) || IsNullish(lengthValue) || IsNullish(replaceValue))
+                    {
+                        result = null;
+                        return true;
+                    }
+
+                    var source = sourceValue?.ToString() ?? string.Empty;
+                    var start = Convert.ToInt32(startValue.ToDec());
+                    var length = Convert.ToInt32(lengthValue.ToDec());
+                    var replacement = replaceValue?.ToString() ?? string.Empty;
+                    if (start <= 0 || length < 0 || start > source.Length + 1)
+                    {
+                        result = null;
+                        return true;
+                    }
+
+                    var zeroBasedStart = start - 1;
+                    var safeLength = Math.Min(length, source.Length - zeroBasedStart);
+                    result = source.Remove(zeroBasedStart, safeLength).Insert(zeroBasedStart, replacement);
                     return true;
                 }
-
-                var source = sourceValue?.ToString() ?? string.Empty;
-                var start = Convert.ToInt32(startValue.ToDec());
-                var length = Convert.ToInt32(lengthValue.ToDec());
-                var replacement = replaceValue?.ToString() ?? string.Empty;
-                if (start <= 0 || length < 0 || start > source.Length + 1)
-                {
-                    result = null;
-                    return true;
-                }
-
-                var zeroBasedStart = start - 1;
-                var safeLength = Math.Min(length, source.Length - zeroBasedStart);
-                result = source.Remove(zeroBasedStart, safeLength).Insert(zeroBasedStart, replacement);
-                return true;
-            }
             case "PARSENAME":
-            {
-                var objectNameValue = evalArg(0);
-                var pieceValue = evalArg(1);
-                if (IsNullish(objectNameValue) || IsNullish(pieceValue))
                 {
-                    result = null;
+                    var objectNameValue = evalArg(0);
+                    var pieceValue = evalArg(1);
+                    if (IsNullish(objectNameValue) || IsNullish(pieceValue))
+                    {
+                        result = null;
+                        return true;
+                    }
+
+                    var objectName = objectNameValue?.ToString() ?? string.Empty;
+                    var piece = Convert.ToInt32(pieceValue.ToDec());
+                    if (piece is < 1 or > 4)
+                    {
+                        result = null;
+                        return true;
+                    }
+
+                    var parts = objectName.Split('.');
+                    var indexFromEnd = piece - 1;
+                    result = indexFromEnd < parts.Length
+                        ? parts[^(indexFromEnd + 1)]
+                        : null;
                     return true;
                 }
-
-                var objectName = objectNameValue?.ToString() ?? string.Empty;
-                var piece = Convert.ToInt32(pieceValue.ToDec());
-                if (piece is < 1 or > 4)
-                {
-                    result = null;
-                    return true;
-                }
-
-                var parts = objectName.Split('.');
-                var indexFromEnd = piece - 1;
-                result = indexFromEnd < parts.Length
-                    ? parts[^(indexFromEnd + 1)]
-                    : null;
-                return true;
-            }
             default:
                 return false;
         }
@@ -19263,7 +19843,7 @@ private void FillPercentRankOrCumeDist(
         }
 
         var text = value?.ToString() ?? string.Empty;
-        var bytes = System.Text.Encoding.UTF8.GetBytes(text);
+        var bytes = Encoding.UTF8.GetBytes(text);
 
         if (name.Equals("SHA2", StringComparison.OrdinalIgnoreCase))
         {
@@ -19271,18 +19851,18 @@ private void FillPercentRankOrCumeDist(
             var length = IsNullish(lengthArg) ? 256 : Convert.ToInt32(lengthArg.ToDec());
             byte[] hash = length switch
             {
-                224 => ComputeHash(System.Security.Cryptography.SHA256.Create(), bytes),
-                256 => ComputeHash(System.Security.Cryptography.SHA256.Create(), bytes),
-                384 => ComputeHash(System.Security.Cryptography.SHA384.Create(), bytes),
-                512 => ComputeHash(System.Security.Cryptography.SHA512.Create(), bytes),
-                _ => ComputeHash(System.Security.Cryptography.SHA256.Create(), bytes)
+                224 => ComputeHash(SHA256.Create(), bytes),
+                256 => ComputeHash(SHA256.Create(), bytes),
+                384 => ComputeHash(SHA384.Create(), bytes),
+                512 => ComputeHash(SHA512.Create(), bytes),
+                _ => ComputeHash(SHA256.Create(), bytes)
             };
 
             result = BytesToHex(hash);
             return true;
         }
 
-        using var sha1 = System.Security.Cryptography.SHA1.Create();
+        using var sha1 = SHA1.Create();
         var sha = ComputeHash(sha1, bytes);
         result = BytesToHex(sha);
         return true;
@@ -20337,7 +20917,7 @@ private void FillPercentRankOrCumeDist(
                 if (v is System.Text.Json.JsonElement je)
                     return ValidateJsonOrNull(je.GetRawText());
 
-                var serialized = System.Text.Json.JsonSerializer.Serialize(v);
+                var serialized = JsonSerializer.Serialize(v);
                 return ValidateJsonOrNull(serialized);
             }
 
@@ -20658,7 +21238,7 @@ private void FillPercentRankOrCumeDist(
                 if (!QueryJsonFunctionHelper.TryReadJsonPathElement(json, path, out var element))
                     return null;
 
-                return element.ValueKind is System.Text.Json.JsonValueKind.Object or System.Text.Json.JsonValueKind.Array
+                return element.ValueKind is JsonValueKind.Object or JsonValueKind.Array
                     ? element.GetRawText()
                     : null;
             }
@@ -20682,7 +21262,7 @@ private void FillPercentRankOrCumeDist(
         if (!QueryJsonFunctionHelper.TryGetJsonRootElement(json, out var root))
             return null;
 
-        return root.ValueKind is System.Text.Json.JsonValueKind.Object or System.Text.Json.JsonValueKind.Array
+        return root.ValueKind is JsonValueKind.Object or JsonValueKind.Array
             ? root.GetRawText()
             : null;
     }
@@ -22171,10 +22751,11 @@ private void FillPercentRankOrCumeDist(
         var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação.");
         var name = fn.Name.ToUpperInvariant();
         var filteredGroup = ApplyAggregateFilter(fn, group, ctes);
+        var useOrdinalTextComparison = dialect.TextComparison == StringComparison.Ordinal;
 
         // COUNT(DISTINCT ...)
         if (name == "COUNT" && fn.Distinct)
-            return EvalCountDistinct(fn, filteredGroup, ctes);
+            return EvalCountDistinct(fn, filteredGroup, ctes, useOrdinalTextComparison);
 
         if (name is "GROUP_CONCAT" or "STRING_AGG" or "LISTAGG")
         {
@@ -22203,16 +22784,20 @@ private void FillPercentRankOrCumeDist(
         return new EvalGroup(filteredRows);
     }
 
-    private long EvalCountDistinct(CallExpr fn, EvalGroup group, IDictionary<string, Source> ctes)
+    private long EvalCountDistinct(
+        CallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes,
+        bool useOrdinalTextComparison)
     {
         // COUNT(DISTINCT *) não faz sentido no MySQL; se acontecer, trata como COUNT(*)
         if (fn.Args.Count == 1 && fn.Args[0] is StarExpr)
             return group.Rows.Count;
 
-        var set = new HashSet<string>(StringComparer.Ordinal);
+        var set = CreateDistinctStringSet(useOrdinalTextComparison, group.Rows.Count);
         foreach (var row in group.Rows)
         {
-            if (TryBuildCountDistinctKey(fn, row, ctes, out var key))
+            if (TryBuildCountDistinctKey(fn, row, ctes, useOrdinalTextComparison, out var key))
                 set.Add(key);
         }
 
@@ -22223,29 +22808,127 @@ private void FillPercentRankOrCumeDist(
         CallExpr fn,
         EvalRow row,
         IDictionary<string, Source> ctes,
+        bool useOrdinalTextComparison,
         out string key)
     {
         key = string.Empty;
+
+        if (fn.Args.Count == 1)
+        {
+            var singleValue = Eval(fn.Args[0], row, null, ctes);
+            if (!TryGetStringAggregateKeyAndText(singleValue, useOrdinalTextComparison, out _, out var singleKey))
+                return false;
+
+            key = singleKey;
+            return true;
+        }
+
         var builder = new StringBuilder();
 
         for (var i = 0; i < fn.Args.Count; i++)
         {
             var value = Eval(fn.Args[i], row, null, ctes);
-            if (IsNullish(value))
+            if (!TryGetStringAggregateKeyAndText(value, useOrdinalTextComparison, out _, out var normalized))
                 return false;
 
             if (builder.Length > 0)
                 builder.Append('\u001F');
 
-            builder.Append(NormalizeDistinctKey(value, Dialect));
+            builder.Append(normalized);
         }
 
         key = builder.ToString();
         return true;
     }
 
+    private static HashSet<string> CreateDistinctStringSet(bool useOrdinalTextComparison, int estimatedCount)
+    {
+        var comparer = useOrdinalTextComparison ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
+        return new HashSet<string>(comparer);
+    }
+
     private static string NormalizeDistinctKey(object? v, ISqlDialect? dialect = null)
         => QueryRowValueHelper.NormalizeDistinctKey(v, dialect);
+
+    private static bool TryGetStringAggregateText(object? value, out string text)
+    {
+        text = string.Empty;
+
+        if (IsNullish(value))
+            return false;
+
+        switch (value)
+        {
+            case string textValue:
+                text = textValue;
+                return true;
+            case decimal decimalValue:
+                text = decimalValue.ToString(CultureInfo.InvariantCulture);
+                return true;
+            case double doubleValue:
+                text = doubleValue.ToString("R", CultureInfo.InvariantCulture);
+                return true;
+            case float floatValue:
+                text = floatValue.ToString("R", CultureInfo.InvariantCulture);
+                return true;
+            case DateTime dateTime:
+                text = dateTime.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture);
+                return true;
+            case bool boolValue:
+                text = boolValue ? "1" : "0";
+                return true;
+            default:
+                text = value?.ToString() ?? string.Empty;
+                return true;
+        }
+    }
+
+    private static bool TryGetStringAggregateKeyAndText(
+        object? value,
+        bool useOrdinalTextComparison,
+        out string text,
+        out string distinctKey)
+    {
+        text = string.Empty;
+        distinctKey = string.Empty;
+
+        if (IsNullish(value))
+            return false;
+
+        switch (value)
+        {
+            case string textValue:
+                text = textValue;
+                distinctKey = useOrdinalTextComparison
+                    ? textValue
+                    : textValue.ToUpperInvariant();
+                return true;
+            case decimal decimalValue:
+                text = decimalValue.ToString(CultureInfo.InvariantCulture);
+                distinctKey = text;
+                return true;
+            case double doubleValue:
+                text = doubleValue.ToString("R", CultureInfo.InvariantCulture);
+                distinctKey = text;
+                return true;
+            case float floatValue:
+                text = floatValue.ToString("R", CultureInfo.InvariantCulture);
+                distinctKey = text;
+                return true;
+            case DateTime dateTime:
+                text = dateTime.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture);
+                distinctKey = text;
+                return true;
+            case bool boolValue:
+                text = boolValue ? "1" : "0";
+                distinctKey = text;
+                return true;
+            default:
+                text = value?.ToString() ?? string.Empty;
+                distinctKey = text;
+                return true;
+        }
+    }
 
     private static string? EvalStringAggregate(IReadOnlyList<object?> values, object? separatorObj, string defaultSeparator)
     {
@@ -22270,18 +22953,28 @@ private void FillPercentRankOrCumeDist(
         if (fn.Args.Count == 0)
             return null;
 
+        var hasDirectValueSelector = TryCreateStringAggregateValueSelector(fn.Args[0], out var valueSelector);
         var separator = GetAggregateSeparator(fn, group, ctes);
         var rows = GetStringAggregateRows(fn, group, ctes);
+        var useDirectValueSelector = hasDirectValueSelector && !(name == "LISTAGG" && separator is null);
         if (rows.Count == 1)
         {
-            var singleValue = Eval(fn.Args[0], rows[0], null, ctes);
-            if (IsNullish(singleValue))
+            var singleValue = useDirectValueSelector
+                ? valueSelector!(rows[0])
+                : Eval(fn.Args[0], rows[0], null, ctes);
+            if (!TryGetStringAggregateText(singleValue, out var singleText))
                 return null;
 
-            return singleValue?.ToString();
+            return singleText;
         }
 
-        return EvalStringAggregateRows(fn, rows, ctes, separator, GetStringAggregateDefaultSeparator(name));
+        return EvalStringAggregateRows(
+            fn,
+            rows,
+            ctes,
+            separator,
+            GetStringAggregateDefaultSeparator(name),
+            useDirectValueSelector ? valueSelector : null);
     }
 
     private object? GetAggregateSeparator(
@@ -22308,39 +23001,51 @@ private void FillPercentRankOrCumeDist(
         if (orderBy.Count == 1)
         {
             var order = orderBy[0];
-            var orderValuesByRow = new Dictionary<EvalRow, object?>(
-                Math.Max(1, sortedRows.Count),
-                ReferenceEqualityComparer<EvalRow>.Instance);
-
-            foreach (var row in sortedRows)
-                orderValuesByRow[row] = Eval(order.Expr, row, null, ctes);
-
-            sortedRows.Sort((left, right) =>
+            var hasDirectOrderSelector = TryCreateStringAggregateValueSelector(order.Expr, out var orderValueSelector);
+            var keyedRows = new (EvalRow Row, object? Key)[sortedRows.Count];
+            for (var i = 0; i < sortedRows.Count; i++)
             {
-                var comparison = CompareSql(orderValuesByRow[left], orderValuesByRow[right]);
+                var row = sortedRows[i];
+                keyedRows[i] = (row, hasDirectOrderSelector
+                    ? orderValueSelector!(row)
+                    : Eval(order.Expr, row, null, ctes));
+            }
+
+            Array.Sort(keyedRows, (left, right) =>
+            {
+                var comparison = CompareSql(left.Key, right.Key);
                 return order.Desc ? -comparison : comparison;
             });
+
+            for (var i = 0; i < keyedRows.Length; i++)
+                sortedRows[i] = keyedRows[i].Row;
 
             return sortedRows;
         }
 
-        var orderValuesByRowMulti = new Dictionary<EvalRow, object?[]>(
-            Math.Max(1, sortedRows.Count),
-            ReferenceEqualityComparer<EvalRow>.Instance);
+        var orderValueSelectors = new Func<EvalRow, object?>?[orderBy.Count];
+        for (var i = 0; i < orderBy.Count; i++)
+            if (TryCreateStringAggregateValueSelector(orderBy[i].Expr, out var selector))
+                orderValueSelectors[i] = selector;
 
-        foreach (var row in sortedRows)
+        var keyedRowsMulti = new (EvalRow Row, object?[] Keys)[sortedRows.Count];
+
+        for (var rowIndex = 0; rowIndex < sortedRows.Count; rowIndex++)
         {
+            var row = sortedRows[rowIndex];
             var values = new object?[orderBy.Count];
             for (var i = 0; i < orderBy.Count; i++)
-                values[i] = Eval(orderBy[i].Expr, row, null, ctes);
+                values[i] = orderValueSelectors[i] is null
+                    ? Eval(orderBy[i].Expr, row, null, ctes)
+                    : orderValueSelectors[i]!(row);
 
-            orderValuesByRowMulti[row] = values;
+            keyedRowsMulti[rowIndex] = (row, values);
         }
 
-        sortedRows.Sort((left, right) =>
+        Array.Sort(keyedRowsMulti, (left, right) =>
         {
-            var leftValues = orderValuesByRowMulti[left];
-            var rightValues = orderValuesByRowMulti[right];
+            var leftValues = left.Keys;
+            var rightValues = right.Keys;
 
             for (var i = 0; i < orderBy.Count; i++)
             {
@@ -22354,6 +23059,9 @@ private void FillPercentRankOrCumeDist(
             return 0;
         });
 
+        for (var i = 0; i < keyedRowsMulti.Length; i++)
+            sortedRows[i] = keyedRowsMulti[i].Row;
+
         return sortedRows;
     }
 
@@ -22362,35 +23070,188 @@ private void FillPercentRankOrCumeDist(
         IEnumerable<EvalRow> rows,
         IDictionary<string, Source> ctes,
         object? separatorObj,
-        string defaultSeparator)
+        string defaultSeparator,
+        Func<EvalRow, object?>? valueSelector = null)
     {
         var separator = separatorObj?.ToString() ?? defaultSeparator;
-        var estimatedCount = rows is ICollection<EvalRow> collection ? collection.Count : 1;
+        var estimatedCount = GetKnownRowCount(rows, defaultValue: 1);
+        var useOrdinalTextComparison = Dialect?.TextComparison == StringComparison.Ordinal;
         StringBuilder? builder = null;
         var hasValue = false;
-        HashSet<string>? distinct = fn.Distinct ? new HashSet<string>(StringComparer.Ordinal) : null;
+        HashSet<string>? distinct = fn.Distinct
+            ? CreateDistinctStringSet(useOrdinalTextComparison, estimatedCount)
+            : null;
         var estimatedCapacity = EstimateStringAggregateCapacity(estimatedCount, separator.Length);
 
-        foreach (var row in rows)
+        if (rows is IList<EvalRow> rowList)
         {
-            var value = Eval(fn.Args[0], row, null, ctes);
-            if (IsNullish(value))
-                continue;
-
-            if (distinct is not null && !distinct.Add(NormalizeDistinctKey(value, Dialect)))
-                continue;
-
-            var text = value?.ToString() ?? string.Empty;
-            if (!hasValue)
+            if (valueSelector is null)
             {
-                builder = new StringBuilder(Math.Max(estimatedCapacity, text.Length));
-                builder.Append(text);
-                hasValue = true;
-                continue;
-            }
+                for (var i = 0; i < rowList.Count; i++)
+                {
+                    var value = Eval(fn.Args[0], rowList[i], null, ctes);
+                    if (distinct is null)
+                    {
+                        if (!TryGetStringAggregateText(value, out var segmentText))
+                            continue;
 
-            builder!.Append(separator);
-            builder.Append(text);
+                        if (!hasValue)
+                        {
+                            builder = new StringBuilder(Math.Max(estimatedCapacity, segmentText.Length));
+                            builder.Append(segmentText);
+                            hasValue = true;
+                            continue;
+                        }
+
+                        builder!.Append(separator);
+                        builder.Append(segmentText);
+                        continue;
+                    }
+
+                    if (!TryGetStringAggregateKeyAndText(value, useOrdinalTextComparison, out var segmentText01, out var distinctKey))
+                        continue;
+
+                    if (!distinct.Add(distinctKey))
+                        continue;
+
+                    if (!hasValue)
+                    {
+                        builder = new StringBuilder(Math.Max(estimatedCapacity, segmentText01.Length));
+                        builder.Append(segmentText01);
+                        hasValue = true;
+                        continue;
+                    }
+
+                    builder!.Append(separator);
+                    builder.Append(segmentText01);
+                }
+            }
+            else
+            {
+                for (var i = 0; i < rowList.Count; i++)
+                {
+                    var value = valueSelector(rowList[i]);
+                    if (distinct is null)
+                    {
+                        if (!TryGetStringAggregateText(value, out var segmentText1))
+                            continue;
+
+                        if (!hasValue)
+                        {
+                            builder = new StringBuilder(Math.Max(estimatedCapacity, segmentText1.Length));
+                            builder.Append(segmentText1);
+                            hasValue = true;
+                            continue;
+                        }
+
+                        builder!.Append(separator);
+                        builder.Append(segmentText1);
+                        continue;
+                    }
+
+                    if (!TryGetStringAggregateKeyAndText(value, useOrdinalTextComparison, out var segmentText11, out var distinctKey))
+                        continue;
+
+                    if (!distinct.Add(distinctKey))
+                        continue;
+
+                    if (!hasValue)
+                    {
+                        builder = new StringBuilder(Math.Max(estimatedCapacity, segmentText11.Length));
+                        builder.Append(segmentText11);
+                        hasValue = true;
+                        continue;
+                    }
+
+                    builder!.Append(separator);
+                    builder.Append(segmentText11);
+                }
+            }
+        }
+        else
+        {
+            if (valueSelector is null)
+            {
+                foreach (var row in rows)
+                {
+                    var value = Eval(fn.Args[0], row, null, ctes);
+                    if (distinct is null)
+                    {
+                        if (!TryGetStringAggregateText(value, out var segmentText2))
+                            continue;
+
+                        if (!hasValue)
+                        {
+                            builder = new StringBuilder(Math.Max(estimatedCapacity, segmentText2.Length));
+                            builder.Append(segmentText2);
+                            hasValue = true;
+                            continue;
+                        }
+
+                        builder!.Append(separator);
+                        builder.Append(segmentText2);
+                        continue;
+                    }
+
+                    if (!TryGetStringAggregateKeyAndText(value, useOrdinalTextComparison, out var segmentText21, out var distinctKey))
+                        continue;
+
+                    if (!distinct.Add(distinctKey))
+                        continue;
+
+                    if (!hasValue)
+                    {
+                        builder = new StringBuilder(Math.Max(estimatedCapacity, segmentText21.Length));
+                        builder.Append(segmentText21);
+                        hasValue = true;
+                        continue;
+                    }
+
+                    builder!.Append(separator);
+                    builder.Append(segmentText21);
+                }
+            }
+            else
+            {
+                foreach (var row in rows)
+                {
+                    var value = valueSelector(row);
+                    if (distinct is null)
+                    {
+                        if (!TryGetStringAggregateText(value, out var segmentText3))
+                            continue;
+
+                        if (!hasValue)
+                        {
+                            builder = new StringBuilder(Math.Max(estimatedCapacity, segmentText3.Length));
+                            builder.Append(segmentText3);
+                            hasValue = true;
+                            continue;
+                        }
+
+                        builder!.Append(separator);
+                        builder.Append(segmentText3);
+                        continue;
+                    }
+
+                    if (!TryGetStringAggregateKeyAndText(value, useOrdinalTextComparison, out var segmentText31, out var distinctKey))
+                        continue;
+
+                    if (!distinct.Add(distinctKey))
+                        continue;
+
+                    if (!hasValue)
+                    {
+                        builder = new StringBuilder(Math.Max(estimatedCapacity, segmentText31.Length));
+                        builder.Append(segmentText31);
+                        hasValue = true;
+                        continue;
+                    }
+
+                    builder!.Append(separator);
+                    builder.Append(segmentText31);
+                }
+            }
         }
 
         return hasValue ? builder!.ToString() : null;
@@ -22408,6 +23269,17 @@ private void FillPercentRankOrCumeDist(
         return Math.Min(estimated, 64 * 1024);
     }
 
+    private static int GetKnownRowCount(IEnumerable<EvalRow> rows, int defaultValue = 0)
+    {
+        if (rows is ICollection<EvalRow> collection)
+            return collection.Count;
+
+        if (rows is IReadOnlyCollection<EvalRow> readOnlyCollection)
+            return readOnlyCollection.Count;
+
+        return defaultValue;
+    }
+
     private string? EvalSimpleStringAggregate(
         FunctionCallExpr fn,
         EvalGroup group,
@@ -22418,13 +23290,16 @@ private void FillPercentRankOrCumeDist(
         if (fn.Args.Count == 0)
             return null;
 
+        var hasDirectValueSelector = TryCreateStringAggregateValueSelector(fn.Args[0], out var valueSelector);
         if (group.Rows.Count == 1)
         {
-            var singleValue = Eval(fn.Args[0], group.Rows[0], null, ctes);
-            if (IsNullish(singleValue))
+            var singleValue = hasDirectValueSelector
+                ? valueSelector!(group.Rows[0])
+                : Eval(fn.Args[0], group.Rows[0], null, ctes);
+            if (!TryGetStringAggregateText(singleValue, out var singleText))
                 return null;
 
-            return singleValue?.ToString();
+            return singleText;
         }
 
         var separator = separatorObj?.ToString() ?? defaultSeparator;
@@ -22432,26 +23307,71 @@ private void FillPercentRankOrCumeDist(
         var hasValue = false;
         var estimatedCapacity = EstimateStringAggregateCapacity(group.Rows.Count, separator.Length);
 
-        foreach (var row in group.Rows)
+        if (!hasDirectValueSelector)
         {
-            var value = Eval(fn.Args[0], row, null, ctes);
-            if (IsNullish(value))
-                continue;
-
-            var text = value?.ToString() ?? string.Empty;
-            if (!hasValue)
+            for (var i = 0; i < group.Rows.Count; i++)
             {
-                builder = new StringBuilder(Math.Max(estimatedCapacity, text.Length));
-                builder.Append(text);
-                hasValue = true;
-                continue;
-            }
+                var value = Eval(fn.Args[0], group.Rows[i], null, ctes);
+                if (IsNullish(value))
+                    continue;
 
-            builder!.Append(separator);
-            builder.Append(text);
+                var text = value?.ToString() ?? string.Empty;
+                if (!hasValue)
+                {
+                    builder = new StringBuilder(Math.Max(estimatedCapacity, text.Length));
+                    builder.Append(text);
+                    hasValue = true;
+                    continue;
+                }
+
+                builder!.Append(separator);
+                builder.Append(text);
+            }
+        }
+        else
+        {
+            for (var i = 0; i < group.Rows.Count; i++)
+            {
+                var value = valueSelector!(group.Rows[i]);
+                if (IsNullish(value))
+                    continue;
+
+                var text = value?.ToString() ?? string.Empty;
+                if (!hasValue)
+                {
+                    builder = new StringBuilder(Math.Max(estimatedCapacity, text.Length));
+                    builder.Append(text);
+                    hasValue = true;
+                    continue;
+                }
+
+                builder!.Append(separator);
+                builder.Append(text);
+            }
         }
 
         return hasValue ? builder!.ToString() : null;
+    }
+
+    private static bool TryCreateStringAggregateValueSelector(
+        SqlExpr expr,
+        out Func<EvalRow, object?> selector)
+    {
+        switch (expr)
+        {
+            case ColumnExpr column:
+                selector = row => ResolveColumn(column.Qualifier, column.Name, row);
+                return true;
+            case IdentifierExpr identifier:
+                selector = row => ResolveIdentifier(identifier.Name, row);
+                return true;
+            case LiteralExpr literal:
+                selector = _ => literal.Value;
+                return true;
+            default:
+                selector = null!;
+                return false;
+        }
     }
 
     private bool TryEvalAggregateCount(
@@ -22616,6 +23536,13 @@ private void FillPercentRankOrCumeDist(
     {
         internal ITableMock? Physical { get; }
         private readonly TableResultMock? _result;
+        private readonly Dictionary<string, TableResultColMock>? _resultColumnMetadataLookup;
+        private readonly string[]? _qualifiedColumnNames;
+        private readonly string[]? _resultQualifiedColumnNames;
+        private readonly string[]? _sourceQualifiedColumnNames;
+        private readonly int[]? _physicalColumnIndexes;
+        private readonly Dictionary<string, string>? _qualifiedColumnNameLookup;
+        private readonly string? _singlePrimaryKeyColumnName;
         /// <summary>
         /// EN: Gets or sets Alias.
         /// PT: Obtém ou define Alias.
@@ -22638,7 +23565,18 @@ private void FillPercentRankOrCumeDist(
             Name = name;
             Physical = physical;
             _result = null;
+            _resultColumnMetadataLookup = null;
             ColumnNames = [.. physical.Columns.OrderBy(kv => kv.Value.Index).Select(kv => kv.Key!)];
+            _physicalColumnIndexes = [.. ColumnNames.Select(col => physical.Columns[col].Index)];
+            _qualifiedColumnNames = [.. ColumnNames.Select(col => $"{Alias}.{col}")];
+            _resultQualifiedColumnNames = null;
+            _sourceQualifiedColumnNames = Name.Equals(Alias, StringComparison.OrdinalIgnoreCase)
+                ? null
+                : [.. ColumnNames.Select(col => $"{Name}.{col}")];
+            _qualifiedColumnNameLookup = BuildQualifiedColumnNameLookup(ColumnNames, Alias);
+            _singlePrimaryKeyColumnName = TryResolveSinglePrimaryKeyColumnName(physical, out var primaryKeyColumnName)
+                ? primaryKeyColumnName
+                : null;
             MySqlIndexHints = mySqlIndexHints ?? [];
         }
         private Source(string name, string alias, TableResultMock result)
@@ -22647,7 +23585,16 @@ private void FillPercentRankOrCumeDist(
             Name = name;
             _result = result;
             Physical = null;
+            _resultColumnMetadataLookup = BuildResultColumnMetadataLookup(result);
             ColumnNames = [.. result.Columns.OrderBy(c => c.ColumIndex).Select(c => c.ColumnAlias)];
+            _qualifiedColumnNames = [.. ColumnNames.Select(col => $"{Alias}.{col}")];
+            _resultQualifiedColumnNames = [.. result.Columns.Select(c => $"{Alias}.{c.ColumnAlias}")];
+            _sourceQualifiedColumnNames = Name.Equals(Alias, StringComparison.OrdinalIgnoreCase)
+                ? null
+                : [.. ColumnNames.Select(col => $"{Name}.{col}")];
+            _physicalColumnIndexes = null;
+            _qualifiedColumnNameLookup = BuildQualifiedColumnNameLookup(ColumnNames, Alias);
+            _singlePrimaryKeyColumnName = null;
             MySqlIndexHints = [];
         }
         /// <summary>
@@ -22661,20 +23608,106 @@ private void FillPercentRankOrCumeDist(
             return FromResult(Name, alias, _result!);
         }
 
-        internal bool TryGetColumnMetadata(string columnName, out TableResultColMock metadata)
+        internal bool TryGetColumnMetadata(string columnName, out TableResultColMock? metadata)
         {
             metadata = null!;
             if (_result is null)
                 return false;
 
-            var matched = _result.Columns.FirstOrDefault(column =>
-                column.ColumnAlias.Equals(columnName, StringComparison.OrdinalIgnoreCase)
-                || column.ColumnName.Equals(columnName, StringComparison.OrdinalIgnoreCase));
-            if (matched is null)
+            if (_resultColumnMetadataLookup is not null
+                && _resultColumnMetadataLookup.TryGetValue(columnName, out metadata))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        internal bool TryGetQualifiedColumnName(string columnName, out string? qualifiedColumnName)
+        {
+            qualifiedColumnName = string.Empty;
+            if (_qualifiedColumnNameLookup is null)
                 return false;
 
-            metadata = matched;
+            return _qualifiedColumnNameLookup.TryGetValue(columnName, out qualifiedColumnName);
+        }
+
+        internal string GetQualifiedColumnName(int columnIndex)
+            => _qualifiedColumnNames is not null
+                ? _qualifiedColumnNames[columnIndex]
+                : $"{Alias}.{ColumnNames[columnIndex]}";
+
+        internal bool TryGetSourceQualifiedColumnName(int columnIndex, out string qualifiedColumnName)
+        {
+            qualifiedColumnName = string.Empty;
+            if (_sourceQualifiedColumnNames is null)
+                return false;
+
+            qualifiedColumnName = _sourceQualifiedColumnNames[columnIndex];
             return true;
+        }
+
+        internal string? GetSourceQualifiedColumnName(int columnIndex)
+            => _sourceQualifiedColumnNames is null
+                ? null
+                : _sourceQualifiedColumnNames[columnIndex];
+
+        internal bool TryGetSinglePrimaryKeyColumnName(out string columnName)
+        {
+            if (string.IsNullOrWhiteSpace(_singlePrimaryKeyColumnName))
+            {
+                columnName = string.Empty;
+                return false;
+            }
+
+            columnName = _singlePrimaryKeyColumnName ?? string.Empty;
+            return true;
+        }
+
+        private static Dictionary<string, TableResultColMock> BuildResultColumnMetadataLookup(TableResultMock result)
+        {
+            var lookup = new Dictionary<string, TableResultColMock>(Math.Max(result.Columns.Count * 2, 1), StringComparer.OrdinalIgnoreCase);
+            foreach (var column in result.Columns)
+            {
+                lookup.TryAdd(column.ColumnAlias, column);
+                lookup.TryAdd(column.ColumnName, column);
+            }
+
+            return lookup;
+        }
+
+        private static Dictionary<string, string> BuildQualifiedColumnNameLookup(IReadOnlyList<string> columnNames, string alias)
+        {
+            var lookup = new Dictionary<string, string>(Math.Max(columnNames.Count * 2, 1), StringComparer.OrdinalIgnoreCase);
+            foreach (var columnName in columnNames)
+                lookup.TryAdd(columnName, $"{alias}.{columnName}");
+
+            return lookup;
+        }
+
+        private static bool TryResolveSinglePrimaryKeyColumnName(ITableMock physical, out string columnName)
+        {
+            columnName = string.Empty;
+            if (physical.PrimaryKeyIndexes.Count != 1)
+                return false;
+
+            var pkIndex = default(int);
+            foreach (var candidatePkIndex in physical.PrimaryKeyIndexes)
+            {
+                pkIndex = candidatePkIndex;
+                break;
+            }
+
+            foreach (var column in physical.Columns)
+            {
+                if (column.Value.Index == pkIndex)
+                {
+                    columnName = column.Key;
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -22688,10 +23721,10 @@ private void FillPercentRankOrCumeDist(
                 foreach (var row in Physical)
                 {
                     var dict = new Dictionary<string, object?>(Math.Max(ColumnNames.Count, 1), StringComparer.OrdinalIgnoreCase);
-                    foreach (var col in ColumnNames)
+                    for (var i = 0; i < ColumnNames.Count; i++)
                     {
-                        var idx = Physical.Columns[col].Index;
-                        dict[$"{Alias}.{col}"] = row?.TryGetValue(idx, out var v) == true
+                        var idx = _physicalColumnIndexes![i];
+                        dict[_qualifiedColumnNames![i]] = row?.TryGetValue(idx, out var v) == true
                             ? v
                             : null;
                     }
@@ -22704,10 +23737,9 @@ private void FillPercentRankOrCumeDist(
                 foreach (var row in _result)
                 {
                     var dict = new Dictionary<string, object?>(Math.Max(_result.Columns.Count, 1), StringComparer.OrdinalIgnoreCase);
-                    for (int i = 0; i < _result.Columns.Count; i++)
+                    for (var i = 0; i < _resultQualifiedColumnNames!.Length; i++)
                     {
-                        var c = _result.Columns[i];
-                        dict[$"{Alias}.{c.ColumnAlias}"] = row.TryGetValue(i, out var v)
+                        dict[_resultQualifiedColumnNames[i]] = row.TryGetValue(i, out var v)
                             ? v
                             : null;
                     }
@@ -22739,10 +23771,10 @@ private void FillPercentRankOrCumeDist(
 
                 var row = Physical[raw];
                 var dict = new Dictionary<string, object?>(Math.Max(ColumnNames.Count, 1), StringComparer.OrdinalIgnoreCase);
-                foreach (var col in ColumnNames)
+                for (var i = 0; i < ColumnNames.Count; i++)
                 {
-                    var idx = Physical.Columns[col].Index;
-                    dict[$"{Alias}.{col}"] = row.TryGetValue(idx, out var v)
+                    var idx = _physicalColumnIndexes![i];
+                    dict[_qualifiedColumnNames![i]] = row.TryGetValue(idx, out var v)
                         ? v
                         : null;
                 }
@@ -22757,14 +23789,14 @@ private void FillPercentRankOrCumeDist(
         /// </summary>
         public static Source FromPhysical(string tableName, string alias, ITableMock physical, IReadOnlyList<SqlMySqlIndexHint>? mySqlIndexHints = null)
             => new(tableName, alias, physical, mySqlIndexHints);
-       
+
         /// <summary>
         /// EN: Implements FromResult.
         /// PT: Implementa FromResult.
         /// </summary>
         public static Source FromResult(string tableName, string alias, TableResultMock result)
             => new(tableName, alias, result);
-       
+
         /// <summary>
         /// EN: Implements FromResult.
         /// PT: Implementa FromResult.
@@ -22831,6 +23863,7 @@ private void FillPercentRankOrCumeDist(
     {
         internal object?[]? OrdinalValues { get; init; }
         internal Dictionary<string, int>? OrdinalIndexes { get; init; }
+        internal Source? SingleSource { get; set; }
 
         /// <summary>
         /// EN: Implements FromProjected.
@@ -22870,7 +23903,8 @@ private void FillPercentRankOrCumeDist(
             return new EvalRow(fields, new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase))
             {
                 OrdinalValues = ordinalValues,
-                OrdinalIndexes = new Dictionary<string, int>(aliasToIndex, StringComparer.OrdinalIgnoreCase)
+                OrdinalIndexes = new Dictionary<string, int>(aliasToIndex, StringComparer.OrdinalIgnoreCase),
+                SingleSource = null
             };
         }
 
@@ -22879,14 +23913,19 @@ private void FillPercentRankOrCumeDist(
         /// PT: Implementa CloneRow.
         /// </summary>
         public EvalRow CloneRow()
-            => new(new Dictionary<string, object?>(Fields, StringComparer.OrdinalIgnoreCase),
-                   new Dictionary<string, Source>(Sources, StringComparer.OrdinalIgnoreCase))
+        {
+            var fields = new Dictionary<string, object?>(Fields, StringComparer.OrdinalIgnoreCase);
+            var sources = new Dictionary<string, Source>(Sources, StringComparer.OrdinalIgnoreCase);
+
+            return new EvalRow(fields, sources)
             {
                 OrdinalValues = OrdinalValues is null ? null : [.. OrdinalValues],
                 OrdinalIndexes = OrdinalIndexes is null
                     ? null
-                    : new Dictionary<string, int>(OrdinalIndexes, StringComparer.OrdinalIgnoreCase)
+                    : new Dictionary<string, int>(OrdinalIndexes, StringComparer.OrdinalIgnoreCase),
+                SingleSource = ResolveSingleSourceCache(sources)
             };
+        }
 
         /// <summary>
         /// EN: Clones the row with extra dictionary capacity for upcoming field and source additions.
@@ -22897,17 +23936,18 @@ private void FillPercentRankOrCumeDist(
         public EvalRow CloneRow(int extraFieldCapacity, int extraSourceCapacity)
         {
             var fields = new Dictionary<string, object?>(Fields, StringComparer.OrdinalIgnoreCase);
-            fields.EnsureCapacity(Fields.Count + extraFieldCapacity);
+            fields.EnsureCapacity(fields.Count + extraFieldCapacity);
 
             var sources = new Dictionary<string, Source>(Sources, StringComparer.OrdinalIgnoreCase);
-            sources.EnsureCapacity(Sources.Count + extraSourceCapacity);
+            sources.EnsureCapacity(sources.Count + extraSourceCapacity);
 
             return new EvalRow(fields, sources)
             {
                 OrdinalValues = OrdinalValues is null ? null : [.. OrdinalValues],
                 OrdinalIndexes = OrdinalIndexes is null
                     ? null
-                    : new Dictionary<string, int>(OrdinalIndexes, StringComparer.OrdinalIgnoreCase)
+                    : new Dictionary<string, int>(OrdinalIndexes, StringComparer.OrdinalIgnoreCase),
+                SingleSource = ResolveSingleSourceCache(sources)
             };
         }
 
@@ -22920,10 +23960,10 @@ private void FillPercentRankOrCumeDist(
         internal EvalRow MergeJoinRow(Source rightSource, Dictionary<string, object?> rightFields)
         {
             var fields = new Dictionary<string, object?>(Fields, StringComparer.OrdinalIgnoreCase);
-            fields.EnsureCapacity(Fields.Count + rightSource.ColumnNames.Count * 2);
+            fields.EnsureCapacity(fields.Count + rightSource.ColumnNames.Count * 2);
 
             var sources = new Dictionary<string, Source>(Sources, StringComparer.OrdinalIgnoreCase);
-            sources.EnsureCapacity(Sources.Count + 1);
+            sources.EnsureCapacity(sources.Count + 1);
             sources[rightSource.Alias] = rightSource;
 
             object?[]? ordinalValues = null;
@@ -22951,7 +23991,8 @@ private void FillPercentRankOrCumeDist(
             return new EvalRow(fields, sources)
             {
                 OrdinalValues = ordinalValues,
-                OrdinalIndexes = ordinalIndexes
+                OrdinalIndexes = ordinalIndexes,
+                SingleSource = ResolveSingleSourceCache(sources)
             };
         }
 
@@ -22963,10 +24004,10 @@ private void FillPercentRankOrCumeDist(
         internal EvalRow CreateNullExtendedJoinRow(Source rightSource)
         {
             var fields = new Dictionary<string, object?>(Fields, StringComparer.OrdinalIgnoreCase);
-            fields.EnsureCapacity(Fields.Count + rightSource.ColumnNames.Count * 2);
+            fields.EnsureCapacity(fields.Count + rightSource.ColumnNames.Count * 2);
 
             var sources = new Dictionary<string, Source>(Sources, StringComparer.OrdinalIgnoreCase);
-            sources.EnsureCapacity(Sources.Count + 1);
+            sources.EnsureCapacity(sources.Count + 1);
             sources[rightSource.Alias] = rightSource;
 
             object?[]? ordinalValues = null;
@@ -22994,7 +24035,8 @@ private void FillPercentRankOrCumeDist(
             return new EvalRow(fields, sources)
             {
                 OrdinalValues = ordinalValues,
-                OrdinalIndexes = ordinalIndexes
+                OrdinalIndexes = ordinalIndexes,
+                SingleSource = ResolveSingleSourceCache(sources)
             };
         }
 
@@ -23006,15 +24048,12 @@ private void FillPercentRankOrCumeDist(
         internal EvalRow AttachOuterRow(EvalRow outer)
         {
             var fields = new Dictionary<string, object?>(Fields, StringComparer.OrdinalIgnoreCase);
-            fields.EnsureCapacity(Fields.Count + outer.Fields.Count * 2);
+            fields.EnsureCapacity(fields.Count + outer.Fields.Count * 2);
 
             foreach (var it in outer.Fields)
             {
                 fields.TryAdd(it.Key, it.Value);
-            }
 
-            foreach (var it in outer.Fields)
-            {
                 var dot = it.Key.IndexOf('.');
                 if (dot > 0)
                 {
@@ -23024,12 +24063,10 @@ private void FillPercentRankOrCumeDist(
             }
 
             var sources = new Dictionary<string, Source>(Sources, StringComparer.OrdinalIgnoreCase);
-            sources.EnsureCapacity(Sources.Count + outer.Sources.Count);
+            sources.EnsureCapacity(sources.Count + outer.Sources.Count);
 
             foreach (var it in outer.Sources)
-            {
                 sources.TryAdd(it.Key, it.Value);
-            }
 
             object?[]? ordinalValues = null;
             Dictionary<string, int>? ordinalIndexes = null;
@@ -23057,7 +24094,8 @@ private void FillPercentRankOrCumeDist(
             return new EvalRow(fields, sources)
             {
                 OrdinalValues = ordinalValues,
-                OrdinalIndexes = ordinalIndexes
+                OrdinalIndexes = ordinalIndexes,
+                SingleSource = ResolveSingleSourceCache(sources)
             };
         }
 
@@ -23078,7 +24116,11 @@ private void FillPercentRankOrCumeDist(
         /// EN: Implements AddSource.
         /// PT: Implementa AddSource.
         /// </summary>
-        public void AddSource(Source src) => Sources[src.Alias] = src;
+        public void AddSource(Source src)
+        {
+            Sources[src.Alias] = src;
+            SingleSource = Sources.Count == 1 ? src : null;
+        }
 
         /// <summary>
         /// EN: Implements AddFields.
@@ -23119,7 +24161,7 @@ private void FillPercentRankOrCumeDist(
             for (var i = 0; i < source.ColumnNames.Count; i++)
             {
                 var columnName = source.ColumnNames[i];
-                var qualifiedName = $"{source.Alias}.{columnName}";
+                var qualifiedName = source.GetQualifiedColumnName(i);
                 var ordinalIndex = ordinalOffset + i;
                 var value = sourceFields is not null && sourceFields.TryGetValue(qualifiedName, out var current)
                     ? current
@@ -23131,8 +24173,9 @@ private void FillPercentRankOrCumeDist(
                 ordinalValues[ordinalIndex] = value;
                 ordinalIndexes.TryAdd(qualifiedName, ordinalIndex);
                 ordinalIndexes.TryAdd(columnName, ordinalIndex);
-                if (!source.Name.Equals(source.Alias, StringComparison.OrdinalIgnoreCase))
-                    ordinalIndexes.TryAdd($"{source.Name}.{columnName}", ordinalIndex);
+                var sourceQualifiedName = source.GetSourceQualifiedColumnName(i);
+                if (sourceQualifiedName is not null)
+                    ordinalIndexes.TryAdd(sourceQualifiedName, ordinalIndex);
             }
         }
 
@@ -23229,6 +24272,18 @@ private void FillPercentRankOrCumeDist(
                 return true;
             }
 
+            if (SingleSource is not null)
+            {
+                var qualifiedColumnName = string.Empty;
+                if (SingleSource.TryGetQualifiedColumnName(columnName, out qualifiedColumnName)
+                    && qualifiedColumnName?.Length > 0
+                    && Fields.TryGetValue(qualifiedColumnName, out direct))
+                {
+                    value = direct;
+                    return true;
+                }
+            }
+
             if (hasOrdinalMetadata)
             {
                 value = null;
@@ -23237,7 +24292,15 @@ private void FillPercentRankOrCumeDist(
 
             foreach (var hit in Fields)
             {
-                if (!hit.Key.EndsWith($".{columnName}", StringComparison.OrdinalIgnoreCase))
+                var candidate = hit.Key;
+                var expectedLength = columnName.Length + 1;
+                if (candidate.Length <= expectedLength)
+                    continue;
+
+                if (candidate[candidate.Length - expectedLength] != '.')
+                    continue;
+
+                if (!candidate.AsSpan(candidate.Length - columnName.Length).Equals(columnName.AsSpan(), StringComparison.OrdinalIgnoreCase))
                     continue;
 
                 value = hit.Value;
@@ -23247,12 +24310,56 @@ private void FillPercentRankOrCumeDist(
             value = null;
             return false;
         }
+
+        internal bool TryGetSingleSource(out Source? source)
+        {
+            if (SingleSource is not null)
+            {
+                source = SingleSource;
+                return true;
+            }
+
+            if (Sources.Count != 1)
+            {
+                source = null;
+                return false;
+            }
+
+            foreach (var candidate in Sources.Values)
+            {
+                SingleSource = candidate;
+                source = candidate;
+                return true;
+            }
+
+            source = null;
+            return false;
+        }
+
+        private static Source? ResolveSingleSourceCache(Dictionary<string, Source> sources)
+        {
+            if (sources.Count != 1)
+                return null;
+
+            foreach (var candidate in sources.Values)
+                return candidate;
+
+            return null;
+        }
     }
 
     private static EvalRow AttachOuterRow(
         EvalRow inner,
         EvalRow outer)
         => inner.AttachOuterRow(outer);
+
+    private static IEnumerable<EvalRow> AttachOuterRows(
+        IEnumerable<EvalRow> rows,
+        EvalRow outer)
+    {
+        foreach (var row in rows)
+            yield return row.AttachOuterRow(outer);
+    }
 
     internal sealed class EvalGroup
     {

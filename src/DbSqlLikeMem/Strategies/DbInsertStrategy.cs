@@ -893,7 +893,7 @@ internal static class DbInsertStrategy
         if (operand is string)
             return operand;
 
-        return System.Text.Json.JsonSerializer.Serialize(operand);
+        return JsonSerializer.Serialize(operand);
     }
 
     private static bool TryResolveTemporalValue(string rawValue, ISqlDialect dialect, out object? value)

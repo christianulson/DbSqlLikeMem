@@ -172,6 +172,7 @@ public class SqlServerCommandMock(
             var query = SqlQueryParser.Parse(effectiveSql, connection.Db.Dialect, Parameters);
             parsedStatementCount++;
 
+            using var currentQueryScope = connection.BeginCurrentQueryScope(sqlRaw);
             connection.DispatchParsedReaderQuery(
                 query,
                 Parameters,
@@ -742,6 +743,7 @@ public class SqlServerCommandMock(
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
         using var _ = connection!.Metrics.BeginAmbientScope();
+        using var currentQueryScope = connection.BeginCurrentQueryScope(CommandText);
         if (connection.TryHandleExecuteScalarPrelude(
             CommandType,
             CommandText,

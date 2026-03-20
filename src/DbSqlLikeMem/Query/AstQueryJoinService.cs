@@ -46,9 +46,16 @@ internal sealed class AstQueryJoinService(
 
         if (joinType == SqlJoinType.Cross)
         {
+            var rightRows = MaterializeFields(rightSource.Rows());
+            if (rightRows is ICollection<Dictionary<string, object?>> rightCollection
+                && rightCollection.Count == 0)
+            {
+                yield break;
+            }
+
             foreach (var leftRow in leftRows)
             {
-                foreach (var rightFields in rightSource.Rows())
+                foreach (var rightFields in rightRows)
                     yield return MergeRows(leftRow, rightSource, rightFields);
             }
 
@@ -64,9 +71,10 @@ internal sealed class AstQueryJoinService(
         }
 
         var isLeftJoin = joinType == SqlJoinType.Left;
+        var leftJoinRightRows = MaterializeFields(rightSource.Rows());
         foreach (var leftRow in leftRows)
         {
-            foreach (var row in ApplyLeftJoin(join, ctes, rightSource, isLeftJoin, leftRow))
+            foreach (var row in ApplyLeftJoin(join, ctes, leftJoinRightRows, rightSource, isLeftJoin, leftRow))
                 yield return row;
         }
     }
@@ -96,13 +104,23 @@ internal sealed class AstQueryJoinService(
     private IEnumerable<AstQueryExecutorBase.EvalRow> ApplyLeftJoin(
         SqlJoin join,
         IDictionary<string, AstQueryExecutorBase.Source> ctes,
+        IReadOnlyList<Dictionary<string, object?>> rightRows,
         AstQueryExecutorBase.Source rightSource,
         bool isLeftJoin,
         AstQueryExecutorBase.EvalRow leftRow)
     {
-        var matched = false;
-        foreach (var rightFields in rightSource.Rows())
+        if (rightRows.Count == 0)
         {
+            if (isLeftJoin)
+                yield return CreateNullExtendedRow(leftRow, rightSource);
+
+            yield break;
+        }
+
+        var matched = false;
+        for (var i = 0; i < rightRows.Count; i++)
+        {
+            var rightFields = rightRows[i];
             var merged = MergeRows(leftRow, rightSource, rightFields);
             if (!_evalJoinPredicate(join.On, merged, ctes))
                 continue;
@@ -122,9 +140,19 @@ internal sealed class AstQueryJoinService(
         bool isLeftJoin)
     {
         var rightSource = _resolveSource(join.Table, ctes, leftRow);
+        var rightRows = rightSource.Rows();
+        if (rightRows is ICollection<Dictionary<string, object?>> rightCollection
+            && rightCollection.Count == 0)
+        {
+            if (isLeftJoin)
+                yield return CreateNullExtendedRow(leftRow, rightSource);
+
+            yield break;
+        }
+
         var matched = false;
 
-        foreach (var rightFields in rightSource.Rows())
+        foreach (var rightFields in rightRows)
         {
             var merged = MergeRows(leftRow, rightSource, rightFields);
             if (!_evalJoinPredicate(join.On, merged, ctes))
@@ -144,13 +172,39 @@ internal sealed class AstQueryJoinService(
         AstQueryExecutorBase.Source rightSource,
         IDictionary<string, AstQueryExecutorBase.Source> ctes)
     {
-        var leftList = leftRows as IList<AstQueryExecutorBase.EvalRow> ?? [.. leftRows];
-
-        foreach (var rightFields in rightSource.Rows())
+        var rightRows = MaterializeFields(rightSource.Rows());
+        if (rightRows.Count == 0)
         {
+            yield break;
+        }
+
+        if (leftRows is ICollection<AstQueryExecutorBase.EvalRow> leftCollection
+            && leftCollection.Count == 0)
+        {
+            for (var i = 0; i < rightRows.Count; i++)
+                yield return CreateRightOnlyRow(null, rightSource, rightRows[i]);
+
+            yield break;
+        }
+
+        var leftList = MaterializeRows(leftRows);
+        var leftTemplate = leftList.Count > 0 ? leftList[0] : null;
+
+        if (leftList.Count == 0)
+        {
+            for (var i = 0; i < rightRows.Count; i++)
+                yield return CreateRightOnlyRow(null, rightSource, rightRows[i]);
+
+            yield break;
+        }
+
+        for (var rightIndex = 0; rightIndex < rightRows.Count; rightIndex++)
+        {
+            var rightFields = rightRows[rightIndex];
             var matched = false;
-            foreach (var leftRow in leftList)
+            for (var leftIndex = 0; leftIndex < leftList.Count; leftIndex++)
             {
+                var leftRow = leftList[leftIndex];
                 var merged = MergeRows(leftRow, rightSource, rightFields);
                 if (!_evalJoinPredicate(leftJoin.On, merged, ctes))
                     continue;
@@ -160,7 +214,7 @@ internal sealed class AstQueryJoinService(
             }
 
             if (!matched)
-                yield return CreateRightOnlyRow(rightSource, rightFields);
+                yield return CreateRightOnlyRow(leftTemplate, rightSource, rightFields);
         }
     }
 
@@ -190,31 +244,115 @@ internal sealed class AstQueryJoinService(
         => leftRow.CreateNullExtendedJoinRow(rightSource);
 
     private static AstQueryExecutorBase.EvalRow CreateRightOnlyRow(
+        AstQueryExecutorBase.EvalRow? leftTemplate,
         AstQueryExecutorBase.Source rightSource,
         Dictionary<string, object?> rightFields)
     {
-        var ordinalValues = new object?[rightSource.ColumnNames.Count];
-        var ordinalIndexes = new Dictionary<string, int>(Math.Max(1, rightSource.ColumnNames.Count * 3), StringComparer.OrdinalIgnoreCase);
-        for (var i = 0; i < rightSource.ColumnNames.Count; i++)
+        var rightOrdinalCount = rightSource.ColumnNames.Count;
+        Dictionary<string, object?> fields;
+        Dictionary<string, AstQueryExecutorBase.Source> sources;
+        object?[]? ordinalValues = null;
+        Dictionary<string, int>? ordinalIndexes = null;
+
+        if (leftTemplate is not null)
         {
-            var columnName = rightSource.ColumnNames[i];
-            var qualifiedName = $"{rightSource.Alias}.{columnName}";
-            ordinalValues[i] = rightFields.TryGetValue(qualifiedName, out var value) ? value : null;
-            ordinalIndexes.TryAdd(qualifiedName, i);
-            ordinalIndexes.TryAdd(columnName, i);
-            if (!rightSource.Name.Equals(rightSource.Alias, StringComparison.OrdinalIgnoreCase))
-                ordinalIndexes.TryAdd($"{rightSource.Name}.{columnName}", i);
+            fields = rightFields;
+            fields.EnsureCapacity(fields.Count + leftTemplate.Fields.Count);
+            foreach (var key in leftTemplate.Fields.Keys)
+                fields.TryAdd(key, null);
+
+            sources = new Dictionary<string, AstQueryExecutorBase.Source>(leftTemplate.Sources, StringComparer.OrdinalIgnoreCase);
+            sources.EnsureCapacity(sources.Count + 1);
+
+            var hasLeftOrdinalMetadata = leftTemplate.OrdinalValues is not null && leftTemplate.OrdinalIndexes is not null;
+            var leftOrdinalCount = hasLeftOrdinalMetadata ? leftTemplate.OrdinalValues!.Length : 0;
+            if (hasLeftOrdinalMetadata || rightOrdinalCount > 0)
+            {
+                ordinalValues = new object?[leftOrdinalCount + rightOrdinalCount];
+                ordinalIndexes = hasLeftOrdinalMetadata
+                    ? new Dictionary<string, int>(leftTemplate.OrdinalIndexes!.Count + rightOrdinalCount * 3, StringComparer.OrdinalIgnoreCase)
+                    : new Dictionary<string, int>(Math.Max(1, rightOrdinalCount * 3), StringComparer.OrdinalIgnoreCase);
+
+                if (hasLeftOrdinalMetadata)
+                {
+                    foreach (var ordinal in leftTemplate.OrdinalIndexes!)
+                        ordinalIndexes[ordinal.Key] = ordinal.Value;
+                }
+
+                if (rightOrdinalCount > 0)
+                {
+                    ordinalIndexes.EnsureCapacity(ordinalIndexes.Count + rightOrdinalCount * 3);
+                    PopulateSourceColumns(rightSource, rightFields, fields, ordinalValues, ordinalIndexes, leftOrdinalCount, nullValue: null);
+                }
+            }
+        }
+        else
+        {
+            fields = rightFields;
+            fields.EnsureCapacity(fields.Count + rightOrdinalCount);
+            sources = new Dictionary<string, AstQueryExecutorBase.Source>(1, StringComparer.OrdinalIgnoreCase);
+            ordinalValues = new object?[rightSource.ColumnNames.Count];
+            ordinalIndexes = new Dictionary<string, int>(Math.Max(1, rightSource.ColumnNames.Count * 3), StringComparer.OrdinalIgnoreCase);
+            PopulateSourceColumns(rightSource, rightFields, fields, ordinalValues, ordinalIndexes, 0, nullValue: null);
         }
 
-        var sources = new Dictionary<string, AstQueryExecutorBase.Source>(1, StringComparer.OrdinalIgnoreCase)
-        {
-            [rightSource.Alias] = rightSource
-        };
+        sources[rightSource.Alias] = rightSource;
 
-        return new AstQueryExecutorBase.EvalRow(rightFields, sources)
+        return new AstQueryExecutorBase.EvalRow(fields, sources)
         {
             OrdinalValues = ordinalValues,
             OrdinalIndexes = ordinalIndexes
         };
+    }
+
+    private static List<AstQueryExecutorBase.EvalRow> MaterializeRows(IEnumerable<AstQueryExecutorBase.EvalRow> rows)
+    {
+        if (rows is List<AstQueryExecutorBase.EvalRow> list)
+            return list;
+
+        if (rows is ICollection<AstQueryExecutorBase.EvalRow> collection)
+            return new List<AstQueryExecutorBase.EvalRow>(collection);
+
+        return [.. rows];
+    }
+
+    private static List<Dictionary<string, object?>> MaterializeFields(IEnumerable<Dictionary<string, object?>> rows)
+    {
+        if (rows is List<Dictionary<string, object?>> list)
+            return list;
+
+        if (rows is ICollection<Dictionary<string, object?>> collection)
+            return new List<Dictionary<string, object?>>(collection);
+
+        return [.. rows];
+    }
+
+    private static void PopulateSourceColumns(
+        AstQueryExecutorBase.Source source,
+        Dictionary<string, object?> sourceFields,
+        Dictionary<string, object?> targetFields,
+        object?[] ordinalValues,
+        Dictionary<string, int> ordinalIndexes,
+        int ordinalOffset,
+        object? nullValue)
+    {
+        for (var i = 0; i < source.ColumnNames.Count; i++)
+        {
+            var columnName = source.ColumnNames[i];
+            var qualifiedName = source.GetQualifiedColumnName(i);
+            var ordinalIndex = ordinalOffset + i;
+            var value = sourceFields.TryGetValue(qualifiedName, out var current)
+                ? current
+                : nullValue;
+
+            targetFields[qualifiedName] = value;
+            targetFields.TryAdd(columnName, value);
+
+            ordinalValues[ordinalIndex] = value;
+            ordinalIndexes.TryAdd(qualifiedName, ordinalIndex);
+            ordinalIndexes.TryAdd(columnName, ordinalIndex);
+            if (source.TryGetSourceQualifiedColumnName(i, out var sourceQualifiedName))
+                ordinalIndexes.TryAdd(sourceQualifiedName, ordinalIndex);
+        }
     }
 }

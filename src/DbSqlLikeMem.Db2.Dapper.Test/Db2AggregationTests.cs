@@ -183,6 +183,17 @@ public sealed class Db2AggregationTests : AggregationHavingOrdinalTestsBase<Db2D
     }
 
     /// <summary>
+    /// EN: Verifies LISTAGG WITHIN GROUP keeps casted numeric values in descending order.
+    /// PT: Verifica se LISTAGG WITHIN GROUP preserva valores numericos convertidos em ordem descendente.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Aggregation")]
+    public void ListAgg_WithinGroupWithCast_ShouldPreserveValues()
+    {
+        AssertWithinGroupOrdersAggregation("SELECT LISTAGG(CAST(amount AS VARCHAR(20)), '|') WITHIN GROUP (ORDER BY amount DESC) AS joined FROM orders", "30|10|5");
+    }
+
+    /// <summary>
     /// EN: Ensures WITHIN GROUP ascending order is applied by string aggregation.
     /// PT: Garante que a ordenação ascendente do WITHIN GROUP seja aplicada na agregação textual.
     /// </summary>

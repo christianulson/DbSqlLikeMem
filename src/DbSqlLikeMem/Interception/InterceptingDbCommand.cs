@@ -152,6 +152,7 @@ public sealed class InterceptingDbCommand : DbCommand
 
         try
         {
+            using var currentQueryScope = _connection.AsMockConnection()?.BeginCurrentQueryScope(_innerCommand.CommandText);
             var result = executor(_innerCommand);
 
             for (var i = _interceptors.Count - 1; i >= 0; i--)
@@ -179,6 +180,7 @@ public sealed class InterceptingDbCommand : DbCommand
 
         try
         {
+            using var currentQueryScope = _connection.AsMockConnection()?.BeginCurrentQueryScope(_innerCommand.CommandText);
             var result = await executor(_innerCommand).ConfigureAwait(false);
 
             for (var i = _interceptors.Count - 1; i >= 0; i--)

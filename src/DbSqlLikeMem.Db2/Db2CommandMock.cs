@@ -163,6 +163,7 @@ public class Db2CommandMock(
             var q = SqlQueryParser.Parse(sqlRaw, connection.ExecutionDialect, Parameters);
             parsedStatementCount++;
 
+            using var currentQueryScope = connection.BeginCurrentQueryScope(sqlRaw);
             connection.DispatchParsedReaderQuery(
                 q,
                 Parameters,
@@ -195,6 +196,7 @@ public class Db2CommandMock(
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
         using var _ = connection!.Metrics.BeginAmbientScope();
+        using var currentQueryScope = connection.BeginCurrentQueryScope(CommandText);
 
         if (TryExecuteValuesSequenceScalar(CommandText, out var specialValue))
             return specialValue!;

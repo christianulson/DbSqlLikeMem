@@ -167,6 +167,7 @@ public class SqliteCommandMock(
             var q = SqlQueryParser.Parse(sqlRaw, connection.ExecutionDialect, Parameters);
             parsedStatementCount++;
 
+            using var currentQueryScope = connection.BeginCurrentQueryScope(sqlRaw);
             connection.DispatchParsedReaderQuery(
                 q,
                 Parameters,
@@ -638,6 +639,7 @@ public class SqliteCommandMock(
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
         using var _ = connection!.Metrics.BeginAmbientScope();
+        using var currentQueryScope = connection.BeginCurrentQueryScope(CommandText);
         if (connection.TryHandleExecuteScalarPrelude(
             CommandType,
             CommandText,

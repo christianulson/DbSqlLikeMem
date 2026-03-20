@@ -94,9 +94,9 @@ public abstract class DbMock
         if (schemaName == null)
         {
             if (Count > 1)
-                throw new InvalidOperationException(Resources.SqlExceptionMessages.MultipleSchemasRequireExplicitName(string.Join(",", this.Keys)));
+                throw new InvalidOperationException(SqlExceptionMessages.MultipleSchemasRequireExplicitName(string.Join(",", this.Keys)));
             if (Count == 0)
-                throw new InvalidOperationException(Resources.SqlExceptionMessages.NoSchemaRegistered());
+                throw new InvalidOperationException(SqlExceptionMessages.NoSchemaRegistered());
             schemaName = this.Keys.First();
         }
         return schemaName.NormalizeName();
@@ -447,7 +447,7 @@ public abstract class DbMock
                 return; // não cria, não dá erro
             }
 
-            throw new InvalidOperationException(Resources.SqlExceptionMessages.ViewAlreadyExists(name!));
+            throw new InvalidOperationException(SqlExceptionMessages.ViewAlreadyExists(name!));
         }
 
         schema.Views[name!] = query.Select;
@@ -462,7 +462,7 @@ public abstract class DbMock
         var sc = GetSchemaName(schemaName);
         if (!this[sc].Views.TryGetValue(viewName, out var vw)
             || vw == null)
-            throw new InvalidOperationException(Resources.SqlExceptionMessages.ViewDoesNotExist(viewName));
+            throw new InvalidOperationException(SqlExceptionMessages.ViewDoesNotExist(viewName));
         return vw;
     }
 
@@ -494,7 +494,7 @@ public abstract class DbMock
         if (ifExists)
             return;
 
-        throw new InvalidOperationException(Resources.SqlExceptionMessages.ViewDoesNotExist(normalized));
+        throw new InvalidOperationException(SqlExceptionMessages.ViewDoesNotExist(normalized));
     }
 
     internal void RestoreView(

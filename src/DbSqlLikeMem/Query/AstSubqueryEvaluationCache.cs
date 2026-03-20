@@ -15,6 +15,31 @@ internal sealed class AstSubqueryEvaluationCache
     public List<object?> GetOrAddFirstColumnValues(string cacheKey, Func<string, List<object?>> valueFactory)
         => _firstColumnValues.GetOrAdd(cacheKey, valueFactory);
 
+    public bool TryGetFirstColumnValues(string cacheKey, out List<object?>? value)
+    {
+        if (!_firstColumnValues.TryGetValue(cacheKey, out var cached))
+        {
+            value = null;
+            return false;
+        }
+
+        value = cached;
+        return true;
+    }
+
+    public bool TryGetOperationData<T>(string cacheKey, out T? value)
+        where T : class
+    {
+        if (!_operationData.TryGetValue(cacheKey, out var cached))
+        {
+            value = null;
+            return false;
+        }
+
+        value = cached as T;
+        return value is not null;
+    }
+
     public T GetOrAddOperationData<T>(string cacheKey, Func<string, T> valueFactory)
         where T : class
         => (T)_operationData.GetOrAdd(cacheKey, key => valueFactory(key)!);

@@ -644,6 +644,7 @@ public class NpgsqlCommandMock(
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
         using var _ = connection!.Metrics.BeginAmbientScope();
+        using var currentQueryScope = connection.BeginCurrentQueryScope(CommandText);
         if (connection.TryHandleExecuteScalarPrelude(
             CommandType,
             CommandText,

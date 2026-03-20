@@ -42,7 +42,7 @@ internal static class QueryOrderByHelper
         Func<Dictionary<Dictionary<int, object?>, Dictionary<string, object?>>> getJoinFieldsByRow)
     {
         var keySelectors = new List<OrderByKeySelector>(orderBy.Count);
-        Dictionary<string, int>? aliasToIndex = null;
+        var aliasToIndex = BuildAliasToIndex(result.Columns);
 
         foreach (var item in orderBy)
         {
@@ -56,13 +56,12 @@ internal static class QueryOrderByHelper
                 continue;
             }
 
-            if (TryCreateColumnSelector(result, item, raw, out var columnSelector))
+            if (TryCreateColumnSelector(result, item, raw, aliasToIndex, out var columnSelector))
             {
                 keySelectors.Add(columnSelector);
                 continue;
             }
 
-            aliasToIndex ??= BuildAliasToIndex(result.Columns);
             var parsedExpression = parseExpression(raw);
             keySelectors.Add(new OrderByKeySelector(
                 row =>
@@ -111,12 +110,22 @@ internal static class QueryOrderByHelper
         TableResultMock result,
         SqlOrderByItem item,
         string raw,
+        Dictionary<string, int> aliasToIndex,
         out OrderByKeySelector selector)
     {
         selector = default;
         var column = result.Columns.FirstOrDefault(current =>
             current.ColumnAlias.Equals(raw, StringComparison.OrdinalIgnoreCase)
             || current.ColumnName.Equals(raw, StringComparison.OrdinalIgnoreCase));
+        if (column is null && aliasToIndex.TryGetValue(raw, out var resolvedIndex))
+        {
+            selector = new OrderByKeySelector(
+                row => row.TryGetValue(resolvedIndex, out var value) ? value : null,
+                item.Desc,
+                item.NullsFirst);
+            return true;
+        }
+
         if (column is null)
             return false;
 

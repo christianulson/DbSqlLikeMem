@@ -986,7 +986,7 @@ internal sealed class SqlQueryParser
             {
                 throw new InvalidOperationException($"ON CONFLICT DO UPDATE SET assignment for '{col}' has an invalid expression.", ex);
             }
-            list.Add(new SqlAssignment(col, NormalizeInsertValueRaw(exprRaw), expr));
+            list.Add(new SqlAssignment(col, exprRaw, expr));
 
             if (IsSymbol(Peek(), ","))
             {
@@ -1623,7 +1623,7 @@ internal sealed class SqlQueryParser
             {
                 throw new InvalidOperationException($"UPDATE SET assignment for '{col}' has an invalid expression.", ex);
             }
-            list.Add(new SqlAssignment(col, NormalizeInsertValueRaw(exprRaw), expr));
+            list.Add(new SqlAssignment(col, exprRaw, expr));
 
             if (IsSymbol(Peek(), ","))
             {

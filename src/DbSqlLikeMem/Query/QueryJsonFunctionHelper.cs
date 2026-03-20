@@ -287,7 +287,7 @@ internal static class QueryJsonFunctionHelper
 
     private static JsonPathLookupResult LookupJsonPathFromText(string jsonText, JsonPathSpec spec)
     {
-        var bytes = System.Text.Encoding.UTF8.GetBytes(jsonText);
+        var bytes = Encoding.UTF8.GetBytes(jsonText);
         var reader = new Utf8JsonReader(bytes);
         if (!reader.Read())
             throw new JsonException("Invalid JSON payload.");

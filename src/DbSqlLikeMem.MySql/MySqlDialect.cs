@@ -244,12 +244,13 @@ internal class MySqlDialect : SqlDialectBase
     /// </summary>
     /// <param name="functionName">EN: Function name to validate. PT: Nome da função para validar.</param>
     /// <returns>
-    /// EN: <c>true</c> when the name is <c>DATE_ADD</c> or <c>TIMESTAMPADD</c>; otherwise, <c>false</c>.
-    /// PT: <c>true</c> quando o nome é <c>DATE_ADD</c> ou <c>TIMESTAMPADD</c>; caso contrário, <c>false</c>.
+    /// EN: <c>true</c> when the name is <c>DATE_ADD</c>, <c>ADDDATE</c>, <c>ADDTIME</c>, or <c>TIMESTAMPADD</c>; otherwise, <c>false</c>.
+    /// PT: <c>true</c> quando o nome é <c>DATE_ADD</c>, <c>ADDDATE</c>, <c>ADDTIME</c> ou <c>TIMESTAMPADD</c>; caso contrário, <c>false</c>.
     /// </returns>
     public override bool SupportsDateAddFunction(string functionName)
         => functionName.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase)
         || functionName.Equals("ADDDATE", StringComparison.OrdinalIgnoreCase)
+        || functionName.Equals("ADDTIME", StringComparison.OrdinalIgnoreCase)
         || functionName.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase);
 
     public override bool SupportsStringAggregateFunction(string functionName)

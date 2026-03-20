@@ -428,5 +428,5 @@ internal static class QueryMariaDbSpecialFunctionHelper
 
     private static bool IsValidGtid(string gtid)
         => !string.IsNullOrWhiteSpace(gtid)
-        && System.Text.RegularExpressions.Regex.IsMatch(gtid, @"^\d+-\d+-\d+$", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+        && Regex.IsMatch(gtid, @"^\d+-\d+-\d+$", RegexOptions.CultureInvariant);
 }

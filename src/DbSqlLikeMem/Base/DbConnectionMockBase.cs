@@ -130,6 +130,7 @@ public abstract class DbConnectionMockBase(
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, SelectPlan> _selectPlanCache = new(StringComparer.Ordinal);
     private readonly List<QueryDebugTrace> _lastDebugTraces = [];
     private int _debugTraceCaptureDepth;
+    private int _selectPlanCacheGeneration;
     private long _lastFoundRows;
     private object? _lastInsertId;
     private readonly AutoSqlDialect _autoSqlDialect = new();
@@ -149,7 +150,13 @@ public abstract class DbConnectionMockBase(
     }
 
     internal void ClearSelectPlanCache()
-        => _selectPlanCache.Clear();
+    {
+        _selectPlanCache.Clear();
+        _selectPlanCacheGeneration++;
+    }
+
+    internal int GetSelectPlanCacheGeneration()
+        => _selectPlanCacheGeneration;
 
     internal bool TryGetCachedSelectPlan(
         string cacheKey,

@@ -19,7 +19,7 @@ internal static class SelectAliasParserHelper
             if (TrySplitTrailingImplicitAlias(raw, out var expr, out var alias))
             {
                 if (raw.IndexOf("<=>", StringComparison.Ordinal) >= 0
-                    || Regex.IsMatch(raw, @"\b(NEXT|PREVIOUS)\s+VALUE\s+FOR\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+                    || EndsWithNextValueForPattern(raw))
                 {
                     Console.WriteLine($"[SPLIT-ALIAS-SUSPECT] Raw='{raw}' Expr='{expr}' Alias='{alias}'");
                 }
@@ -34,11 +34,9 @@ internal static class SelectAliasParserHelper
         if (after.Length == 0)
             return (raw, null);
 
-        var match = Regex.Match(after, @"^`?(?<a>[A-Za-z_][A-Za-z0-9_]*)`?\s*$");
-        if (!match.Success)
+        if (!TryParseSimpleAlias(after, out var explicitAlias))
             return (raw, null);
 
-        var explicitAlias = match.Groups["a"].Value;
         var beforeAs = raw[..asPosition].TrimEnd();
         if (beforeAs.Length == 0)
             return (raw, null);
@@ -94,11 +92,9 @@ internal static class SelectAliasParserHelper
         if (token.Length == 0)
             return false;
 
-        var match = Regex.Match(token, @"^`?(?<a>[A-Za-z_][A-Za-z0-9_]*)`?$", RegexOptions.CultureInvariant);
-        if (!match.Success)
+        if (!TryParseSimpleAlias(token, out var parsedAlias))
             return false;
 
-        var parsedAlias = match.Groups["a"].Value;
         if (IsLikelyKeyword(parsedAlias))
             return false;
 
@@ -106,10 +102,10 @@ internal static class SelectAliasParserHelper
         if (before.Length == 0 || before.EndsWith(".", StringComparison.Ordinal))
             return false;
 
-        if (Regex.IsMatch(before, @"(<=>|<>|!=|>=|<=|=|>|<|\+|-|\*|/|,)\s*$", RegexOptions.CultureInvariant))
+        if (EndsWithOperatorToken(before))
             return false;
 
-        if (Regex.IsMatch(before, @"\b(NEXT|PREVIOUS)\s+VALUE\s+FOR\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        if (EndsWithNextValueForPattern(before))
             return false;
 
         expr = before;
@@ -188,6 +184,95 @@ internal static class SelectAliasParserHelper
 
     private static bool IsIdentifierChar(char c)
         => char.IsLetterOrDigit(c) || c == '_';
+
+    private static bool TryParseSimpleAlias(string value, out string alias)
+    {
+        alias = string.Empty;
+        var trimmed = value.Trim();
+        if (trimmed.Length == 0)
+            return false;
+
+        if (trimmed[0] == '`')
+        {
+            if (trimmed.Length < 3 || trimmed[^1] != '`')
+                return false;
+
+            trimmed = trimmed[1..^1];
+        }
+
+        if (trimmed.Length == 0 || !IsAliasStartChar(trimmed[0]))
+            return false;
+
+        for (var i = 1; i < trimmed.Length; i++)
+        {
+            if (!IsIdentifierChar(trimmed[i]))
+                return false;
+        }
+
+        alias = trimmed;
+        return true;
+    }
+
+    private static bool IsAliasStartChar(char ch)
+        => char.IsLetter(ch) || ch == '_';
+
+    private static bool EndsWithOperatorToken(string value)
+    {
+        var span = value.AsSpan().TrimEnd();
+        if (span.Length == 0)
+            return false;
+
+        if (span.EndsWith("<=>", StringComparison.Ordinal)
+            || span.EndsWith("<>", StringComparison.Ordinal)
+            || span.EndsWith("!=", StringComparison.Ordinal)
+            || span.EndsWith(">=", StringComparison.Ordinal)
+            || span.EndsWith("<=", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        var last = span[^1];
+        return last is '=' or '>' or '<' or '+' or '-' or '*' or '/' or ',';
+    }
+
+    private static bool EndsWithNextValueForPattern(string value)
+    {
+        var span = value.AsSpan();
+        if (!TryPopLastWord(span, out var beforeFor, out var forWord) || !forWord.Equals("FOR", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (!TryPopLastWord(beforeFor, out var beforeValue, out var valueWord) || !valueWord.Equals("VALUE", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (!TryPopLastWord(beforeValue, out _, out var firstWord))
+            return false;
+
+        return firstWord.Equals("NEXT", StringComparison.OrdinalIgnoreCase)
+            || firstWord.Equals("PREVIOUS", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool TryPopLastWord(
+        ReadOnlySpan<char> text,
+        out ReadOnlySpan<char> remainder,
+        out ReadOnlySpan<char> word)
+    {
+        var span = text.TrimEnd();
+        if (span.Length == 0)
+        {
+            remainder = ReadOnlySpan<char>.Empty;
+            word = ReadOnlySpan<char>.Empty;
+            return false;
+        }
+
+        var end = span.Length - 1;
+        var start = end;
+        while (start >= 0 && !char.IsWhiteSpace(span[start]))
+            start--;
+
+        word = span[(start + 1)..(end + 1)];
+        remainder = span[..(start + 1)].TrimEnd();
+        return word.Length > 0;
+    }
 
     private static int GetDepthAlias(string raw)
     {

@@ -119,7 +119,7 @@ public abstract class TableMock
         foreach (var colName in columns)
             _primaryKeyIndexes.Add(Columns[colName].Index);
         if (_primaryKeyIndexes.Count != columns.Length)
-            throw new InvalidOperationException(Resources.SqlExceptionMessages.DuplicatePrimaryKeyColumns());
+            throw new InvalidOperationException(SqlExceptionMessages.DuplicatePrimaryKeyColumns());
         _pkIndexArray = [.. _primaryKeyIndexes.OrderBy(static i => i)];
         RebuildPkIndex();
     }
@@ -324,7 +324,7 @@ public abstract class TableMock
 
         var normalizedName = name.NormalizeName();
         if (_columns.ContainsKey(normalizedName))
-            throw new InvalidOperationException(Resources.SqlExceptionMessages.ColumnAlreadyExistsInTable(normalizedName, TableName));
+            throw new InvalidOperationException(SqlExceptionMessages.ColumnAlreadyExistsInTable(normalizedName, TableName));
 
         if (_items.Count != 0 && !nullable && defaultValue == null && !identity)
             throw new InvalidOperationException($"Cannot add NOT NULL column '{name}' without default value when the table already has rows.");
@@ -421,7 +421,7 @@ public abstract class TableMock
         ArgumentNullExceptionCompatible.ThrowIfNull(keyCols, nameof(keyCols));
         name = name.NormalizeName();
         if (_indexes.ContainsKey(name))
-            throw new InvalidOperationException(Resources.SqlExceptionMessages.IndexAlreadyExists(name));
+            throw new InvalidOperationException(SqlExceptionMessages.IndexAlreadyExists(name));
         var normalizedKeyCols = keyCols
             .Select(static col => col.NormalizeName())
             .ToList();
@@ -961,7 +961,7 @@ public abstract class TableMock
     {
         try
         {
-            numericValue = Convert.ToInt32(value, System.Globalization.CultureInfo.InvariantCulture);
+            numericValue = Convert.ToInt32(value, CultureInfo.InvariantCulture);
             return true;
         }
         catch

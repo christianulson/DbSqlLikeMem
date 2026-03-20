@@ -299,6 +299,7 @@ public class MySqlCommandMock(
         connection!.ClearExecutionPlans();
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
         using var _ = connection.Metrics.BeginAmbientScope();
+        using var currentQueryScope = connection.BeginCurrentQueryScope(CommandText);
 
         if (connection.TryHandleExecuteReaderPrelude(
             CommandType,
@@ -335,6 +336,7 @@ public class MySqlCommandMock(
             var q = SqlQueryParser.Parse(sqlRaw, connection.ExecutionDialect, Parameters);
             parsedStatementCount++;
 
+            using var statementQueryScope = connection.BeginCurrentQueryScope(sqlRaw);
             connection.DispatchParsedReaderQuery(
                 q,
                 Parameters,
@@ -764,6 +766,7 @@ public class MySqlCommandMock(
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
         using var _ = connection!.Metrics.BeginAmbientScope();
+        using var currentQueryScope = connection.BeginCurrentQueryScope(CommandText);
         if (connection.TryHandleExecuteScalarPrelude(
             CommandType,
             CommandText,
