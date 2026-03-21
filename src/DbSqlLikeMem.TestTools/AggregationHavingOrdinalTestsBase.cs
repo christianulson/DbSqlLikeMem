@@ -107,10 +107,6 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         Assert.Contains("5", second, StringComparison.Ordinal);
     }
 
-
-
-
-
     /// <summary>
     /// EN: Validates mixed projection with string aggregation and explicit NULL literal remains stable.
     /// PT: Valida que projeção mista com agregação textual e literal NULL explícito permaneça estável.
@@ -135,8 +131,6 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         Assert.NotEmpty(firstJoined);
         Assert.NotEmpty(secondJoined);
     }
-
-
 
     /// <summary>
     /// EN: Validates CASE expression that returns NULL in grouped projection remains consistent with string aggregation.
@@ -163,8 +157,6 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         Assert.NotEmpty(secondJoined);
     }
 
-
-
     /// <summary>
     /// EN: Validates CASE expression with mixed text/NULL branches in grouped projection stays deterministic.
     /// PT: Valida que expressão CASE com ramos mistos texto/NULL em projeção agrupada permaneça determinística.
@@ -190,8 +182,6 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         Assert.NotEmpty(secondJoined);
     }
 
-
-
     /// <summary>
     /// EN: Validates multi-branch CASE projection (text/text) remains stable with grouped string aggregation.
     /// PT: Valida que projeção CASE de múltiplos ramos (texto/texto) permaneça estável com agregação textual agrupada.
@@ -216,8 +206,6 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         Assert.NotEmpty(firstJoined);
         Assert.NotEmpty(secondJoined);
     }
-
-
 
     /// <summary>
     /// EN: Validates numeric CASE multi-branch projection remains stable with grouped string aggregation.

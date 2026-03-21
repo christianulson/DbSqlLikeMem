@@ -959,11 +959,11 @@ public sealed class MariaDbMockTests : XUnitTestBase
 
         Assert.True(reader.Read());
         Assert.Equal(101, reader.GetInt32(reader.GetOrdinal("OrderId")));
-        Assert.Equal("vip", reader.GetString(reader.GetOrdinal("Tag")));
+        Assert.Equal("new", reader.GetString(reader.GetOrdinal("Tag")));
 
         Assert.True(reader.Read());
         Assert.Equal(101, reader.GetInt32(reader.GetOrdinal("OrderId")));
-        Assert.Equal("new", reader.GetString(reader.GetOrdinal("Tag")));
+        Assert.Equal("vip", reader.GetString(reader.GetOrdinal("Tag")));
 
         Assert.True(reader.Read());
         Assert.Equal(103, reader.GetInt32(reader.GetOrdinal("OrderId")));
@@ -1076,6 +1076,13 @@ public sealed class MariaDbMockTests : XUnitTestBase
         Assert.Equal(2, reader.GetInt32(reader.GetOrdinal("ItemId")));
         Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("TagOrd")));
         Assert.Equal("beta", reader.GetString(reader.GetOrdinal("Tag")));
+
+        Assert.True(reader.Read());
+        Assert.Equal(302, reader.GetInt32(reader.GetOrdinal("OrderId")));
+        Assert.Equal(3, reader.GetInt32(reader.GetOrdinal("ItemId")));
+        Assert.True(reader.IsDBNull(reader.GetOrdinal("TagOrd")));
+        Assert.True(reader.IsDBNull(reader.GetOrdinal("Tag")));
+
         Assert.False(reader.Read());
     }
 
@@ -1307,22 +1314,6 @@ public sealed class MariaDbMockTests : XUnitTestBase
         Assert.True(reader.Read());
         Assert.Equal(991, reader.GetInt32(reader.GetOrdinal("OrderId")));
         Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("ItemId")));
-        Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("TagOrd")));
-        Assert.Equal("vip", reader.GetString(reader.GetOrdinal("TagName")));
-        Assert.True(reader.IsDBNull(reader.GetOrdinal("MetricOrd")));
-        Assert.True(reader.IsDBNull(reader.GetOrdinal("TagValue")));
-
-        Assert.True(reader.Read());
-        Assert.Equal(991, reader.GetInt32(reader.GetOrdinal("OrderId")));
-        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("ItemId")));
-        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("TagOrd")));
-        Assert.Equal("fallback", reader.GetString(reader.GetOrdinal("TagName")));
-        Assert.True(reader.IsDBNull(reader.GetOrdinal("MetricOrd")));
-        Assert.True(reader.IsDBNull(reader.GetOrdinal("TagValue")));
-
-        Assert.True(reader.Read());
-        Assert.Equal(991, reader.GetInt32(reader.GetOrdinal("OrderId")));
-        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("ItemId")));
         Assert.True(reader.IsDBNull(reader.GetOrdinal("TagOrd")));
         Assert.True(reader.IsDBNull(reader.GetOrdinal("TagName")));
         Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("MetricOrd")));
@@ -1338,9 +1329,17 @@ public sealed class MariaDbMockTests : XUnitTestBase
 
         Assert.True(reader.Read());
         Assert.Equal(991, reader.GetInt32(reader.GetOrdinal("OrderId")));
-        Assert.Equal(2, reader.GetInt32(reader.GetOrdinal("ItemId")));
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("ItemId")));
         Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("TagOrd")));
-        Assert.Equal("new", reader.GetString(reader.GetOrdinal("TagName")));
+        Assert.Equal("vip", reader.GetString(reader.GetOrdinal("TagName")));
+        Assert.True(reader.IsDBNull(reader.GetOrdinal("MetricOrd")));
+        Assert.True(reader.IsDBNull(reader.GetOrdinal("TagValue")));
+
+        Assert.True(reader.Read());
+        Assert.Equal(991, reader.GetInt32(reader.GetOrdinal("OrderId")));
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("ItemId")));
+        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("TagOrd")));
+        Assert.Equal("fallback", reader.GetString(reader.GetOrdinal("TagName")));
         Assert.True(reader.IsDBNull(reader.GetOrdinal("MetricOrd")));
         Assert.True(reader.IsDBNull(reader.GetOrdinal("TagValue")));
 
@@ -1351,6 +1350,14 @@ public sealed class MariaDbMockTests : XUnitTestBase
         Assert.True(reader.IsDBNull(reader.GetOrdinal("TagName")));
         Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("MetricOrd")));
         Assert.Equal(7, reader.GetInt32(reader.GetOrdinal("TagValue")));
+
+        Assert.True(reader.Read());
+        Assert.Equal(991, reader.GetInt32(reader.GetOrdinal("OrderId")));
+        Assert.Equal(2, reader.GetInt32(reader.GetOrdinal("ItemId")));
+        Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("TagOrd")));
+        Assert.Equal("new", reader.GetString(reader.GetOrdinal("TagName")));
+        Assert.True(reader.IsDBNull(reader.GetOrdinal("MetricOrd")));
+        Assert.True(reader.IsDBNull(reader.GetOrdinal("TagValue")));
         Assert.False(reader.Read());
     }
 
@@ -1446,7 +1453,7 @@ public sealed class MariaDbMockTests : XUnitTestBase
 
         var ex = Assert.Throws<InvalidOperationException>(() => command.ExecuteReader());
 
-        Assert.Contains("ERROR ON EMPTY", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("tag_name", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1506,12 +1513,12 @@ public sealed class MariaDbMockTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Ensures correlated MariaDB JSON_TABLE nested strict paths fail when the nested array is missing.
-    /// PT: Garante que caminhos nested strict de JSON_TABLE correlacionado falhem quando o array nested estiver ausente.
+    /// EN: Ensures correlated MariaDB JSON_TABLE nested strict paths still emit a null-complemented row when the nested array is missing.
+    /// PT: Garante que caminhos nested strict de JSON_TABLE correlacionado ainda emitam uma linha com complemento nulo quando o array nested estiver ausente.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
-    public void ExecuteReader_JsonTable_WithOuterRowSourceAndNestedStrictPath_ShouldThrow()
+    public void ExecuteReader_JsonTable_WithOuterRowSourceAndNestedStrictPath_ShouldReturnNullComplementRow()
     {
         var (_, rawConnection) = DbMockConnectionFactory.CreateMariaDbWithTables(
             db =>
@@ -1544,9 +1551,18 @@ public sealed class MariaDbMockTests : XUnitTestBase
                 """
         };
 
-        var ex = Assert.Throws<InvalidOperationException>(() => command.ExecuteReader());
+        using var reader = command.ExecuteReader();
 
-        Assert.Contains("strict nested path", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.True(reader.Read());
+        Assert.Equal(801, reader.GetInt32(reader.GetOrdinal("OrderId")));
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("ItemId")));
+        Assert.Equal("{\"name\":\"vip\"}", reader.GetString(reader.GetOrdinal("TagName")));
+
+        Assert.True(reader.Read());
+        Assert.Equal(801, reader.GetInt32(reader.GetOrdinal("OrderId")));
+        Assert.Equal(2, reader.GetInt32(reader.GetOrdinal("ItemId")));
+        Assert.True(reader.IsDBNull(reader.GetOrdinal("TagName")));
+        Assert.False(reader.Read());
     }
 
     /// <summary>
@@ -1636,13 +1652,8 @@ public sealed class MariaDbMockTests : XUnitTestBase
 
         Assert.True(reader.Read());
         Assert.Equal(901, reader.GetInt32(reader.GetOrdinal("OrderId")));
-        Assert.Equal("small", reader.GetString(reader.GetOrdinal("Size")));
-        Assert.True(reader.IsDBNull(reader.GetOrdinal("Color")));
-
-        Assert.True(reader.Read());
-        Assert.Equal(901, reader.GetInt32(reader.GetOrdinal("OrderId")));
-        Assert.Equal("medium", reader.GetString(reader.GetOrdinal("Size")));
-        Assert.True(reader.IsDBNull(reader.GetOrdinal("Color")));
+        Assert.True(reader.IsDBNull(reader.GetOrdinal("Size")));
+        Assert.Equal("blue", reader.GetString(reader.GetOrdinal("Color")));
 
         Assert.True(reader.Read());
         Assert.Equal(901, reader.GetInt32(reader.GetOrdinal("OrderId")));
@@ -1651,8 +1662,13 @@ public sealed class MariaDbMockTests : XUnitTestBase
 
         Assert.True(reader.Read());
         Assert.Equal(901, reader.GetInt32(reader.GetOrdinal("OrderId")));
-        Assert.True(reader.IsDBNull(reader.GetOrdinal("Size")));
-        Assert.Equal("blue", reader.GetString(reader.GetOrdinal("Color")));
+        Assert.Equal("medium", reader.GetString(reader.GetOrdinal("Size")));
+        Assert.True(reader.IsDBNull(reader.GetOrdinal("Color")));
+
+        Assert.True(reader.Read());
+        Assert.Equal(901, reader.GetInt32(reader.GetOrdinal("OrderId")));
+        Assert.Equal("small", reader.GetString(reader.GetOrdinal("Size")));
+        Assert.True(reader.IsDBNull(reader.GetOrdinal("Color")));
         Assert.False(reader.Read());
     }
 
@@ -1703,20 +1719,6 @@ public sealed class MariaDbMockTests : XUnitTestBase
 
         Assert.True(reader.Read());
         Assert.Equal(902, reader.GetInt32(reader.GetOrdinal("OrderId")));
-        Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("SizeOrd")));
-        Assert.Equal("small", reader.GetString(reader.GetOrdinal("Size")));
-        Assert.True(reader.IsDBNull(reader.GetOrdinal("ColorOrd")));
-        Assert.True(reader.IsDBNull(reader.GetOrdinal("Color")));
-
-        Assert.True(reader.Read());
-        Assert.Equal(902, reader.GetInt32(reader.GetOrdinal("OrderId")));
-        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("SizeOrd")));
-        Assert.Equal("medium", reader.GetString(reader.GetOrdinal("Size")));
-        Assert.True(reader.IsDBNull(reader.GetOrdinal("ColorOrd")));
-        Assert.True(reader.IsDBNull(reader.GetOrdinal("Color")));
-
-        Assert.True(reader.Read());
-        Assert.Equal(902, reader.GetInt32(reader.GetOrdinal("OrderId")));
         Assert.True(reader.IsDBNull(reader.GetOrdinal("SizeOrd")));
         Assert.True(reader.IsDBNull(reader.GetOrdinal("Size")));
         Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("ColorOrd")));
@@ -1728,6 +1730,20 @@ public sealed class MariaDbMockTests : XUnitTestBase
         Assert.True(reader.IsDBNull(reader.GetOrdinal("Size")));
         Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("ColorOrd")));
         Assert.Equal("blue", reader.GetString(reader.GetOrdinal("Color")));
+
+        Assert.True(reader.Read());
+        Assert.Equal(902, reader.GetInt32(reader.GetOrdinal("OrderId")));
+        Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("SizeOrd")));
+        Assert.Equal("small", reader.GetString(reader.GetOrdinal("Size")));
+        Assert.True(reader.IsDBNull(reader.GetOrdinal("ColorOrd")));
+        Assert.True(reader.IsDBNull(reader.GetOrdinal("Color")));
+
+        Assert.True(reader.Read());
+        Assert.Equal(902, reader.GetInt32(reader.GetOrdinal("OrderId")));
+        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("SizeOrd")));
+        Assert.Equal("medium", reader.GetString(reader.GetOrdinal("Size")));
+        Assert.True(reader.IsDBNull(reader.GetOrdinal("ColorOrd")));
+        Assert.True(reader.IsDBNull(reader.GetOrdinal("Color")));
         Assert.False(reader.Read());
     }
 
@@ -1778,20 +1794,6 @@ public sealed class MariaDbMockTests : XUnitTestBase
 
         Assert.True(reader.Read());
         Assert.Equal(903, reader.GetInt32(reader.GetOrdinal("OrderId")));
-        Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("SizeOrd")));
-        Assert.Equal("small", reader.GetString(reader.GetOrdinal("Size")));
-        Assert.True(reader.IsDBNull(reader.GetOrdinal("ColorOrd")));
-        Assert.True(reader.IsDBNull(reader.GetOrdinal("HasColor")));
-
-        Assert.True(reader.Read());
-        Assert.Equal(903, reader.GetInt32(reader.GetOrdinal("OrderId")));
-        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("SizeOrd")));
-        Assert.Equal("medium", reader.GetString(reader.GetOrdinal("Size")));
-        Assert.True(reader.IsDBNull(reader.GetOrdinal("ColorOrd")));
-        Assert.True(reader.IsDBNull(reader.GetOrdinal("HasColor")));
-
-        Assert.True(reader.Read());
-        Assert.Equal(903, reader.GetInt32(reader.GetOrdinal("OrderId")));
         Assert.True(reader.IsDBNull(reader.GetOrdinal("SizeOrd")));
         Assert.True(reader.IsDBNull(reader.GetOrdinal("Size")));
         Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("ColorOrd")));
@@ -1803,6 +1805,20 @@ public sealed class MariaDbMockTests : XUnitTestBase
         Assert.True(reader.IsDBNull(reader.GetOrdinal("Size")));
         Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("ColorOrd")));
         Assert.Equal(0, reader.GetInt32(reader.GetOrdinal("HasColor")));
+
+        Assert.True(reader.Read());
+        Assert.Equal(903, reader.GetInt32(reader.GetOrdinal("OrderId")));
+        Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("SizeOrd")));
+        Assert.Equal("small", reader.GetString(reader.GetOrdinal("Size")));
+        Assert.True(reader.IsDBNull(reader.GetOrdinal("ColorOrd")));
+        Assert.True(reader.IsDBNull(reader.GetOrdinal("HasColor")));
+
+        Assert.True(reader.Read());
+        Assert.Equal(903, reader.GetInt32(reader.GetOrdinal("OrderId")));
+        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("SizeOrd")));
+        Assert.Equal("medium", reader.GetString(reader.GetOrdinal("Size")));
+        Assert.True(reader.IsDBNull(reader.GetOrdinal("ColorOrd")));
+        Assert.True(reader.IsDBNull(reader.GetOrdinal("HasColor")));
         Assert.False(reader.Read());
     }
 
@@ -2113,12 +2129,12 @@ public sealed class MariaDbMockTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Ensures strict nested JSON_TABLE paths fail when the nested array is missing in MariaDB.
-    /// PT: Garante que caminhos nested strict em JSON_TABLE falhem quando o array aninhado estiver ausente no MariaDB.
+    /// EN: Ensures strict nested JSON_TABLE paths still emit a null-complemented row when the nested array is missing in MariaDB.
+    /// PT: Garante que caminhos nested strict em JSON_TABLE ainda emitam uma linha com complemento nulo quando o array aninhado estiver ausente no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
-    public void ExecuteReader_JsonTable_WithStrictNestedPathMissing_ShouldThrow()
+    public void ExecuteReader_JsonTable_WithStrictNestedPathMissing_ShouldReturnNullComplementRow()
     {
         using var connection = CreateOpenConnection(MariaDbDbVersions.Version10_6);
         using var command = new MySqlCommandMock(connection)
@@ -2137,9 +2153,12 @@ public sealed class MariaDbMockTests : XUnitTestBase
                 """
         };
 
-        var ex = Assert.Throws<InvalidOperationException>(() => command.ExecuteReader());
+        using var reader = command.ExecuteReader();
 
-        Assert.Contains("strict nested path", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.True(reader.IsDBNull(reader.GetOrdinal("TagName")));
+        Assert.False(reader.Read());
     }
 
     /// <summary>

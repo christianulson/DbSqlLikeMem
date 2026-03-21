@@ -2364,12 +2364,7 @@ internal sealed class SqlExpressionParser(
 
     private CallExpr ParseJsonTableCall(string functionName)
     {
-        var raw = ReadRawUntilMatchingParen();
-        if (string.IsNullOrWhiteSpace(raw))
-            throw Error("JSON_TABLE requires arguments", Peek());
-
-        ExpectSymbol(")");
-        return new CallExpr(functionName, [new RawSqlExpr(raw)]);
+        throw new NotSupportedException("JSON_TABLE is a table function and cannot be used as a scalar expression.");
     }
 
     private IReadOnlyList<WindowOrderItem>? ParseAggregateOrderByInsideCallIfPresent(string functionName)

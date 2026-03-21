@@ -75,25 +75,13 @@ public abstract class XUnitTestBase : IDisposable
         {
             if (disposing)
             {
-                // TODO: dispose managed state (managed objects)
                 ConsoleWriter?.Dispose();
             }
 
-
-#pragma warning disable S1135 // Track uses of "TODO" tags
-            // TODO: free unmanaged resources (unmanaged objects) and override finalizer
-
-#pragma warning disable S1135 // Track uses of "TODO" tags
-            // TODO: set large fields to null
             disposedValue = true;
-#pragma warning restore S1135 // Track uses of "TODO" tags
-#pragma warning restore S1135 // Track uses of "TODO" tags
         }
     }
 
-
-#pragma warning disable S1135 // Track uses of "TODO" tags
-    // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
     /// <summary>
     /// Finalizes the instance and releases unmanaged resources before the object is reclaimed by garbage collection.
     /// </summary>
@@ -101,7 +89,6 @@ public abstract class XUnitTestBase : IDisposable
     /// logic for unmanaged resources should be placed in the Dispose method with disposing set to false. Do not
     /// override the finalizer unless unmanaged resources need to be released.</remarks>
     ~XUnitTestBase()
-#pragma warning restore S1135 // Track uses of "TODO" tags
     {
         // Não altere este código. Coloque o código de limpeza no método 'Dispose(bool disposing)'
         Dispose(disposing: false);

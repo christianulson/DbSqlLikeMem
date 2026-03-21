@@ -328,39 +328,66 @@ public sealed class Db2MockTests
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
     }
 
-    ///// <summary>
-    ///// EN: Tests CreateOrReplaceProcedure_ShouldRegisterProcedureAndAllowCall behavior.
-    ///// PT: Testa o comportamento de CreateOrReplaceProcedure_ShouldRegisterProcedureAndAllowCall.
-    ///// </summary>
-    //[Theory(Skip ="")]
-    //[Trait("Category", "Db2Mock")]
-    //[MemberDataDb2Version]
-    //public void CreateOrReplaceProcedure_ShouldRegisterProcedureAndAllowCall(int version)
-    //{
-        //TODO: Implementar suporte a CREATE OR REPLACE PROCEDURE e descomentar teste.
-        //using var connection = CreateOpenConnection(version);
+    /// <summary>
+    /// EN: Tests CreateOrReplaceProcedure_ShouldRegisterProcedureAndAllowCall behavior.
+    /// PT: Testa o comportamento de CreateOrReplaceProcedure_ShouldRegisterProcedureAndAllowCall.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Db2Mock")]
+    [MemberDataDb2Version]
+    public void CreateOrReplaceProcedure_ShouldRegisterProcedureAndAllowCall(int version)
+    {
+        using var connection = CreateOpenConnection(version);
 
-        //ExecuteNonQuery(connection, "CREATE OR REPLACE PROCEDURE sp_echo(IN tenantId INT) BEGIN END");
+        ExecuteNonQuery(connection, "CREATE OR REPLACE PROCEDURE sp_echo(IN tenantId INT) BEGIN END");
 
-        //using var command = new Db2CommandMock(connection)
-        //{
-        //    CommandType = CommandType.StoredProcedure,
-        //    CommandText = "sp_echo"
-        //};
+        using var command = new Db2CommandMock(connection)
+        {
+            CommandType = CommandType.StoredProcedure,
+            CommandText = "sp_echo"
+        };
 
-        //var tenantId = command.CreateParameter();
-        //tenantId.ParameterName = "tenantId";
-        //tenantId.DbType = DbType.Int32;
-        //tenantId.Value = 10;
-        //command.Parameters.Add(tenantId);
+        var tenantId = command.CreateParameter();
+        tenantId.ParameterName = "tenantId";
+        tenantId.DbType = DbType.Int32;
+        tenantId.Value = 10;
+        command.Parameters.Add(tenantId);
 
-        //var affectedRows = command.ExecuteNonQuery();
+        var affectedRows = command.ExecuteNonQuery();
 
-        //Assert.Equal(0, affectedRows);
-        //Assert.True(connection.Db.TryGetProcedure("sp_echo", out var procedure));
-        //Assert.NotNull(procedure);
-        //Assert.Single(procedure!.RequiredIn);
-    //}
+        Assert.Equal(0, affectedRows);
+        Assert.True(connection.Db.TryGetProcedure("sp_echo", out var procedure));
+        Assert.NotNull(procedure);
+        Assert.Single(procedure!.RequiredIn);
+    }
+
+    private static Db2ConnectionMock CreateOpenConnection(int? version = null)
+    {
+        var db = new Db2DbMock(version);
+        db.AddSequence("seq_users");
+        db.AddTable("Users",
+        [
+            new("Id", DbType.Int32, false),
+            new("Name", DbType.String, false),
+            new("Email", DbType.String, true),
+        ]);
+
+        var connection = new Db2ConnectionMock(db);
+        connection.Open();
+
+        ExecuteNonQuery(connection, "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', '{\"profile\":{\"active\":true,\"name\":\"Ana\"}}')");
+        ExecuteNonQuery(connection, "INSERT INTO Users (Id, Name, Email) VALUES (2, 'Bob', '{\"profile\":{\"active\":false,\"name\":\"Bob\"}}')");
+        return connection;
+    }
+
+    private static void ExecuteNonQuery(Db2ConnectionMock connection, string sql)
+    {
+        using var command = new Db2CommandMock(connection)
+        {
+            CommandText = sql
+        };
+        command.ExecuteNonQuery();
+    }
 
     /// <summary>
     /// EN: Tests TestBatch_UpdateCommitThenRowCount_ShouldReturnZeroAfterCommit behavior.

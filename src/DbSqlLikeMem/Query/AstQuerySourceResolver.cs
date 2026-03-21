@@ -620,9 +620,6 @@ internal sealed class AstQuerySourceResolver
             if (lookup.Failure == QueryJsonFunctionHelper.JsonPathLookupFailure.InvalidPath)
                 throw new InvalidOperationException($"JSON_TABLE nested path '{nestedPath.Path}' is invalid in the mock.");
 
-            if (lookup.Mode == QueryJsonFunctionHelper.JsonPathMode.Strict)
-                throw new InvalidOperationException($"JSON_TABLE strict nested path '{nestedPath.Path}' was not found in the JSON payload.");
-
             return [];
         }
 

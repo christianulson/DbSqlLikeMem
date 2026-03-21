@@ -966,7 +966,7 @@ internal sealed class SqlQueryParser
             var col = ExpectIdentifierWithDots();
             ExpectAssignmentEquals("ON CONFLICT DO UPDATE SET", col);
 
-            var exprRaw = ReadClauseTextUntilTopLevelStop(",", SqlConst.WHERE, SqlConst.FROM, SqlConst.USING, SqlConst.RETURNING, ";").Trim();
+            var exprRaw = ReadClauseTextUntilTopLevelStop(",", SqlConst.WHERE, SqlConst.FROM, SqlConst.USING, SqlConst.RETURNING, SqlConst.ON, ";").Trim();
             if (string.IsNullOrWhiteSpace(exprRaw))
                 throw new InvalidOperationException($"ON CONFLICT DO UPDATE SET assignment for '{col}' requires an expression.");
 
@@ -1461,6 +1461,17 @@ internal sealed class SqlQueryParser
         var selectItems = ParseSelectItemsWithValidation();
         var table = ParseFromOrDual();
         var joins = ParseJoins(table);
+        while (IsSymbol(Peek(), ","))
+        {
+            Consume();
+            var commaTable = TryParseTableTransforms(ParseTableSource());
+            joins.Add(new SqlJoin(
+                commaTable.Derived is not null || commaTable.DerivedUnion is not null || commaTable.TableFunction is not null
+                    ? SqlJoinType.CrossApply
+                    : SqlJoinType.Cross,
+                commaTable,
+                new LiteralExpr(true)));
+        }
         var where = TryParseWhereExpr();
         var groupBy = TryParseGroupBy();
         var having = TryParseHavingExpr();
@@ -1673,7 +1684,7 @@ internal sealed class SqlQueryParser
             var col = ExpectIdentifierWithDots();
             ExpectAssignmentEquals("ON DUPLICATE KEY UPDATE", col);
 
-            var exprRaw = ReadClauseTextUntilTopLevelStop(",", SqlConst.WHERE, SqlConst.FROM, SqlConst.USING, SqlConst.RETURNING, ";").Trim();
+            var exprRaw = ReadClauseTextUntilTopLevelStop(",", SqlConst.WHERE, SqlConst.FROM, SqlConst.USING, SqlConst.RETURNING, SqlConst.ON, ";").Trim();
             if (string.IsNullOrWhiteSpace(exprRaw))
                 throw new InvalidOperationException($"ON DUPLICATE KEY UPDATE assignment for '{col}' requires an expression.");
 
@@ -1723,7 +1734,7 @@ internal sealed class SqlQueryParser
         var list = new List<SqlAssignment>();
         while (true)
         {
-            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), SqlConst.WHERE) || IsWord(Peek(), SqlConst.FROM) || IsWord(Peek(), SqlConst.USING) || IsWord(Peek(), SqlConst.RETURNING))
+            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), SqlConst.WHERE) || IsWord(Peek(), SqlConst.FROM) || IsWord(Peek(), SqlConst.USING) || IsWord(Peek(), SqlConst.RETURNING) || IsWord(Peek(), SqlConst.ON))
             {
                 if (list.Count == 0)
                     throw new InvalidOperationException(
@@ -1743,7 +1754,7 @@ internal sealed class SqlQueryParser
             var col = ExpectIdentifierWithDots();
             ExpectAssignmentEquals("REPLACE SET", col);
 
-            var exprRaw = ReadClauseTextUntilTopLevelStop(",", SqlConst.WHERE, SqlConst.FROM, SqlConst.USING, SqlConst.RETURNING, ";").Trim();
+            var exprRaw = ReadClauseTextUntilTopLevelStop(",", SqlConst.WHERE, SqlConst.FROM, SqlConst.USING, SqlConst.RETURNING, SqlConst.ON, ";").Trim();
             if (string.IsNullOrWhiteSpace(exprRaw))
                 throw new InvalidOperationException($"REPLACE SET assignment for '{col}' requires an expression.");
 
@@ -1774,14 +1785,14 @@ internal sealed class SqlQueryParser
             {
                 Consume();
 
-                if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), SqlConst.WHERE) || IsWord(Peek(), SqlConst.FROM) || IsWord(Peek(), SqlConst.USING) || IsWord(Peek(), SqlConst.RETURNING))
+                if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), SqlConst.WHERE) || IsWord(Peek(), SqlConst.FROM) || IsWord(Peek(), SqlConst.USING) || IsWord(Peek(), SqlConst.RETURNING) || IsWord(Peek(), SqlConst.ON))
                     throw new InvalidOperationException(
                         $"REPLACE SET has a trailing comma without assignment (found '{DescribeFoundToken(Peek())}').");
 
                 continue;
             }
 
-            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), SqlConst.WHERE) || IsWord(Peek(), SqlConst.FROM) || IsWord(Peek(), SqlConst.USING) || IsWord(Peek(), SqlConst.RETURNING))
+            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), SqlConst.WHERE) || IsWord(Peek(), SqlConst.FROM) || IsWord(Peek(), SqlConst.USING) || IsWord(Peek(), SqlConst.RETURNING) || IsWord(Peek(), SqlConst.ON))
                 return list;
 
             throw new InvalidOperationException("REPLACE SET must separate assignments with commas.");
@@ -3721,7 +3732,29 @@ internal sealed class SqlQueryParser
     {
         var joins = new List<SqlJoin>();
         if (from is null) return joins;
-        while (IsJoinStart(Peek())) joins.Add(ParseJoin());
+        while (true)
+        {
+            if (IsSymbol(Peek(), ","))
+            {
+                Consume();
+                var commaTable = TryParseTableTransforms(ParseTableSource());
+                joins.Add(new SqlJoin(
+                    commaTable.Derived is not null || commaTable.DerivedUnion is not null || commaTable.TableFunction is not null
+                        ? SqlJoinType.CrossApply
+                        : SqlJoinType.Cross,
+                    commaTable,
+                    new LiteralExpr(true)));
+                continue;
+            }
+
+            if (IsJoinStart(Peek()))
+            {
+                joins.Add(ParseJoin());
+                continue;
+            }
+
+            break;
+        }
         return joins;
     }
 
@@ -3761,7 +3794,9 @@ internal sealed class SqlQueryParser
         Consume();
         ExpectWord(SqlConst.BY);
         // Reutiliza lógica simplificada
-        var raws = ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING);
+        var raws = _allowInsertSelectSuffixBoundary
+            ? ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING, SqlConst.ON)
+            : ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING);
         foreach (var r in raws)
         {
             var raw = r.Trim();

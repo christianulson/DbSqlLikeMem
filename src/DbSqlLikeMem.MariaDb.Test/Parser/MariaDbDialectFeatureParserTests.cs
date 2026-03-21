@@ -753,7 +753,7 @@ public sealed class MariaDbDialectFeatureParserTests
         Assert.Single(clause.Columns);
         Assert.Single(clause.NestedPaths);
         Assert.Equal("item_id", clause.Columns[0].Name);
-        var nestedColumn = Assert.Single(clause.NestedPaths[0].Clause.Columns.Skip(1));
+        var nestedColumn = Assert.Single(clause.NestedPaths[0].Clause.Columns);
         Assert.Equal("tag_name", nestedColumn.Name);
         Assert.Equal(SqlJsonTableColumnFallbackKind.Default, nestedColumn.OnEmpty?.Kind);
         Assert.Equal("fallback", nestedColumn.OnEmpty?.DefaultValueRaw);
@@ -859,8 +859,7 @@ public sealed class MariaDbDialectFeatureParserTests
         Assert.Single(clause.Columns);
         Assert.Equal(2, clause.NestedPaths.Count);
         Assert.Equal("item_id", clause.Columns[0].Name);
-        //TODO: corrigir para capturar o strict no caminho raiz
-        //Assert.True(clause.Columns[0].Path.IsStrict);
+        Assert.Equal("strict $[*]", clause.Columns[0].Path);
         Assert.Equal("$.tags[*]", clause.NestedPaths[0].Path);
         Assert.Equal("$.metrics[*]", clause.NestedPaths[1].Path);
         Assert.Equal(SqlJsonTableColumnFallbackKind.Default, clause.NestedPaths[0].Clause.Columns[1].OnEmpty?.Kind);
@@ -895,7 +894,7 @@ public sealed class MariaDbDialectFeatureParserTests
         Assert.Single(clause.Columns);
         Assert.Single(clause.NestedPaths);
         Assert.Equal("item_id", clause.Columns[0].Name);
-        var nestedColumn = Assert.Single(clause.NestedPaths[0].Clause.Columns.Skip(1));
+        var nestedColumn = Assert.Single(clause.NestedPaths[0].Clause.Columns);
         Assert.Equal("tag_name", nestedColumn.Name);
         Assert.Equal(SqlJsonTableColumnFallbackKind.Error, nestedColumn.OnEmpty?.Kind);
         Assert.Null(nestedColumn.OnEmpty?.DefaultValueRaw);
@@ -930,7 +929,7 @@ public sealed class MariaDbDialectFeatureParserTests
         Assert.Single(clause.Columns);
         Assert.Single(clause.NestedPaths);
         Assert.Equal("item_id", clause.Columns[0].Name);
-        var nestedColumn = Assert.Single(clause.NestedPaths[0].Clause.Columns.Skip(1));
+        var nestedColumn = Assert.Single(clause.NestedPaths[0].Clause.Columns);
         Assert.Equal("tag_value", nestedColumn.Name);
         Assert.Equal(SqlJsonTableColumnFallbackKind.Default, nestedColumn.OnError?.Kind);
         Assert.Equal("99", nestedColumn.OnError?.DefaultValueRaw);
@@ -964,9 +963,7 @@ public sealed class MariaDbDialectFeatureParserTests
         Assert.Single(clause.Columns);
         Assert.Single(clause.NestedPaths);
         Assert.Equal("item_id", clause.Columns[0].Name);
-        //TODO: corrigir para capturar o strict no caminho aninhado
-        //Assert.True(clause.NestedPaths[0].Path.IsStrict);
-        //Assert.Equal("$.tags[*]", clause.NestedPaths[0].Path.Path);
+        Assert.Equal("strict $.tags[*]", clause.NestedPaths[0].Path);
     }
 
     /// <summary>
