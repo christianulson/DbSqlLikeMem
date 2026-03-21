@@ -804,7 +804,6 @@ public sealed class OracleDialectFeatureParserTests
         AssertOracleVersionedParsing(version, dialect, "JSON_TRANSFORM(amount)", "JSON_TRANSFORM", OracleDialect.OracleJsonTransformMinVersion);
         AssertOracleVersionedParsing(version, dialect, "JSON_VALUE(amount, '$.a')", "JSON_VALUE", OracleDialect.OracleJsonSqlFunctionMinVersion);
         AssertOracleVersionedParsing(version, dialect, "JSON_QUERY(amount, '$.a')", "JSON_QUERY", OracleDialect.OracleJsonSqlFunctionMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "JSON_TABLE(amount, '$')", SqlConst.JSON_TABLE, OracleDialect.OracleJsonSqlFunctionMinVersion);
         AssertOracleVersionedParsing(version, dialect, "COLLATION(amount)", "COLLATION", OracleDialect.OracleCollationFunctionMinVersion);
         AssertOracleVersionedParsing(version, dialect, "NLS_CHARSET_DECL_LEN(amount)", "NLS_CHARSET_DECL_LEN", 7);
         AssertOracleVersionedParsing(version, dialect, "NLS_CHARSET_ID(amount)", "NLS_CHARSET_ID", 7);

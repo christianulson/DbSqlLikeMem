@@ -137,9 +137,9 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name);";
     public override string StringAggregateOrdered(string tableName) =>
             $"SELECT STRING_AGG(Name, ',') WITHIN GROUP (ORDER BY Name) FROM {tableName}";
 
-    public override string Savepoint(string savepointName) => $"SAVE TRANSACTION {savepointName}";
+    public override string Savepoint(string savepointName) => $"SAVEPOINT {savepointName}";
 
-    public override string RollbackToSavepoint(string savepointName) => $"ROLLBACK TRANSACTION {savepointName}";
+    public override string RollbackToSavepoint(string savepointName) => $"ROLLBACK TO SAVEPOINT {savepointName}";
 
     public override string ReleaseSavepoint(string savepointName) => "SELECT 1";
 

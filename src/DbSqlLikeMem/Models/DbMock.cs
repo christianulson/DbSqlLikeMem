@@ -279,7 +279,13 @@ public abstract class DbMock
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(tableName, nameof(tableName));
         var sc = GetSchemaName(schemaName);
-        return this[sc].TryGetTable(tableName, out tb)
+        if (!base.TryGetValue(sc, out var schema) || schema is null)
+        {
+            tb = null;
+            return false;
+        }
+
+        return schema.TryGetTable(tableName, out tb)
             && tb != null;
     }
 
@@ -296,7 +302,9 @@ public abstract class DbMock
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(tableName, nameof(tableName));
         var sc = GetSchemaName(schemaName);
-        return this[sc].TryGetTable(tableName, out var tb)
+        return base.TryGetValue(sc, out var schema)
+            && schema is not null
+            && schema.TryGetTable(tableName, out var tb)
             && tb != null;
     }
 

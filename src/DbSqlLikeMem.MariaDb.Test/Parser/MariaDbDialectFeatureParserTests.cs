@@ -746,10 +746,12 @@ public sealed class MariaDbDialectFeatureParserTests
         Assert.Single(clause.Columns);
         Assert.Single(clause.NestedPaths);
         Assert.Equal("item_id", clause.Columns[0].Name);
-        var nestedColumn = Assert.Single(clause.NestedPaths[0].Clause.Columns);
-        Assert.Equal("tag_name", nestedColumn.Name);
-        Assert.Equal(SqlJsonTableColumnFallbackKind.Default, nestedColumn.OnEmpty?.Kind);
-        Assert.Equal("fallback", nestedColumn.OnEmpty?.DefaultValueRaw);
+        Assert.Equal(2, clause.NestedPaths[0].Clause.Columns.Count);
+        Assert.Equal("tag_ord", clause.NestedPaths[0].Clause.Columns[0].Name);
+        Assert.True(clause.NestedPaths[0].Clause.Columns[0].ForOrdinality);
+        Assert.Equal("tag_name", clause.NestedPaths[0].Clause.Columns[1].Name);
+        Assert.Equal(SqlJsonTableColumnFallbackKind.Default, clause.NestedPaths[0].Clause.Columns[1].OnEmpty?.Kind);
+        Assert.Equal("fallback", clause.NestedPaths[0].Clause.Columns[1].OnEmpty?.DefaultValueRaw);
     }
 
     /// <summary>
@@ -852,7 +854,7 @@ public sealed class MariaDbDialectFeatureParserTests
         Assert.Single(clause.Columns);
         Assert.Equal(2, clause.NestedPaths.Count);
         Assert.Equal("item_id", clause.Columns[0].Name);
-        Assert.Equal("strict $[*]", clause.Columns[0].Path);
+        Assert.Equal("$.id", clause.Columns[0].Path);
         Assert.Equal("$.tags[*]", clause.NestedPaths[0].Path);
         Assert.Equal("$.metrics[*]", clause.NestedPaths[1].Path);
         Assert.Equal(SqlJsonTableColumnFallbackKind.Default, clause.NestedPaths[0].Clause.Columns[1].OnEmpty?.Kind);
@@ -922,10 +924,12 @@ public sealed class MariaDbDialectFeatureParserTests
         Assert.Single(clause.Columns);
         Assert.Single(clause.NestedPaths);
         Assert.Equal("item_id", clause.Columns[0].Name);
-        var nestedColumn = Assert.Single(clause.NestedPaths[0].Clause.Columns);
-        Assert.Equal("tag_value", nestedColumn.Name);
-        Assert.Equal(SqlJsonTableColumnFallbackKind.Default, nestedColumn.OnError?.Kind);
-        Assert.Equal("99", nestedColumn.OnError?.DefaultValueRaw);
+        Assert.Equal(2, clause.NestedPaths[0].Clause.Columns.Count);
+        Assert.Equal("tag_ord", clause.NestedPaths[0].Clause.Columns[0].Name);
+        Assert.True(clause.NestedPaths[0].Clause.Columns[0].ForOrdinality);
+        Assert.Equal("tag_value", clause.NestedPaths[0].Clause.Columns[1].Name);
+        Assert.Equal(SqlJsonTableColumnFallbackKind.Default, clause.NestedPaths[0].Clause.Columns[1].OnError?.Kind);
+        Assert.Equal("99", clause.NestedPaths[0].Clause.Columns[1].OnError?.DefaultValueRaw);
     }
 
     /// <summary>

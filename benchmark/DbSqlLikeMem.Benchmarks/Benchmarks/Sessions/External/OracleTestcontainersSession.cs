@@ -25,7 +25,7 @@ public sealed class OracleTestcontainersSession()
             .Build();
 
         _container.StartAsync().GetAwaiter().GetResult();
-        return _container.GetConnectionString();
+        return $"{_container.GetConnectionString()};Max Pool Size=200;Connection Timeout=120";
     }
 
     /// <summary>

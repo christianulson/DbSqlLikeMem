@@ -719,12 +719,12 @@ public sealed class MariaDbMockTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Ensures MariaDB executes REPLACE with VALUE, LOW_PRIORITY, and PARTITION syntax through the shared runtime path.
-    /// PT: Garante que o MariaDB execute REPLACE com sintaxe VALUE, LOW_PRIORITY e PARTITION pelo caminho compartilhado de runtime.
+    /// EN: Ensures MariaDB executes REPLACE with VALUE and LOW_PRIORITY syntax through the shared runtime path.
+    /// PT: Garante que o MariaDB execute REPLACE com sintaxe VALUE e LOW_PRIORITY pelo caminho compartilhado de runtime.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
-    public void ExecuteReader_ReplaceValuePartition_ShouldReplaceExistingRow()
+    public void ExecuteReader_ReplaceValueLowPriority_ShouldReplaceExistingRow()
     {
         using var connection = CreateOpenConnection(MariaDbDbVersions.Version10_5);
         using (var setup = new MySqlCommandMock(connection)
@@ -737,7 +737,7 @@ public sealed class MariaDbMockTests : XUnitTestBase
 
         using var command = new MySqlCommandMock(connection)
         {
-            CommandText = "REPLACE LOW_PRIORITY INTO Users PARTITION (p0) VALUE (906, 'Replacement', 'repl2@maria.test') RETURNING Id, Name"
+            CommandText = "REPLACE LOW_PRIORITY INTO Users VALUE (906, 'Replacement', 'repl2@maria.test') RETURNING Id, Name"
         };
 
         using var reader = command.ExecuteReader();

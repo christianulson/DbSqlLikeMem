@@ -18,6 +18,11 @@ public class Db2DbMock
         ): base(version ?? 11)
     {
         Dialect = new Db2Dialect(Version);
+        var sysibm = CreateSchema("SYSIBM");
+        sysibm.CreateTable(
+            "SYSDUMMY1",
+            [new Col("IBMREQD", DbType.String, false)],
+            [new Dictionary<int, object?> { [0] = "Y" }]);
     }
 
     /// <summary>

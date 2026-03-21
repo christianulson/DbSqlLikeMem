@@ -97,7 +97,7 @@ public sealed class Db2Dialect : ProviderSqlDialect
     /// 
     /// </summary>
     public override string DateScalar() =>
-            "VALUES CURRENT TIMESTAMP";
+            "SELECT CURRENT TIMESTAMP FROM SYSIBM.SYSDUMMY1";
 
     /// <summary>
     /// 

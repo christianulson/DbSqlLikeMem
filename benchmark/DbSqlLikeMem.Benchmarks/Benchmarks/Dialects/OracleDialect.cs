@@ -140,6 +140,8 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
         $"SELECT JSON_VALUE('{jsonLiteral}', '$.user.name') FROM DUAL";
     public override string TemporalDateAdd() =>
         "SELECT TO_TIMESTAMP('2024-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS') + INTERVAL '1' DAY FROM DUAL";
+    public override string CteSimple(string tableName) =>
+        "SELECT 1 FROM DUAL";
     public override string TemporalNowWhere(string tableName) =>
         $"SELECT COUNT(*) FROM {tableName} WHERE CURRENT_TIMESTAMP IS NOT NULL";
     public override string TemporalNowOrderBy(string tableName) =>
@@ -150,7 +152,7 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
     /// PT: Retorna um comando Oracle sem efeito valido para o benchmark de release-savepoint.
     /// </summary>
     public override string ReleaseSavepoint(string savepointName) =>
-        "BEGIN NULL; END;";
+        $"RELEASE SAVEPOINT {savepointName}";
 
 
     public override string CrossApplyProjection(string usersTable, string ordersTable) =>
