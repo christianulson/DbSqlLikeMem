@@ -12,8 +12,12 @@ internal static class BatchCommandMaterializer
         command.CommandType = batchCommand.CommandType;
         command.CommandTimeout = timeout;
 
-        foreach (DbParameter parameter in batchCommand.Parameters)
-            command.Parameters.Add(parameter);
+        var parameters = batchCommand.Parameters;
+        if (parameters.Count == 0)
+            return;
+
+        for (var i = 0; i < parameters.Count; i++)
+            command.Parameters.Add((DbParameter)parameters[i]);
     }
 #endif
 
@@ -34,8 +38,12 @@ internal static class BatchCommandMaterializer
         command.CommandType = accessor.GetCommandType(batchCommand!);
         command.CommandTimeout = timeout;
 
-        foreach (DbParameter parameter in accessor.GetParameters(batchCommand!))
-            command.Parameters.Add(parameter);
+        var parameters = accessor.GetParameters(batchCommand!);
+        if (parameters.Count == 0)
+            return;
+
+        for (var i = 0; i < parameters.Count; i++)
+            command.Parameters.Add((DbParameter)parameters[i]);
     }
 
     private static readonly ConcurrentDictionary<Type, BatchCommandAccessor> AccessorCache = new();

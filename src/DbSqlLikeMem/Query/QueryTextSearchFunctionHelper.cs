@@ -22,9 +22,25 @@ internal static class QueryTextSearchFunctionHelper
 
         var needle = evalArg(0)?.ToString() ?? string.Empty;
         var haystack = evalArg(1)?.ToString() ?? string.Empty;
-        var parts = haystack.Split(',').Select(_=>_.Trim()).Where(_=>!string.IsNullOrWhiteSpace(_)).ToArray();
-        var index = Array.FindIndex(parts, part => string.Equals(part, needle, StringComparison.OrdinalIgnoreCase));
-        result = index >= 0 ? index + 1 : 0;
+        var index = 0;
+        var span = haystack.AsSpan();
+        while (!span.IsEmpty)
+        {
+            var separatorIndex = span.IndexOf(',');
+            var partSpan = separatorIndex < 0 ? span : span[..separatorIndex];
+            var trimmed = partSpan.Trim();
+            if (!trimmed.IsEmpty
+                && string.Equals(trimmed.ToString(), needle, StringComparison.OrdinalIgnoreCase))
+            {
+                result = index + 1;
+                return true;
+            }
+
+            index++;
+            span = separatorIndex < 0 ? ReadOnlySpan<char>.Empty : span[(separatorIndex + 1)..];
+        }
+
+        result = 0;
         return true;
     }
 
@@ -104,7 +120,19 @@ internal static class QueryTextSearchFunctionHelper
     private static string FlattenMatchAgainstTarget(object? value)
     {
         if (value is object?[] values)
-            return string.Join(" ", values.Where(static v => !IsNullish(v)).Select(v => v?.ToString() ?? string.Empty));
+        {
+            var parts = new List<string>(values.Length);
+            for (var i = 0; i < values.Length; i++)
+            {
+                var item = values[i];
+                if (IsNullish(item))
+                    continue;
+
+                parts.Add(item?.ToString() ?? string.Empty);
+            }
+
+            return string.Join(" ", parts);
+        }
 
         return value?.ToString() ?? string.Empty;
     }

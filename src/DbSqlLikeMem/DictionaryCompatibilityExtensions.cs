@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace DbSqlLikeMem;
@@ -16,5 +17,5 @@ internal static class DictionaryCompatibilityExtensions
 
     internal static int EnsureCapacity<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, int capacity)
         where TKey : notnull
-        => dictionary.Count;
+        => Math.Max(dictionary.Count, capacity);
 }

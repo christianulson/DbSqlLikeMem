@@ -2,13 +2,15 @@ namespace DbSqlLikeMem;
 
 internal static class WindowPartitionHelper
 {
-    internal static Dictionary<string, List<AstQueryExecutorBase.EvalRow>> BuildPartitions(
+    internal static Dictionary<WindowPartitionKey, List<AstQueryExecutorBase.EvalRow>> BuildPartitions(
         WindowFunctionExpr windowFunction,
         List<AstQueryExecutorBase.EvalRow> rows,
         Func<SqlExpr, AstQueryExecutorBase.EvalRow, object?> evalPartitionExpression,
         Func<object?, string> normalizePartitionKeyValue)
     {
-        var partitions = new Dictionary<string, List<AstQueryExecutorBase.EvalRow>>(Math.Max(1, rows.Count), StringComparer.Ordinal);
+        var partitions = new Dictionary<WindowPartitionKey, List<AstQueryExecutorBase.EvalRow>>(
+            Math.Max(1, rows.Count),
+            WindowPartitionKey.Comparer);
 
         foreach (var row in rows)
         {
@@ -31,7 +33,7 @@ internal static class WindowPartitionHelper
         Func<SqlExpr, AstQueryExecutorBase.EvalRow, object?> evalOrderExpression,
         Func<object?, object?, int> compareSql)
     {
-        if (orderBy.Count == 0)
+        if (orderBy.Count == 0 || partition.Count < 2)
             return null;
 
         var orderValuesByRow = WindowOrderValueHelper.BuildWindowOrderValuesByRow(
@@ -74,19 +76,56 @@ internal static class WindowPartitionHelper
         return orderValuesByRow;
     }
 
-    private static string BuildPartitionKey(
+    private static WindowPartitionKey BuildPartitionKey(
         IReadOnlyList<SqlExpr> partitionBy,
         AstQueryExecutorBase.EvalRow row,
         Func<SqlExpr, AstQueryExecutorBase.EvalRow, object?> evalPartitionExpression,
         Func<object?, string> normalizePartitionKeyValue)
     {
         if (partitionBy.Count == 0)
-            return "__all__";
+            return new WindowPartitionKey(Array.Empty<string>());
 
         var parts = new string[partitionBy.Count];
         for (var i = 0; i < partitionBy.Count; i++)
             parts[i] = normalizePartitionKeyValue(evalPartitionExpression(partitionBy[i], row));
 
-        return string.Join("\u001F", parts);
+        return new WindowPartitionKey(parts);
+    }
+
+    internal readonly record struct WindowPartitionKey(string[] Values)
+    {
+        internal static IEqualityComparer<WindowPartitionKey> Comparer { get; } = new WindowPartitionKeyComparer();
+
+        private sealed class WindowPartitionKeyComparer : IEqualityComparer<WindowPartitionKey>
+        {
+            public bool Equals(WindowPartitionKey x, WindowPartitionKey y)
+            {
+                if (ReferenceEquals(x.Values, y.Values))
+                    return true;
+
+                if (x.Values.Length != y.Values.Length)
+                    return false;
+
+                for (var i = 0; i < x.Values.Length; i++)
+                {
+                    if (!string.Equals(x.Values[i], y.Values[i], StringComparison.Ordinal))
+                        return false;
+                }
+
+                return true;
+            }
+
+            public int GetHashCode(WindowPartitionKey obj)
+            {
+                var hash = 17;
+                for (var i = 0; i < obj.Values.Length; i++)
+                {
+                    var value = obj.Values[i];
+                    hash = (hash * 31) + (value is null ? 0 : StringComparer.Ordinal.GetHashCode(value));
+                }
+
+                return hash;
+            }
+        }
     }
 }

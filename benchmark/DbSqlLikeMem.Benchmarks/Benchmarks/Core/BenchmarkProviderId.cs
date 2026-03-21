@@ -12,6 +12,10 @@ public enum BenchmarkProviderId
     /// <summary>
     /// 
     /// </summary>
+    MariaDb,
+    /// <summary>
+    /// 
+    /// </summary>
     SqlServer,
     /// <summary>
     /// 

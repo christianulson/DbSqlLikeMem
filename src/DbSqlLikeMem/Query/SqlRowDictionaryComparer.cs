@@ -25,10 +25,18 @@ internal sealed class SqlRowDictionaryComparer(ISqlDialect dialect)
     public int GetHashCode(Dictionary<int, object?> row)
     {
         var hash = new HashCode();
-        foreach (var key in row.Keys.OrderBy(k => k))
+        var orderedEntries = new List<KeyValuePair<int, object?>>(row.Count);
+        foreach (var entry in row)
         {
-            hash.Add(key);
-            hash.Add(NormalizeHash(row[key]));
+            orderedEntries.Add(entry);
+        }
+
+        orderedEntries.Sort(static (left, right) => left.Key.CompareTo(right.Key));
+
+        foreach (var entry in orderedEntries)
+        {
+            hash.Add(entry.Key);
+            hash.Add(NormalizeHash(entry.Value));
         }
 
         return hash.ToHashCode();

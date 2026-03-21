@@ -51,6 +51,38 @@ public sealed class SqliteMockTests
     }
 
     /// <summary>
+    /// EN: Verifies a prepared SQLite command can be executed repeatedly with updated parameter values.
+    /// PT: Verifica se um comando SQLite preparado pode ser executado repetidamente com valores de parametro atualizados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void Prepare_ShouldExecuteRepeatedPreparedInsertWithUpdatedParameters()
+    {
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (@id, @name, NULL)"
+        };
+
+        var id = new SqliteParameter("@id", 1);
+        var name = new SqliteParameter("@name", "Ana");
+        command.Parameters.Add(id);
+        command.Parameters.Add(name);
+
+        command.Prepare();
+
+        var firstRowsAffected = command.ExecuteNonQuery();
+        id.Value = 2;
+        name.Value = "Bia";
+        var secondRowsAffected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, firstRowsAffected);
+        Assert.Equal(1, secondRowsAffected);
+        Assert.Equal(2, _connection.GetTable("users").Count);
+        Assert.Equal("Ana", _connection.GetTable("users")[0][1]);
+        Assert.Equal("Bia", _connection.GetTable("users")[1][1]);
+    }
+
+    /// <summary>
     /// EN: Verifies automatic dialect mode executes SQL Server TOP syntax on the shared runtime pipeline.
     /// PT: Verifica se o modo automatico de dialeto executa sintaxe TOP do SQL Server no pipeline compartilhado de runtime.
     /// </summary>
@@ -106,6 +138,34 @@ public sealed class SqliteMockTests
         using var reader = command.ExecuteReader();
         Assert.True(reader.Read());
         Assert.Equal("Ana", reader.GetString(0));
+    }
+
+    /// <summary>
+    /// EN: Verifies changing to the current database keeps the select-plan cache generation unchanged.
+    /// PT: Verifica se mudar para o database atual mantem inalterada a geracao do cache de plano de select.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ChangeDatabase_WithSameValue_ShouldKeepSelectPlanCacheGeneration()
+    {
+        using (var seed = new SqliteCommandMock(_connection))
+        {
+            seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', NULL)";
+            seed.ExecuteNonQuery();
+        }
+
+        using var warmup = new SqliteCommandMock(_connection)
+        {
+            CommandText = "SELECT Name FROM Users WHERE Id = 1"
+        };
+
+        Assert.Equal("Ana", warmup.ExecuteScalar());
+
+        var generationBefore = _connection.GetSelectPlanCacheGeneration();
+        _connection.ChangeDatabase(_connection.Database);
+        var generationAfter = _connection.GetSelectPlanCacheGeneration();
+
+        Assert.Equal(generationBefore, generationAfter);
     }
 
     /// <summary>
@@ -338,6 +398,49 @@ public sealed class SqliteMockTests
     }
 
     /// <summary>
+    /// EN: Verifies a cached SELECT * plan is invalidated after ALTER TABLE ... ADD COLUMN changes the shape.
+    /// PT: Verifica se um plano cacheado de SELECT * e invalidado depois que ALTER TABLE ... ADD COLUMN altera o shape.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteReader_WithAutoSqlDialect_ShouldInvalidateSelectPlanAfterAlterTableAddColumn()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using (var seed = new SqliteCommandMock(_connection))
+        {
+            seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', NULL)";
+            seed.ExecuteNonQuery();
+        }
+
+        using (var warmup = new SqliteCommandMock(_connection))
+        {
+            warmup.CommandText = "SELECT * FROM Users ORDER BY Id";
+            using var warmReader = warmup.ExecuteReader();
+            Assert.True(warmReader.Read());
+            Assert.Equal(3, warmReader.FieldCount);
+        }
+
+        using (var alter = new SqliteCommandMock(_connection))
+        {
+            alter.CommandText = "ALTER TABLE Users ADD COLUMN NickName VARCHAR(30) DEFAULT 'guest'";
+            Assert.Equal(0, alter.ExecuteNonQuery());
+        }
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "SELECT * FROM Users ORDER BY Id"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(4, reader.FieldCount);
+        Assert.Equal("guest", Convert.ToString(reader.GetValue(3)));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
     /// EN: Verifies automatic dialect mode rejects NOT NULL ALTER TABLE additions without a default when rows already exist.
     /// PT: Verifica se o modo automatico de dialeto rejeita adicoes NOT NULL via ALTER TABLE sem default quando ja existem linhas.
     /// </summary>
@@ -484,6 +587,9 @@ public sealed class SqliteMockTests
             CommandText = "SELECT GROUP_CONCAT(Name, '|') FROM Users"
         };
 
+        Assert.Equal("Ana|Bia|Caio", Convert.ToString(command.ExecuteScalar()));
+
+        command.CommandText = "SELECT GROUP_CONCAT(DISTINCT Name, '|') FROM Users";
         Assert.Equal("Ana|Bia|Caio", Convert.ToString(command.ExecuteScalar()));
 
         command.CommandText = "SELECT STRING_AGG(Name, '|') FROM Users";
@@ -911,6 +1017,236 @@ public sealed class SqliteMockTests
     }
 
     /// <summary>
+    /// EN: Verifies LAG with zero offset returns the current row for each ordered row.
+    /// PT: Verifica se LAG com offset zero retorna a linha atual para cada linha ordenada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteReader_WithAutoSqlDialect_ShouldSupportLagZeroOffset()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using (var seed = new SqliteCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Orders (OrderId, UserId, Amount) VALUES (1, 10, 10.00);
+                INSERT INTO Orders (OrderId, UserId, Amount) VALUES (2, 10, 15.00);
+                INSERT INTO Orders (OrderId, UserId, Amount) VALUES (3, 20, 8.00);
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT
+                    OrderId,
+                    LAG(OrderId, 0, -1) OVER (ORDER BY OrderId) AS lag0
+                FROM Orders
+                ORDER BY OrderId
+                """
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(0));
+        Assert.Equal(1, Convert.ToInt32(reader.GetValue(1)));
+
+        Assert.True(reader.Read());
+        Assert.Equal(2, reader.GetInt32(0));
+        Assert.Equal(2, Convert.ToInt32(reader.GetValue(1)));
+
+        Assert.True(reader.Read());
+        Assert.Equal(3, reader.GetInt32(0));
+        Assert.Equal(3, Convert.ToInt32(reader.GetValue(1)));
+
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies FIRST_VALUE, LAST_VALUE and NTH_VALUE keep returning the expected ordered values.
+    /// PT: Verifica se FIRST_VALUE, LAST_VALUE e NTH_VALUE continuam retornando os valores ordenados esperados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteReader_WithAutoSqlDialect_ShouldSupportFirstLastAndNthValue()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using (var seed = new SqliteCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Orders (OrderId, UserId, Amount) VALUES (1, 10, 10.00);
+                INSERT INTO Orders (OrderId, UserId, Amount) VALUES (2, 10, 15.00);
+                INSERT INTO Orders (OrderId, UserId, Amount) VALUES (3, 20, 8.00);
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT
+                    OrderId,
+                    FIRST_VALUE(OrderId) OVER (ORDER BY OrderId) AS first_id,
+                    LAST_VALUE(OrderId) OVER (ORDER BY OrderId) AS last_id,
+                    NTH_VALUE(OrderId, 2) OVER (ORDER BY OrderId) AS second_id
+                FROM Orders
+                ORDER BY OrderId
+                """
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(0));
+        Assert.Equal(1, Convert.ToInt32(reader.GetValue(1)));
+        Assert.Equal(3, Convert.ToInt32(reader.GetValue(2)));
+        Assert.Equal(2, Convert.ToInt32(reader.GetValue(3)));
+
+        Assert.True(reader.Read());
+        Assert.Equal(2, reader.GetInt32(0));
+        Assert.Equal(1, Convert.ToInt32(reader.GetValue(1)));
+        Assert.Equal(3, Convert.ToInt32(reader.GetValue(2)));
+        Assert.Equal(2, Convert.ToInt32(reader.GetValue(3)));
+
+        Assert.True(reader.Read());
+        Assert.Equal(3, reader.GetInt32(0));
+        Assert.Equal(1, Convert.ToInt32(reader.GetValue(1)));
+        Assert.Equal(3, Convert.ToInt32(reader.GetValue(2)));
+        Assert.Equal(2, Convert.ToInt32(reader.GetValue(3)));
+
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies a scalar COUNT subquery returns the expected total for matching rows.
+    /// PT: Verifica se uma subquery escalar COUNT retorna o total esperado para as linhas correspondentes.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteScalar_WithAutoSqlDialect_ShouldSupportScalarCountSubquery()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using (var seed = new SqliteCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Orders (OrderId, UserId, Amount) VALUES (1, 1, 10.00);
+                INSERT INTO Orders (OrderId, UserId, Amount) VALUES (2, 1, 15.00);
+                INSERT INTO Orders (OrderId, UserId, Amount) VALUES (3, 2, 8.00);
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT (SELECT COUNT(*) FROM Orders o WHERE o.UserId = 1)
+                """
+        };
+
+        Assert.Equal(2, Convert.ToInt32(command.ExecuteScalar()));
+    }
+
+    /// <summary>
+    /// EN: Verifies EXISTS subqueries return true when the filtered source has at least one matching row.
+    /// PT: Verifica se subqueries EXISTS retornam true quando a fonte filtrada possui ao menos uma linha correspondente.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteScalar_WithAutoSqlDialect_ShouldSupportExistsSubquery()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using (var seed = new SqliteCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Orders (OrderId, UserId, Amount) VALUES (1, 1, 10.00);
+                INSERT INTO Orders (OrderId, UserId, Amount) VALUES (2, 1, 15.00);
+                INSERT INTO Orders (OrderId, UserId, Amount) VALUES (3, 2, 8.00);
+                INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (2, 'Bia', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (3, 'Caio', NULL);
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT COUNT(*) FROM Users WHERE EXISTS (SELECT 1 FROM Orders WHERE UserId = 1)
+                """
+        };
+
+        Assert.Equal(3, Convert.ToInt32(command.ExecuteScalar()));
+    }
+
+    /// <summary>
+    /// EN: Verifies COUNT(column) still ignores NULL values inside a scalar subquery.
+    /// PT: Verifica se COUNT(coluna) continua ignorando valores NULL dentro de uma subquery escalar.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteScalar_WithAutoSqlDialect_ShouldRespectCountColumnNullSemantics()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using (var seed = new SqliteCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', 'ana@site.test');
+                INSERT INTO Users (Id, Name, Email) VALUES (2, 'Bia', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (3, 'Caio', NULL);
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT (SELECT COUNT(Email) FROM Users WHERE Id <= 3)
+                """
+        };
+
+        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar()));
+    }
+
+    /// <summary>
+    /// EN: Verifies IN subqueries match rows using the expected membership set.
+    /// PT: Verifica se subqueries IN combinam linhas usando o conjunto de pertencimento esperado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteScalar_WithAutoSqlDialect_ShouldSupportInSubquery()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using (var seed = new SqliteCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (2, 'Bia', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (3, 'Caio', NULL);
+                INSERT INTO Orders (OrderId, UserId, Amount) VALUES (1, 1, 10.00);
+                INSERT INTO Orders (OrderId, UserId, Amount) VALUES (2, 1, 15.00);
+                INSERT INTO Orders (OrderId, UserId, Amount) VALUES (3, 2, 8.00);
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT COUNT(*) FROM Users WHERE Id IN (SELECT UserId FROM Orders)
+                """
+        };
+
+        Assert.Equal(2, Convert.ToInt32(command.ExecuteScalar()));
+    }
+
+    /// <summary>
     /// EN: Verifies window-function plans can be reused safely across repeated executions.
     /// PT: Verifica se planos com funcoes de janela podem ser reutilizados com seguranca em execucoes repetidas.
     /// </summary>
@@ -962,6 +1298,64 @@ public sealed class SqliteMockTests
 
         Assert.Equal(firstPass, secondPass);
         Assert.Equal([(1, 1L, 0), (2, 2L, 1), (3, 3L, 2)], firstPass);
+    }
+
+    /// <summary>
+    /// EN: Verifies window partitions reset row numbers for each partition key.
+    /// PT: Verifica se as particoes de janela reiniciam a numeracao de linhas para cada chave de particao.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteReader_WithAutoSqlDialect_ShouldPartitionWindowFunctionsByKey()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using (var seed = new SqliteCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Orders (OrderId, UserId, Amount) VALUES (1, 10, 10.00);
+                INSERT INTO Orders (OrderId, UserId, Amount) VALUES (2, 10, 15.00);
+                INSERT INTO Orders (OrderId, UserId, Amount) VALUES (3, 20, 8.00);
+                INSERT INTO Orders (OrderId, UserId, Amount) VALUES (4, 20, 12.00);
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT
+                    OrderId,
+                    UserId,
+                    ROW_NUMBER() OVER (PARTITION BY UserId ORDER BY OrderId) AS rn
+                FROM Orders
+                ORDER BY OrderId
+                """
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(0));
+        Assert.Equal(10, reader.GetInt32(1));
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(2)));
+
+        Assert.True(reader.Read());
+        Assert.Equal(2, reader.GetInt32(0));
+        Assert.Equal(10, reader.GetInt32(1));
+        Assert.Equal(2L, Convert.ToInt64(reader.GetValue(2)));
+
+        Assert.True(reader.Read());
+        Assert.Equal(3, reader.GetInt32(0));
+        Assert.Equal(20, reader.GetInt32(1));
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(2)));
+
+        Assert.True(reader.Read());
+        Assert.Equal(4, reader.GetInt32(0));
+        Assert.Equal(20, reader.GetInt32(1));
+        Assert.Equal(2L, Convert.ToInt64(reader.GetValue(2)));
+
+        Assert.False(reader.Read());
     }
 
     /// <summary>

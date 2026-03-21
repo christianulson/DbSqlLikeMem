@@ -7,19 +7,29 @@ internal static class BatchSyncExecutionRunner
         IReadOnlyList<TBatchCommand> commands,
         Func<TBatchCommand, DbCommand> commandFactory)
     {
-        if (commands.Count == 0)
+        var commandCount = commands.Count;
+        if (commandCount == 0)
         {
-            connection.Metrics.IncrementBatchEmptyNonQueryExecution();
+            if (connection.Metrics.Enabled)
+                connection.Metrics.IncrementBatchEmptyNonQueryExecution();
             return 0;
         }
 
         BatchExecutionGuards.RequireOpenConnectionState(connection);
 
-        var affected = 0;
-        foreach (var batchCommand in commands)
+        var metricsEnabled = connection.Metrics.Enabled;
+
+        if (commandCount == 1)
         {
-            using var command = commandFactory(batchCommand);
-            affected += BatchNonQueryExecutionRunner.ExecuteCommand(connection, command);
+            using var command = commandFactory(commands[0]);
+            return BatchNonQueryExecutionRunner.ExecuteCommand(connection, command, metricsEnabled);
+        }
+
+        var affected = 0;
+        for (var i = 0; i < commandCount; i++)
+        {
+            using var command = commandFactory(commands[i]);
+            affected += BatchNonQueryExecutionRunner.ExecuteCommand(connection, command, metricsEnabled);
         }
 
         return affected;
@@ -31,26 +41,34 @@ internal static class BatchSyncExecutionRunner
         Func<TBatchCommand, DbCommand> commandFactory,
         CommandBehavior behavior)
     {
-        if (commands.Count == 0)
+        var commandCount = commands.Count;
+        if (commandCount == 0)
         {
-            connection.Metrics.IncrementBatchEmptyReaderExecution();
+            if (connection.Metrics.Enabled)
+                connection.Metrics.IncrementBatchEmptyReaderExecution();
             return [];
         }
 
         BatchExecutionGuards.RequireOpenConnectionState(connection);
 
-        var tables = new List<TableResultMock>(commands.Count);
-        foreach (var batchCommand in commands)
+        var metricsEnabled = connection.Metrics.Enabled;
+
+        if (commandCount == 1)
         {
-            using var command = commandFactory(batchCommand);
-            BatchCommandExecutionRunner.ExecuteIntoTables(
-                connection,
-                command,
-                tables,
-                () => command.ExecuteReader(behavior));
+            var readerTables = new List<TableResultMock>(1);
+            using var command = commandFactory(commands[0]);
+            BatchCommandExecutionRunner.ExecuteIntoTables(connection, command, readerTables, behavior, metricsEnabled);
+            return readerTables;
         }
 
-        return tables;
+        var readerTablesMulti = new List<TableResultMock>(commandCount);
+        for (var i = 0; i < commandCount; i++)
+        {
+            using var command = commandFactory(commands[i]);
+            BatchCommandExecutionRunner.ExecuteIntoTables(connection, command, readerTablesMulti, behavior, metricsEnabled);
+        }
+
+        return readerTablesMulti;
     }
 
     public static TReader ExecuteReaderCommands<TBatchCommand, TReader>(
@@ -60,7 +78,7 @@ internal static class BatchSyncExecutionRunner
         CommandBehavior behavior,
         Func<List<TableResultMock>, TReader> readerFactory)
     {
-        var tables = ExecuteReaderCommands(connection, commands, commandFactory, behavior);
-        return readerFactory(tables);
+        var readerTables = ExecuteReaderCommands(connection, commands, commandFactory, behavior);
+        return readerFactory(readerTables);
     }
 }

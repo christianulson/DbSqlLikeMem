@@ -4,14 +4,26 @@ internal static class BatchNonQueryExecutionRunner
 {
     public static int ExecuteCommand(DbConnectionMockBase connection, DbCommand command)
     {
-        connection.Metrics.IncrementBatchNonQueryCommand();
-        connection.Metrics.IncrementBatchCommandTypeHit($"{BatchMetricKeys.TypePrefixes.NonQuery}{command.CommandType}");
+        var metricsEnabled = connection.Metrics.Enabled;
+        return ExecuteCommand(connection, command, metricsEnabled);
+    }
+
+    public static int ExecuteCommand(DbConnectionMockBase connection, DbCommand command, bool metricsEnabled)
+    {
+        if (metricsEnabled)
+        {
+            connection.Metrics.IncrementBatchNonQueryCommand();
+            connection.Metrics.IncrementBatchCommandTypeHit($"{BatchMetricKeys.TypePrefixes.NonQuery}{command.CommandType}");
+        }
+
         try
         {
-            return BatchPhaseExecutionTelemetry.Execute(
-                connection,
-                BatchMetricKeys.Phases.NonQuery,
-                command.ExecuteNonQuery);
+            return metricsEnabled
+                ? BatchPhaseExecutionTelemetry.Execute(
+                    connection,
+                    BatchMetricKeys.Phases.NonQuery,
+                    command.ExecuteNonQuery)
+                : command.ExecuteNonQuery();
         }
         catch (InvalidOperationException ex) when (ShouldTreatAsZeroAffectedRows(ex))
         {
@@ -24,27 +36,47 @@ internal static class BatchNonQueryExecutionRunner
         DbCommand command,
         CancellationToken cancellationToken)
     {
-        connection.Metrics.IncrementBatchNonQueryCommand();
-        connection.Metrics.IncrementBatchCommandTypeHit($"{BatchMetricKeys.TypePrefixes.NonQuery}{command.CommandType}");
-        return ExecuteCommandAsyncCore(connection, command, cancellationToken);
+        var metricsEnabled = connection.Metrics.Enabled;
+        return ExecuteCommandAsync(connection, command, cancellationToken, metricsEnabled);
     }
 
-    private static async Task<int> ExecuteCommandAsyncCore(
+    public static Task<int> ExecuteCommandAsync(
         DbConnectionMockBase connection,
         DbCommand command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool metricsEnabled)
     {
-        try
+        if (metricsEnabled)
         {
-            return await BatchPhaseExecutionTelemetry.ExecuteAsync(
+            connection.Metrics.IncrementBatchNonQueryCommand();
+            connection.Metrics.IncrementBatchCommandTypeHit($"{BatchMetricKeys.TypePrefixes.NonQuery}{command.CommandType}");
+        }
+
+        var executionTask = metricsEnabled
+            ? BatchPhaseExecutionTelemetry.ExecuteAsync(
                 connection,
                 BatchMetricKeys.Phases.NonQuery,
                 () => command.ExecuteNonQueryAsync(cancellationToken))
-                .ConfigureAwait(false);
-        }
-        catch (InvalidOperationException ex) when (ShouldTreatAsZeroAffectedRows(ex))
+            : command.ExecuteNonQueryAsync(cancellationToken);
+
+        if (executionTask.Status == TaskStatus.RanToCompletion)
         {
-            return 0;
+            using (command)
+            {
+                return Task.FromResult(executionTask.Result);
+            }
+        }
+
+        return ExecuteCommandAsyncCore(command, executionTask);
+    }
+
+    private static async Task<int> ExecuteCommandAsyncCore(
+        DbCommand command,
+        Task<int> executionTask)
+    {
+        using (command)
+        {
+            return await executionTask.ConfigureAwait(false);
         }
     }
 

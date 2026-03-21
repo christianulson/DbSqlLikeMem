@@ -20,7 +20,16 @@ internal static class QueryDebugTraceFormattingHelper
 
     internal static string FormatUnionCombineDebugDetails(IReadOnlyList<SqlSelectQuery> parts, IReadOnlyList<bool> allFlags)
     {
-        var mode = allFlags.Any(static flag => !flag) ? "UNION DISTINCT" : "UNION ALL";
+        var mode = "UNION ALL";
+        for (var i = 0; i < allFlags.Count; i++)
+        {
+            if (!allFlags[i])
+            {
+                mode = "UNION DISTINCT";
+                break;
+            }
+        }
+
         return $"{FormatUnionInputsDebugDetails(parts, allFlags)};mode={mode}";
     }
 
@@ -29,42 +38,42 @@ internal static class QueryDebugTraceFormattingHelper
 
     internal static string FormatProjectDebugDetails(IReadOnlyList<SqlSelectItem> selectItems)
     {
-        var items = selectItems
-            .Select(static item =>
+        var items = new List<string>(selectItems.Count);
+        for (var i = 0; i < selectItems.Count; i++)
+        {
+            var item = selectItems[i];
+            var raw = (item.Raw ?? string.Empty).Trim();
+            var alias = (item.Alias ?? string.Empty).Trim();
+
+            if (raw.Length == 0)
             {
-                var raw = (item.Raw ?? string.Empty).Trim();
-                var alias = (item.Alias ?? string.Empty).Trim();
+                if (alias.Length > 0)
+                    items.Add(alias);
+                continue;
+            }
 
-                if (raw.Length == 0)
-                    return alias;
+            items.Add(alias.Length == 0 ? raw : $"{raw} AS {alias}");
+        }
 
-                return alias.Length == 0
-                    ? raw
-                    : $"{raw} AS {alias}";
-            })
-            .Where(static item => !string.IsNullOrWhiteSpace(item))
-            .ToArray();
-
-        return items.Length == 0
+        return items.Count == 0
             ? $"columns={selectItems.Count}"
             : $"columns={selectItems.Count};items={string.Join("|", items)}";
     }
 
     internal static string FormatOrderByDebugDetails(IReadOnlyList<SqlOrderByItem> orderBy)
     {
-        var items = orderBy
-            .Select(static item =>
-            {
-                var raw = (item.Raw ?? string.Empty).Trim();
-                if (raw.Length == 0)
-                    return null;
+        var items = new List<string>(orderBy.Count);
+        for (var i = 0; i < orderBy.Count; i++)
+        {
+            var item = orderBy[i];
+            var raw = (item.Raw ?? string.Empty).Trim();
+            if (raw.Length == 0)
+                continue;
 
-                return raw + (item.Desc ? " DESC" : " ASC");
-            })
-            .Where(static item => !string.IsNullOrWhiteSpace(item))
-            .ToArray();
+            items.Add(raw + (item.Desc ? " DESC" : " ASC"));
+        }
 
-        return items.Length == 0
+        return items.Count == 0
             ? $"keys={orderBy.Count}"
             : $"keys={orderBy.Count};items={string.Join("|", items)}";
     }

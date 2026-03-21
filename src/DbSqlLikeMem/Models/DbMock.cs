@@ -93,6 +93,10 @@ public abstract class DbMock
     {
         if (schemaName == null)
         {
+            if (base.TryGetValue("DefaultSchema", out var defaultSchema)
+                && defaultSchema != null)
+                return "DefaultSchema";
+
             if (Count > 1)
                 throw new InvalidOperationException(SqlExceptionMessages.MultipleSchemasRequireExplicitName(string.Join(",", this.Keys)));
             if (Count == 0)

@@ -166,14 +166,7 @@ public static class QueryDebugTraceFormatter
             ["narrowestOperator"] = trace.NarrowestOperator,
             ["narrowestStepIndex"] = trace.NarrowestStepIndex,
             ["narrowestStepDetails"] = trace.NarrowestStepDetails,
-            ["steps"] = trace.Steps.Select(static step => new Dictionary<string, object?>
-            {
-                ["operator"] = step.Operator,
-                ["inputRows"] = step.InputRows,
-                ["outputRows"] = step.OutputRows,
-                ["elapsedMs"] = step.ExecutionTime.TotalMilliseconds,
-                ["details"] = step.Details
-            }).ToArray()
+            ["steps"] = BuildStepPayloads(trace.Steps)
         };
 
         return JsonSerializer.Serialize(payload);
@@ -209,7 +202,7 @@ public static class QueryDebugTraceFormatter
             ["widestStatementSql"] = summary.WidestStatement?.SqlText,
             ["narrowestStatementIndex"] = summary.NarrowestStatement?.StatementIndex ?? -1,
             ["narrowestStatementSql"] = summary.NarrowestStatement?.SqlText,
-            ["traces"] = traces.Select(AsJsonPayload).ToArray()
+            ["traces"] = BuildTracePayloads(traces)
         };
 
         return JsonSerializer.Serialize(payload);
@@ -243,15 +236,36 @@ public static class QueryDebugTraceFormatter
             ["narrowestOperator"] = trace.NarrowestOperator,
             ["narrowestStepIndex"] = trace.NarrowestStepIndex,
             ["narrowestStepDetails"] = trace.NarrowestStepDetails,
-            ["steps"] = trace.Steps.Select(static step => new Dictionary<string, object?>
+            ["steps"] = BuildStepPayloads(trace.Steps)
+        };
+    }
+
+    private static Dictionary<string, object?>[] BuildStepPayloads(IReadOnlyList<QueryDebugTraceStep> steps)
+    {
+        var payloads = new Dictionary<string, object?>[steps.Count];
+        for (var i = 0; i < steps.Count; i++)
+        {
+            var step = steps[i];
+            payloads[i] = new Dictionary<string, object?>
             {
                 ["operator"] = step.Operator,
                 ["inputRows"] = step.InputRows,
                 ["outputRows"] = step.OutputRows,
                 ["elapsedMs"] = step.ExecutionTime.TotalMilliseconds,
                 ["details"] = step.Details
-            }).ToArray()
-        };
+            };
+        }
+
+        return payloads;
+    }
+
+    private static Dictionary<string, object?>[] BuildTracePayloads(IReadOnlyList<QueryDebugTrace> traces)
+    {
+        var payloads = new Dictionary<string, object?>[traces.Count];
+        for (var i = 0; i < traces.Count; i++)
+            payloads[i] = AsJsonPayload(traces[i]);
+
+        return payloads;
     }
 
     private static void LogIfTraceTotalLooksInconsistent(QueryDebugTrace trace)
@@ -259,16 +273,23 @@ public static class QueryDebugTraceFormatter
         if (trace.Steps.Count == 0)
             return;
 
-        var stepsTotalMs = trace.Steps.Sum(static step => step.ExecutionTime.TotalMilliseconds);
+        var stepsTotalMs = 0d;
+        for (var i = 0; i < trace.Steps.Count; i++)
+            stepsTotalMs += trace.Steps[i].ExecutionTime.TotalMilliseconds;
+
         var traceTotalMs = trace.TotalExecutionTime.TotalMilliseconds;
         if (Math.Abs(stepsTotalMs - traceTotalMs) <= 0.0001d)
             return;
+
+        var stepDurations = new string[trace.Steps.Count];
+        for (var i = 0; i < trace.Steps.Count; i++)
+            stepDurations[i] = trace.Steps[i].ExecutionTime.TotalMilliseconds.ToString("F3", CultureInfo.InvariantCulture);
 
         Console.WriteLine(
             $"[QUERY-TRACE-TOTAL-MISMATCH] QueryType='{trace.QueryType}' StatementIndex={trace.StatementIndex} " +
             $"StepsTotalMs={stepsTotalMs.ToString("F3", CultureInfo.InvariantCulture)} " +
             $"TraceTotalMs={traceTotalMs.ToString("F3", CultureInfo.InvariantCulture)} " +
-            $"Steps=[{string.Join(", ", trace.Steps.Select(static step => step.ExecutionTime.TotalMilliseconds.ToString("F3", CultureInfo.InvariantCulture)))}]");
+            $"Steps=[{string.Join(", ", stepDurations)}]");
     }
 
     private static string FormatCountMap(IReadOnlyDictionary<string, int> counts)
@@ -276,9 +297,19 @@ public static class QueryDebugTraceFormatter
         if (counts.Count == 0)
             return string.Empty;
 
-        return string.Join(";", counts
-            .OrderBy(static entry => entry.Key, StringComparer.Ordinal)
-            .Select(static entry => $"{entry.Key}:{entry.Value}"));
+        var entries = new List<KeyValuePair<string, int>>(counts.Count);
+        foreach (var pair in counts)
+            entries.Add(pair);
+        entries.Sort(static (left, right) => StringComparer.Ordinal.Compare(left.Key, right.Key));
+
+        var parts = new string[entries.Count];
+        for (var i = 0; i < entries.Count; i++)
+        {
+            var entry = entries[i];
+            parts[i] = $"{entry.Key}:{entry.Value}";
+        }
+
+        return string.Join(";", parts);
     }
 
     private static BatchSummary BuildBatchSummary(IReadOnlyList<QueryDebugTrace> traces)
@@ -339,7 +370,13 @@ public static class QueryDebugTraceFormatter
     }
 
     private static string FormatOperatorSignature(IEnumerable<string> operatorNames)
-        => string.Join(" -> ", operatorNames.OrderBy(static name => name, StringComparer.Ordinal));
+    {
+        var orderedNames = new List<string>();
+        foreach (var name in operatorNames)
+            orderedNames.Add(name);
+        orderedNames.Sort(StringComparer.Ordinal);
+        return string.Join(" -> ", orderedNames);
+    }
 
     private static bool IsBetterElapsedCandidate(QueryDebugTrace candidate, QueryDebugTrace current, bool descending)
     {

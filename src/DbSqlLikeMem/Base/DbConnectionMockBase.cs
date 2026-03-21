@@ -158,6 +158,9 @@ public abstract class DbConnectionMockBase(
 
     internal void ClearSelectPlanCache()
     {
+        if (_selectPlanCache.IsEmpty)
+            return;
+
         _selectPlanCache.Clear();
         _selectPlanCacheGeneration++;
     }
@@ -542,11 +545,14 @@ public abstract class DbConnectionMockBase(
 
     private void ContextualizeDebugTraces(string sql)
     {
-        var statements = SqlQueryParser
-            .SplitStatements(sql, ExecutionDialect)
-            .Where(static statement => !string.IsNullOrWhiteSpace(statement))
-            .Select(static statement => statement.Trim())
-            .ToList();
+        var statements = new List<string>();
+        foreach (var statement in SqlQueryParser.SplitStatements(sql, ExecutionDialect))
+        {
+            if (string.IsNullOrWhiteSpace(statement))
+                continue;
+
+            statements.Add(statement.Trim());
+        }
 
         if (statements.Count == 0 || _lastDebugTraces.Count == 0)
             return;
@@ -740,9 +746,11 @@ public abstract class DbConnectionMockBase(
     {
         var schema = Db.GetSchemaName(schemaName ?? Database);
         var prefix = $"{schema}:";
-        return _temporaryTables
-            .Where(entry => entry.Key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-            .Select(entry => entry.Value);
+        foreach (var entry in _temporaryTables)
+        {
+            if (entry.Key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                yield return entry.Value;
+        }
     }
 
     /// <summary>
@@ -777,8 +785,10 @@ public abstract class DbConnectionMockBase(
             RecordCreatedTable((TableMock)table, TransactionTableRegistrationKind.ConnectionTemporary, key);
             if (materializedRows is { Count: > 0 })
             {
-                table.AddRange(materializedRows.Select(
-                    static row => row.ToDictionary(entry => entry.Key, entry => entry.Value)));
+                var clonedRows = new List<Dictionary<int, object?>>(materializedRows.Count);
+                for (var i = 0; i < materializedRows.Count; i++)
+                    clonedRows.Add(new Dictionary<int, object?>(materializedRows[i]));
+                table.AddRange(clonedRows);
             }
         }
         ClearSelectPlanCache();
@@ -807,8 +817,10 @@ public abstract class DbConnectionMockBase(
                 BuildTemporaryTableKey(tableName, schemaName));
             if (materializedRows is { Count: > 0 })
             {
-                table.AddRange(materializedRows.Select(
-                    static row => row.ToDictionary(entry => entry.Key, entry => entry.Value)));
+                var clonedRows = new List<Dictionary<int, object?>>(materializedRows.Count);
+                for (var i = 0; i < materializedRows.Count; i++)
+                    clonedRows.Add(new Dictionary<int, object?>(materializedRows[i]));
+                table.AddRange(clonedRows);
             }
         }
 
@@ -951,11 +963,17 @@ public abstract class DbConnectionMockBase(
 
     private TransactionTableRegistrationKind GetRegistrationKind(TableMock table)
     {
-        if (_temporaryTables.Values.Any(candidate => ReferenceEquals(candidate, table)))
-            return TransactionTableRegistrationKind.ConnectionTemporary;
+        foreach (var candidate in _temporaryTables.Values)
+        {
+            if (ReferenceEquals(candidate, table))
+                return TransactionTableRegistrationKind.ConnectionTemporary;
+        }
 
-        if (Db.ListGlobalTemporaryTables(table.Schema.SchemaName).Any(candidate => ReferenceEquals(candidate, table)))
-            return TransactionTableRegistrationKind.GlobalTemporary;
+        foreach (var candidate in Db.ListGlobalTemporaryTables(table.Schema.SchemaName))
+        {
+            if (ReferenceEquals(candidate, table))
+                return TransactionTableRegistrationKind.GlobalTemporary;
+        }
 
         return TransactionTableRegistrationKind.Schema;
     }
@@ -1070,10 +1088,22 @@ public abstract class DbConnectionMockBase(
             return true;
         }
 
-        var matchingTable = Db.ListTables(schemaName)
-            .OfType<TableMock>()
-            .FirstOrDefault(candidate => candidate.Indexes.TryGetValue(normalizedIndexName, out _));
-        if (matchingTable is null || !matchingTable.Indexes.TryGetValue(normalizedIndexName, out var resolvedIndex))
+        TableMock? matchingTable = null;
+        IndexDef? resolvedIndex = null;
+        foreach (var candidate in Db.ListTables(schemaName))
+        {
+            if (candidate is not TableMock candidateTable)
+                continue;
+
+            if (!candidateTable.Indexes.TryGetValue(normalizedIndexName, out var candidateIndex))
+                continue;
+
+            matchingTable = candidateTable;
+            resolvedIndex = candidateIndex;
+            break;
+        }
+
+        if (matchingTable is null || resolvedIndex is null)
             return false;
 
         table = matchingTable;
@@ -1398,7 +1428,6 @@ public abstract class DbConnectionMockBase(
             body,
             orReplace,
             targetSchema);
-        ClearSelectPlanCache();
 
         if (CurrentTransaction == null)
             return;
@@ -1444,7 +1473,6 @@ public abstract class DbConnectionMockBase(
         }
 
         Db.DropFunction(functionName, ifExists, targetSchema);
-        ClearSelectPlanCache();
     }
 
     internal void CreateProcedure(
@@ -1462,7 +1490,6 @@ public abstract class DbConnectionMockBase(
             procedure,
             orReplace,
             targetSchema);
-        ClearSelectPlanCache();
 
         if (CurrentTransaction == null)
             return;
@@ -1498,7 +1525,6 @@ public abstract class DbConnectionMockBase(
             throw new InvalidOperationException($"Table '{table.Name}' is not a supported in-memory table type.");
 
         tableMock.AddOrReplaceTrigger(triggerName, evt, static _ => { }, orReplace);
-        ClearSelectPlanCache();
         _ = isBefore;
         SetLastFoundRows(0);
 
@@ -1599,7 +1625,6 @@ public abstract class DbConnectionMockBase(
             startValue,
             incrementBy,
             targetSchema);
-        ClearSelectPlanCache();
 
         if (CurrentTransaction == null || existedBefore)
             return;
@@ -1651,7 +1676,6 @@ public abstract class DbConnectionMockBase(
 
         ClearSessionSequenceValue(sequenceName, targetSchema);
         Db.DropSequence(sequenceName, ifExists, targetSchema);
-        ClearSelectPlanCache();
     }
 
     private static SequenceDef CloneSequence(SequenceDef sequence)
@@ -1797,6 +1821,9 @@ public abstract class DbConnectionMockBase(
     /// <param name="databaseName">EN: Database name. PT: Nome do database.</param>
     public override void ChangeDatabase(string databaseName)
     {
+        if (string.Equals(_database, databaseName, StringComparison.OrdinalIgnoreCase))
+            return;
+
         _database = databaseName;
         ClearSelectPlanCache();
     }

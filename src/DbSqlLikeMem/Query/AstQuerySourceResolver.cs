@@ -38,8 +38,17 @@ internal sealed class AstQuerySourceResolver
 
         if (tableSource.DerivedUnion is not null)
         {
+            var parts = tableSource.DerivedUnion.Parts;
+            var nonNullParts = new List<SqlSelectQuery>(parts.Count);
+            for (var i = 0; i < parts.Count; i++)
+            {
+                var part = parts[i];
+                if (part is not null)
+                    nonNullParts.Add(part);
+            }
+
             var unionResult = _executeUnion(
-                [.. tableSource.DerivedUnion.Parts.Where(static part => part is not null).Select(static part => part!)],
+                nonNullParts,
                 tableSource.DerivedUnion.AllFlags,
                 tableSource.DerivedUnion.OrderBy,
                 tableSource.DerivedUnion.RowLimit,
@@ -88,15 +97,19 @@ internal sealed class AstQuerySourceResolver
         if (tableSource.PartitionNames is { Count: > 0 } requestedPartitions
             && table is TableMock tableMock)
         {
-            var partitionedResult = new TableResultMock();
-            var columnIndex = 0;
-            foreach (var column in tableMock.Columns.Values.OrderBy(c => c.Index))
+            var partitionedResult = new TableResultMock
             {
+                Columns = new List<TableResultColMock>(tableMock.Columns.Count)
+            };
+            for (var columnIndex = 0; columnIndex < tableMock.ColumnsByIndex.Count; columnIndex++)
+            {
+                var columnName = tableMock.ColumnsByIndex[columnIndex];
+                var column = tableMock.Columns[columnName];
                 partitionedResult.Columns.Add(new TableResultColMock(
                     alias,
                     column.Name,
                     column.Name,
-                    columnIndex++,
+                    column.Index,
                     column.DbType,
                     column.Nullable));
             }
@@ -106,10 +119,10 @@ internal sealed class AstQuerySourceResolver
                 if (!tableMock.MatchesRequestedPartitions(row, requestedPartitions))
                     continue;
 
-                var filteredRow = new Dictionary<int, object?>(row.Count);
-                foreach (var column in tableMock.Columns.Values)
+                var filteredRow = new Dictionary<int, object?>(tableMock.ColumnsByIndex.Count);
+                for (var columnIndex = 0; columnIndex < tableMock.ColumnsByIndex.Count; columnIndex++)
                 {
-                    filteredRow[column.Index] = row.TryGetValue(column.Index, out var value) ? value : null;
+                    filteredRow[columnIndex] = row.TryGetValue(columnIndex, out var value) ? value : null;
                 }
 
                 partitionedResult.Add(filteredRow);
@@ -370,20 +383,12 @@ internal sealed class AstQuerySourceResolver
         SqlOpenJsonWithClause withClause)
         => new()
         {
-            Columns = [.. withClause.Columns
-                .Select((column, index) => new TableResultColMock(
-                    tableAlias,
-                    column.Name,
-                    column.Name,
-                    index,
-                    column.DbType,
-                    true,
-                    column.AsJson))]
+            Columns = CreateOpenJsonWithSchemaColumns(tableAlias, withClause)
         };
 
     private static TableResultMock CreateStringSplitTableResult(string tableAlias, bool includeOrdinal)
     {
-        var columns = new List<TableResultColMock>
+        var columns = new List<TableResultColMock>(includeOrdinal ? 2 : 1)
         {
             new(tableAlias, "value", "value", 0, DbType.String, true)
         };
@@ -400,14 +405,7 @@ internal sealed class AstQuerySourceResolver
     private static TableResultMock CreateJsonTableResult(string tableAlias, JsonTableClauseLayout layout)
         => new()
         {
-            Columns = [.. layout.AllColumns
-                .Select(column => new TableResultColMock(
-                    tableAlias,
-                    column.Column.Name,
-                    column.Column.Name,
-                    column.Ordinal,
-                    column.Column.DbType,
-                    true))]
+            Columns = CreateJsonTableColumns(tableAlias, layout)
         };
 
     private static JsonTableClauseLayout BuildJsonTableClauseLayout(SqlJsonTableClause clause)
@@ -418,10 +416,10 @@ internal sealed class AstQuerySourceResolver
 
     private static JsonTableClauseLayout BuildJsonTableClauseLayout(SqlJsonTableClause clause, ref int nextOrdinal)
     {
-        var columns = new List<JsonTableColumnLayout>();
-        var nestedPaths = new List<JsonTableNestedPathLayout>();
-        var allColumns = new List<JsonTableColumnLayout>();
-        var allOrdinals = new List<int>();
+        var columns = new List<JsonTableColumnLayout>(clause.Entries.Count);
+        var nestedPaths = new List<JsonTableNestedPathLayout>(clause.Entries.Count);
+        var allColumns = new List<JsonTableColumnLayout>(clause.Entries.Count);
+        var allOrdinals = new List<int>(clause.Entries.Count);
 
         foreach (var entry in clause.Entries)
         {
@@ -447,6 +445,43 @@ internal sealed class AstQuerySourceResolver
         }
 
         return new JsonTableClauseLayout(columns, nestedPaths, allColumns, allOrdinals);
+    }
+
+    private static List<TableResultColMock> CreateOpenJsonWithSchemaColumns(string tableAlias, SqlOpenJsonWithClause withClause)
+    {
+        var columns = new List<TableResultColMock>(withClause.Columns.Count);
+        for (var index = 0; index < withClause.Columns.Count; index++)
+        {
+            var column = withClause.Columns[index];
+            columns.Add(new TableResultColMock(
+                tableAlias,
+                column.Name,
+                column.Name,
+                index,
+                column.DbType,
+                true,
+                column.AsJson));
+        }
+
+        return columns;
+    }
+
+    private static List<TableResultColMock> CreateJsonTableColumns(string tableAlias, JsonTableClauseLayout layout)
+    {
+        var columns = new List<TableResultColMock>(layout.AllColumns.Count);
+        for (var i = 0; i < layout.AllColumns.Count; i++)
+        {
+            var column = layout.AllColumns[i];
+            columns.Add(new TableResultColMock(
+                tableAlias,
+                column.Column.Name,
+                column.Column.Name,
+                column.Ordinal,
+                column.Column.DbType,
+                true));
+        }
+
+        return columns;
     }
 
     private static bool EvaluateStringSplitOrdinalFlag(object? rawValue)
@@ -600,7 +635,7 @@ internal sealed class AstQuerySourceResolver
         JsonElement rowContext,
         long ordinal)
     {
-        var baseRow = new Dictionary<int, object?>();
+        var baseRow = new Dictionary<int, object?>(layout.Columns.Count);
         foreach (var column in layout.Columns)
             baseRow[column.Ordinal] = ResolveJsonTableColumnValue(rowContext, column.Column, ordinal);
 
@@ -608,10 +643,14 @@ internal sealed class AstQuerySourceResolver
             return [baseRow];
 
         var baseNestedRow = new Dictionary<int, object?>(baseRow);
-        foreach (var nestedOrdinal in layout.NestedPaths.SelectMany(static x => x.Layout.AllOrdinals))
-            baseNestedRow[nestedOrdinal] = null;
+        for (var i = 0; i < layout.NestedPaths.Count; i++)
+        {
+            var ordinals = layout.NestedPaths[i].Layout.AllOrdinals;
+            for (var ordinalIndex = 0; ordinalIndex < ordinals.Count; ordinalIndex++)
+                baseNestedRow[ordinals[ordinalIndex]] = null;
+        }
 
-        var rows = new List<Dictionary<int, object?>>();
+        var rows = new List<Dictionary<int, object?>>(layout.NestedPaths.Count);
         foreach (var nestedPath in layout.NestedPaths)
         {
             var nestedRows = ProjectJsonTableNestedRows(nestedPath, rowContext);
@@ -636,7 +675,7 @@ internal sealed class AstQuerySourceResolver
         if (nestedContexts.Count == 0)
             return CreateJsonTableNullComplementRows(nestedPath.Layout);
 
-        var rows = new List<Dictionary<int, object?>>();
+        var rows = new List<Dictionary<int, object?>>(nestedContexts.Count);
         var nestedOrdinal = 1L;
         foreach (var nestedContext in nestedContexts)
         {
@@ -661,12 +700,19 @@ internal sealed class AstQuerySourceResolver
             return [];
         }
 
-        return [.. EnumerateJsonTableRowContexts(lookup.Value)];
+        if (lookup.Value.ValueKind != JsonValueKind.Array)
+            return [lookup.Value];
+
+        var nestedContexts = new List<JsonElement>(lookup.Value.GetArrayLength());
+        foreach (var item in lookup.Value.EnumerateArray())
+            nestedContexts.Add(item);
+
+        return nestedContexts;
     }
 
     private static IReadOnlyList<Dictionary<int, object?>> CreateJsonTableNullComplementRows(JsonTableClauseLayout layout)
     {
-        var baseRow = new Dictionary<int, object?>();
+        var baseRow = new Dictionary<int, object?>(layout.Columns.Count);
         foreach (var column in layout.Columns)
             baseRow[column.Ordinal] = ResolveMissingJsonTableColumnValue(column.Column);
 
@@ -674,10 +720,14 @@ internal sealed class AstQuerySourceResolver
             return [baseRow];
 
         var baseNestedRow = new Dictionary<int, object?>(baseRow);
-        foreach (var nestedOrdinal in layout.NestedPaths.SelectMany(static x => x.Layout.AllOrdinals))
-            baseNestedRow[nestedOrdinal] = null;
+        for (var i = 0; i < layout.NestedPaths.Count; i++)
+        {
+            var ordinals = layout.NestedPaths[i].Layout.AllOrdinals;
+            for (var ordinalIndex = 0; ordinalIndex < ordinals.Count; ordinalIndex++)
+                baseNestedRow[ordinals[ordinalIndex]] = null;
+        }
 
-        var rows = new List<Dictionary<int, object?>>();
+        var rows = new List<Dictionary<int, object?>>(layout.NestedPaths.Count);
         foreach (var nestedPath in layout.NestedPaths)
         {
             foreach (var nestedRow in CreateJsonTableNullComplementRows(nestedPath.Layout))

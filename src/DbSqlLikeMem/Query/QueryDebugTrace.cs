@@ -53,6 +53,8 @@ public sealed class QueryDebugTrace
         var maxOutputRows = 0;
         var operatorCounts = new Dictionary<string, int>(StringComparer.Ordinal);
         var signature = new System.Text.StringBuilder();
+        var stepTicksParts = new string[Steps.Count];
+        var stepMsParts = new string[Steps.Count];
 
         var slowestStepIndex = 0;
         var fastestStepIndex = 0;
@@ -63,6 +65,9 @@ public sealed class QueryDebugTrace
         {
             var step = Steps[i];
             totalTicks += step.ExecutionTime.Ticks;
+
+            stepTicksParts[i] = step.ExecutionTime.Ticks.ToString(CultureInfo.InvariantCulture);
+            stepMsParts[i] = step.ExecutionTime.TotalMilliseconds.ToString("F3", CultureInfo.InvariantCulture);
 
             if (step.InputRows > maxInputRows)
                 maxInputRows = step.InputRows;
@@ -89,8 +94,8 @@ public sealed class QueryDebugTrace
         TotalExecutionTime = TimeSpan.FromTicks(totalTicks);
         Console.WriteLine(
             $"[QUERY-TRACE-CTOR] QueryType='{queryType}' StatementIndex={StatementIndex} " +
-            $"StepTicks=[{string.Join(", ", Steps.Select(static step => step.ExecutionTime.Ticks.ToString(CultureInfo.InvariantCulture)))}] " +
-            $"StepMs=[{string.Join(", ", Steps.Select(static step => step.ExecutionTime.TotalMilliseconds.ToString("F3", CultureInfo.InvariantCulture)))}] " +
+            $"StepTicks=[{string.Join(", ", stepTicksParts)}] " +
+            $"StepMs=[{string.Join(", ", stepMsParts)}] " +
             $"TotalTicks={totalTicks.ToString(CultureInfo.InvariantCulture)} " +
             $"TotalMs={TotalExecutionTime.TotalMilliseconds.ToString("F3", CultureInfo.InvariantCulture)}");
         MaxInputRows = maxInputRows;
@@ -98,9 +103,18 @@ public sealed class QueryDebugTrace
         OperatorSignature = signature.ToString();
         FirstOperator = Steps[0].Operator;
         LastOperator = Steps[^1].Operator;
-        OperatorCounts = string.Join(";", operatorCounts
-            .OrderBy(static pair => pair.Key, StringComparer.Ordinal)
-            .Select(static pair => $"{pair.Key}:{pair.Value}"));
+        var orderedCounts = new List<KeyValuePair<string, int>>(operatorCounts.Count);
+        foreach (var pair in operatorCounts)
+            orderedCounts.Add(pair);
+        orderedCounts.Sort(static (left, right) => StringComparer.Ordinal.Compare(left.Key, right.Key));
+        var countParts = new string[orderedCounts.Count];
+        for (var i = 0; i < orderedCounts.Count; i++)
+        {
+            var pair = orderedCounts[i];
+            countParts[i] = $"{pair.Key}:{pair.Value}";
+        }
+
+        OperatorCounts = string.Join(";", countParts);
         SlowestOperator = Steps[slowestStepIndex].Operator;
         SlowestStepIndex = slowestStepIndex;
         SlowestStepDetails = Steps[slowestStepIndex].Details;

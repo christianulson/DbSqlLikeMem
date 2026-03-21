@@ -25,6 +25,13 @@ internal static class BatchCommandFactory
         Action<TCommand, TBatchCommand, int> materialize)
         where TCommand : DbCommand
     {
+        if (!connection.Metrics.Enabled)
+        {
+            var command = commandFactory();
+            materialize(command, batchCommand, timeout);
+            return command;
+        }
+
         return BatchPhaseExecutionTelemetry.Execute(
             connection,
             BatchMetricKeys.Phases.Materialization,

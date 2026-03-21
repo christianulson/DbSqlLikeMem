@@ -138,7 +138,7 @@ public sealed class MySqlBatchMockCoverageTests(
         insert.Parameters.Add(new MySqlParameter("@id", 1));
         insert.Parameters.Add(new MySqlParameter("@name", "Ana"));
         batch.BatchCommands.Add(insert);
-        batch.BatchCommands.Add(new MySqlBatchCommandMock("SELECT Name FROM Users WHERE Id = 1"));
+        batch.BatchCommands.Add(new MySqlBatchCommandMock("INSERT INTO Users (Id, Name) VALUES (2, 'Bob')"));
 
         var affected = await batch.ExecuteNonQueryAsync();
         using var scalarBatch = new MySqlBatchMock(connection, (MySqlTransactionMock)transaction)
@@ -150,7 +150,7 @@ public sealed class MySqlBatchMockCoverageTests(
         var scalar = await scalarBatch.ExecuteScalarAsync();
         using var reader = await scalarBatch.ExecuteReaderAsync();
 
-        affected.Should().Be(1);
+        affected.Should().Be(2);
         scalar.Should().Be("Ana");
         reader.Read().Should().BeTrue();
         reader.GetString(0).Should().Be("Ana");

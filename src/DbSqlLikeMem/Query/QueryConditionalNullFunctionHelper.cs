@@ -41,8 +41,23 @@ internal static class QueryConditionalNullFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (fn.Name.Equals("COALESCE", StringComparison.OrdinalIgnoreCase)
-            || !dialect.NullSubstituteFunctionNames.Any(name => name.Equals(fn.Name, StringComparison.OrdinalIgnoreCase)))
+        if (fn.Name.Equals("COALESCE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var supportsNullSubstitute = false;
+        foreach (var functionName in dialect.NullSubstituteFunctionNames)
+        {
+            if (functionName.Equals(fn.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                supportsNullSubstitute = true;
+                break;
+            }
+        }
+
+        if (!supportsNullSubstitute)
         {
             result = null;
             return false;

@@ -25,6 +25,18 @@ public static class ProviderCatalog
             IndexRefs: ["3.1.1", "3.1.2"],
             Notes: "Família MySQL comparada com Testcontainers.MySql e imagem mysql:8.4."),
         new(
+            BenchmarkProviderId.MariaDb,
+            "MariaDB",
+            "11.0",
+            BenchmarkEngine.Testcontainers,
+            "mariadb:11.0",
+            SupportsUpsert: true,
+            SupportsSequence: true,
+            SupportsStringAggregate: true,
+            SupportsComparableBenchmarks: true,
+            IndexRefs: ["3.1.1", "3.1.2"],
+            Notes: "Família MariaDB comparada com Testcontainers.MariaDb e imagem mariadb:11.0."),
+        new(
             BenchmarkProviderId.SqlServer,
             "SQL Server",
             "2022",

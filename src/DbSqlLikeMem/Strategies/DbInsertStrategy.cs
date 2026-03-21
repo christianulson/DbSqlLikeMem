@@ -42,7 +42,9 @@ internal static class DbInsertStrategy
         DbParameterCollection? pars,
         ISqlDialect dialect)
     {
-        var sw = Stopwatch.StartNew();
+        var capturePlans = connection.Db.CaptureExecutionPlans;
+        var sw = capturePlans ? Stopwatch.StartNew() : null;
+        var metricsEnabled = connection.Metrics.Enabled;
         ArgumentNullExceptionCompatible.ThrowIfNull(query.Table, nameof(query.Table));
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(query.Table!.Name, nameof(query.Table.Name));
 
@@ -68,6 +70,15 @@ internal static class DbInsertStrategy
         int insertedCount = 0;
         int updatedCount = 0;
         var tableMock = (TableMock)table;
+        var supportsTriggers = dialect.SupportsTriggers;
+        var hasBeforeInsertTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeInsert);
+        var hasAfterInsertTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.AfterInsert);
+        var hasBeforeUpdateTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeUpdate);
+        var hasAfterUpdateTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.AfterUpdate);
+        var onDupChangedColumns = new List<string>(query.OnDupAssignsParsed.Count);
+        for (var i = 0; i < query.OnDupAssignsParsed.Count; i++)
+            onDupChangedColumns.Add(query.OnDupAssignsParsed[i].Column);
+        var requiresOldSnapshotForIndex = HasIndexedKeyChanges(tableMock, onDupChangedColumns);
         ValidateInsertPartitions(query, tableMock);
         ValidatePartitionedInsertRows(query, tableMock, newRows);
         var canUseBatchInsert = CanUseBatchInsert(connection, dialect, table, tableName, query.Table.DbName, tableMock);
@@ -96,11 +107,12 @@ internal static class DbInsertStrategy
             HashSet<IndexKey>? pendingPrimaryKeys = tableMock.PrimaryKeyIndexes.Count > 0
                 ? new HashSet<IndexKey>()
                 : null;
-            var pendingUniqueKeys = tableMock.Indexes.Values
-                .Where(static index => index.Unique)
-                .ToDictionary(
-                    static index => index,
-                    static _ => new HashSet<IndexKey>());
+            var pendingUniqueKeys = new Dictionary<IndexDef, HashSet<IndexKey>>(tableMock.Indexes.Count);
+            foreach (var index in tableMock.Indexes.Values)
+            {
+                if (index.Unique)
+                    pendingUniqueKeys[index] = new HashSet<IndexKey>();
+            }
 
             foreach (var newRow in newRows)
             {
@@ -128,11 +140,10 @@ internal static class DbInsertStrategy
                 if (!ShouldApplyOnConflictUpdateWhere(query, table, conflictIdx.Value, newRow, pars, dialect))
                     continue;
 
-                var oldSnapshot = (dialect.SupportsTriggers && (table.HasTriggers(TableTriggerEvent.BeforeUpdate) || table.HasTriggers(TableTriggerEvent.AfterUpdate)))
+                var oldSnapshot = requiresOldSnapshotForIndex || hasBeforeUpdateTrigger || hasAfterUpdateTrigger
                     ? TableMock.SnapshotRow(table[conflictIdx.Value])
                     : null;
-
-                var simulatedUpdated = table[conflictIdx.Value].ToDictionary(_ => _.Key, _ => _.Value);
+                var simulatedUpdated = TableMock.CloneRow(table[conflictIdx.Value]);
                 ApplyOnDuplicateUpdateAstInMemory(
                     table,
                     conflictIdx.Value,
@@ -141,9 +152,9 @@ internal static class DbInsertStrategy
                     pars,
                     dialect,
                     simulatedUpdated);
-                tableMock.ValidateForeignKeysOnRow(new System.Collections.ObjectModel.ReadOnlyDictionary<int, object?>(simulatedUpdated));
+                tableMock.ValidateForeignKeysOnRow(simulatedUpdated);
 
-                if (dialect.SupportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeUpdate))
+                if (hasBeforeUpdateTrigger)
                     TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, TableMock.SnapshotRow(newRow));
 
                 ApplyOnDuplicateUpdateAst(
@@ -154,10 +165,13 @@ internal static class DbInsertStrategy
                     pars,
                     dialect);
 
-                if (dialect.SupportsTriggers && table.HasTriggers(TableTriggerEvent.AfterUpdate))
+                if (hasAfterUpdateTrigger)
                     TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, TableMock.SnapshotRow(table[conflictIdx.Value]));
 
-                tableMock.UpdateIndexesWithRow(conflictIdx.Value, oldSnapshot, table[conflictIdx.Value]);
+                if (requiresOldSnapshotForIndex)
+                    tableMock.UpdateIndexesWithRow(conflictIdx.Value, oldSnapshot, table[conflictIdx.Value]);
+                else
+                    tableMock.UpdateIndexesWithRow(conflictIdx.Value);
                 updatedCount++;
                 affectedIndexes.Add(conflictIdx.Value);
             }
@@ -171,7 +185,7 @@ internal static class DbInsertStrategy
             {
                 if (!query.HasOnDuplicateKeyUpdate)
                 {
-                    // Inserção normal
+                    // Insercao normal
                     if (query.IsOnConflictDoNothing)
                     {
                         var conflictIdx1 = tableMock.FindConflictingRowIndex(newRow, out _, out _);
@@ -180,13 +194,13 @@ internal static class DbInsertStrategy
                     }
 
                     tableMock.ValidateForeignKeysOnRow(newRow);
-                    if (dialect.SupportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeInsert))
+                    if (hasBeforeInsertTrigger)
                         TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, TableMock.SnapshotRow(newRow));
 
                     table.Add(newRow);
                     var insertedRow = table[table.Count - 1];
 
-                    if (dialect.SupportsTriggers && table.HasTriggers(TableTriggerEvent.AfterInsert))
+                    if (hasAfterInsertTrigger)
                         TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterInsert, null, TableMock.SnapshotRow(insertedRow));
                     TrySetLastInsertId(connection, table, insertedRow);
                     insertedCount++;
@@ -200,13 +214,13 @@ internal static class DbInsertStrategy
                 {
                     // Sem conflito -> Insere
                     tableMock.ValidateForeignKeysOnRow(newRow);
-                    if (dialect.SupportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeInsert))
+                    if (hasBeforeInsertTrigger)
                         TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, TableMock.SnapshotRow(newRow));
 
                     table.Add(newRow);
                     var insertedRow = table[table.Count - 1];
 
-                    if (dialect.SupportsTriggers && table.HasTriggers(TableTriggerEvent.AfterInsert))
+                    if (hasAfterInsertTrigger)
                         TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterInsert, null, TableMock.SnapshotRow(insertedRow));
                     TrySetLastInsertId(connection, table, insertedRow);
                     insertedCount++;
@@ -220,11 +234,10 @@ internal static class DbInsertStrategy
                         continue;
 
                     // Conflito -> Update
-                    var oldSnapshot = dialect.SupportsTriggers && (table.HasTriggers(TableTriggerEvent.BeforeUpdate) || table.HasTriggers(TableTriggerEvent.AfterUpdate))
+                    var oldSnapshot = requiresOldSnapshotForIndex || hasBeforeUpdateTrigger || hasAfterUpdateTrigger
                         ? TableMock.SnapshotRow(table[conflictIdx.Value])
                         : null;
-
-                    var simulatedUpdated = table[conflictIdx.Value].ToDictionary(_ => _.Key, _ => _.Value);
+                    var simulatedUpdated = TableMock.CloneRow(table[conflictIdx.Value]);
                     ApplyOnDuplicateUpdateAstInMemory(
                         table,
                         conflictIdx.Value,
@@ -233,9 +246,9 @@ internal static class DbInsertStrategy
                         pars,
                         dialect,
                         simulatedUpdated);
-                    tableMock.ValidateForeignKeysOnRow(new System.Collections.ObjectModel.ReadOnlyDictionary<int, object?>(simulatedUpdated));
+                    tableMock.ValidateForeignKeysOnRow(simulatedUpdated);
 
-                    if (dialect.SupportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeUpdate))
+                    if (hasBeforeUpdateTrigger)
                         TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, TableMock.SnapshotRow(newRow));
 
                     ApplyOnDuplicateUpdateAst(
@@ -246,34 +259,40 @@ internal static class DbInsertStrategy
                         pars,
                         dialect);
 
-                    if (dialect.SupportsTriggers && table.HasTriggers(TableTriggerEvent.AfterUpdate))
+                    if (hasAfterUpdateTrigger)
                         TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, TableMock.SnapshotRow(table[conflictIdx.Value]));
 
-                    tableMock.UpdateIndexesWithRow(conflictIdx.Value, oldSnapshot, table[conflictIdx.Value]);
+                    if (requiresOldSnapshotForIndex)
+                        tableMock.UpdateIndexesWithRow(conflictIdx.Value, oldSnapshot, table[conflictIdx.Value]);
+                    else
+                        tableMock.UpdateIndexesWithRow(conflictIdx.Value);
                     updatedCount++;
                     affectedIndexes.Add(conflictIdx.Value);
                 }
             }
         }
 
-        connection.Metrics.Inserts += insertedCount;
-        connection.Metrics.Updates += updatedCount;
+        if (metricsEnabled)
+        {
+            connection.Metrics.Inserts += insertedCount;
+            connection.Metrics.Updates += updatedCount;
+        }
 
         var affected = dialect.GetInsertUpsertAffectedRowCount(insertedCount, updatedCount);
         connection.SetLastFoundRows(affected);
-        sw.Stop();
 
         var affectedRowsData = connection.CaptureAffectedRowSnapshots
             ? affectedIndexes.ConvertAll(idx => TableMock.SnapshotRow(table[idx]))
             : new List<IReadOnlyDictionary<int, object?>>();
 
-        var metrics = new SqlPlanRuntimeMetrics(
-            InputTables: query.InsertSelect is null ? 1 : 1 + CountInputTables(query.InsertSelect),
-            EstimatedRowsRead: targetRowCountBefore + newRows.Count,
-            ActualRows: affected,
-            ElapsedMs: sw.ElapsedMilliseconds);
-        if (connection.Db.CaptureExecutionPlans)
+        if (capturePlans)
         {
+            sw!.Stop();
+            var metrics = new SqlPlanRuntimeMetrics(
+                InputTables: query.InsertSelect is null ? 1 : 1 + CountInputTables(query.InsertSelect),
+                EstimatedRowsRead: targetRowCountBefore + newRows.Count,
+                ActualRows: affected,
+                ElapsedMs: sw.ElapsedMilliseconds);
             var plan = SqlExecutionPlanFormatter.FormatInsert(
                 query,
                 metrics,
@@ -299,19 +318,23 @@ internal static class DbInsertStrategy
         List<Dictionary<int, object?>> newRows,
         int targetRowCountBefore)
     {
-        var sw = Stopwatch.StartNew();
+        var capturePlans = connection.Db.CaptureExecutionPlans;
+        var sw = capturePlans ? Stopwatch.StartNew() : null;
+        var metricsEnabled = connection.Metrics.Enabled;
+        var supportsTriggers = dialect.SupportsTriggers;
+        var hasBeforeInsertTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeInsert);
+        var hasAfterInsertTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.AfterInsert);
+        var hasBeforeDeleteTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeDelete);
+        var hasAfterDeleteTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.AfterDelete);
         var affectedIndexes = new List<int>();
-        var affectedRowsData = connection.CaptureAffectedRowSnapshots
-            ? new List<IReadOnlyDictionary<int, object?>>()
-            : new List<IReadOnlyDictionary<int, object?>>();
+        var affectedRowsData = new List<IReadOnlyDictionary<int, object?>>();
         var insertedCount = 0;
         var deletedCount = 0;
 
         foreach (var newRow in newRows)
         {
-            var conflictIndexes = FindReplaceConflictIndexes(tableMock, newRow)
-                .OrderByDescending(static idx => idx)
-                .ToList();
+            var conflictIndexes = FindReplaceConflictIndexes(tableMock, newRow).ToList();
+            conflictIndexes.Sort(static (left, right) => right.CompareTo(left));
 
             if (conflictIndexes.Count > 0)
             {
@@ -323,52 +346,56 @@ internal static class DbInsertStrategy
                 foreach (var idx in conflictIndexes)
                 {
                     IReadOnlyDictionary<int, object?>? oldRow = null;
-                    if (dialect.SupportsTriggers && (table.HasTriggers(TableTriggerEvent.BeforeDelete) || table.HasTriggers(TableTriggerEvent.AfterDelete)))
+                    if (hasBeforeDeleteTrigger || hasAfterDeleteTrigger)
                         oldRow = TableMock.SnapshotRow(table[idx]);
 
-                    if (dialect.SupportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeDelete))
-                        TryExecuteTableTrigger(connection, dialect, table, query.Table.Name!, query.Table.DbName, TableTriggerEvent.BeforeDelete, oldRow, null);
+                    if (hasBeforeDeleteTrigger)
+                        TryExecuteTableTrigger(connection, dialect, table, query.Table!.Name!, query.Table.DbName, TableTriggerEvent.BeforeDelete, oldRow, null);
 
                     table.RemoveAt(idx);
 
-                    if (dialect.SupportsTriggers && table.HasTriggers(TableTriggerEvent.AfterDelete))
-                        TryExecuteTableTrigger(connection, dialect, table, query.Table.Name!, query.Table.DbName, TableTriggerEvent.AfterDelete, oldRow, null);
+                    if (hasAfterDeleteTrigger)
+                        TryExecuteTableTrigger(connection, dialect, table, query.Table!.Name!, query.Table.DbName, TableTriggerEvent.AfterDelete, oldRow, null);
 
                     deletedCount++;
                 }
             }
 
             tableMock.ValidateForeignKeysOnRow(newRow);
-            if (dialect.SupportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeInsert))
+            if (hasBeforeInsertTrigger)
                 TryExecuteTableTrigger(connection, dialect, table, query.Table!.Name!, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, TableMock.SnapshotRow(newRow));
 
             var beforeInsert = table.Count;
             table.Add(newRow);
             var insertedRow = table[table.Count - 1];
 
-            if (dialect.SupportsTriggers && table.HasTriggers(TableTriggerEvent.AfterInsert))
+            if (hasAfterInsertTrigger)
                 TryExecuteTableTrigger(connection, dialect, table, query.Table!.Name!, query.Table.DbName, TableTriggerEvent.AfterInsert, null, TableMock.SnapshotRow(insertedRow));
 
             TrySetLastInsertId(connection, table, insertedRow);
             insertedCount++;
             affectedIndexes.Add(beforeInsert);
-            affectedRowsData.Add(TableMock.SnapshotRow(insertedRow));
+            if (connection.CaptureAffectedRowSnapshots)
+                affectedRowsData.Add(TableMock.SnapshotRow(insertedRow));
         }
 
-        connection.Metrics.Inserts += insertedCount;
-        connection.Metrics.Deletes += deletedCount;
+        if (metricsEnabled)
+        {
+            connection.Metrics.Inserts += insertedCount;
+            connection.Metrics.Deletes += deletedCount;
+        }
 
         var affected = deletedCount + insertedCount;
         connection.SetLastFoundRows(affected);
-        sw.Stop();
 
-        var metrics = new SqlPlanRuntimeMetrics(
-            InputTables: query.InsertSelect is null ? 1 : 1 + CountInputTables(query.InsertSelect),
-            EstimatedRowsRead: targetRowCountBefore + newRows.Count,
-            ActualRows: affected,
-            ElapsedMs: sw.ElapsedMilliseconds);
-        if (connection.Db.CaptureExecutionPlans)
+        if (capturePlans)
         {
+            sw!.Stop();
+            var metrics = new SqlPlanRuntimeMetrics(
+                InputTables: query.InsertSelect is null ? 1 : 1 + CountInputTables(query.InsertSelect),
+                EstimatedRowsRead: targetRowCountBefore + newRows.Count,
+                ActualRows: affected,
+                ElapsedMs: sw.ElapsedMilliseconds);
             var plan = SqlExecutionPlanFormatter.FormatInsert(
                 query,
                 metrics,
@@ -383,7 +410,33 @@ internal static class DbInsertStrategy
             AffectedRowsData = affectedRowsData
         };
     }
+    private static bool HasIndexedKeyChanges(ITableMock table, IReadOnlyCollection<string> changedCols)
+    {
+        if (changedCols.Count == 0)
+            return false;
 
+        var changedSet = new HashSet<string>(changedCols, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var pkIndex in table.PrimaryKeyIndexes)
+        {
+            foreach (var column in table.Columns.Values)
+            {
+                if (column.Index == pkIndex && changedSet.Contains(column.Name))
+                    return true;
+            }
+        }
+
+        foreach (var index in table.Indexes.Values)
+        {
+            foreach (var keyCol in index.KeyCols)
+            {
+                if (changedSet.Contains(keyCol))
+                    return true;
+            }
+        }
+
+        return false;
+    }
     private static IReadOnlyList<int> FindReplaceConflictIndexes(
         TableMock table,
         IReadOnlyDictionary<int, object?> newRow)

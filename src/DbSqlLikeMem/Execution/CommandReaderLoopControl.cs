@@ -9,10 +9,12 @@ internal static class CommandReaderLoopControl
         TryExecutePipelineCommand tryExecuteTransactionControl,
         ref int parsedStatementCount)
     {
+        var metricsEnabled = connection.Metrics.Enabled;
         if (tryExecuteTransactionControl(sqlRaw, out var transactionControlResult))
         {
             connection.SetLastFoundRows(transactionControlResult.AffectedRows);
-            connection.Metrics.IncrementReaderControlStatement();
+            if (metricsEnabled)
+                connection.Metrics.IncrementReaderControlStatement();
             parsedStatementCount++;
             return true;
         }
@@ -21,7 +23,8 @@ internal static class CommandReaderLoopControl
         {
             connection.ExecuteCall(sqlRaw, pars);
             connection.SetLastFoundRows(0);
-            connection.Metrics.IncrementReaderCallStatement();
+            if (metricsEnabled)
+                connection.Metrics.IncrementReaderCallStatement();
             parsedStatementCount++;
             return true;
         }

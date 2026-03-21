@@ -44,6 +44,13 @@ internal sealed class AstQueryJoinService(
         var rightSource = _resolveSource(join.Table, ctes, null);
         EnsureForcedIndexesExist(join.Table.MySqlIndexHints, rightSource, hasOrderBy, hasGroupBy);
 
+        if (leftRows is ICollection<AstQueryExecutorBase.EvalRow> leftCollection
+            && leftCollection.Count == 0
+            && joinType is not SqlJoinType.Right)
+        {
+            yield break;
+        }
+
         if (joinType == SqlJoinType.Cross)
         {
             var rightRows = MaterializeFields(rightSource.Rows());
@@ -178,13 +185,37 @@ internal sealed class AstQueryJoinService(
             yield break;
         }
 
-        if (leftRows is ICollection<AstQueryExecutorBase.EvalRow> leftCollection
-            && leftCollection.Count == 0)
+        if (leftRows is ICollection<AstQueryExecutorBase.EvalRow> leftCollection)
         {
-            for (var i = 0; i < rightRows.Count; i++)
-                yield return CreateRightOnlyRow(null, rightSource, rightRows[i]);
+            if (leftCollection.Count == 0)
+            {
+                for (var i = 0; i < rightRows.Count; i++)
+                    yield return CreateRightOnlyRow(null, rightSource, rightRows[i]);
 
-            yield break;
+                yield break;
+            }
+
+            if (leftCollection.Count == 1)
+            {
+                using var leftEnumerator = leftCollection.GetEnumerator();
+                leftEnumerator.MoveNext();
+                var singleLeft = leftEnumerator.Current;
+
+                for (var rightIndex = 0; rightIndex < rightRows.Count; rightIndex++)
+                {
+                    var rightFields = rightRows[rightIndex];
+                    var merged = MergeRows(singleLeft, rightSource, rightFields);
+                    if (_evalJoinPredicate(leftJoin.On, merged, ctes))
+                    {
+                        yield return merged;
+                        continue;
+                    }
+
+                    yield return CreateRightOnlyRow(singleLeft, rightSource, rightFields);
+                }
+
+                yield break;
+            }
         }
 
         var leftList = MaterializeRows(leftRows);
@@ -254,7 +285,19 @@ internal sealed class AstQueryJoinService(
         object?[]? ordinalValues = null;
         Dictionary<string, int>? ordinalIndexes = null;
 
-        if (leftTemplate is not null)
+        if (leftTemplate is null
+            || (leftTemplate.Fields.Count == 0
+                && leftTemplate.Sources.Count == 0
+                && leftTemplate.OrdinalValues is null
+                && leftTemplate.OrdinalIndexes is null))
+        {
+            fields = rightFields;
+            sources = new Dictionary<string, AstQueryExecutorBase.Source>(1, StringComparer.OrdinalIgnoreCase);
+            ordinalValues = new object?[rightSource.ColumnNames.Count];
+            ordinalIndexes = new Dictionary<string, int>(Math.Max(1, rightSource.ColumnNames.Count * 3), StringComparer.OrdinalIgnoreCase);
+            PopulateSourceColumns(rightSource, rightFields, fields, ordinalValues, ordinalIndexes, 0, nullValue: null);
+        }
+        else
         {
             fields = rightFields;
             fields.EnsureCapacity(fields.Count + leftTemplate.Fields.Count);
@@ -285,15 +328,6 @@ internal sealed class AstQueryJoinService(
                     PopulateSourceColumns(rightSource, rightFields, fields, ordinalValues, ordinalIndexes, leftOrdinalCount, nullValue: null);
                 }
             }
-        }
-        else
-        {
-            fields = rightFields;
-            fields.EnsureCapacity(fields.Count + rightOrdinalCount);
-            sources = new Dictionary<string, AstQueryExecutorBase.Source>(1, StringComparer.OrdinalIgnoreCase);
-            ordinalValues = new object?[rightSource.ColumnNames.Count];
-            ordinalIndexes = new Dictionary<string, int>(Math.Max(1, rightSource.ColumnNames.Count * 3), StringComparer.OrdinalIgnoreCase);
-            PopulateSourceColumns(rightSource, rightFields, fields, ordinalValues, ordinalIndexes, 0, nullValue: null);
         }
 
         sources[rightSource.Alias] = rightSource;

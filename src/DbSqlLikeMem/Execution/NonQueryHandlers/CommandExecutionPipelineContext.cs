@@ -29,11 +29,13 @@ internal sealed class CommandExecutionPipelineContext(
         if (parsedQuery is not null &&
             string.Equals(parsedSqlRaw, sqlRaw, StringComparison.Ordinal))
         {
-            Connection.Metrics.IncrementNonQueryParseCacheHit();
+            if (Connection.Metrics.Enabled)
+                Connection.Metrics.IncrementNonQueryParseCacheHit();
             return parsedQuery;
         }
 
-        Connection.Metrics.IncrementNonQueryParseCacheMiss();
+        if (Connection.Metrics.Enabled)
+            Connection.Metrics.IncrementNonQueryParseCacheMiss();
         parsedSqlRaw = sqlRaw;
         parsedQuery = SqlQueryParser.Parse(sqlRaw, Connection.ExecutionDialect);
         return parsedQuery;

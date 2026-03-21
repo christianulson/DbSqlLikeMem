@@ -12,22 +12,33 @@ internal static class NonQueryHandlerExecutionRunner
         IReadOnlyList<INonQueryCommandHandler> handlers,
         out DmlExecutionResult affectedRows)
     {
-        foreach (var handler in handlers)
+        var metricsEnabled = context.Connection.Metrics.Enabled;
+        var handlerCount = handlers.Count;
+        for (var i = 0; i < handlerCount; i++)
         {
-            var handlerName = GetHandlerName(handler);
-            var startedAt = Stopwatch.GetTimestamp();
+            var handler = handlers[i];
+            string? handlerName = null;
+            var startedAt = 0L;
+            if (metricsEnabled)
+            {
+                handlerName = GetHandlerName(handler);
+                startedAt = Stopwatch.GetTimestamp();
+            }
 
             try
             {
                 if (!handler.TryHandle(context, sqlRaw, out affectedRows))
                     continue;
 
-                RegisterSuccessfulExecution(context.Connection, handlerName, startedAt, affectedRows.AffectedRows);
+                context.Connection.SetLastFoundRows(affectedRows.AffectedRows);
+                if (metricsEnabled)
+                    RegisterSuccessfulExecution(context.Connection, handlerName!, startedAt, affectedRows.AffectedRows);
                 return true;
             }
             catch
             {
-                RegisterFailedExecution(context.Connection, handlerName);
+                if (metricsEnabled)
+                    RegisterFailedExecution(context.Connection, handlerName!);
                 throw;
             }
         }
@@ -45,7 +56,6 @@ internal static class NonQueryHandlerExecutionRunner
         long startedAt,
         int affectedRows)
     {
-        connection.SetLastFoundRows(affectedRows);
         connection.Metrics.IncrementNonQueryHandlerHit(handlerName);
         var elapsedTicks = StopwatchCompatible.GetElapsedTicks(startedAt);
         connection.Metrics.IncrementNonQueryHandlerElapsedTicks(handlerName, elapsedTicks);

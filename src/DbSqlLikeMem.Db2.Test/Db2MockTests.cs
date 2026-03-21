@@ -118,6 +118,45 @@ public sealed class Db2MockTests
     }
 
     /// <summary>
+    /// EN: Verifies routine DDL does not invalidate the select-plan cache when the query shape does not change.
+    /// PT: Verifica se DDL de rotinas nao invalida o cache de plano de select quando o shape da consulta nao muda.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void RoutineDdl_ShouldKeepSelectPlanCacheGenerationWhenQueryShapeIsUnchanged()
+    {
+        using (var seed = new Db2CommandMock(_connection))
+        {
+            seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', NULL)";
+            Assert.Equal(1, seed.ExecuteNonQuery());
+        }
+
+        using (var warmup = new Db2CommandMock(_connection))
+        {
+            warmup.CommandText = "SELECT Name FROM Users WHERE Id = 1";
+            Assert.Equal("Ana", warmup.ExecuteScalar());
+        }
+
+        var generationBefore = _connection.GetSelectPlanCacheGeneration();
+
+        using (var createFunction = new Db2CommandMock(_connection))
+        {
+            createFunction.CommandText = "CREATE OR REPLACE FUNCTION fn_cache_guard(baseValue INT) RETURNS INT RETURN baseValue + 1";
+            Assert.Equal(0, createFunction.ExecuteNonQuery());
+        }
+
+        using (var createProcedure = new Db2CommandMock(_connection))
+        {
+            createProcedure.CommandText = "CREATE OR REPLACE PROCEDURE sp_cache_guard(IN tenantId INT) BEGIN END";
+            Assert.Equal(0, createProcedure.ExecuteNonQuery());
+        }
+
+        var generationAfter = _connection.GetSelectPlanCacheGeneration();
+
+        Assert.Equal(generationBefore, generationAfter);
+    }
+
+    /// <summary>
     /// EN Tests CreateTable with inline primary key behavior.
     /// PT Testa o comportamento de CreateTable com chave primária inline.
     /// </summary>

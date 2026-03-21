@@ -8,17 +8,39 @@ public abstract class DbDataReaderMockBase(
     IList<TableResultMock> tables
     ) : DbDataReader
 {
-    private readonly List<TableResultMock> _resultSets = [.. tables];
-    private readonly List<Dictionary<int, (string ColumName, DbType DbType, bool IsNullable)>> _columnsDic = [.. tables
-        .Select(table => table.Columns
-            .ToDictionary(c => c.ColumIndex, c => (
-                c.ColumnAlias,
-                c.DbType,
-                c.IsNullable)))];
+    private readonly List<TableResultMock> _resultSets = CopyResultSets(tables);
+    private readonly List<Dictionary<int, (string ColumName, DbType DbType, bool IsNullable)>> _columnsDic = BuildColumnsByResultSet(tables);
 
     private int _currentResultSetIndex;
     private int _currentIndex = -1;
     private bool disposedValue;
+
+    private static List<TableResultMock> CopyResultSets(IList<TableResultMock> tables)
+    {
+        var result = new List<TableResultMock>(tables.Count);
+        for (var i = 0; i < tables.Count; i++)
+            result.Add(tables[i]);
+        return result;
+    }
+
+    private static List<Dictionary<int, (string ColumName, DbType DbType, bool IsNullable)>> BuildColumnsByResultSet(IList<TableResultMock> tables)
+    {
+        var result = new List<Dictionary<int, (string ColumName, DbType DbType, bool IsNullable)>>(tables.Count);
+        for (var i = 0; i < tables.Count; i++)
+        {
+            var cols = tables[i].Columns;
+            var dict = new Dictionary<int, (string ColumName, DbType DbType, bool IsNullable)>(cols.Count);
+            for (var c = 0; c < cols.Count; c++)
+            {
+                var col = cols[c];
+                dict.Add(col.ColumIndex, (col.ColumnAlias, col.DbType, col.IsNullable));
+            }
+
+            result.Add(dict);
+        }
+
+        return result;
+    }
 
     /// <summary>
     /// EN: Gets the column value by ordinal index.

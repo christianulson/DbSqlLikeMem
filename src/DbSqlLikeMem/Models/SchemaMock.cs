@@ -319,9 +319,14 @@ public abstract class SchemaMock
     {
         foreach (var childTable in tables.Values)
         {
-            foreach (var fk in childTable.ForeignKeys.Values.Where(f =>
-                f.RefTable.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase)))
+            if (childTable.ForeignKeys.Count == 0)
+                continue;
+
+            foreach (var fk in childTable.ForeignKeys.Values)
             {
+                if (!fk.RefTable.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
                 if (HasReferenceByIndex(childTable, fk, parentRow)
                     || HasReferenceByScan(childTable, fk, parentRow))
                 {
@@ -353,18 +358,36 @@ public abstract class SchemaMock
         ForeignDef fk,
         IReadOnlyDictionary<int, object?> parentRow)
     {
-        var matchingIndex = childTable.Indexes.Values
-            .OrderByDescending(_ => _.KeyCols.Count)
-            .FirstOrDefault(ix => fk.References.All(r =>
-                ix.KeyCols.Contains(r.col.Name, StringComparer.OrdinalIgnoreCase)));
+        IndexDef? matchingIndex = null;
+        var matchingKeyCount = -1;
+        foreach (var index in childTable.Indexes.Values)
+        {
+            var coversAllReferences = true;
+            foreach (var reference in fk.References)
+            {
+                if (!index.KeyCols.Contains(reference.col.Name, StringComparer.OrdinalIgnoreCase))
+                {
+                    coversAllReferences = false;
+                    break;
+                }
+            }
+
+            if (!coversAllReferences)
+                continue;
+
+            if (index.KeyCols.Count <= matchingKeyCount)
+                continue;
+
+            matchingIndex = index;
+            matchingKeyCount = index.KeyCols.Count;
+        }
 
         if (matchingIndex is null)
             return false;
 
-        var valuesByColumn = fk.References.ToDictionary(
-            _ => _.col.Name.NormalizeName(),
-            _ => parentRow[_.refCol.Index],
-            StringComparer.OrdinalIgnoreCase);
+        var valuesByColumn = new Dictionary<string, object?>(fk.References.Count, StringComparer.OrdinalIgnoreCase);
+        foreach (var reference in fk.References)
+            valuesByColumn[reference.col.Name.NormalizeName()] = parentRow[reference.refCol.Index];
 
         var key = matchingIndex.BuildIndexKeyFromValues(valuesByColumn);
         return matchingIndex.LookupMutable(key)?.Count > 0;

@@ -844,6 +844,22 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         if (plan.Columns.Count != res.Columns.Count)
             throw new InvalidOperationException(SqlExceptionMessages.ColumnCountDoesNotMatchSelectList());
 
+        if (plan.Target is TableMock targetTableMock && !targetTableMock.HasRegisteredTriggers())
+        {
+            var rows = new List<Dictionary<int, object?>>(res.Count);
+            foreach (var row in res)
+            {
+                var newRow = CreateInsertSelectRow(plan.Target, plan.Columns, row);
+                FillMissingInsertSelectValues(plan.Target, newRow);
+                rows.Add(newRow);
+            }
+
+            targetTableMock.AddBatch(rows);
+            if (connection.Metrics.Enabled)
+                connection.Metrics.Inserts += rows.Count;
+            return DmlExecutionResult.ForCount(rows.Count);
+        }
+
         var inserted = new DmlExecutionResult();
         foreach (var row in res)
         {
@@ -851,12 +867,12 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             FillMissingInsertSelectValues(plan.Target, newRow);
             plan.Target.Add(newRow);
             plan.Target.UpdateIndexesWithRow(plan.Target.Count - 1);
-            connection.Metrics.Inserts++;
+            if (connection.Metrics.Enabled)
+                connection.Metrics.Inserts++;
             inserted.IncreseAffected();
         }
         return inserted;
     }
-
     private static InsertSelectPlan BuildInsertSelectPlan(
         DbConnectionMockBase connection,
         SqlInsertQuery query)
@@ -900,7 +916,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         IReadOnlyList<string> columns,
         IReadOnlyDictionary<int, object?> row)
     {
-        var newRow = new Dictionary<int, object?>();
+        var newRow = new Dictionary<int, object?>(columns.Count);
         for (var i = 0; i < columns.Count; i++)
         {
             var colName = columns[i];

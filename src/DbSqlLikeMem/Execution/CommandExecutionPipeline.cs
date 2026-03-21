@@ -39,17 +39,24 @@ internal sealed class CommandExecutionPipeline : ICommandExecutionPipeline
         var context = new CommandExecutionPipelineContext(connection, pars, options);
         var handlers = options.Handlers ?? DefaultHandlers;
         var affectedTotal = 0;
+        var metricsEnabled = connection.Metrics.Enabled;
+
         foreach (var statementSql in SqlQueryParser.SplitStatements(sql, connection.ExecutionDialect))
         {
-            var sqlRaw = statementSql.Trim();
-            if (string.IsNullOrWhiteSpace(sqlRaw))
+            if (string.IsNullOrWhiteSpace(statementSql))
                 continue;
 
-            connection.Metrics.IncrementNonQueryStatement();
+            var sqlRaw = (statementSql.Length > 0 && (char.IsWhiteSpace(statementSql[0]) || char.IsWhiteSpace(statementSql[^1])))
+                ? statementSql.Trim()
+                : statementSql;
+
+            if (metricsEnabled)
+                connection.Metrics.IncrementNonQueryStatement();
 
             if (!NonQueryHandlerExecutionRunner.TryHandleStatement(context, sqlRaw, handlers, out var affectedRows))
             {
-                connection.Metrics.IncrementNonQueryUnhandledStatement();
+                if (metricsEnabled)
+                    connection.Metrics.IncrementNonQueryUnhandledStatement();
                 throw new InvalidOperationException(SqlExceptionMessages.NonQueryHandlerCouldNotProcessStatement());
             }
 

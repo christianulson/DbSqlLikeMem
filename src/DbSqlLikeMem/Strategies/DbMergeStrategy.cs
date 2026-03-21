@@ -105,7 +105,9 @@ internal static class DbMergeStrategy
         var insertCols = insertMatch.Success ? SplitByComma(insertMatch.Groups["cols"].Value) : [];
         var insertVals = insertMatch.Success ? SplitByComma(insertMatch.Groups["vals"].Value) : [];
         var targetJoinCol = table.GetColumn(targetJoinColumn);
-        string[] sourceColumnNames2 = [.. sourceTable.Columns.Select(col => col.ColumnName)];
+        var sourceColumnNames2 = new string[sourceTable.Columns.Count];
+        for (var i = 0; i < sourceTable.Columns.Count; i++)
+            sourceColumnNames2[i] = sourceTable.Columns[i].ColumnName;
         var parsedUpdates = ParseMergeAssignments(table, updates);
         ColumnDef[] insertTargets = [.. insertCols.Select(table.GetColumn)];
         var pendingInsertRows = new List<Dictionary<int, object?>>();
@@ -133,7 +135,7 @@ internal static class DbMergeStrategy
 
                 if (parsedUpdates.Length > 0)
                 {
-                    var oldSnapshot = table[existingIndex].ToDictionary(_ => _.Key, _ => _.Value);
+                    var oldSnapshot = TableMock.CloneRow(table[existingIndex]);
                     foreach (var assignment in parsedUpdates)
                     {
                         var value = ResolveMergeValue(assignment.ValueToken, sourceAlias, srcValues, table, assignment.TargetColumn.Name, pars);
@@ -188,13 +190,19 @@ internal static class DbMergeStrategy
             return [];
 
         var parsed = new List<MergeAssignment>(assignments.Count);
-        foreach (var assignment in assignments)
+        for (var i = 0; i < assignments.Count; i++)
         {
-            var parts = assignment.Split('=').Select(_ => _.Trim()).Take(2).ToArray();
-            if (parts.Length != 2)
+            var assignment = assignments[i];
+            var equalsIndex = assignment.IndexOf('=');
+            if (equalsIndex <= 0 || equalsIndex >= assignment.Length - 1)
                 continue;
 
-            parsed.Add(new MergeAssignment(table.GetColumn(parts[0]), parts[1]));
+            var target = assignment[..equalsIndex].Trim();
+            var value = assignment[(equalsIndex + 1)..].Trim();
+            if (target.Length == 0 || value.Length == 0)
+                continue;
+
+            parsed.Add(new MergeAssignment(table.GetColumn(target), value));
         }
 
         return [.. parsed];
@@ -204,7 +212,7 @@ internal static class DbMergeStrategy
     {
         if (table.PrimaryKeyIndexes.Count == 1
             && table.PrimaryKeyIndexes.Contains(columnIndex)
-            && table.TryFindRowByPk(new Dictionary<int, object?> { [columnIndex] = value }, out var pkRowIndex))
+            && table.TryFindRowByPk(new Dictionary<int, object?>(1) { [columnIndex] = value }, out var pkRowIndex))
         {
             return pkRowIndex;
         }
@@ -269,7 +277,14 @@ internal static class DbMergeStrategy
     }
 
     private static List<string> SplitByComma(string raw)
-        => [.. raw.Split(',').Select(_=>_.Trim())];
+    {
+        var parts = raw.Split(',');
+        var result = new List<string>(parts.Length);
+        for (var i = 0; i < parts.Length; i++)
+            result.Add(parts[i].Trim());
+
+        return result;
+    }
 
     private readonly record struct MergeAssignment(ColumnDef TargetColumn, string ValueToken);
 

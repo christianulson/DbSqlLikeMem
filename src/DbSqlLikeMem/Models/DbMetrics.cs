@@ -9,45 +9,145 @@ namespace DbSqlLikeMem;
 public sealed class DbMetrics
 {
     /// <summary>
+    /// EN: Enables or disables metric collection for this instance without changing SQL behavior.
+    /// PT: Habilita ou desabilita a coleta de metricas desta instancia sem alterar o comportamento SQL.
+    /// </summary>
+    public bool Enabled { get; set; } = true;
+
+    private int _selects;
+    private int _inserts;
+    private int _updates;
+    private int _deletes;
+    private int _nonQueryStatements;
+    private int _nonQueryParseCacheHits;
+    private int _nonQueryParseCacheMisses;
+    private int _indexLookups;
+    private int _nonQueryExceptions;
+    private int _nonQueryUnhandledStatements;
+    private int _readerProcessedStatements;
+    private int _readerControlStatements;
+    private int _readerCallStatements;
+    private int _readerStoredProcedureStatements;
+    private int _readerResultTables;
+    private int _readerRowsReturned;
+    private int _readerWithoutSelectErrors;
+    private int _batchNonQueryCommands;
+    private int _batchReaderCommands;
+    private int _batchScalarCommands;
+    private int _batchReaderFallbackToNonQuery;
+    private int _batchMaterializations;
+    private int _batchResultTables;
+    private int _batchRowsReturned;
+    private int _batchExceptions;
+    private int _batchCancellations;
+    private int _batchEmptyNonQueryExecutions;
+    private int _batchEmptyReaderExecutions;
+    private int _batchEmptyScalarExecutions;
+
+    /// <summary>
     /// EN: Number of SELECT queries executed.
     /// PT: Quantidade de consultas SELECT executadas.
     /// </summary>
-    public int Selects { get; internal set; }
+    public int Selects
+    {
+        get => _selects;
+        internal set
+        {
+            if (Enabled)
+                _selects = value;
+        }
+    }
     /// <summary>
     /// EN: Number of INSERT operations executed.
     /// PT: Quantidade de operações INSERT executadas.
     /// </summary>
-    public int Inserts { get; internal set; }
+    public int Inserts
+    {
+        get => _inserts;
+        internal set
+        {
+            if (Enabled)
+                _inserts = value;
+        }
+    }
     /// <summary>
     /// EN: Number of UPDATE operations executed.
     /// PT: Quantidade de operações UPDATE executadas.
     /// </summary>
-    public int Updates { get; internal set; }
+    public int Updates
+    {
+        get => _updates;
+        internal set
+        {
+            if (Enabled)
+                _updates = value;
+        }
+    }
     /// <summary>
     /// EN: Number of DELETE operations executed.
     /// PT: Quantidade de operações DELETE executadas.
     /// </summary>
-    public int Deletes { get; internal set; }
+    public int Deletes
+    {
+        get => _deletes;
+        internal set
+        {
+            if (Enabled)
+                _deletes = value;
+        }
+    }
     /// <summary>
     /// EN: Number of non-query statements executed by command pipeline.
     /// PT: Quantidade de statements non-query executados pelo pipeline de comando.
     /// </summary>
-    public int NonQueryStatements { get; internal set; }
+    public int NonQueryStatements
+    {
+        get => _nonQueryStatements;
+        internal set
+        {
+            if (Enabled)
+                _nonQueryStatements = value;
+        }
+    }
     /// <summary>
     /// EN: Number of parse cache hits inside non-query pipeline context.
     /// PT: Quantidade de acertos de cache de parse no contexto do pipeline non-query.
     /// </summary>
-    public int NonQueryParseCacheHits { get; internal set; }
+    public int NonQueryParseCacheHits
+    {
+        get => _nonQueryParseCacheHits;
+        internal set
+        {
+            if (Enabled)
+                _nonQueryParseCacheHits = value;
+        }
+    }
     /// <summary>
     /// EN: Number of parse cache misses inside non-query pipeline context.
     /// PT: Quantidade de perdas de cache de parse no contexto do pipeline non-query.
     /// </summary>
-    public int NonQueryParseCacheMisses { get; internal set; }
+    public int NonQueryParseCacheMisses
+    {
+        get => _nonQueryParseCacheMisses;
+        internal set
+        {
+            if (Enabled)
+                _nonQueryParseCacheMisses = value;
+        }
+    }
     /// <summary>
     /// EN: Number of index lookups used to pre-filter rows during SELECT.
     /// PT: Quantidade de consultas em índice usadas para pré-filtrar linhas em SELECT.
     /// </summary>
-    public int IndexLookups { get; internal set; }
+    public int IndexLookups
+    {
+        get => _indexLookups;
+        internal set
+        {
+            if (Enabled)
+                _indexLookups = value;
+        }
+    }
     /// <summary>
     /// EN: Number of calls per index name during index lookup flow.
     /// PT: Quantidade de chamadas por nome de índice durante o fluxo de lookup.
@@ -82,47 +182,119 @@ public sealed class DbMetrics
     /// EN: Number of non-query statements that raised exceptions in pipeline flow.
     /// PT: Quantidade de statements non-query que geraram exceções no fluxo do pipeline.
     /// </summary>
-    public int NonQueryExceptions { get; internal set; }
+    public int NonQueryExceptions
+    {
+        get => _nonQueryExceptions;
+        internal set
+        {
+            if (Enabled)
+                _nonQueryExceptions = value;
+        }
+    }
     /// <summary>
     /// EN: Number of non-query statements not handled by any configured handler.
     /// PT: Quantidade de statements non-query não tratados por nenhum handler configurado.
     /// </summary>
-    public int NonQueryUnhandledStatements { get; internal set; }
+    public int NonQueryUnhandledStatements
+    {
+        get => _nonQueryUnhandledStatements;
+        internal set
+        {
+            if (Enabled)
+                _nonQueryUnhandledStatements = value;
+        }
+    }
     /// <summary>
     /// EN: Number of statements processed by ExecuteReader flows.
     /// PT: Quantidade de statements processados pelos fluxos de ExecuteReader.
     /// </summary>
-    public int ReaderProcessedStatements { get; internal set; }
+    public int ReaderProcessedStatements
+    {
+        get => _readerProcessedStatements;
+        internal set
+        {
+            if (Enabled)
+                _readerProcessedStatements = value;
+        }
+    }
     /// <summary>
     /// EN: Number of transaction-control statements handled in ExecuteReader flow.
     /// PT: Quantidade de statements de controle transacional tratados no fluxo de ExecuteReader.
     /// </summary>
-    public int ReaderControlStatements { get; internal set; }
+    public int ReaderControlStatements
+    {
+        get => _readerControlStatements;
+        internal set
+        {
+            if (Enabled)
+                _readerControlStatements = value;
+        }
+    }
     /// <summary>
     /// EN: Number of CALL statements handled in ExecuteReader flow.
     /// PT: Quantidade de statements CALL tratados no fluxo de ExecuteReader.
     /// </summary>
-    public int ReaderCallStatements { get; internal set; }
+    public int ReaderCallStatements
+    {
+        get => _readerCallStatements;
+        internal set
+        {
+            if (Enabled)
+                _readerCallStatements = value;
+        }
+    }
     /// <summary>
     /// EN: Number of stored procedures executed through ExecuteReader prelude.
     /// PT: Quantidade de procedures executadas via prelude de ExecuteReader.
     /// </summary>
-    public int ReaderStoredProcedureStatements { get; internal set; }
+    public int ReaderStoredProcedureStatements
+    {
+        get => _readerStoredProcedureStatements;
+        internal set
+        {
+            if (Enabled)
+                _readerStoredProcedureStatements = value;
+        }
+    }
     /// <summary>
     /// EN: Number of result tables produced by ExecuteReader.
     /// PT: Quantidade de tabelas de resultado produzidas por ExecuteReader.
     /// </summary>
-    public int ReaderResultTables { get; internal set; }
+    public int ReaderResultTables
+    {
+        get => _readerResultTables;
+        internal set
+        {
+            if (Enabled)
+                _readerResultTables = value;
+        }
+    }
     /// <summary>
     /// EN: Number of rows returned by ExecuteReader result tables.
     /// PT: Quantidade de linhas retornadas pelas tabelas de resultado de ExecuteReader.
     /// </summary>
-    public int ReaderRowsReturned { get; internal set; }
+    public int ReaderRowsReturned
+    {
+        get => _readerRowsReturned;
+        internal set
+        {
+            if (Enabled)
+                _readerRowsReturned = value;
+        }
+    }
     /// <summary>
     /// EN: Number of ExecuteReader attempts with no SELECT result after parsed statements.
     /// PT: Quantidade de tentativas de ExecuteReader sem resultado SELECT após statements parseados.
     /// </summary>
-    public int ReaderWithoutSelectErrors { get; internal set; }
+    public int ReaderWithoutSelectErrors
+    {
+        get => _readerWithoutSelectErrors;
+        internal set
+        {
+            if (Enabled)
+                _readerWithoutSelectErrors = value;
+        }
+    }
     /// <summary>
     /// EN: Number of parsed query dispatches by query type name in ExecuteReader flow.
     /// PT: Quantidade de despachos de query parseada por tipo de query no fluxo de ExecuteReader.
@@ -133,62 +305,158 @@ public sealed class DbMetrics
     /// EN: Number of commands executed via batch ExecuteNonQuery flow.
     /// PT: Quantidade de comandos executados via fluxo batch ExecuteNonQuery.
     /// </summary>
-    public int BatchNonQueryCommands { get; internal set; }
+    public int BatchNonQueryCommands
+    {
+        get => _batchNonQueryCommands;
+        internal set
+        {
+            if (Enabled)
+                _batchNonQueryCommands = value;
+        }
+    }
     /// <summary>
     /// EN: Number of commands executed via batch ExecuteReader flow.
     /// PT: Quantidade de comandos executados via fluxo batch ExecuteReader.
     /// </summary>
-    public int BatchReaderCommands { get; internal set; }
+    public int BatchReaderCommands
+    {
+        get => _batchReaderCommands;
+        internal set
+        {
+            if (Enabled)
+                _batchReaderCommands = value;
+        }
+    }
     /// <summary>
     /// EN: Number of commands executed via batch ExecuteScalar flow.
     /// PT: Quantidade de comandos executados via fluxo batch ExecuteScalar.
     /// </summary>
-    public int BatchScalarCommands { get; internal set; }
+    public int BatchScalarCommands
+    {
+        get => _batchScalarCommands;
+        internal set
+        {
+            if (Enabled)
+                _batchScalarCommands = value;
+        }
+    }
     /// <summary>
     /// EN: Number of batch reader commands that fell back to ExecuteNonQuery due to no SELECT result.
     /// PT: Quantidade de comandos batch reader que fizeram fallback para ExecuteNonQuery por ausência de resultado SELECT.
     /// </summary>
-    public int BatchReaderFallbackToNonQuery { get; internal set; }
+    public int BatchReaderFallbackToNonQuery
+    {
+        get => _batchReaderFallbackToNonQuery;
+        internal set
+        {
+            if (Enabled)
+                _batchReaderFallbackToNonQuery = value;
+        }
+    }
     /// <summary>
     /// EN: Number of batch command materializations performed before execution.
     /// PT: Quantidade de materializações de comandos batch realizadas antes da execução.
     /// </summary>
-    public int BatchMaterializations { get; internal set; }
+    public int BatchMaterializations
+    {
+        get => _batchMaterializations;
+        internal set
+        {
+            if (Enabled)
+                _batchMaterializations = value;
+        }
+    }
     /// <summary>
     /// EN: Number of result tables produced by batch reader executions.
     /// PT: Quantidade de tabelas de resultado produzidas por execuções batch reader.
     /// </summary>
-    public int BatchResultTables { get; internal set; }
+    public int BatchResultTables
+    {
+        get => _batchResultTables;
+        internal set
+        {
+            if (Enabled)
+                _batchResultTables = value;
+        }
+    }
     /// <summary>
     /// EN: Number of rows produced by batch reader executions.
     /// PT: Quantidade de linhas produzidas por execuções batch reader.
     /// </summary>
-    public int BatchRowsReturned { get; internal set; }
+    public int BatchRowsReturned
+    {
+        get => _batchRowsReturned;
+        internal set
+        {
+            if (Enabled)
+                _batchRowsReturned = value;
+        }
+    }
     /// <summary>
     /// EN: Number of exceptions raised during batch execution flows.
     /// PT: Quantidade de exceções geradas durante fluxos de execução em batch.
     /// </summary>
-    public int BatchExceptions { get; internal set; }
+    public int BatchExceptions
+    {
+        get => _batchExceptions;
+        internal set
+        {
+            if (Enabled)
+                _batchExceptions = value;
+        }
+    }
     /// <summary>
     /// EN: Number of batch executions canceled via cancellation tokens or explicit cancellation flow.
     /// PT: Quantidade de execuções batch canceladas via cancellation token ou fluxo explícito de cancelamento.
     /// </summary>
-    public int BatchCancellations { get; internal set; }
+    public int BatchCancellations
+    {
+        get => _batchCancellations;
+        internal set
+        {
+            if (Enabled)
+                _batchCancellations = value;
+        }
+    }
     /// <summary>
     /// EN: Number of batch ExecuteNonQuery executions with no commands.
     /// PT: Quantidade de execuções batch ExecuteNonQuery sem comandos.
     /// </summary>
-    public int BatchEmptyNonQueryExecutions { get; internal set; }
+    public int BatchEmptyNonQueryExecutions
+    {
+        get => _batchEmptyNonQueryExecutions;
+        internal set
+        {
+            if (Enabled)
+                _batchEmptyNonQueryExecutions = value;
+        }
+    }
     /// <summary>
     /// EN: Number of batch ExecuteReader executions with no commands.
     /// PT: Quantidade de execuções batch ExecuteReader sem comandos.
     /// </summary>
-    public int BatchEmptyReaderExecutions { get; internal set; }
+    public int BatchEmptyReaderExecutions
+    {
+        get => _batchEmptyReaderExecutions;
+        internal set
+        {
+            if (Enabled)
+                _batchEmptyReaderExecutions = value;
+        }
+    }
     /// <summary>
     /// EN: Number of batch ExecuteScalar executions with no commands.
     /// PT: Quantidade de execuções batch ExecuteScalar sem comandos.
     /// </summary>
-    public int BatchEmptyScalarExecutions { get; internal set; }
+    public int BatchEmptyScalarExecutions
+    {
+        get => _batchEmptyScalarExecutions;
+        internal set
+        {
+            if (Enabled)
+                _batchEmptyScalarExecutions = value;
+        }
+    }
     /// <summary>
     /// EN: Number of batch command executions by mode/type (e.g., reader:text, nonquery:storedprocedure).
     /// PT: Quantidade de execuções de comando batch por modo/tipo (ex.: reader:text, nonquery:storedprocedure).
@@ -229,122 +497,310 @@ public sealed class DbMetrics
     /// EN: Total elapsed time since metrics started.
     /// PT: Tempo total decorrido desde o início da coleta.
     /// </summary>
-    public TimeSpan Elapsed => _sw.Elapsed;
+    public TimeSpan Elapsed => Enabled ? _sw.Elapsed : TimeSpan.Zero;
 
     internal void IncrementIndexHint(string indexName)
-        => IndexHints.AddOrUpdate(indexName, 1, (_, current) => current + 1);
+    {
+        if (!Enabled)
+            return;
+
+        IndexHints.AddOrUpdate(indexName, 1, (_, current) => current + 1);
+    }
 
     internal void IncrementTableHint(string tableName)
-        => TableHints.AddOrUpdate(tableName, 1, (_, current) => current + 1);
+    {
+        if (!Enabled)
+            return;
+
+        TableHints.AddOrUpdate(tableName, 1, (_, current) => current + 1);
+    }
 
     internal void IncrementNonQueryStatement()
-        => NonQueryStatements++;
+    {
+        if (!Enabled)
+            return;
+
+        NonQueryStatements++;
+    }
 
     internal void IncrementNonQueryParseCacheHit()
-        => NonQueryParseCacheHits++;
+    {
+        if (!Enabled)
+            return;
+
+        NonQueryParseCacheHits++;
+    }
 
     internal void IncrementNonQueryParseCacheMiss()
-        => NonQueryParseCacheMisses++;
+    {
+        if (!Enabled)
+            return;
+
+        NonQueryParseCacheMisses++;
+    }
 
     internal void IncrementNonQueryHandlerHit(string handlerName)
-        => NonQueryHandlerHits.AddOrUpdate(handlerName, 1, (_, current) => current + 1);
+    {
+        if (!Enabled)
+            return;
+
+        NonQueryHandlerHits.AddOrUpdate(handlerName, 1, (_, current) => current + 1);
+    }
 
     internal void IncrementNonQueryHandlerElapsedTicks(string handlerName, long elapsedTicks)
-        => NonQueryHandlerElapsedTicks.AddOrUpdate(handlerName, elapsedTicks, (_, current) => current + elapsedTicks);
+    {
+        if (!Enabled)
+            return;
+
+        NonQueryHandlerElapsedTicks.AddOrUpdate(handlerName, elapsedTicks, (_, current) => current + elapsedTicks);
+    }
 
     internal void IncrementNonQueryHandlerFailure(string handlerName)
-        => NonQueryHandlerFailures.AddOrUpdate(handlerName, 1, (_, current) => current + 1);
+    {
+        if (!Enabled)
+            return;
+
+        NonQueryHandlerFailures.AddOrUpdate(handlerName, 1, (_, current) => current + 1);
+    }
 
     internal void IncrementNonQueryException()
-        => NonQueryExceptions++;
+    {
+        if (!Enabled)
+            return;
+
+        NonQueryExceptions++;
+    }
 
     internal void IncrementNonQueryUnhandledStatement()
-        => NonQueryUnhandledStatements++;
+    {
+        if (!Enabled)
+            return;
+
+        NonQueryUnhandledStatements++;
+    }
 
     internal void IncrementReaderProcessedStatements(int count = 1)
-        => ReaderProcessedStatements += count;
+    {
+        if (!Enabled)
+            return;
+
+        ReaderProcessedStatements += count;
+    }
 
     internal void IncrementReaderControlStatement()
-        => ReaderControlStatements++;
+    {
+        if (!Enabled)
+            return;
+
+        ReaderControlStatements++;
+    }
 
     internal void IncrementReaderCallStatement()
-        => ReaderCallStatements++;
+    {
+        if (!Enabled)
+            return;
+
+        ReaderCallStatements++;
+    }
 
     internal void IncrementReaderStoredProcedureStatement()
-        => ReaderStoredProcedureStatements++;
+    {
+        if (!Enabled)
+            return;
+
+        ReaderStoredProcedureStatements++;
+    }
 
     internal void IncrementReaderResultTables(int count)
-        => ReaderResultTables += count;
+    {
+        if (!Enabled)
+            return;
+
+        ReaderResultTables += count;
+    }
 
     internal void IncrementReaderRowsReturned(int count)
-        => ReaderRowsReturned += count;
+    {
+        if (!Enabled)
+            return;
+
+        ReaderRowsReturned += count;
+    }
 
     internal void IncrementReaderWithoutSelectError()
-        => ReaderWithoutSelectErrors++;
+    {
+        if (!Enabled)
+            return;
+
+        ReaderWithoutSelectErrors++;
+    }
 
     internal void IncrementReaderQueryTypeHit(string queryTypeName)
-        => ReaderQueryTypeHits.AddOrUpdate(queryTypeName, 1, (_, current) => current + 1);
+    {
+        if (!Enabled)
+            return;
+
+        ReaderQueryTypeHits.AddOrUpdate(queryTypeName, 1, (_, current) => current + 1);
+    }
 
     internal void IncrementBatchNonQueryCommand()
-        => BatchNonQueryCommands++;
+    {
+        if (!Enabled)
+            return;
+
+        BatchNonQueryCommands++;
+    }
 
     internal void IncrementBatchReaderCommand()
-        => BatchReaderCommands++;
+    {
+        if (!Enabled)
+            return;
+
+        BatchReaderCommands++;
+    }
 
     internal void IncrementBatchScalarCommand()
-        => BatchScalarCommands++;
+    {
+        if (!Enabled)
+            return;
+
+        BatchScalarCommands++;
+    }
 
     internal void IncrementBatchReaderFallbackToNonQuery()
-        => BatchReaderFallbackToNonQuery++;
+    {
+        if (!Enabled)
+            return;
+
+        BatchReaderFallbackToNonQuery++;
+    }
 
     internal void IncrementBatchMaterialization()
-        => BatchMaterializations++;
+    {
+        if (!Enabled)
+            return;
+
+        BatchMaterializations++;
+    }
 
     internal void IncrementBatchResultTables(int count)
-        => BatchResultTables += count;
+    {
+        if (!Enabled)
+            return;
+
+        BatchResultTables += count;
+    }
 
     internal void IncrementBatchRowsReturned(int count)
-        => BatchRowsReturned += count;
+    {
+        if (!Enabled)
+            return;
+
+        BatchRowsReturned += count;
+    }
 
     internal void IncrementBatchException()
-        => BatchExceptions++;
+    {
+        if (!Enabled)
+            return;
+
+        BatchExceptions++;
+    }
 
     internal void IncrementBatchCancellation()
-        => BatchCancellations++;
+    {
+        if (!Enabled)
+            return;
+
+        BatchCancellations++;
+    }
 
     internal void IncrementBatchEmptyNonQueryExecution()
-        => BatchEmptyNonQueryExecutions++;
+    {
+        if (!Enabled)
+            return;
+
+        BatchEmptyNonQueryExecutions++;
+    }
 
     internal void IncrementBatchEmptyReaderExecution()
-        => BatchEmptyReaderExecutions++;
+    {
+        if (!Enabled)
+            return;
+
+        BatchEmptyReaderExecutions++;
+    }
 
     internal void IncrementBatchEmptyScalarExecution()
-        => BatchEmptyScalarExecutions++;
+    {
+        if (!Enabled)
+            return;
+
+        BatchEmptyScalarExecutions++;
+    }
 
     internal void IncrementBatchCommandTypeHit(string key)
-        => BatchCommandTypeHits.AddOrUpdate(key, 1, (_, current) => current + 1);
+    {
+        if (!Enabled)
+            return;
+
+        BatchCommandTypeHits.AddOrUpdate(key, 1, (_, current) => current + 1);
+    }
 
     internal void IncrementBatchPhaseFailure(string phase)
-        => BatchPhaseFailures.AddOrUpdate(phase, 1, (_, current) => current + 1);
+    {
+        if (!Enabled)
+            return;
+
+        BatchPhaseFailures.AddOrUpdate(phase, 1, (_, current) => current + 1);
+    }
 
     internal void IncrementBatchPhaseCancellation(string phase)
-        => BatchPhaseCancellations.AddOrUpdate(phase, 1, (_, current) => current + 1);
+    {
+        if (!Enabled)
+            return;
+
+        BatchPhaseCancellations.AddOrUpdate(phase, 1, (_, current) => current + 1);
+    }
 
     internal void IncrementBatchPhaseElapsedTicks(string phase, long elapsedTicks)
-        => BatchPhaseElapsedTicks.AddOrUpdate(phase, elapsedTicks, (_, current) => current + elapsedTicks);
+    {
+        if (!Enabled)
+            return;
+
+        BatchPhaseElapsedTicks.AddOrUpdate(phase, elapsedTicks, (_, current) => current + elapsedTicks);
+    }
 
     internal void IncrementPerformancePhaseHit(string phase)
-        => PerformancePhaseHits.AddOrUpdate(phase, 1, (_, current) => current + 1);
+    {
+        if (!Enabled)
+            return;
+
+        PerformancePhaseHits.AddOrUpdate(phase, 1, (_, current) => current + 1);
+    }
 
     internal void IncrementPerformancePhaseElapsedTicks(string phase, long elapsedTicks)
-        => PerformancePhaseElapsedTicks.AddOrUpdate(phase, elapsedTicks, (_, current) => current + elapsedTicks);
+    {
+        if (!Enabled)
+            return;
+
+        PerformancePhaseElapsedTicks.AddOrUpdate(phase, elapsedTicks, (_, current) => current + elapsedTicks);
+    }
 
     internal string? FormatPerformancePhases()
-        => FormatPerformancePhases(PerformancePhaseHits, PerformancePhaseElapsedTicks);
+    {
+        if (!Enabled)
+            return null;
+
+        return FormatPerformancePhases(PerformancePhaseHits, PerformancePhaseElapsedTicks);
+    }
 
     internal string? FormatPerformancePhasesDelta(DbMetricsSnapshot before)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(before, nameof(before));
+
+        if (!Enabled)
+            return null;
 
         Dictionary<string, int>? hits = null;
         Dictionary<string, long>? elapsedTicks = null;
@@ -372,9 +828,18 @@ public sealed class DbMetrics
     }
 
     internal DbMetricsSnapshot CapturePerformanceSnapshot()
-        => new(
+    {
+        if (!Enabled)
+        {
+            return new DbMetricsSnapshot(
+                new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase),
+                new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase));
+        }
+
+        return new DbMetricsSnapshot(
             new Dictionary<string, int>(PerformancePhaseHits, StringComparer.OrdinalIgnoreCase),
             new Dictionary<string, long>(PerformancePhaseElapsedTicks, StringComparer.OrdinalIgnoreCase));
+    }
 
     private static string? FormatPerformancePhases(
         IReadOnlyDictionary<string, int> hitsByPhase,
@@ -427,12 +892,22 @@ public sealed class DbMetrics
     }
 
     internal IDisposable BeginAmbientScope()
-        => new AmbientMetricsScope(this);
+        => Enabled ? new AmbientMetricsScope(this) : NoopDisposable.Instance;
 
-    internal static DbMetrics? Current => _ambientMetrics.Value;
+    internal static DbMetrics? Current
+        => _ambientMetrics.Value is { Enabled: true } metrics ? metrics : null;
 
     private readonly Stopwatch _sw = Stopwatch.StartNew();
     private static readonly AsyncLocal<DbMetrics?> _ambientMetrics = new();
+
+    private sealed class NoopDisposable : IDisposable
+    {
+        public static readonly NoopDisposable Instance = new();
+
+        public void Dispose()
+        {
+        }
+    }
 
     private sealed class AmbientMetricsScope : IDisposable
     {

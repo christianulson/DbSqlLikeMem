@@ -24,7 +24,9 @@ internal static class DbUpdateStrategy
         SqlUpdateQuery query,
         DbParameterCollection? pars)
     {
-        var sw = Stopwatch.StartNew();
+        var capturePlans = connection.Db.CaptureExecutionPlans;
+        var sw = capturePlans ? Stopwatch.StartNew() : null;
+        var metricsEnabled = connection.Metrics.Enabled;
         ArgumentNullExceptionCompatible.ThrowIfNull(query.Table, nameof(query.Table));
         var queryTable = query.Table;
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(queryTable!.Name, nameof(query.Table.Name));
@@ -36,54 +38,73 @@ internal static class DbUpdateStrategy
 
         var whereRaw = TableMock.ResolveWhereRaw(query.WhereRaw, query.RawSql);
         var conditions = TableMock.ParseWhereSimple(whereRaw);
-        var setPairs = query.Set.Select(s => (s.Col, Val: s.ExprRaw)).ToArray();
+        var setPairs = new (string Col, string Val)[query.Set.Count];
+        for (var i = 0; i < query.Set.Count; i++)
+            setPairs[i] = (query.Set[i].Col, query.Set[i].ExprRaw);
 
         int updated = 0;
         var tableMock = (TableMock)table;
         var affectedIndexes = new List<int>();
-        var affectedRowsData = new List<IReadOnlyDictionary<int, object?>>();
+        var changedSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (var i = 0; i < setPairs.Length; i++)
+            changedSet.Add(setPairs[i].Col);
+        var supportsTriggers = dialect.SupportsTriggers;
+        var hasBeforeUpdateTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeUpdate);
+        var hasAfterUpdateTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.AfterUpdate);
+        var requiresOldSnapshotForIndex = HasIndexedKeyChanges(tableMock, changedSet);
+        var requiresUniqueValidation = HasUniqueKeyChanges(tableMock, changedSet);
+        var captureAffectedRowSnapshots = connection.CaptureAffectedRowSnapshots;
+        var affectedRowsData = captureAffectedRowSnapshots ? new List<IReadOnlyDictionary<int, object?>>() : null;
+
         foreach (var rowIdx in GetCandidateRowIndexes(table, pars, conditions))
         {
             var row = table[rowIdx];
             if (!TableMock.IsMatchSimple(table, pars, conditions, row)) continue;
 
-            var oldSnapshot = TableMock.SnapshotRow(row);
+            var oldSnapshot = (hasBeforeUpdateTrigger || hasAfterUpdateTrigger || requiresOldSnapshotForIndex)
+                ? TableMock.SnapshotRow(row)
+                : null;
 
-            // Valida Unique Constraints antes de aplicar
-            var changedCols = setPairs.Select(sp => sp.Col).ToList();
-            ValidateUniqueBeforeUpdate(tableName, tableMock, pars, setPairs, rowIdx, row, changedCols, dialect);
-
-            // Aplica Update
-            var simulated = row.ToDictionary(_ => _.Key, _ => _.Value);
+            // Simula Update (reaproveitado por validacoes/trigger)
+            var simulated = TableMock.CloneRow(row);
             UpdateRowValuesInMemory(table, pars, setPairs, simulated, dialect);
-            tableMock.ValidateForeignKeysOnRow(new ReadOnlyDictionary<int, object?>(simulated));
-            
-            if (dialect.SupportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeUpdate))
+
+            // Valida Unique Constraints antes de aplicar (somente quando necessario)
+            if (requiresUniqueValidation)
+                tableMock.EnsureUniqueBeforeUpdate(tableName, row, simulated, rowIdx, changedSet);
+
+            tableMock.ValidateForeignKeysOnRow(simulated);
+
+            if (hasBeforeUpdateTrigger)
                 TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, simulated);
-            
+
             UpdateRowValues(table, pars, setPairs, rowIdx, row, dialect);
-            
-            if (dialect.SupportsTriggers && table.HasTriggers(TableTriggerEvent.AfterUpdate))
+
+            if (hasAfterUpdateTrigger)
                 TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, TableMock.SnapshotRow(table[rowIdx]));
 
             // Atualiza índices
-            tableMock.UpdateIndexesWithRow(rowIdx, oldSnapshot, table[rowIdx]);
+            if (requiresOldSnapshotForIndex)
+                tableMock.UpdateIndexesWithRow(rowIdx, oldSnapshot, table[rowIdx]);
+            else
+                tableMock.UpdateIndexesWithRow(rowIdx);
             updated++;
             affectedIndexes.Add(rowIdx);
-            if (connection.CaptureAffectedRowSnapshots)
-                affectedRowsData.Add(TableMock.SnapshotRow(table[rowIdx]));
+            if (captureAffectedRowSnapshots)
+                affectedRowsData!.Add(TableMock.SnapshotRow(table[rowIdx]));
         }
 
-        connection.Metrics.Updates += updated;
-        sw.Stop();
+        if (metricsEnabled)
+            connection.Metrics.Updates += updated;
 
-        var metrics = new SqlPlanRuntimeMetrics(
-            InputTables: 1,
-            EstimatedRowsRead: rowCountBefore,
-            ActualRows: updated,
-            ElapsedMs: sw.ElapsedMilliseconds);
-        if (connection.Db.CaptureExecutionPlans)
+        if (capturePlans)
         {
+            sw!.Stop();
+            var metrics = new SqlPlanRuntimeMetrics(
+                InputTables: 1,
+                EstimatedRowsRead: rowCountBefore,
+                ActualRows: updated,
+                ElapsedMs: sw.ElapsedMilliseconds);
             var plan = SqlExecutionPlanFormatter.FormatUpdate(
                 query,
                 metrics,
@@ -92,12 +113,11 @@ internal static class DbUpdateStrategy
         }
         return new DmlExecutionResult
         {
-            AffectedRows= updated,
+            AffectedRows = updated,
             AffectedIndexes = affectedIndexes,
-            AffectedRowsData = affectedRowsData
+            AffectedRowsData = captureAffectedRowSnapshots ? affectedRowsData! : new List<IReadOnlyDictionary<int, object?>>()
         };
     }
-
     private static IEnumerable<int> GetCandidateRowIndexes(
         ITableMock table,
         DbParameterCollection? pars,
@@ -114,19 +134,73 @@ internal static class DbUpdateStrategy
             yield return rowIdx;
     }
 
-    private static void ValidateUniqueBeforeUpdate(
-        string tableName,
-        TableMock table,
-        DbParameterCollection? pars,
-        (string Col, string Val)[] setPairs,
-        int rowIdx,
-        IReadOnlyDictionary<int, object?> row,
-        List<string> changedCols,
-        ISqlDialect dialect)
+    private static bool HasIndexedKeyChanges(ITableMock table, HashSet<string> changedCols)
     {
-        var simulated = row.ToDictionary(_=>_.Key, _=>_.Value);
-        UpdateRowValuesInMemory(table, pars, setPairs, simulated, dialect); 
-        table.EnsureUniqueBeforeUpdate(tableName, row, simulated, rowIdx, changedCols);
+        if (changedCols.Count == 0)
+            return false;
+
+        if (table is TableMock tableMock)
+        {
+            foreach (var pkIndex in tableMock.PkIndexArray)
+            {
+                if (tableMock.ColumnsByIndex.TryGetValue(pkIndex, out var pkColumnName)
+                    && changedCols.Contains(pkColumnName))
+                {
+                    return true;
+                }
+            }
+
+            foreach (var index in tableMock.Indexes.Values)
+            {
+                foreach (var keyCol in index.KeyCols)
+                {
+                    if (changedCols.Contains(keyCol))
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
+        foreach (var pkIndex in table.PrimaryKeyIndexes)
+        {
+            foreach (var column in table.Columns.Values)
+            {
+                if (column.Index == pkIndex && changedCols.Contains(column.Name))
+                    return true;
+            }
+        }
+
+        foreach (var index in table.Indexes.Values)
+        {
+            foreach (var keyCol in index.KeyCols)
+            {
+                if (changedCols.Contains(keyCol))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasUniqueKeyChanges(TableMock table, HashSet<string> changedCols)
+    {
+        if (changedCols.Count == 0)
+            return false;
+
+        foreach (var index in table.Indexes.Values)
+        {
+            if (!index.Unique)
+                continue;
+
+            foreach (var keyCol in index.KeyCols)
+            {
+                if (changedCols.Contains(keyCol))
+                    return true;
+            }
+        }
+
+        return false;
     }
 
     private static void UpdateRowValues(
@@ -154,11 +228,12 @@ internal static class DbUpdateStrategy
         IDictionary<int, object?> row,
         ISqlDialect dialect)
     {
+        var readOnlyRow = row as IReadOnlyDictionary<int, object?> ?? new ReadOnlyDictionary<int, object?>(row);
         foreach (var (Col, Val) in setPairs)
         {
             var info = table.GetColumn(Col);
             if (info.GetGenValue != null) continue; 
-            var raw = ResolveSetValue(table, pars, new ReadOnlyDictionary<int, object?>(row), info, Col, Val, dialect);
+            var raw = ResolveSetValue(table, pars, readOnlyRow, info, Col, Val, dialect);
             row[info.Index] = raw;
         }
     }

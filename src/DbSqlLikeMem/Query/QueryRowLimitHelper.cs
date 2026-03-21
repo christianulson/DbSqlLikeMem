@@ -31,9 +31,18 @@ internal static class QueryRowLimitHelper
         if (offset <= 0 && take == int.MaxValue)
             return;
 
-        var slicedRows = result.Skip(offset).Take(take).ToList();
-        result.Clear();
-        foreach (var row in slicedRows)
-            result.Add(row);
+        var startIndex = Math.Min(Math.Max(offset, 0), result.Count);
+        var endIndex = take == int.MaxValue
+            ? result.Count
+            : Math.Min(result.Count, startIndex + Math.Max(take, 0));
+
+        if (startIndex == 0 && endIndex == result.Count)
+            return;
+
+        if (endIndex < result.Count)
+            result.RemoveRange(endIndex, result.Count - endIndex);
+
+        if (startIndex > 0)
+            result.RemoveRange(0, startIndex);
     }
 }

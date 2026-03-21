@@ -2,65 +2,99 @@ namespace DbSqlLikeMem;
 
 internal static class BatchAsyncExecutionRunner
 {
-    public static async Task<int> ExecuteNonQueryCommandsAsync<TBatchCommand>(
+    public static Task<int> ExecuteNonQueryCommandsAsync<TBatchCommand>(
         DbConnectionMockBase connection,
         IReadOnlyList<TBatchCommand> commands,
         Func<TBatchCommand, DbCommand> commandFactory,
         CancellationToken cancellationToken)
     {
-        if (commands.Count == 0)
+        var commandCount = commands.Count;
+        if (commandCount == 0)
         {
-            connection.Metrics.IncrementBatchEmptyNonQueryExecution();
-            return 0;
+            if (connection.Metrics.Enabled)
+                connection.Metrics.IncrementBatchEmptyNonQueryExecution();
+            return Task.FromResult(0);
         }
 
         BatchExecutionGuards.RequireOpenConnectionState(connection);
 
-        var affected = 0;
-        foreach (var batchCommand in commands)
+        var metricsEnabled = connection.Metrics.Enabled;
+
+        if (commandCount == 1)
         {
-            using var command = commandFactory(batchCommand);
-            affected += await BatchNonQueryExecutionRunner
-                .ExecuteCommandAsync(connection, command, cancellationToken)
-                .ConfigureAwait(false);
+            var command = commandFactory(commands[0]);
+            var task = BatchNonQueryExecutionRunner.ExecuteCommandAsync(connection, command, cancellationToken, metricsEnabled);
+            if (task.Status == TaskStatus.RanToCompletion)
+            {
+                using (command)
+                {
+                    return Task.FromResult(task.Result);
+                }
+            }
+
+            return ExecuteSingleNonQueryCommandAsyncCore(command, task);
         }
 
-        return affected;
+        return ExecuteManyNonQueryCommandsAsync(
+            connection,
+            commands,
+            commandFactory,
+            cancellationToken,
+            metricsEnabled);
     }
 
-    public static async Task<List<TableResultMock>> ExecuteReaderCommandsAsync<TBatchCommand>(
+    public static Task<List<TableResultMock>> ExecuteReaderCommandsAsync<TBatchCommand>(
         DbConnectionMockBase connection,
         IReadOnlyList<TBatchCommand> commands,
         Func<TBatchCommand, DbCommand> commandFactory,
         CommandBehavior behavior,
         CancellationToken cancellationToken)
     {
-        if (commands.Count == 0)
+        var commandCount = commands.Count;
+        if (commandCount == 0)
         {
-            connection.Metrics.IncrementBatchEmptyReaderExecution();
-            return [];
+            if (connection.Metrics.Enabled)
+                connection.Metrics.IncrementBatchEmptyReaderExecution();
+            return Task.FromResult(new List<TableResultMock>());
         }
 
         BatchExecutionGuards.RequireOpenConnectionState(connection);
 
-        var tables = new List<TableResultMock>(commands.Count);
-        foreach (var batchCommand in commands)
+        var metricsEnabled = connection.Metrics.Enabled;
+
+        if (commandCount == 1)
         {
-            using var command = commandFactory(batchCommand);
-            await BatchCommandExecutionRunner
-                .ExecuteIntoTablesAsync(
-                    connection,
-                    command,
-                    tables,
-                    ct => command.ExecuteReaderAsync(behavior, ct),
-                    cancellationToken)
-                .ConfigureAwait(false);
+            var tables = new List<TableResultMock>(1);
+            var command = commandFactory(commands[0]);
+            var task = BatchCommandExecutionRunner.ExecuteIntoTablesAsync(
+                connection,
+                command,
+                tables,
+                behavior,
+                cancellationToken,
+                metricsEnabled);
+
+            if (task.Status == TaskStatus.RanToCompletion)
+            {
+                using (command)
+                {
+                    return Task.FromResult(tables);
+                }
+            }
+
+            return ExecuteSingleReaderCommandAsync(command, task, tables);
         }
 
-        return tables;
+        return ExecuteManyReaderCommandsAsync(
+            connection,
+            commands,
+            commandFactory,
+            behavior,
+            cancellationToken,
+            metricsEnabled);
     }
 
-    public static async Task<TReader> ExecuteReaderCommandsAsync<TBatchCommand, TReader>(
+    public static Task<TReader> ExecuteReaderCommandsAsync<TBatchCommand, TReader>(
         DbConnectionMockBase connection,
         IReadOnlyList<TBatchCommand> commands,
         Func<TBatchCommand, DbCommand> commandFactory,
@@ -68,12 +102,90 @@ internal static class BatchAsyncExecutionRunner
         Func<List<TableResultMock>, TReader> readerFactory,
         CancellationToken cancellationToken)
     {
-        var tables = await ExecuteReaderCommandsAsync(
+        var tablesTask = ExecuteReaderCommandsAsync(
             connection,
             commands,
             commandFactory,
             behavior,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
+
+        if (tablesTask.Status == TaskStatus.RanToCompletion)
+        {
+            return Task.FromResult(readerFactory(tablesTask.Result));
+        }
+
+        return ExecuteReaderCommandsAsyncCore(tablesTask, readerFactory);
+    }
+
+    private static async Task<int> ExecuteSingleNonQueryCommandAsyncCore(
+        DbCommand command,
+        Task<int> executionTask)
+    {
+        using (command)
+        {
+            return await executionTask.ConfigureAwait(false);
+        }
+    }
+
+    private static async Task<int> ExecuteManyNonQueryCommandsAsync<TBatchCommand>(
+        DbConnectionMockBase connection,
+        IReadOnlyList<TBatchCommand> commands,
+        Func<TBatchCommand, DbCommand> commandFactory,
+        CancellationToken cancellationToken,
+        bool metricsEnabled)
+    {
+        var affected = 0;
+        var commandCount = commands.Count;
+        for (var i = 0; i < commandCount; i++)
+        {
+            using var command = commandFactory(commands[i]);
+            affected += await BatchNonQueryExecutionRunner
+                .ExecuteCommandAsync(connection, command, cancellationToken, metricsEnabled)
+                .ConfigureAwait(false);
+        }
+
+        return affected;
+    }
+
+    private static async Task<List<TableResultMock>> ExecuteSingleReaderCommandAsync(
+        DbCommand command,
+        Task executionTask,
+        List<TableResultMock> tables)
+    {
+        using (command)
+        {
+            await executionTask.ConfigureAwait(false);
+        }
+
+        return tables;
+    }
+
+    private static async Task<List<TableResultMock>> ExecuteManyReaderCommandsAsync<TBatchCommand>(
+        DbConnectionMockBase connection,
+        IReadOnlyList<TBatchCommand> commands,
+        Func<TBatchCommand, DbCommand> commandFactory,
+        CommandBehavior behavior,
+        CancellationToken cancellationToken,
+        bool metricsEnabled)
+    {
+        var commandCount = commands.Count;
+        var tables = new List<TableResultMock>(commandCount);
+        for (var i = 0; i < commandCount; i++)
+        {
+            using var command = commandFactory(commands[i]);
+            await BatchCommandExecutionRunner
+                .ExecuteIntoTablesAsync(connection, command, tables, behavior, cancellationToken, metricsEnabled)
+                .ConfigureAwait(false);
+        }
+
+        return tables;
+    }
+
+    private static async Task<TReader> ExecuteReaderCommandsAsyncCore<TReader>(
+        Task<List<TableResultMock>> tablesTask,
+        Func<List<TableResultMock>, TReader> readerFactory)
+    {
+        var tables = await tablesTask.ConfigureAwait(false);
         return readerFactory(tables);
     }
 }

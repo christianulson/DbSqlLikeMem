@@ -132,26 +132,47 @@ internal static class QueryPlanWarningHelper
             return true;
         }
 
-        return query.SelectItems.Any(selectItem => Regex.IsMatch(
-            selectItem.Raw,
-            @"^\s*TOP\s*(\(\s*\d+\s*\)|\d+)\b",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant));
+        for (var i = 0; i < query.SelectItems.Count; i++)
+        {
+            if (Regex.IsMatch(
+                query.SelectItems[i].Raw,
+                @"^\s*TOP\s*(\(\s*\d+\s*\)|\d+)\b",
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool HasSelectStar(SqlSelectQuery query)
-        => query.SelectItems.Any(static item => string.Equals(item.Raw?.Trim(), "*", StringComparison.Ordinal));
+    {
+        for (var i = 0; i < query.SelectItems.Count; i++)
+        {
+            var item = query.SelectItems[i];
+            if (string.Equals(item.Raw?.Trim(), "*", StringComparison.Ordinal))
+                return true;
+        }
+
+        return false;
+    }
 
     private static string BuildTechnicalThreshold(params (string Key, IFormattable Value)[] values)
     {
         if (values.Length == 0)
             return string.Empty;
 
-        return string.Join(";", values.Select(static value =>
+        var parts = new string[values.Length];
+        for (var i = 0; i < values.Length; i++)
         {
+            var value = values[i];
             if (string.IsNullOrWhiteSpace(value.Key))
                 throw new ArgumentException("Threshold key must be provided.", nameof(values));
 
-            return $"{value.Key}:{value.Value.ToString(null, CultureInfo.InvariantCulture)}";
-        }));
+            parts[i] = $"{value.Key}:{value.Value.ToString(null, CultureInfo.InvariantCulture)}";
+        }
+
+        return string.Join(";", parts);
     }
 }

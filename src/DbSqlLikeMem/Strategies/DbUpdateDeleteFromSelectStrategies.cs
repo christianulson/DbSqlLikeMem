@@ -178,7 +178,8 @@ internal static class DbUpdateDeleteFromSelectStrategies
 
         var joinInfo = target.GetColumn(targetJoinCol);
         var setInfo = target.GetColumn(targetSetCol);
-
+        var changedCols = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { targetSetCol };
+        var requiresOldSnapshotForIndex = HasIndexedKeyChanges(target, changedCols);
         var updated = new DmlExecutionResult();
         for (int i = 0; i < target.Count; i++)
         {
@@ -192,41 +193,103 @@ internal static class DbUpdateDeleteFromSelectStrategies
 
             if (setInfo.GetGenValue is null)
             {
-                var oldSnapshot = row.ToDictionary(_ => _.Key, _ => _.Value);
+                var oldSnapshot = requiresOldSnapshotForIndex
+                    ? TableMock.CloneRow(row)
+                    : null;
                 target.UpdateRowColumn(i, setInfo.Index, newVal);
                 if (target is TableMock targetTableMock)
-                    targetTableMock.UpdateIndexesWithRow(i, oldSnapshot, target[i]);
+                {
+                    if (requiresOldSnapshotForIndex)
+                        targetTableMock.UpdateIndexesWithRow(i, oldSnapshot, target[i]);
+                    else
+                        targetTableMock.UpdateIndexesWithRow(i);
+                }
                 else
+                {
                     target.UpdateIndexesWithRow(i);
+                }
                 updated.IncreseAffected();
                 updated.AffectedIndexes.Add(i);
                 updated.AffectedRowsData.Add(TableMock.SnapshotRow(target[i]));
             }
         }
 
-        connection.Metrics.Updates += updated.AffectedRows;
+        if (connection.Metrics.Enabled)
+            connection.Metrics.Updates += updated.AffectedRows;
         return updated;
     }
 
+    private static bool HasIndexedKeyChanges(ITableMock table, HashSet<string> changedCols)
+    {
+        if (changedCols.Count == 0)
+            return false;
+
+        if (table is TableMock tableMock)
+        {
+            foreach (var pkIndex in tableMock.PkIndexArray)
+            {
+                if (tableMock.ColumnsByIndex.TryGetValue(pkIndex, out var pkColumnName)
+                    && changedCols.Contains(pkColumnName))
+                {
+                    return true;
+                }
+            }
+
+            foreach (var index in tableMock.Indexes.Values)
+            {
+                foreach (var keyCol in index.KeyCols)
+                {
+                    if (changedCols.Contains(keyCol))
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
+        foreach (var pkIndex in table.PrimaryKeyIndexes)
+        {
+            foreach (var column in table.Columns.Values)
+            {
+                if (column.Index == pkIndex && changedCols.Contains(column.Name))
+                    return true;
+            }
+        }
+
+        foreach (var index in table.Indexes.Values)
+        {
+            foreach (var keyCol in index.KeyCols)
+            {
+                if (changedCols.Contains(keyCol))
+                    return true;
+            }
+        }
+
+        return false;
+    }
     private static List<(string Col, string Val)> ParseWhereEqualsList(string? whereSql)
     {
         var list = new List<(string Col, string Val)>();
         if (string.IsNullOrWhiteSpace(whereSql)) return list;
 
         whereSql = whereSql!.Trim().TrimEnd(';');
-        // split by AND (case-insensitive)
-        var parts = Regex.Split(whereSql, @"\s+AND\s+", RegexOptions.IgnoreCase)
-            .Select(p => p.Trim())
-            .Where(p => p.Length > 0);
-
-        foreach (var p in parts)
+        var parts = Regex.Split(whereSql, @"\s+AND\s+", RegexOptions.IgnoreCase);
+        for (var i = 0; i < parts.Length; i++)
         {
-            var kv = p.Split('=').Take(2).ToArray();
-            if (kv.Length != 2) continue;
+            var p = parts[i].Trim();
+            if (p.Length == 0)
+                continue;
+
+            var kv = p.Split('=');
+            if (kv.Length < 2)
+                continue;
+
             var col = kv[0].Trim();
             // drop alias prefix if present
             var dot = col.IndexOf('.');
-            if (dot >= 0) col = col[(dot + 1)..];
+            if (dot >= 0)
+                col = col[(dot + 1)..];
+
             col = col.Trim('`');
             list.Add((col, kv[1].Trim()));
         }
@@ -357,7 +420,8 @@ internal static class DbUpdateDeleteFromSelectStrategies
             deleted++;
         }
 
-        connection.Metrics.Deletes += deleted;
+        if (connection.Metrics.Enabled)
+            connection.Metrics.Deletes += deleted;
 
         return new DmlExecutionResult
         {

@@ -23,6 +23,11 @@ public class SqliteCommandMock(
     private bool disposedValue;
     private readonly Dictionary<string, IReadOnlyList<ReturningProjectionTemplate>> _returningProjectionTemplateCache =
         new(StringComparer.Ordinal);
+    private SqliteConnectionMock? _preparedConnection;
+    private string? _preparedCommandText;
+    private string? _preparedDialectName;
+    private int _preparedDialectVersion;
+    private SqlQueryBase? _preparedNonQueryQuery;
 
     /// <summary>
     /// EN: Gets or sets the SQL statement or stored procedure name that will be executed by this command.
@@ -111,6 +116,9 @@ public class SqliteCommandMock(
             connection.SetLastFoundRows(affected.AffectedRows);
             return affected.AffectedRows;
         }
+
+        if (TryExecutePreparedNonQuery(out var preparedAffected))
+            return preparedAffected;
 
         return connection.ExecuteNonQueryWithPipeline(
             CommandText.NormalizeString(),
@@ -274,14 +282,18 @@ public class SqliteCommandMock(
         IEnumerable<int> rowIndexes)
     {
         var result = new TableResultMock();
-        result.Columns = [.. projections
-            .Select((p, i) => new TableResultColMock(
+        result.Columns = new List<TableResultColMock>(projections.Count);
+        for (var i = 0; i < projections.Count; i++)
+        {
+            var p = projections[i];
+            result.Columns.Add(new TableResultColMock(
                 p.TableAlias,
                 p.ColumnAlias,
                 p.ColumnName,
                 i,
                 p.DbType,
-                p.IsNullable))];
+                p.IsNullable));
+        }
 
         foreach (var rowIndex in rowIndexes)
         {
@@ -289,7 +301,7 @@ public class SqliteCommandMock(
                 continue;
 
             var row = table[rowIndex];
-            var projected = new Dictionary<int, object?>();
+            var projected = new Dictionary<int, object?>(projections.Count);
             for (var colIndex = 0; colIndex < projections.Count; colIndex++)
                 projected[colIndex] = projections[colIndex].Resolver(row);
             result.Add(projected);
@@ -662,7 +674,88 @@ public class SqliteCommandMock(
     /// EN: Represents Prepare.
     /// PT: Representa Prepare.
     /// </summary>
-    public override void Prepare() { }
+    public override void Prepare()
+    {
+        if (connection is null || string.IsNullOrWhiteSpace(CommandText))
+        {
+            ClearPreparedNonQueryPlan();
+            return;
+        }
+
+        if (CommandType != global::System.Data.CommandType.Text || CommandText.IndexOf(';') >= 0)
+        {
+            ClearPreparedNonQueryPlan();
+            return;
+        }
+
+        var normalizedCommandText = CommandText.NormalizeString();
+        var dialect = connection!.ExecutionDialect;
+        try
+        {
+            var parsed = SqlQueryParser.Parse(normalizedCommandText, dialect);
+
+            _preparedConnection = connection;
+            _preparedCommandText = CommandText;
+            _preparedDialectName = dialect.Name;
+            _preparedDialectVersion = dialect.Version;
+            _preparedNonQueryQuery = parsed switch
+            {
+                SqlInsertQuery or SqlUpdateQuery or SqlDeleteQuery or SqlMergeQuery => parsed,
+                _ => null
+            };
+        }
+        catch
+        {
+            ClearPreparedNonQueryPlan();
+            throw;
+        }
+    }
+
+    private bool TryExecutePreparedNonQuery(out int affectedRows)
+    {
+        affectedRows = 0;
+        var localConnection = connection;
+        if (localConnection is null
+            || _preparedConnection is null
+            || !ReferenceEquals(localConnection, _preparedConnection)
+            || CommandType != global::System.Data.CommandType.Text
+            || !string.Equals(CommandText, _preparedCommandText, StringComparison.Ordinal)
+            || _preparedNonQueryQuery is null)
+        {
+            return false;
+        }
+
+        var dialect = localConnection.ExecutionDialect;
+        if (!string.Equals(dialect.Name, _preparedDialectName, StringComparison.Ordinal)
+            || dialect.Version != _preparedDialectVersion)
+        {
+            return false;
+        }
+
+        DmlExecutionResult? result = _preparedNonQueryQuery switch
+        {
+            SqlInsertQuery insertQ => localConnection.ExecuteInsert(insertQ, Parameters, dialect),
+            SqlUpdateQuery updateQ => localConnection.ExecuteUpdateSmart(updateQ, Parameters, dialect),
+            SqlDeleteQuery deleteQ => localConnection.ExecuteDeleteSmart(deleteQ, Parameters, dialect),
+            SqlMergeQuery mergeQ => localConnection.ExecuteMerge(mergeQ, Parameters, dialect),
+            _ => default
+        };
+
+        if (result is null)
+            return false;
+
+        affectedRows = result.AffectedRows;
+        return true;
+    }
+
+    private void ClearPreparedNonQueryPlan()
+    {
+        _preparedConnection = null;
+        _preparedCommandText = null;
+        _preparedDialectName = null;
+        _preparedDialectVersion = 0;
+        _preparedNonQueryQuery = null;
+    }
 
     /// <summary>
     /// EN: Releases resources used by this instance.

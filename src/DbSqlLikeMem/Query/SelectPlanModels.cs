@@ -10,6 +10,10 @@ internal sealed class SelectPlan
 
     public required List<WindowSlot> WindowSlots { get; init; }
 
+    public bool HasWindowFunctions => WindowSlots.Count > 0;
+
+    public bool CanBeCachedWithoutClone => !HasWindowFunctions;
+
     internal SelectPlan CloneForCache()
         => new()
         {

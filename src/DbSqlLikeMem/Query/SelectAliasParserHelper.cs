@@ -6,20 +6,23 @@ internal static class SelectAliasParserHelper
         string raw,
         string? alreadyAlias)
     {
-        raw = raw.Trim();
+        var rawSpan = raw.AsSpan().Trim();
         if (!string.IsNullOrWhiteSpace(alreadyAlias))
-            return (raw, alreadyAlias);
+            return (rawSpan.ToString(), alreadyAlias);
 
-        var depth = GetDepthAlias(raw);
+        if (!ContainsWhitespace(rawSpan))
+            return (rawSpan.ToString(), null);
+
+        var depth = GetDepthAlias(rawSpan);
         var asPosition = -1;
-        FindPositionOfAs(raw, ref depth, ref asPosition);
+        FindPositionOfAs(rawSpan, ref depth, ref asPosition);
 
         if (asPosition < 0)
         {
-            if (TrySplitTrailingImplicitAlias(raw, out var expr, out var alias))
+            if (TrySplitTrailingImplicitAlias(rawSpan, out var expr, out var alias))
             {
-                if (raw.IndexOf("<=>", StringComparison.Ordinal) >= 0
-                    || EndsWithNextValueForPattern(raw))
+                if (rawSpan.IndexOf("<=>", StringComparison.Ordinal) >= 0
+                    || EndsWithNextValueForPattern(rawSpan))
                 {
                     Console.WriteLine($"[SPLIT-ALIAS-SUSPECT] Raw='{raw}' Expr='{expr}' Alias='{alias}'");
                 }
@@ -27,29 +30,29 @@ internal static class SelectAliasParserHelper
                 return (expr, alias);
             }
 
-            return (raw, null);
+            return (rawSpan.ToString(), null);
         }
 
-        var after = raw[(asPosition + 2)..].Trim();
+        var after = rawSpan[(asPosition + 2)..].Trim();
         if (after.Length == 0)
-            return (raw, null);
+            return (rawSpan.ToString(), null);
 
         if (!TryParseSimpleAlias(after, out var explicitAlias))
-            return (raw, null);
+            return (rawSpan.ToString(), null);
 
-        var beforeAs = raw[..asPosition].TrimEnd();
+        var beforeAs = rawSpan[..asPosition].TrimEnd();
         if (beforeAs.Length == 0)
-            return (raw, null);
+            return (rawSpan.ToString(), null);
 
-        return (beforeAs, explicitAlias);
+        return (beforeAs.ToString(), explicitAlias);
     }
 
     private static bool TrySplitTrailingImplicitAlias(
-        string raw,
+        ReadOnlySpan<char> raw,
         out string expr,
         out string alias)
     {
-        expr = raw;
+        expr = string.Empty;
         alias = string.Empty;
 
         var depth = 0;
@@ -88,7 +91,7 @@ internal static class SelectAliasParserHelper
         if (start > end)
             return false;
 
-        var token = raw[start..(end + 1)].Trim();
+        var token = raw.Slice(start, end - start + 1).Trim();
         if (token.Length == 0)
             return false;
 
@@ -108,9 +111,20 @@ internal static class SelectAliasParserHelper
         if (EndsWithNextValueForPattern(before))
             return false;
 
-        expr = before;
+        expr = before.ToString();
         alias = parsedAlias;
         return true;
+    }
+
+    private static bool ContainsWhitespace(ReadOnlySpan<char> value)
+    {
+        for (var i = 0; i < value.Length; i++)
+        {
+            if (char.IsWhiteSpace(value[i]))
+                return true;
+        }
+
+        return false;
     }
 
     private static bool IsLikelyKeyword(string value)
@@ -144,7 +158,7 @@ internal static class SelectAliasParserHelper
             || value.Equals(SqlConst.TRUE, StringComparison.OrdinalIgnoreCase)
             || value.Equals(SqlConst.FALSE, StringComparison.OrdinalIgnoreCase);
 
-    private static void FindPositionOfAs(string raw, ref int depth, ref int asPosition)
+    private static void FindPositionOfAs(ReadOnlySpan<char> raw, ref int depth, ref int asPosition)
     {
         for (var i = 0; i < raw.Length - 1; i++)
         {
@@ -168,11 +182,11 @@ internal static class SelectAliasParserHelper
             depth = Math.Max(0, depth - 1);
     }
 
-    private static bool IsAsAt(string value, int index)
+    private static bool IsAsAt(ReadOnlySpan<char> value, int index)
         => (value[index] == 'A' || value[index] == 'a')
             && (value[index + 1] == 'S' || value[index + 1] == 's');
 
-    private static bool IsWordBoundary(string value, int start, int length)
+    private static bool IsWordBoundary(ReadOnlySpan<char> value, int start, int length)
     {
         var left = start - 1;
         var right = start + length;
@@ -186,6 +200,9 @@ internal static class SelectAliasParserHelper
         => char.IsLetterOrDigit(c) || c == '_';
 
     private static bool TryParseSimpleAlias(string value, out string alias)
+        => TryParseSimpleAlias(value.AsSpan(), out alias);
+
+    private static bool TryParseSimpleAlias(ReadOnlySpan<char> value, out string alias)
     {
         alias = string.Empty;
         var trimmed = value.Trim();
@@ -209,16 +226,16 @@ internal static class SelectAliasParserHelper
                 return false;
         }
 
-        alias = trimmed;
+        alias = trimmed.ToString();
         return true;
     }
 
     private static bool IsAliasStartChar(char ch)
         => char.IsLetter(ch) || ch == '_';
 
-    private static bool EndsWithOperatorToken(string value)
+    private static bool EndsWithOperatorToken(ReadOnlySpan<char> value)
     {
-        var span = value.AsSpan().TrimEnd();
+        var span = value.TrimEnd();
         if (span.Length == 0)
             return false;
 
@@ -235,10 +252,9 @@ internal static class SelectAliasParserHelper
         return last is '=' or '>' or '<' or '+' or '-' or '*' or '/' or ',';
     }
 
-    private static bool EndsWithNextValueForPattern(string value)
+    private static bool EndsWithNextValueForPattern(ReadOnlySpan<char> value)
     {
-        var span = value.AsSpan();
-        if (!TryPopLastWord(span, out var beforeFor, out var forWord) || !forWord.Equals("FOR", StringComparison.OrdinalIgnoreCase))
+        if (!TryPopLastWord(value, out var beforeFor, out var forWord) || !forWord.Equals("FOR", StringComparison.OrdinalIgnoreCase))
             return false;
 
         if (!TryPopLastWord(beforeFor, out var beforeValue, out var valueWord) || !valueWord.Equals("VALUE", StringComparison.OrdinalIgnoreCase))
@@ -274,7 +290,7 @@ internal static class SelectAliasParserHelper
         return word.Length > 0;
     }
 
-    private static int GetDepthAlias(string raw)
+    private static int GetDepthAlias(ReadOnlySpan<char> raw)
     {
         var depth = 0;
         for (var i = raw.Length - 1; i >= 0; i--)

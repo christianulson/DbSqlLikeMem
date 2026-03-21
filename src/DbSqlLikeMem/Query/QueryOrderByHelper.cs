@@ -19,15 +19,17 @@ internal static class QueryOrderByHelper
         if (keySelectors.Count == 0)
             return false;
 
-        var sortedRows = result.ToList();
+        var sortedRows = new List<Dictionary<int, object?>>(result.Count);
+        for (var i = 0; i < result.Count; i++)
+            sortedRows.Add(result[i]);
         sortedRows.Sort((left, right) => CompareRows(left, right, keySelectors, compareSql));
 
         if (result.JoinFields.Count > 0 && joinFieldsByRow is null)
             joinFieldsByRow = BuildJoinFieldsByRow(result);
 
         result.Clear();
-        foreach (var row in sortedRows)
-            result.Add(row);
+        for (var i = 0; i < sortedRows.Count; i++)
+            result.Add(sortedRows[i]);
 
         if (joinFieldsByRow is not null)
             ReorderJoinFields(result, sortedRows, joinFieldsByRow);
@@ -114,9 +116,17 @@ internal static class QueryOrderByHelper
         out OrderByKeySelector selector)
     {
         selector = default;
-        var column = result.Columns.FirstOrDefault(current =>
-            current.ColumnAlias.Equals(raw, StringComparison.OrdinalIgnoreCase)
-            || current.ColumnName.Equals(raw, StringComparison.OrdinalIgnoreCase));
+        TableResultColMock? column = null;
+        for (var i = 0; i < result.Columns.Count; i++)
+        {
+            var current = result.Columns[i];
+            if (current.ColumnAlias.Equals(raw, StringComparison.OrdinalIgnoreCase)
+                || current.ColumnName.Equals(raw, StringComparison.OrdinalIgnoreCase))
+            {
+                column = current;
+                break;
+            }
+        }
         if (column is null && aliasToIndex.TryGetValue(raw, out var resolvedIndex))
         {
             selector = new OrderByKeySelector(
@@ -226,10 +236,20 @@ internal static class QueryOrderByHelper
         if (result.JoinFields.Count == 0)
             return;
 
-        result.JoinFields = [.. sortedRows
-            .Select(row => joinFieldsByRow.TryGetValue(row, out var joinFields)
-                ? joinFields
-                : new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase))];
+        var reorderedJoinFields = new List<Dictionary<string, object?>>(sortedRows.Count);
+        for (var i = 0; i < sortedRows.Count; i++)
+        {
+            var row = sortedRows[i];
+            if (joinFieldsByRow.TryGetValue(row, out var joinFields))
+            {
+                reorderedJoinFields.Add(joinFields);
+                continue;
+            }
+
+            reorderedJoinFields.Add(new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase));
+        }
+
+        result.JoinFields = reorderedJoinFields;
     }
 
     private static bool IsNullish(object? value)

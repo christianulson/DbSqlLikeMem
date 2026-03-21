@@ -29,44 +29,81 @@ internal static class SqlTemporalFunctionEvaluator
         => !string.IsNullOrWhiteSpace(functionName)
             && KnownTemporalFunctionNames.Contains(functionName);
 
-    public static bool TryEvaluateZeroArgIdentifier(ISqlDialect dialect, string functionName, out object? value)
+    public static bool TryEvaluateZeroArgIdentifier(
+        ISqlDialect dialect,
+        string functionName,
+        DateTime localNow,
+        DateTime utcNow,
+        out object? value)
     {
         value = null;
         if (dialect is null || string.IsNullOrWhiteSpace(functionName))
             return false;
 
-        if (!dialect.TemporalFunctionIdentifierNames.Any(n => n.Equals(functionName, StringComparison.OrdinalIgnoreCase)))
+        var identifierNames = dialect.TemporalFunctionIdentifierNames;
+        var identifierSupported = false;
+        foreach (var name in identifierNames)
+        {
+            if (name.Equals(functionName, StringComparison.OrdinalIgnoreCase))
+            {
+                identifierSupported = true;
+                break;
+            }
+        }
+
+        if (!identifierSupported)
             return false;
 
         if (!dialect.TemporalFunctionNames.TryGetValue(functionName, out var kind))
             return false;
 
-        return TryMapKind(kind, out value);
+        return TryMapKind(kind, localNow, utcNow, out value);
+    }
+
+    public static bool TryEvaluateZeroArgIdentifier(ISqlDialect dialect, string functionName, out object? value)
+        => TryEvaluateZeroArgIdentifier(dialect, functionName, DateTime.Now, DateTime.UtcNow, out value);
+
+    public static bool TryEvaluateZeroArgCall(
+        ISqlDialect dialect,
+        string functionName,
+        DateTime localNow,
+        DateTime utcNow,
+        out object? value)
+    {
+        value = null;
+        if (dialect is null || string.IsNullOrWhiteSpace(functionName))
+            return false;
+
+        var callNames = dialect.TemporalFunctionCallNames;
+        var callSupported = false;
+        foreach (var name in callNames)
+        {
+            if (name.Equals(functionName, StringComparison.OrdinalIgnoreCase))
+            {
+                callSupported = true;
+                break;
+            }
+        }
+
+        if (!callSupported)
+            return false;
+
+        if (!dialect.TemporalFunctionNames.TryGetValue(functionName, out var kind))
+            return false;
+
+        return TryMapKind(kind, localNow, utcNow, out value);
     }
 
     public static bool TryEvaluateZeroArgCall(ISqlDialect dialect, string functionName, out object? value)
+        => TryEvaluateZeroArgCall(dialect, functionName, DateTime.Now, DateTime.UtcNow, out value);
+
+    private static bool TryMapKind(SqlTemporalFunctionKind kind, DateTime localNow, DateTime utcNow, out object? value)
     {
-        value = null;
-        if (dialect is null || string.IsNullOrWhiteSpace(functionName))
-            return false;
-
-        if (!dialect.TemporalFunctionCallNames.Any(n => n.Equals(functionName, StringComparison.OrdinalIgnoreCase)))
-            return false;
-
-        if (!dialect.TemporalFunctionNames.TryGetValue(functionName, out var kind))
-            return false;
-
-        return TryMapKind(kind, out value);
-    }
-
-    private static bool TryMapKind(SqlTemporalFunctionKind kind, out object? value)
-    {
-        var utcNow = DateTime.UtcNow;
         value = kind switch
         {
             SqlTemporalFunctionKind.Date => utcNow.Date,
             SqlTemporalFunctionKind.Time => utcNow.TimeOfDay,
-            SqlTemporalFunctionKind.DateTimeOffset => DateTimeOffset.Now,
+            SqlTemporalFunctionKind.DateTimeOffset => new DateTimeOffset(localNow),
             _ => utcNow,
         };
 

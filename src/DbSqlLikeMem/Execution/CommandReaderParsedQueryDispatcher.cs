@@ -13,7 +13,8 @@ internal static class CommandReaderParsedQueryDispatcher
         Func<SqlDeleteQuery, TableResultMock?>? executeDelete = null,
         Action<SqlMergeQuery>? executeMerge = null)
     {
-        connection.Metrics.IncrementReaderQueryTypeHit(query.GetType().Name);
+        if (connection.Metrics.Enabled)
+            connection.Metrics.IncrementReaderQueryTypeHit(query.GetType().Name);
 
         switch (query)
         {

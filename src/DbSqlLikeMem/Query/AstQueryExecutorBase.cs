@@ -41,6 +41,9 @@ internal abstract class AstQueryExecutorBase(
     private readonly DbConnectionMockBase _cnn = cnn ?? throw new ArgumentNullException(nameof(cnn));
     private readonly IDataParameterCollection _pars = pars ?? throw new ArgumentNullException(nameof(pars));
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, ITableMock> _resolvedBaseTableCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly DateTime _evaluationLocalNow = DateTime.Now;
+    private readonly DateTime _evaluationUtcNow = DateTime.UtcNow;
+    private readonly long _evaluationUnixTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
     private sealed record InSubqueryLookupState(
         List<object?> Values,
@@ -117,7 +120,10 @@ internal abstract class AstQueryExecutorBase(
             if (_frameRangesByRow is null)
             {
                 _frameRangesByRow = new RowsFrameRange[Part.Count];
-                var orderValuesByRow = _spec.OrderBy.Count == 0 ? null : GetRequiredOrderValuesByRow();
+                var needsOrderValues = _spec.Frame is not null
+                    && _spec.Frame.Unit != WindowFrameUnit.Rows
+                    && _spec.OrderBy.Count > 0;
+                var orderValuesByRow = needsOrderValues ? GetRequiredOrderValuesByRow() : null;
                 for (var i = 0; i < Part.Count; i++)
                 {
                     _frameRangesByRow[i] = _owner.ResolveWindowFrameRange(
@@ -163,11 +169,14 @@ internal abstract class AstQueryExecutorBase(
             if (_peerGroups is not null)
                 return _peerGroups;
 
-            var orderValuesByRow = GetRequiredOrderValuesByRow();
             var peerGroups = new List<(int Start, int End)>();
             if (Part.Count == 0)
                 return _peerGroups = peerGroups;
 
+            if (Part.Count == 1)
+                return _peerGroups = [(0, 0)];
+
+            var orderValuesByRow = GetRequiredOrderValuesByRow();
             var start = 0;
             for (var i = 1; i <= Part.Count; i++)
             {
@@ -873,14 +882,36 @@ internal abstract class AstQueryExecutorBase(
 
     private static bool HasPrimaryKeyPrefix(ITableMock table, IReadOnlyList<string> keyCols)
     {
-        if (table.PrimaryKeyIndexes.Count == 0)
+        var primaryKeyIndexes = table.PrimaryKeyIndexes;
+        if (primaryKeyIndexes.Count == 0)
             return false;
 
-        var pkByOrdinal = table.Columns.Values
-            .Where(c => table.PrimaryKeyIndexes.Contains(c.Index))
-            .OrderBy(c => c.Index)
-            .Select(c => c.Name)
-            .ToList();
+        if (table is TableMock tableMock)
+        {
+            var pkIndexArray = tableMock.PkIndexArray;
+            if (pkIndexArray.Length < keyCols.Count)
+                return false;
+
+            for (var i = 0; i < keyCols.Count; i++)
+            {
+                if (!tableMock.ColumnsByIndex.TryGetValue(pkIndexArray[i], out var columnName)
+                    || !string.Equals(columnName, keyCols[i], StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        var pkByOrdinal = new List<string>(primaryKeyIndexes.Count);
+        foreach (var column in table.Columns.Values)
+        {
+            if (!primaryKeyIndexes.Contains(column.Index))
+                continue;
+
+            pkByOrdinal.Add(column.Name);
+        }
 
         if (pkByOrdinal.Count < keyCols.Count)
             return false;
@@ -1106,22 +1137,40 @@ internal abstract class AstQueryExecutorBase(
         tableName = string.Empty;
         columnName = string.Empty;
 
-        var parts = token.Split('.').Select(static p => p.Trim()).Where(static p => p.Length > 0).ToArray();
-        if (parts.Length == 0)
+        var rawParts = token.Split('.');
+        var parts = new List<string>(rawParts.Length);
+        foreach (var part in rawParts)
+        {
+            var trimmed = part.Trim();
+            if (trimmed.Length > 0)
+                parts.Add(trimmed);
+        }
+
+        if (parts.Count == 0)
             return false;
 
-        if (parts.Length == 1)
+        if (parts.Count == 1)
         {
-            var candidates = sourceMap.Values
-                .Where(s => !string.IsNullOrWhiteSpace(s.Name))
-                .Select(s => s.Name!)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
+            string? uniqueTableName = null;
+            foreach (var currentSource in sourceMap.Values)
+            {
+                if (string.IsNullOrWhiteSpace(currentSource.Name))
+                    continue;
 
-            if (candidates.Count != 1)
+                if (uniqueTableName is null)
+                {
+                    uniqueTableName = currentSource.Name;
+                    continue;
+                }
+
+                if (!string.Equals(uniqueTableName, currentSource.Name, StringComparison.OrdinalIgnoreCase))
+                    return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(uniqueTableName))
                 return false;
 
-            tableName = candidates[0];
+            tableName = uniqueTableName!;
             columnName = parts[0];
             return true;
         }
@@ -1147,8 +1196,11 @@ internal abstract class AstQueryExecutorBase(
         var count = 0;
         if (query.Table is not null && HasKnownPhysicalTable(query.Table))
             count++;
-
-        count += query.Joins.Count(j => HasKnownPhysicalTable(j.Table));
+        foreach (var join in query.Joins)
+        {
+            if (HasKnownPhysicalTable(join.Table))
+                count++;
+        }
 
         return count;
     }
@@ -1241,7 +1293,8 @@ internal abstract class AstQueryExecutorBase(
         long total = 0;
 
         total += GetKnownSourceRows(query.Table);
-        total += query.Joins.Sum(j => GetKnownSourceRows(j.Table));
+        foreach (var join in query.Joins)
+            total += GetKnownSourceRows(join.Table);
 
         return total;
     }
@@ -1439,7 +1492,7 @@ internal abstract class AstQueryExecutorBase(
 
         var union = query.Table.DerivedUnion;
         if (union.RowLimit is not null
-            || union.AllFlags.Any(static flag => !flag))
+            || ContainsDistinctUnionFlag(union.AllFlags))
             return false;
 
         long count = 0;
@@ -1475,6 +1528,17 @@ internal abstract class AstQueryExecutorBase(
         }
 
         return true;
+    }
+
+    private static bool ContainsDistinctUnionFlag(IReadOnlyList<bool> allFlags)
+    {
+        for (var i = 0; i < allFlags.Count; i++)
+        {
+            if (!allFlags[i])
+                return true;
+        }
+
+        return false;
     }
 
     private bool TryEvaluateSimpleStringAggregate(
@@ -1644,7 +1708,11 @@ internal abstract class AstQueryExecutorBase(
         count = 0;
 
         var src = ResolveSource(query.Table!, ctes);
-        if (src.Physical is not TableMock tableMock || tableMock.PrimaryKeyIndexes.Count == 0)
+        if (src.Physical is not TableMock tableMock)
+            return false;
+
+        var primaryKeyIndexes = tableMock.PrimaryKeyIndexes;
+        if (primaryKeyIndexes.Count == 0)
             return false;
 
         var hintPlan = BuildMySqlIndexHintPlan(query.Table!.MySqlIndexHints, src.Physical, hasOrderBy: query.OrderBy.Count > 0, hasGroupBy: false);
@@ -1654,14 +1722,13 @@ internal abstract class AstQueryExecutorBase(
         if (!TryCollectColumnEqualities(query.Where!, src, out var equalsByColumn))
             return false;
 
-        var pkValues = new Dictionary<int, object?>();
-        foreach (var pkIdx in tableMock.PrimaryKeyIndexes)
+        var pkValues = new Dictionary<int, object?>(primaryKeyIndexes.Count);
+        foreach (var pkIdx in primaryKeyIndexes)
         {
-            var pkColumn = tableMock.Columns.FirstOrDefault(col => col.Value.Index == pkIdx);
-            if (string.IsNullOrWhiteSpace(pkColumn.Key))
+            if (!tableMock.ColumnsByIndex.TryGetValue(pkIdx, out var pkColumnName))
                 return false;
 
-            var normalizedColumn = pkColumn.Key.NormalizeName();
+            var normalizedColumn = pkColumnName.NormalizeName();
             if (!equalsByColumn.TryGetValue(normalizedColumn, out var value))
                 return false;
 
@@ -1669,7 +1736,8 @@ internal abstract class AstQueryExecutorBase(
         }
 
         TryRecordPrimaryKeyHintMetric(tableMock, hintPlan);
-        _cnn.Metrics.IndexLookups++;
+        if (_cnn.Metrics.Enabled)
+            _cnn.Metrics.IndexLookups++;
         count = tableMock.TryFindRowByPk(pkValues, out _)
             ? 1
             : 0;
@@ -1685,21 +1753,25 @@ internal abstract class AstQueryExecutorBase(
         var sourceRows = rows as List<EvalRow> ?? [.. rows];
         var keyExprs = BuildGroupByKeyExpressions(q);
 
-        var groupStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
-        var grouped = sourceRows.GroupBy(
-            r => new GroupKey([.. keyExprs.Select(e => Eval(e, r, group: null, ctes))]),
-            GroupKey.Comparer);
-        if (debugTrace is not null)
+        GroupKey BuildGroupKey(EvalRow row)
         {
-            var groupedList = grouped.ToList();
-            debugTrace.AddStep(
-                "Group",
-                sourceRows.Count,
-                groupedList.Count,
-                TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(groupStart)),
-                QueryDebugTraceFormattingHelper.FormatGroupDebugDetails(q));
-            grouped = groupedList;
+            var values = new object?[keyExprs.Length];
+            for (var i = 0; i < keyExprs.Length; i++)
+                values[i] = Eval(keyExprs[i], row, group: null, ctes);
+
+            return new GroupKey(values);
         }
+
+        var groupStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
+        var grouped = MaterializeGroups(sourceRows.GroupBy(
+            r => BuildGroupKey(r),
+            GroupKey.Comparer));
+        debugTrace?.AddStep(
+            "Group",
+            sourceRows.Count,
+            grouped.Count,
+            TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(groupStart)),
+            QueryDebugTraceFormattingHelper.FormatGroupDebugDetails(q));
 
         // HAVING filter (MySQL: HAVING pode referenciar alias do SELECT)
         if (q.Having is null)
@@ -1709,51 +1781,43 @@ internal abstract class AstQueryExecutorBase(
         }
 
         // pré-parse das expressões do SELECT que têm Alias (ex: COUNT(val) AS C)
-        var aliasExprs = q.SelectItems
-            .Select(si =>
-            {
-                // pega alias mesmo se o parser não preencheu si.Alias
-                var (exprRaw, alias) = SplitTrailingAsAlias(si.Raw, si.Alias);
-                if (string.IsNullOrWhiteSpace(alias))
-                    return ((string Alias, SqlExpr Ast)?)null;
+        var aliasExprs = new List<(string Alias, SqlExpr Ast)>(q.SelectItems.Count);
+        for (var i = 0; i < q.SelectItems.Count; i++)
+        {
+            var selectItem = q.SelectItems[i];
 
-                SqlExpr ast;
+            // pega alias mesmo se o parser não preencheu si.Alias
+            var (exprRaw, alias) = SplitTrailingAsAlias(selectItem.Raw, selectItem.Alias);
+            if (string.IsNullOrWhiteSpace(alias))
+                continue;
+
+            SqlExpr ast;
 #pragma warning disable CA1031 // Do not catch general exception types
-                try { ast = ParseExpr(exprRaw); }
-                catch (Exception e)
-                {
+            try { ast = ParseExpr(exprRaw); }
+            catch (Exception e)
+            {
 #pragma warning disable CA1303
-                    Console.WriteLine($"{GetType().Name}.{nameof(ExecuteSelect)}");
+                Console.WriteLine($"{GetType().Name}.{nameof(ExecuteSelect)}");
 #pragma warning restore CA1303
-                    Console.WriteLine(e);
-                    ast = new RawSqlExpr(exprRaw);
-                }
+                Console.WriteLine(e);
+                ast = new RawSqlExpr(exprRaw);
+            }
 #pragma warning restore CA1031
 
-                return (Alias: alias!, Ast: ast);
-            })
-            .Where(x => x.HasValue)
-            .Select(x => x!.Value)
-            .ToList();
+            aliasExprs.Add((alias!, ast));
+        }
 
         var havingExpr = NormalizeHavingExpression(q.Having, q);
 
         var havingStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
-        var inputGroups = debugTrace is not null
-            ? (grouped as ICollection<IGrouping<GroupKey, EvalRow>>)?.Count ?? grouped.Count()
-            : 0;
+        var inputGroups = grouped.Count;
         grouped = ApplyHavingPredicate(grouped, havingExpr, aliasExprs, ctes);
-        if (debugTrace is not null)
-        {
-            var filteredGroups = grouped.ToList();
-            debugTrace.AddStep(
-                "Having",
-                inputGroups,
-                filteredGroups.Count,
-                TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(havingStart)),
-                SqlExprPrinter.Print(q.Having));
-            grouped = filteredGroups;
-        }
+        debugTrace?.AddStep(
+            "Having",
+            inputGroups,
+            grouped.Count,
+            TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(havingStart)),
+            SqlExprPrinter.Print(q.Having));
 
         // Project grouped
         return ProjectGrouped(q, grouped, ctes, debugTrace);
@@ -1766,25 +1830,41 @@ internal abstract class AstQueryExecutorBase(
         IDictionary<string, Source> ctes)
         => rows.Where(r => Eval(predicate, r, group: null, ctes).ToBool());
 
-    private IEnumerable<IGrouping<GroupKey, EvalRow>> ApplyHavingPredicate(
-        IEnumerable<IGrouping<GroupKey, EvalRow>> grouped,
+    private List<MaterializedGroup> ApplyHavingPredicate(
+        IReadOnlyList<MaterializedGroup> grouped,
         SqlExpr havingExpr,
         IReadOnlyList<(string Alias, SqlExpr Ast)> aliasExprs,
         IDictionary<string, Source> ctes)
-        => grouped.Where(g =>
+    {
+        if (grouped.Count == 0)
+            return [];
+
+        var filtered = new List<MaterializedGroup>(grouped.Count);
+
+        var firstGroup = grouped[0];
+        var firstEvalCtx = BuildHavingEvaluationContext(firstGroup, aliasExprs, ctes, out var firstEvalGroup);
+        EnsureHavingIdentifiersAreBound(havingExpr, firstEvalCtx, Dialect!);
+        if (Eval(havingExpr, firstEvalCtx, firstEvalGroup, ctes).ToBool())
+            filtered.Add(firstGroup);
+
+        for (var i = 1; i < grouped.Count; i++)
         {
-            var evalCtx = BuildHavingEvaluationContext(g, aliasExprs, ctes, out var evalGroup);
-            EnsureHavingIdentifiersAreBound(havingExpr, evalCtx, Dialect!);
-            return Eval(havingExpr, evalCtx, evalGroup, ctes).ToBool();
-        });
+            var group = grouped[i];
+            var evalCtx = BuildHavingEvaluationContext(group, aliasExprs, ctes, out var evalGroup);
+            if (Eval(havingExpr, evalCtx, evalGroup, ctes).ToBool())
+                filtered.Add(group);
+        }
+
+        return filtered;
+    }
 
     private EvalRow BuildHavingEvaluationContext(
-        IGrouping<GroupKey, EvalRow> grouped,
+        MaterializedGroup grouped,
         IReadOnlyList<(string Alias, SqlExpr Ast)> aliasExprs,
         IDictionary<string, Source> ctes,
         out EvalGroup evalGroup)
     {
-        var rows = grouped.ToList();
+        var rows = grouped.Rows;
         evalGroup = new EvalGroup(rows);
         var first = rows[0];
 
@@ -1865,24 +1945,49 @@ internal abstract class AstQueryExecutorBase(
         switch (expr)
         {
             case IdentifierExpr id:
-                return dialect.TemporalFunctionIdentifierNames.Any(name =>
-                    name.Equals(id.Name, StringComparison.OrdinalIgnoreCase));
+                foreach (var name in dialect.TemporalFunctionIdentifierNames)
+                {
+                    if (name.Equals(id.Name, StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+
+                return false;
 
             case FunctionCallExpr fn:
-                if (fn.Args.Count == 0 && dialect.TemporalFunctionCallNames.Any(name =>
-                        name.Equals(fn.Name, StringComparison.OrdinalIgnoreCase)))
+                if (fn.Args.Count == 0)
                 {
-                    return true;
+                    foreach (var name in dialect.TemporalFunctionCallNames)
+                    {
+                        if (name.Equals(fn.Name, StringComparison.OrdinalIgnoreCase))
+                            return true;
+                    }
                 }
-                return fn.Args.Any(arg => WalkHasTemporalHavingReference(arg, dialect));
+
+                foreach (var arg in fn.Args)
+                {
+                    if (WalkHasTemporalHavingReference(arg, dialect))
+                        return true;
+                }
+
+                return false;
 
             case CallExpr call:
-                if (call.Args.Count == 0 && dialect.TemporalFunctionCallNames.Any(name =>
-                        name.Equals(call.Name, StringComparison.OrdinalIgnoreCase)))
+                if (call.Args.Count == 0)
                 {
-                    return true;
+                    foreach (var name in dialect.TemporalFunctionCallNames)
+                    {
+                        if (name.Equals(call.Name, StringComparison.OrdinalIgnoreCase))
+                            return true;
+                    }
                 }
-                return call.Args.Any(arg => WalkHasTemporalHavingReference(arg, dialect));
+
+                foreach (var arg in call.Args)
+                {
+                    if (WalkHasTemporalHavingReference(arg, dialect))
+                        return true;
+                }
+
+                return false;
 
             case BinaryExpr b:
                 return WalkHasTemporalHavingReference(b.Left, dialect)
@@ -1902,10 +2007,23 @@ internal abstract class AstQueryExecutorBase(
             case InExpr i:
                 if (WalkHasTemporalHavingReference(i.Left, dialect))
                     return true;
-                return i.Items.Any(item => WalkHasTemporalHavingReference(item, dialect));
+
+                foreach (var item in i.Items)
+                {
+                    if (WalkHasTemporalHavingReference(item, dialect))
+                        return true;
+                }
+
+                return false;
 
             case RowExpr r:
-                return r.Items.Any(item => WalkHasTemporalHavingReference(item, dialect));
+                foreach (var item in r.Items)
+                {
+                    if (WalkHasTemporalHavingReference(item, dialect))
+                        return true;
+                }
+
+                return false;
 
             case BetweenExpr bt:
                 return WalkHasTemporalHavingReference(bt.Expr, dialect)
@@ -2103,7 +2221,15 @@ internal abstract class AstQueryExecutorBase(
     /// <param name="dialect">EN: Active SQL dialect. PT: Dialeto SQL ativo.</param>
     /// <returns>EN: True when identifier is a dialect temporal token allowed without projection binding. PT: True quando o identificador é token temporal do dialeto permitido sem binding de projeção.</returns>
     private static bool IsHavingTemporalIdentifier(string name, ISqlDialect dialect)
-        => dialect.TemporalFunctionIdentifierNames.Any(token => token.Equals(name, StringComparison.OrdinalIgnoreCase));
+    {
+        foreach (var token in dialect.TemporalFunctionIdentifierNames)
+        {
+            if (token.Equals(name, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
+    }
 
     private static bool IsIdentifierBound(EvalRow row, string name)
     {
@@ -2443,17 +2569,20 @@ internal abstract class AstQueryExecutorBase(
     {
         rows = null;
 
-        if (src.Physical is not TableMock tableMock || tableMock.PrimaryKeyIndexes.Count == 0)
+        if (src.Physical is not TableMock tableMock)
             return false;
 
-        var pkValues = new Dictionary<int, object?>();
-        foreach (var pkIdx in tableMock.PrimaryKeyIndexes)
+        var primaryKeyIndexes = tableMock.PrimaryKeyIndexes;
+        if (primaryKeyIndexes.Count == 0)
+            return false;
+
+        var pkValues = new Dictionary<int, object?>(primaryKeyIndexes.Count);
+        foreach (var pkIdx in primaryKeyIndexes)
         {
-            var pkColumn = tableMock.Columns.FirstOrDefault(col => col.Value.Index == pkIdx);
-            if (string.IsNullOrWhiteSpace(pkColumn.Key))
+            if (!tableMock.ColumnsByIndex.TryGetValue(pkIdx, out var pkColumnName))
                 return false;
 
-            var normalizedColumn = pkColumn.Key.NormalizeName();
+            var normalizedColumn = pkColumnName.NormalizeName();
             if (!equalsByColumn.TryGetValue(normalizedColumn, out var value))
                 return false;
 
@@ -2461,14 +2590,15 @@ internal abstract class AstQueryExecutorBase(
         }
 
         TryRecordPrimaryKeyHintMetric(tableMock, hintPlan);
-        _cnn.Metrics.IndexLookups++;
+        if (_cnn.Metrics.Enabled)
+            _cnn.Metrics.IndexLookups++;
         if (!tableMock.TryFindRowByPk(pkValues, out var rowIndex))
         {
             rows = [];
             return true;
         }
 
-        rows = src.RowsByIndexes([rowIndex]);
+        rows = src.RowsByIndexes(rowIndex);
         return true;
     }
 
@@ -2483,53 +2613,62 @@ internal abstract class AstQueryExecutorBase(
         if (hints is null || hints.Count == 0)
             return null;
 
-        var allIndexes = table.Indexes.Values.ToList();
-        var existingIndexNames = allIndexes
-            .Select(static ix => ix.Name.NormalizeName())
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var allIndexes = table.Indexes.Values;
+        var existingIndexNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var index in allIndexes)
+            existingIndexNames.Add(index.Name.NormalizeName());
 
         var primaryEquivalentIndexNames = ResolvePrimaryEquivalentIndexNames(table, allIndexes);
 
-        var forceHintsToValidate = hints
-            .Where(hint => hint.Kind == SqlMySqlIndexHintKind.Force
+        var missingForced = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var allowedNames = new HashSet<string>(existingIndexNames, StringComparer.OrdinalIgnoreCase);
+        var hasRowAccessHints = false;
+
+        foreach (var hint in hints)
+        {
+            var appliesToForce = hint.Kind == SqlMySqlIndexHintKind.Force
                 && (hint.Scope == SqlMySqlIndexHintScope.Any
                     || hint.Scope == SqlMySqlIndexHintScope.Join
                     || (hint.Scope == SqlMySqlIndexHintScope.OrderBy && hasOrderBy)
-                    || (hint.Scope == SqlMySqlIndexHintScope.GroupBy && hasGroupBy)))
-            .ToList();
+                    || (hint.Scope == SqlMySqlIndexHintScope.GroupBy && hasGroupBy));
 
-        var missingForced = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var hint in forceHintsToValidate)
-        {
-            var normalizedNames = ExpandHintIndexNames(hint.IndexNames, primaryEquivalentIndexNames)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var item in normalizedNames)
+            if (appliesToForce)
             {
-                if (!existingIndexNames.Contains(item))
-                    missingForced.Add(item);
+                var normalizedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var item in ExpandHintIndexNames(hint.IndexNames, primaryEquivalentIndexNames))
+                    normalizedNames.Add(item);
+
+                foreach (var item in normalizedNames)
+                {
+                    if (!existingIndexNames.Contains(item))
+                        missingForced.Add(item);
+                }
+            }
+
+            if (hint.Scope is SqlMySqlIndexHintScope.Any or SqlMySqlIndexHintScope.Join)
+            {
+                hasRowAccessHints = true;
+
+                var normalizedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var item in ExpandHintIndexNames(hint.IndexNames, primaryEquivalentIndexNames))
+                    normalizedNames.Add(item);
+
+                if (hint.Kind is SqlMySqlIndexHintKind.Use or SqlMySqlIndexHintKind.Force)
+                {
+                    allowedNames.IntersectWith(normalizedNames);
+                }
+                else if (hint.Kind == SqlMySqlIndexHintKind.Ignore)
+                {
+                    allowedNames.ExceptWith(normalizedNames);
+                }
             }
         }
 
-        var joinScopeHints = hints.Where(static h => h.Scope is SqlMySqlIndexHintScope.Any or SqlMySqlIndexHintScope.Join).ToList();
-        var allowedNames = new HashSet<string>(existingIndexNames, StringComparer.OrdinalIgnoreCase);
-
-        foreach (var hint in joinScopeHints)
-        {
-            var normalizedNames = ExpandHintIndexNames(hint.IndexNames, primaryEquivalentIndexNames)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-            if (hint.Kind is SqlMySqlIndexHintKind.Use or SqlMySqlIndexHintKind.Force)
-            {
-                allowedNames.IntersectWith(normalizedNames);
-            }
-            else if (hint.Kind == SqlMySqlIndexHintKind.Ignore)
-            {
-                allowedNames.ExceptWith(normalizedNames);
-            }
-        }
-
-        return new MySqlIndexHintPlan(allowedNames, missingForced, joinScopeHints.Count > 0);
+        return new MySqlIndexHintPlan(
+            allowedNames,
+            missingForced,
+            hasRowAccessHints,
+            primaryEquivalentIndexNames);
     }
 
 
@@ -2559,13 +2698,35 @@ internal abstract class AstQueryExecutorBase(
 
     private static IReadOnlyHashSet<string> ResolvePrimaryEquivalentIndexNames(
         ITableMock table,
-        IReadOnlyList<IndexDef> allIndexes)
+        IEnumerable<IndexDef> allIndexes)
     {
-        var pkColumnNames = table.PrimaryKeyIndexes
-            .Select(pkIdx => table.Columns.FirstOrDefault(col => col.Value.Index == pkIdx).Key)
-            .Where(static name => !string.IsNullOrWhiteSpace(name))
-            .Select(static name => name!.NormalizeName())
-            .ToList();
+        var primaryKeyIndexes = table.PrimaryKeyIndexes;
+        var pkColumnNames = new List<string>(primaryKeyIndexes.Count);
+        if (table is TableMock tableMock)
+        {
+            foreach (var pkIdx in tableMock.PkIndexArray)
+            {
+                if (!tableMock.ColumnsByIndex.TryGetValue(pkIdx, out var pkColumnName))
+                    continue;
+
+                pkColumnNames.Add(pkColumnName.NormalizeName());
+            }
+        }
+        else
+        {
+            foreach (var pkIdx in primaryKeyIndexes)
+            {
+                foreach (var column in table.Columns)
+                {
+                    if (column.Value.Index != pkIdx)
+                        continue;
+
+                    if (!string.IsNullOrWhiteSpace(column.Key))
+                        pkColumnNames.Add(column.Key.NormalizeName());
+                    break;
+                }
+            }
+        }
 
         if (pkColumnNames.Count == 0)
             return new ReadOnlyHashSet<string>();
@@ -2576,8 +2737,20 @@ internal abstract class AstQueryExecutorBase(
             if (index.KeyCols.Count != pkColumnNames.Count)
                 continue;
 
-            var indexCols = index.KeyCols.Select(static col => col.NormalizeName()).ToList();
-            if (indexCols.SequenceEqual(pkColumnNames))
+            var matches = true;
+            var pkOrdinal = 0;
+            foreach (var col in index.KeyCols)
+            {
+                if (!string.Equals(col.NormalizeName(), pkColumnNames[pkOrdinal], StringComparison.OrdinalIgnoreCase))
+                {
+                    matches = false;
+                    break;
+                }
+
+                pkOrdinal++;
+            }
+
+            if (matches)
                 primaryEquivalent.Add(index.Name.NormalizeName());
         }
 
@@ -2588,17 +2761,24 @@ internal abstract class AstQueryExecutorBase(
         ITableMock table,
         MySqlIndexHintPlan? hintPlan)
     {
-        if (hintPlan is null)
+        if (hintPlan is null || !_cnn.Metrics.Enabled)
             return;
 
-        var allIndexes = table.Indexes.Values.ToList();
         if (!hintPlan.HasRowAccessHints)
             return;
 
-        var hintedPrimaryEquivalent = ResolvePrimaryEquivalentIndexNames(table, allIndexes)
-            .FirstOrDefault(hintPlan.AllowedIndexNames.Contains);
+        string? hintedPrimaryEquivalent = null;
+        foreach (var item in hintPlan.PrimaryEquivalentIndexNames)
+        {
+            if (!hintPlan.AllowedIndexNames.Contains(item))
+                continue;
+
+            hintedPrimaryEquivalent = item;
+            break;
+        }
+
         if (!string.IsNullOrWhiteSpace(hintedPrimaryEquivalent))
-            _cnn.Metrics.IncrementIndexHint(hintedPrimaryEquivalent);
+            _cnn.Metrics.IncrementIndexHint(hintedPrimaryEquivalent!);
     }
 
     private IReadOnlyDictionary<int, Dictionary<string, object?>>? LookupIndexWithMetrics(
@@ -2606,8 +2786,12 @@ internal abstract class AstQueryExecutorBase(
         IndexDef indexDef,
         IndexKey key)
     {
-        _cnn.Metrics.IndexLookups++;
-        _cnn.Metrics.IncrementIndexHint(indexDef.Name.NormalizeName());
+        if (_cnn.Metrics.Enabled)
+        {
+            _cnn.Metrics.IndexLookups++;
+            _cnn.Metrics.IncrementIndexHint(indexDef.Name.NormalizeName());
+        }
+
         return indexDef.LookupMutable(key);
     }
 
@@ -2616,7 +2800,7 @@ internal abstract class AstQueryExecutorBase(
         Source src,
         out Dictionary<string, object?> equalsByColumn)
     {
-        equalsByColumn = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        equalsByColumn = new Dictionary<string, object?>(4, StringComparer.OrdinalIgnoreCase);
         return Walk(where, ref equalsByColumn);
 
         bool Walk(SqlExpr expr, ref Dictionary<string, object?> eqCol)
@@ -2644,7 +2828,7 @@ internal abstract class AstQueryExecutorBase(
         TableMock tableMock,
         out List<object?> rawValues)
     {
-        rawValues = [];
+        rawValues = new List<object?>(4);
         if (!tableMock.TryGetPartitionedColumnName(out var partitionedColumnName))
             return false;
 
@@ -2654,8 +2838,8 @@ internal abstract class AstQueryExecutorBase(
         {
             if (expr is BinaryExpr andExpr && andExpr.Op == SqlBinaryOp.And)
             {
-                var leftValues = new List<object?>();
-                var rightValues = new List<object?>();
+                var leftValues = new List<object?>(4);
+                var rightValues = new List<object?>(4);
                 var leftOk = Walk(andExpr.Left, ref leftValues);
                 var rightOk = Walk(andExpr.Right, ref rightValues);
 
@@ -2668,8 +2852,8 @@ internal abstract class AstQueryExecutorBase(
 
             if (expr is BinaryExpr orExpr && orExpr.Op == SqlBinaryOp.Or)
             {
-                var leftValues = new List<object?>();
-                var rightValues = new List<object?>();
+                var leftValues = new List<object?>(4);
+                var rightValues = new List<object?>(4);
                 var leftOk = Walk(orExpr.Left, ref leftValues);
                 var rightOk = Walk(orExpr.Right, ref rightValues);
 
@@ -2699,7 +2883,7 @@ internal abstract class AstQueryExecutorBase(
         string partitionedColumnName,
         out List<object?> values)
     {
-        values = [];
+        values = new List<object?>(1);
 
         if (expr is BinaryExpr eq && eq.Op == SqlBinaryOp.Eq)
         {
@@ -2846,7 +3030,7 @@ internal abstract class AstQueryExecutorBase(
         TableMock tableMock,
         out List<(object? Low, object? High)> rangeValues)
     {
-        rangeValues = [];
+        rangeValues = new List<(object? Low, object? High)>(4);
         if (!tableMock.TryGetPartitionedColumnName(out var partitionedColumnName))
             return false;
 
@@ -2856,8 +3040,8 @@ internal abstract class AstQueryExecutorBase(
         {
             if (expr is BinaryExpr andExpr && andExpr.Op == SqlBinaryOp.And)
             {
-                var leftValues = new List<(object? Low, object? High)>();
-                var rightValues = new List<(object? Low, object? High)>();
+                var leftValues = new List<(object? Low, object? High)>(4);
+                var rightValues = new List<(object? Low, object? High)>(4);
                 var leftOk = Walk(andExpr.Left, ref leftValues);
                 var rightOk = Walk(andExpr.Right, ref rightValues);
 
@@ -2870,8 +3054,8 @@ internal abstract class AstQueryExecutorBase(
 
             if (expr is BinaryExpr orExpr && orExpr.Op == SqlBinaryOp.Or)
             {
-                var leftValues = new List<(object? Low, object? High)>();
-                var rightValues = new List<(object? Low, object? High)>();
+                var leftValues = new List<(object? Low, object? High)>(4);
+                var rightValues = new List<(object? Low, object? High)>(4);
                 var leftOk = Walk(orExpr.Left, ref leftValues);
                 var rightOk = Walk(orExpr.Right, ref rightValues);
 
@@ -2907,7 +3091,7 @@ internal abstract class AstQueryExecutorBase(
         TableMock tableMock,
         out List<(object? Low, object? High)> ranges)
     {
-        ranges = [];
+        ranges = new List<(object? Low, object? High)>(4);
         if (!tableMock.TryGetPartitionedColumnName(out var partitionedColumnName))
             return false;
 
@@ -2917,8 +3101,8 @@ internal abstract class AstQueryExecutorBase(
         {
             if (expr is BinaryExpr orExpr && orExpr.Op == SqlBinaryOp.Or)
             {
-                var leftValues = new List<(object? Low, object? High)>();
-                var rightValues = new List<(object? Low, object? High)>();
+                var leftValues = new List<(object? Low, object? High)>(4);
+                var rightValues = new List<(object? Low, object? High)>(4);
                 var leftOk = Walk(orExpr.Left, ref leftValues);
                 var rightOk = Walk(orExpr.Right, ref rightValues);
 
@@ -3323,10 +3507,21 @@ internal abstract class AstQueryExecutorBase(
                         && !c.Equals(aggregateArgNormalized, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
-        static string BuildGroupKey(EvalRow row, IEnumerable<string> columns)
-            => string.Join("", columns.Select(c => row.GetByName(c)?.ToString() ?? "<null>"));
+        static string BuildPivotGroupKey(EvalRow row, IReadOnlyList<string> columns)
+        {
+            var builder = new StringBuilder(columns.Count * 8);
+            for (var i = 0; i < columns.Count; i++)
+            {
+                if (i > 0)
+                    builder.Append('\u001F');
 
-        var grouped = inputRows.GroupBy(r => BuildGroupKey(r, groupColumns)).ToList();
+                builder.Append(row.GetByName(columns[i])?.ToString() ?? "<null>");
+            }
+
+            return builder.ToString();
+        }
+
+        var grouped = inputRows.GroupBy(r => BuildPivotGroupKey(r, groupColumns)).ToList();
         var result = new TableResultMock();
 
         for (int i = 0; i < groupColumns.Count; i++)
@@ -3555,7 +3750,7 @@ internal abstract class AstQueryExecutorBase(
 
         foreach (var item in unpivot.InItems)
         {
-            if (!source.ColumnNames.Any(column => column.Equals(item.SourceColumnName, StringComparison.OrdinalIgnoreCase)))
+            if (!source.ContainsColumnName(item.SourceColumnName))
                 throw new InvalidOperationException($"UNPIVOT source column '{item.SourceColumnName}' was not found in the input rowset.");
         }
 
@@ -3762,25 +3957,32 @@ internal abstract class AstQueryExecutorBase(
 
     private TableResultMock ProjectGrouped(
         SqlSelectQuery q,
-        IEnumerable<IGrouping<GroupKey, EvalRow>> groups,
+        IReadOnlyList<MaterializedGroup> groups,
         IDictionary<string, Source> ctes,
         QueryDebugTraceBuilder? debugTrace = null)
     {
         var projectStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
         var res = new TableResultMock();
-        var groupsList = groups.Select(g => new { g.Key, Rows = g.ToList() }).ToList();
+        var groupsList = groups as List<MaterializedGroup> ?? new List<MaterializedGroup>(groups);
         var hasGroups = groupsList.Count > 0;
 
         // SQL aggregate semantics: when no GROUP BY is present and the filtered input is empty,
         // aggregate projections (e.g. COUNT(*)) still return a single row.
         if (!hasGroups && q.GroupBy.Count == 0)
-            groupsList.Add(new { Key = default(GroupKey), Rows = new List<EvalRow>() });
+            groupsList.Add(new MaterializedGroup(default, new List<EvalRow>()));
+
+        var representativeRows = hasGroups
+            ? new List<EvalRow>(groupsList.Count)
+            : [];
+        if (hasGroups)
+        {
+            for (var i = 0; i < groupsList.Count; i++)
+                representativeRows.Add(groupsList[i].Rows[0]);
+        }
 
         var selectPlan = BuildSelectPlan(
             q,
-            hasGroups
-                ? groupsList.ConvertAll(g => g.Rows[0])
-                : [],
+            representativeRows,
             ctes);
 
         // columns
@@ -3944,9 +4146,13 @@ internal abstract class AstQueryExecutorBase(
             return;
 
         var valueExpr = windowFunctionExpr.Args[0];
+        var valueSelector = TryCreateWindowValueSelector(valueExpr, part[0]);
         if (windowFunctionExpr.Spec.Frame is null || partitionContext.CoversWholePartition())
         {
-            var value = Eval(valueExpr, part[fillLast ? part.Count - 1 : 0], null, ctes);
+            var targetRow = part[fillLast ? part.Count - 1 : 0];
+            var value = valueSelector is null
+                ? Eval(valueExpr, targetRow, null, ctes)
+                : valueSelector(targetRow);
             foreach (var row in part)
                 map[row] = value;
 
@@ -3966,7 +4172,9 @@ internal abstract class AstQueryExecutorBase(
             var targetIndex = fillLast ? frameRange.EndIndex : frameRange.StartIndex;
             if (!valuesByTargetIndex.TryGetValue(targetIndex, out var value))
             {
-                value = Eval(valueExpr, part[targetIndex], null, ctes);
+                value = valueSelector is null
+                    ? Eval(valueExpr, part[targetIndex], null, ctes)
+                    : valueSelector(part[targetIndex]);
                 valuesByTargetIndex[targetIndex] = value;
             }
 
@@ -3990,6 +4198,7 @@ internal abstract class AstQueryExecutorBase(
             return;
 
         var valueExpr = windowFunctionExpr.Args[0];
+        var valueSelector = TryCreateWindowValueSelector(valueExpr, part[0]);
         var nth = ResolveNthValueIndex(windowFunctionExpr.Args, part[0], ctes);
         if (nth <= 0)
             return;
@@ -3998,7 +4207,9 @@ internal abstract class AstQueryExecutorBase(
         {
             var targetIndex = nth - 1;
             var value = targetIndex < part.Count
-                ? Eval(valueExpr, part[targetIndex], null, ctes)
+                ? valueSelector is null
+                    ? Eval(valueExpr, part[targetIndex], null, ctes)
+                    : valueSelector(part[targetIndex])
                 : null;
             foreach (var row in part)
                 map[row] = value;
@@ -4025,7 +4236,9 @@ internal abstract class AstQueryExecutorBase(
 
             if (!valuesByTargetIndex.TryGetValue(targetIndex, out var value))
             {
-                value = Eval(valueExpr, part[targetIndex], null, ctes);
+                value = valueSelector is null
+                    ? Eval(valueExpr, part[targetIndex], null, ctes)
+                    : valueSelector(part[targetIndex]);
                 valuesByTargetIndex[targetIndex] = value;
             }
 
@@ -4172,17 +4385,50 @@ internal abstract class AstQueryExecutorBase(
         var valueExpr = windowFunctionExpr.Args[0];
         var offset = ResolveLagLeadOffset(windowFunctionExpr.Args, part[0], ctes);
         var defaultExpr = windowFunctionExpr.Args.Count >= 3 ? windowFunctionExpr.Args[2] : null;
-        var hasExplicitFrame = windowFunctionExpr.Spec.Frame is not null;
+        var valueSelector = TryCreateWindowValueSelector(valueExpr, part[0]);
+        var hasWholePartitionFrame = windowFunctionExpr.Spec.Frame is null || partitionContext.CoversWholePartition();
 
-        if (!hasExplicitFrame)
+        if (hasWholePartitionFrame)
         {
+            if (offset == 0)
+            {
+                foreach (var currentRow in part)
+                    map[currentRow] = valueSelector is null
+                        ? Eval(valueExpr, currentRow, null, ctes)
+                        : valueSelector(currentRow);
+
+                return;
+            }
+
             for (int i = 0; i < part.Count; i++)
             {
                 var targetIndex = fillLead ? i + offset : i - offset;
                 var currentRow = part[i];
                 map[currentRow] = targetIndex >= 0 && targetIndex < part.Count
-                    ? Eval(valueExpr, part[targetIndex], null, ctes)
+                    ? valueSelector is null
+                        ? Eval(valueExpr, part[targetIndex], null, ctes)
+                        : valueSelector(part[targetIndex])
                     : defaultExpr is null ? null : Eval(defaultExpr, currentRow, null, ctes);
+            }
+
+            return;
+        }
+
+        if (offset == 0)
+        {
+            for (int i = 0; i < part.Count; i++)
+            {
+                var currentRow = part[i];
+                var frameRange = partitionContext.GetFrameRange(i);
+                if (frameRange.IsEmpty || i < frameRange.StartIndex || i > frameRange.EndIndex)
+                {
+                    map[currentRow] = defaultExpr is null ? null : Eval(defaultExpr, currentRow, null, ctes);
+                    continue;
+                }
+
+                map[currentRow] = valueSelector is null
+                    ? Eval(valueExpr, currentRow, null, ctes)
+                    : valueSelector(currentRow);
             }
 
             return;
@@ -4196,13 +4442,81 @@ internal abstract class AstQueryExecutorBase(
 
             if (!frameRange.IsEmpty && targetIndex >= frameRange.StartIndex && targetIndex <= frameRange.EndIndex)
             {
-                map[currentRow] = Eval(valueExpr, part[targetIndex], null, ctes);
+                map[currentRow] = valueSelector is null
+                    ? Eval(valueExpr, part[targetIndex], null, ctes)
+                    : valueSelector(part[targetIndex]);
                 continue;
             }
 
             map[currentRow] = defaultExpr is null ? null : Eval(defaultExpr, currentRow, null, ctes);
         }
     }
+
+    /// <summary>
+    /// EN: Builds a direct value accessor for simple window-value references when the row shape is unambiguous.
+    /// PT: Monta um acesso direto ao valor para referencias simples de janela quando a forma da linha e inequivoca.
+    /// </summary>
+    private Func<EvalRow, object?>? TryCreateWindowValueSelector(
+        SqlExpr valueExpr,
+        EvalRow sampleRow)
+    {
+        if (valueExpr is IdentifierExpr identifier)
+        {
+            if (Dialect is null
+                || IsReservedWindowValueIdentifier(identifier.Name)
+                || !sampleRow.TryGetSingleSource(out var singleSource)
+                || singleSource is null
+                || !singleSource.ContainsColumnName(identifier.Name))
+            {
+                return null;
+            }
+
+            var columnName = identifier.Name;
+            return row => row.GetByName(columnName);
+        }
+
+        if (valueExpr is ColumnExpr column)
+        {
+            if (string.IsNullOrWhiteSpace(column.Qualifier))
+            {
+                if (!sampleRow.TryGetSingleSource(out var singleSource)
+                    || singleSource is null
+                    || !singleSource.ContainsColumnName(column.Name))
+                {
+                    return null;
+                }
+
+                var columnName = column.Name;
+                return row => row.GetByName(columnName);
+            }
+
+            return row => QueryRowValueHelper.ResolveColumn(column.Qualifier, column.Name, row);
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// EN: Identifies reserved identifiers that must keep the generic window-value evaluation path.
+    /// PT: Identifica identificadores reservados que precisam manter o caminho generico de avaliacao de valor de janela.
+    /// </summary>
+    private bool IsReservedWindowValueIdentifier(string name)
+        => name.Equals("_ROWID", StringComparison.OrdinalIgnoreCase)
+           || name.Equals("CURRENT_USER", StringComparison.OrdinalIgnoreCase)
+           || name.Equals("SESSION_USER", StringComparison.OrdinalIgnoreCase)
+           || name.Equals("SYSTEM_USER", StringComparison.OrdinalIgnoreCase)
+           || name.Equals("USER", StringComparison.OrdinalIgnoreCase)
+           || name.Equals("ORA_INVOKING_USER", StringComparison.OrdinalIgnoreCase)
+           || name.Equals("ORA_INVOKING_USERID", StringComparison.OrdinalIgnoreCase)
+           || name.Equals("CURRENT_SCHEMA", StringComparison.OrdinalIgnoreCase)
+           || name.Equals("CURRENT_DATABASE", StringComparison.OrdinalIgnoreCase)
+           || name.Equals("CURRENT_CATALOG", StringComparison.OrdinalIgnoreCase)
+           || name.Equals("CURRENT_ROLE", StringComparison.OrdinalIgnoreCase)
+           || name.Equals("@@DATEFIRST", StringComparison.OrdinalIgnoreCase)
+           || name.Equals("@@IDENTITY", StringComparison.OrdinalIgnoreCase)
+           || name.Equals("@@MAX_PRECISION", StringComparison.OrdinalIgnoreCase)
+           || name.Equals("@@TEXTSIZE", StringComparison.OrdinalIgnoreCase)
+           || IsSqlServerRowCountIdentifier(name, Dialect);
 
     /// <summary>
     /// EN: Resolves LAG/LEAD offset from literal or evaluated expression with safe fallback.
@@ -4472,7 +4786,9 @@ internal abstract class AstQueryExecutorBase(
             && _cnn.TryGetCachedSelectPlan(cacheKey, out var cachedPlan)
             && cachedPlan is not null)
         {
-            return cachedPlan.CloneForExecution();
+            return cachedPlan.CanBeCachedWithoutClone
+                ? cachedPlan
+                : cachedPlan.CloneForExecution();
         }
 
         var plan = SelectPlanBuilderHelper.Build(
@@ -4485,7 +4801,7 @@ internal abstract class AstQueryExecutorBase(
             ResolveColumn);
 
         if (cacheKey is not null)
-            _cnn.TryCacheSelectPlan(cacheKey, plan.CloneForCache());
+            _cnn.TryCacheSelectPlan(cacheKey, plan.CanBeCachedWithoutClone ? plan : plan.CloneForCache());
 
         return plan;
     }
@@ -4514,6 +4830,29 @@ internal abstract class AstQueryExecutorBase(
         }
 
         var firstRow = sampleRows[0];
+        if (firstRow.Sources.Count <= 1)
+        {
+            foreach (var sourceEntry in firstRow.Sources)
+            {
+                sb.Append('|');
+                sb.Append(sourceEntry.Key);
+                sb.Append('=');
+                sb.Append(sourceEntry.Value.Name);
+                sb.Append('/');
+                sb.Append(sourceEntry.Value.Alias);
+                sb.Append(':');
+                for (var i = 0; i < sourceEntry.Value.ColumnNames.Count; i++)
+                {
+                    if (i > 0)
+                        sb.Append(',');
+
+                    sb.Append(sourceEntry.Value.ColumnNames[i]);
+                }
+            }
+
+            return sb.ToString();
+        }
+
         var sources = new List<KeyValuePair<string, Source>>(firstRow.Sources.Count);
         foreach (var sourceEntry in firstRow.Sources)
             sources.Add(sourceEntry);
@@ -5103,7 +5442,12 @@ internal abstract class AstQueryExecutorBase(
     private object? EvalIdentifier(IdentifierExpr identifier, EvalRow row)
     {
         var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para avaliação de função temporal.");
-        if (SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, identifier.Name, out var temporalIdentifierValue))
+        if (SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(
+            dialect,
+            identifier.Name,
+            _evaluationLocalNow,
+            _evaluationUtcNow,
+            out var temporalIdentifierValue))
             return temporalIdentifierValue;
 
         if ((identifier.Name.Equals("CURRENT_USER", StringComparison.OrdinalIgnoreCase)
@@ -5733,7 +6077,7 @@ internal abstract class AstQueryExecutorBase(
                     var dot = id.Name.IndexOf('.');
                     if (dot < 0)
                     {
-                        if (!source.ColumnNames.Any(c => c.Equals(id.Name, StringComparison.OrdinalIgnoreCase)))
+                        if (!source.ContainsColumnName(id.Name))
                             return false;
 
                         column = id.Name.NormalizeName();
@@ -5748,7 +6092,7 @@ internal abstract class AstQueryExecutorBase(
                         return false;
 
                     var resolved = id.Name[(dot + 1)..].NormalizeName();
-                    if (!source.ColumnNames.Any(c => c.Equals(resolved, StringComparison.OrdinalIgnoreCase)))
+                    if (!source.ContainsColumnName(resolved))
                         return false;
 
                     column = resolved;
@@ -5768,7 +6112,7 @@ internal abstract class AstQueryExecutorBase(
                     }
 
                     var resolved = col.Name.NormalizeName();
-                    if (!source.ColumnNames.Any(c => c.Equals(resolved, StringComparison.OrdinalIgnoreCase)))
+                    if (!source.ContainsColumnName(resolved))
                         return false;
 
                     column = resolved;
@@ -6180,7 +6524,10 @@ internal abstract class AstQueryExecutorBase(
         EvalGroup? group,
         IDictionary<string, Source> ctes)
     {
-        var leftVal = Eval(i.Left, row, group, ctes);
+        var leftSelector = TryCreateWindowValueSelector(i.Left, row);
+        var leftVal = leftSelector is null
+            ? Eval(i.Left, row, group, ctes)
+            : leftSelector(row);
 
         if (leftVal is null)
             return false;
@@ -6199,7 +6546,10 @@ internal abstract class AstQueryExecutorBase(
         EvalGroup? group,
         IDictionary<string, Source> ctes)
     {
-        var leftVal = Eval(i.Left, row, group, ctes);
+        var leftSelector = TryCreateWindowValueSelector(i.Left, row);
+        var leftVal = leftSelector is null
+            ? Eval(i.Left, row, group, ctes)
+            : leftSelector(row);
         if (leftVal is null || leftVal is DBNull)
             return false;
 
@@ -6525,18 +6875,21 @@ internal abstract class AstQueryExecutorBase(
         if (conjuncts.Count == 0)
             return string.Empty;
 
-        var segments = conjuncts
-            .Select(conjunct => NormalizeCorrelatedExistsConjunctForCacheKey(conjunct, source))
-            .Where(segment => !string.IsNullOrWhiteSpace(segment))
-            .OrderBy(segment => segment, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        return segments.Count switch
+        var segments = new List<string>(conjuncts.Count);
+        for (var i = 0; i < conjuncts.Count; i++)
         {
-            0 => string.Empty,
-            1 => segments[0],
-            _ => string.Join(" AND ", segments)
-        };
+            var segment = NormalizeCorrelatedExistsConjunctForCacheKey(conjuncts[i], source);
+            if (!string.IsNullOrWhiteSpace(segment))
+                segments.Add(segment);
+        }
+
+        if (segments.Count == 0)
+            return string.Empty;
+
+        segments.Sort(StringComparer.OrdinalIgnoreCase);
+        return segments.Count == 1
+            ? segments[0]
+            : string.Join(" AND ", segments);
     }
 
     private static string NormalizeCorrelatedExistsConjunctForCacheKey(
@@ -6878,6 +7231,14 @@ internal abstract class AstQueryExecutorBase(
             return false;
         }
 
+        if (row is null
+            && query.Table is not null
+            && query.Where is not null
+            && TryExistsFromSimpleEqualityScan(query, ctes, out exists))
+        {
+            return true;
+        }
+
         var rows = BuildFrom(
             query.Table,
             ctes,
@@ -6924,6 +7285,85 @@ internal abstract class AstQueryExecutorBase(
         return true;
     }
 
+    private bool TryExistsFromSimpleEqualityScan(
+        SqlSelectQuery query,
+        IDictionary<string, Source> ctes,
+        out bool exists)
+    {
+        exists = false;
+
+        var src = ResolveSource(query.Table!, ctes);
+        if (!TryCollectColumnEqualities(query.Where!, src, out var equalsByColumn)
+            || equalsByColumn.Count == 0)
+        {
+            return false;
+        }
+
+        if (equalsByColumn.Count == 1)
+        {
+            using var enumerator = equalsByColumn.GetEnumerator();
+            if (!enumerator.MoveNext())
+                return true;
+
+            var kv = enumerator.Current;
+            if (!src.TryGetQualifiedColumnName(kv.Key, out var qualifiedColumnName)
+                || string.IsNullOrWhiteSpace(qualifiedColumnName))
+            {
+                return false;
+            }
+
+            var qualifiedName = qualifiedColumnName ?? string.Empty;
+
+            foreach (var rawRow in src.Rows())
+            {
+                if (rawRow.TryGetValue(qualifiedName, out var actualValue)
+                    && actualValue.EqualsSql(kv.Value, Dialect))
+                {
+                    exists = true;
+                    return true;
+                }
+            }
+
+            return true;
+        }
+
+        var resolvedEqualities = new (string QualifiedColumnName, object? Value)[equalsByColumn.Count];
+        var resolvedEqualitiesCount = 0;
+        foreach (var kv in equalsByColumn)
+        {
+            if (!src.TryGetQualifiedColumnName(kv.Key, out var qualifiedColumnName)
+                || string.IsNullOrWhiteSpace(qualifiedColumnName))
+            {
+                return false;
+            }
+
+            resolvedEqualities[resolvedEqualitiesCount++] = (qualifiedColumnName!, kv.Value);
+        }
+
+        foreach (var rawRow in src.Rows())
+        {
+            var matches = true;
+            for (var i = 0; i < resolvedEqualitiesCount; i++)
+            {
+                var equality = resolvedEqualities[i];
+                if (!rawRow.TryGetValue(equality.QualifiedColumnName, out var actualValue)
+                    || !actualValue.EqualsSql(equality.Value, Dialect))
+                {
+                    matches = false;
+                    break;
+                }
+            }
+
+            if (matches)
+            {
+                exists = true;
+                return true;
+            }
+        }
+
+        return true;
+    }
+
     private bool TryEvaluateScalarSubqueryFast(
         SqlSelectQuery query,
         EvalRow row,
@@ -6948,6 +7388,16 @@ internal abstract class AstQueryExecutorBase(
         var (exprRaw, _) = SplitTrailingAsAlias(query.SelectItems[0].Raw, query.SelectItems[0].Alias);
         if (!TryParseScalarCountAggregate(exprRaw, out var countArg))
             return false;
+
+        if (row is null
+            && countArg is StarExpr
+            && query.Table is not null
+            && query.Where is not null
+            && TryCountRowsFromSimpleEqualityScan(query, ctes, out var rawEqualityCount))
+        {
+            value = rawEqualityCount;
+            return true;
+        }
 
         var rows = BuildFrom(
             query.Table,
@@ -6996,6 +7446,90 @@ internal abstract class AstQueryExecutorBase(
         }
 
         value = count;
+        return true;
+    }
+
+    private bool TryCountRowsFromSimpleEqualityScan(
+        SqlSelectQuery query,
+        IDictionary<string, Source> ctes,
+        out long count)
+    {
+        count = 0;
+
+        if (query.Ctes.Count > 0
+            || query.Joins.Count > 0
+            || query.Distinct
+            || query.GroupBy.Count > 0
+            || query.Having is not null
+            || query.RowLimit is not null
+            || query.ForJson is not null
+            || query.Table is null
+            || query.Where is null)
+        {
+            return false;
+        }
+
+        var src = ResolveSource(query.Table, ctes);
+        if (!TryCollectColumnEqualities(query.Where, src, out var equalsByColumn)
+            || equalsByColumn.Count == 0)
+        {
+            return false;
+        }
+
+        if (equalsByColumn.Count == 1)
+        {
+            foreach (var kv in equalsByColumn)
+            {
+                if (!src.TryGetQualifiedColumnName(kv.Key, out var qualifiedColumnName)
+                    || string.IsNullOrWhiteSpace(qualifiedColumnName))
+                {
+                    return false;
+                }
+
+                foreach (var rawRow in src.Rows())
+                {
+                    if (rawRow.TryGetValue(qualifiedColumnName!, out var actualValue)
+                        && actualValue.EqualsSql(kv.Value, Dialect))
+                    {
+                        count++;
+                    }
+                }
+
+                return true;
+            }
+        }
+
+        var resolvedEqualities = new (string QualifiedColumnName, object? Value)[equalsByColumn.Count];
+        var resolvedEqualitiesCount = 0;
+        foreach (var kv in equalsByColumn)
+        {
+            if (!src.TryGetQualifiedColumnName(kv.Key, out var qualifiedColumnName)
+                || string.IsNullOrWhiteSpace(qualifiedColumnName))
+            {
+                return false;
+            }
+
+            resolvedEqualities[resolvedEqualitiesCount++] = (qualifiedColumnName!, kv.Value);
+        }
+
+        foreach (var rawRow in src.Rows())
+        {
+            var matches = true;
+            for (var i = 0; i < resolvedEqualitiesCount; i++)
+            {
+                var equality = resolvedEqualities[i];
+                if (!rawRow.TryGetValue(equality.QualifiedColumnName, out var actualValue)
+                    || !actualValue.EqualsSql(equality.Value, Dialect))
+                {
+                    matches = false;
+                    break;
+                }
+            }
+
+            if (matches)
+                count++;
+        }
+
         return true;
     }
 
@@ -7542,7 +8076,12 @@ internal abstract class AstQueryExecutorBase(
         if (TryEvalUserDefinedScalarFunction(fn, row, group, ctes, out var userDefinedResult))
             return userDefinedResult;
 
-        if (fn.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, fn.Name, out var temporalValue))
+        if (fn.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(
+                dialect,
+                fn.Name,
+                _evaluationLocalNow,
+                _evaluationUtcNow,
+                out var temporalValue))
             return temporalValue;
 
         if (TryEvalNonSqlServerScalarFunctionFamily(fn, row, group, ctes, dialect, EvalArg, out var nonSqlServerResult))
@@ -12755,7 +13294,7 @@ internal abstract class AstQueryExecutorBase(
                 ? enumerable.Cast<object?>().ToList()
                 : [];
 
-            var matches = new List<object?>();
+            var matches = new List<object?>(list.Count);
             for (var i = 0; i < list.Count; i++)
             {
                 if (Equals(list[i], target))
@@ -12792,16 +13331,27 @@ internal abstract class AstQueryExecutorBase(
 
         if (name is "ARRAY_APPEND" or "ARRAY_PREPEND" or "ARRAY_CAT" or "ARRAY_REMOVE" or "ARRAY_REPLACE")
         {
-            var list = new List<object?>();
             var left = name is "ARRAY_PREPEND" ? evalArg(1) : evalArg(0);
-            if (!IsNullish(left) && left is IEnumerable enumerable)
-                list.AddRange(enumerable.Cast<object?>());
+            var leftEnumerable = !IsNullish(left) && left is IEnumerable enumerable ? enumerable : null;
+            var list = leftEnumerable is ICollection leftCollection
+                ? new List<object?>(leftCollection.Count)
+                : new List<object?>();
+            if (leftEnumerable is not null)
+                list.AddRange(leftEnumerable.Cast<object?>());
 
             if (name is "ARRAY_CAT")
             {
                 var right = evalArg(1);
                 if (!IsNullish(right) && right is IEnumerable rightEnum)
+                {
+                    if (rightEnum is ICollection rightCollection
+                        && list.Capacity < list.Count + rightCollection.Count)
+                    {
+                        list.Capacity = list.Count + rightCollection.Count;
+                    }
+
                     list.AddRange(rightEnum.Cast<object?>());
+                }
                 result = list.ToArray();
                 return true;
             }
@@ -14953,10 +15503,13 @@ internal abstract class AstQueryExecutorBase(
         for (var i = 0; i < 6; i++)
             values[i] = evalArg(i);
 
-        if (values.Any(IsNullish))
+        for (var i = 0; i < values.Length; i++)
         {
-            result = null;
-            return true;
+            if (IsNullish(values[i]))
+            {
+                result = null;
+                return true;
+            }
         }
 
         try
@@ -14995,10 +15548,13 @@ internal abstract class AstQueryExecutorBase(
         for (var i = 0; i < 7; i++)
             values[i] = evalArg(i);
 
-        if (values.Any(IsNullish))
+        for (var i = 0; i < values.Length; i++)
         {
-            result = null;
-            return true;
+            if (IsNullish(values[i]))
+            {
+                result = null;
+                return true;
+            }
         }
 
         try
@@ -15039,10 +15595,13 @@ internal abstract class AstQueryExecutorBase(
         for (var i = 0; i < 8; i++)
             values[i] = evalArg(i);
 
-        if (values.Any(IsNullish))
+        for (var i = 0; i < values.Length; i++)
         {
-            result = null;
-            return true;
+            if (IsNullish(values[i]))
+            {
+                result = null;
+                return true;
+            }
         }
 
         try
@@ -22829,13 +23388,15 @@ internal abstract class AstQueryExecutorBase(
 
     private static int? AggregateChecksumValues(IReadOnlyList<object?> values, bool binary)
     {
-        var filtered = values.Where(static value => !IsNullish(value)).ToArray();
-        if (filtered.Length == 0)
-            return null;
-
         var hash = new HashCode();
-        foreach (var value in filtered)
+        var hasValue = false;
+        for (var i = 0; i < values.Count; i++)
         {
+            var value = values[i];
+            if (IsNullish(value))
+                continue;
+
+            hasValue = true;
             if (value is byte[] bytes)
             {
                 foreach (var b in bytes)
@@ -22854,20 +23415,27 @@ internal abstract class AstQueryExecutorBase(
             hash.Add(value);
         }
 
+        if (!hasValue)
+            return null;
+
         return hash.ToHashCode();
     }
 
     private static object? AggregateTotal(IReadOnlyList<object?> values)
     {
-        var numeric = values
-            .Where(static value => !IsNullish(value))
-            .Select(static value => Convert.ToDouble(value, CultureInfo.InvariantCulture))
-            .ToArray();
+        var total = 0d;
+        var hasValue = false;
+        for (var i = 0; i < values.Count; i++)
+        {
+            var value = values[i];
+            if (IsNullish(value))
+                continue;
 
-        if (numeric.Length == 0)
-            return 0d;
+            total += Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            hasValue = true;
+        }
 
-        return numeric.Sum();
+        return hasValue ? total : 0d;
     }
 
     private object? EvalJsonGroupObjectAggregate(
@@ -22902,7 +23470,7 @@ internal abstract class AstQueryExecutorBase(
         if (fn.Args.Count == 0)
             return null;
 
-        var values = new List<double>();
+        var values = new List<double>(group.Rows.Count);
         foreach (var row in group.Rows)
         {
             var value = Eval(fn.Args[0], row, null, ctes);
@@ -22963,7 +23531,7 @@ internal abstract class AstQueryExecutorBase(
         if (fn.Args.Count < 2)
             return null;
 
-        var pairs = new List<(double X, double Y)>();
+        var pairs = new List<(double X, double Y)>(group.Rows.Count);
         foreach (var row in group.Rows)
         {
             var xValue = Eval(fn.Args[0], row, null, ctes);
@@ -23052,7 +23620,7 @@ internal abstract class AstQueryExecutorBase(
         if (fn.Args.Count < 2)
             return null;
 
-        var pairs = new List<(double X, double Y)>();
+        var pairs = new List<(double X, double Y)>(group.Rows.Count);
         foreach (var row in group.Rows)
         {
             var xValue = Eval(fn.Args[0], row, null, ctes);
@@ -23115,21 +23683,29 @@ internal abstract class AstQueryExecutorBase(
         if (values is null)
             return null;
 
-        var numeric = values
-            .Where(static value => !IsNullish(value))
-            .Select(static value => Convert.ToDouble(value, CultureInfo.InvariantCulture))
-            .ToArray();
+        var mean = 0d;
+        var m2 = 0d;
+        var count = 0;
+        for (var i = 0; i < values.Count; i++)
+        {
+            if (IsNullish(values[i]))
+                continue;
 
-        if (numeric.Length == 0)
+            count++;
+            var x = Convert.ToDouble(values[i], CultureInfo.InvariantCulture);
+            var delta = x - mean;
+            mean += delta / count;
+            m2 += delta * (x - mean);
+        }
+
+        if (count == 0)
             return null;
 
-        var mean = numeric.Average();
-        var sum = numeric.Sum(v => Math.Pow(v - mean, 2d));
-        var denominator = name == "STDDEV_SAMP" ? numeric.Length - 1 : numeric.Length;
+        var denominator = name == "STDDEV_SAMP" ? count - 1 : count;
         if (denominator <= 0)
             return null;
 
-        var variance = sum / denominator;
+        var variance = m2 / denominator;
         return Math.Sqrt(variance);
     }
 
@@ -23153,14 +23729,22 @@ internal abstract class AstQueryExecutorBase(
 
     private static object? AggregateBitwiseValues(IReadOnlyList<object?> values, BitwiseAggregateOperation operation)
     {
-        var filtered = values.Where(static value => !IsNullish(value)).ToList();
-        if (filtered.Count == 0)
-            return null;
-
-        var acc = Convert.ToInt64(filtered[0], CultureInfo.InvariantCulture);
-        for (var i = 1; i < filtered.Count; i++)
+        var hasValue = false;
+        var acc = 0L;
+        for (var i = 0; i < values.Count; i++)
         {
-            var next = Convert.ToInt64(filtered[i], CultureInfo.InvariantCulture);
+            var value = values[i];
+            if (IsNullish(value))
+                continue;
+
+            var next = Convert.ToInt64(value, CultureInfo.InvariantCulture);
+            if (!hasValue)
+            {
+                acc = next;
+                hasValue = true;
+                continue;
+            }
+
             acc = operation switch
             {
                 BitwiseAggregateOperation.And => acc & next,
@@ -23170,7 +23754,7 @@ internal abstract class AstQueryExecutorBase(
             };
         }
 
-        return acc;
+        return hasValue ? acc : null;
     }
 
     private static object? EvalJsonArrayAggregate(IReadOnlyList<object?> values)
@@ -23186,52 +23770,70 @@ internal abstract class AstQueryExecutorBase(
         if (values.Count == 0)
             return null;
 
-        return values.Where(static value => !IsNullish(value)).ToArray();
+        var filtered = new List<object?>(values.Count);
+        for (var i = 0; i < values.Count; i++)
+        {
+            var value = values[i];
+            if (!IsNullish(value))
+                filtered.Add(value);
+        }
+
+        return filtered.Count == 0 ? null : filtered.ToArray();
     }
 
     private static object? AggregateVariance(IReadOnlyList<object?> values, bool sample)
     {
-        var numeric = values
-            .Where(static value => !IsNullish(value))
-            .Select(static value => Convert.ToDouble(value, CultureInfo.InvariantCulture))
-            .ToArray();
-
-        if (numeric.Length == 0)
-            return null;
-
-        if (sample && numeric.Length < 2)
-            return null;
-
-        var mean = numeric.Average();
-        var sumSq = numeric.Sum(v =>
+        var mean = 0d;
+        var m2 = 0d;
+        var count = 0;
+        for (var i = 0; i < values.Count; i++)
         {
-            var diff = v - mean;
-            return diff * diff;
-        });
+            var value = values[i];
+            if (IsNullish(value))
+                continue;
 
-        var divisor = sample ? numeric.Length - 1 : numeric.Length;
-        return sumSq / divisor;
+            count++;
+            var x = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            var delta = x - mean;
+            mean += delta / count;
+            m2 += delta * (x - mean);
+        }
+
+        if (count == 0)
+            return null;
+
+        if (sample && count < 2)
+            return null;
+
+        var divisor = sample ? count - 1 : count;
+        return m2 / divisor;
     }
 
     private static object? AggregateCoefficientOfVariation(IReadOnlyList<object?> values)
     {
-        var numeric = values
-            .Where(static value => !IsNullish(value))
-            .Select(static value => Convert.ToDouble(value, CultureInfo.InvariantCulture))
-            .ToArray();
+        var mean = 0d;
+        var m2 = 0d;
+        var count = 0;
+        for (var i = 0; i < values.Count; i++)
+        {
+            var value = values[i];
+            if (IsNullish(value))
+                continue;
 
-        if (numeric.Length == 0)
+            count++;
+            var x = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            var delta = x - mean;
+            mean += delta / count;
+            m2 += delta * (x - mean);
+        }
+
+        if (count == 0)
             return null;
 
-        var mean = numeric.Average();
         if (mean == 0d)
             return null;
 
-        var variance = numeric.Sum(v =>
-        {
-            var diff = v - mean;
-            return diff * diff;
-        }) / numeric.Length;
+        var variance = m2 / count;
 
         var stdDev = Math.Sqrt(variance);
         return stdDev / mean;
@@ -23260,27 +23862,68 @@ internal abstract class AstQueryExecutorBase(
         if (values.Count == 0)
             return null;
 
-        var useDouble = values.Any(static value => value is float or double);
+        var useDouble = false;
+        for (var i = 0; i < values.Count; i++)
+        {
+            if (values[i] is float or double)
+            {
+                useDouble = true;
+                break;
+            }
+        }
+
         if (useDouble)
         {
-            var numericValues = values.Select(static value => Convert.ToDouble(value, CultureInfo.InvariantCulture)).ToArray();
+            var numericValues = new double[values.Count];
+            for (var i = 0; i < values.Count; i++)
+                numericValues[i] = Convert.ToDouble(values[i], CultureInfo.InvariantCulture);
+
+            double sum = 0d;
+            double min = numericValues[0];
+            double max = numericValues[0];
+            for (var i = 0; i < numericValues.Length; i++)
+            {
+                var current = numericValues[i];
+                sum += current;
+                if (current < min)
+                    min = current;
+                if (current > max)
+                    max = current;
+            }
+
             return operation switch
             {
-                AggregateNumericOperation.Sum => numericValues.Sum(),
-                AggregateNumericOperation.Average => numericValues.Average(),
-                AggregateNumericOperation.Min => numericValues.Min(),
-                AggregateNumericOperation.Max => numericValues.Max(),
+                AggregateNumericOperation.Sum => sum,
+                AggregateNumericOperation.Average => sum / numericValues.Length,
+                AggregateNumericOperation.Min => min,
+                AggregateNumericOperation.Max => max,
                 _ => null
             };
         }
 
-        var decimalValues = values.Select(static value => value!.ToDec()).ToArray();
+        var decimalValues = new decimal[values.Count];
+        for (var i = 0; i < values.Count; i++)
+            decimalValues[i] = values[i]!.ToDec();
+
+        decimal decimalSum = 0m;
+        decimal decimalMin = decimalValues[0];
+        decimal decimalMax = decimalValues[0];
+        for (var i = 0; i < decimalValues.Length; i++)
+        {
+            var current = decimalValues[i];
+            decimalSum += current;
+            if (current < decimalMin)
+                decimalMin = current;
+            if (current > decimalMax)
+                decimalMax = current;
+        }
+
         return operation switch
         {
-            AggregateNumericOperation.Sum => decimalValues.Sum(),
-            AggregateNumericOperation.Average => decimalValues.Sum() / decimalValues.Length,
-            AggregateNumericOperation.Min => decimalValues.Min(),
-            AggregateNumericOperation.Max => decimalValues.Max(),
+            AggregateNumericOperation.Sum => decimalSum,
+            AggregateNumericOperation.Average => decimalSum / decimalValues.Length,
+            AggregateNumericOperation.Min => decimalMin,
+            AggregateNumericOperation.Max => decimalMax,
             _ => null
         };
     }
@@ -23336,9 +23979,17 @@ internal abstract class AstQueryExecutorBase(
         if (fn.Filter is null)
             return group;
 
-        var filteredRows = group.Rows
-            .Where(row => Eval(fn.Filter, row, null, ctes).ToBool())
-            .ToList();
+        if (group.Rows.Count == 0)
+            return new EvalGroup([]);
+
+        var filteredRows = new List<EvalRow>(group.Rows.Count);
+        for (var i = 0; i < group.Rows.Count; i++)
+        {
+            var row = group.Rows[i];
+            if (Eval(fn.Filter, row, null, ctes).ToBool())
+                filteredRows.Add(row);
+        }
+
         return new EvalGroup(filteredRows);
     }
 
@@ -23457,9 +24108,7 @@ internal abstract class AstQueryExecutorBase(
         {
             case string textValue:
                 text = textValue;
-                distinctKey = useOrdinalTextComparison
-                    ? textValue
-                    : textValue.ToUpperInvariant();
+                distinctKey = textValue;
                 return true;
             case decimal decimalValue:
                 text = decimalValue.ToString(CultureInfo.InvariantCulture);
@@ -23494,7 +24143,7 @@ internal abstract class AstQueryExecutorBase(
             return null;
 
         var separator = separatorObj?.ToString() ?? defaultSeparator;
-        var builder = new StringBuilder();
+        var builder = new StringBuilder(EstimateStringAggregateCapacity(values.Count, separator.Length));
         for (var i = 0; i < values.Count; i++)
         {
             if (i > 0)
@@ -23975,7 +24624,7 @@ internal abstract class AstQueryExecutorBase(
         if (fn.Args.Count == 0)
             return null;
 
-        var values = new List<object?>();
+        var values = new List<object?>(group.Rows.Count);
         foreach (var r in group.Rows)
         {
             var v = Eval(fn.Args[0], r, null, ctes);
@@ -24088,13 +24737,15 @@ internal abstract class AstQueryExecutorBase(
     internal sealed record MySqlIndexHintPlan(
         HashSet<string> AllowedIndexNames,
         HashSet<string> MissingForcedIndexes,
-        bool HasRowAccessHints);
+        bool HasRowAccessHints,
+        IReadOnlyHashSet<string> PrimaryEquivalentIndexNames);
 
     internal sealed class Source
     {
         internal ITableMock? Physical { get; }
         private readonly TableResultMock? _result;
         private readonly Dictionary<string, TableResultColMock>? _resultColumnMetadataLookup;
+        private readonly HashSet<string> _columnNameLookup;
         private readonly string[]? _qualifiedColumnNames;
         private readonly string[]? _resultQualifiedColumnNames;
         private readonly string[]? _sourceQualifiedColumnNames;
@@ -24130,13 +24781,37 @@ internal abstract class AstQueryExecutorBase(
             Physical = physical;
             _result = null;
             _resultColumnMetadataLookup = null;
-            ColumnNames = [.. physical.Columns.OrderBy(kv => kv.Value.Index).Select(kv => kv.Key!)];
-            _physicalColumnIndexes = [.. ColumnNames.Select(col => physical.Columns[col].Index)];
-            _qualifiedColumnNames = [.. ColumnNames.Select(col => $"{Alias}.{col}")];
-            _resultQualifiedColumnNames = null;
-            _sourceQualifiedColumnNames = Name.Equals(Alias, StringComparison.OrdinalIgnoreCase)
+            var physicalColumns = new List<KeyValuePair<string, ColumnDef>>(physical.Columns.Count);
+            foreach (var column in physical.Columns)
+                physicalColumns.Add(column);
+
+            physicalColumns.Sort(static (left, right) => left.Value.Index.CompareTo(right.Value.Index));
+
+            var columnNames = new string[physicalColumns.Count];
+            var physicalColumnIndexes = new int[physicalColumns.Count];
+            var qualifiedColumnNames = new string[physicalColumns.Count];
+            var sourceQualifiedColumnNames = Name.Equals(Alias, StringComparison.OrdinalIgnoreCase)
                 ? null
-                : [.. ColumnNames.Select(col => $"{Name}.{col}")];
+                : new string[physicalColumns.Count];
+
+            for (var i = 0; i < physicalColumns.Count; i++)
+            {
+                var entry = physicalColumns[i];
+                var columnName = entry.Key;
+                var column = entry.Value;
+                columnNames[i] = columnName;
+                physicalColumnIndexes[i] = column.Index;
+                qualifiedColumnNames[i] = $"{Alias}.{columnName}";
+                if (sourceQualifiedColumnNames is not null)
+                    sourceQualifiedColumnNames[i] = $"{Name}.{columnName}";
+            }
+
+            ColumnNames = columnNames;
+            _columnNameLookup = BuildColumnNameLookup(ColumnNames);
+            _physicalColumnIndexes = physicalColumnIndexes;
+            _qualifiedColumnNames = qualifiedColumnNames;
+            _resultQualifiedColumnNames = null;
+            _sourceQualifiedColumnNames = sourceQualifiedColumnNames;
             _qualifiedColumnNameLookup = BuildQualifiedColumnNameLookup(ColumnNames, Alias);
             _singlePrimaryKeyColumnName = TryResolveSinglePrimaryKeyColumnName(physical, out var primaryKeyColumnName)
                 ? primaryKeyColumnName
@@ -24151,12 +24826,31 @@ internal abstract class AstQueryExecutorBase(
             _result = result;
             Physical = null;
             _resultColumnMetadataLookup = BuildResultColumnMetadataLookup(result);
-            ColumnNames = [.. result.Columns.OrderBy(c => c.ColumIndex).Select(c => c.ColumnAlias)];
-            _qualifiedColumnNames = [.. ColumnNames.Select(col => $"{Alias}.{col}")];
-            _resultQualifiedColumnNames = [.. result.Columns.Select(c => $"{Alias}.{c.ColumnAlias}")];
-            _sourceQualifiedColumnNames = Name.Equals(Alias, StringComparison.OrdinalIgnoreCase)
+            var resultColumns = new List<TableResultColMock>(result.Columns);
+            resultColumns.Sort(static (left, right) => left.ColumIndex.CompareTo(right.ColumIndex));
+
+            var columnNames = new string[resultColumns.Count];
+            var qualifiedColumnNames = new string[resultColumns.Count];
+            var resultQualifiedColumnNames = new string[resultColumns.Count];
+            var sourceQualifiedColumnNames = Name.Equals(Alias, StringComparison.OrdinalIgnoreCase)
                 ? null
-                : [.. ColumnNames.Select(col => $"{Name}.{col}")];
+                : new string[resultColumns.Count];
+
+            for (var i = 0; i < resultColumns.Count; i++)
+            {
+                var column = resultColumns[i];
+                columnNames[i] = column.ColumnAlias;
+                qualifiedColumnNames[i] = $"{Alias}.{column.ColumnAlias}";
+                resultQualifiedColumnNames[i] = $"{Alias}.{column.ColumnAlias}";
+                if (sourceQualifiedColumnNames is not null)
+                    sourceQualifiedColumnNames[i] = $"{Name}.{column.ColumnAlias}";
+            }
+
+            ColumnNames = columnNames;
+            _columnNameLookup = BuildColumnNameLookup(ColumnNames);
+            _qualifiedColumnNames = qualifiedColumnNames;
+            _resultQualifiedColumnNames = resultQualifiedColumnNames;
+            _sourceQualifiedColumnNames = sourceQualifiedColumnNames;
             _physicalColumnIndexes = null;
             _qualifiedColumnNameLookup = BuildQualifiedColumnNameLookup(ColumnNames, Alias);
             _singlePrimaryKeyColumnName = null;
@@ -24197,6 +24891,9 @@ internal abstract class AstQueryExecutorBase(
 
             return _qualifiedColumnNameLookup.TryGetValue(columnName, out qualifiedColumnName);
         }
+
+        internal bool ContainsColumnName(string columnName)
+            => _columnNameLookup.Contains(columnName);
 
         internal string GetQualifiedColumnName(int columnIndex)
             => _qualifiedColumnNames is not null
@@ -24251,17 +24948,35 @@ internal abstract class AstQueryExecutorBase(
             return lookup;
         }
 
+        private static HashSet<string> BuildColumnNameLookup(IReadOnlyList<string> columnNames)
+        {
+            var lookup = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var columnName in columnNames)
+                lookup.Add(columnName);
+
+            return lookup;
+        }
+
         private static bool TryResolveSinglePrimaryKeyColumnName(ITableMock physical, out string columnName)
         {
             columnName = string.Empty;
-            if (physical.PrimaryKeyIndexes.Count != 1)
+            var primaryKeyIndexes = physical.PrimaryKeyIndexes;
+            if (primaryKeyIndexes.Count != 1)
                 return false;
 
             var pkIndex = default(int);
-            foreach (var candidatePkIndex in physical.PrimaryKeyIndexes)
+            foreach (var candidatePkIndex in primaryKeyIndexes)
             {
                 pkIndex = candidatePkIndex;
                 break;
+            }
+
+            if (physical is TableMock tableMock
+                && tableMock.ColumnsByIndex.TryGetValue(pkIndex, out var pkColumnName)
+                && !string.IsNullOrWhiteSpace(pkColumnName))
+            {
+                columnName = pkColumnName;
+                return true;
             }
 
             foreach (var column in physical.Columns)
@@ -24328,6 +25043,39 @@ internal abstract class AstQueryExecutorBase(
                 return Rows();
 
             return EnumerateRowsByIndexes(indexes);
+        }
+
+        public IEnumerable<Dictionary<string, object?>> RowsByIndexes(int index)
+        {
+            if (Physical is null)
+                return Rows();
+
+            return EnumerateRowByIndex(index);
+        }
+
+        private IEnumerable<Dictionary<string, object?>> EnumerateRowByIndex(int raw)
+        {
+            if (raw < 0 || raw >= Physical!.Count)
+                yield break;
+
+            var row = Physical[raw];
+            if (_requestedPartitionNames is { Count: > 0 } requestedPartitions
+                && Physical is TableMock table
+                && !table.MatchesRequestedPartitions(row, requestedPartitions))
+            {
+                yield break;
+            }
+
+            var dict = new Dictionary<string, object?>(Math.Max(ColumnNames.Count, 1), StringComparer.OrdinalIgnoreCase);
+            for (var i = 0; i < ColumnNames.Count; i++)
+            {
+                var idx = _physicalColumnIndexes![i];
+                dict[_qualifiedColumnNames![i]] = row.TryGetValue(idx, out var v)
+                    ? v
+                    : null;
+            }
+
+            yield return dict;
         }
 
         private IEnumerable<Dictionary<string, object?>> EnumerateRowsByIndexes(
@@ -24644,6 +25392,14 @@ internal abstract class AstQueryExecutorBase(
         /// <param name="outer">EN: Outer row to overlay. PT: Linha externa a sobrepor.</param>
         internal EvalRow AttachOuterRow(EvalRow outer)
         {
+            if (outer.Fields.Count == 0
+                && outer.Sources.Count == 0
+                && outer.OrdinalValues is null
+                && outer.OrdinalIndexes is null)
+            {
+                return this;
+            }
+
             var fields = new Dictionary<string, object?>(Fields, StringComparer.OrdinalIgnoreCase);
             fields.EnsureCapacity(fields.Count + outer.Fields.Count * 2);
 
@@ -24958,6 +25714,26 @@ internal abstract class AstQueryExecutorBase(
             yield return row.AttachOuterRow(outer);
     }
 
+    private static List<MaterializedGroup> MaterializeGroups(IEnumerable<IGrouping<GroupKey, EvalRow>> grouped)
+    {
+        var materialized = grouped is ICollection<IGrouping<GroupKey, EvalRow>> collection
+            ? new List<MaterializedGroup>(collection.Count)
+            : new List<MaterializedGroup>();
+        foreach (var group in grouped)
+        {
+            var rows = group is ICollection<EvalRow> rowCollection
+                ? new List<EvalRow>(rowCollection.Count)
+                : new List<EvalRow>();
+
+            foreach (var row in group)
+                rows.Add(row);
+
+            materialized.Add(new MaterializedGroup(group.Key, rows));
+        }
+
+        return materialized;
+    }
+
     internal sealed class EvalGroup
     {
         /// <summary>
@@ -24971,6 +25747,8 @@ internal abstract class AstQueryExecutorBase(
         /// </summary>
         public EvalGroup(List<EvalRow> rows) => Rows = rows;
     }
+
+    private sealed record MaterializedGroup(GroupKey Key, List<EvalRow> Rows);
 
     private readonly record struct GroupKey(object?[] Values)
     {

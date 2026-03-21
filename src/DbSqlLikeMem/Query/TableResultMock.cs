@@ -36,11 +36,17 @@ public class TableResultMock : List<Dictionary<int, object?>>
     /// <returns>EN: Column index in the result. PT: Índice da coluna no resultado.</returns>
     public int GetColumnIndexOrThrow(string col)
     {
-        var found = Columns.FirstOrDefault(c =>
-            c.ColumnAlias.Equals(col, StringComparison.OrdinalIgnoreCase)
-            || c.ColumnName.Equals(col, StringComparison.OrdinalIgnoreCase))
-            ?? throw new InvalidOperationException($"Column '{col}' not found in subquery result.");
-        return found.ColumIndex;
+        for (var i = 0; i < Columns.Count; i++)
+        {
+            var candidate = Columns[i];
+            if (candidate.ColumnAlias.Equals(col, StringComparison.OrdinalIgnoreCase)
+                || candidate.ColumnName.Equals(col, StringComparison.OrdinalIgnoreCase))
+            {
+                return candidate.ColumIndex;
+            }
+        }
+
+        throw new InvalidOperationException($"Column '{col}' not found in subquery result.");
     }
 }
 

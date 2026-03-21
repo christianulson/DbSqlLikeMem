@@ -24,7 +24,9 @@ internal static class DbDeleteStrategy
         SqlDeleteQuery query,
         DbParameterCollection? pars)
     {
-        var sw = Stopwatch.StartNew();
+        var capturePlans = connection.Db.CaptureExecutionPlans;
+        var sw = capturePlans ? Stopwatch.StartNew() : null;
+        var metricsEnabled = connection.Metrics.Enabled;
         ArgumentNullExceptionCompatible.ThrowIfNull(query.Table, nameof(query.Table));
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(query!.Table!.Name, nameof(query.Table.Name));
         var tableName = query.Table.Name!;
@@ -40,14 +42,17 @@ internal static class DbDeleteStrategy
         var rowsToDelete = new List<IReadOnlyDictionary<int, object?>>();
         var indexesToDelete = new List<int>();
         var tableMock = table as TableMock;
+        var supportsTriggers = dialect.SupportsTriggers;
+        var hasBeforeDeleteTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeDelete);
+        var hasAfterDeleteTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.AfterDelete);
 
         foreach (var i in GetCandidateRowIndexes(table, pars, conditions))
         {
             var row = table[i];
             if (TableMock.IsMatchSimple(table, pars, conditions, row))
             {
-                // Para o RETURNING, precisamos capturar o estado ANTES da remoção. 
-                // Usamos snapshots para garantir que se o objeto row for alterado por triggers, 
+                // Para o RETURNING, precisamos capturar o estado ANTES da remoção.
+                // Usamos snapshots para garantir que se o objeto row for alterado por triggers,
                 // tenhamos o estado estável da deleção.
                 rowsToDelete.Add(TableMock.SnapshotRow(row));
                 indexesToDelete.Add(i);
@@ -64,48 +69,49 @@ internal static class DbDeleteStrategy
             ValidateForeignKeys(connection, tableName, table, rowsToDelete, query.Table.DbName);
         }
 
-        // 3. Remover (ordem inversa para não quebrar índices durante loop)
-        foreach (var idx in indexesToDelete.OrderByDescending(x => x))
+        // 3. Remover (ordem inversa para nao quebrar indices durante loop)
+        for (var deletePos = indexesToDelete.Count - 1; deletePos >= 0; deletePos--)
         {
+            var idx = indexesToDelete[deletePos];
             IReadOnlyDictionary<int, object?>? oldRow = null;
-            if (dialect.SupportsTriggers && (table.HasTriggers(TableTriggerEvent.BeforeDelete) || table.HasTriggers(TableTriggerEvent.AfterDelete)))
+            if (hasBeforeDeleteTrigger || hasAfterDeleteTrigger)
             {
                 oldRow = TableMock.SnapshotRow(table[idx]);
             }
 
-            if (dialect.SupportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeDelete))
+            if (hasBeforeDeleteTrigger)
                 TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeDelete, oldRow, null);
-            
+
             table.RemoveAt(idx);
-            
-            if (dialect.SupportsTriggers && table.HasTriggers(TableTriggerEvent.AfterDelete))
+
+            if (hasAfterDeleteTrigger)
                 TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterDelete, oldRow, null);
         }
 
-        connection.Metrics.Deletes += rowsToDelete.Count;
-        sw.Stop();
+        if (metricsEnabled)
+            connection.Metrics.Deletes += rowsToDelete.Count;
 
-        var metrics = new SqlPlanRuntimeMetrics(
-            InputTables: 1,
-            EstimatedRowsRead: rowCountBefore,
-            ActualRows: rowsToDelete.Count,
-            ElapsedMs: sw.ElapsedMilliseconds);
-        if (connection.Db.CaptureExecutionPlans)
+        if (capturePlans)
         {
+            sw!.Stop();
+            var metrics = new SqlPlanRuntimeMetrics(
+                InputTables: 1,
+                EstimatedRowsRead: rowCountBefore,
+                ActualRows: rowsToDelete.Count,
+                ElapsedMs: sw.ElapsedMilliseconds);
             var plan = SqlExecutionPlanFormatter.FormatDelete(
                 query,
                 metrics,
                 new SqlPlanMockRuntimeContext(connection.SimulatedLatencyMs, connection.DropProbability, connection.Db.ThreadSafe));
             connection.RegisterExecutionPlan(plan);
         }
-        return new DmlExecutionResult 
-        { 
-            AffectedRows = rowsToDelete.Count, 
+        return new DmlExecutionResult
+        {
+            AffectedRows = rowsToDelete.Count,
             AffectedIndexes = indexesToDelete,
             AffectedRowsData = connection.CaptureAffectedRowSnapshots ? rowsToDelete : new List<IReadOnlyDictionary<int, object?>>()
         };
     }
-
     private static IEnumerable<int> GetCandidateRowIndexes(
         ITableMock table,
         DbParameterCollection? pars,
@@ -188,9 +194,14 @@ internal static class DbDeleteStrategy
     {
         foreach (var childTable in connection.ListTables(dbName))
         {
-            foreach (var fk in childTable.ForeignKeys.Values.Where(f =>
-                f.RefTable.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase)))
+            if (childTable.ForeignKeys.Count == 0)
+                continue;
+
+            foreach (var fk in childTable.ForeignKeys.Values)
             {
+                if (!fk.RefTable.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
                 if (HasReferenceByIndex(childTable, fk, parentRow)
                     || HasReferenceByScan(childTable, fk, parentRow, connection.Db.ThreadSafe))
                 {
@@ -223,18 +234,36 @@ internal static class DbDeleteStrategy
         Models.ForeignDef fk,
         IReadOnlyDictionary<int, object?> parentRow)
     {
-        var matchingIndex = childTable.Indexes.Values
-            .OrderByDescending(_ => _.KeyCols.Count)
-            .FirstOrDefault(ix => fk.References.All(r =>
-                ix.KeyCols.Contains(r.col.Name, StringComparer.OrdinalIgnoreCase)));
+        IndexDef? matchingIndex = null;
+        var matchingKeyCount = -1;
+        foreach (var index in childTable.Indexes.Values)
+        {
+            var coversAllReferences = true;
+            foreach (var reference in fk.References)
+            {
+                if (!index.KeyCols.Contains(reference.col.Name, StringComparer.OrdinalIgnoreCase))
+                {
+                    coversAllReferences = false;
+                    break;
+                }
+            }
+
+            if (!coversAllReferences)
+                continue;
+
+            if (index.KeyCols.Count <= matchingKeyCount)
+                continue;
+
+            matchingIndex = index;
+            matchingKeyCount = index.KeyCols.Count;
+        }
 
         if (matchingIndex is null)
             return false;
 
-        var valuesByColumn = fk.References.ToDictionary(
-            _ => _.col.Name.NormalizeName(),
-            _ => parentRow[_.refCol.Index],
-            StringComparer.OrdinalIgnoreCase);
+        var valuesByColumn = new Dictionary<string, object?>(fk.References.Count, StringComparer.OrdinalIgnoreCase);
+        foreach (var reference in fk.References)
+            valuesByColumn[reference.col.Name.NormalizeName()] = parentRow[reference.refCol.Index];
 
         var key = matchingIndex.BuildIndexKeyFromValues(valuesByColumn);
         return matchingIndex.LookupMutable(key)?.Count > 0;

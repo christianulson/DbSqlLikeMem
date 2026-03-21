@@ -599,16 +599,38 @@ public sealed class Db2FunctionTests
         Assert.Equal(2L, Convert.ToInt64(ExecuteScalar("SELECT NEXT VALUE FOR seq_users FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
     }
 
+    /// <summary>
+    /// EN: Verifies changing to the current database keeps the select-plan cache generation unchanged on DB2.
+    /// PT: Verifica se mudar para o database atual mantem inalterada a geracao do cache de plano de select no DB2.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void ChangeDatabase_WithSameValue_ShouldKeepSelectPlanCacheGeneration()
+    {
+        using (var warmup = new Db2CommandMock(_connection))
+        {
+            warmup.CommandText = "SELECT Name FROM Users WHERE Id = 1";
+            Assert.Equal("Ana", warmup.ExecuteScalar());
+        }
+
+        var generationBefore = _connection.GetSelectPlanCacheGeneration();
+        _connection.ChangeDatabase(_connection.Database);
+        var generationAfter = _connection.GetSelectPlanCacheGeneration();
+
+        Assert.Equal(generationBefore, generationAfter);
+    }
+
     private static Db2ConnectionMock CreateOpenConnection(int? version = null)
     {
         var db = new Db2DbMock(version);
-        db.AddSequence("seq_users");
+        db.AddSequence("seq_users", schemaName: "DefaultSchema");
         db.AddTable("Users",
         [
             new("Id", DbType.Int32, false),
             new("Name", DbType.String, false),
             new("Email", DbType.String, true),
-        ]);
+        ],
+        schemaName: "DefaultSchema");
 
         var connection = new Db2ConnectionMock(db);
         connection.Open();

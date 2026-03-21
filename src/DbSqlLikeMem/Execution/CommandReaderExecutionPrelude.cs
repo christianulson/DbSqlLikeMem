@@ -13,13 +13,17 @@ internal static class CommandReaderExecutionPrelude
         out List<string> statements)
     {
         statements = [];
+        var metricsEnabled = connection.Metrics.Enabled;
 
         if (commandType == CommandType.StoredProcedure)
         {
             connection.ExecuteStoredProcedure(commandText, pars);
             connection.SetLastFoundRows(0);
-            connection.Metrics.IncrementReaderProcessedStatements();
-            connection.Metrics.IncrementReaderStoredProcedureStatement();
+            if (metricsEnabled)
+            {
+                connection.Metrics.IncrementReaderProcessedStatements();
+                connection.Metrics.IncrementReaderStoredProcedureStatement();
+            }
             reader = emptyReaderFactory();
             return true;
         }
@@ -27,16 +31,28 @@ internal static class CommandReaderExecutionPrelude
         var sql = normalizeSqlInput
             ? commandText.NormalizeString()
             : commandText;
-        statements = [.. SqlQueryParser
-            .SplitStatements(sql, connection.ExecutionDialect)
-            .Where(s => !string.IsNullOrWhiteSpace(s))];
+        statements = new List<string>();
+        foreach (var s in SqlQueryParser.SplitStatements(sql, connection.ExecutionDialect))
+        {
+            if (string.IsNullOrWhiteSpace(s))
+                continue;
+
+            // Preserve previous behavior: store trimmed statements.
+            var trimmed = (s.Length > 0 && (char.IsWhiteSpace(s[0]) || char.IsWhiteSpace(s[^1])))
+                ? s.Trim()
+                : s;
+            statements.Add(trimmed);
+        }
 
         if (statements.Count == 1 && statements[0].TrimStart().StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
         {
             connection.ExecuteCall(statements[0], pars);
             connection.SetLastFoundRows(0);
-            connection.Metrics.IncrementReaderProcessedStatements();
-            connection.Metrics.IncrementReaderCallStatement();
+            if (metricsEnabled)
+            {
+                connection.Metrics.IncrementReaderProcessedStatements();
+                connection.Metrics.IncrementReaderCallStatement();
+            }
             reader = emptyReaderFactory();
             return true;
         }
@@ -45,3 +61,4 @@ internal static class CommandReaderExecutionPrelude
         return false;
     }
 }
+

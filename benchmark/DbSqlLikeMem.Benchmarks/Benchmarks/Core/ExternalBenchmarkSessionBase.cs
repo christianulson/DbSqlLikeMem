@@ -90,6 +90,11 @@ public abstract class ExternalBenchmarkSessionBase(
                 "DBSQLLIKEMEM_BENCH_MYSQL_CONNECTION_STRING",
                 "MYSQL_CONNECTION_STRING"
             },
+            BenchmarkProviderId.MariaDb => new[]
+            {
+                "DBSQLLIKEMEM_BENCH_MARIADB_CONNECTION_STRING",
+                "MARIADB_CONNECTION_STRING"
+            },
             BenchmarkProviderId.SqlServer => new[]
             {
                 "DBSQLLIKEMEM_BENCH_SQLSERVER_CONNECTION_STRING",

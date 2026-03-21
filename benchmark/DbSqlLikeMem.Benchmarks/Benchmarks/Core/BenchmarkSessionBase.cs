@@ -521,10 +521,7 @@ public abstract class BenchmarkSessionBase(
         try
         {
             ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
-            for (var i = 1; i <= 10; i++)
-            {
-                ExecuteNonQuery(connection, Dialect.InsertUser(users, i, $"User-{i}"));
-            }
+            ExecuteSequentialUserInsertBatch(connection, users, 10);
 
             var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
             if (count != 10)
@@ -553,10 +550,7 @@ public abstract class BenchmarkSessionBase(
         try
         {
             ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
-            for (var i = 1; i <= 100; i++)
-            {
-                ExecuteNonQuery(connection, Dialect.InsertUser(users, i, $"User-{i}"));
-            }
+            ExecuteSequentialUserInsertBatch(connection, users, 100);
 
             var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
             if (count != 100)
@@ -568,6 +562,22 @@ public abstract class BenchmarkSessionBase(
         finally
         {
             SafeDropTable(connection, users);
+        }
+    }
+
+    /// <summary>
+    /// EN: Executes a sequential user insert batch using the current dialect SQL for each row.
+    /// PT-br: Executa um lote sequencial de insercao de usuarios usando a SQL atual do dialeto para cada linha.
+    /// </summary>
+    /// <param name="connection">EN: The connection used to run the insert statements. PT-br: A conexao usada para executar os comandos de insert.</param>
+    /// <param name="tableName">EN: The target users table. PT-br: A tabela de usuarios alvo.</param>
+    /// <param name="rowCount">EN: The number of rows to insert. PT-br: A quantidade de linhas a inserir.</param>
+    /// <param name="transaction">EN: The optional transaction associated with the inserts. PT-br: A transacao opcional associada aos inserts.</param>
+    protected virtual void ExecuteSequentialUserInsertBatch(DbConnection connection, string tableName, int rowCount, DbTransaction? transaction = null)
+    {
+        for (var i = 1; i <= rowCount; i++)
+        {
+            ExecuteNonQuery(connection, Dialect.InsertUser(tableName, i, $"User-{i}"), transaction);
         }
     }
 
@@ -939,7 +949,12 @@ public abstract class BenchmarkSessionBase(
         {
             ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
             using var transaction = connection.BeginTransaction();
-            ExecuteNonQuery(connection, Dialect.InsertUsers(users, [.. Enumerable.Range(1, 10).Select(i => (id:i,name: $"User-{i}"))]), transaction);
+
+            var values = new (int id, string name)[10];
+            for (var i = 1; i <= 10; i++)
+                values[i - 1] = (i, $"User-{i}");
+
+            ExecuteNonQuery(connection, Dialect.InsertUsers(users, values), transaction);
             
             transaction.Commit();
             var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
@@ -965,7 +980,12 @@ public abstract class BenchmarkSessionBase(
         {
             ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
             using var transaction = connection.BeginTransaction();
-            ExecuteNonQuery(connection, Dialect.InsertUsers(users, [.. Enumerable.Range(1, 100).Select(i => (id: i, name: $"User-{i}"))]), transaction);
+
+            var values = new (int id, string name)[100];
+            for (var i = 1; i <= 100; i++)
+                values[i - 1] = (i, $"User-{i}");
+
+            ExecuteNonQuery(connection, Dialect.InsertUsers(users, values), transaction);
             
             transaction.Commit();
             var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
@@ -1082,9 +1102,13 @@ public abstract class BenchmarkSessionBase(
         try
         {
             ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Charlie"));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Alice"));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 3, "Bob"));
+            ExecuteNonQuery(
+                connection,
+                Dialect.InsertUsers(
+                    users,
+                    (1, "Charlie"),
+                    (2, "Alice"),
+                    (3, "Bob")));
             var value = Convert.ToString(ExecuteScalar(connection, Dialect.StringAggregate(users)), CultureInfo.InvariantCulture);
             GC.KeepAlive(value);
         }
@@ -1108,9 +1132,13 @@ public abstract class BenchmarkSessionBase(
         try
         {
             ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Charlie"));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Alice"));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 3, "Bob"));
+            ExecuteNonQuery(
+                connection,
+                Dialect.InsertUsers(
+                    users,
+                    (1, "Charlie"),
+                    (2, "Alice"),
+                    (3, "Bob")));
             var value = Convert.ToString(ExecuteScalar(connection, Dialect.StringAggregateOrdered(users)), CultureInfo.InvariantCulture);
             GC.KeepAlive(value);
         }
@@ -1338,9 +1366,13 @@ public abstract class BenchmarkSessionBase(
         try
         {
             ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Bob"));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Alice"));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 3, "Bob"));
+            ExecuteNonQuery(
+                connection,
+                Dialect.InsertUsers(
+                    users,
+                    (1, "Bob"),
+                    (2, "Alice"),
+                    (3, "Bob")));
             var value = Convert.ToString(ExecuteScalar(connection, Dialect.StringAggregateDistinct(users)), CultureInfo.InvariantCulture);
             GC.KeepAlive(value);
         }
@@ -1358,8 +1390,12 @@ public abstract class BenchmarkSessionBase(
         try
         {
             ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Bob"));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Alice"));
+            ExecuteNonQuery(
+                connection,
+                Dialect.InsertUsers(
+                    users,
+                    (1, "Bob"),
+                    (2, "Alice")));
             var value = Convert.ToString(ExecuteScalar(connection, Dialect.StringAggregateCustomSeparator(users, ";")), CultureInfo.InvariantCulture);
             GC.KeepAlive(value);
         }
@@ -1377,10 +1413,11 @@ public abstract class BenchmarkSessionBase(
         try
         {
             ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            var values = new (int id, string name)[50];
             for (var i = 1; i <= 50; i++)
-            {
-                ExecuteNonQuery(connection, Dialect.InsertUser(users, i, $"User-{i}"));
-            }
+                values[i - 1] = (i, $"User-{i}");
+
+            ExecuteNonQuery(connection, Dialect.InsertUsers(users, values));
             var value = Convert.ToString(ExecuteScalar(connection, Dialect.StringAggregateLargeGroup(users)), CultureInfo.InvariantCulture);
             GC.KeepAlive(value);
         }
@@ -1509,9 +1546,13 @@ public abstract class BenchmarkSessionBase(
         try
         {
             ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Bob"));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Alice"));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 3, "Charlie"));
+            ExecuteNonQuery(
+                connection,
+                Dialect.InsertUsers(
+                    users,
+                    (1, "Bob"),
+                    (2, "Alice"),
+                    (3, "Charlie")));
             var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.WindowRowNumber(users)), CultureInfo.InvariantCulture);
             if (value != 3)
             {
@@ -1533,9 +1574,13 @@ public abstract class BenchmarkSessionBase(
         try
         {
             ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Bob"));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Alice"));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 3, "Charlie"));
+            ExecuteNonQuery(
+                connection,
+                Dialect.InsertUsers(
+                    users,
+                    (1, "Bob"),
+                    (2, "Alice"),
+                    (3, "Charlie")));
             var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.WindowLag(users)), CultureInfo.InvariantCulture);
             if (value != 3)
             {

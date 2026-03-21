@@ -11,12 +11,17 @@ internal static class SelectPlanBuilderHelper
         Func<SqlExpr, AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, IDictionary<string, AstQueryExecutorBase.Source>, object?> evalExpression,
         Func<string?, string, AstQueryExecutorBase.EvalRow, object?> resolveColumn)
     {
-        var columns = new List<TableResultColMock>();
-        var evaluators = new List<Func<AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, object?>>();
-        var windowSlotIndexes = new List<int>();
-        var windowSlots = new List<WindowSlot>();
+        var projectedItemCount = query.SelectItems.Count;
+        var columns = new List<TableResultColMock>(projectedItemCount);
+        var evaluators = new List<Func<AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, object?>>(projectedItemCount);
+        var windowSlotIndexes = new List<int>(projectedItemCount);
+        var windowSlots = new List<WindowSlot>(projectedItemCount);
         var usedAliases = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var sampleFirst = sampleRows.Count > 0 ? sampleRows[0] : null;
+        var sampleSingleSource = sampleFirst is not null
+            && TryGetSingleSource(sampleFirst, out var singleSource)
+            ? singleSource
+            : null;
         var tableAlias = SelectPlanProjectionHelper.GetSelectProjectionTableAlias(query);
 
         foreach (var selectItem in query.SelectItems)
@@ -38,6 +43,7 @@ internal static class SelectPlanBuilderHelper
                 query,
                 sampleRows,
                 sampleFirst,
+                sampleSingleSource,
                 ctes,
                 dialect,
                 tableAlias,
@@ -96,6 +102,7 @@ internal static class SelectPlanBuilderHelper
         SqlSelectQuery query,
         List<AstQueryExecutorBase.EvalRow> sampleRows,
         AstQueryExecutorBase.EvalRow? sampleFirst,
+        AstQueryExecutorBase.Source? sampleSingleSource,
         IDictionary<string, AstQueryExecutorBase.Source> ctes,
         ISqlDialect? dialect,
         string tableAlias,
@@ -112,15 +119,18 @@ internal static class SelectPlanBuilderHelper
     {
         var preferredAlias = selectItemAlias ?? extractedAlias ?? SelectPlanProjectionHelper.InferColumnAlias(rawExpression);
         var columnAlias = SelectPlanProjectionHelper.MakeUniqueAlias(usedAliases, preferredAlias, tableAlias);
-        var inferredDbType = InferDbTypeFromExpression(expression, sampleRows, sampleFirst, ctes, dialect, evalExpression);
-        var isNullable = InferNullabilityFromExpression(expression, sampleFirst);
-        var isJsonFragment = TryInferProjectedJsonFragment(expression, sampleFirst);
+        var inferredDbType = InferDbTypeFromExpression(expression, sampleRows, sampleFirst, sampleSingleSource, ctes, dialect, evalExpression);
+        var isNullable = InferNullabilityFromExpression(expression, sampleFirst, sampleSingleSource);
+        var isJsonFragment = TryInferProjectedJsonFragment(expression, sampleFirst, sampleSingleSource);
 
         columns.Add(SelectPlanProjectionHelper.CreateSelectPlanColumn(tableAlias, columnAlias, columns.Count, inferredDbType, isNullable, isJsonFragment));
         evaluators.Add(CreateSelectPlanEvaluator(expression, ctes, dialect, windowSlotIndexes, windowSlots, evalExpression));
     }
 
-    private static bool TryInferProjectedJsonFragment(SqlExpr expression, AstQueryExecutorBase.EvalRow? sampleRow)
+    private static bool TryInferProjectedJsonFragment(
+        SqlExpr expression,
+        AstQueryExecutorBase.EvalRow? sampleRow,
+        AstQueryExecutorBase.Source? sampleSingleSource)
     {
         if (expression is FunctionCallExpr jsonFunction
             && jsonFunction.Name.Equals("JSON_QUERY", StringComparison.OrdinalIgnoreCase))
@@ -153,10 +163,9 @@ internal static class SelectPlanBuilderHelper
                 && metadata.IsJsonFragment;
         }
 
-        if (TryGetSingleSource(sampleRow, out var singleSource)
-            && singleSource is not null)
+        if (sampleSingleSource is not null)
         {
-            return singleSource.TryGetColumnMetadata(column.Name, out var singleMetadata)
+            return sampleSingleSource.TryGetColumnMetadata(column.Name, out var singleMetadata)
                 && singleMetadata is not null
                 && singleMetadata.IsJsonFragment;
         }
@@ -206,6 +215,7 @@ internal static class SelectPlanBuilderHelper
         SqlExpr expression,
         List<AstQueryExecutorBase.EvalRow> sampleRows,
         AstQueryExecutorBase.EvalRow? sampleFirst,
+        AstQueryExecutorBase.Source? sampleSingleSource,
         IDictionary<string, AstQueryExecutorBase.Source> ctes,
         ISqlDialect? dialect,
         Func<SqlExpr, AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, IDictionary<string, AstQueryExecutorBase.Source>, object?> evalExpression)
@@ -213,14 +223,14 @@ internal static class SelectPlanBuilderHelper
         if (IsSequenceExpression(expression))
             return DbType.Int64;
 
-        if (TryInferDbTypeFromColumnMetadata(expression, sampleFirst, out var columnDbType))
+        if (TryInferDbTypeFromColumnMetadata(expression, sampleFirst, sampleSingleSource, out var columnDbType))
             return columnDbType;
 
         if (expression is WindowFunctionExpr windowFunction)
         {
             return dialect?.InferWindowFunctionDbType(
                     windowFunction,
-                    arg => InferDbTypeFromExpression(arg, sampleRows, sampleFirst, ctes, dialect, evalExpression))
+                    arg => InferDbTypeFromExpression(arg, sampleRows, sampleFirst, sampleSingleSource, ctes, dialect, evalExpression))
                 ?? DbType.Object;
         }
 
@@ -250,6 +260,7 @@ internal static class SelectPlanBuilderHelper
     private static bool TryInferDbTypeFromColumnMetadata(
         SqlExpr expression,
         AstQueryExecutorBase.EvalRow? sampleRow,
+        AstQueryExecutorBase.Source? sampleSingleSource,
         out DbType dbType)
     {
         dbType = DbType.Object;
@@ -270,11 +281,9 @@ internal static class SelectPlanBuilderHelper
         if (expression is not IdentifierExpr identifier)
             return false;
 
-        if (sampleRow.Sources.Count == 1
-            && TryGetSingleSource(sampleRow, out var singleSource)
-            && singleSource is not null)
+        if (sampleSingleSource is not null)
         {
-            return TryGetSourceColumnDbType(singleSource, identifier.Name, out dbType);
+            return TryGetSourceColumnDbType(sampleSingleSource, identifier.Name, out dbType);
         }
 
         AstQueryExecutorBase.Source? matchedSource = null;
@@ -307,7 +316,10 @@ internal static class SelectPlanBuilderHelper
         return true;
     }
 
-    private static bool InferNullabilityFromExpression(SqlExpr expression, AstQueryExecutorBase.EvalRow? sampleRow)
+    private static bool InferNullabilityFromExpression(
+        SqlExpr expression,
+        AstQueryExecutorBase.EvalRow? sampleRow,
+        AstQueryExecutorBase.Source? sampleSingleSource)
     {
         if (sampleRow is null)
             return true;
@@ -327,11 +339,9 @@ internal static class SelectPlanBuilderHelper
 
         if (expression is IdentifierExpr identifier)
         {
-            if (sampleRow.Sources.Count == 1
-                && TryGetSingleSource(sampleRow, out var singleSource)
-                && singleSource is not null)
+            if (sampleSingleSource is not null)
             {
-                if (!TryGetSourceColumnNullability(singleSource, identifier.Name, out var singleNullable))
+                if (!TryGetSourceColumnNullability(sampleSingleSource, identifier.Name, out var singleNullable))
                     return true;
 
                 return singleNullable;

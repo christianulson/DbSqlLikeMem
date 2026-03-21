@@ -150,33 +150,55 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
             || row.OrdinalValues is null
             || row.OrdinalIndexes.Count == 0)
         {
-            return [.. row.Fields.OrderBy(static kv => kv.Key, StringComparer.OrdinalIgnoreCase)];
+            var fields = new List<KeyValuePair<string, object?>>(row.Fields.Count);
+            foreach (var kv in row.Fields)
+                fields.Add(kv);
+
+            fields.Sort(static (a, b) => StringComparer.OrdinalIgnoreCase.Compare(a.Key, b.Key));
+            return fields;
         }
 
         var ordered = new List<KeyValuePair<string, object?>>(row.Fields.Count);
         var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var grouping in row.OrdinalIndexes
-            .Where(static kv => kv.Value >= 0)
-            .GroupBy(static kv => kv.Value)
-            .OrderBy(static group => group.Key))
+        var ordinalIndexes = new List<KeyValuePair<string, int>>(row.OrdinalIndexes.Count);
+        foreach (var kv in row.OrdinalIndexes)
         {
-            foreach (var kv in grouping.OrderBy(static kv => kv.Key, StringComparer.OrdinalIgnoreCase))
-            {
-                if (kv.Value >= row.OrdinalValues.Length)
-                    continue;
+            if (kv.Value >= 0)
+                ordinalIndexes.Add(kv);
+        }
 
-                if (!visited.Add(kv.Key))
-                    continue;
+        ordinalIndexes.Sort(static (a, b) =>
+        {
+            var cmp = a.Value.CompareTo(b.Value);
+            return cmp != 0
+                ? cmp
+                : StringComparer.OrdinalIgnoreCase.Compare(a.Key, b.Key);
+        });
 
-                ordered.Add(new KeyValuePair<string, object?>(kv.Key, row.OrdinalValues[kv.Value]));
-            }
+        for (var i = 0; i < ordinalIndexes.Count; i++)
+        {
+            var kv = ordinalIndexes[i];
+            if (kv.Value >= row.OrdinalValues.Length)
+                continue;
+
+            if (!visited.Add(kv.Key))
+                continue;
+
+            ordered.Add(new KeyValuePair<string, object?>(kv.Key, row.OrdinalValues[kv.Value]));
         }
 
         if (visited.Count < row.Fields.Count)
         {
-            foreach (var kv in row.Fields.OrderBy(static kv => kv.Key, StringComparer.OrdinalIgnoreCase))
+            var remaining = new List<KeyValuePair<string, object?>>(row.Fields.Count);
+            foreach (var kv in row.Fields)
+                remaining.Add(kv);
+
+            remaining.Sort(static (a, b) => StringComparer.OrdinalIgnoreCase.Compare(a.Key, b.Key));
+
+            for (var i = 0; i < remaining.Count; i++)
             {
+                var kv = remaining[i];
                 if (visited.Add(kv.Key))
                     ordered.Add(kv);
             }
@@ -190,17 +212,31 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
         string normalizedSql)
     {
         var qualifiedIdentifiers = ExtractQualifiedSqlIdentifiers(normalizedSql);
-        return [.. allFields
-            .Where(static kv => kv.Key.IndexOf('.') >= 0)
-            .Where(kv => qualifiedIdentifiers.Contains(kv.Key))];
+        var matches = new List<KeyValuePair<string, object?>>(allFields.Count);
+        for (var i = 0; i < allFields.Count; i++)
+        {
+            var kv = allFields[i];
+            if (kv.Key.IndexOf('.') >= 0 && qualifiedIdentifiers.Contains(kv.Key))
+                matches.Add(kv);
+        }
+
+        return matches;
     }
 
     private static List<KeyValuePair<string, object?>> GetUnqualifiedCorrelatedSubqueryCacheFieldMatches(
         IReadOnlyList<KeyValuePair<string, object?>> allFields,
         string normalizedSql)
-        => [.. allFields
-            .Where(static kv => kv.Key.IndexOf('.') < 0)
-            .Where(kv => ContainsSqlIdentifierToken(normalizedSql, kv.Key))];
+    {
+        var matches = new List<KeyValuePair<string, object?>>(allFields.Count);
+        for (var i = 0; i < allFields.Count; i++)
+        {
+            var kv = allFields[i];
+            if (kv.Key.IndexOf('.') < 0 && ContainsSqlIdentifierToken(normalizedSql, kv.Key))
+                matches.Add(kv);
+        }
+
+        return matches;
+    }
 
     /// <summary>
     /// EN: Checks whether a candidate identifier token appears in SQL text using lightweight identifier-boundary guards.
@@ -268,14 +304,14 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
         if (string.IsNullOrWhiteSpace(sql) || fields.Count == 0)
             return false;
 
-        var qualifiers = fields
-            .Select(static kv =>
-            {
-                var dot = kv.Key.IndexOf('.');
-                return dot > 0 ? kv.Key[..dot] : null;
-            })
-            .Where(static q => !string.IsNullOrWhiteSpace(q))
-            .Distinct(StringComparer.OrdinalIgnoreCase);
+        var qualifiers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (var i = 0; i < fields.Count; i++)
+        {
+            var key = fields[i].Key;
+            var dot = key.IndexOf('.');
+            if (dot > 0)
+                qualifiers.Add(key[..dot]);
+        }
 
         foreach (var qualifier in qualifiers)
         {
@@ -1308,7 +1344,13 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
             return "<null>";
 
         if (value is object?[] tuple)
-            return "[" + string.Join(",", tuple.Select(NormalizeSubqueryCacheValue)) + "]";
+        {
+            var parts = new string[tuple.Length];
+            for (var i = 0; i < tuple.Length; i++)
+                parts[i] = NormalizeSubqueryCacheValue(tuple[i]);
+
+            return "[" + string.Join(",", parts) + "]";
+        }
 
         return Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
     }

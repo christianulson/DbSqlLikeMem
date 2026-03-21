@@ -25,6 +25,7 @@
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\DbSqlLikeMem.Db2\DbSqlLikeMem.Db2.csproj" />
 		<ProjectReference Include="..\..\src\DbSqlLikeMem.MiniProfiler.TestTools\DbSqlLikeMem.MiniProfiler.TestTools.csproj" />
+		<ProjectReference Include="..\..\src\DbSqlLikeMem.MariaDb\DbSqlLikeMem.MariaDb.csproj" />
 		<ProjectReference Include="..\..\src\DbSqlLikeMem.MySql\DbSqlLikeMem.MySql.csproj" />
 		<ProjectReference Include="..\..\src\DbSqlLikeMem.Npgsql\DbSqlLikeMem.Npgsql.csproj" />
 		<ProjectReference Include="..\..\src\DbSqlLikeMem.Oracle\DbSqlLikeMem.Oracle.csproj" />
