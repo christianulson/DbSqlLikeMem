@@ -27,6 +27,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             SqlCreateSequenceQuery createSequenceQ => connection.ExecuteCreateSequence(createSequenceQ, pars, dialect),
             SqlCreateFunctionQuery createFunctionQ => connection.ExecuteCreateFunction(createFunctionQ, pars, dialect),
             SqlCreateProcedureQuery createProcedureQ => connection.ExecuteCreateProcedure(createProcedureQ, pars, dialect),
+            SqlCreateTriggerQuery createTriggerQ => connection.CreateTrigger(createTriggerQ),
             SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, pars, dialect),
             SqlDropTableQuery dropTableQ => connection.ExecuteDropTable(dropTableQ, pars, dialect),
             SqlDropIndexQuery dropIndexQ => connection.ExecuteDropIndex(dropIndexQ, pars, dialect),
@@ -498,17 +499,21 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             return new DmlExecutionResult();
         }
 
-        // CREATE TABLE name (id INT, name VARCHAR(100), ...)
+        // CREATE TABLE name (id INT, name VARCHAR(100), ...) [PARTITION BY ...]
         var createTableMatch = Regex.Match(
             sql,
-            @"^CREATE\s+TABLE\s+`?(?<name>[A-Za-z0-9_]+)`?\s*\((?<columns>.*)\)\s*;?$",
+            @"^CREATE\s+TABLE\s+`?(?<name>[A-Za-z0-9_]+)`?\s*(?<rest>.+)$",
             RegexOptions.IgnoreCase | RegexOptions.Singleline);
         if (!createTableMatch.Success)
             throw new InvalidOperationException(SqlExceptionMessages.InvalidCreateTableStatement());
 
         var table = connection.AddTable(createTableMatch.Groups["name"].Value.NormalizeName());
+        var rest = createTableMatch.Groups["rest"].Value.Trim();
+        if (!TryExtractSingleParenthesizedBlock(rest, out var columnsSql, out var trailingSql))
+            throw new InvalidOperationException(SqlExceptionMessages.InvalidCreateTableStatement());
+
         var primaryKeyColumns = new List<string>();
-        foreach (var columnSql in SplitColumnDefinitions(createTableMatch.Groups["columns"].Value))
+        foreach (var columnSql in SplitColumnDefinitions(columnsSql))
         {
             var tablePrimaryKeyColumns = ParsePrimaryKeyConstraint(columnSql);
             if (tablePrimaryKeyColumns.Count > 0)
@@ -528,7 +533,72 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         if (primaryKeyColumns.Count > 0)
             table.AddPrimaryKeyIndexes([.. primaryKeyColumns.Distinct(StringComparer.OrdinalIgnoreCase)]);
 
+        var partitionClause = trailingSql.Trim();
+        if (!string.IsNullOrWhiteSpace(partitionClause))
+        {
+            if (!partitionClause.StartsWith("PARTITION", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("CREATE TABLE only supports trailing PARTITION BY metadata in the mock.");
+
+            table.PartitionClauseSql = partitionClause.TrimEnd(';').Trim();
+        }
+
         return new DmlExecutionResult();
+    }
+
+    private static bool TryExtractSingleParenthesizedBlock(string sql, out string inner, out string trailingSql)
+    {
+        inner = string.Empty;
+        trailingSql = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(sql) || sql[0] != '(')
+            return false;
+
+        var depth = 0;
+        var inSingleQuote = false;
+        for (var i = 0; i < sql.Length; i++)
+        {
+            var ch = sql[i];
+            if (inSingleQuote)
+            {
+                if (ch == '\'')
+                {
+                    if (i + 1 < sql.Length && sql[i + 1] == '\'')
+                    {
+                        i++;
+                        continue;
+                    }
+
+                    inSingleQuote = false;
+                }
+
+                continue;
+            }
+
+            if (ch == '\'')
+            {
+                inSingleQuote = true;
+                continue;
+            }
+
+            if (ch == '(')
+            {
+                depth++;
+                continue;
+            }
+
+            if (ch == ')')
+            {
+                depth--;
+                if (depth == 0)
+                {
+                    inner = sql[1..i];
+                    trailingSql = i + 1 < sql.Length ? sql[(i + 1)..].Trim() : string.Empty;
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static IEnumerable<string> SplitColumnDefinitions(string columnsSql)

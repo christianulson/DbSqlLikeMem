@@ -79,8 +79,8 @@ public sealed class MariaDbMockTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Ensures INSERT ... SET with LOW_PRIORITY, PARTITION, and ON DUPLICATE KEY UPDATE returns the updated row projection in MariaDB.
-    /// PT: Garante que INSERT ... SET com LOW_PRIORITY, PARTITION e ON DUPLICATE KEY UPDATE retorne a projecao da linha atualizada no MariaDB.
+    /// EN: Ensures INSERT ... SET with LOW_PRIORITY and ON DUPLICATE KEY UPDATE returns the updated row projection in MariaDB.
+    /// PT: Garante que INSERT ... SET com LOW_PRIORITY e ON DUPLICATE KEY UPDATE retorne a projecao da linha atualizada no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -98,7 +98,7 @@ public sealed class MariaDbMockTests : XUnitTestBase
         using var command = new MySqlCommandMock(connection)
         {
             CommandText = """
-                INSERT LOW_PRIORITY INTO Users PARTITION (p0)
+                INSERT LOW_PRIORITY INTO Users
                 SET Id = 1601, Name = 'Replacement', Email = 'repl@maria.test'
                 ON DUPLICATE KEY UPDATE
                     Name = VALUES(Name),
@@ -589,17 +589,17 @@ public sealed class MariaDbMockTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Ensures MariaDB executes INSERT with VALUE, LOW_PRIORITY, and PARTITION syntax through the shared runtime path.
-    /// PT: Garante que o MariaDB execute INSERT com sintaxe VALUE, LOW_PRIORITY e PARTITION pelo caminho compartilhado de runtime.
+    /// EN: Ensures MariaDB executes INSERT with VALUE and LOW_PRIORITY syntax through the shared runtime path.
+    /// PT: Garante que o MariaDB execute INSERT com sintaxe VALUE e LOW_PRIORITY pelo caminho compartilhado de runtime.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
-    public void ExecuteReader_InsertValuePartition_ShouldReturnInsertedProjection()
+    public void ExecuteReader_InsertValueLowPriority_ShouldReturnInsertedProjection()
     {
         using var connection = CreateOpenConnection(MariaDbDbVersions.Version10_5);
         using var command = new MySqlCommandMock(connection)
         {
-            CommandText = "INSERT LOW_PRIORITY INTO Users PARTITION (p0) VALUE (905, 'Partition Insert', 'partition@maria.test') RETURNING Id, Name"
+            CommandText = "INSERT LOW_PRIORITY INTO Users VALUE (905, 'Partition Insert', 'partition@maria.test') RETURNING Id, Name"
         };
 
         using var reader = command.ExecuteReader();

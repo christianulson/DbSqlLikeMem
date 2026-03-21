@@ -183,6 +183,10 @@ internal static class SqlExtensions
             && TryConvertToDecimal(a, out var da) && TryConvertToDecimal(b, out var db))
             return da.CompareTo(db);
 
+        if (TryConvertToDateTimeLike(a, out var dateTimeA)
+            && TryConvertToDateTimeLike(b, out var dateTimeB))
+            return dateTimeA.CompareTo(dateTimeB);
+
         return string.Compare(a.ToString(), b.ToString(), dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase);
     }
 
@@ -206,6 +210,10 @@ internal static class SqlExtensions
 
         if (!(dialect?.SupportsImplicitNumericStringComparison ?? true))
             return false;
+
+        if (TryConvertToDateTimeLike(a, out var dateTimeA)
+            && TryConvertToDateTimeLike(b, out var dateTimeB))
+            return dateTimeA == dateTimeB;
 
         return string.Equals(a.ToString(), b.ToString(), dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase);
     }
@@ -256,6 +264,35 @@ internal static class SqlExtensions
         }
 
         return decimal.TryParse(value.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out numericValue);
+    }
+
+    private static bool TryConvertToDateTimeLike(object value, out DateTime dateTime)
+    {
+        if (value is DateTime dt)
+        {
+            dateTime = dt;
+            return true;
+        }
+
+        if (value is DateTimeOffset dto)
+        {
+            dateTime = dto.DateTime;
+            return true;
+        }
+
+        var text = value.ToString();
+        if (!string.IsNullOrWhiteSpace(text)
+            && DateTime.TryParse(
+                text,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeLocal,
+                out dateTime))
+        {
+            return true;
+        }
+
+        dateTime = default;
+        return false;
     }
 
     /// <summary>

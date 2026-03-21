@@ -302,7 +302,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - TODO: revisar cobertura equivalente de sintaxes nativas de `sequence` nos demais providers que exponham formas próprias alem de `SQL Server`, `Npgsql`, `Oracle` e `DB2`.
 - TODO: avaliar variantes adicionais de `sequence` por dialeto somente quando houver demanda real e validacao contra o comportamento do banco/provedor real.
 - TODO: levar a trilha de `sequence` para exemplos/documentacao canonica end-to-end assim que a matriz cross-provider dessa feature estiver fechada.
-- TODO: manter este item abaixo de `100%` até fechar as famílias reais de DML/query ainda fora do fluxo principal do parser/runtime (`FOR JSON`, `CROSS APPLY/OUTER APPLY`, `DISTINCT ON`, `LATERAL`, `json_each/json_tree`, `JSON_TABLE` e demais formas tabulares correlatas por provider).
+- TODO: manter este item abaixo de `100%` até fechar as famílias reais de DML/query ainda fora do fluxo principal do parser/runtime (`FOR JSON`, `CROSS APPLY/OUTER APPLY`, `DISTINCT ON`, `LATERAL`, `json_each/json_tree` e demais formas tabulares correlatas por provider).
 - TODO: revisar materialização/execução de DML avançado por provider para que o item só volte a `100%` quando as diferenças remanescentes estiverem reduzidas a subset documentado e intencional.
 
 #### 1.2.3 Regras por dialeto e versão
@@ -320,7 +320,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: `seq.NEXTVAL/CURRVAL` passou a obedecer capability explícita do dialeto no parser e no executor, preservando a forma pontuada como sintaxe Oracle e rejeitando esse formato nos demais providers, como Npgsql.
 - Incremento desta sessão: `nextval/currval/setval/lastval` passou a obedecer capability explícita do dialeto no parser e no executor, preservando essa família como sintaxe PostgreSQL/Npgsql e rejeitando o formato em dialetos como SQL Server.
 - Incremento desta sessão: `ILIKE` passou a obedecer capability explícita do dialeto no parser e no executor, preservando a semântica case-insensitive apenas no Npgsql e rejeitando o operador em dialetos como SQL Server.
-- Incremento desta sessão: `JSON_TABLE` passou a obedecer gate explícito do dialeto já no parser, trocando erro genérico por `NotSupportedException` consistente até existir suporte real de runtime.
+- Incremento desta sessão: `JSON_TABLE` passou a obedecer gate explícito do dialeto já no parser e no runtime, mantendo a mesma fonte de verdade de capability por provider.
 - Incremento desta sessão: `MATCH ... AGAINST` passou a sair de capability explícita do dialeto também no runtime, removendo o acoplamento ao nome hardcoded `mysql` e alinhando parser/executor à mesma fonte de verdade.
 - Incremento desta sessão: o executor deixou de usar switches por `dialect.Name` para `FOUND_ROWS/ROW_COUNT/CHANGES/ROWCOUNT/@@ROWCOUNT`; esses aliases de row-count agora saem de capabilities explícitas do dialeto, incluindo herança automática do caminho `SqlAzure -> SqlServer`.
 - Incremento desta sessão: o parser passou a obedecer a mesma capability de row-count do dialeto para `FOUND_ROWS()/ROW_COUNT()/CHANGES()/ROWCOUNT()`, evitando aceitar no parse chamadas que o executor já não considerava válidas para aquele banco.
@@ -501,20 +501,29 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.3.4 Particionamento de tabelas (avaliação)
 
-- Implementação estimada: **8%**.
-- **Recomendação:** sim, vale incluir partição de tabelas como feature incremental para cenários de teste com alto volume e consultas por faixa (ex.: data, tenant, shard lógico).
+- Implementação estimada: **35%**.
+- **Já implementado:**
+  - metadata de partição em memória para o subset do MySQL;
+  - `PARTITION BY RANGE` e `PARTITION BY LIST` por ano;
+  - `INSERT ... PARTITION (...)`;
+  - roteamento automático de `INSERT` para partição conhecida;
+  - leitura explícita com `FROM ... PARTITION (...)`;
+  - pruning seguro por igualdade, `IN (...)`, `BETWEEN` e `OR`;
+  - pruning por `YEAR(col)` e `EXTRACT(YEAR FROM col)`;
+  - round-trip de snapshot preservando a metadata de partição.
+- **A implementar:**
+  - pruning mais amplo fora do subset seguro de ano;
+  - suporte a chaves e expressões de partição além de `YEAR` e `EXTRACT`;
+  - roteamento/pruning para outros providers;
+  - DDL avançado de partições;
+  - manutenção de partições em cenários de retenção/arquivamento.
+- **Recomendação:** sim, vale manter o item no backlog como feature incremental para cenários de teste com alto volume e consultas por faixa.
 - **Ganho esperado:**
-  - redução de custo em varreduras quando filtros batem na chave de partição (partition pruning);
-  - cenários de retenção/arquivamento mais realistas (drop/truncate por partição);
+  - redução de custo em varreduras quando filtros batem na chave de partição;
+  - cenários de retenção e arquivamento mais realistas;
   - maior fidelidade para workloads multi-tenant e time-series;
-  - testes de regressão de plano/estratégia com comportamento mais próximo de bancos reais.
-- **Escopo mínimo sugerido no mock:**
-  - metadado de partição por tabela (`RANGE`/`LIST` simplificado);
-  - roteamento de `INSERT` para partição-alvo;
-  - pruning básico em `SELECT/UPDATE/DELETE` quando filtro contém chave de partição;
-  - fallback explícito de não suportado para DDL avançado fora do subset.
-- **Risco/observação:** manter subset pequeno para não aumentar complexidade do executor antes de fechar gaps críticos já priorizados.
-- TODO: validar no core um primeiro subset operacional de partição (`RANGE`/`LIST`) com metadata em memória, roteamento de `INSERT` e pruning básico guiado por predicado simples.
+  - testes de regressão de plano e estratégia mais próximos de bancos reais.
+- **Risco/observação:** manter o subset pequeno para não aumentar a complexidade do executor antes de fechar gaps críticos já priorizados.
 
 ### 1.4 API fluente
 
@@ -966,12 +975,32 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 - Implementação estimada: **100%**.
 - Incremento desta sessão: o inventário pendente passou a registrar explicitamente a convenção documental de versões MySQL em formato humano (`3.0`, `4.0`, `5.5`, `5.6`, `5.7`, `8.0`, `8.4`) com equivalência para os inteiros usados na API (`30`, `40`, `55`, `56`, `57`, `80`, `84`), reduzindo drift entre backlog, código e exemplos.
-- `MySQL`: `LIMIT/OFFSET`, `ON DUPLICATE KEY UPDATE`, `MATCH ... AGAINST`, `SQL_CALC_FOUND_ROWS`/`FOUND_ROWS`, `USE/IGNORE/FORCE INDEX`, `<=>` e `GROUP_CONCAT` ja estao cobertos nas versoes simuladas atuais; `JSON_EXTRACT`/`->`/`->>` entram em `5.0+`; `WITH RECURSIVE` e window functions entram em `8.0+`; `JSON_TABLE` permanece fora do subset real.
+- Incremento desta sessão: o pruning do MySQL passou a inferir o mesmo subset também quando o predicado usa a coluna de data diretamente em faixa alinhada ao ano (`CreatedAt >= ... AND CreatedAt < ...`).
+- Incremento desta sessão: a mesma faixa direta agora atravessa mais de uma particao conhecida quando o intervalo cobre varios anos.
+- Incremento desta sessão: o subset ganhou tambem `PARTITION BY LIST (YEAR(...))` com valores explicitos.
+- `MySQL`: `LIMIT/OFFSET`, `ON DUPLICATE KEY UPDATE`, `MATCH ... AGAINST`, `SQL_CALC_FOUND_ROWS`/`FOUND_ROWS`, `USE/IGNORE/FORCE INDEX`, `<=>` e `GROUP_CONCAT` ja estao cobertos nas versoes simuladas atuais.
+- `MySQL`: `JSON_EXTRACT`/`->`/`->>` entram em `5.0+`; `WITH RECURSIVE` e window functions entram em `8.0+`.
+- `MySQL`: `JSON_TABLE` já está coberto no subset `8.0+`.
+- `MySQL`: particionamento ja cobre:
+  - metadata
+  - roteamento de escrita por particao conhecida
+  - leitura explicita com `PARTITION (...)`
+  - pruning por igualdade, `IN (...)`, `BETWEEN`, `OR` seguro e faixa direta por data alinhada ao ano
+  - pruning por `YEAR()` e `EXTRACT(YEAR FROM ...)`
+  - `EXTRACT(YEAR FROM ...)` com `IN (...)`
+  - `EXTRACT(YEAR FROM ...)` com `BETWEEN ... AND ...`
+  - `EXTRACT(YEAR FROM ...)` com comparacao de faixa
+  - faixa invertida com `EXTRACT(YEAR FROM ...)`
+  - `EXTRACT(YEAR FROM ...)` com `OR` em faixas distintas
+  - `EXTRACT(YEAR FROM ...)` com `OR` em `BETWEEN`
+  - `LIST` por `YEAR()`
+- `MySQL`: o pruning tambem cobre misturas de igualdade com `IN (...)` e faixas que atravessam mais de uma particao conhecida na mesma consulta.
 - `SQL Server/SqlAzure`: `TOP`, `OFFSET/FETCH`, `OUTPUT`, `MERGE`, `@@ROWCOUNT`, table/query hints `WITH (...)`, `PIVOT/UNPIVOT`, `CROSS APPLY`/`OUTER APPLY`, `JSON_VALUE`/`OPENJSON`, `STRING_AGG`, `STRING_SPLIT` e `FOR JSON` ja estao mapeados com gate por versao simulada e `compatibility level`, ficando o backlog residual concentrado nas nuances avancadas dessas familias.
-- `Oracle`: `ROWNUM`, `FETCH FIRST/NEXT`, `MERGE`, `seq.NEXTVAL/CURRVAL`, `LISTAGG`, `JSON_VALUE` e o subset atual de `PIVOT` ja estao explicitados por versao simulada; `JSON_TABLE`, `CONNECT BY/START WITH`, `MATCH_RECOGNIZE` e `MODEL` seguem fora do subset explicito ou ainda parciais.
+- `Oracle`: `ROWNUM`, `FETCH FIRST/NEXT`, `MERGE`, `seq.NEXTVAL/CURRVAL`, `LISTAGG`, `JSON_VALUE`, `JSON_TABLE` e o subset atual de `PIVOT` ja estao explicitados por versao simulada.
+- `Oracle`: `CONNECT BY/START WITH`, `MATCH_RECOGNIZE` e `MODEL` seguem fora do subset explicito ou ainda parciais.
 - `PostgreSQL/Npgsql`: `LIMIT/OFFSET`, `FETCH FIRST`, `ON CONFLICT`, `RETURNING`, `ILIKE`, `STRING_AGG`, operadores JSON `->`/`->>`/`#>`/`#>>` e `WITH [NOT] MATERIALIZED` ja estao mapeados na trilha atual; `DISTINCT ON`, `LATERAL` e `MERGE` seguem como backlog residual explicito.
 - `SQLite`: `LIMIT/OFFSET`, `ON CONFLICT`, `RETURNING`, `GROUP_CONCAT` com `ORDER BY`, `JSON_EXTRACT`/`->`/`->>`, `WITH RECURSIVE`, `CHANGES()`, `NULLS FIRST/LAST` e a familia principal de window functions ja estao refletidos no subset atual; `MATERIALIZED/NOT MATERIALIZED` permanece parcial por cenario, e `json_each/json_tree` com detalhes avancados de frame continuam pendentes.
-- `DB2`: `FETCH FIRST`, `MERGE` (`>= 9`), `NEXT VALUE FOR`/`PREVIOUS VALUE FOR`, `LISTAGG` e a familia compartilhada de window functions ja estao refletidos no inventario atual; `LIMIT/OFFSET` segue nao suportado no dialeto, enquanto `JSON_TABLE` e `JSON_QUERY` permanecem como gaps explicitos.
+- `DB2`: `FETCH FIRST`, `MERGE` (`>= 9`), `NEXT VALUE FOR`/`PREVIOUS VALUE FOR`, `LISTAGG`, `JSON_QUERY`, `JSON_TABLE` e `CREATE OR REPLACE FUNCTION/PROCEDURE/TRIGGER` ja estao refletidos no inventario atual; `LIMIT/OFFSET` segue nao suportado no dialeto.
 
 ### 3.1 MySQL (`DbSqlLikeMem.MySql`)
 
@@ -1020,7 +1049,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: a mesma trilha foi padronizada em `Testcontainers`/modo `preprovisioned`, garantindo baseline reproduzível por provider sem depender de instalação manual local para os bancos reais viáveis no ambiente de testes.
 - Incremento desta sessão: os resultados consolidados dessa trilha já são publicados na wiki espelhada em `docs/Wiki/performance-matrix.md`, `docs/Wiki/performance-matrix-app-specific.md` e artefatos versionados em `docs/Wiki/BenchmarkResults`.
 - Incremento desta sessão: a trilha de performance agora consolida, no backlog, os hot paths do core já estabilizados em otimizações anteriores com chaves estruturadas para índices e PK, `AddBatch` incremental e paralelização best-effort em caminhos thread-safe, sem reabrir funcionalidades já fechadas no código.
-- TODO: ampliar a matriz compartilhada para capacidades avançadas auditadas contra bancos reais (`JSON_TABLE`, `FOR JSON`, `CROSS APPLY/OUTER APPLY`, `LATERAL`, `DISTINCT ON`, `json_each/json_tree`, `PIVOT/UNPIVOT`) com status explícito por provider.
+- TODO: ampliar a matriz compartilhada para capacidades avançadas auditadas contra bancos reais (`FOR JSON`, `CROSS APPLY/OUTER APPLY`, `LATERAL`, `DISTINCT ON`, `json_each/json_tree`, `PIVOT/UNPIVOT`) com status explícito por provider.
 - TODO: incluir `SqlDialect.Auto` na malha `parser`/`smoke` com snapshots dedicados para sintaxes equivalentes de paginação e demais heurísticas que entrarem no modo automático.
 - TODO: expandir a matriz para os próximos providers/famílias planejados (`Firebird`, `DuckDB` e, em fase posterior, `ClickHouse`/`Snowflake`) com status por etapa de implementação.
 - TODO: conectar a futura API de validação cross-dialect aos artefatos publicados da matriz para transformar compatibilidade em evidência objetiva de CI.
@@ -1059,7 +1088,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Cobertura de sintaxes menos frequentes e melhorias de ergonomia para debug.
 - Inclui trilhas P13/P14 para performance (hot paths/caching) e conformidade de ecossistema (.NET/ORM/tooling).
 - Inclui avaliação de partição de tabelas em subset (metadado + pruning básico) após estabilização dos gaps críticos de parser/executor.
-- TODO: manter nesta onda recursos especializados e de menor recorrência operacional, como `MATCH_RECOGNIZE`, particionamento simplificado e expansões de observabilidade/ergonomia do plano de execução.
+- TODO: manter nesta onda recursos especializados e de menor recorrência operacional, como `MATCH_RECOGNIZE`, particionamento mais amplo fora do subset seguro e expansões de observabilidade/ergonomia do plano de execução.
 - TODO: deixar nesta onda a família analytics (`ClickHouse`, `Snowflake`) e a trilha de fuzz/comparação multi-dialeto, salvo se algum consumidor real elevar a prioridade.
 
 ### 3.9 MariaDB (`DbSqlLikeMem.MariaDb`)
@@ -1127,7 +1156,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: a próxima fatia funcional do executor fechou o subset principal de `PIVOT` com `SUM/MIN/MAX/AVG`, adicionou `UNPIVOT` e abriu o subset inicial de `FOR JSON` no caminho compartilhado de `SQL Server/SqlAzure`, deixando agregadores avançados, nuances tabulares por versão e arestas finas de serialização JSON como backlog residual explícito.
 - TODO: executar o roadmap remanescente na ordem acordada: `SqlDialect.Auto` -> `Firebird` -> `DuckDB` -> `Cross Dialect Validator`, considerando `Query Plan Debugger` e `Schema Snapshot` como trilhas já materializadas no ciclo atual.
 - TODO: extrair/refatorar bases compartilhadas por família antes de `DuckDB`, para evitar duplicação e preservar o parser/executor agnósticos.
-- TODO: fechar a trilha auditada contra bancos reais com implementação incremental de `JSON_TABLE` (MySQL, Oracle, DB2), `FOR JSON`/`STRING_SPLIT`/`CROSS APPLY`/`OUTER APPLY` (SQL Server/SqlAzure), `DISTINCT ON`/`LATERAL` (PostgreSQL), `json_each`/`json_tree` e frames avançados de window (SQLite).
+- TODO: fechar a trilha auditada contra bancos reais com implementação incremental de `FOR JSON`/`STRING_SPLIT`/`CROSS APPLY`/`OUTER APPLY` (SQL Server/SqlAzure), `DISTINCT ON`/`LATERAL` (PostgreSQL), `json_each`/`json_tree` e frames avançados de window (SQLite).
 - TODO: revisar cada nova feature acima com a regra "dialeto manda", garantindo gate no tokenizer/parser, contract no executor e suíte positiva/negativa por versão simulada antes de marcar o item como concluído.
 
 #### 4.2.3 Critérios de aceitação
@@ -1514,39 +1543,82 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 ---
 
-## 7) Mapa de aprofundamento sugerido
+## 7) Mapa de TODOs restantes
 
-### 7.0 Como usar este índice no dia a dia
+### 7.0 Núcleo e DDL
+
+- `ALTER TABLE` pragmático.
+- `CREATE/DROP INDEX` com hardening adicional.
+- Objetos programáveis: `PROCEDURE`, `TRIGGER` e variantes avançadas de `FUNCTION`.
+
+### 7.1 Execução avançada
+
+- `FOR JSON`, `CROSS APPLY/OUTER APPLY`, `LATERAL` e `DISTINCT ON`.
+- `json_each/json_tree`, `PIVOT/UNPIVOT` e outras formas tabulares por provider.
+- Batches mistos com `RETURNING`, `OUTPUT`, rowcount e trigger.
+
+### 7.2 Famílias futuras
+
+- `Firebird`.
+- `DuckDB`.
+- `ClickHouse`.
+- `Snowflake`.
+
+### 7.3 Camada compartilhada
+
+- `SqlDialect.Auto`.
+- `SqlCompatibilityCheck` / `ValidateAcrossDialects(query)`.
+- `TestAcrossDialects(query)`.
+- Matriz cross-dialect e snapshots de CI.
+
+### 7.4 Observabilidade e release
+
+- Execution plan debugger.
+- Trace e métricas em memória.
+- Resumo de impacto por provider/dialeto.
+- Governança de SemVer e publicação.
+
+### 7.5 Pendências por provider
+
+- MySQL: ampliar o pruning fora do subset seguro de `YEAR` e `EXTRACT`.
+- SQL Server/SqlAzure: fechar nuances avançadas de `FOR JSON`, `CROSS APPLY/OUTER APPLY`, `PIVOT/UNPIVOT`, `STRING_SPLIT` e `STRING_AGG`.
+- Oracle: completar `CONNECT BY/START WITH`, `MATCH_RECOGNIZE` e `MODEL`.
+- PostgreSQL/Npgsql: fechar `DISTINCT ON`, `LATERAL` e `MERGE`.
+- SQLite: completar `MATERIALIZED/NOT MATERIALIZED`, `json_each/json_tree` e frames avançados.
+
+## 8) Mapa de aprofundamento sugerido
+
+### 8.0 Como usar este índice no dia a dia
 
 - Planejamento de sprint: usar as seções 1–4 para quebrar itens técnicos.
 - Definição de padrões internos: usar seção 5 para operacionalizar templates e geração.
 - Preparação de release: usar seção 6 como checklist de governança.
 
-### 7.1 Primeiro nível (macro)
+### 8.1 Primeiro nível (macro)
 
 - Entender proposta do engine em memória.
 - Mapear provedores usados no contexto do produto.
 - Definir fronteira entre teste unitário e integração.
 
-### 7.2 Segundo nível (funcional)
+### 8.2 Segundo nível (funcional)
 
 - Explorar parser/executor e API fluente.
 - Consolidar padrões de seed e setup.
 - Validar cenários críticos com Dapper/ADO.NET.
 
-### 7.3 Terceiro nível (especialização)
+### 8.3 Terceiro nível (especialização)
 
 - Monitorar métricas e planos de execução mock.
 - Trabalhar gaps por dialeto com regressão automatizada.
 - Refinar matriz de compatibilidade por domínio de negócio.
 
-### 7.4 Quarto nível (ecossistema)
+### 8.4 Quarto nível (ecossistema)
 
 - Incorporar fluxos de extensão e templates no dia a dia.
 - Padronizar publicação e governança documental.
 - Manter backlog evolutivo com trilhas por prioridade.
 
-### 7.5 Quinto nível (estratégia de produto)
+### 8.5 Quinto nível (estratégia de produto)
 
 - Definir roadmap anual de compatibilidade SQL.
 - Balancear manutenção de legado e inovação de recursos.

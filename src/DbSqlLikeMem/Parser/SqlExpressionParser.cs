@@ -646,7 +646,7 @@ internal sealed class SqlExpressionParser(
 
         return token.Text.ToUpperInvariant() switch
         {
-            "YEAR" or "YEARS"
+            SqlConst.YEAR or "YEARS"
             or "MONTH" or "MONTHS"
             or "DAY" or "DAYS"
             or "HOUR" or "HOURS"
@@ -1949,7 +1949,7 @@ internal sealed class SqlExpressionParser(
                 || name.Equals("DATEPART", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("DAY", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("MONTH", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("YEAR", StringComparison.OrdinalIgnoreCase))
+                || name.Equals(SqlConst.YEAR, StringComparison.OrdinalIgnoreCase))
             && !_dialect.SupportsSqlServerDateFunction(name))
         {
             throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());

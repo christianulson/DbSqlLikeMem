@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Linq.Expressions;
+using System.Text.RegularExpressions;
 
 namespace DbSqlLikeMem;
 
@@ -58,6 +60,234 @@ public abstract class TableMock
     /// PT: Habilita valores explícitos para colunas identity ao montar cenários ou executar inserções.
     /// </summary>
     public bool AllowIdentityInsert { get; set; }
+
+    /// <summary>
+    /// EN: Partitioning clause captured from CREATE TABLE when the provider persists partition metadata.
+    /// PT: Clausula de particionamento capturada do CREATE TABLE quando o provedor persiste metadados de particionamento.
+    /// </summary>
+    public string? PartitionClauseSql { get; set; }
+
+    private PartitionRoutingInfo? _partitionRoutingInfo;
+
+    internal bool MatchesRequestedPartitions(
+        IReadOnlyDictionary<int, object?> row,
+        IReadOnlyCollection<string> requestedPartitionNames)
+    {
+        if (requestedPartitionNames.Count == 0 || string.IsNullOrWhiteSpace(PartitionClauseSql))
+            return true;
+
+        var routingInfo = GetPartitionRoutingInfo();
+        if (routingInfo is null)
+            return true;
+
+        return routingInfo.TryGetPartitionName(row, this, out var partitionName)
+            && requestedPartitionNames.Any(name => string.Equals(name, partitionName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    internal bool TryGetPartitionName(
+        IReadOnlyDictionary<int, object?> row,
+        out string partitionName)
+    {
+        partitionName = string.Empty;
+        if (string.IsNullOrWhiteSpace(PartitionClauseSql))
+            return false;
+
+        var routingInfo = GetPartitionRoutingInfo();
+        if (routingInfo is null)
+            return false;
+
+        return routingInfo.TryGetPartitionName(row, this, out partitionName);
+    }
+
+    internal bool TryInferRequestedPartitionNames(
+        IReadOnlyDictionary<string, object?> equalsByColumn,
+        out IReadOnlyList<string> partitionNames)
+    {
+        partitionNames = [];
+        if (string.IsNullOrWhiteSpace(PartitionClauseSql))
+            return false;
+
+        var routingInfo = GetPartitionRoutingInfo();
+        if (routingInfo is null)
+            return false;
+
+        if (!equalsByColumn.TryGetValue(routingInfo.PartitionedColumnName, out var rawValue))
+            return false;
+
+        return TryInferRequestedPartitionNames([rawValue], out partitionNames);
+    }
+
+    internal bool TryInferRequestedPartitionNames(
+        IEnumerable<object?> rawValues,
+        out IReadOnlyList<string> partitionNames)
+    {
+        partitionNames = [];
+        if (string.IsNullOrWhiteSpace(PartitionClauseSql))
+            return false;
+
+        var routingInfo = GetPartitionRoutingInfo();
+        if (routingInfo is null)
+            return false;
+
+        var distinctPartitionNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var hasValue = false;
+        foreach (var rawValue in rawValues)
+        {
+            hasValue = true;
+            if (!TryGetPartitionNameForValue(rawValue, out var partitionName))
+                return false;
+
+            distinctPartitionNames.Add(partitionName);
+        }
+
+        if (!hasValue || distinctPartitionNames.Count == 0)
+            return false;
+
+        partitionNames = [.. distinctPartitionNames];
+        return true;
+    }
+
+    internal bool TryInferRequestedPartitionNamesForRange(
+        object? lowValue,
+        object? highValue,
+        out IReadOnlyList<string> partitionNames)
+    {
+        partitionNames = [];
+        if (string.IsNullOrWhiteSpace(PartitionClauseSql))
+            return false;
+
+        if (!TryGetYearForPartitionValue(lowValue, out var lowYear)
+            || !TryGetYearForPartitionValue(highValue, out var highYear))
+        {
+            return false;
+        }
+
+        if (lowYear > highYear)
+            return false;
+
+        var span = highYear - lowYear;
+        if (span > 32)
+            return false;
+
+        var distinctPartitionNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (var year = lowYear; year <= highYear; year++)
+        {
+            if (!TryGetPartitionNameForValue(year, out var partitionName))
+                return false;
+
+            distinctPartitionNames.Add(partitionName);
+        }
+
+        if (distinctPartitionNames.Count == 0)
+            return false;
+
+        partitionNames = [.. distinctPartitionNames];
+        return true;
+    }
+
+    internal bool TryInferRequestedPartitionNamesForRanges(
+        IEnumerable<(object? Low, object? High)> ranges,
+        out IReadOnlyList<string> partitionNames)
+    {
+        partitionNames = [];
+        if (string.IsNullOrWhiteSpace(PartitionClauseSql))
+            return false;
+
+        var distinctPartitionNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var hasRange = false;
+        foreach (var (low, high) in ranges)
+        {
+            hasRange = true;
+            if (!TryInferRequestedPartitionNamesForRange(low, high, out var rangePartitionNames))
+                return false;
+
+            foreach (var partitionName in rangePartitionNames)
+                distinctPartitionNames.Add(partitionName);
+        }
+
+        if (!hasRange || distinctPartitionNames.Count == 0)
+            return false;
+
+        partitionNames = [.. distinctPartitionNames];
+        return true;
+    }
+
+    internal bool TryGetPartitionNameForValue(
+        object? rawValue,
+        out string partitionName)
+    {
+        partitionName = string.Empty;
+        if (string.IsNullOrWhiteSpace(PartitionClauseSql))
+            return false;
+
+        var routingInfo = GetPartitionRoutingInfo();
+        if (routingInfo is null)
+            return false;
+
+        if (rawValue is null || rawValue is DBNull)
+            return false;
+
+        if (!_columns.TryGetValue(routingInfo.PartitionedColumnName, out var partitionedColumn))
+            return false;
+
+        var probeRow = new Dictionary<int, object?>(1)
+        {
+            [partitionedColumn.Index] = rawValue
+        };
+
+        return routingInfo.TryGetPartitionName(probeRow, this, out partitionName);
+    }
+
+    private static bool TryGetYearForPartitionValue(object? rawValue, out int year)
+    {
+        switch (rawValue)
+        {
+            case DateTime dateTime:
+                year = dateTime.Year;
+                return true;
+            case DateTimeOffset dateTimeOffset:
+                year = dateTimeOffset.Year;
+                return true;
+            case int intValue:
+                year = intValue;
+                return true;
+            case long longValue when longValue >= int.MinValue && longValue <= int.MaxValue:
+                year = (int)longValue;
+                return true;
+            case string text when DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var parsedDate):
+                year = parsedDate.Year;
+                return true;
+            default:
+                year = default;
+                return false;
+        }
+    }
+
+    internal bool TryGetPartitionedColumnName(out string partitionedColumnName)
+    {
+        partitionedColumnName = string.Empty;
+        if (string.IsNullOrWhiteSpace(PartitionClauseSql))
+            return false;
+
+        var routingInfo = GetPartitionRoutingInfo();
+        if (routingInfo is null)
+            return false;
+
+        partitionedColumnName = routingInfo.PartitionedColumnName;
+        return true;
+    }
+
+    private PartitionRoutingInfo? GetPartitionRoutingInfo()
+    {
+        if (_partitionRoutingInfo is not null)
+            return _partitionRoutingInfo;
+
+        if (string.IsNullOrWhiteSpace(PartitionClauseSql))
+            return null;
+
+        _partitionRoutingInfo = PartitionRoutingInfo.TryParse(PartitionClauseSql!);
+        return _partitionRoutingInfo;
+    }
 
     /// <summary>
     /// EN: Sets the AllowIdentityInsert property.
@@ -219,6 +449,7 @@ public abstract class TableMock
         => new ReadOnlyDictionary<string, IndexDef>(_indexes);
 
     private readonly Dictionary<TableTriggerEvent, List<Action<TableTriggerContext>>> _triggers = [];
+    private readonly Dictionary<string, (TableTriggerEvent Event, Action<TableTriggerContext> Handler)> _namedTriggers = new(StringComparer.OrdinalIgnoreCase);
     internal event Action<TableMutationNotification>? MutationApplied;
 
     /// <summary>
@@ -237,6 +468,52 @@ public abstract class TableMock
         }
 
         handlers.Add(handler);
+    }
+
+    internal void AddOrReplaceTrigger(
+        string triggerName,
+        TableTriggerEvent evt,
+        Action<TableTriggerContext> handler,
+        bool orReplace = false)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(triggerName, nameof(triggerName));
+        ArgumentNullExceptionCompatible.ThrowIfNull(handler, nameof(handler));
+
+        var normalizedName = triggerName.NormalizeName();
+        if (_namedTriggers.TryGetValue(normalizedName, out var previous))
+        {
+            if (!orReplace)
+                throw new InvalidOperationException($"Trigger '{normalizedName}' already exists.");
+
+            if (_triggers.TryGetValue(previous.Event, out var previousHandlers))
+            {
+                previousHandlers.Remove(previous.Handler);
+                if (previousHandlers.Count == 0)
+                    _triggers.Remove(previous.Event);
+            }
+        }
+
+        AddTrigger(evt, handler);
+        _namedTriggers[normalizedName] = (evt, handler);
+    }
+
+    internal bool RemoveTrigger(string triggerName)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(triggerName, nameof(triggerName));
+
+        var normalizedName = triggerName.NormalizeName();
+        if (!_namedTriggers.TryGetValue(normalizedName, out var previous))
+            return false;
+
+        if (_triggers.TryGetValue(previous.Event, out var previousHandlers))
+        {
+            previousHandlers.Remove(previous.Handler);
+            if (previousHandlers.Count == 0)
+                _triggers.Remove(previous.Event);
+        }
+
+        _namedTriggers.Remove(normalizedName);
+        return true;
     }
 
     internal void ExecuteTriggers(
@@ -1731,4 +2008,273 @@ public abstract class TableMock
 
     IEnumerator IEnumerable.GetEnumerator()
         => GetEnumerator();
+
+    private sealed record PartitionRoutingInfo(
+        string PartitionedColumnName,
+        PartitionPartitionKind Kind,
+        IReadOnlyList<PartitionPartitionItem> Partitions)
+    {
+        internal static PartitionRoutingInfo? TryParse(string partitionClauseSql)
+        {
+            var rangeMatch = Regex.Match(
+                partitionClauseSql,
+                @"PARTITION\s+BY\s+RANGE\s*\(\s*YEAR\s*\(\s*`?(?<column>[A-Za-z0-9_]+)`?\s*\)\s*\)\s*\((?<parts>[\s\S]+)\)\s*$",
+                RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+            if (rangeMatch.Success)
+            {
+                var partitionColumn = rangeMatch.Groups["column"].Value.NormalizeName();
+                if (string.IsNullOrWhiteSpace(partitionColumn))
+                    return null;
+
+                var partitions = new List<PartitionPartitionItem>();
+                foreach (var part in SplitTopLevelPartitions(rangeMatch.Groups["parts"].Value))
+                {
+                    var item = ParseRangePartitionItem(part);
+                    if (item is null)
+                        return null;
+
+                    partitions.Add(item);
+                }
+
+                if (partitions.Count == 0)
+                    return null;
+
+                return new PartitionRoutingInfo(partitionColumn, PartitionPartitionKind.Range, partitions);
+            }
+
+            var listMatch = Regex.Match(
+                partitionClauseSql,
+                @"PARTITION\s+BY\s+LIST\s*\(\s*YEAR\s*\(\s*`?(?<column>[A-Za-z0-9_]+)`?\s*\)\s*\)\s*\((?<parts>[\s\S]+)\)\s*$",
+                RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+            if (!listMatch.Success)
+                return null;
+
+            var listPartitionColumn = listMatch.Groups["column"].Value.NormalizeName();
+            if (string.IsNullOrWhiteSpace(listPartitionColumn))
+                return null;
+
+            var listPartitions = new List<PartitionPartitionItem>();
+            foreach (var part in SplitTopLevelPartitions(listMatch.Groups["parts"].Value))
+            {
+                var item = ParseListPartitionItem(part);
+                if (item is null)
+                    return null;
+
+                listPartitions.Add(item);
+            }
+
+            if (listPartitions.Count == 0)
+                return null;
+
+            return new PartitionRoutingInfo(listPartitionColumn, PartitionPartitionKind.List, listPartitions);
+        }
+
+        internal bool TryGetPartitionName(
+            IReadOnlyDictionary<int, object?> row,
+            TableMock table,
+            out string partitionName)
+        {
+            partitionName = string.Empty;
+            if (!table._columns.TryGetValue(PartitionedColumnName, out var column))
+                return false;
+
+            if (!row.TryGetValue(column.Index, out var rawValue) || rawValue is null || rawValue is DBNull)
+                return false;
+
+            if (!TryGetYear(rawValue, out var year))
+                return false;
+
+            foreach (var partition in Partitions)
+            {
+                if (Kind == PartitionPartitionKind.Range)
+                {
+                    if (partition.MaxValue)
+                    {
+                        partitionName = partition.Name;
+                        return true;
+                    }
+
+                    if (year < partition.Value)
+                    {
+                        partitionName = partition.Name;
+                        return true;
+                    }
+
+                    continue;
+                }
+
+                if (partition.ListValues is not null)
+                {
+                    if (partition.ListValues.Contains(year))
+                    {
+                        partitionName = partition.Name;
+                        return true;
+                    }
+
+                    continue;
+                }
+
+                if (partition.Value == year)
+                {
+                    partitionName = partition.Name;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static IEnumerable<string> SplitTopLevelPartitions(string partsSql)
+        {
+            var start = 0;
+            var depth = 0;
+            for (var i = 0; i < partsSql.Length; i++)
+            {
+                var ch = partsSql[i];
+                if (ch == '(')
+                {
+                    depth++;
+                    continue;
+                }
+
+                if (ch == ')')
+                {
+                    if (depth > 0)
+                        depth--;
+                    continue;
+                }
+
+                if (ch == ',' && depth == 0)
+                {
+                    var slice = partsSql[start..i].Trim();
+                    if (!string.IsNullOrWhiteSpace(slice))
+                        yield return slice;
+                    start = i + 1;
+                }
+            }
+
+            var last = partsSql[start..].Trim();
+            if (!string.IsNullOrWhiteSpace(last))
+                yield return last;
+        }
+
+        private static PartitionPartitionItem? ParseRangePartitionItem(string partSql)
+        {
+            var match = Regex.Match(
+                partSql,
+                @"^\s*PARTITION\s+`?(?<name>[A-Za-z0-9_]+)`?\s+VALUES\s+LESS\s+THAN\s*(?:\(\s*(?<bound>MAXVALUE|-?\d+)\s*\)|(?<bound>MAXVALUE|-?\d+))\s*$",
+                RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            if (!match.Success)
+                return null;
+
+            var name = match.Groups["name"].Value.NormalizeName();
+            var boundRaw = match.Groups["bound"].Value.Trim();
+            if (string.Equals(boundRaw, "MAXVALUE", StringComparison.OrdinalIgnoreCase))
+                return new PartitionPartitionItem(name, 0, MaxValue: true);
+
+            if (!int.TryParse(boundRaw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var upperBound))
+                return null;
+
+            return new PartitionPartitionItem(name, upperBound, MaxValue: false);
+        }
+
+        private static PartitionPartitionItem? ParseListPartitionItem(string partSql)
+        {
+            var match = Regex.Match(
+                partSql,
+                @"^\s*PARTITION\s+`?(?<name>[A-Za-z0-9_]+)`?\s+VALUES\s+IN\s*\(\s*(?<values>[\s\S]+?)\s*\)\s*$",
+                RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            if (!match.Success)
+                return null;
+
+            var name = match.Groups["name"].Value.NormalizeName();
+            if (string.IsNullOrWhiteSpace(name))
+                return null;
+
+            var valuesSql = match.Groups["values"].Value;
+            var values = SplitTopLevelCsv(valuesSql).ToList();
+            if (values.Count == 0)
+                return null;
+
+            var parsedValues = new List<int>(values.Count);
+            foreach (var rawValue in values)
+            {
+                if (!int.TryParse(rawValue.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value))
+                    return null;
+
+                parsedValues.Add(value);
+            }
+
+            return new PartitionPartitionItem(name, 0, MaxValue: false, parsedValues);
+        }
+
+        private static bool TryGetYear(object rawValue, out int year)
+        {
+            switch (rawValue)
+            {
+                case DateTime dateTime:
+                    year = dateTime.Year;
+                    return true;
+                case DateTimeOffset dateTimeOffset:
+                    year = dateTimeOffset.Year;
+                    return true;
+                case int intValue:
+                    year = intValue;
+                    return true;
+                case long longValue when longValue >= int.MinValue && longValue <= int.MaxValue:
+                    year = (int)longValue;
+                    return true;
+                case string text when DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var parsedDate):
+                    year = parsedDate.Year;
+                    return true;
+                default:
+                    year = default;
+                    return false;
+            }
+        }
+    }
+
+    private static IEnumerable<string> SplitTopLevelCsv(string partsSql)
+    {
+        var start = 0;
+        var depth = 0;
+        for (var i = 0; i < partsSql.Length; i++)
+        {
+            var ch = partsSql[i];
+            if (ch == '(')
+            {
+                depth++;
+                continue;
+            }
+
+            if (ch == ')')
+            {
+                if (depth > 0)
+                    depth--;
+                continue;
+            }
+
+            if (ch == ',' && depth == 0)
+            {
+                var slice = partsSql[start..i].Trim();
+                if (!string.IsNullOrWhiteSpace(slice))
+                    yield return slice;
+                start = i + 1;
+            }
+        }
+
+        var last = partsSql[start..].Trim();
+        if (!string.IsNullOrWhiteSpace(last))
+            yield return last;
+    }
+
+    private enum PartitionPartitionKind
+    {
+        Range,
+        List
+    }
+
+    private sealed record PartitionPartitionItem(string Name, int Value, bool MaxValue, IReadOnlyList<int>? ListValues = null);
 }

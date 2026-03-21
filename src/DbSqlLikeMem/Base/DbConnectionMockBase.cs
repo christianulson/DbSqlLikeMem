@@ -1482,6 +1482,48 @@ public abstract class DbConnectionMockBase(
                 previousDefinition)));
     }
 
+    internal DmlExecutionResult CreateTrigger(
+        string triggerName,
+        SqlTableSource table,
+        bool isBefore,
+        TableTriggerEvent evt,
+        bool orReplace = false)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(triggerName, nameof(triggerName));
+        ArgumentNullExceptionCompatible.ThrowIfNull(table, nameof(table));
+
+        var targetSchema = table.DbName ?? Database;
+        var targetTable = Db.GetTable(table.Name!, targetSchema);
+        if (targetTable is not TableMock tableMock)
+            throw new InvalidOperationException($"Table '{table.Name}' is not a supported in-memory table type.");
+
+        tableMock.AddOrReplaceTrigger(triggerName, evt, static _ => { }, orReplace);
+        ClearSelectPlanCache();
+        _ = isBefore;
+        SetLastFoundRows(0);
+
+        return new DmlExecutionResult();
+    }
+
+    internal DmlExecutionResult CreateTrigger(SqlCreateTriggerQuery query)
+    {
+        if (!Db.ThreadSafe)
+            return CreateTrigger(
+                query.TriggerName,
+                query.Table!,
+                query.IsBefore,
+                query.Event,
+                query.OrReplace);
+
+        lock (Db.SyncRoot)
+            return CreateTrigger(
+                query.TriggerName,
+                query.Table!,
+                query.IsBefore,
+                query.Event,
+                query.OrReplace);
+    }
+
     #endregion
 
     #region Sequences

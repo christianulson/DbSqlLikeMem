@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem;
+namespace DbSqlLikeMem;
 
 /// <summary>
 /// Contants
@@ -7,6 +7,7 @@ public static class SqlConst
 {
 #pragma warning disable CS1591
 
+    #region DML and DDL keywords
     public const string SELECT = "SELECT";
     public const string WITH = "WITH";
     public const string INSERT = "INSERT";
@@ -38,11 +39,52 @@ public static class SqlConst
     public const string BY = "BY";
     public const string ORDER = "ORDER";
     public const string HAVING = "HAVING";
+    public const string VIEW = "VIEW";
+    public const string UNIQUE = "UNIQUE";
+    public const string INDEX = "INDEX";
+    public const string FUNCTION = "FUNCTION";
+    public const string PROCEDURE = "PROCEDURE";
+    public const string TRIGGER = "TRIGGER";
+    public const string BEFORE = "BEFORE";
+    public const string AFTER = "AFTER";
+    public const string TEMPORARY = "TEMPORARY";
+    public const string GLOBAL = "GLOBAL";
+    public const string TEMP = "TEMP";
+    public const string TABLE = "TABLE";
+    public const string IF = "IF";
+    public const string START = "START";
+    public const string INCREMENT = "INCREMENT";
+    public const string OUT = "OUT";
+    public const string INOUT = "INOUT";
+    public const string RETURNS = "RETURNS";
+    public const string RETURN = "RETURN";
+    public const string BEGIN = "BEGIN";
+    public const string EACH = "EACH";
+    public const string IS = "IS";
+    public const string REFERENCING = "REFERENCING";
+    public const string MODE = "MODE";
+    public const string ATOMIC = "ATOMIC";
+    public const string LANGUAGE = "LANGUAGE";
+    public const string COLUMN = "COLUMN";
+    public const string ADD = "ADD";
+    #endregion
+
+    #region Pagination and row limiting
     public const string TOP = "TOP";
     public const string LIMIT = "LIMIT";
     public const string OFFSET = "OFFSET";
     public const string FETCH = "FETCH";
     public const string ROWNUM = "ROWNUM";
+    public const string NEXT = "NEXT";
+    public const string FIRST = "FIRST";
+    public const string ROW = "ROW";
+    public const string ROWS = "ROWS";
+    public const string ONLY = "ONLY";
+    public const string OFFSET_FETCH = "OFFSET/FETCH";
+    public const string FETCH_FIRST_NEXT = "FETCH FIRST/NEXT";
+    #endregion
+
+    #region Identity and sequence
     public const string ILIKE = "ILIKE";
     public const string IDENTITY = "IDENTITY";
     public const string AUTO_INCREMENT = "AUTO_INCREMENT";
@@ -55,6 +97,10 @@ public static class SqlConst
     public const string CURRVAL = "CURRVAL";
     public const string LASTVAL = "LASTVAL";
     public const string SETVAL = "SETVAL";
+    public const string SEQUENCE = "SEQUENCE";
+    #endregion
+
+    #region Predicate helpers
     public const string ALL = "ALL";
     public const string AS = "AS";
     public const string WHEN = "WHEN";
@@ -79,34 +125,10 @@ public static class SqlConst
     public const string FOR = "FOR";
     public const string OPTION = "OPTION";
     public const string SQL_CALC_FOUND_ROWS = "SQL_CALC_FOUND_ROWS";
-    public const string VIEW = "VIEW";
-    public const string UNIQUE = "UNIQUE";
-    public const string INDEX = "INDEX";
-    public const string SEQUENCE = "SEQUENCE";
-    public const string FUNCTION = "FUNCTION";
-    public const string PROCEDURE = "PROCEDURE";
-    public const string TEMPORARY = "TEMPORARY";
-    public const string GLOBAL = "GLOBAL";
-    public const string TEMP = "TEMP";
-    public const string TABLE = "TABLE";
-    public const string IF = "IF";
-    public const string START = "START";
-    public const string INCREMENT = "INCREMENT";
-    public const string OUT = "OUT";
-    public const string INOUT = "INOUT";
-    public const string RETURNS = "RETURNS";
-    public const string RETURN = "RETURN";
-    public const string BEGIN = "BEGIN";
-    public const string IS = "IS";
-    public const string LANGUAGE = "LANGUAGE";
-    public const string COLUMN = "COLUMN";
-    public const string ADD = "ADD";
+    #endregion
+
+    #region Query shape and JSON/PIVOT
     public const string DISTINCT = "DISTINCT";
-    public const string NEXT = "NEXT";
-    public const string FIRST = "FIRST";
-    public const string ROW = "ROW";
-    public const string ROWS = "ROWS";
-    public const string ONLY = "ONLY";
     public const string RECURSIVE = "RECURSIVE";
     public const string MATERIALIZED = "MATERIALIZED";
     public const string JSON_TABLE = "JSON_TABLE";
@@ -126,26 +148,21 @@ public static class SqlConst
     public const string WITHIN = "WITHIN";
     public const string INCLUDE_NULL_VALUES = "INCLUDE_NULL_VALUES";
     public const string WITHOUT_ARRAY_WRAPPER = "WITHOUT_ARRAY_WRAPPER";
+    public const string FOR_JSON = "FOR JSON";
+    public const string WITH_CTE = "_WITH/CTE";
+    #endregion
 
+    #region Literals and values
     public const string DEFAULT = "DEFAULT";
-
     public const string NULL = "NULL";
-
     public const string TRUE = "TRUE";
     public const string FALSE = "FALSE";
-
-
+    public const string YEAR = "YEAR";
     public const string LOW_PRIORITY = "LOW_PRIORITY";
     public const string DELAYED = "DELAYED";
     public const string HIGH_PRIORITY = "HIGH_PRIORITY";
     public const string IGNORE = "IGNORE";
-
-
-
-    public const string OFFSET_FETCH = "OFFSET/FETCH";
-    public const string FETCH_FIRST_NEXT = "FETCH FIRST/NEXT";
-    public const string FOR_JSON = "FOR JSON";
-    public const string WITH_CTE = "_WITH/CTE";
+    #endregion
 
 #pragma warning restore CS1591
 }

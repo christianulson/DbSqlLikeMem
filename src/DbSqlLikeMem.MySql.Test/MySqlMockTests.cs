@@ -269,6 +269,1348 @@ public sealed class MySqlMockTests
     }
 
     /// <summary>
+    /// EN: Ensures MySQL CREATE TABLE captures trailing PARTITION BY metadata in the table contract.
+    /// PT: Garante que CREATE TABLE do MySQL capture metadados finais de PARTITION BY no contrato da tabela.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteNonQuery_CreateTablePartitionClause_ShouldCaptureMetadata()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE TABLE archive_events (
+                    Id INT NOT NULL,
+                    TenantId INT NOT NULL,
+                    CreatedAt DATETIME NOT NULL,
+                    PRIMARY KEY (Id, TenantId)
+                )
+                PARTITION BY RANGE (YEAR(CreatedAt)) (
+                    PARTITION p2024 VALUES LESS THAN (2025),
+                    PARTITION pmax VALUES LESS THAN MAXVALUE
+                )
+                """
+        };
+
+        command.ExecuteNonQuery();
+
+        var table = _connection.GetTable("archive_events");
+        table.PartitionClauseSql.Should().NotBeNull();
+        table.PartitionClauseSql.Should().Contain("PARTITION BY RANGE");
+        table.PartitionClauseSql.Should().Contain("p2024");
+        table.PartitionClauseSql.Should().Contain("pmax");
+        table.PrimaryKeyIndexes.Should().Contain(new[] { 0, 1 });
+    }
+
+    /// <summary>
+    /// EN: Verifies MySQL routes partitioned inserts automatically when the target table already defines partitions.
+    /// PT: Verifica se o MySQL roteia insercoes particionadas automaticamente quando a tabela alvo ja define particoes.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteNonQuery_PartitionedTable_ShouldRouteRowsAutomatically()
+    {
+        using var create = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE TABLE archive_events (
+                    Id INT NOT NULL,
+                    TenantId INT NOT NULL,
+                    CreatedAt DATETIME NOT NULL,
+                    PRIMARY KEY (Id, TenantId)
+                )
+                PARTITION BY RANGE (YEAR(CreatedAt)) (
+                    PARTITION p2024 VALUES LESS THAN (2025),
+                    PARTITION p2026 VALUES LESS THAN (2027),
+                    PARTITION pmax VALUES LESS THAN MAXVALUE
+                )
+                """
+        };
+
+        create.ExecuteNonQuery();
+
+        using var insert = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO archive_events (Id, TenantId, CreatedAt)
+                VALUES
+                    (1, 10, '2024-10-01'),
+                    (2, 20, '2026-10-01')
+                """
+        };
+
+        insert.ExecuteNonQuery();
+
+        var table = _connection.GetTable("archive_events");
+        table.Should().HaveCount(2);
+
+        using var routedInsert = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO archive_events (Id, TenantId, CreatedAt)
+                VALUES
+                    (3, 30, '2028-10-01')
+                """
+        };
+
+        routedInsert.ExecuteNonQuery();
+
+        table.Should().HaveCount(3);
+        table[2][table.GetColumn("id").Index].Should().Be(3);
+    }
+
+    /// <summary>
+    /// EN: Verifies INSERT PARTITION accepts known partition names and rejects unknown ones against captured metadata.
+    /// PT: Verifica se INSERT PARTITION aceita nomes de particao conhecidos e rejeita nomes desconhecidos contra o metadado capturado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteNonQuery_InsertPartitionClause_ShouldValidateMetadata()
+    {
+        using var create = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE TABLE archive_events (
+                    Id INT NOT NULL,
+                    TenantId INT NOT NULL,
+                    CreatedAt DATETIME NOT NULL,
+                    PRIMARY KEY (Id, TenantId)
+                )
+                PARTITION BY RANGE (YEAR(CreatedAt)) (
+                    PARTITION p2024 VALUES LESS THAN (2025),
+                    PARTITION pmax VALUES LESS THAN MAXVALUE
+                )
+                """
+        };
+
+        create.ExecuteNonQuery();
+
+        using var insert = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO archive_events PARTITION (p2024)
+                VALUES (1, 10, '2024-10-01')
+                """
+        };
+
+        insert.ExecuteNonQuery();
+
+        var table = _connection.GetTable("archive_events");
+        table.Should().HaveCount(1);
+        table[0][table.GetColumn("id").Index].Should().Be(1);
+
+        insert.CommandText = """
+            INSERT INTO archive_events PARTITION (p_missing)
+            VALUES (2, 20, '2024-10-01')
+            """;
+
+        var ex = Assert.ThrowsAny<Exception>(() => insert.ExecuteNonQuery());
+
+        Assert.Contains("partition", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("p_missing", ex.Message, StringComparison.OrdinalIgnoreCase);
+        table.Should().HaveCount(1);
+
+        insert.CommandText = """
+            INSERT INTO archive_events PARTITION (p2024)
+            VALUES (3, 30, '2026-10-01')
+            """;
+
+        var partitionEx = Assert.ThrowsAny<Exception>(() => insert.ExecuteNonQuery());
+
+        Assert.Contains("partition", partitionEx.Message, StringComparison.OrdinalIgnoreCase);
+        table.Should().HaveCount(1);
+    }
+
+    /// <summary>
+    /// EN: Verifies MySQL table-source PARTITION filters rows from the requested partition only.
+    /// PT: Verifica se a PARTITION na fonte da tabela MySQL filtra apenas as linhas da particao solicitada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteReader_TablePartitionClause_ShouldFilterRows()
+    {
+        using var create = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE TABLE archive_events (
+                    Id INT NOT NULL,
+                    TenantId INT NOT NULL,
+                    CreatedAt DATETIME NOT NULL,
+                    PRIMARY KEY (Id, TenantId)
+                )
+                PARTITION BY RANGE (YEAR(CreatedAt)) (
+                    PARTITION p2024 VALUES LESS THAN (2025),
+                    PARTITION pmax VALUES LESS THAN MAXVALUE
+                )
+                """
+        };
+        create.ExecuteNonQuery();
+
+        using var insert = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO archive_events (Id, TenantId, CreatedAt)
+                VALUES
+                    (1, 10, '2024-10-01'),
+                    (2, 20, '2026-10-01'),
+                    (3, 30, '2028-10-01')
+                """
+        };
+        insert.ExecuteNonQuery();
+
+        using var select = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT Id
+                FROM archive_events PARTITION (p2024)
+                ORDER BY Id
+                """
+        };
+
+        using var reader = select.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies MySQL table-source PARTITION can target the MAXVALUE range and return only that subset.
+    /// PT: Verifica se a PARTITION na fonte da tabela MySQL consegue atingir o range MAXVALUE e retornar apenas esse subconjunto.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteReader_TablePartitionClause_MaxValue_ShouldFilterRows()
+    {
+        using var create = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE TABLE archive_events (
+                    Id INT NOT NULL,
+                    TenantId INT NOT NULL,
+                    CreatedAt DATETIME NOT NULL,
+                    PRIMARY KEY (Id, TenantId)
+                )
+                PARTITION BY RANGE (YEAR(CreatedAt)) (
+                    PARTITION p2024 VALUES LESS THAN (2025),
+                    PARTITION pmax VALUES LESS THAN MAXVALUE
+                )
+                """
+        };
+        create.ExecuteNonQuery();
+
+        using var insert = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO archive_events (Id, TenantId, CreatedAt)
+                VALUES
+                    (1, 10, '2024-10-01'),
+                    (2, 20, '2026-10-01')
+                """
+        };
+        insert.ExecuteNonQuery();
+
+        using var select = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT Id
+                FROM archive_events PARTITION (pmax)
+                ORDER BY Id
+                """
+        };
+
+        using var reader = select.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(2, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies MySQL prunes partitioned reads when the predicate constrains the partitioned column directly.
+    /// PT: Verifica se o MySQL poda leituras particionadas quando o predicado restringe diretamente a coluna particionada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteReader_TablePartitionClause_WithEqualityPredicate_ShouldPruneRows()
+    {
+        using var create = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE TABLE archive_events (
+                    Id INT NOT NULL,
+                    TenantId INT NOT NULL,
+                    CreatedAt DATETIME NOT NULL,
+                    PRIMARY KEY (Id, TenantId)
+                )
+                PARTITION BY RANGE (YEAR(CreatedAt)) (
+                    PARTITION p2024 VALUES LESS THAN (2025),
+                    PARTITION pmax VALUES LESS THAN MAXVALUE
+                )
+                """
+        };
+        create.ExecuteNonQuery();
+
+        using var insert = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO archive_events (Id, TenantId, CreatedAt)
+                VALUES
+                    (1, 10, '2024-10-01'),
+                    (2, 20, '2026-10-01')
+                """
+        };
+        insert.ExecuteNonQuery();
+
+        using var select = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT Id
+                FROM archive_events
+                WHERE CreatedAt = '2024-10-01'
+                ORDER BY Id
+                """
+        };
+
+        using var reader = select.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies MySQL prunes partitioned reads when the predicate uses IN on the partitioned column.
+    /// PT: Verifica se o MySQL poda leituras particionadas quando o predicado usa IN na coluna particionada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteReader_TablePartitionClause_WithInPredicate_ShouldPruneRows()
+    {
+        using var create = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE TABLE archive_events (
+                    Id INT NOT NULL,
+                    TenantId INT NOT NULL,
+                    CreatedAt DATETIME NOT NULL,
+                    PRIMARY KEY (Id, TenantId)
+                )
+                PARTITION BY RANGE (YEAR(CreatedAt)) (
+                    PARTITION p2024 VALUES LESS THAN (2025),
+                    PARTITION pmax VALUES LESS THAN MAXVALUE
+                )
+                """
+        };
+        create.ExecuteNonQuery();
+
+        using var insert = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO archive_events (Id, TenantId, CreatedAt)
+                VALUES
+                    (1, 10, '2024-10-01'),
+                    (2, 20, '2026-10-01')
+                """
+        };
+        insert.ExecuteNonQuery();
+
+        using var select = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT Id
+                FROM archive_events
+                WHERE CreatedAt IN ('2024-10-01')
+                ORDER BY Id
+                """
+        };
+
+        using var reader = select.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies MySQL prunes partitioned reads when the predicate uses BETWEEN on the partitioned column.
+    /// PT: Verifica se o MySQL poda leituras particionadas quando o predicado usa BETWEEN na coluna particionada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteReader_TablePartitionClause_WithBetweenPredicate_ShouldPruneRows()
+    {
+        using var create = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE TABLE archive_events (
+                    Id INT NOT NULL,
+                    TenantId INT NOT NULL,
+                    CreatedAt DATETIME NOT NULL,
+                    PRIMARY KEY (Id, TenantId)
+                )
+                PARTITION BY RANGE (YEAR(CreatedAt)) (
+                    PARTITION p2024 VALUES LESS THAN (2025),
+                    PARTITION pmax VALUES LESS THAN MAXVALUE
+                )
+                """
+        };
+        create.ExecuteNonQuery();
+
+        using var insert = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO archive_events (Id, TenantId, CreatedAt)
+                VALUES
+                    (1, 10, '2024-10-01'),
+                    (2, 20, '2026-10-01')
+                """
+        };
+        insert.ExecuteNonQuery();
+
+        using var select = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT Id
+                FROM archive_events
+                WHERE CreatedAt BETWEEN '2024-01-01' AND '2024-12-31'
+                ORDER BY Id
+                """
+        };
+
+        using var reader = select.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies MySQL prunes partitioned reads when the date column is bounded directly by a year-aligned range.
+    /// PT: Verifica se o MySQL poda leituras particionadas quando a coluna de data e limitada diretamente por um intervalo alinhado ao ano.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteReader_TablePartitionClause_WithDirectDateRangePredicate_ShouldPruneRows()
+    {
+        using var create = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE TABLE archive_events (
+                    Id INT NOT NULL,
+                    TenantId INT NOT NULL,
+                    CreatedAt DATETIME NOT NULL,
+                    PRIMARY KEY (Id, TenantId)
+                )
+                PARTITION BY RANGE (YEAR(CreatedAt)) (
+                    PARTITION p2024 VALUES LESS THAN (2025),
+                    PARTITION pmax VALUES LESS THAN MAXVALUE
+                )
+                """
+        };
+        create.ExecuteNonQuery();
+
+        using var insert = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO archive_events (Id, TenantId, CreatedAt)
+                VALUES
+                    (1, 10, '2024-10-01'),
+                    (2, 20, '2026-10-01')
+                """
+        };
+        insert.ExecuteNonQuery();
+
+        using var select = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT Id
+                FROM archive_events
+                WHERE CreatedAt >= '2024-01-01'
+                  AND CreatedAt < '2025-01-01'
+                ORDER BY Id
+                """
+        };
+
+        using var reader = select.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies MySQL prunes partitioned reads across multiple partitions when the direct date range spans multiple years.
+    /// PT: Verifica se o MySQL poda leituras particionadas em multiplas particoes quando o intervalo direto de datas cobre varios anos.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteReader_TablePartitionClause_WithDirectDateRangeAcrossYearsPredicate_ShouldPruneRows()
+    {
+        using var create = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE TABLE archive_events (
+                    Id INT NOT NULL,
+                    TenantId INT NOT NULL,
+                    CreatedAt DATETIME NOT NULL,
+                    PRIMARY KEY (Id, TenantId)
+                )
+                PARTITION BY RANGE (YEAR(CreatedAt)) (
+                    PARTITION p2024 VALUES LESS THAN (2025),
+                    PARTITION p2025 VALUES LESS THAN (2026),
+                    PARTITION pmax VALUES LESS THAN MAXVALUE
+                )
+                """
+        };
+        create.ExecuteNonQuery();
+
+        using var insert = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO archive_events (Id, TenantId, CreatedAt)
+                VALUES
+                    (1, 10, '2024-10-01'),
+                    (2, 20, '2025-10-01'),
+                    (3, 30, '2026-10-01')
+                """
+        };
+        insert.ExecuteNonQuery();
+
+        using var select = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT Id
+                FROM archive_events
+                WHERE CreatedAt >= '2024-01-01'
+                  AND CreatedAt < '2026-01-01'
+                ORDER BY Id
+                """
+        };
+
+        using var reader = select.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.True(reader.Read());
+        Assert.Equal(2, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies MySQL supports LIST partition metadata and prunes reads by the partitioned year value.
+    /// PT: Verifica se o MySQL suporta metadata de particionamento LIST e poda leituras pelo valor de ano particionado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteReader_TablePartitionClause_WithListPartitionPredicate_ShouldPruneRows()
+    {
+        using var create = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE TABLE archive_events (
+                    Id INT NOT NULL,
+                    TenantId INT NOT NULL,
+                    CreatedAt DATETIME NOT NULL,
+                    PRIMARY KEY (Id, TenantId)
+                )
+                PARTITION BY LIST (YEAR(CreatedAt)) (
+                    PARTITION p2024 VALUES IN (2024),
+                    PARTITION p2026 VALUES IN (2026)
+                )
+                """
+        };
+        create.ExecuteNonQuery();
+
+        using var insert = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO archive_events (Id, TenantId, CreatedAt)
+                VALUES
+                    (1, 10, '2024-10-01'),
+                    (2, 20, '2026-10-01')
+                """
+        };
+        insert.ExecuteNonQuery();
+
+        using var select = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT Id
+                FROM archive_events
+                WHERE CreatedAt = '2026-10-01'
+                ORDER BY Id
+                """
+        };
+
+        using var reader = select.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(2, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies MySQL prunes partitioned reads when both sides of an OR predicate map to known partitions.
+    /// PT: Verifica se o MySQL poda leituras particionadas quando os dois lados de um predicado OR mapeiam para particoes conhecidas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteReader_TablePartitionClause_WithOrPredicate_ShouldPruneRows()
+    {
+        using var create = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE TABLE archive_events (
+                    Id INT NOT NULL,
+                    TenantId INT NOT NULL,
+                    CreatedAt DATETIME NOT NULL,
+                    PRIMARY KEY (Id, TenantId)
+                )
+                PARTITION BY RANGE (YEAR(CreatedAt)) (
+                    PARTITION p2024 VALUES LESS THAN (2025),
+                    PARTITION pmax VALUES LESS THAN MAXVALUE
+                )
+                """
+        };
+        create.ExecuteNonQuery();
+
+        using var insert = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO archive_events (Id, TenantId, CreatedAt)
+                VALUES
+                    (1, 10, '2024-10-01'),
+                    (2, 20, '2026-10-01')
+                """
+        };
+        insert.ExecuteNonQuery();
+
+        using var select = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT Id
+                FROM archive_events
+                WHERE CreatedAt = '2024-10-01'
+                   OR CreatedAt = '2026-10-01'
+                ORDER BY Id
+                """
+        };
+
+        using var reader = select.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.True(reader.Read());
+        Assert.Equal(2, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies MySQL prunes partitioned reads when both sides of an OR BETWEEN predicate map to known partitions.
+    /// PT: Verifica se o MySQL poda leituras particionadas quando os dois lados de um predicado OR BETWEEN mapeiam para particoes conhecidas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteReader_TablePartitionClause_WithOrBetweenPredicate_ShouldPruneRows()
+    {
+        using var create = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE TABLE archive_events (
+                    Id INT NOT NULL,
+                    TenantId INT NOT NULL,
+                    CreatedAt DATETIME NOT NULL,
+                    PRIMARY KEY (Id, TenantId)
+                )
+                PARTITION BY RANGE (YEAR(CreatedAt)) (
+                    PARTITION p2024 VALUES LESS THAN (2025),
+                    PARTITION pmax VALUES LESS THAN MAXVALUE
+                )
+                """
+        };
+        create.ExecuteNonQuery();
+
+        using var insert = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO archive_events (Id, TenantId, CreatedAt)
+                VALUES
+                    (1, 10, '2024-10-01'),
+                    (2, 20, '2026-10-01')
+                """
+        };
+        insert.ExecuteNonQuery();
+
+        using var select = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT Id
+                FROM archive_events
+                WHERE CreatedAt BETWEEN '2024-01-01' AND '2024-12-31'
+                   OR CreatedAt BETWEEN '2026-01-01' AND '2026-12-31'
+                ORDER BY Id
+                """
+        };
+
+        using var reader = select.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.True(reader.Read());
+        Assert.Equal(2, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies MySQL prunes partitioned reads when OR mixes equality and IN on the partitioned column.
+    /// PT: Verifica se o MySQL poda leituras particionadas quando OR mistura igualdade e IN na coluna particionada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteReader_TablePartitionClause_WithOrEqualityAndInPredicate_ShouldPruneRows()
+    {
+        using var create = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE TABLE archive_events (
+                    Id INT NOT NULL,
+                    TenantId INT NOT NULL,
+                    CreatedAt DATETIME NOT NULL,
+                    PRIMARY KEY (Id, TenantId)
+                )
+                PARTITION BY RANGE (YEAR(CreatedAt)) (
+                    PARTITION p2024 VALUES LESS THAN (2025),
+                    PARTITION pmax VALUES LESS THAN MAXVALUE
+                )
+                """
+        };
+        create.ExecuteNonQuery();
+
+        using var insert = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO archive_events (Id, TenantId, CreatedAt)
+                VALUES
+                    (1, 10, '2024-10-01'),
+                    (2, 20, '2026-10-01')
+                """
+        };
+        insert.ExecuteNonQuery();
+
+        using var select = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT Id
+                FROM archive_events
+                WHERE CreatedAt = '2024-10-01'
+                   OR CreatedAt IN ('2026-10-01')
+                ORDER BY Id
+                """
+        };
+
+        using var reader = select.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.True(reader.Read());
+        Assert.Equal(2, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies MySQL prunes partitioned reads when YEAR() on the partitioned column matches a known partition.
+    /// PT: Verifica se o MySQL poda leituras particionadas quando YEAR() na coluna particionada corresponde a uma particao conhecida.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteReader_TablePartitionClause_WithYearEqualityPredicate_ShouldPruneRows()
+    {
+        using var create = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE TABLE archive_events (
+                    Id INT NOT NULL,
+                    TenantId INT NOT NULL,
+                    CreatedAt DATETIME NOT NULL,
+                    PRIMARY KEY (Id, TenantId)
+                )
+                PARTITION BY RANGE (YEAR(CreatedAt)) (
+                    PARTITION p2024 VALUES LESS THAN (2025),
+                    PARTITION pmax VALUES LESS THAN MAXVALUE
+                )
+                """
+        };
+        create.ExecuteNonQuery();
+
+        using var insert = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO archive_events (Id, TenantId, CreatedAt)
+                VALUES
+                    (1, 10, '2024-10-01'),
+                    (2, 20, '2026-10-01')
+                """
+        };
+        insert.ExecuteNonQuery();
+
+        using var select = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT Id
+                FROM archive_events
+                WHERE YEAR(CreatedAt) = 2024
+                ORDER BY Id
+                """
+        };
+
+        using var reader = select.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies MySQL prunes partitioned reads when YEAR() on the partitioned column is constrained by BETWEEN.
+    /// PT: Verifica se o MySQL poda leituras particionadas quando YEAR() na coluna particionada e restringido por BETWEEN.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteReader_TablePartitionClause_WithYearBetweenPredicate_ShouldPruneRows()
+    {
+        using var create = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE TABLE archive_events (
+                    Id INT NOT NULL,
+                    TenantId INT NOT NULL,
+                    CreatedAt DATETIME NOT NULL,
+                    PRIMARY KEY (Id, TenantId)
+                )
+                PARTITION BY RANGE (YEAR(CreatedAt)) (
+                    PARTITION p2024 VALUES LESS THAN (2025),
+                    PARTITION pmax VALUES LESS THAN MAXVALUE
+                )
+                """
+        };
+        create.ExecuteNonQuery();
+
+        using var insert = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO archive_events (Id, TenantId, CreatedAt)
+                VALUES
+                    (1, 10, '2024-10-01'),
+                    (2, 20, '2026-10-01')
+                """
+        };
+        insert.ExecuteNonQuery();
+
+        using var select = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT Id
+                FROM archive_events
+                WHERE YEAR(CreatedAt) BETWEEN 2024 AND 2024
+                ORDER BY Id
+                """
+        };
+
+        using var reader = select.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies MySQL prunes partitioned reads when YEAR() is bounded by comparison operators.
+    /// PT: Verifica se o MySQL poda leituras particionadas quando YEAR() e limitado por operadores de comparacao.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteReader_TablePartitionClause_WithYearComparisonPredicate_ShouldPruneRows()
+    {
+        using var create = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE TABLE archive_events (
+                    Id INT NOT NULL,
+                    TenantId INT NOT NULL,
+                    CreatedAt DATETIME NOT NULL,
+                    PRIMARY KEY (Id, TenantId)
+                )
+                PARTITION BY RANGE (YEAR(CreatedAt)) (
+                    PARTITION p2024 VALUES LESS THAN (2025),
+                    PARTITION pmax VALUES LESS THAN MAXVALUE
+                )
+                """
+        };
+        create.ExecuteNonQuery();
+
+        using var insert = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO archive_events (Id, TenantId, CreatedAt)
+                VALUES
+                    (1, 10, '2024-10-01'),
+                    (2, 20, '2026-10-01')
+                """
+        };
+        insert.ExecuteNonQuery();
+
+        using var select = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT Id
+                FROM archive_events
+                WHERE YEAR(CreatedAt) >= 2024
+                  AND YEAR(CreatedAt) < 2025
+                ORDER BY Id
+                """
+        };
+
+        using var reader = select.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies MySQL prunes partitioned reads when EXTRACT(YEAR FROM ...) targets the partitioned column.
+    /// PT: Verifica se o MySQL poda leituras particionadas quando EXTRACT(YEAR FROM ...) aponta para a coluna particionada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteReader_TablePartitionClause_WithExtractYearPredicate_ShouldPruneRows()
+    {
+        using var create = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE TABLE archive_events (
+                    Id INT NOT NULL,
+                    TenantId INT NOT NULL,
+                    CreatedAt DATETIME NOT NULL,
+                    PRIMARY KEY (Id, TenantId)
+                )
+                PARTITION BY RANGE (YEAR(CreatedAt)) (
+                    PARTITION p2024 VALUES LESS THAN (2025),
+                    PARTITION pmax VALUES LESS THAN MAXVALUE
+                )
+                """
+        };
+        create.ExecuteNonQuery();
+
+        using var insert = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO archive_events (Id, TenantId, CreatedAt)
+                VALUES
+                    (1, 10, '2024-10-01'),
+                    (2, 20, '2026-10-01')
+                """
+        };
+        insert.ExecuteNonQuery();
+
+        using var select = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT Id
+                FROM archive_events
+                WHERE EXTRACT(YEAR FROM CreatedAt) = 2024
+                ORDER BY Id
+                """
+        };
+
+        using var reader = select.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies MySQL prunes partitioned reads when EXTRACT(YEAR FROM ...) is constrained by BETWEEN.
+    /// PT: Verifica se o MySQL poda leituras particionadas quando EXTRACT(YEAR FROM ...) e restringido por BETWEEN.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteReader_TablePartitionClause_WithExtractYearBetweenPredicate_ShouldPruneRows()
+    {
+        using var create = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE TABLE archive_events (
+                    Id INT NOT NULL,
+                    TenantId INT NOT NULL,
+                    CreatedAt DATETIME NOT NULL,
+                    PRIMARY KEY (Id, TenantId)
+                )
+                PARTITION BY RANGE (YEAR(CreatedAt)) (
+                    PARTITION p2024 VALUES LESS THAN (2025),
+                    PARTITION pmax VALUES LESS THAN MAXVALUE
+                )
+                """
+        };
+        create.ExecuteNonQuery();
+
+        using var insert = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO archive_events (Id, TenantId, CreatedAt)
+                VALUES
+                    (1, 10, '2024-10-01'),
+                    (2, 20, '2026-10-01')
+                """
+        };
+        insert.ExecuteNonQuery();
+
+        using var select = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT Id
+                FROM archive_events
+                WHERE EXTRACT(YEAR FROM CreatedAt) BETWEEN 2024 AND 2026
+                ORDER BY Id
+                """
+        };
+
+        using var reader = select.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.True(reader.Read());
+        Assert.Equal(2, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies MySQL prunes partitioned reads when EXTRACT(YEAR FROM ...) uses comparison bounds on the partitioned column.
+    /// PT: Verifica se o MySQL poda leituras particionadas quando EXTRACT(YEAR FROM ...) usa limites de comparacao na coluna particionada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteReader_TablePartitionClause_WithExtractYearComparisonPredicate_ShouldPruneRows()
+    {
+        using var create = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE TABLE archive_events (
+                    Id INT NOT NULL,
+                    TenantId INT NOT NULL,
+                    CreatedAt DATETIME NOT NULL,
+                    PRIMARY KEY (Id, TenantId)
+                )
+                PARTITION BY RANGE (YEAR(CreatedAt)) (
+                    PARTITION p2024 VALUES LESS THAN (2025),
+                    PARTITION p2026 VALUES LESS THAN (2027),
+                    PARTITION pmax VALUES LESS THAN MAXVALUE
+                )
+                """
+        };
+        create.ExecuteNonQuery();
+
+        using var insert = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO archive_events (Id, TenantId, CreatedAt)
+                VALUES
+                    (1, 10, '2024-10-01'),
+                    (2, 20, '2026-10-01'),
+                    (3, 30, '2028-10-01')
+                """
+        };
+        insert.ExecuteNonQuery();
+
+        using var select = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT Id
+                FROM archive_events
+                WHERE EXTRACT(YEAR FROM CreatedAt) >= 2024
+                  AND EXTRACT(YEAR FROM CreatedAt) < 2025
+                ORDER BY Id
+                """
+        };
+
+        using var reader = select.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies MySQL prunes partitioned reads when EXTRACT(YEAR FROM ...) comparisons are written in reverse order.
+    /// PT: Verifica se o MySQL poda leituras particionadas quando as comparacoes com EXTRACT(YEAR FROM ...) sao escritas na ordem inversa.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteReader_TablePartitionClause_WithExtractYearReversedComparisonPredicate_ShouldPruneRows()
+    {
+        using var create = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE TABLE archive_events (
+                    Id INT NOT NULL,
+                    TenantId INT NOT NULL,
+                    CreatedAt DATETIME NOT NULL,
+                    PRIMARY KEY (Id, TenantId)
+                )
+                PARTITION BY RANGE (YEAR(CreatedAt)) (
+                    PARTITION p2024 VALUES LESS THAN (2025),
+                    PARTITION p2026 VALUES LESS THAN (2027),
+                    PARTITION pmax VALUES LESS THAN MAXVALUE
+                )
+                """
+        };
+        create.ExecuteNonQuery();
+
+        using var insert = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO archive_events (Id, TenantId, CreatedAt)
+                VALUES
+                    (1, 10, '2024-10-01'),
+                    (2, 20, '2026-10-01'),
+                    (3, 30, '2028-10-01')
+                """
+        };
+        insert.ExecuteNonQuery();
+
+        using var select = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT Id
+                FROM archive_events
+                WHERE 2025 > EXTRACT(YEAR FROM CreatedAt)
+                  AND 2024 <= EXTRACT(YEAR FROM CreatedAt)
+                ORDER BY Id
+                """
+        };
+
+        using var reader = select.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies MySQL prunes partitioned reads when safe EXTRACT(YEAR FROM ...) branches are combined with OR.
+    /// PT: Verifica se o MySQL poda leituras particionadas quando ramos seguros de EXTRACT(YEAR FROM ...) sao combinados com OR.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteReader_TablePartitionClause_WithExtractYearOrPredicate_ShouldPruneRows()
+    {
+        using var create = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE TABLE archive_events (
+                    Id INT NOT NULL,
+                    TenantId INT NOT NULL,
+                    CreatedAt DATETIME NOT NULL,
+                    PRIMARY KEY (Id, TenantId)
+                )
+                PARTITION BY RANGE (YEAR(CreatedAt)) (
+                    PARTITION p2024 VALUES LESS THAN (2025),
+                    PARTITION p2026 VALUES LESS THAN (2027),
+                    PARTITION pmax VALUES LESS THAN MAXVALUE
+                )
+                """
+        };
+        create.ExecuteNonQuery();
+
+        using var insert = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO archive_events (Id, TenantId, CreatedAt)
+                VALUES
+                    (1, 10, '2024-10-01'),
+                    (2, 20, '2026-10-01'),
+                    (3, 30, '2028-10-01')
+                """
+        };
+        insert.ExecuteNonQuery();
+
+        using var select = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT Id
+                FROM archive_events
+                WHERE EXTRACT(YEAR FROM CreatedAt) = 2024
+                   OR EXTRACT(YEAR FROM CreatedAt) = 2026
+                ORDER BY Id
+                """
+        };
+
+        using var reader = select.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.True(reader.Read());
+        Assert.Equal(2, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies MySQL prunes partitioned reads when safe BETWEEN branches over EXTRACT(YEAR FROM ...) are combined with OR.
+    /// PT: Verifica se o MySQL poda leituras particionadas quando ramos seguros de BETWEEN sobre EXTRACT(YEAR FROM ...) sao combinados com OR.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteReader_TablePartitionClause_WithExtractYearOrBetweenPredicate_ShouldPruneRows()
+    {
+        using var create = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE TABLE archive_events (
+                    Id INT NOT NULL,
+                    TenantId INT NOT NULL,
+                    CreatedAt DATETIME NOT NULL,
+                    PRIMARY KEY (Id, TenantId)
+                )
+                PARTITION BY RANGE (YEAR(CreatedAt)) (
+                    PARTITION p2024 VALUES LESS THAN (2025),
+                    PARTITION p2026 VALUES LESS THAN (2027),
+                    PARTITION pmax VALUES LESS THAN MAXVALUE
+                )
+                """
+        };
+        create.ExecuteNonQuery();
+
+        using var insert = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO archive_events (Id, TenantId, CreatedAt)
+                VALUES
+                    (1, 10, '2024-10-01'),
+                    (2, 20, '2026-10-01'),
+                    (3, 30, '2028-10-01')
+                """
+        };
+        insert.ExecuteNonQuery();
+
+        using var select = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT Id
+                FROM archive_events
+                WHERE EXTRACT(YEAR FROM CreatedAt) BETWEEN 2024 AND 2024
+                   OR EXTRACT(YEAR FROM CreatedAt) BETWEEN 2026 AND 2026
+                ORDER BY Id
+                """
+        };
+
+        using var reader = select.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.True(reader.Read());
+        Assert.Equal(2, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies MySQL prunes partitioned reads when EXTRACT(YEAR FROM ...) uses IN on the partitioned column.
+    /// PT: Verifica se o MySQL poda leituras particionadas quando EXTRACT(YEAR FROM ...) usa IN na coluna particionada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteReader_TablePartitionClause_WithExtractYearInPredicate_ShouldPruneRows()
+    {
+        using var create = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE TABLE archive_events (
+                    Id INT NOT NULL,
+                    TenantId INT NOT NULL,
+                    CreatedAt DATETIME NOT NULL,
+                    PRIMARY KEY (Id, TenantId)
+                )
+                PARTITION BY RANGE (YEAR(CreatedAt)) (
+                    PARTITION p2024 VALUES LESS THAN (2025),
+                    PARTITION p2026 VALUES LESS THAN (2027),
+                    PARTITION pmax VALUES LESS THAN MAXVALUE
+                )
+                """
+        };
+        create.ExecuteNonQuery();
+
+        using var insert = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO archive_events (Id, TenantId, CreatedAt)
+                VALUES
+                    (1, 10, '2024-10-01'),
+                    (2, 20, '2026-10-01'),
+                    (3, 30, '2028-10-01')
+                """
+        };
+        insert.ExecuteNonQuery();
+
+        using var select = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT Id
+                FROM archive_events
+                WHERE EXTRACT(YEAR FROM CreatedAt) IN (2024, 2026)
+                ORDER BY Id
+                """
+        };
+
+        using var reader = select.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.True(reader.Read());
+        Assert.Equal(2, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies schema snapshot export/import keeps MySQL partition metadata intact.
+    /// PT: Verifica se exportacao/importacao de schema snapshot preserva a metadata de particionamento do MySQL.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SchemaSnapshot")]
+    public void ConnectionHelpers_ShouldRoundTripPartitionMetadata()
+    {
+        using var sourceConnection = CreateOpenConnection();
+        using (var command = new MySqlCommandMock(sourceConnection))
+        {
+            command.CommandText = """
+                CREATE TABLE archive_events (
+                    Id INT NOT NULL,
+                    TenantId INT NOT NULL,
+                    CreatedAt DATETIME NOT NULL,
+                    PRIMARY KEY (Id, TenantId)
+                )
+                PARTITION BY RANGE (YEAR(CreatedAt)) (
+                    PARTITION p2024 VALUES LESS THAN (2025),
+                    PARTITION pmax VALUES LESS THAN MAXVALUE
+                )
+                """;
+
+            command.ExecuteNonQuery();
+        }
+
+        var json = sourceConnection.ExportSchemaSnapshotJson();
+
+        using var targetConnection = CreateOpenConnection();
+        targetConnection.ImportSchemaSnapshot(json);
+
+        var table = targetConnection.GetTable("archive_events");
+        table.PartitionClauseSql.Should().NotBeNull();
+        table.PartitionClauseSql.Should().Contain("PARTITION BY RANGE");
+        table.PartitionClauseSql.Should().Contain("p2024");
+        table.PartitionClauseSql.Should().Contain("pmax");
+    }
+
+    /// <summary>
     /// EN: Verifies ALTER TABLE ... ADD COLUMN updates metadata and backfills existing rows with the shared default literal subset.
     /// PT: Verifica se ALTER TABLE ... ADD COLUMN atualiza os metadados e preenche linhas existentes com o subset compartilhado de literal DEFAULT.
     /// </summary>
@@ -1341,6 +2683,78 @@ public sealed class MySqlMockTests
         command.Parameters.Add(new MySqlParameter("@ParamsJson", new { a = 123 }));
 
         Assert.Equal(123L, Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL executes JSON_TABLE through the shared runtime path for supported versions.
+    /// PT: Garante que o MySQL execute JSON_TABLE pelo caminho de runtime compartilhado nas versoes suportadas.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void JsonTable_ShouldExpandRowsForSupportedVersions(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version < MySqlDialect.JsonExtractMinVersion)
+        {
+            using var unsupported = new MySqlCommandMock(connection)
+            {
+                CommandText = """
+                    SELECT jt.Id, jt.TagName
+                    FROM JSON_TABLE(
+                        '[{"id":1,"tags":[{"name":"vip"}]}]',
+                        '$[*]' COLUMNS(
+                            Id INT PATH '$.id',
+                            NESTED PATH '$.tags[*]' COLUMNS(
+                                TagName VARCHAR(30) PATH '$.name'
+                            )
+                        )
+                    ) jt
+                    """
+            };
+
+            Assert.Throws<NotSupportedException>(() => unsupported.ExecuteReader());
+            return;
+        }
+
+        using var command = new MySqlCommandMock(connection)
+        {
+            CommandText = """
+                SELECT jt.Id, jt.TagOrd, jt.TagName
+                FROM JSON_TABLE(
+                    '[{"id":1,"tags":[{"name":"vip"},{"name":"new"}]},{"id":2,"tags":[{}]}]',
+                    '$[*]' COLUMNS(
+                        Id INT PATH '$.id',
+                        NESTED PATH '$.tags[*]' COLUMNS(
+                            TagOrd FOR ORDINALITY,
+                            TagName VARCHAR(30) PATH '$.name' DEFAULT 'fallback' ON EMPTY
+                        )
+                    )
+                ) jt
+                ORDER BY jt.Id, jt.TagOrd
+                """
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("TagOrd")));
+        Assert.Equal("vip", reader.GetString(reader.GetOrdinal("TagName")));
+
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("TagOrd")));
+        Assert.Equal("new", reader.GetString(reader.GetOrdinal("TagName")));
+
+        Assert.True(reader.Read());
+        Assert.Equal(2, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("TagOrd")));
+        Assert.Equal("fallback", reader.GetString(reader.GetOrdinal("TagName")));
+
+        Assert.False(reader.Read());
     }
 
     /// <summary>

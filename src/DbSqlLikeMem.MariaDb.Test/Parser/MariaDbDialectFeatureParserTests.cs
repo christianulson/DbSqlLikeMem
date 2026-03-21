@@ -573,27 +573,20 @@ public sealed class MariaDbDialectFeatureParserTests
     }
 
     /// <summary>
-    /// EN: Ensures JSON_TABLE follows the MariaDB version gate and becomes parseable once enabled.
-    /// PT: Garante que JSON_TABLE siga o gate de versao do MariaDB e passe a ser parseavel quando habilitado.
+    /// EN: Ensures JSON_TABLE stays unsupported as a scalar expression in MariaDB.
+    /// PT: Garante que JSON_TABLE continue sem suporte como expressao escalar no MariaDB.
     /// </summary>
     /// <param name="version">EN: MariaDB dialect version under test. PT: Versao do dialeto MariaDB em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMariaDbVersion]
-    public void ParseScalar_JsonTable_ShouldRespectMariaDbVersionGate(int version)
+    public void ParseScalar_JsonTable_ShouldRemainUnsupported(int version)
     {
         const string sql = "JSON_TABLE(payload, '$[*]' COLUMNS(x INT PATH '$'))";
         var dialect = new MariaDbDialect(version);
 
-        if (version < MariaDbDialect.JsonTableMinVersion)
-        {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, dialect));
-            Assert.Contains(SqlConst.JSON_TABLE, ex.Message, StringComparison.OrdinalIgnoreCase);
-            return;
-        }
-
-        var expr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect));
-        Assert.Equal(SqlConst.JSON_TABLE, expr.Name, StringComparer.OrdinalIgnoreCase);
+        var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, dialect));
+        Assert.Contains(SqlConst.JSON_TABLE, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

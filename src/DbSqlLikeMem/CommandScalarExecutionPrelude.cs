@@ -923,7 +923,7 @@ internal static class CommandScalarExecutionPrelude
     private static TemporalUnit ResolveTemporalUnit(string unit)
         => unit.Trim().ToUpperInvariant() switch
         {
-            "YEAR" or "YEARS" or "YY" or "YYYY" => TemporalUnit.Year,
+            SqlConst.YEAR or "YEARS" or "YY" or "YYYY" => TemporalUnit.Year,
             "MONTH" or "MONTHS" or "MM" => TemporalUnit.Month,
             "DAY" or "DAYS" or "DD" or "D" => TemporalUnit.Day,
             "HOUR" or "HOURS" or "HH" => TemporalUnit.Hour,

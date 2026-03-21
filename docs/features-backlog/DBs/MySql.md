@@ -12,7 +12,7 @@
 
 ## 2 Recursos relevantes
 
-- Implementação estimada: **89%**.
+- Implementação estimada: **99%**.
 - Parser/executor para DDL/DML comuns.
 - Suporte a `INSERT ... ON DUPLICATE KEY UPDATE`.
 - Cobertura de `GROUP_CONCAT` ampliada com regressão para `DISTINCT`, tratamento de `NULL` e ordenação interna pela sintaxe nativa `ORDER BY ... SEPARATOR ...` dentro da função.
@@ -20,10 +20,36 @@
 - Funções-chave do banco: `GROUP_CONCAT`, `IFNULL`, `DATE_ADD` e `JSON_EXTRACT` (subset no mock).
 - Status por versão já explicitado nesta trilha:
   - `5.0+`: `JSON_EXTRACT`, `->` e `->>`.
-  - `8.0+`: `WITH`/`WITH RECURSIVE` e window functions.
+  - `8.0+`: `WITH`/`WITH RECURSIVE`, `JSON_TABLE` e window functions.
   - Todas as versões simuladas atuais do mock: `LIMIT/OFFSET`, `ON DUPLICATE KEY UPDATE`, `MATCH ... AGAINST`, `SQL_CALC_FOUND_ROWS`/`FOUND_ROWS`, `USE/IGNORE/FORCE INDEX`, `<=>` e `GROUP_CONCAT` dentro do subset já coberto.
-- TODO: implementar `JSON_TABLE(...)` no parser/executor do MySQL, hoje ainda só com gate explícito de não suportado, apesar de o banco real suportar a função de tabela JSON.
-- TODO: avaliar subset de particionamento lógico por tabela (`PARTITION BY RANGE/LIST`) para aproximar testes de retenção/time-series de capacidades reais do MySQL/InnoDB.
+
+### 2.1 Particionamento
+
+- Implementação estimada: **99%**.
+- **Já implementado:**
+  - metadata de `CREATE TABLE`;
+  - `PARTITION BY RANGE (YEAR(...))`;
+  - `PARTITION BY LIST (YEAR(...))`;
+  - `INSERT ... PARTITION (...)`;
+  - roteamento automático quando a linha cai em uma partição conhecida;
+  - leitura com `FROM ... PARTITION (...)`;
+  - `MAXVALUE`;
+  - pruning seguro:
+    - igualdade;
+    - `IN (...)`;
+    - `BETWEEN`;
+    - `OR`;
+    - faixa direta por data alinhada ao ano;
+    - `YEAR(col)`;
+    - `EXTRACT(YEAR FROM col)`;
+    - `EXTRACT(YEAR FROM col) IN (...)`;
+    - `EXTRACT(YEAR FROM col) BETWEEN ... AND ...`;
+    - `EXTRACT(YEAR FROM col) >= ... AND EXTRACT(YEAR FROM col) < ...`;
+    - faixa invertida com `EXTRACT(YEAR FROM col)`;
+    - `EXTRACT(YEAR FROM col)` com `OR` em faixas distintas;
+    - `EXTRACT(YEAR FROM col)` com `OR` em `BETWEEN`.
+- **A implementar:**
+  - pruning mais amplo fora do subset seguro de `YEAR` e `EXTRACT`.
 
 ## 3 Restrições relevantes
 

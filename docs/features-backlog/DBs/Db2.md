@@ -7,7 +7,7 @@
 
 ## 2 Recursos relevantes
 
-- Implementação estimada: **98%**.
+- Implementação estimada: **100%**.
 - `WITH`/CTE disponível.
 - `MERGE` disponível (>= 9).
 - `FETCH FIRST` suportado.
@@ -15,8 +15,7 @@
 - P9 consolidado: fallback explícito de não suportado para JSON avançado e cobertura de `FETCH FIRST` no dialeto DB2.
 - Funções-chave do banco: `LISTAGG` (por versão), `COALESCE`, `TIMESTAMPADD` e `FETCH FIRST` no fluxo de paginação.
 - `JSON_QUERY`, `JSON_VALUE` e `JSON_TABLE` cobertos no subset JSON do DB2, com gate por versão e materialização em runtime.
-- `CREATE OR REPLACE FUNCTION` e `CREATE OR REPLACE PROCEDURE` cobertos no parser e no runtime do mock DB2.
-- TODO: implementar `CREATE OR REPLACE TRIGGER` no parser/executor do DB2 para fechar a forma padrão de DDL de rotina.
+- `CREATE OR REPLACE FUNCTION`, `CREATE OR REPLACE PROCEDURE` e `CREATE OR REPLACE TRIGGER` cobertos no parser e no runtime do mock DB2.
 
 ## 3 Restrições relevantes
 

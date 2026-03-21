@@ -408,7 +408,16 @@ internal sealed class SqlQueryParser
             allowFunctionSource: false,
             aliasStopWords: [SqlConst.VALUE, SqlConst.PARTITION]); // Tabela
 
-        ConsumeOptionalPartitionClause();
+        var partitionNames = ConsumeOptionalPartitionClause();
+        if (partitionNames.Count == 0 && table.PartitionNames is { Count: > 0 } tablePartitionNames)
+        {
+            partitionNames = tablePartitionNames;
+            table = table with { PartitionNames = [] };
+        }
+        else if (table.PartitionNames is { Count: > 0 })
+        {
+            table = table with { PartitionNames = [] };
+        }
 
         // REPLACE ... SET col1 = expr, col2 = expr
         var valuesRaw = new List<List<string>>();
@@ -479,6 +488,7 @@ internal sealed class SqlQueryParser
             ValuesExpr = valuesExpr,
             InsertSelect = insertSelect,
             Returning = returning,
+            PartitionNames = partitionNames,
             IsReplace = isReplace,
             HasOnDuplicateKeyUpdate = (onDup != null),
             OnDupAssigns = onDup?.Assignments.Select(a => (a.Column, a.ValueRaw)).ToList() ?? [],
@@ -511,16 +521,25 @@ internal sealed class SqlQueryParser
         return sawIgnore;
     }
 
-    private void ConsumeOptionalPartitionClause()
+    private IReadOnlyList<string> ConsumeOptionalPartitionClause()
     {
         if (!IsWord(Peek(), SqlConst.PARTITION))
-            return;
+            return [];
 
         Consume(); // PARTITION
         if (!IsSymbol(Peek(), "("))
             throw new InvalidOperationException("INSERT PARTITION clause requires a partition list.");
 
-        _ = ReadBalancedParenRawTokens();
+        var rawPartitions = ReadBalancedParenRawTokens().Trim();
+        var partitionNames = SplitRawByComma(rawPartitions)
+            .Select(static part => part.Trim().Trim('`', '"', '[', ']').NormalizeName())
+            .Where(static part => !string.IsNullOrWhiteSpace(part))
+            .ToArray();
+
+        if (partitionNames.Length == 0)
+            throw new InvalidOperationException("INSERT PARTITION clause requires at least one partition name.");
+
+        return partitionNames;
     }
 
     private void ParseInsertValuesRows(List<List<string>> valuesRaw, List<List<SqlExpr?>> valuesExpr)
@@ -1971,6 +1990,9 @@ internal sealed class SqlQueryParser
         if (IsWord(Peek(), SqlConst.PROCEDURE))
             return ParseCreateProcedure(orReplace);
 
+        if (IsWord(Peek(), SqlConst.TRIGGER))
+            return ParseCreateTrigger(orReplace);
+
         if (orReplace)
             throw new InvalidOperationException("CREATE OR REPLACE is only supported for VIEW, FUNCTION and PROCEDURE statements.");
 
@@ -2642,6 +2664,128 @@ internal sealed class SqlQueryParser
             OrReplace = orReplace,
             Definition = definition
         };
+    }
+
+    private SqlCreateTriggerQuery ParseCreateTrigger(bool orReplace)
+    {
+        if (!_dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+            throw SqlUnsupported.ForDialect(_dialect, "CREATE TRIGGER");
+
+        ExpectWord(SqlConst.TRIGGER);
+
+        if (IsEnd(Peek()) || IsSymbol(Peek(), ";"))
+            throw new InvalidOperationException("CREATE TRIGGER requires a trigger name.");
+
+        var triggerName = ParseQualifiedObjectName();
+        var triggerNameText = triggerName.DbName is null
+            ? triggerName.Name
+            : $"{triggerName.DbName}.{triggerName.Name}";
+        if (string.IsNullOrWhiteSpace(triggerNameText))
+            throw new InvalidOperationException("CREATE TRIGGER requires a trigger name.");
+
+        var isBefore = ParseTriggerTiming();
+        var evt = ParseTriggerEvent(isBefore);
+
+        ExpectWord(SqlConst.ON);
+        var table = ParseQualifiedObjectName();
+
+        while (!IsEnd(Peek()) && !IsWord(Peek(), SqlConst.BEGIN))
+            Consume();
+
+        if (!IsWord(Peek(), SqlConst.BEGIN))
+            throw new InvalidOperationException("CREATE TRIGGER requires a BEGIN ... END body.");
+
+        SkipTriggerBody();
+        EnsureStatementEnd("CREATE TRIGGER");
+
+        return new SqlCreateTriggerQuery
+        {
+            OrReplace = orReplace,
+            TriggerName = triggerNameText!,
+            IsBefore = isBefore,
+            Event = evt,
+            Table = table
+        };
+    }
+
+    private bool ParseTriggerTiming()
+    {
+        var timingToken = Peek();
+        if (timingToken.Kind is not (SqlTokenKind.Identifier or SqlTokenKind.Keyword))
+            throw new InvalidOperationException($"CREATE TRIGGER requires BEFORE or AFTER, found {timingToken.Kind} '{timingToken.Text}'.");
+
+        var word = timingToken.Text;
+        if (!word.Equals(SqlConst.BEFORE, StringComparison.OrdinalIgnoreCase)
+            && !word.Equals(SqlConst.AFTER, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException($"CREATE TRIGGER requires BEFORE or AFTER, found '{word}'.");
+
+        Consume();
+        return word.Equals(SqlConst.BEFORE, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private TableTriggerEvent ParseTriggerEvent(bool isBefore)
+    {
+        var evtToken = Peek();
+        if (evtToken.Kind is not (SqlTokenKind.Identifier or SqlTokenKind.Keyword))
+            throw new InvalidOperationException($"CREATE TRIGGER requires INSERT, UPDATE or DELETE, found {evtToken.Kind} '{evtToken.Text}'.");
+
+        var word = evtToken.Text;
+        if (word.Equals(SqlConst.INSERT, StringComparison.OrdinalIgnoreCase))
+        {
+            Consume();
+            return isBefore
+                ? TableTriggerEvent.BeforeInsert
+                : TableTriggerEvent.AfterInsert;
+        }
+
+        if (word.Equals(SqlConst.UPDATE, StringComparison.OrdinalIgnoreCase))
+        {
+            Consume();
+            return isBefore
+                ? TableTriggerEvent.BeforeUpdate
+                : TableTriggerEvent.AfterUpdate;
+        }
+
+        if (word.Equals(SqlConst.DELETE, StringComparison.OrdinalIgnoreCase))
+        {
+            Consume();
+            return isBefore
+                ? TableTriggerEvent.BeforeDelete
+                : TableTriggerEvent.AfterDelete;
+        }
+
+        throw new InvalidOperationException($"CREATE TRIGGER requires INSERT, UPDATE or DELETE, found '{word}'.");
+    }
+
+    private void SkipTriggerBody()
+    {
+        var depth = 0;
+        while (!IsEnd(Peek()))
+        {
+            if (IsWord(Peek(), SqlConst.BEGIN))
+            {
+                depth++;
+                Consume();
+                continue;
+            }
+
+            if (IsWord(Peek(), SqlConst.END))
+            {
+                Consume();
+                depth--;
+                if (depth == 0)
+                    return;
+
+                if (depth < 0)
+                    throw new InvalidOperationException("CREATE TRIGGER body has an unexpected END.");
+
+                continue;
+            }
+
+            Consume();
+        }
+
+        throw new InvalidOperationException("CREATE TRIGGER body was not closed correctly.");
     }
 
     private ProcedureDef ParseProcedureDefinition()
@@ -4046,6 +4190,7 @@ internal sealed class SqlQueryParser
             db = table;
             table = ExpectIdentifier();
         }
+        var partitionNames = ConsumeOptionalTablePartitionClause();
         if (consumeHints)
             mySqlIndexHints.AddRange(ConsumeTableHintsIfPresent());
         var alias2 = ReadOptionalAlias(aliasStopWords);
@@ -4059,7 +4204,29 @@ internal sealed class SqlQueryParser
             null,
             null,
             Pivot: null,
+            PartitionNames: partitionNames,
             MySqlIndexHints: mySqlIndexHints);
+    }
+
+    private IReadOnlyList<string> ConsumeOptionalTablePartitionClause()
+    {
+        if (!IsWord(Peek(), SqlConst.PARTITION))
+            return [];
+
+        Consume(); // PARTITION
+        if (!IsSymbol(Peek(), "("))
+            throw new InvalidOperationException("PARTITION clause requires a partition list.");
+
+        var rawPartitions = ReadBalancedParenRawTokens().Trim();
+        var partitionNames = SplitRawByComma(rawPartitions)
+            .Select(static part => part.Trim().Trim('`', '"', '[', ']').NormalizeName())
+            .Where(static part => !string.IsNullOrWhiteSpace(part))
+            .ToArray();
+
+        if (partitionNames.Length == 0)
+            throw new InvalidOperationException("PARTITION clause requires at least one partition name.");
+
+        return partitionNames;
     }
 
     private SqlTableSource ParseTableFunctionSource(string functionName, string? schemaName = null)

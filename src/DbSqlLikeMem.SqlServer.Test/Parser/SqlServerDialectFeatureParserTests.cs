@@ -677,7 +677,7 @@ public sealed class SqlServerDialectFeatureParserTests
         Assert.True(dialect.SupportsSqlServerDateFunction("DATEPART"));
         Assert.True(dialect.SupportsSqlServerDateFunction("DAY"));
         Assert.True(dialect.SupportsSqlServerDateFunction("MONTH"));
-        Assert.True(dialect.SupportsSqlServerDateFunction("YEAR"));
+        Assert.True(dialect.SupportsSqlServerDateFunction(SqlConst.YEAR));
         Assert.False(dialect.SupportsSqlServerDateFunction("TIMESTAMPDIFF"));
     }
 
@@ -741,7 +741,7 @@ public sealed class SqlServerDialectFeatureParserTests
         Assert.Equal("DATEPART", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATEPART(month, '2020-02-10')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("DAY", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DAY('2020-02-14')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("MONTH", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("MONTH('2020-02-14')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("YEAR", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("YEAR('2020-02-14')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.YEAR, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("YEAR('2020-02-14')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>

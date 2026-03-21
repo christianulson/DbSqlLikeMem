@@ -233,6 +233,12 @@ internal class MySqlDialect : SqlDialectBase
     public override bool SupportsJsonExtractFunction => Version >= JsonExtractMinVersion;
 
     /// <summary>
+    /// EN: Indicates whether JSON_TABLE table functions are supported by the configured MySQL version.
+    /// PT: Indica se funcoes de tabela JSON_TABLE sao suportadas pela versao configurada do MySQL.
+    /// </summary>
+    public override bool SupportsJsonTableFunction => Version >= JsonExtractMinVersion;
+
+    /// <summary>
     /// EN: Indicates whether MySQL index hints are supported in SQL generation.
     /// PT: Indica se hints de índice do MySQL são suportados na geração de SQL.
     /// </summary>

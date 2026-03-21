@@ -85,7 +85,45 @@ internal sealed class AstQuerySourceResolver
 
         _cnn.Metrics.IncrementTableHint(tableName);
         var table = _cnn.GetTable(tableName, tableSource.DbName);
-        return AstQueryExecutorBase.Source.FromPhysical(tableName, alias, table, tableSource.MySqlIndexHints);
+        if (tableSource.PartitionNames is { Count: > 0 } requestedPartitions
+            && table is TableMock tableMock)
+        {
+            var partitionedResult = new TableResultMock();
+            var columnIndex = 0;
+            foreach (var column in tableMock.Columns.Values.OrderBy(c => c.Index))
+            {
+                partitionedResult.Columns.Add(new TableResultColMock(
+                    alias,
+                    column.Name,
+                    column.Name,
+                    columnIndex++,
+                    column.DbType,
+                    column.Nullable));
+            }
+
+            foreach (var row in tableMock)
+            {
+                if (!tableMock.MatchesRequestedPartitions(row, requestedPartitions))
+                    continue;
+
+                var filteredRow = new Dictionary<int, object?>(row.Count);
+                foreach (var column in tableMock.Columns.Values)
+                {
+                    filteredRow[column.Index] = row.TryGetValue(column.Index, out var value) ? value : null;
+                }
+
+                partitionedResult.Add(filteredRow);
+            }
+
+            return AstQueryExecutorBase.Source.FromResult(alias, partitionedResult);
+        }
+
+        return AstQueryExecutorBase.Source.FromPhysical(
+            tableName,
+            alias,
+            table,
+            tableSource.MySqlIndexHints,
+            tableSource.PartitionNames);
     }
 
     private AstQueryExecutorBase.Source ResolveTableFunctionSource(

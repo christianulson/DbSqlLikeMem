@@ -361,6 +361,27 @@ public sealed class Db2MockTests
         Assert.Single(procedure!.RequiredIn);
     }
 
+    /// <summary>
+    /// EN: Verifies DB2 registers CREATE OR REPLACE TRIGGER and keeps table DML working.
+    /// PT: Verifica que o DB2 registre CREATE OR REPLACE TRIGGER e mantenha DML da tabela funcionando.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    [Theory]
+    [Trait("Category", "Db2Mock")]
+    [MemberDataDb2Version]
+    public void CreateOrReplaceTrigger_ShouldRegisterTriggerAndAllowInsert(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        ExecuteNonQuery(connection, "CREATE OR REPLACE TRIGGER trg_users_ai AFTER INSERT ON Users BEGIN ATOMIC END");
+
+        var table = connection.Db.GetTable("Users");
+        Assert.True(table.HasTriggers(TableTriggerEvent.AfterInsert));
+
+        ExecuteNonQuery(connection, "INSERT INTO Users (Id, Name, Email) VALUES (3, 'Carol', NULL)");
+        Assert.Equal(3, table.Count);
+    }
+
     private static Db2ConnectionMock CreateOpenConnection(int? version = null)
     {
         var db = new Db2DbMock(version);

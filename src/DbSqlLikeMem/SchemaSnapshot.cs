@@ -424,6 +424,7 @@ public sealed record SchemaSnapshot
                     tableSnapshot.Name,
                     tableSnapshot.Columns.Select(static column => column.ToCol()));
                 created.NextIdentity = tableSnapshot.NextIdentity;
+                created.PartitionClauseSql = tableSnapshot.PartitionClauseSql;
             }
 
             foreach (var tableSnapshot in schemaSnapshot.Tables)
@@ -734,6 +735,12 @@ public sealed record SchemaSnapshotTable
     /// </summary>
     public required IReadOnlyList<SchemaSnapshotForeignKey> ForeignKeys { get; init; }
 
+    /// <summary>
+    /// EN: Optional partition metadata captured for the table.
+    /// PT: Metadado opcional de particionamento capturado para a tabela.
+    /// </summary>
+    public string? PartitionClauseSql { get; init; }
+
     internal static SchemaSnapshotTable FromTable(ITableMock table)
         => new()
         {
@@ -750,7 +757,8 @@ public sealed record SchemaSnapshotTable
                 .Select(static index => SchemaSnapshotIndex.FromIndex(index))],
             ForeignKeys = [.. table.ForeignKeys.Values
                 .OrderBy(static foreignKey => foreignKey.Name, StringComparer.OrdinalIgnoreCase)
-                .Select(static foreignKey => SchemaSnapshotForeignKey.FromForeignKey(foreignKey))]
+                .Select(static foreignKey => SchemaSnapshotForeignKey.FromForeignKey(foreignKey))],
+            PartitionClauseSql = table.PartitionClauseSql
         };
 }
 

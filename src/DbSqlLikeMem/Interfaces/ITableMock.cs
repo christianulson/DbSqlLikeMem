@@ -31,6 +31,12 @@ public interface ITableMock
     /// </summary>
     bool AllowIdentityInsert { get; set; }
 
+    /// <summary>
+    /// EN: Captures the table partitioning clause when the provider records partition metadata.
+    /// PT: Captura a clausula de particionamento da tabela quando o provedor registra metadados de particionamento.
+    /// </summary>
+    string? PartitionClauseSql { get; set; }
+
     ITableMock SetAllowIdentityInsert(bool allowIdentityInsert);
 
     /// <summary>

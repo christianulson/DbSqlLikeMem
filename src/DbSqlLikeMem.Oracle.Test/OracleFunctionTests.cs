@@ -273,6 +273,54 @@ public sealed class OracleFunctionTests
     }
 
     /// <summary>
+    /// EN: Ensures Oracle JSON_TABLE materializes rows when the version gate is enabled.
+    /// PT: Garante que Oracle JSON_TABLE materialize linhas quando o gate de versao esta habilitado.
+    /// </summary>
+    /// <param name="version">EN: Oracle version under test. PT: Versao do Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "OracleMock")]
+    [MemberDataOracleVersion]
+    public void JsonTable_ShouldReturnExpectedRows(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+        using var command = new OracleCommandMock(connection)
+        {
+            CommandText = """
+                SELECT jt.ord, jt.Id, jt.Name
+                FROM JSON_TABLE(
+                    '[{"id":1,"name":"Ana"},{"id":2,"name":"Bia"}]',
+                    '$[*]' COLUMNS(
+                        ord FOR ORDINALITY,
+                        Id INT PATH '$.id',
+                        Name VARCHAR2(50) PATH '$.name'
+                    )
+                ) jt
+                ORDER BY jt.ord
+                """
+        };
+
+        if (version < OracleDialect.OracleJsonSqlFunctionMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+            Assert.Contains(SqlConst.JSON_TABLE, ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("ord")));
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.Equal("Ana", reader.GetString(reader.GetOrdinal("Name")));
+
+        Assert.True(reader.Read());
+        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("ord")));
+        Assert.Equal(2, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.Equal("Bia", reader.GetString(reader.GetOrdinal("Name")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
     /// EN: Ensures Oracle approximate aggregate helpers follow the configured database version gates.
     /// PT: Garante que os helpers Oracle de agregacao aproximada sigam os gates da versao configurada do banco.
     /// </summary>

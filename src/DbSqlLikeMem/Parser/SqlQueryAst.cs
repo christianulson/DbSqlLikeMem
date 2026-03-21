@@ -40,6 +40,7 @@ internal sealed record SqlInsertQuery : SqlQueryBase
     internal IReadOnlyList<List<string>> ValuesRaw { get; init; } = [];      // tokens raw por valor (ou expressão raw)
     internal IReadOnlyList<List<SqlExpr?>> ValuesExpr { get; init; } = [];   // best-effort parsed values (aligned with ValuesRaw)
     internal IReadOnlyList<SqlSelectItem> Returning { get; init; } = [];
+    internal IReadOnlyList<string> PartitionNames { get; init; } = [];
     internal bool IsReplace { get; init; }
     internal bool HasOnDuplicateKeyUpdate { get; init; }
     /// <summary>
@@ -167,6 +168,14 @@ internal sealed record SqlCreateProcedureQuery : SqlQueryBase
     internal ProcedureDef Definition { get; init; } = null!;
 }
 
+internal sealed record SqlCreateTriggerQuery : SqlQueryBase
+{
+    internal bool OrReplace { get; init; }
+    internal string TriggerName { get; init; } = "";
+    internal bool IsBefore { get; init; }
+    internal TableTriggerEvent Event { get; init; }
+}
+
 internal sealed record SqlDropFunctionQuery : SqlQueryBase
 {
     internal bool IfExists { get; init; }
@@ -192,6 +201,7 @@ internal sealed record SqlTableSource(
     SqlOpenJsonWithClause? OpenJsonWithClause = null,
     SqlJsonTableClause? JsonTableClause = null,
     SqlUnpivotSpec? Unpivot = null,
+    IReadOnlyList<string>? PartitionNames = null,
     bool IsLateral = false
 );
 

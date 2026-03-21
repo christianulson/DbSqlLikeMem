@@ -145,19 +145,47 @@ public sealed class MySqlDialectFeatureParserTests
     }
 
     /// <summary>
-    /// EN: Ensures JSON_TABLE remains explicitly rejected in MySQL until runtime support exists.
-    /// PT: Garante que JSON_TABLE continue explicitamente rejeitado no MySQL ate existir suporte de runtime.
+    /// EN: Ensures MySQL accepts JSON_TABLE in table-source position for supported versions and rejects it below the gate.
+    /// PT: Garante que o MySQL aceite JSON_TABLE em posicao de table source nas versoes suportadas e rejeite abaixo do gate.
     /// </summary>
     /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
-    public void ParseScalar_JsonTable_ShouldRespectDialectRule(int version)
+    public void ParseSelect_JsonTable_ShouldFollowVersionSupport(int version)
     {
-        var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("JSON_TABLE(payload, '$[*]' COLUMNS(x INT PATH '$'))", new MySqlDialect(version)));
+        var sql = """
+            SELECT jt.Id, jt.TagName
+            FROM JSON_TABLE(
+                '[{"id":1,"tags":[{"name":"vip"}]}]',
+                '$[*]' COLUMNS(
+                    Id INT PATH '$.id',
+                    NESTED PATH '$.tags[*]' COLUMNS(
+                        TagName VARCHAR(30) PATH '$.name'
+                    )
+                )
+            ) jt
+            """;
 
-        Assert.Contains(SqlConst.JSON_TABLE, ex.Message, StringComparison.OrdinalIgnoreCase);
+        var dialect = new MySqlDialect(version);
+        if (version < MySqlDialect.JsonExtractMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            Assert.Contains(SqlConst.JSON_TABLE, ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, dialect));
+        Assert.NotNull(parsed.Table);
+        var tableSource = parsed.Table;
+
+        Assert.NotNull(tableSource.JsonTableClause);
+        var clause = tableSource.JsonTableClause;
+        Assert.Single(clause.Columns);
+        Assert.Single(clause.NestedPaths);
+        Assert.Equal("jt", tableSource.Alias, ignoreCase: true);
+        Assert.Equal("Id", clause.Columns[0].Name);
+        Assert.Equal("TagName", Assert.Single(clause.NestedPaths[0].Clause.Columns).Name);
     }
 
     /// <summary>
@@ -310,6 +338,204 @@ public sealed class MySqlDialectFeatureParserTests
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL parses the INSERT PARTITION subset and captures the requested partition names.
+    /// PT: Garante que o MySQL interprete o subset de INSERT PARTITION e capture os nomes de particao solicitados.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_PartitionClause_ShouldCapturePartitionNames(int version)
+    {
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(
+            "INSERT INTO archive_events PARTITION (p2024, pmax) VALUES (1, 10, '2025-01-01')",
+            new MySqlDialect(version)));
+
+        Assert.Equal(2, parsed.PartitionNames.Count);
+        Assert.Equal("p2024", parsed.PartitionNames[0], StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("pmax", parsed.PartitionNames[1], StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL parses the table-source PARTITION subset and captures the requested partition names.
+    /// PT: Garante que o MySQL interprete o subset de PARTITION na fonte da tabela e capture os nomes de particao solicitados.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_TablePartitionClause_ShouldCapturePartitionNames(int version)
+    {
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT Id FROM archive_events PARTITION (p2024) ORDER BY Id",
+            new MySqlDialect(version)));
+
+        var table = parsed.Table;
+        Assert.NotNull(table);
+        Assert.NotNull(table!.PartitionNames);
+        var partitionNames = table!.PartitionNames!;
+        Assert.Single(partitionNames);
+        Assert.Equal("p2024", partitionNames[0], ignoreCase: true);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL parses the MAXVALUE partition subset in the table source clause.
+    /// PT: Garante que o MySQL interprete o subset de particionamento MAXVALUE na clausula da fonte da tabela.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_TablePartitionClause_MaxValue_ShouldCapturePartitionNames(int version)
+    {
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT Id FROM archive_events PARTITION (pmax) ORDER BY Id",
+            new MySqlDialect(version)));
+
+        var table = parsed.Table;
+        Assert.NotNull(table);
+        Assert.NotNull(table!.PartitionNames);
+        var partitionNames = table!.PartitionNames!;
+        Assert.Single(partitionNames);
+        Assert.Equal("pmax", partitionNames[0], ignoreCase: true);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL preserves EXTRACT(YEAR FROM ...) in a partition-pruning WHERE clause with IN.
+    /// PT: Garante que o MySQL preserve EXTRACT(YEAR FROM ...) em uma clausula WHERE de pruning por particionamento com IN.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_TablePartitionClause_WithExtractYearInPredicate_ShouldCaptureWhereClause(int version)
+    {
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT Id FROM archive_events WHERE EXTRACT(YEAR FROM CreatedAt) IN (2024, 2026) ORDER BY Id",
+            new MySqlDialect(version)));
+
+        var where = Assert.IsType<InExpr>(parsed.Where);
+        var extract = Assert.IsType<CallExpr>(where.Left);
+        Assert.Equal("EXTRACT", extract.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.YEAR, Assert.IsType<RawSqlExpr>(extract.Args[0]).Sql, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("CreatedAt", Assert.IsType<IdentifierExpr>(extract.Args[1]).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(2, where.Items.Count);
+        Assert.Equal(2024, Assert.IsType<LiteralExpr>(where.Items[0]).Value);
+        Assert.Equal(2026, Assert.IsType<LiteralExpr>(where.Items[1]).Value);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL preserves EXTRACT(YEAR FROM ...) in a partition-pruning WHERE clause with BETWEEN.
+    /// PT: Garante que o MySQL preserve EXTRACT(YEAR FROM ...) em uma clausula WHERE de pruning por particionamento com BETWEEN.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_TablePartitionClause_WithExtractYearBetweenPredicate_ShouldCaptureWhereClause(int version)
+    {
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT Id FROM archive_events WHERE EXTRACT(YEAR FROM CreatedAt) BETWEEN 2024 AND 2026 ORDER BY Id",
+            new MySqlDialect(version)));
+
+        var where = Assert.IsType<BetweenExpr>(parsed.Where);
+        var extract = Assert.IsType<CallExpr>(where.Expr);
+        Assert.Equal("EXTRACT", extract.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.YEAR, Assert.IsType<RawSqlExpr>(extract.Args[0]).Sql, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("CreatedAt", Assert.IsType<IdentifierExpr>(extract.Args[1]).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(2024, Assert.IsType<LiteralExpr>(where.Low).Value);
+        Assert.Equal(2026, Assert.IsType<LiteralExpr>(where.High).Value);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL preserves EXTRACT(YEAR FROM ...) in a partition-pruning WHERE clause with comparison bounds.
+    /// PT: Garante que o MySQL preserve EXTRACT(YEAR FROM ...) em uma clausula WHERE de pruning por particionamento com limites de comparacao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_TablePartitionClause_WithExtractYearComparisonPredicate_ShouldCaptureWhereClause(int version)
+    {
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT Id FROM archive_events WHERE EXTRACT(YEAR FROM CreatedAt) >= 2024 AND EXTRACT(YEAR FROM CreatedAt) < 2025 ORDER BY Id",
+            new MySqlDialect(version)));
+
+        var andExpr = Assert.IsType<BinaryExpr>(parsed.Where);
+        var left = Assert.IsType<BinaryExpr>(andExpr.Left);
+        var right = Assert.IsType<BinaryExpr>(andExpr.Right);
+        Assert.Equal(SqlBinaryOp.GreaterOrEqual, left.Op);
+        Assert.Equal(SqlBinaryOp.Less, right.Op);
+        Assert.Equal("EXTRACT", Assert.IsType<CallExpr>(left.Left).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("EXTRACT", Assert.IsType<CallExpr>(right.Left).Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL preserves EXTRACT(YEAR FROM ...) when comparison bounds are written in reverse order.
+    /// PT: Garante que o MySQL preserve EXTRACT(YEAR FROM ...) quando os limites de comparacao sao escritos na ordem inversa.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_TablePartitionClause_WithExtractYearReversedComparisonPredicate_ShouldCaptureWhereClause(int version)
+    {
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT Id FROM archive_events WHERE 2025 > EXTRACT(YEAR FROM CreatedAt) AND 2024 <= EXTRACT(YEAR FROM CreatedAt) ORDER BY Id",
+            new MySqlDialect(version)));
+
+        var andExpr = Assert.IsType<BinaryExpr>(parsed.Where);
+        var left = Assert.IsType<BinaryExpr>(andExpr.Left);
+        var right = Assert.IsType<BinaryExpr>(andExpr.Right);
+        Assert.Equal(SqlBinaryOp.Greater, left.Op);
+        Assert.Equal(SqlBinaryOp.LessOrEqual, right.Op);
+        Assert.Equal(2025, Assert.IsType<LiteralExpr>(left.Left).Value);
+        Assert.Equal(2024, Assert.IsType<LiteralExpr>(right.Left).Value);
+        Assert.Equal("EXTRACT", Assert.IsType<CallExpr>(left.Right).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("EXTRACT", Assert.IsType<CallExpr>(right.Right).Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL preserves EXTRACT(YEAR FROM ...) when safe comparison branches are combined with OR.
+    /// PT: Garante que o MySQL preserve EXTRACT(YEAR FROM ...) quando ramos seguros de comparacao sao combinados com OR.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_TablePartitionClause_WithExtractYearOrPredicate_ShouldCaptureWhereClause(int version)
+    {
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT Id FROM archive_events WHERE EXTRACT(YEAR FROM CreatedAt) = 2024 OR EXTRACT(YEAR FROM CreatedAt) = 2026 ORDER BY Id",
+            new MySqlDialect(version)));
+
+        var orExpr = Assert.IsType<BinaryExpr>(parsed.Where);
+        Assert.Equal(SqlBinaryOp.Or, orExpr.Op);
+        Assert.Equal("EXTRACT", Assert.IsType<CallExpr>(Assert.IsType<BinaryExpr>(orExpr.Left).Left).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("EXTRACT", Assert.IsType<CallExpr>(Assert.IsType<BinaryExpr>(orExpr.Right).Left).Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL preserves EXTRACT(YEAR FROM ...) when safe BETWEEN branches are combined with OR.
+    /// PT: Garante que o MySQL preserve EXTRACT(YEAR FROM ...) quando ramos seguros de BETWEEN sao combinados com OR.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_TablePartitionClause_WithExtractYearOrBetweenPredicate_ShouldCaptureWhereClause(int version)
+    {
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT Id FROM archive_events WHERE EXTRACT(YEAR FROM CreatedAt) BETWEEN 2024 AND 2024 OR EXTRACT(YEAR FROM CreatedAt) BETWEEN 2026 AND 2026 ORDER BY Id",
+            new MySqlDialect(version)));
+
+        var orExpr = Assert.IsType<BinaryExpr>(parsed.Where);
+        Assert.Equal(SqlBinaryOp.Or, orExpr.Op);
+        Assert.IsType<BetweenExpr>(orExpr.Left);
+        Assert.IsType<BetweenExpr>(orExpr.Right);
     }
 
     /// <summary>

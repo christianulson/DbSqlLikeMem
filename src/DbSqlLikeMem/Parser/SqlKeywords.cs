@@ -10,6 +10,7 @@ internal static class SqlKeywords
             SqlConst.AS,
             SqlConst.BETWEEN,
             SqlConst.DISTINCT,
+            SqlConst.BEFORE,SqlConst.AFTER,SqlConst.TRIGGER,SqlConst.EACH,SqlConst.REFERENCING,SqlConst.MODE,SqlConst.ATOMIC,
             "CASE",SqlConst.WHEN,SqlConst.THEN,SqlConst.ELSE,SqlConst.END
         };
 

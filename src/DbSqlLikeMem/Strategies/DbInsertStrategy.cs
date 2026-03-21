@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace DbSqlLikeMem;
 
 internal static class DbInsertStrategy
@@ -66,6 +68,8 @@ internal static class DbInsertStrategy
         int insertedCount = 0;
         int updatedCount = 0;
         var tableMock = (TableMock)table;
+        ValidateInsertPartitions(query, tableMock);
+        ValidatePartitionedInsertRows(query, tableMock, newRows);
         var canUseBatchInsert = CanUseBatchInsert(connection, dialect, table, tableName, query.Table.DbName, tableMock);
         var affectedIndexes = new List<int>();
 
@@ -491,6 +495,70 @@ internal static class DbInsertStrategy
 
         foreach (var it in pendingUniqueKeys)
             it.Value.Add(it.Key.BuildIndexKey(row));
+    }
+
+    private static void ValidateInsertPartitions(SqlInsertQuery query, TableMock table)
+    {
+        var requestedPartitionNames = GetRequestedPartitionNames(query);
+        if (requestedPartitionNames.Count == 0)
+            return;
+
+        if (string.IsNullOrWhiteSpace(table.PartitionClauseSql))
+            throw new InvalidOperationException("INSERT PARTITION requires captured partition metadata on the target table.");
+
+        var availablePartitions = ExtractPartitionNames(table.PartitionClauseSql!);
+        if (availablePartitions.Count == 0)
+            throw new InvalidOperationException("INSERT PARTITION requires named partitions in the target table metadata.");
+
+        foreach (var partitionName in requestedPartitionNames)
+        {
+            if (!availablePartitions.Contains(partitionName))
+                throw new InvalidOperationException($"Unknown partition '{partitionName}'.");
+        }
+    }
+
+    private static void ValidatePartitionedInsertRows(
+        SqlInsertQuery query,
+        TableMock table,
+        IReadOnlyList<Dictionary<int, object?>> rows)
+    {
+        if (string.IsNullOrWhiteSpace(table.PartitionClauseSql))
+            return;
+
+        var requestedPartitionNames = GetRequestedPartitionNames(query);
+        foreach (var row in rows)
+        {
+            if (requestedPartitionNames.Count > 0)
+            {
+                if (table.MatchesRequestedPartitions(row, requestedPartitionNames))
+                    continue;
+
+                throw new InvalidOperationException("INSERT PARTITION row does not belong to the requested partition subset.");
+            }
+
+            if (table.TryGetPartitionName(row, out _))
+                continue;
+
+            throw new InvalidOperationException("INSERT row does not belong to any defined partition.");
+        }
+    }
+
+    private static IReadOnlyList<string> GetRequestedPartitionNames(SqlInsertQuery query)
+        => query.PartitionNames.Count > 0
+            ? query.PartitionNames
+            : query.Table?.PartitionNames ?? [];
+
+    private static HashSet<string> ExtractPartitionNames(string partitionClauseSql)
+    {
+        var partitions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (Match match in Regex.Matches(partitionClauseSql, @"\bPARTITION\s+(?!BY)(?<name>`?[A-Za-z0-9_]+`?)", RegexOptions.IgnoreCase))
+        {
+            var name = match.Groups["name"].Value.Trim('`', '"', '[', ']').NormalizeName();
+            if (!string.IsNullOrWhiteSpace(name))
+                partitions.Add(name);
+        }
+
+        return partitions;
     }
 
     private static bool CanUseBatchInsert(

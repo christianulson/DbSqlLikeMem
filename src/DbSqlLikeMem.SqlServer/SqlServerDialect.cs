@@ -280,7 +280,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
             || functionName.Equals("DATEPART", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("DAY", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("MONTH", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("YEAR", StringComparison.OrdinalIgnoreCase);
+            || functionName.Equals(SqlConst.YEAR, StringComparison.OrdinalIgnoreCase);
     /// <inheritdoc />
     public override bool SupportsApproximateAggregateFunction(string functionName)
         => Version >= ApproxCountDistinctMinVersion

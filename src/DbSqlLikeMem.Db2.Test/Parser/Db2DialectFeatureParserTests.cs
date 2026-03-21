@@ -173,6 +173,28 @@ public sealed class Db2DialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures DB2 parses CREATE OR REPLACE TRIGGER and preserves the trigger contract.
+    /// PT: Garante que o DB2 interprete CREATE OR REPLACE TRIGGER e preserve o contrato do trigger.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void ParseCreateOrReplaceTriggerDdlSubset_ShouldParse(int version)
+    {
+        var dialect = new Db2Dialect(version);
+
+        var create = Assert.IsType<SqlCreateTriggerQuery>(SqlQueryParser.Parse(
+            "CREATE OR REPLACE TRIGGER trg_users_ai AFTER INSERT ON users BEGIN ATOMIC END",
+            dialect));
+
+        Assert.True(create.OrReplace);
+        Assert.Equal("trg_users_ai", create.TriggerName, ignoreCase: true);
+        Assert.Equal("users", create.Table?.Name, ignoreCase: true);
+        Assert.Equal(TableTriggerEvent.AfterInsert, create.Event);
+    }
+
+    /// <summary>
     /// EN: Ensures DB2 exposes ROW_COUNT() through the dialect capability used by the executor.
     /// PT: Garante que o DB2 exponha ROW_COUNT() pela capability de dialeto usada pelo executor.
     /// </summary>

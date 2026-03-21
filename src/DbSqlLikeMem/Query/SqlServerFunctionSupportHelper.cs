@@ -20,7 +20,7 @@ internal static class SqlServerFunctionSupportHelper
 
     private static readonly HashSet<string> _dateFunctions = new(StringComparer.OrdinalIgnoreCase)
     {
-        "DATEDIFF", "DATENAME", "DATEPART", "DAY", "MONTH", "YEAR"
+        "DATEDIFF", "DATENAME", "DATEPART", "DAY", "MONTH", SqlConst.YEAR
     };
 
     private static readonly HashSet<string> _scalarFunctions = new(StringComparer.OrdinalIgnoreCase)
