@@ -1,7 +1,9 @@
-﻿param(
+param(
     [string]$ComposeFile = ".\docker-compose.benchmarks.yml",
+    [string]$MariaDbContainerName = "dbsqllikemem-bench-mariadb",
     [string]$Db2ContainerName = "dbsqllikemem-bench-db2",
     [int]$GenericRetries = 60,
+    [int]$MariaDbRetries = 90,
     [int]$Db2Retries = 90
 )
 
@@ -28,6 +30,29 @@ function Wait-ForMySqlReady {
     }
 
     throw "MySQL did not become ready in time."
+}
+
+function Wait-ForMariaDbReady {
+    param(
+        [string]$ContainerName = "dbsqllikemem-bench-mariadb",
+        [int]$Retries = 90,
+        [int]$DelaySeconds = 3
+    )
+
+    Write-Host "Waiting MariaDB to accept connections..."
+
+    for ($i = 0; $i -lt $Retries; $i++) {
+        docker exec $ContainerName sh -c "mariadb-admin ping -h 127.0.0.1 -uroot -proot --silent" | Out-Null
+
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "MariaDB is ready."
+            return
+        }
+
+        Start-Sleep -Seconds $DelaySeconds
+    }
+
+    throw "MariaDB did not become ready in time."
 }
 
 function Wait-ForContainerHealthy {
@@ -118,6 +143,7 @@ foreach ($container in $genericContainers) {
     Wait-ForContainerHealthy -ContainerName $container -Retries $GenericRetries
 }
 
+Wait-ForMariaDbReady -ContainerName $MariaDbContainerName -Retries $MariaDbRetries
 Wait-ForMySqlReady -ContainerName "dbsqllikemem-bench-mysql" -Retries 90
 Wait-ForContainerHealthy -ContainerName $Db2ContainerName -Retries $Db2Retries
 Wait-ForDb2Instance -Retries $Db2Retries
@@ -127,7 +153,10 @@ Write-Host ""
 Write-Host "Databases ready."
 Write-Host ""
 Write-Host "Suggested environment variables:"
+Write-Host '$env:DBSQLLIKEMEM_BENCH_MYSQL_CONNECTION_STRING="Server=127.0.0.1;Port=13306;Database=benchmark;Uid=root;Pwd=root;Pooling=false;"'
+Write-Host '$env:DBSQLLIKEMEM_BENCH_MARIADB_CONNECTION_STRING="Server=127.0.0.1;Port=13307;Database=benchmark;Uid=root;Pwd=root;Pooling=false;"'
 Write-Host '$env:MYSQL_CONNECTION_STRING="Server=127.0.0.1;Port=13306;Database=benchmark;Uid=root;Pwd=root;Pooling=false;"'
+Write-Host '$env:MARIADB_CONNECTION_STRING="Server=127.0.0.1;Port=13307;Database=benchmark;Uid=root;Pwd=root;Pooling=false;"'
 Write-Host '$env:NPGSQL_CONNECTION_STRING="Host=127.0.0.1;Port=15432;Database=benchmark;Username=postgres;Password=postgres;Pooling=false;"'
 Write-Host '$env:SQLSERVER_CONNECTION_STRING="Server=127.0.0.1,11433;Database=master;User Id=sa;Password=Your_password123;TrustServerCertificate=True;Encrypt=False;Pooling=false;"'
 Write-Host '$env:SQLAZURE_CONNECTION_STRING="Server=127.0.0.1,11433;Database=master;User Id=sa;Password=Your_password123;TrustServerCertificate=True;Encrypt=False;Pooling=false;"'

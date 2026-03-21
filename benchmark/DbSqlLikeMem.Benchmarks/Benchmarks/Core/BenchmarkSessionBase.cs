@@ -1750,7 +1750,35 @@ public abstract class BenchmarkSessionBase(
 
     protected virtual void RunReturningInsert()
     {
-        RunInsertSingle();
+        if (Dialect.Provider != BenchmarkProviderId.MariaDb)
+        {
+            RunInsertSingle();
+            return;
+        }
+
+        var users = NewUsersTableName();
+        using var connection = CreateConnection();
+        connection.Open();
+        try
+        {
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            var rows = CountReaderRows(connection, Dialect.InsertUserReturning(users, 1, "Alice"));
+            if (rows != 1)
+            {
+                throw new InvalidOperationException($"Unexpected RETURNING rowcount for {Dialect.DisplayName}: {rows}.");
+            }
+            var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
+            if (count != 1)
+            {
+                throw new InvalidOperationException($"Unexpected RETURNING insert persistence for {Dialect.DisplayName}: {count}.");
+            }
+            GC.KeepAlive(rows);
+            GC.KeepAlive(count);
+        }
+        finally
+        {
+            SafeDropTable(connection, users);
+        }
     }
 
     protected virtual void RunReturningUpdate()

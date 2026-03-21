@@ -38,10 +38,39 @@
         "FluentSeed100",
         "FluentSeed1000",
         "FluentScenarioCompose"
-      ],
-      "indexRefs": [
-        "3.1.1",
-        "3.1.2"
+      ]
+    },
+    {
+      "id": "MariaDb",
+      "displayName": "MariaDB",
+      "latestSimulatedVersion": "11.0",
+      "externalEngine": "Testcontainers",
+      "externalImage": "mariadb:11.0",
+      "supportsAppFeatures": [
+        "ExecutionPlan",
+        "ExecutionPlanSelect",
+        "ExecutionPlanJoin",
+        "ExecutionPlanDml",
+        "DebugTraceSelect",
+        "DebugTraceBatch",
+        "DebugTraceJson",
+        "LastExecutionPlansHistory",
+        "TempTableCreateAndUse",
+        "TempTableRollback",
+        "TempTableCrossConnectionIsolation",
+        "ResetVolatileData",
+        "ResetAllVolatileData",
+        "ConnectionReopenAfterClose",
+        "SchemaSnapshotExport",
+        "SchemaSnapshotToJson",
+        "SchemaSnapshotLoadJson",
+        "SchemaSnapshotApply",
+        "SchemaSnapshotRoundTrip",
+        "SchemaSnapshotCompare",
+        "FluentSchemaBuild",
+        "FluentSeed100",
+        "FluentSeed1000",
+        "FluentScenarioCompose"
       ]
     },
     {
@@ -75,10 +104,6 @@
         "FluentSeed100",
         "FluentSeed1000",
         "FluentScenarioCompose"
-      ],
-      "indexRefs": [
-        "3.2.1",
-        "3.2.2"
       ]
     },
     {
@@ -113,9 +138,6 @@
         "FluentSeed1000",
         "FluentScenarioCompose"
       ],
-      "indexRefs": [
-        "3.2.2"
-      ],
       "notes": "Use SQL Server as the nearest real-engine proxy in local benchmarks."
     },
     {
@@ -149,10 +171,6 @@
         "FluentSeed100",
         "FluentSeed1000",
         "FluentScenarioCompose"
-      ],
-      "indexRefs": [
-        "3.3.1",
-        "3.3.2"
       ]
     },
     {
@@ -186,10 +204,6 @@
         "FluentSeed100",
         "FluentSeed1000",
         "FluentScenarioCompose"
-      ],
-      "indexRefs": [
-        "3.4.1",
-        "3.4.2"
       ]
     },
     {
@@ -223,11 +237,6 @@
         "FluentSeed100",
         "FluentSeed1000",
         "FluentScenarioCompose"
-      ],
-      "indexRefs": [
-        "3.5.1",
-        "3.5.2",
-        "3.5.3"
       ]
     },
     {
@@ -262,11 +271,6 @@
         "FluentSeed1000",
         "FluentScenarioCompose"
       ],
-      "indexRefs": [
-        "3.6.1",
-        "3.6.2",
-        "3.6.3"
-      ],
       "notes": "Change the image tag here if you prefer to stay strictly inside the Db2 11 family."
     }
   ],
@@ -276,11 +280,6 @@
       "displayName": "Execution plan / LastExecutionPlan",
       "category": "Diagnostics",
       "comparable": false,
-      "indexRefs": [
-        "1.5.1",
-        "1.5.2",
-        "1.5.3"
-      ],
       "notes": "Mock-only backlog seed for the wiki matrix."
     },
     {

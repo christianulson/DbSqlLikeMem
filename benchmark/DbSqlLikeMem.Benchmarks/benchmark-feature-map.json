@@ -131,10 +131,6 @@
         "SelectInSubquery",
         "CrossApplyProjection",
         "OuterApplyProjection"
-      ],
-      "indexRefs": [
-        "3.1.1",
-        "3.1.2"
       ]
     },
     {
@@ -258,10 +254,6 @@
         "SelectInSubquery",
         "CrossApplyProjection",
         "OuterApplyProjection"
-      ],
-      "indexRefs": [
-        "3.1.1",
-        "3.1.2"
       ]
     },
     {
@@ -400,10 +392,6 @@
         "SelectInSubquery",
         "CrossApplyProjection",
         "OuterApplyProjection"
-      ],
-      "indexRefs": [
-        "3.2.1",
-        "3.2.2"
       ]
     },
     {
@@ -483,9 +471,6 @@
         "OuterApplyProjection"
       ],
       "supportsExternalFeatures": [],
-      "indexRefs": [
-        "3.2.2"
-      ],
       "notes": "Use SQL Server as the nearest real-engine proxy in local benchmarks."
     },
     {
@@ -620,10 +605,6 @@
         "SelectInSubquery",
         "CrossApplyProjection",
         "OuterApplyProjection"
-      ],
-      "indexRefs": [
-        "3.3.1",
-        "3.3.2"
       ]
     },
     {
@@ -760,10 +741,6 @@
         "SelectInSubquery",
         "CrossApplyProjection",
         "OuterApplyProjection"
-      ],
-      "indexRefs": [
-        "3.4.1",
-        "3.4.2"
       ]
     },
     {
@@ -892,11 +869,6 @@
         "MultiJoinAggregate",
         "SelectScalarSubquery",
         "SelectInSubquery"
-      ],
-      "indexRefs": [
-        "3.5.1",
-        "3.5.2",
-        "3.5.3"
       ]
     },
     {
@@ -1034,11 +1006,6 @@
         "CrossApplyProjection",
         "OuterApplyProjection"
       ],
-      "indexRefs": [
-        "3.6.1",
-        "3.6.2",
-        "3.6.3"
-      ],
       "notes": "Change the image tag here if you prefer to stay strictly inside the Db2 11 family."
     }
   ],
@@ -1048,10 +1015,6 @@
       "displayName": "Connection open",
       "category": "Core",
       "comparable": true,
-      "indexRefs": [
-        "1.1.3",
-        "2.1.1"
-      ],
       "notes": "Measures the overhead to create and open a fresh provider connection."
     },
     {
@@ -1059,10 +1022,6 @@
       "displayName": "Create schema",
       "category": "Setup",
       "comparable": true,
-      "indexRefs": [
-        "1.2.1",
-        "1.4.1"
-      ],
       "notes": "Measures the cost to create the base benchmark schema and required objects."
     },
     {
@@ -1070,10 +1029,6 @@
       "displayName": "Insert single row",
       "category": "Core",
       "comparable": true,
-      "indexRefs": [
-        "1.2.2",
-        "1.3.2"
-      ],
       "notes": "Measures a single-row insert path end-to-end."
     },
     {
@@ -1088,10 +1043,6 @@
       "displayName": "Insert batch 100",
       "category": "Batch",
       "comparable": true,
-      "indexRefs": [
-        "1.2.2",
-        "1.3.2"
-      ],
       "notes": "Measures the insertion of one hundred rows in a sequential batch workload."
     },
     {
@@ -1106,10 +1057,6 @@
       "displayName": "Select by PK",
       "category": "Core",
       "comparable": true,
-      "indexRefs": [
-        "1.2.2",
-        "1.3.2"
-      ],
       "notes": "Measures point lookup by primary key."
     },
     {
@@ -1117,10 +1064,6 @@
       "displayName": "Select join",
       "category": "Core",
       "comparable": true,
-      "indexRefs": [
-        "1.2.2",
-        "1.3.2"
-      ],
       "notes": "Measures a representative joined read query across benchmark tables."
     },
     {
@@ -1128,10 +1071,6 @@
       "displayName": "Update by PK",
       "category": "Core",
       "comparable": true,
-      "indexRefs": [
-        "1.2.2",
-        "1.3.2"
-      ],
       "notes": "Measures updating one row identified by primary key."
     },
     {
@@ -1139,10 +1078,6 @@
       "displayName": "Delete by PK",
       "category": "Core",
       "comparable": true,
-      "indexRefs": [
-        "1.2.2",
-        "1.3.2"
-      ],
       "notes": "Measures deleting one row identified by primary key."
     },
     {
@@ -1150,10 +1085,6 @@
       "displayName": "Transaction commit",
       "category": "Transactions",
       "comparable": true,
-      "indexRefs": [
-        "1.1.2",
-        "1.3.2"
-      ],
       "notes": "Measures transaction commit overhead for a small write workload."
     },
     {
@@ -1161,10 +1092,6 @@
       "displayName": "Transaction rollback",
       "category": "Transactions",
       "comparable": true,
-      "indexRefs": [
-        "1.1.2",
-        "1.3.2"
-      ],
       "notes": "Measures transaction rollback overhead for a small write workload."
     },
     {
@@ -1200,12 +1127,6 @@
       "displayName": "Upsert",
       "category": "Core",
       "comparable": true,
-      "indexRefs": [
-        "1.2.2",
-        "3.1.2",
-        "3.4.2",
-        "3.6.2"
-      ],
       "notes": "Measures the provider-specific upsert path."
     },
     {
@@ -1213,14 +1134,6 @@
       "displayName": "Sequence next value",
       "category": "Core",
       "comparable": true,
-      "indexRefs": [
-        "1.1.1",
-        "1.2.2",
-        "3.2.2",
-        "3.3.2",
-        "3.4.2",
-        "3.6.2"
-      ],
       "notes": "Measures obtaining the next value from a database sequence or equivalent."
     },
     {
@@ -1354,15 +1267,6 @@
       "displayName": "String aggregate",
       "category": "Dialect",
       "comparable": true,
-      "indexRefs": [
-        "1.2.5",
-        "3.1.2",
-        "3.2.2",
-        "3.3.2",
-        "3.4.2",
-        "3.5.2",
-        "3.6.2"
-      ],
       "notes": "Measures provider string aggregation with default ordering/shape."
     },
     {
@@ -1398,9 +1302,6 @@
       "displayName": "Date scalar",
       "category": "Temporal",
       "comparable": true,
-      "indexRefs": [
-        "1.2.6"
-      ],
       "notes": "Measures a representative scalar date/time expression."
     },
     {

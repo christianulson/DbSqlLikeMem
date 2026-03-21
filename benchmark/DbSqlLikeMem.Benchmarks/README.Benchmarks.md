@@ -19,8 +19,20 @@ Estrutura pensada para comparar **DbSqlLikeMem** contra **banco real** usando o 
 ## Execução sugerida
 
 ```powershell
+dotnet run -c Release --filter *MariaDb_DbSqlLikeMem_Benchmarks*
+dotnet run -c Release --filter *MariaDb_Testcontainers_Benchmarks*
 dotnet run -c Release --filter *MySql_DbSqlLikeMem_Benchmarks*
 dotnet run -c Release --filter *MySql_Testcontainers_Benchmarks*
+dotnet run -c Release --filter *Npgsql_DbSqlLikeMem_Benchmarks*
+dotnet run -c Release --filter *Npgsql_Testcontainers_Benchmarks*
+dotnet run -c Release --filter *SqlServer_DbSqlLikeMem_Benchmarks*
+dotnet run -c Release --filter *SqlServer_Testcontainers_Benchmarks*
+dotnet run -c Release --filter *Sqlite_DbSqlLikeMem_Benchmarks*
+dotnet run -c Release --filter *Sqlite_Native_Benchmarks*
+pwsh ./Scripts/run-core-matrix.ps1
+pwsh ./Scripts/start-benchmark-databases.ps1
+pwsh ./Scripts/start-benchmark-databases.robust.ps1
+pwsh ./Scripts/run-benchmarks-preprovisioned.ps1 --filter "*Testcontainers*"
 pwsh ./Scripts/export-wiki.ps1 -ArtifactsDir ./BenchmarkDotNet.Artifacts/results -OutFile ./wiki/performance-matrix.md
 dotnet run -c Release -- --validate-catalog
 ```
@@ -34,8 +46,11 @@ dotnet run -c Release -- --validate-catalog
 ## Observações importantes
 
 - `SqlAzure` está como **mock-only**. Para comparação com banco real, use a família `SqlServer` como proxy operacional mais próximo.
+- `MariaDB` usa o mesmo fluxo operacional do MySQL, mas com provider, dialeto e sessão próprios.
 - `Sqlite` usa `Microsoft.Data.Sqlite` em memória no lado real, porque SQLite normalmente não entra via container na mesma ergonomia dos demais provedores.
 - `Db2` ficou com a imagem em uma constante visível no código para você poder piná-la facilmente na família que quiser comparar (11.5.x para proximidade com o mock, ou a tag mais nova do módulo do Testcontainers).
+- O gerador da wiki já lê o catálogo de features; ele não precisa de lógica especial para MariaDB, apenas dos relatórios publicados.
+- Os runners `run-core-matrix.ps1`, `run-benchmarks-preprovisioned.ps1`, `start-benchmark-databases.ps1` e `start-benchmark-databases.robust.ps1` já conhecem MariaDB.
 
 ## Scripts build Reports
 

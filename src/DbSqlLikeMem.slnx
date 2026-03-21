@@ -79,6 +79,7 @@
     <File Path="Directory.Build.props" />
     <File Path="Directory.Build.targets" />
     <File Path="README.md" />
+    <File Path="real-db.runsettings" />
   </Folder>
   <Folder Name="/Sqlite/">
     <Project Path="DbSqlLikeMem.Sqlite.EfCore/DbSqlLikeMem.Sqlite.EfCore.csproj" />

@@ -1,4 +1,6 @@
 $targets = @(
+    '*MariaDb_DbSqlLikeMem_Benchmarks*',
+    '*MariaDb_Testcontainers_Benchmarks*',
     '*MySql_DbSqlLikeMem_Benchmarks*',
     '*MySql_Testcontainers_Benchmarks*',
     '*Npgsql_DbSqlLikeMem_Benchmarks*',

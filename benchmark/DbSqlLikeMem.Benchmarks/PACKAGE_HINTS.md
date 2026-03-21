@@ -9,6 +9,7 @@ Você disse que já tem o `.csproj`, então deixei só o checklist de dependênc
 ## DbSqlLikeMem (um provider por vez ou todos, se quiser a matriz completa)
 
 - `DbSqlLikeMem.MySql`
+- `DbSqlLikeMem.MariaDb`
 - `DbSqlLikeMem.SqlServer`
 - `DbSqlLikeMem.SqlAzure`
 - `DbSqlLikeMem.Oracle`
@@ -19,6 +20,7 @@ Você disse que já tem o `.csproj`, então deixei só o checklist de dependênc
 ## Banco real / clientes ADO.NET
 
 - MySQL: `MySqlConnector`
+- MariaDB: `MySqlConnector`
 - PostgreSQL: `Npgsql`
 - SQL Server / SQL Azure proxy: `Microsoft.Data.SqlClient`
 - Oracle: `Oracle.ManagedDataAccess.Core`
@@ -31,6 +33,7 @@ Você disse que já tem o `.csproj`, então deixei só o checklist de dependênc
 ## Testcontainers
 
 - `Testcontainers.MySql`
+- `Testcontainers.MariaDb`
 - `Testcontainers.PostgreSql`
 - `Testcontainers.MsSql`
 - `Testcontainers.Oracle`
@@ -40,6 +43,7 @@ Você disse que já tem o `.csproj`, então deixei só o checklist de dependênc
 
 Se o objetivo for manter o benchmark simples no começo, rode primeiro só:
 
+- `MariaDb`
 - `MySql`
 - `Npgsql`
 - `SqlServer`

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Benchmarks.Core;
 
 /// <summary>
 /// EN: Provides provider-specific SQL snippets used by the benchmark session workflows.
-/// PT-br: Fornece trechos SQL específicos do provedor usados pelos fluxos das sessões de benchmark.
+/// PT-br: Fornece trechos SQL especï¿½ficos do provedor usados pelos fluxos das sessï¿½es de benchmark.
 /// </summary>
 public abstract class ProviderSqlDialect
 {
@@ -55,6 +55,12 @@ public abstract class ProviderSqlDialect
     /// 
     /// </summary>
     public abstract string InsertUser(string tableName, int id, string name);
+
+    /// <summary>
+    /// EN: Returns the INSERT statement used by the returning benchmark when the provider supports returning rows.
+    /// PT-br: Retorna a instruÃ§Ã£o INSERT usada pelo benchmark de returning quando o provider suporta linhas retornadas.
+    /// </summary>
+    public virtual string InsertUserReturning(string tableName, int id, string name) => InsertUser(tableName, id, name);
 
     /// <summary>
     /// 
@@ -272,3 +278,4 @@ public abstract class ProviderSqlDialect
     /// </summary>
     public virtual string DropSequence(string sequenceName) => $"DROP SEQUENCE {sequenceName}";
 }
+

@@ -144,7 +144,7 @@ foreach ($provider in $catalog.providers) {
     $null = $lines.Add("## $title")
     $null = $lines.Add('')
     $null = $lines.Add("| Feature | DbSqlLikeMem |")
-    $null = $lines.Add("|---|---:|)
+    $null = $lines.Add("|---|---:|")
 
     foreach ($feature in $catalog.features) {
         $mockSupported = @($provider.supportsMockFeatures) -contains $feature.id

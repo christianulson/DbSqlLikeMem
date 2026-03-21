@@ -1,6 +1,10 @@
 <Project>			
-	<PropertyGroup Condition="'$(IsTestProject)' == 'true' And Exists('$(MSBuildThisFileDirectory).runsettings')">
-		<RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
+	<PropertyGroup Condition="'$(IsTestProject)' == 'true' And '$(DbSqlLikeMemRunSettingsFileName)' == ''">
+		<DbSqlLikeMemRunSettingsFileName>.runsettings</DbSqlLikeMemRunSettingsFileName>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(IsTestProject)' == 'true' And Exists('$(MSBuildThisFileDirectory)$(DbSqlLikeMemRunSettingsFileName)')">
+		<RunSettingsFilePath>$(MSBuildThisFileDirectory)$(DbSqlLikeMemRunSettingsFileName)</RunSettingsFilePath>
 	</PropertyGroup>
 
 	<ItemGroup Condition="'$(IsTestProject)' == 'true'">

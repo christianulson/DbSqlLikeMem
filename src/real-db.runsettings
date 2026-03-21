@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- File name extension must be .runsettings -->
+<RunSettings>
+    <RunConfiguration>
+        <EnvironmentVariables>
+            <IS_TEST>true</IS_TEST>
+            <IS_LOCAL_TEST>false</IS_LOCAL_TEST>
+            <IS_REAL_DB_TEST>true</IS_REAL_DB_TEST>
+        </EnvironmentVariables>
+    </RunConfiguration>
+</RunSettings>
