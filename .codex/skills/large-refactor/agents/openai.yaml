@@ -1,0 +1,7 @@
+interface:
+  display_name: "Large Refactor"
+  short_description: "Refactor large areas safely"
+  default_prompt: "Use $large-refactor to break a large refactor into safe, incremental changes."
+
+policy:
+  allow_implicit_invocation: true

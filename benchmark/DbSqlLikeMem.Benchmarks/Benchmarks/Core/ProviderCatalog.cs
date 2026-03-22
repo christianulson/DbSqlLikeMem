@@ -13,7 +13,7 @@ public static class ProviderCatalog
     public static IReadOnlyList<ProviderDefinition> All { get; } =
     [
         new(
-            BenchmarkProviderId.MySql,
+            ProviderId.MySql,
             "MySQL",
             "8.4",
             BenchmarkEngine.Testcontainers,
@@ -25,7 +25,7 @@ public static class ProviderCatalog
             IndexRefs: ["3.1.1", "3.1.2"],
             Notes: "Família MySQL comparada com Testcontainers.MySql e imagem mysql:8.4."),
         new(
-            BenchmarkProviderId.MariaDb,
+            ProviderId.MariaDb,
             "MariaDB",
             "11.0",
             BenchmarkEngine.Testcontainers,
@@ -37,7 +37,7 @@ public static class ProviderCatalog
             IndexRefs: ["3.1.1", "3.1.2"],
             Notes: "Família MariaDB comparada com Testcontainers.MariaDb e imagem mariadb:11.0."),
         new(
-            BenchmarkProviderId.SqlServer,
+            ProviderId.SqlServer,
             "SQL Server",
             "2022",
             BenchmarkEngine.Testcontainers,
@@ -49,7 +49,7 @@ public static class ProviderCatalog
             IndexRefs: ["3.2.1", "3.2.2"],
             Notes: "Família SQL Server 2022."),
         new(
-            BenchmarkProviderId.SqlAzure,
+            ProviderId.SqlAzure,
             "SQL Azure",
             "170",
             BenchmarkEngine.NotAvailable,
@@ -61,7 +61,7 @@ public static class ProviderCatalog
             IndexRefs: ["3.2.2"],
             Notes: "Benchmark externo local não foi incluído; use SQL Server como proxy operacional."),
         new(
-            BenchmarkProviderId.Oracle,
+            ProviderId.Oracle,
             "Oracle",
             "23",
             BenchmarkEngine.Testcontainers,
@@ -73,7 +73,7 @@ public static class ProviderCatalog
             IndexRefs: ["3.3.1", "3.3.2"],
             Notes: "Imagem Oracle Free 23 para benchmark local."),
         new(
-            BenchmarkProviderId.Npgsql,
+            ProviderId.Npgsql,
             "PostgreSQL / Npgsql",
             "17",
             BenchmarkEngine.Testcontainers,
@@ -85,7 +85,7 @@ public static class ProviderCatalog
             IndexRefs: ["3.4.1", "3.4.2"],
             Notes: "Família PostgreSQL 17."),
         new(
-            BenchmarkProviderId.Sqlite,
+            ProviderId.Sqlite,
             "SQLite",
             "3",
             BenchmarkEngine.NativeAdoNet,
@@ -97,7 +97,7 @@ public static class ProviderCatalog
             IndexRefs: ["3.5.1", "3.5.2", "3.5.3"],
             Notes: "Comparação contra Microsoft.Data.Sqlite em memória, sem container."),
         new(
-            BenchmarkProviderId.Db2,
+            ProviderId.Db2,
             "DB2",
             "11",
             BenchmarkEngine.Testcontainers,

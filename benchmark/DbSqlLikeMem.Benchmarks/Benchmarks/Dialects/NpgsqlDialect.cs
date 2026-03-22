@@ -9,7 +9,7 @@ public sealed class NpgsqlDialect : ProviderSqlDialect
     /// <summary>
     /// 
     /// </summary>
-    public override BenchmarkProviderId Provider => BenchmarkProviderId.Npgsql;
+    public override ProviderId Provider => ProviderId.Npgsql;
 
     /// <summary>
     /// 

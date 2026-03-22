@@ -9,7 +9,7 @@ public sealed class Db2Dialect : ProviderSqlDialect
     /// <summary>
     /// 
     /// </summary>
-    public override BenchmarkProviderId Provider => BenchmarkProviderId.Db2;
+    public override ProviderId Provider => ProviderId.Db2;
 
     /// <summary>
     /// 

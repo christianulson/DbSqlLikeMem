@@ -5,7 +5,7 @@
         <EnvironmentVariables>
             <IS_TEST>true</IS_TEST>
             <IS_LOCAL_TEST>false</IS_LOCAL_TEST>
-            <IS_REAL_DB_TEST>true</IS_REAL_DB_TEST>
+			<RUN_CONTAINER_TESTS>true</RUN_CONTAINER_TESTS>
         </EnvironmentVariables>
     </RunConfiguration>
 </RunSettings>

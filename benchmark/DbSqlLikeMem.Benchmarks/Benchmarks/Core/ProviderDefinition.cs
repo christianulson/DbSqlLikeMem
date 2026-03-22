@@ -15,7 +15,7 @@ namespace DbSqlLikeMem.Benchmarks.Core;
 /// <param name="IndexRefs"></param>
 /// <param name="Notes"></param>
 public sealed record ProviderDefinition(
-    BenchmarkProviderId Id,
+    ProviderId Id,
     string DisplayName,
     string LatestSimulatedVersion,
     BenchmarkEngine ExternalEngine,

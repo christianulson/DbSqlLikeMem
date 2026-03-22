@@ -35,7 +35,7 @@ public abstract class BenchmarkSessionBase(
     /// EN: Gets the provider identifier exposed by the current dialect.
     /// PT-br: Obtém o identificador do provedor exposto pelo dialeto atual.
     /// </summary>
-    public BenchmarkProviderId Provider => Dialect.Provider;
+    public ProviderId Provider => Dialect.Provider;
 
     /// <summary>
     /// EN: Gets the benchmark engine used by the current session.
@@ -1750,7 +1750,7 @@ public abstract class BenchmarkSessionBase(
 
     protected virtual void RunReturningInsert()
     {
-        if (Dialect.Provider != BenchmarkProviderId.MariaDb)
+        if (Dialect.Provider != ProviderId.MariaDb)
         {
             RunInsertSingle();
             return;
@@ -2379,7 +2379,7 @@ public abstract class BenchmarkSessionBase(
             var parameters = method.GetParameters();
             if (parameters.Length == 1)
             {
-                return method.Invoke(target, new[] { arg });
+                return method.Invoke(target, [arg]);
             }
         }
         return null;

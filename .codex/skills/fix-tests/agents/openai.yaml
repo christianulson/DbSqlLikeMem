@@ -1,0 +1,7 @@
+interface:
+  display_name: "Fix Tests"
+  short_description: "Diagnose and repair failing tests"
+  default_prompt: "Use $fix-tests to diagnose and repair failing tests without changing the intended SQL behavior."
+
+policy:
+  allow_implicit_invocation: true

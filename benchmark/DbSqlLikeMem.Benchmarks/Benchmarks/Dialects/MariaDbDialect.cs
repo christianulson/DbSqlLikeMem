@@ -7,7 +7,7 @@ namespace DbSqlLikeMem.Benchmarks.Dialects;
 public sealed class MariaDbDialect : ProviderSqlDialect
 {
     /// <inheritdoc />
-    public override BenchmarkProviderId Provider => BenchmarkProviderId.MariaDb;
+    public override ProviderId Provider => ProviderId.MariaDb;
 
     /// <inheritdoc />
     public override string DisplayName => "MariaDB";

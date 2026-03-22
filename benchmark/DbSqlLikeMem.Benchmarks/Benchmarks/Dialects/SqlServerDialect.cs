@@ -9,7 +9,7 @@ public class SqlServerDialect : ProviderSqlDialect
     /// <summary>
     /// 
     /// </summary>
-    public override BenchmarkProviderId Provider => BenchmarkProviderId.SqlServer;
+    public override ProviderId Provider => ProviderId.SqlServer;
 
     /// <summary>
     /// 

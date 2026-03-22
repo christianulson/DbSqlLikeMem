@@ -9,7 +9,7 @@ namespace DbSqlLikeMem.Benchmarks.Dialects;
 public sealed class SqliteDialect : ProviderSqlDialect
 {
     /// <inheritdoc />
-    public override BenchmarkProviderId Provider => BenchmarkProviderId.Sqlite;
+    public override ProviderId Provider => ProviderId.Sqlite;
 
     /// <inheritdoc />
     public override string DisplayName => "SQLite";

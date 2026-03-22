@@ -1,3 +1,4 @@
+using DbSqlLikeMem.MySql.TestTools;
 using MySqlConnector;
 using Testcontainers.MySql;
 
@@ -8,7 +9,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.External;
 /// PT-br: Executa benchmarks de MySQL contra um contêiner de MySQL gerenciado pelo Testcontainers.
 /// </summary>
 public sealed class MySqlTestcontainersSession()
-    : ExternalBenchmarkSessionBase(new MySqlDialect(), BenchmarkEngine.Testcontainers)
+    : ExternalBenchmarkSessionBase(new MySqlProviderSqlDialect(), BenchmarkEngine.Testcontainers)
 {
     private MySqlContainer? _container;
 

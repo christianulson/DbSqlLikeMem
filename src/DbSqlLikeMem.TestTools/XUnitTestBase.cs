@@ -16,6 +16,11 @@ public abstract class XUnitTestBase : IDisposable
     private bool disposedValue;
 
     /// <summary>
+    /// TODO: Add a summary for this class.
+    /// </summary>
+    protected static Lazy<bool> RunContainerTests = new(() => Environment.GetEnvironmentVariable("RUN_CONTAINER_TESTS") == "true");
+
+    /// <summary>
     /// EN: Initializes the base test with the output helper.
     /// PT: Inicializa o teste base com o helper de saída.
     /// </summary>

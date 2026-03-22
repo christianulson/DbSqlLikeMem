@@ -75,7 +75,6 @@ Example:
 
 ## File Editing Rules
 
-- Prefer minimal diffs.
 - Do not reformat unrelated code.
 - Do not replace meaningful summaries with generic summaries.
 - Do not remove existing valid XML comments just to restyle them unless consistency is the goal of the current task.

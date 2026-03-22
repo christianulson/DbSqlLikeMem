@@ -82,44 +82,42 @@ public abstract class ExternalBenchmarkSessionBase(
     /// PT-br: Retorna o conjunto de variáveis de ambiente que podem conter uma string de conexão pré-provisionada para o provedor atual.
     /// </summary>
     protected virtual IReadOnlyList<string> GetConfiguredConnectionStringEnvironmentVariables()
-    {
-        return Provider switch
+        => Provider switch
         {
-            BenchmarkProviderId.MySql => new[]
-            {
+            ProviderId.MySql =>
+            [
                 "DBSQLLIKEMEM_BENCH_MYSQL_CONNECTION_STRING",
                 "MYSQL_CONNECTION_STRING"
-            },
-            BenchmarkProviderId.MariaDb => new[]
-            {
+            ],
+            ProviderId.MariaDb =>
+            [
                 "DBSQLLIKEMEM_BENCH_MARIADB_CONNECTION_STRING",
                 "MARIADB_CONNECTION_STRING"
-            },
-            BenchmarkProviderId.SqlServer => new[]
-            {
+            ],
+            ProviderId.SqlServer =>
+            [
                 "DBSQLLIKEMEM_BENCH_SQLSERVER_CONNECTION_STRING",
                 "SQLSERVER_CONNECTION_STRING"
-            },
-            BenchmarkProviderId.Oracle => new[]
-            {
+            ],
+            ProviderId.Oracle =>
+            [
                 "DBSQLLIKEMEM_BENCH_ORACLE_CONNECTION_STRING",
                 "ORACLE_CONNECTION_STRING"
-            },
-            BenchmarkProviderId.Npgsql => new[]
-            {
+            ],
+            ProviderId.Npgsql =>
+            [
                 "DBSQLLIKEMEM_BENCH_NPGSQL_CONNECTION_STRING",
                 "DBSQLLIKEMEM_BENCH_POSTGRES_CONNECTION_STRING",
                 "NPGSQL_CONNECTION_STRING",
                 "POSTGRES_CONNECTION_STRING"
-            },
-            BenchmarkProviderId.Db2 => new[]
-            {
+            ],
+            ProviderId.Db2 =>
+            [
                 "DBSQLLIKEMEM_BENCH_DB2_CONNECTION_STRING",
                 "DB2_CONNECTION_STRING"
-            },
+            ],
             _ => Array.Empty<string>()
         };
-    }
 
     /// <summary>
     /// EN: Gives derived sessions a hook to wait until a configured or started external runtime is accepting client connections.

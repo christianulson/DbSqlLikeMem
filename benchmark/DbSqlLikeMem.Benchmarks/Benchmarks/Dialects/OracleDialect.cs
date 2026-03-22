@@ -9,7 +9,7 @@ public sealed class OracleDialect : ProviderSqlDialect
     /// <summary>
     /// 
     /// </summary>
-    public override BenchmarkProviderId Provider => BenchmarkProviderId.Oracle;
+    public override ProviderId Provider => ProviderId.Oracle;
 
     /// <summary>
     /// 

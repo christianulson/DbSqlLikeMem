@@ -40,6 +40,7 @@
     <Project Path="DbSqlLikeMem.MySql.MiniProfiler.Test/DbSqlLikeMem.MySql.MiniProfiler.Test.csproj" />
     <Project Path="DbSqlLikeMem.MySql.NHibernate.Test/DbSqlLikeMem.MySql.NHibernate.Test.csproj" />
     <Project Path="DbSqlLikeMem.MySql.Test/DbSqlLikeMem.MySql.Test.csproj" />
+    <Project Path="DbSqlLikeMem.MySql.TestTools/DbSqlLikeMem.MySql.TestTools.csproj" />
   </Folder>
   <Folder Name="/Npgsql/">
     <Project Path="DbSqlLikeMem.Npgsql.EfCore/DbSqlLikeMem.Npgsql.EfCore.csproj" />

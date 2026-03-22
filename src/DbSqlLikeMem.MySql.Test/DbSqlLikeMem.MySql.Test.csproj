@@ -10,8 +10,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem.MySql.TestTools\DbSqlLikeMem.MySql.TestTools.csproj" />
 		<ProjectReference Include="..\DbSqlLikeMem.MySql.XUnit\DbSqlLikeMem.MySql.XUnit.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />
-		<ProjectReference Include="..\DbSqlLikeMem.TestTools\DbSqlLikeMem.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 	</ItemGroup>
 
 	<ItemGroup>

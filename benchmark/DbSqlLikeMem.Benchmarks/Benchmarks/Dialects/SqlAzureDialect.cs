@@ -9,7 +9,7 @@ public sealed class SqlAzureDialect : SqlServerDialect
     /// <summary>
     /// 
     /// </summary>
-    public override BenchmarkProviderId Provider => BenchmarkProviderId.SqlAzure;
+    public override ProviderId Provider => ProviderId.SqlAzure;
 
     /// <summary>
     /// 

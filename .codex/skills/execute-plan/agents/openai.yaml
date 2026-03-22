@@ -1,0 +1,7 @@
+interface:
+  display_name: "Execute Plan"
+  short_description: "Carry out a plan in small steps"
+  default_prompt: "Use $execute-plan to carry out a plan or roadmap in small, traceable steps."
+
+policy:
+  allow_implicit_invocation: true

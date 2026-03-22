@@ -11,6 +11,7 @@ The codebase contains:
   - `SqlServer`
   - `SqlAzure`
   - `Sqlite`
+  - `MariaDb`
   - `MySql`
   - `Npgsql`
   - `Oracle`
@@ -104,6 +105,12 @@ Many provider-specific Dapper test projects mirror the same structure:
 - `StoredProcedureExecutionTests`
 
 When updating one provider, the same documentation approach usually applies to the others.
+
+## Project-Local Skills
+
+This repository keeps project-specific Codex skills under `.codex/skills/` when a task
+benefits from reusable workflows for tests, build fixes, plan execution, or large refactors.
+Use those skills as repository-local guidance, not as global user-level defaults.
 
 ## Test Failure Triage Rule
 

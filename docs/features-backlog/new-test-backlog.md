@@ -112,6 +112,8 @@ Devem permanecer aqui:
 - testes de validacao de comportamento do mock
 - testes que dependem de construcao por codigo e nao por script SQL, quando esse for o caso
 
+Nao devem ser migrados para a nova estrutura os testes que dependem de `Seed`, porque eles nao conseguem ser recriados no banco real em docker com o mesmo fluxo.
+
 ### Regra de real database
 
 Esses testes devem obrigatoriamente bater na base real em docker.
@@ -144,6 +146,7 @@ Nao devem entrar:
 - ORMs
 - Linq
 - cenarios que existam apenas por construcao de mock em codigo
+- testes cuja montagem dependa de `Seed` e nao tenha equivalente reproduzivel no banco real
 - casos sem equivalente util na base real
 
 ## Direcao funcional
@@ -236,3 +239,23 @@ Nao devem entrar:
 - informe aqui os percentuais de implantação ao final de cada interação.
 - documente onde parou após cada atividade e no inicio da apróxima veja de onde deve continuar.
 - após cada migração remova o teste/benckmark atual.
+
+# Arquivos Modelo
+
+## Base
+
+- Sem Retorno: src\DbSqlLikeMem.TestTools\DDL\TableServicesTest.cs
+- Com Retorno: src\DbSqlLikeMem.TestTools\Query\SelectServiceTest.cs
+
+## TestBase
+
+- Sem Comparativo de Dados: src\DbSqlLikeMem.TestTools\Tests\DDL\TableTestsBase.cs
+- Com Comparativo de Dados: src\DbSqlLikeMem.TestTools\Tests\Query\SelectTestsBase.cs
+
+## Test Dialect por Provider
+
+- src\DbSqlLikeMem.MySql.TestTools\MySqlProviderSqlDialect.cs (migrado de benchmark\DbSqlLikeMem.Benchmarks\Benchmarks\Dialects\MySqlDbDialect.cs)
+
+## Test Fidelity
+- src\DbSqlLikeMem.MySql.Test\Fidelity\DDL\TableTests.cs
+- src\DbSqlLikeMem.MySql.Test\Fidelity\Query\SelectTests.cs

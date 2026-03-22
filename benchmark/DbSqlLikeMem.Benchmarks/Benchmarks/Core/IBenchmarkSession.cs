@@ -10,7 +10,7 @@ public interface IBenchmarkSession : IDisposable
     /// EN: Gets the provider being exercised by the benchmark session.
     /// PT-br: Obtém o provedor exercitado pela sessão de benchmark.
     /// </summary>
-    BenchmarkProviderId Provider { get; }
+    ProviderId Provider { get; }
 
     /// <summary>
     /// EN: Gets the engine or runtime used by the benchmark session.
