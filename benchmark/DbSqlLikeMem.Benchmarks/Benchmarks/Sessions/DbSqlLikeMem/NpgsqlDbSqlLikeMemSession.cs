@@ -1,4 +1,5 @@
 using DbSqlLikeMem.Npgsql;
+using DbSqlLikeMem.Npgsql.TestTools;
 
 namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 
@@ -7,7 +8,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 /// PT-br: Executa cenários de benchmark de PostgreSQL/Npgsql contra o provedor mock em memória DbSqlLikeMem.
 /// </summary>
 public sealed class NpgsqlDbSqlLikeMemSession()
-    : DbSqlLikeMemBenchmarkSessionBase(new NpgsqlDialect())
+    : DbSqlLikeMemBenchmarkSessionBase(new NpgsqlProviderSqlDialect())
 {
     private readonly NpgsqlDbMock Db = new() { ThreadSafe = true };
 

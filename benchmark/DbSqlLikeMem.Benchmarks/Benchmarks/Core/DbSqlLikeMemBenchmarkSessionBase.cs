@@ -51,13 +51,14 @@ public abstract class DbSqlLikeMemBenchmarkSessionBase(ProviderSqlDialect dialec
     /// <inheritdoc />
     protected override void RunBatchMixedReadWrite()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             using var transaction = connection.BeginTransaction();
 
             using var insertCommand = connection.CreateCommand();
@@ -126,20 +127,21 @@ public abstract class DbSqlLikeMemBenchmarkSessionBase(ProviderSqlDialect dialec
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     /// <inheritdoc />
     protected override void RunBatchScalar()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             using var transaction = connection.BeginTransaction();
 
             using var insertCommand = connection.CreateCommand();
@@ -191,20 +193,21 @@ public abstract class DbSqlLikeMemBenchmarkSessionBase(ProviderSqlDialect dialec
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     /// <inheritdoc />
     protected override void RunBatchNonQuery()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             using var transaction = connection.BeginTransaction();
 
             using var insertCommand = connection.CreateCommand();
@@ -275,7 +278,7 @@ public abstract class DbSqlLikeMemBenchmarkSessionBase(ProviderSqlDialect dialec
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 

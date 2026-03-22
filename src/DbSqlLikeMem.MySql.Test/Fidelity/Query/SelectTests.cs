@@ -3,7 +3,8 @@
 namespace DbSqlLikeMem.MySql.Test.Fidelity.Query;
 
 /// <summary>
-/// TODO: Add a summary for this class.
+/// EN: Runs MySQL fidelity tests for the shared primary-key select scenario.
+/// PT: Executa testes de fidelidade MySQL para o cenario compartilhado de selecao por chave primaria.
 /// </summary>
 public class SelectTests(
     ITestOutputHelper helper

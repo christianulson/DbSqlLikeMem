@@ -1,4 +1,5 @@
 using DbSqlLikeMem.Oracle;
+using DbSqlLikeMem.Oracle.TestTools;
 
 namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 
@@ -7,7 +8,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 /// PT-br: Executa cenários de benchmark de Oracle contra o provedor mock em memória DbSqlLikeMem de Oracle.
 /// </summary>
 public sealed class OracleDbSqlLikeMemSession()
-    : DbSqlLikeMemBenchmarkSessionBase(new OracleDialect())
+    : DbSqlLikeMemBenchmarkSessionBase(new OracleProviderSqlDialect())
 {
     private readonly OracleDbMock Db = new() { ThreadSafe = true };
 

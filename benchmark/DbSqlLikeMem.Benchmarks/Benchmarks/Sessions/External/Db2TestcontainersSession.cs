@@ -2,6 +2,7 @@ using Docker.DotNet.Models;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
 using IBM.Data.Db2;
+using DbSqlLikeMem.Db2.TestTools;
 
 namespace DbSqlLikeMem.Benchmarks.Sessions.External;
 
@@ -10,7 +11,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.External;
 /// PT-br: Executa a sessão de benchmark do Db2 contra um container IBM Db2 iniciado pelo Testcontainers.
 /// </summary>
 public sealed class Db2TestcontainersSession()
-    : ExternalBenchmarkSessionBase(new Db2Dialect(), BenchmarkEngine.Testcontainers)
+    : ExternalBenchmarkSessionBase(new Db2ProviderSqlDialect(), BenchmarkEngine.Testcontainers)
 {
     private const string Image = "icr.io/db2_community/db2:12.1.0.0";
     private const string DatabaseName = "BENCH";

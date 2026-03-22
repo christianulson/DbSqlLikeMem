@@ -1,4 +1,5 @@
 using DbSqlLikeMem.Sqlite;
+using DbSqlLikeMem.Sqlite.TestTools;
 
 namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 
@@ -7,7 +8,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 /// PT: Executa a sessão de benchmark contra o provider mock de SQLite.
 /// </summary>
 public sealed class SqliteDbSqlLikeMemSession()
-    : DbSqlLikeMemBenchmarkSessionBase(new SqliteDialect())
+    : DbSqlLikeMemBenchmarkSessionBase(new SqliteProviderSqlDialect())
 {
     private readonly SqliteDbMock _singleThreadDb = new()
     {

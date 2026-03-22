@@ -1,5 +1,6 @@
 using Npgsql;
 using Testcontainers.PostgreSql;
+using DbSqlLikeMem.Npgsql.TestTools;
 
 namespace DbSqlLikeMem.Benchmarks.Sessions.External;
 
@@ -8,7 +9,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.External;
 /// PT-br: Executa benchmarks de PostgreSQL/Npgsql contra um contêiner de PostgreSQL gerenciado pelo Testcontainers.
 /// </summary>
 public sealed class NpgsqlTestcontainersSession()
-    : ExternalBenchmarkSessionBase(new NpgsqlDialect(), BenchmarkEngine.Testcontainers)
+    : ExternalBenchmarkSessionBase(new NpgsqlProviderSqlDialect(), BenchmarkEngine.Testcontainers)
 {
     private PostgreSqlContainer? _container;
 

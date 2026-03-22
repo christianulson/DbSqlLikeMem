@@ -1,5 +1,6 @@
 using MySqlConnector;
 using Testcontainers.MariaDb;
+using DbSqlLikeMem.MariaDb.TestTools;
 
 namespace DbSqlLikeMem.Benchmarks.Sessions.External;
 
@@ -8,7 +9,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.External;
 /// PT-br: Executa benchmarks de MariaDB contra um contêiner de MariaDB gerenciado pelo Testcontainers.
 /// </summary>
 public sealed class MariaDbTestcontainersSession()
-    : ExternalBenchmarkSessionBase(new MariaDbDialect(), BenchmarkEngine.Testcontainers)
+    : ExternalBenchmarkSessionBase(new MariaDbProviderSqlDialect(), BenchmarkEngine.Testcontainers)
 {
     private MariaDbContainer? _container;
 

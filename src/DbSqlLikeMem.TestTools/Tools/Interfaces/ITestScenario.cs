@@ -1,25 +1,28 @@
 ﻿namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
-/// TODO: Add a summary for this method.
+/// EN: Defines the contract for creating and dropping scenario data.
+/// PT: Define o contrato para criar e remover dados de cenario.
 /// </summary>
 public interface ITestScenario<T>
     where T : DbConnection
 {
     /// <summary>
-    /// TODO: Add a summary for this method.
+    /// EN: Creates the scenario data using the supplied test service.
+    /// PT: Cria os dados do cenario usando o servico de teste informado.
     /// </summary>
-    /// <param name="service">TODO:</param>
-    /// <param name="pars">TODO:</param>
+    /// <param name="service">EN: The test service that executes SQL commands. PT: O servico de teste que executa comandos SQL.</param>
+    /// <param name="pars">EN: The scenario parameters. PT: Os parametros do cenario.</param>
     void CreateSenario(
         BaseServiceTest<T> service,
         params object[] pars);
 
     /// <summary>
-    /// TODO: Add a summary for this method.
+    /// EN: Removes the scenario data using the supplied test service.
+    /// PT: Remove os dados do cenario usando o servico de teste informado.
     /// </summary>
-    /// <param name="service">TODO:</param>
-    /// <param name="pars">TODO:</param>
+    /// <param name="service">EN: The test service that executes SQL commands. PT: O servico de teste que executa comandos SQL.</param>
+    /// <param name="pars">EN: The scenario parameters. PT: Os parametros do cenario.</param>
     void DropScenario(
         BaseServiceTest<T> service, 
         params object[] pars);

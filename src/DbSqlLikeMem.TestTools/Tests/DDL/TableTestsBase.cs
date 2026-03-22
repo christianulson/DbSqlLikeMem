@@ -3,7 +3,8 @@
 namespace DbSqlLikeMem.TestTools.Tests.DDL;
 
 /// <summary>
-/// TODO: Add a summary for this class.
+/// EN: Provides shared DDL fidelity tests for table scenarios across mock and container runs.
+/// PT: Fornece testes de fidelidade DDL compartilhados para cenarios de tabela entre mock e container.
 /// </summary>
 public abstract class TableTestsBase<T, T2>(
     ITestOutputHelper helper,
@@ -15,7 +16,8 @@ public abstract class TableTestsBase<T, T2>(
     where T2 : DbConnection
 {
     /// <summary>
-    /// TODO: Add a summary for this class.
+    /// EN: Verifies that table creation works for the current provider.
+    /// PT: Verifica se a criacao de tabela funciona para o provedor atual.
     /// </summary>
     [Fact]
     public void CreateTableTest()
@@ -40,7 +42,8 @@ public abstract class TableTestsBase<T, T2>(
     }
 
     /// <summary>
-    /// TODO: Add a summary for this class.
+    /// EN: Verifies that table creation with a foreign key works for the current provider.
+    /// PT: Verifica se a criacao de tabela com chave estrangeira funciona para o provedor atual.
     /// </summary>
     [Fact]
     public void CreateTableWithFKTest()
@@ -65,7 +68,8 @@ public abstract class TableTestsBase<T, T2>(
     }
 
     /// <summary>
-    /// TODO: Add a summary for this class.
+    /// EN: Verifies that table dropping works for the current provider.
+    /// PT: Verifica se a remocao de tabela funciona para o provedor atual.
     /// </summary>
     [Fact]
     public void DropTableTest()

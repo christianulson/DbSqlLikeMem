@@ -1,4 +1,5 @@
 using DbSqlLikeMem.SqlAzure;
+using DbSqlLikeMem.SqlAzure.TestTools;
 
 namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 
@@ -7,7 +8,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 /// PT-br: Executa cenários de benchmark de SQL Azure contra o provedor mock em memória DbSqlLikeMem de SQL Azure.
 /// </summary>
 public sealed class SqlAzureDbSqlLikeMemSession()
-    : DbSqlLikeMemBenchmarkSessionBase(new SqlAzureDialect())
+    : DbSqlLikeMemBenchmarkSessionBase(new SqlAzureProviderSqlDialect())
 {
     private readonly SqlAzureDbMock Db = new() { ThreadSafe = true };
     /// <summary>

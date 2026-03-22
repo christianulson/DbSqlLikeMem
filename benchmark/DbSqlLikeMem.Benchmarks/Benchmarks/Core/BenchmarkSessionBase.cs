@@ -3,6 +3,8 @@ using Microsoft.Data.SqlClient;
 using MySqlConnector;
 using Npgsql;
 using Oracle.ManagedDataAccess.Client;
+using DbSqlLikeMem.TestTools.DDL;
+using DbSqlLikeMem.TestTools.Query;
 using System.Collections.Concurrent;
 using System.Globalization;
 
@@ -431,14 +433,14 @@ public abstract class BenchmarkSessionBase(
     /// PT-br: Gera um nome único de tabela temporária para a tabela de usuários usada em uma execução de benchmark.
     /// </summary>
     /// <returns>EN: A unique temporary users table name. PT-br: Um nome único de tabela temporária de usuários.</returns>
-    protected virtual string NewUsersTableName() => $"USR_{NextToken()}";
+    protected virtual string NewUsersTableName() => $"USR";
 
     /// <summary>
     /// EN: Generates a unique temporary table name for the orders table used by a benchmark run.
     /// PT-br: Gera um nome único de tabela temporária para a tabela de pedidos usada em uma execução de benchmark.
     /// </summary>
     /// <returns>EN: A unique temporary orders table name. PT-br: Um nome único de tabela temporária de pedidos.</returns>
-    protected virtual string NewOrdersTableName() => $"ORD_{NextToken()}";
+    protected virtual string NewOrdersTableName() => $"ORD";
 
     /// <summary>
     /// EN: Generates a unique temporary sequence name for sequence-based benchmark operations.
@@ -461,26 +463,36 @@ public abstract class BenchmarkSessionBase(
     }
 
     /// <summary>
-    /// EN: Creates the benchmark tables and then removes them as part of the schema creation measurement.
-    /// PT-br: Cria as tabelas de benchmark e depois as remove como parte da medição de criação de esquema.
+    /// EN: Creates the benchmark users table through the shared CreateTable service and then removes it.
+    /// PT-br: Cria a tabela de usuários do benchmark pelo service compartilhado de CreateTable e depois a remove.
     /// </summary>
     protected virtual void RunCreateSchema()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
-        var orders = NewOrdersTableName();
 
         using var connection = CreateConnection();
         connection.Open();
+        var service = new CreateTableServiceTest<DbConnection>(
+            connection,
+            new CreateTableScenario<DbConnection>(),
+            Dialect);
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
-            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders));
+            service.CreateScenario(users);
+            service.RunTest(users);
         }
         finally
         {
-            SafeDropTable(connection, orders);
-            SafeDropTable(connection, users);
+            try
+            {
+                service.DropScenario(users);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -491,13 +503,14 @@ public abstract class BenchmarkSessionBase(
     /// <exception cref="InvalidOperationException"></exception>
     protected virtual void RunInsertSingle()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
             var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
             if (count != 1)
@@ -508,19 +521,20 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunInsertBatch10()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteSequentialUserInsertBatch(connection, users, 10);
 
             var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
@@ -532,7 +546,7 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
@@ -543,13 +557,14 @@ public abstract class BenchmarkSessionBase(
     /// <exception cref="InvalidOperationException"></exception>
     protected virtual void RunInsertBatch100()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteSequentialUserInsertBatch(connection, users, 100);
 
             var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
@@ -561,7 +576,7 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
@@ -588,6 +603,7 @@ public abstract class BenchmarkSessionBase(
     /// <exception cref="InvalidOperationException"></exception>
     protected virtual void RunInsertBatch100Parallel()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
 
         using var setupConnection = CreateConnection();
@@ -595,7 +611,7 @@ public abstract class BenchmarkSessionBase(
 
         try
         {
-            ExecuteNonQuery(setupConnection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(setupConnection, Dialect.CreateUsersTable(users, uId));
 
             var tasks = Enumerable.Range(1, 100)
                 .Select(i => Task.Run(() =>
@@ -625,26 +641,30 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(setupConnection, users);
+            SafeDropTable(setupConnection, users, uId);
         }
     }
 
     /// <summary>
-    /// EN: Reads a user name by primary key and validates the returned value.
-    /// PT-br: Lê um nome de usuário pela chave primária e valida o valor retornado.
+    /// EN: Reads a user name by primary key through the shared SelectByPK service and validates the returned value.
+    /// PT-br: Lê um nome de usuário pela chave primária pelo service compartilhado SelectByPK e valida o valor retornado.
     /// </summary>
     /// <exception cref="InvalidOperationException"></exception>
     protected virtual void RunSelectByPk()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = new SelectByPKServiceTest<DbConnection>(
+            connection,
+            new SelectTableScenario<DbConnection>(Dialect),
+            Dialect);
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
-            var value = Convert.ToString(ExecuteScalar(connection, Dialect.SelectUserNameById(users, 1)), CultureInfo.InvariantCulture);
+            service.CreateScenario(users, uId);
+            var value = service.RunTest(users, uId);
             if (!string.Equals(value, "Alice", StringComparison.Ordinal))
             {
                 throw new InvalidOperationException($"Unexpected select result for {Dialect.DisplayName}: {value ?? "<null>"}.");
@@ -653,7 +673,14 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            try
+            {
+                service.DropScenario(users);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -664,6 +691,7 @@ public abstract class BenchmarkSessionBase(
     /// <exception cref="InvalidOperationException"></exception>
     protected virtual void RunSelectJoin()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         var orders = NewOrdersTableName();
         using var connection = CreateConnection();
@@ -671,11 +699,11 @@ public abstract class BenchmarkSessionBase(
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
-            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
+            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders, users, uId));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
-            ExecuteNonQuery(connection, Dialect.InsertOrder(orders, 10, 1, "A"));
-            ExecuteNonQuery(connection, Dialect.InsertOrder(orders, 11, 1, "B"));
+            ExecuteNonQuery(connection, Dialect.InsertOrder(orders, users, 10, 1, "A"));
+            ExecuteNonQuery(connection, Dialect.InsertOrder(orders, users, 11, 1, "B"));
             var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountJoinForUser(users, orders, 1)), CultureInfo.InvariantCulture);
             if (value != 2)
             {
@@ -685,8 +713,8 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, orders);
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, orders, uId);
+            SafeDropTable(connection, users, uId);
         }
     }
 
@@ -697,13 +725,14 @@ public abstract class BenchmarkSessionBase(
     /// <exception cref="InvalidOperationException"></exception>
     protected virtual void RunUpdateByPk()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
             ExecuteNonQuery(connection, Dialect.UpdateUserNameById(users, 1, "Alice-v2"));
             var value = Convert.ToString(ExecuteScalar(connection, Dialect.SelectUserNameById(users, 1)), CultureInfo.InvariantCulture);
@@ -715,7 +744,7 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
@@ -726,13 +755,14 @@ public abstract class BenchmarkSessionBase(
     /// <exception cref="InvalidOperationException"></exception>
     protected virtual void RunDeleteByPk()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"));
             ExecuteNonQuery(connection, Dialect.DeleteUserById(users, 1));
@@ -745,7 +775,7 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
@@ -756,13 +786,14 @@ public abstract class BenchmarkSessionBase(
     /// <exception cref="InvalidOperationException"></exception>
     protected virtual void RunTransactionCommit()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             using var transaction = connection.BeginTransaction();
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"), transaction);
             transaction.Commit();
@@ -775,7 +806,7 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
@@ -786,13 +817,14 @@ public abstract class BenchmarkSessionBase(
     /// <exception cref="InvalidOperationException"></exception>
     protected virtual void RunTransactionRollback()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             using var transaction = connection.BeginTransaction();
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"), transaction);
             transaction.Rollback();
@@ -805,7 +837,7 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
@@ -832,13 +864,14 @@ public abstract class BenchmarkSessionBase(
             throw new NotSupportedException($"{Dialect.DisplayName} does not support the savepoint benchmark.");
         }
 
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             using var transaction = connection.BeginTransaction();
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"), transaction);
             var savepoint = NewSavepointName();
@@ -855,7 +888,7 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
@@ -889,13 +922,14 @@ public abstract class BenchmarkSessionBase(
             throw new NotSupportedException($"{Dialect.DisplayName} does not support the upsert benchmark.");
         }
 
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
             ExecuteNonQuery(connection, Dialect.Upsert(users, 1, "Alice-v2"));
             var value = Convert.ToString(ExecuteScalar(connection, Dialect.SelectUserNameById(users, 1)), CultureInfo.InvariantCulture);
@@ -907,7 +941,7 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
@@ -941,13 +975,14 @@ public abstract class BenchmarkSessionBase(
 
     protected virtual void RunBatchInsert10()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             using var transaction = connection.BeginTransaction();
 
             var values = new (int id, string name)[10];
@@ -966,19 +1001,20 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunBatchInsert100()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             using var transaction = connection.BeginTransaction();
 
             var values = new (int id, string name)[100];
@@ -997,19 +1033,20 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunBatchMixedReadWrite()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             using var transaction = connection.BeginTransaction();
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"), transaction);
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"), transaction);
@@ -1024,19 +1061,20 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunBatchScalar()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             using var transaction = connection.BeginTransaction();
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"), transaction);
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"), transaction);
@@ -1051,19 +1089,20 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunBatchNonQuery()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             using var transaction = connection.BeginTransaction();
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"), transaction);
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"), transaction);
@@ -1079,7 +1118,7 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
@@ -1095,13 +1134,14 @@ public abstract class BenchmarkSessionBase(
             throw new NotSupportedException($"{Dialect.DisplayName} does not support the string aggregate benchmark.");
         }
 
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(
                 connection,
                 Dialect.InsertUsers(
@@ -1114,7 +1154,7 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
@@ -1125,13 +1165,14 @@ public abstract class BenchmarkSessionBase(
             throw new NotSupportedException($"{Dialect.DisplayName} does not support the string aggregate benchmark.");
         }
 
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(
                 connection,
                 Dialect.InsertUsers(
@@ -1144,7 +1185,7 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
@@ -1175,13 +1216,14 @@ public abstract class BenchmarkSessionBase(
 
     protected virtual void RunRowCountAfterInsert()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             var affected = ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
             if (affected < 1)
             {
@@ -1191,19 +1233,20 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunRowCountAfterUpdate()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
             var affected = ExecuteNonQuery(connection, Dialect.UpdateUserNameById(users, 1, "Alice-v2"));
             if (affected < 1)
@@ -1214,7 +1257,7 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
@@ -1283,9 +1326,9 @@ public abstract class BenchmarkSessionBase(
     /// </summary>
     /// <param name="connection">EN: The database connection used to execute the operation. PT-br: A conexão de banco de dados usada para executar a operação.</param>
     /// <param name="tableName">EN: The table name targeted by the operation. PT-br: O nome da tabela alvo da operação.</param>
-    protected void SafeDropTable(DbConnection connection, string tableName)
+    protected void SafeDropTable(DbConnection connection, string tableName, string uId)
     {
-        SafeExecute(connection, Dialect.DropTable(tableName));
+        SafeExecute(connection, Dialect.DropTable(tableName, uId));
     }
 
     /// <summary>
@@ -1327,13 +1370,14 @@ public abstract class BenchmarkSessionBase(
             throw new NotSupportedException($"{Dialect.DisplayName} does not support the savepoint benchmark.");
         }
 
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             using var transaction = connection.BeginTransaction();
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"), transaction);
             var sp1 = NewSavepointName();
@@ -1354,18 +1398,19 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunStringAggregateDistinct()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(
                 connection,
                 Dialect.InsertUsers(
@@ -1378,18 +1423,19 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunStringAggregateCustomSeparator()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(
                 connection,
                 Dialect.InsertUsers(
@@ -1401,18 +1447,19 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunStringAggregateLargeGroup()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             var values = new (int id, string name)[50];
             for (var i = 1; i <= 50; i++)
                 values[i - 1] = (i, $"User-{i}");
@@ -1423,7 +1470,7 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
@@ -1445,30 +1492,32 @@ public abstract class BenchmarkSessionBase(
 
     protected virtual void RunTemporalNowWhere()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
             var value = ExecuteScalar(connection, Dialect.TemporalNowWhere(users));
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunTemporalNowOrderBy()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Bob"));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Alice"));
             var value = ExecuteScalar(connection, Dialect.TemporalNowOrderBy(users));
@@ -1476,7 +1525,7 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
@@ -1495,12 +1544,13 @@ public abstract class BenchmarkSessionBase(
 
     protected virtual void RunRowCountAfterSelect()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"));
             var count = CountReaderRows(connection, $"SELECT * FROM {users}");
@@ -1512,18 +1562,19 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunCteSimple()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
             var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.CteSimple(users)), CultureInfo.InvariantCulture);
             if (value != 1)
@@ -1534,18 +1585,19 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunWindowRowNumber()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(
                 connection,
                 Dialect.InsertUsers(
@@ -1562,18 +1614,19 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunWindowLag()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(
                 connection,
                 Dialect.InsertUsers(
@@ -1590,19 +1643,20 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
 
     protected virtual void RunBatchReaderMultiResult()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"));
             var first = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
@@ -1612,19 +1666,20 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunBatchTransactionControl()
     {
+        var uId = NextToken();
         using var connection = CreateConnection();
         connection.Open();
         using var tx = connection.BeginTransaction();
         var users = NewUsersTableName();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users), tx);
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId), tx);
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"), tx);
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"), tx);
             tx.Commit();
@@ -1632,7 +1687,7 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
@@ -1645,7 +1700,7 @@ public abstract class BenchmarkSessionBase(
 
     protected virtual void RunParseComplexJoin()
     {
-        var sql = "SELECT u.Name, COUNT(o.Id) FROM Users u LEFT JOIN Orders o ON o.UserId = u.Id WHERE u.Name LIKE 'A%' GROUP BY u.Name ORDER BY u.Name";
+        var sql = "SELECT u.Name, COUNT(o.Id) FROM Users u LEFT JOIN Orders o ON o.UsersId = u.Id WHERE u.Name LIKE 'A%' GROUP BY u.Name ORDER BY u.Name";
         var tokens = SimpleTokenize(sql);
         GC.KeepAlive(tokens);
     }
@@ -1707,12 +1762,13 @@ public abstract class BenchmarkSessionBase(
 
     protected virtual void RunRowCountInBatch()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"));
             var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
@@ -1724,18 +1780,19 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunPivotCount()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"));
             var sql = $"SELECT SUM(CASE WHEN Name LIKE 'A%' THEN 1 ELSE 0 END) + SUM(CASE WHEN Name LIKE 'B%' THEN 1 ELSE 0 END) FROM {users}";
@@ -1744,7 +1801,7 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
@@ -1756,12 +1813,13 @@ public abstract class BenchmarkSessionBase(
             return;
         }
 
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             var rows = CountReaderRows(connection, Dialect.InsertUserReturning(users, 1, "Alice"));
             if (rows != 1)
             {
@@ -1777,7 +1835,7 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
@@ -1793,12 +1851,13 @@ public abstract class BenchmarkSessionBase(
 
     protected virtual void RunPartitionPruningSelect()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             for (var i = 1; i <= 20; i++)
             {
                 ExecuteNonQuery(connection, Dialect.InsertUser(users, i, $"User{i:00}"));
@@ -1808,82 +1867,86 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
 
     protected virtual void RunSelectExistsPredicate()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         var orders = NewOrdersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
-            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
+            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders, users, uId));
             SeedUsersAndOrders(connection, users, orders);
             var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.SelectExistsPredicate(users, orders)), CultureInfo.InvariantCulture);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, orders);
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, orders, uId);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunSelectCorrelatedCount()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         var orders = NewOrdersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
-            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
+            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders, users, uId));
             SeedUsersAndOrders(connection, users, orders);
             var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.SelectCorrelatedCount(users, orders)), CultureInfo.InvariantCulture);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, orders);
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, orders, uId);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunGroupByHaving()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         var orders = NewOrdersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
-            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
+            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders, users, uId));
             SeedUsersAndOrders(connection, users, orders);
             var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.GroupByHaving(users, orders)), CultureInfo.InvariantCulture);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, orders);
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, orders, uId);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunUnionAllProjection()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"));
             var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.UnionAllProjection(users)), CultureInfo.InvariantCulture);
@@ -1891,18 +1954,19 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunDistinctProjection()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Alice"));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 3, "Bob"));
@@ -1911,112 +1975,117 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunMultiJoinAggregate()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         var orders = NewOrdersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
-            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
+            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders, users, uId));
             SeedUsersAndOrders(connection, users, orders);
             var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.MultiJoinAggregate(users, orders)), CultureInfo.InvariantCulture);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, orders);
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, orders, uId);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunSelectScalarSubquery()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         var orders = NewOrdersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
-            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
+            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders, users, uId));
             SeedUsersAndOrders(connection, users, orders);
             var value = ExecuteScalar(connection, Dialect.SelectScalarSubquery(users, orders));
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, orders);
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, orders, uId);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunSelectInSubquery()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         var orders = NewOrdersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
-            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
+            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders, users, uId));
             SeedUsersAndOrders(connection, users, orders);
             var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.SelectInSubquery(users, orders)), CultureInfo.InvariantCulture);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, orders);
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, orders, uId);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunCrossApplyProjection()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         var orders = NewOrdersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
-            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
+            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders, users, uId));
             SeedUsersAndOrders(connection, users, orders);
             var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.CrossApplyProjection(users, orders)), CultureInfo.InvariantCulture);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, orders);
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, orders, uId);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunOuterApplyProjection()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         var orders = NewOrdersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
-            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
+            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders, users, uId));
             SeedUsersAndOrders(connection, users, orders);
             var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.OuterApplyProjection(users, orders)), CultureInfo.InvariantCulture);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, orders);
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, orders, uId);
+            SafeDropTable(connection, users, uId);
         }
     }
 
@@ -2025,19 +2094,20 @@ public abstract class BenchmarkSessionBase(
         ExecuteNonQuery(connection, Dialect.InsertUser(usersTable, 1, "Alice"));
         ExecuteNonQuery(connection, Dialect.InsertUser(usersTable, 2, "Bob"));
         ExecuteNonQuery(connection, Dialect.InsertUser(usersTable, 3, "Charlie"));
-        ExecuteNonQuery(connection, Dialect.InsertOrder(ordersTable, 1, 1, "o-1"));
-        ExecuteNonQuery(connection, Dialect.InsertOrder(ordersTable, 2, 1, "o-2"));
-        ExecuteNonQuery(connection, Dialect.InsertOrder(ordersTable, 3, 2, "o-3"));
+        ExecuteNonQuery(connection, Dialect.InsertOrder(ordersTable, usersTable, 1, 1, "o-1"));
+        ExecuteNonQuery(connection, Dialect.InsertOrder(ordersTable, usersTable, 2, 1, "o-2"));
+        ExecuteNonQuery(connection, Dialect.InsertOrder(ordersTable, usersTable, 3, 2, "o-3"));
     }
 
     protected virtual void RunExecutionPlan()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
             _ = ExecuteScalar(connection, Dialect.SelectUserNameById(users, 1));
             var plan = TryReadDiagnosticValue(connection, "LastExecutionPlan");
@@ -2045,7 +2115,7 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
@@ -2056,53 +2126,56 @@ public abstract class BenchmarkSessionBase(
 
     protected virtual void RunExecutionPlanJoin()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         var orders = NewOrdersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
-            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
+            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders, users, uId));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
-            ExecuteNonQuery(connection, Dialect.InsertOrder(orders, 1, 1, "order-1"));
+            ExecuteNonQuery(connection, Dialect.InsertOrder(orders, users, 1, 1, "order-1"));
             _ = ExecuteScalar(connection, Dialect.CountJoinForUser(users, orders, 1));
             var plan = TryReadDiagnosticValue(connection, "LastExecutionPlan");
             GC.KeepAlive(plan);
         }
         finally
         {
-            SafeDropTable(connection, orders);
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, orders, uId);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunExecutionPlanDml()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
             var plan = TryReadDiagnosticValue(connection, "LastExecutionPlan");
             GC.KeepAlive(plan);
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunDebugTraceSelect()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
             _ = ExecuteScalar(connection, Dialect.SelectUserNameById(users, 1));
             var trace = TryReadDiagnosticValue(connection, "DebugSql") ?? Dialect.SelectUserNameById(users, 1);
@@ -2110,18 +2183,19 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunDebugTraceBatch()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"));
             var trace = TryReadDiagnosticValue(connection, "DebugSqlBatch") ?? (Dialect.InsertUser(users, 1, "Alice") + ";" + Dialect.InsertUser(users, 2, "Bob"));
@@ -2129,7 +2203,7 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
@@ -2142,12 +2216,13 @@ public abstract class BenchmarkSessionBase(
 
     protected virtual void RunLastExecutionPlansHistory()
     {
+        var uId = NextToken();
         using var connection = CreateConnection();
         connection.Open();
         var users = NewUsersTableName();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
             _ = ExecuteScalar(connection, Dialect.SelectUserNameById(users, 1));
             _ = ExecuteScalar(connection, Dialect.CountRows(users));
@@ -2156,25 +2231,26 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
     protected virtual void RunTempTableCreateAndUse()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
             var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
             GC.KeepAlive(count);
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(connection, users, uId);
         }
     }
 
@@ -2185,13 +2261,14 @@ public abstract class BenchmarkSessionBase(
             throw new NotSupportedException($"{Dialect.DisplayName} does not support temp-table rollback benchmark.");
         }
 
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
         using var tx = connection.BeginTransaction();
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users), tx);
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId), tx);
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"), tx);
             ExecuteNonQuery(connection, Dialect.Savepoint(NewSavepointName()), tx);
             ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"), tx);
@@ -2199,12 +2276,13 @@ public abstract class BenchmarkSessionBase(
         }
         finally
         {
-            try { SafeDropTable(connection, users); } catch {}
+            try { SafeDropTable(connection, users, uId); } catch {}
         }
     }
 
     protected virtual void RunTempTableCrossConnectionIsolation()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection1 = CreateConnection();
         connection1.Open();
@@ -2213,14 +2291,14 @@ public abstract class BenchmarkSessionBase(
 
         try
         {
-            ExecuteNonQuery(connection1, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection1, Dialect.CreateUsersTable(users, uId));
             ExecuteNonQuery(connection1, Dialect.InsertUser(users, 1, "Alice"));
             var value = ExecuteScalar(connection2, Dialect.CountRows(users));
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection1, users);
+            SafeDropTable(connection1, users, uId);
         }
     }
 
@@ -2312,7 +2390,7 @@ public abstract class BenchmarkSessionBase(
             Tables = new[]
             {
                 new { Name = "Users", Columns = new[] { "Id", "Name" } },
-                new { Name = "Orders", Columns = new[] { "Id", "UserId", "Note" } }
+                new { Name = "Orders", Columns = new[] { "Id", "UsersId", "Note" } }
             }
         };
         GC.KeepAlive(model);

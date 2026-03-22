@@ -11,7 +11,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\DbSqlLikeMem.SqlServer.XUnit\DbSqlLikeMem.SqlServer.XUnit.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />
-		<ProjectReference Include="..\DbSqlLikeMem.TestTools\DbSqlLikeMem.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+		<ProjectReference Include="..\DbSqlLikeMem.SqlServer.TestTools\DbSqlLikeMem.SqlServer.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 	</ItemGroup>
 
 	<ItemGroup>

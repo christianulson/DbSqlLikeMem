@@ -1,5 +1,6 @@
 using Oracle.ManagedDataAccess.Client;
 using Testcontainers.Oracle;
+using DbSqlLikeMem.Oracle.TestTools;
 
 namespace DbSqlLikeMem.Benchmarks.Sessions.External;
 
@@ -8,7 +9,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.External;
 /// PT-br: Executa benchmarks de Oracle contra um contêiner de Oracle gerenciado pelo Testcontainers.
 /// </summary>
 public sealed class OracleTestcontainersSession()
-    : ExternalBenchmarkSessionBase(new OracleDialect(), BenchmarkEngine.Testcontainers)
+    : ExternalBenchmarkSessionBase(new OracleProviderSqlDialect(), BenchmarkEngine.Testcontainers)
 {
     private OracleContainer? _container;
 

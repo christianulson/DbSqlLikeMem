@@ -14,6 +14,7 @@
     <Project Path="DbSqlLikeMem.Db2.LinqToDb.Test/DbSqlLikeMem.Db2.LinqToDb.Test.csproj" />
     <Project Path="DbSqlLikeMem.Db2.NHibernate.Test/DbSqlLikeMem.Db2.NHibernate.Test.csproj" />
     <Project Path="DbSqlLikeMem.Db2.Test/DbSqlLikeMem.Db2.Test.csproj" />
+    <Project Path="DbSqlLikeMem.Db2.TestTools/DbSqlLikeMem.Db2.TestTools.csproj" />
   </Folder>
   <Folder Name="/MariaDb/">
     <Project Path="DbSqlLikeMem.MariaDb.XUnit/DbSqlLikeMem.MariaDb.XUnit.csproj" />
@@ -21,6 +22,7 @@
   </Folder>
   <Folder Name="/MariaDb/Tests/">
     <Project Path="DbSqlLikeMem.MariaDb.Test/DbSqlLikeMem.MariaDb.Test.csproj" />
+    <Project Path="DbSqlLikeMem.MariaDb.TestTools/DbSqlLikeMem.MariaDb.TestTools.csproj" />
   </Folder>
   <Folder Name="/MySql/">
     <Project Path="DbSqlLikeMem.MySql.EfCore/DbSqlLikeMem.MySql.EfCore.csproj" />
@@ -57,6 +59,7 @@
     <Project Path="DbSqlLikeMem.Npgsql.LinqToDb.Test/DbSqlLikeMem.Npgsql.LinqToDb.Test.csproj" />
     <Project Path="DbSqlLikeMem.Npgsql.NHibernate.Test/DbSqlLikeMem.Npgsql.NHibernate.Test.csproj" />
     <Project Path="DbSqlLikeMem.Npgsql.Test/DbSqlLikeMem.Npgsql.Test.csproj" />
+    <Project Path="DbSqlLikeMem.Npgsql.TestTools/DbSqlLikeMem.Npgsql.TestTools.csproj" />
   </Folder>
   <Folder Name="/Oracle/">
     <Project Path="DbSqlLikeMem.Oracle.EfCore/DbSqlLikeMem.Oracle.EfCore.csproj" />
@@ -73,6 +76,7 @@
     <Project Path="DbSqlLikeMem.Oracle.LinqToDb.Test/DbSqlLikeMem.Oracle.LinqToDb.Test.csproj" />
     <Project Path="DbSqlLikeMem.Oracle.NHibernate.Test/DbSqlLikeMem.Oracle.NHibernate.Test.csproj" />
     <Project Path="DbSqlLikeMem.Oracle.Test/DbSqlLikeMem.Oracle.Test.csproj" />
+    <Project Path="DbSqlLikeMem.Oracle.TestTools/DbSqlLikeMem.Oracle.TestTools.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path="../Features.md" />
@@ -97,6 +101,7 @@
     <Project Path="DbSqlLikeMem.Sqlite.LinqToDb.Test/DbSqlLikeMem.Sqlite.LinqToDb.Test.csproj" />
     <Project Path="DbSqlLikeMem.Sqlite.NHibernate.Test/DbSqlLikeMem.Sqlite.NHibernate.Test.csproj" />
     <Project Path="DbSqlLikeMem.Sqlite.Test/DbSqlLikeMem.Sqlite.Test.csproj" />
+    <Project Path="DbSqlLikeMem.Sqlite.TestTools/DbSqlLikeMem.Sqlite.TestTools.csproj" />
   </Folder>
   <Folder Name="/SqlServer/">
     <Project Path="DbSqlLikeMem.SqlServer.EfCore/DbSqlLikeMem.SqlServer.EfCore.csproj" />
@@ -113,6 +118,7 @@
     <Project Path="DbSqlLikeMem.SqlServer.LinqToDb.Test/DbSqlLikeMem.SqlServer.LinqToDb.Test.csproj" />
     <Project Path="DbSqlLikeMem.SqlServer.NHibernate.Test/DbSqlLikeMem.SqlServer.NHibernate.Test.csproj" />
     <Project Path="DbSqlLikeMem.SqlServer.Test/DbSqlLikeMem.SqlServer.Test.csproj" />
+    <Project Path="DbSqlLikeMem.SqlServer.TestTools/DbSqlLikeMem.SqlServer.TestTools.csproj" />
   </Folder>
   <Folder Name="/SqlAzure/">
     <Project Path="DbSqlLikeMem.SqlAzure.XUnit/DbSqlLikeMem.SqlAzure.XUnit.csproj" />
@@ -120,6 +126,7 @@
   </Folder>
   <Folder Name="/SqlAzure/Tests/">
     <Project Path="DbSqlLikeMem.SqlAzure.Test/DbSqlLikeMem.SqlAzure.Test.csproj" />
+    <Project Path="DbSqlLikeMem.SqlAzure.TestTools/DbSqlLikeMem.SqlAzure.TestTools.csproj" />
   </Folder>
   <Folder Name="/VisualStudioExtension/">
     <Project Path="DbSqlLikeMem.VisualStudioExtension.Core.Test/DbSqlLikeMem.VisualStudioExtension.Core.Test.csproj" />

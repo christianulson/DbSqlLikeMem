@@ -1,40 +1,49 @@
 namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
-/// TODO: Add a summary for this class.
+/// EN: Identifies the supported database provider families.
+/// PT: Identifica as familias de provedores de banco suportadas.
 /// </summary>
 public enum ProviderId
 {
     /// <summary>
-    /// TODO: Add a summary for this class.
+    /// EN: MySQL provider family.
+    /// PT: Familia de provedor MySQL.
     /// </summary>
     MySql,
     /// <summary>
-    /// TODO: Add a summary for this class.
+    /// EN: MariaDB provider family.
+    /// PT: Familia de provedor MariaDB.
     /// </summary>
     MariaDb,
     /// <summary>
-    /// TODO: Add a summary for this class.
+    /// EN: SQL Server provider family.
+    /// PT: Familia de provedor SQL Server.
     /// </summary>
     SqlServer,
     /// <summary>
-    /// TODO: Add a summary for this class.
+    /// EN: Azure SQL provider family.
+    /// PT: Familia de provedor Azure SQL.
     /// </summary>
     SqlAzure,
     /// <summary>
-    /// TODO: Add a summary for this class.
+    /// EN: Oracle provider family.
+    /// PT: Familia de provedor Oracle.
     /// </summary>
     Oracle,
     /// <summary>
-    /// TODO: Add a summary for this class.
+    /// EN: PostgreSQL provider family.
+    /// PT: Familia de provedor PostgreSQL.
     /// </summary>
     Npgsql,
     /// <summary>
-    /// TODO: Add a summary for this class.
+    /// EN: SQLite provider family.
+    /// PT: Familia de provedor SQLite.
     /// </summary>
     Sqlite,
     /// <summary>
-    /// TODO: Add a summary for this class.
+    /// EN: Db2 provider family.
+    /// PT: Familia de provedor Db2.
     /// </summary>
     Db2
 }

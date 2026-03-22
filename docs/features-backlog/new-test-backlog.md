@@ -240,22 +240,23 @@ Nao devem entrar:
 - documente onde parou após cada atividade e no inicio da apróxima veja de onde deve continuar.
 - após cada migração remova o teste/benckmark atual.
 
-# Arquivos Modelo
+## Arquivos Modelo
 
-## Base
+### Base
 
 - Sem Retorno: src\DbSqlLikeMem.TestTools\DDL\TableServicesTest.cs
 - Com Retorno: src\DbSqlLikeMem.TestTools\Query\SelectServiceTest.cs
 
-## TestBase
+### TestBase
 
 - Sem Comparativo de Dados: src\DbSqlLikeMem.TestTools\Tests\DDL\TableTestsBase.cs
 - Com Comparativo de Dados: src\DbSqlLikeMem.TestTools\Tests\Query\SelectTestsBase.cs
 
-## Test Dialect por Provider
+### Test Dialect por Provider
 
 - src\DbSqlLikeMem.MySql.TestTools\MySqlProviderSqlDialect.cs (migrado de benchmark\DbSqlLikeMem.Benchmarks\Benchmarks\Dialects\MySqlDbDialect.cs)
 
-## Test Fidelity
+### Test Fidelity
+
 - src\DbSqlLikeMem.MySql.Test\Fidelity\DDL\TableTests.cs
 - src\DbSqlLikeMem.MySql.Test\Fidelity\Query\SelectTests.cs

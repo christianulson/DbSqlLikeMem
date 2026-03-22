@@ -1,7 +1,8 @@
 ﻿namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
-/// TODO: Add a summary for this class.
+/// EN: Provides shared connection and SQL execution helpers for scenario-based tests.
+/// PT: Fornece helpers compartilhados de conexao e execucao SQL para testes baseados em cenarios.
 /// </summary>
 public abstract class BaseServiceTest<T>(
     T connection,
@@ -10,24 +11,28 @@ public abstract class BaseServiceTest<T>(
     where T : DbConnection
 {
     /// <summary>
-    /// TODO: Add a summary for this class.
+    /// EN: Gets the connection used by the current scenario.
+    /// PT: Obtem a conexao usada pelo cenario atual.
     /// </summary>
     public T Connection => connection;
 
     /// <summary>
-    /// TODO: Add a summary for this class.
+    /// EN: Gets the dialect used to build provider-specific SQL.
+    /// PT: Obtem o dialeto usado para montar SQL especifica do provedor.
     /// </summary>
     public ProviderSqlDialect Dialect => dialect;
 
     /// <summary>
-    /// TODO: Add a summary for this class.
+    /// EN: Creates the scenario data using the configured scenario object.
+    /// PT: Cria os dados do cenario usando o objeto de cenario configurado.
     /// </summary>
     public virtual void CreateScenario(params object[] pars) {
         testScenario.CreateSenario(this, pars);
     }
 
     /// <summary>
-    /// TODO: Add a summary for this class.
+    /// EN: Removes the scenario data using the configured scenario object.
+    /// PT: Remove os dados do cenario usando o objeto de cenario configurado.
     /// </summary>
     public virtual void DropScenario(params object[] pars) {
         testScenario.DropScenario(this, pars);

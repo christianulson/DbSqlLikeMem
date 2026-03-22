@@ -1,12 +1,12 @@
 using System.Text;
 
-namespace DbSqlLikeMem.Benchmarks.Dialects;
+namespace DbSqlLikeMem.Sqlite.TestTools;
 
 /// <summary>
-/// EN: Provides benchmark SQL statements using SQLite syntax.
-/// PT: Fornece comandos SQL de benchmark usando sintaxe do SQLite.
+/// EN: Provides SQLite-specific SQL snippets used by the shared benchmark and fidelity helpers.
+/// PT: Fornece trechos SQL especificos de SQLite usados pelos helpers compartilhados de benchmark e fidelidade.
 /// </summary>
-public sealed class SqliteDialect : ProviderSqlDialect
+public sealed class SqliteProviderSqlDialect : ProviderSqlDialect
 {
     /// <inheritdoc />
     public override ProviderId Provider => ProviderId.Sqlite;
@@ -18,12 +18,38 @@ public sealed class SqliteDialect : ProviderSqlDialect
     public override bool SupportsUpsert => true;
 
     /// <inheritdoc />
-    public override string CreateUsersTable(string tableName) =>
-        $"CREATE TABLE {tableName} (Id INTEGER NOT NULL PRIMARY KEY, Name TEXT NOT NULL)";
+    public override string CreateUsersTable(string tableName, string uId) =>
+        $@"
+CREATE TABLE {tableName}_{uId} (
+    Id INTEGER NOT NULL PRIMARY KEY,
+    Name TEXT NOT NULL,
+    Email TEXT NULL,
+    IsActive INTEGER NOT NULL DEFAULT 1,
+    Age INTEGER NULL,
+    Balance NUMERIC NOT NULL DEFAULT 0.00,
+    CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TEXT NULL,
+    ProfileJson TEXT NULL
+)";
 
     /// <inheritdoc />
-    public override string CreateOrdersTable(string tableName) =>
-        $"CREATE TABLE {tableName} (Id INTEGER NOT NULL PRIMARY KEY, UserId INTEGER NOT NULL, Note TEXT NOT NULL)";
+    public override string CreateOrdersTable(string tableName, string usersTableName, string uId) =>
+        $@"
+CREATE TABLE {tableName}_{uId} (
+    Id INTEGER NOT NULL PRIMARY KEY,
+    {usersTableName}Id INTEGER NOT NULL,
+    Note TEXT NOT NULL,
+    OrderNumber TEXT NOT NULL,
+    Amount NUMERIC NOT NULL DEFAULT 0.00,
+    Quantity INTEGER NOT NULL DEFAULT 1,
+    IsPaid INTEGER NOT NULL DEFAULT 0,
+    OrderedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    DeliveredAt TEXT NULL,
+    ExtraJson TEXT NULL,
+    CONSTRAINT FK_{tableName}_{uId}_{usersTableName} FOREIGN KEY ({usersTableName}Id) REFERENCES {usersTableName}_{uId}(Id)
+);
+CREATE INDEX IX_{tableName}_{uId}_{usersTableName}Id ON {tableName}_{uId} ({usersTableName}Id);
+CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (OrderNumber)";
 
     /// <inheritdoc />
     public override string InsertUser(string tableName, int id, string name) =>
@@ -56,8 +82,8 @@ public sealed class SqliteDialect : ProviderSqlDialect
     }
 
     /// <inheritdoc />
-    public override string InsertOrder(string tableName, int id, int userId, string note) =>
-        $"INSERT INTO {tableName} (Id, UserId, Note) VALUES ({id}, {userId}, '{note}')";
+    public override string InsertOrder(string tableName, string usersTableName, int id, int userId, string note) =>
+        $"INSERT INTO {tableName} (Id, {usersTableName}Id, Note) VALUES ({id}, {userId}, '{note}')";
 
     /// <inheritdoc />
     public override string SelectUserNameById(string tableName, int id) =>
@@ -65,7 +91,7 @@ public sealed class SqliteDialect : ProviderSqlDialect
 
     /// <inheritdoc />
     public override string CountJoinForUser(string usersTable, string ordersTable, int userId) =>
-        $"SELECT COUNT(*) FROM {usersTable} u INNER JOIN {ordersTable} o ON o.UserId = u.Id WHERE u.Id = {userId}";
+        $"SELECT COUNT(*) FROM {usersTable} u INNER JOIN {ordersTable} o ON o.{usersTable}Id = u.Id WHERE u.Id = {userId}";
 
     /// <inheritdoc />
     public override string UpdateUserNameById(string tableName, int id, string newName) =>
@@ -92,8 +118,8 @@ public sealed class SqliteDialect : ProviderSqlDialect
         $"INSERT INTO {tableName} (Id, Name) VALUES ({id}, '{newName}') ON CONFLICT(Id) DO UPDATE SET Name = excluded.Name";
 
     /// <inheritdoc />
-    public override string DropTable(string tableName) =>
-        $"DROP TABLE IF EXISTS {tableName}";
+    public override string DropTable(string tableName, string uId) =>
+        $"DROP TABLE IF EXISTS {tableName}_{uId}";
 
     /// <inheritdoc />
     public override string StringAggregateOrdered(string tableName) =>

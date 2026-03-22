@@ -6,7 +6,7 @@ Estrutura pensada para comparar **DbSqlLikeMem** contra **banco real** usando o 
 
 - `Benchmarks/Suites`: uma classe por banco/engine.
 - `Benchmarks/Sessions`: sessões que sabem abrir conexão mock ou conexão real.
-- `Benchmarks/Dialects`: SQL por provedor.
+- `*.TestTools`: SQL por provedor, compartilhado entre benchmark e fidelidade.
 - `benchmark-feature-map.json`: catálogo para gerar a wiki/matriz.
 - `Scripts/export-wiki.ps1`: converte os relatórios do BenchmarkDotNet em markdown para Wiki.
 

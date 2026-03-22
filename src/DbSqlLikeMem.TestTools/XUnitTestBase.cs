@@ -16,7 +16,8 @@ public abstract class XUnitTestBase : IDisposable
     private bool disposedValue;
 
     /// <summary>
-    /// TODO: Add a summary for this class.
+    /// EN: Gets the lazy flag that enables container-backed test execution.
+    /// PT: Obtem a flag preguiçosa que habilita a execucao de testes com container.
     /// </summary>
     protected static Lazy<bool> RunContainerTests = new(() => Environment.GetEnvironmentVariable("RUN_CONTAINER_TESTS") == "true");
 

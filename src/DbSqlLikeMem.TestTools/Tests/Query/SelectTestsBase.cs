@@ -3,7 +3,8 @@
 namespace DbSqlLikeMem.TestTools.Tests.Query;
 
 /// <summary>
-/// TODO: Add a summary for this class.
+/// EN: Provides shared query fidelity tests for primary-key lookup scenarios across mock and container runs.
+/// PT: Fornece testes de fidelidade de consulta para cenarios de busca por chave primaria entre mock e container.
 /// </summary>
 public abstract class SelectTestsBase<T, T2>(
     ITestOutputHelper helper,
@@ -15,7 +16,8 @@ public abstract class SelectTestsBase<T, T2>(
     where T2 : DbConnection
 {
     /// <summary>
-    /// TODO: Add a summary for this method.
+    /// EN: Verifies that primary-key selection returns the expected row for the current provider.
+    /// PT: Verifica se a selecao por chave primaria retorna a linha esperada para o provedor atual.
     /// </summary>
     [Fact]
     public void SelectByPkTest()

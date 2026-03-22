@@ -12,7 +12,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\DbSqlLikeMem.Db2.XUnit\DbSqlLikeMem.Db2.XUnit.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />
-		<ProjectReference Include="..\DbSqlLikeMem.TestTools\DbSqlLikeMem.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+		<ProjectReference Include="..\DbSqlLikeMem.Db2.TestTools\DbSqlLikeMem.Db2.TestTools.csproj" />
 	</ItemGroup>
 	
 	<ItemGroup>

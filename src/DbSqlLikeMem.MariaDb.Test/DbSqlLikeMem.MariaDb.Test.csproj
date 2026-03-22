@@ -11,7 +11,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\DbSqlLikeMem.MariaDb.XUnit\DbSqlLikeMem.MariaDb.XUnit.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />
-		<ProjectReference Include="..\DbSqlLikeMem.TestTools\DbSqlLikeMem.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+		<ProjectReference Include="..\DbSqlLikeMem.MariaDb.TestTools\DbSqlLikeMem.MariaDb.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 	</ItemGroup>
 
 	<ItemGroup>

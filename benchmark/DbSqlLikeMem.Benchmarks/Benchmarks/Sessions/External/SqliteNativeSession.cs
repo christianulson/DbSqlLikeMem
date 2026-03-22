@@ -1,5 +1,6 @@
 using Microsoft.Data.Sqlite;
 using System.Globalization;
+using DbSqlLikeMem.Sqlite.TestTools;
 
 namespace DbSqlLikeMem.Benchmarks.Sessions.External;
 
@@ -8,7 +9,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.External;
 /// PT-br: Executa benchmarks de SQLite contra o provedor nativo em memória Microsoft.Data.Sqlite.
 /// </summary>
 public sealed class SqliteNativeSession()
-    : BenchmarkSessionBase(new SqliteDialect(), BenchmarkEngine.NativeAdoNet)
+    : BenchmarkSessionBase(new SqliteProviderSqlDialect(), BenchmarkEngine.NativeAdoNet)
 {
     private readonly string _connectionString = new SqliteConnectionStringBuilder
     {

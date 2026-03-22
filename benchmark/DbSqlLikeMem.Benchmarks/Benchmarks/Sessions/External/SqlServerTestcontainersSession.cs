@@ -1,5 +1,6 @@
 using Microsoft.Data.SqlClient;
 using Testcontainers.MsSql;
+using DbSqlLikeMem.SqlServer.TestTools;
 
 namespace DbSqlLikeMem.Benchmarks.Sessions.External;
 
@@ -8,7 +9,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.External;
 /// PT-br: Executa benchmarks de SQL Server contra um contêiner de SQL Server gerenciado pelo Testcontainers.
 /// </summary>
 public sealed class SqlServerTestcontainersSession()
-    : ExternalBenchmarkSessionBase(new SqlServerDialect(), BenchmarkEngine.Testcontainers)
+    : ExternalBenchmarkSessionBase(new SqlServerProviderSqlDialect(), BenchmarkEngine.Testcontainers)
 {
     private MsSqlContainer? _container;
 

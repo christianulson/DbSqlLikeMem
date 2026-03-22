@@ -1,4 +1,5 @@
 using DbSqlLikeMem.MariaDb;
+using DbSqlLikeMem.MariaDb.TestTools;
 
 namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 
@@ -7,7 +8,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 /// PT-br: Executa cenarios de benchmark de MariaDB contra o provedor mock em memoria DbSqlLikeMem de MariaDB.
 /// </summary>
 public sealed class MariaDbDbSqlLikeMemSession()
-    : DbSqlLikeMemBenchmarkSessionBase(new MariaDbDialect())
+    : DbSqlLikeMemBenchmarkSessionBase(new MariaDbProviderSqlDialect())
 {
     private readonly MariaDbDbMock Db = new() { ThreadSafe = true };
 

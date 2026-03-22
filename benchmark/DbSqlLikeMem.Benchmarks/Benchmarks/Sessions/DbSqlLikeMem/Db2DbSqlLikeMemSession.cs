@@ -1,4 +1,5 @@
 using DbSqlLikeMem.Db2;
+using DbSqlLikeMem.Db2.TestTools;
 
 namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 
@@ -7,7 +8,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 /// PT-br: Executa cenários de benchmark de DB2 contra o provedor mock em memória DbSqlLikeMem de DB2.
 /// </summary>
 public sealed class Db2DbSqlLikeMemSession()
-    : DbSqlLikeMemBenchmarkSessionBase(new Db2Dialect())
+    : DbSqlLikeMemBenchmarkSessionBase(new Db2ProviderSqlDialect())
 {
     private readonly Db2DbMock Db = new() { ThreadSafe = true };
 
