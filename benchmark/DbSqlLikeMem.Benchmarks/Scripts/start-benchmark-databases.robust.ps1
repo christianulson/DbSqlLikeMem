@@ -130,7 +130,7 @@ function Ensure-Db2Database {
 function Ensure-Db2UserTemporaryTablespace {
     param(
         [string]$DatabaseName = "BENCH",
-        [string]$TablespaceName = "USRTMPSPC1"
+        [string]$TablespaceName = "USRTMPSPC32K"
     )
 
     Write-Host "Checking DB2 user temporary tablespace '$TablespaceName'..."

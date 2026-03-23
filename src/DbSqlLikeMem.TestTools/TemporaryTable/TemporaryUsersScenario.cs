@@ -32,19 +32,6 @@ public sealed class TemporaryUsersScenario<T>(ProviderSqlDialect dialect) : ITes
         }
         else
         {
-            if (dialect.Provider == ProviderId.Db2
-                && service.Connection is not DbSqlLikeMem.DbConnectionMockBase)
-            {
-                var sessionTableName = $"SESSION.{tableName}";
-                var db2CreateSql = $@"
-DECLARE GLOBAL TEMPORARY TABLE {sessionTableName} (
-    Id INT,
-    Name VARCHAR(100)
-) ON COMMIT PRESERVE ROWS NOT LOGGED";
-                service.ExecuteNonQuery(db2CreateSql);
-                return;
-            }
-
             if (dialect.Provider == ProviderId.Oracle)
             {
                 var oracleCreateSql = $@"
@@ -73,9 +60,16 @@ CREATE GLOBAL TEMPORARY TABLE {tableName} (
         var tableName = dialect.TemporaryUsersTableName((string)pars[0]);
         try
         {
-            if (dialect.Provider == ProviderId.Db2)
+            if (dialect.Provider == ProviderId.Db2
+                && service.Connection is DbSqlLikeMem.DbConnectionMockBase)
             {
-                service.ExecuteNonQuery(dialect.DropTemporaryUsersTable(tableName));
+                service.ExecuteNonQuery($"DROP TEMPORARY TABLE {tableName}");
+            }
+            else if (dialect.Provider == ProviderId.Db2)
+            {
+                // EN: Declared global temporary tables are session-scoped and are dropped when the session ends.
+                // PT: Tabelas temporarias globais declaradas sao dependentes da sessao e sao removidas ao final da sessao.
+                return;
             }
             else
             {
@@ -103,6 +97,7 @@ CREATE GLOBAL TEMPORARY TABLE {tableName} (
             || message.Contains("doesn't exist", StringComparison.OrdinalIgnoreCase)
             || message.Contains("doesnt exist", StringComparison.OrdinalIgnoreCase)
             || message.Contains("not exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("undefined name", StringComparison.OrdinalIgnoreCase)
             || message.Contains("not found", StringComparison.OrdinalIgnoreCase)
             || message.Contains("given key was not present", StringComparison.OrdinalIgnoreCase);
     }

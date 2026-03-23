@@ -72,7 +72,7 @@ function Wait-ForDb2Ready {
 function Ensure-Db2UserTemporaryTablespace {
     param(
         [string]$DatabaseName = "BENCH",
-        [string]$TablespaceName = "USRTMPSPC1"
+        [string]$TablespaceName = "USRTMPSPC32K"
     )
 
     Write-Host "Checking DB2 user temporary tablespace '$TablespaceName'..."
@@ -84,7 +84,7 @@ function Ensure-Db2UserTemporaryTablespace {
     }
 
     Write-Host "Creating DB2 user temporary tablespace '$TablespaceName'..."
-    docker exec $Db2ContainerName bash -lc "su - db2inst1 -c 'db2 connect to $DatabaseName >/dev/null 2>&1 && db2 create user temporary tablespace $TablespaceName managed by automatic storage'"
+    docker exec $Db2ContainerName bash -lc "su - db2inst1 -c 'db2 connect to $DatabaseName >/dev/null 2>&1 && db2 create user temporary tablespace $TablespaceName pagesize 32 k managed by automatic storage'"
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to create DB2 user temporary tablespace '$TablespaceName'."
     }

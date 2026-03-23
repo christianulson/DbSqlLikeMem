@@ -59,10 +59,10 @@ CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (Order
     /// <inheritdoc />
     public override string CreateTemporaryUsersTable(string tableName) =>
         $@"
-CREATE TEMPORARY TABLE {TemporaryUsersTableName(tableName)} AS
-SELECT CAST(NULL AS INT) AS Id, CAST(NULL AS VARCHAR(100)) AS Name
-FROM SYSIBM.SYSDUMMY1
-WHERE 1 = 0";
+DECLARE GLOBAL TEMPORARY TABLE SESSION.{TemporaryUsersTableName(tableName)} (
+    Id INT,
+    Name VARCHAR(100)
+) ON COMMIT PRESERVE ROWS NOT LOGGED";
 
     /// <inheritdoc />
     public override string DropTemporaryUsersTable(string tableName) =>

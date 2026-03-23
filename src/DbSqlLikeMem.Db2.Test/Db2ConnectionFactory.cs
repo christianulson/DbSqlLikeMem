@@ -50,20 +50,22 @@ internal static class Db2ConnectionFactory
             using var connection = new DB2Connection(connectionString);
             connection.Open();
 
-            if (TablespaceExists(connection, "USRTMPSPC1"))
+            const string tablespaceName = "USRTMPSPC32K";
+
+            if (TablespaceExists(connection, tablespaceName))
             {
                 return;
             }
 
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "CREATE USER TEMPORARY TABLESPACE USRTMPSPC1 PAGESIZE 4 K MANAGED BY AUTOMATIC STORAGE";
+                command.CommandText = $"CREATE USER TEMPORARY TABLESPACE {tablespaceName} PAGESIZE 32 K MANAGED BY AUTOMATIC STORAGE";
                 command.ExecuteNonQuery();
             }
 
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = $"GRANT USE OF TABLESPACE USRTMPSPC1 TO USER {userId}";
+                command.CommandText = $"GRANT USE OF TABLESPACE {tablespaceName} TO USER {userId}";
                 command.ExecuteNonQuery();
             }
         }

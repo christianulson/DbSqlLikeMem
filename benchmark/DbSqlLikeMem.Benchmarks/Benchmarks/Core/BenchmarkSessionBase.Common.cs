@@ -142,7 +142,7 @@ public abstract partial class BenchmarkSessionBase
                     connection,
                     BenchmarkScenarioFactory.CreateTableScenario<DbConnection>(),
                     Dialect);
-                return new PreparedCreateSchemaState(connection, service, users, uId);
+                return new PreparedCreateSchemaState(this, connection, service, users, uId);
             });
 
     private PreparedInsertUsersState GetPreparedInsertUsersState(string key)
@@ -612,17 +612,20 @@ public abstract partial class BenchmarkSessionBase
 
     private sealed class PreparedCreateSchemaState : IDisposable
     {
+        private readonly BenchmarkSessionBase _owner;
         private readonly CreateTableServiceTest<DbConnection> _service;
         private readonly DbConnection _connection;
         private readonly string _users;
         private readonly string _uId;
 
         public PreparedCreateSchemaState(
+            BenchmarkSessionBase owner,
             DbConnection connection,
             CreateTableServiceTest<DbConnection> service,
             string users,
             string uId)
         {
+            _owner = owner;
             _connection = connection;
             _service = service;
             _users = users;
@@ -644,7 +647,7 @@ public abstract partial class BenchmarkSessionBase
                 }
                 catch
                 {
-                    SafeDropTable(_connection, _users, _uId);
+                    _owner.SafeDropTable(_connection, _users, _uId);
                 }
             }
         }
@@ -659,7 +662,7 @@ public abstract partial class BenchmarkSessionBase
             {
                 try
                 {
-                    SafeDropTable(_connection, _users, _uId);
+                    _owner.SafeDropTable(_connection, _users, _uId);
                 }
                 catch
                 {

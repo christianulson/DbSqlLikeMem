@@ -28,7 +28,8 @@ DECLARE GLOBAL TEMPORARY TABLE SESSION.{tempTable} (
     Id INT,
     Name VARCHAR(100)
 ) ON COMMIT PRESERVE ROWS NOT LOGGED");
-            ExecuteNonQuery($@"INSERT INTO {sessionTempTable} (Id, Name)
+            ExecuteNonQuery($@"
+INSERT INTO SESSION.{tempTable} (Id, Name)
 SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10");
         }
         else if (Dialect.Provider == ProviderId.Db2)
@@ -110,22 +111,6 @@ SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10");
         string uId,
         bool isMockConnection)
     {
-        if (Dialect.Provider == ProviderId.Db2 && !isMockConnection)
-        {
-            return $@"
-DECLARE GLOBAL TEMPORARY TABLE SESSION.{tempTable} (
-    Id INT,
-    Name VARCHAR(100)
-) ON COMMIT PRESERVE ROWS NOT LOGGED";
-        }
-
-        if (Dialect.Provider == ProviderId.Db2)
-        {
-            return $@"
-CREATE TEMPORARY TABLE {tempTable} AS
-SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10";
-        }
-
         return $@"
 CREATE TEMPORARY TABLE {tempTable} AS
 SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10";
@@ -156,12 +141,15 @@ SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10";
     public void RunTempTableRollback(params object[] pars)
     {
         var users = Dialect.TemporaryUsersTableName((string)pars[0]);
+        var sessionUsers = Dialect.Provider == ProviderId.Db2 && Connection is not DbSqlLikeMem.DbConnectionMockBase
+            ? $"SESSION.{users}"
+            : users;
         using var tx = Connection.BeginTransaction();
-        ExecuteNonQuery(InsertTemporaryRowSql(users, 1, "Alice"), tx);
-        ExecuteNonQuery(InsertTemporaryRowSql(users, 2, "Bob"), tx);
+        ExecuteNonQuery(InsertTemporaryRowSql(sessionUsers, 1, "Alice"), tx);
+        ExecuteNonQuery(InsertTemporaryRowSql(sessionUsers, 2, "Bob"), tx);
         tx.Rollback();
 
-        var count = Convert.ToInt32(ExecuteScalar(Dialect.CountRows(users)), CultureInfo.InvariantCulture);
+        var count = Convert.ToInt32(ExecuteScalar(Dialect.CountRows(sessionUsers)), CultureInfo.InvariantCulture);
         if (count != 0)
         {
             throw new InvalidOperationException($"Unexpected temporary-table rollback rowcount for {Dialect.DisplayName}: {count}.");
@@ -182,14 +170,17 @@ SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10";
         }
 
         var users = Dialect.TemporaryUsersTableName((string)pars[0]);
-        ExecuteNonQuery(InsertTemporaryRowSql(users, 1, "Alice"));
+        var sessionUsers = Dialect.Provider == ProviderId.Db2 && Connection is not DbSqlLikeMem.DbConnectionMockBase
+            ? $"SESSION.{users}"
+            : users;
+        ExecuteNonQuery(InsertTemporaryRowSql(sessionUsers, 1, "Alice"));
 
         using var secondaryConnection = connectionFactory();
         secondaryConnection.Open();
 
         try
         {
-            var count = Convert.ToInt32(ExecuteScalarOnConnection(secondaryConnection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
+            var count = Convert.ToInt32(ExecuteScalarOnConnection(secondaryConnection, Dialect.CountRows(sessionUsers)), CultureInfo.InvariantCulture);
             if (count != 0)
             {
                 throw new InvalidOperationException($"Unexpected temporary-table isolation rowcount for {Dialect.DisplayName}: {count}.");
@@ -231,6 +222,7 @@ SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10";
             || message.Contains("does not exist", StringComparison.OrdinalIgnoreCase)
             || message.Contains("doesn't exist", StringComparison.OrdinalIgnoreCase)
             || message.Contains("doesnt exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("undefined name", StringComparison.OrdinalIgnoreCase)
             || message.Contains("invalid object name", StringComparison.OrdinalIgnoreCase)
             || message.Contains("not found", StringComparison.OrdinalIgnoreCase);
     }
