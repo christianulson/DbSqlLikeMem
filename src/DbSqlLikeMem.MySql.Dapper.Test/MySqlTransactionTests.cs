@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.MySql.Dapper.Test;
 
 /// <summary>
-/// EN: Defines the class MySqlTransactionTests.
-/// PT: Define a classe MySqlTransactionTests.
+/// EN: Covers MySQL transaction scenarios against the Dapper provider.
+/// PT: Cobre cenarios de transacao MySQL contra o provedor Dapper.
 /// </summary>
 public sealed class MySqlTransactionTests(
     ITestOutputHelper helper

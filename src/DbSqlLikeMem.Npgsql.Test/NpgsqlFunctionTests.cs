@@ -10,8 +10,8 @@ public sealed class NpgsqlFunctionTests
     private readonly NpgsqlConnectionMock _connection;
 
     /// <summary>
-    /// EN: Initializes PostgreSQL function test fixtures with sample tables.
-    /// PT: Inicializa os fixtures de funcoes PostgreSQL com tabelas de exemplo.
+    /// EN: Creates the PostgreSQL function test fixtures with sample tables.
+    /// PT: Cria os fixtures de testes de funcoes PostgreSQL com tabelas de exemplo.
     /// </summary>
     public NpgsqlFunctionTests(ITestOutputHelper helper)
         : base(helper)

@@ -81,12 +81,6 @@ public partial class SchemaSnapshotServiceTest<T>
     {
         var snapshot = GetSchemaSnapshot(Connection);
         var comparison = snapshot.Matches(snapshot);
-        if (Dialect.Provider == ProviderId.Oracle)
-        {
-            Console.WriteLine($"[SchemaSnapshot][Oracle] Dialect: {Dialect.GetType().FullName}");
-            Console.WriteLine($"[SchemaSnapshot][Oracle] Snapshot: {snapshot.ToJson()}");
-            Console.WriteLine($"[SchemaSnapshot][Oracle] Compare result: {comparison}");
-        }
         GC.KeepAlive(comparison);
         return comparison;
     }

@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.Oracle.Test;
 /// <summary>
-/// EN: Defines the class OracleTransactionTests.
-/// PT: Define a classe OracleTransactionTests.
+/// EN: Covers Oracle transaction scenarios against the Dapper provider.
+/// PT: Cobre cenarios de transacao Oracle contra o provedor Dapper.
 /// </summary>
 public sealed class OracleTransactionTests(
     ITestOutputHelper helper

@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 /// <summary>
-/// EN: Defines the class SqlServerTransactionTests.
-/// PT: Define a classe SqlServerTransactionTests.
+/// EN: Covers SQL Server transaction scenarios against the Dapper provider.
+/// PT: Cobre cenarios de transacao SQL Server contra o provedor Dapper.
 /// </summary>
 public sealed class SqlServerTransactionTests(
     ITestOutputHelper helper

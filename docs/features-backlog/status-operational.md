@@ -10,6 +10,7 @@ Objetivo: registrar andamento de sprint, próximos passos imediatos e riscos de 
 
 ## Sprint / ciclo atual
 
+- A frente de performance dos testes foi concluída no escopo atual: helpers quentes foram enxugados, a reflexão de diagnóstico foi cacheada, o fluxo rápido foi separado da comparação com container por suíte, e o README raiz agora explicita o uso das novas flags.
 - Foco principal: manter a retomada do core (`parser` + executor AST) em fatias pequenas e seguras, agora fechando também DDL de `SEQUENCE` com gate explícito por dialeto/versão e reaproveitando a infraestrutura já existente de runtime para sequences.
 - Foco principal: manter a retomada do core (`parser` + executor AST) em fatias pequenas e seguras, endurecendo também os pontos de sintaxe nativa guiados pelo dialeto, como `GROUP_CONCAT(... ORDER BY ... SEPARATOR ...)` no MySQL, sem abrir caminhos paralelos no parser comum.
 - Foco principal: manter a retomada do core (`parser` + executor AST) em fatias pequenas e seguras, endurecendo também gates por versão simulada no próprio dialeto, como a disponibilidade de `STRING_AGG` no caminho compartilhado de `SQL Server/SqlAzure`.

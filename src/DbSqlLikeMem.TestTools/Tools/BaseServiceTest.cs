@@ -1,8 +1,8 @@
 ﻿namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
-/// EN: Provides shared connection and SQL execution helpers for scenario-based tests.
-/// PT: Fornece helpers compartilhados de conexao e execucao SQL para testes baseados em cenarios.
+/// EN: Describes shared connection and SQL execution helpers for scenario-based tests.
+/// PT: Descreve helpers compartilhados de conexao e execucao SQL para testes baseados em cenarios.
 /// </summary>
 public abstract class BaseServiceTest<T>(
     T connection,

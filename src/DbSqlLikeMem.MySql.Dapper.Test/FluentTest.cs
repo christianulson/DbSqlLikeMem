@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.MySql.Dapper.Test;
 /// <summary>
-/// EN: Defines the class FluentTest.
-/// PT: Define a classe FluentTest.
+/// EN: Covers MySQL fluent schema and DML scenarios against the mock provider.
+/// PT: Cobre cenarios fluentes de schema e DML para MySQL contra o provedor mock.
 /// </summary>
 public sealed class FluentTest(
         ITestOutputHelper helper

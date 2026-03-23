@@ -59,22 +59,7 @@ public abstract class DbSqlLikeMemBenchmarkSessionBase(ProviderSqlDialect dialec
 
         try
         {
-            using var tx = connection.BeginTransaction();
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"), tx);
-            ExecuteNonQuery(connection, Dialect.Savepoint(NewSavepointName()), tx);
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"), tx);
-            tx.Rollback();
-
-            var count = Convert.ToInt32(
-                ExecuteScalar(connection, Dialect.CountRows(users)),
-                CultureInfo.InvariantCulture);
-
-            if (count != 0)
-            {
-                throw new InvalidOperationException($"Expected rollback to clear temp-table rows for {Dialect.DisplayName}, got {count}.");
-            }
-
-            GC.KeepAlive(count);
+            service.RunTempTableRollback(users);
         }
         finally
         {

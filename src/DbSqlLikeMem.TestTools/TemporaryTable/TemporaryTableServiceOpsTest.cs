@@ -18,11 +18,7 @@ public partial class TemporaryTableServiceTest<T>
         if (Dialect.Provider == ProviderId.Npgsql)
         {
             ExecuteNonQuery($@"
-CREATE TEMP TABLE {tempTable} (
-    Id INT,
-    Name VARCHAR(100)
-)");
-            ExecuteNonQuery($@"INSERT INTO {tempTable} (Id, Name)
+CREATE TEMP TABLE {tempTable} AS
 SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10");
         }
         else if (Dialect.Provider == ProviderId.Db2 && !isMockConnection)

@@ -7,8 +7,8 @@ namespace DbSqlLikeMem.Oracle.Test;
 public sealed class ExecutionPlanTests : XUnitTestBase
 {
     /// <summary>
-    /// EN: Initializes execution plan tests with xUnit output integration.
-    /// PT: Inicializa os testes de plano de execução com integração de saída do xUnit.
+    /// EN: Creates the execution plan test helper with xUnit output integration.
+    /// PT: Cria o helper dos testes de plano de execucao com integracao de saida do xUnit.
     /// </summary>
     /// <param name="helper">EN: xUnit output helper. PT: Helper de saída do xUnit.</param>
     public ExecutionPlanTests(ITestOutputHelper helper)
@@ -17,8 +17,8 @@ public sealed class ExecutionPlanTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Ensures command execution generates a readable execution plan in test output.
-    /// PT: Garante que a execução do comando gere um plano de execução legível na saída do teste.
+    /// EN: Verifies command execution prints a readable plan to test output.
+    /// PT: Verifica se a execucao do comando imprime um plano legivel na saida do teste.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]

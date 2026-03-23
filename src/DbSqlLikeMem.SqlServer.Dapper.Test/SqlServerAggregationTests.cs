@@ -7,8 +7,8 @@ namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 public sealed class SqlServerAggregationTests : AggregationHavingOrdinalTestsBase<SqlServerDbMock, SqlServerConnectionMock>
 {
     /// <summary>
-    /// EN: Initializes SQL Server aggregation tests.
-    /// PT: Inicializa os testes de agregação do SQL Server.
+    /// EN: Creates the SQL Server aggregation test suite helper.
+    /// PT: Cria o helper da suite de testes de agregacao do SQL Server.
     /// </summary>
     /// <param name="helper">EN: Output helper. PT: Helper de saída.</param>
     public SqlServerAggregationTests(ITestOutputHelper helper) : base(helper)
@@ -25,8 +25,8 @@ public sealed class SqlServerAggregationTests : AggregationHavingOrdinalTestsBas
     protected override List<dynamic> Query(string sql) => Connection.Query<dynamic>(sql).ToList();
 
     /// <summary>
-    /// EN: Tests Distinct_Order_WithPagination_ShouldWork behavior.
-    /// PT: Testa o comportamento de Distinct_Order_WithPagination_ShouldWork.
+    /// EN: Verifies DISTINCT ordering with pagination returns the expected rows.
+    /// PT: Verifica se a ordenacao DISTINCT com paginacao retorna as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAggregation")]

@@ -7,8 +7,8 @@ namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 public sealed class SqliteAggregationTests : AggregationHavingOrdinalTestsBase<SqliteDbMock, SqliteConnectionMock>
 {
     /// <summary>
-    /// EN: Initializes SQLite aggregation tests.
-    /// PT: Inicializa os testes de agregação do SQLite.
+    /// EN: Creates the SQLite aggregation test suite helper.
+    /// PT: Cria o helper da suite de testes de agregacao do SQLite.
     /// </summary>
     /// <param name="helper">EN: Output helper. PT: Helper de saída.</param>
     public SqliteAggregationTests(ITestOutputHelper helper) : base(helper)
@@ -25,8 +25,8 @@ public sealed class SqliteAggregationTests : AggregationHavingOrdinalTestsBase<S
     protected override List<dynamic> Query(string sql) => Connection.Query<dynamic>(sql).ToList();
 
     /// <summary>
-    /// EN: Tests Distinct_Order_WithPagination_ShouldWork behavior.
-    /// PT: Testa o comportamento de Distinct_Order_WithPagination_ShouldWork.
+    /// EN: Verifies DISTINCT ordering with pagination returns the expected rows.
+    /// PT: Verifica se a ordenacao DISTINCT com paginacao retorna as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteAggregation")]

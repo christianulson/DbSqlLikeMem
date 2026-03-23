@@ -55,7 +55,7 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
         connMock.Open();
         var resultMock = RunSchemaSnapshotExportScenario(connMock);
 
-        if (RunContainerTests.Value
+        if (IsSchemaContainerComparisonEnabled(dialect.Provider)
             && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
             using var connContainer = connectionContainer(connectionString);
@@ -73,7 +73,7 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
         connMock.Open();
         var resultMock = RunSchemaSnapshotToJsonScenario(connMock);
 
-        if (RunContainerTests.Value
+        if (IsSchemaContainerComparisonEnabled(dialect.Provider)
             && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
             using var connContainer = connectionContainer(connectionString);
@@ -91,7 +91,7 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
         connMock.Open();
         using var resultMock = RunSchemaSnapshotLoadJsonScenario(connMock);
 
-        if (RunContainerTests.Value
+        if (IsSchemaContainerComparisonEnabled(dialect.Provider)
             && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
             using var connContainer = connectionContainer(connectionString);
@@ -107,7 +107,7 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
         connMock.Open();
         var resultMock = RunSchemaSnapshotCompareScenario(connMock);
 
-        if (RunContainerTests.Value
+        if (IsSchemaContainerComparisonEnabled(dialect.Provider)
             && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
             using var connContainer = connectionContainer(connectionString);

@@ -70,7 +70,10 @@ rodar benchmarks externos usando os bancos já disponíveis:
 
 se quiser reduzir também o overhead de processo:
 
-./Scripts/run-benchmarks-preprovisioned.ps1 --inprocess --filter "*Testcontainers*"
+./Scripts/run-benchmarks-preprovisioned.ps1 --inprocess --filter "*DbSqlLikeMem*"
+
+`inprocess` fica reservado para filtros curtos de `DbSqlLikeMem` ou `Sqlite`; para `Testcontainers`, use o runner sem essa flag.
+Quando você roda o lote completo com `--inprocess`, o runner separa automaticamente os benchmarks rápidos (`DbSqlLikeMem` e `Sqlite`) da passagem `Testcontainers`, para evitar o erro de toolchain e manter a execução rápida onde faz sentido.
 
 
 docker compose -f docker-compose.benchmarks.yml down
@@ -79,5 +82,5 @@ docker compose -f docker-compose.benchmarks.yml up -d
 
 
 powershell -ExecutionPolicy Bypass -File ./Scripts/start-benchmark-databases.robust.ps1
-powershell -ExecutionPolicy Bypass -File ./Scripts/run-benchmarks-preprovisioned.ps1 --inprocess 
+powershell -ExecutionPolicy Bypass -File ./Scripts/run-benchmarks-preprovisioned.ps1 --inprocess --filter "*DbSqlLikeMem*"
 powershell -ExecutionPolicy Bypass -File ./Scripts/run-benchmarks-preprovisioned.ps1 --inprocess  --filter "*Sqlite*"

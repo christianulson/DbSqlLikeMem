@@ -10,8 +10,8 @@ public sealed class OracleFunctionTests
     private readonly OracleConnectionMock _connection;
 
     /// <summary>
-    /// EN: Initializes Oracle function test fixtures with sample tables.
-    /// PT: Inicializa os fixtures de funcoes Oracle com tabelas de exemplo.
+    /// EN: Creates Oracle function test fixtures with sample tables.
+    /// PT: Cria fixtures de funcoes Oracle com tabelas de exemplo.
     /// </summary>
     public OracleFunctionTests(ITestOutputHelper helper)
         : base(helper)

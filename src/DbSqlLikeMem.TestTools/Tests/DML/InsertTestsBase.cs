@@ -56,7 +56,7 @@ public abstract class InsertTestsBase<T, T2>(
         connMock.Open();
         var resultMock = RunInsertCountScenario(connMock, users, uId, rowCount);
 
-        if (RunContainerTests.Value
+        if (IsInsertContainerComparisonEnabled(dialect.Provider)
             && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
             using var connContainer = connectionContainer(connectionString);
@@ -76,7 +76,7 @@ public abstract class InsertTestsBase<T, T2>(
         var resultMock = RunRowCountAfterInsertScenario(connMock, users, uId);
         Assert.True(resultMock > 0);
 
-        if (RunContainerTests.Value
+        if (IsInsertContainerComparisonEnabled(dialect.Provider)
             && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
             using var connContainer = connectionContainer(connectionString);

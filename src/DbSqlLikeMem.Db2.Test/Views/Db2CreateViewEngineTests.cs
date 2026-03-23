@@ -11,8 +11,8 @@ public sealed class Db2CreateViewEngineTests : XUnitTestBase
     private readonly ITableMock _orders;
 
     /// <summary>
-    /// EN: Initializes the users and orders tables used by the view tests.
-    /// PT: Inicializa as tabelas users e orders usadas pelos testes de view.
+    /// EN: Creates the users and orders tables used by the view tests.
+    /// PT: Cria as tabelas users e orders usadas pelos testes de view.
     /// </summary>
     public Db2CreateViewEngineTests(ITestOutputHelper helper): base(helper)
     {

@@ -10,8 +10,8 @@ public sealed class OracleMockTests
     private readonly OracleConnectionMock _connection;
 
     /// <summary>
-    /// EN: Initializes the Oracle mock database used by the test suite.
-    /// PT: Inicializa o banco mock Oracle usado pela suite de testes.
+    /// EN: Creates the Oracle mock database used by the test suite.
+    /// PT: Cria o banco mock Oracle usado pela suite de testes.
     /// </summary>
     public OracleMockTests(
         ITestOutputHelper helper

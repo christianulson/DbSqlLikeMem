@@ -3,12 +3,14 @@ using DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 namespace DbSqlLikeMem.Benchmarks.Suites;
 
 /// <summary>
-/// 
+/// EN: Defines the DbSqlLikeMem benchmark suite for SQLite.
+/// PT: Define a suite de benchmark DbSqlLikeMem para SQLite.
 /// </summary>
 public class Sqlite_DbSqlLikeMem_Benchmarks : BenchmarkSuiteBase
 {
     /// <summary>
-    /// 
+    /// EN: Creates the benchmark session used by the SQLite DbSqlLikeMem suite.
+    /// PT: Cria a sessao de benchmark usada pela suite DbSqlLikeMem de SQLite.
     /// </summary>
     protected override IBenchmarkSession CreateSession() => new SqliteDbSqlLikeMemSession();
 

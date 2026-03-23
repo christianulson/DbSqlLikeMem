@@ -1,14 +1,14 @@
 namespace DbSqlLikeMem.Npgsql.Test.Strategy;
 
 /// <summary>
-/// EN: Defines the class PostgreSqlOnConflictUpsertTests.
-/// PT: Define a classe PostgreSqlOnConflictUpsertTests.
+/// EN: Covers PostgreSQL ON CONFLICT upsert scenarios against the Dapper provider.
+/// PT: Cobre cenarios de upsert com ON CONFLICT do PostgreSQL contra o provedor Dapper.
 /// </summary>
 public sealed class PostgreSqlOnConflictUpsertTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
     /// <summary>
-    /// EN: Tests Insert_OnConflict_ShouldInsert_WhenNoConflict behavior.
-    /// PT: Testa o comportamento de Insert_OnConflict_ShouldInsert_WhenNoConflict.
+    /// EN: Verifies ON CONFLICT inserts a row when no conflict exists.
+    /// PT: Verifica se ON CONFLICT insere uma linha quando nao existe conflito.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -32,8 +32,8 @@ public sealed class PostgreSqlOnConflictUpsertTests(ITestOutputHelper helper) : 
     }
 
     /// <summary>
-    /// EN: Tests Insert_OnConflict_ShouldUpdate_WhenConflict behavior.
-    /// PT: Testa o comportamento de Insert_OnConflict_ShouldUpdate_WhenConflict.
+    /// EN: Verifies ON CONFLICT updates the matching row when a conflict exists.
+    /// PT: Verifica se ON CONFLICT atualiza a linha correspondente quando ha conflito.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -60,8 +60,8 @@ public sealed class PostgreSqlOnConflictUpsertTests(ITestOutputHelper helper) : 
     }
 
     /// <summary>
-    /// EN: Tests Insert_OnConflict_DoNothing_ShouldNotUpdate_WhenConflict behavior.
-    /// PT: Testa o comportamento de Insert_OnConflict_DoNothing_ShouldNotUpdate_WhenConflict.
+    /// EN: Verifies DO NOTHING leaves the existing row unchanged on conflict.
+    /// PT: Verifica se DO NOTHING mantem a linha existente inalterada em caso de conflito.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -86,8 +86,8 @@ public sealed class PostgreSqlOnConflictUpsertTests(ITestOutputHelper helper) : 
     }
 
     /// <summary>
-    /// EN: Tests Insert_OnConflict_DoUpdateWhereFalse_ShouldSkipUpdate_WhenConflict behavior.
-    /// PT: Testa o comportamento de Insert_OnConflict_DoUpdateWhereFalse_ShouldSkipUpdate_WhenConflict.
+    /// EN: Verifies a false DO UPDATE WHERE clause skips the conflict update.
+    /// PT: Verifica se uma clausula DO UPDATE WHERE falsa ignora a atualizacao do conflito.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -112,8 +112,8 @@ public sealed class PostgreSqlOnConflictUpsertTests(ITestOutputHelper helper) : 
     }
 
     /// <summary>
-    /// EN: Tests Insert_OnConflict_DoUpdateWhereTrue_ShouldApplyUpdate_WhenConflict behavior.
-    /// PT: Testa o comportamento de Insert_OnConflict_DoUpdateWhereTrue_ShouldApplyUpdate_WhenConflict.
+    /// EN: Verifies a true DO UPDATE WHERE clause applies the conflict update.
+    /// PT: Verifica se uma clausula DO UPDATE WHERE verdadeira aplica a atualizacao do conflito.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

@@ -1,8 +1,8 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Test;
 
 /// <summary>
-/// EN: Defines the class SqliteMockTests.
-/// PT: Define a classe SqliteMockTests.
+/// EN: Covers SQLite mock command and transaction scenarios.
+/// PT: Cobre cenarios de comandos e transacoes do mock SQLite.
 /// </summary>
 public sealed class SqliteMockTests
     : XUnitTestBase
@@ -10,8 +10,8 @@ public sealed class SqliteMockTests
     private readonly SqliteConnectionMock _connection;
 
     /// <summary>
-    /// EN: Tests SqliteMockTests behavior.
-    /// PT: Testa o comportamento de SqliteMockTests.
+    /// EN: Creates the SQLite mock test fixture with seeded tables.
+    /// PT: Cria a fixture de teste do mock SQLite com tabelas semeadas.
     /// </summary>
     public SqliteMockTests(
         ITestOutputHelper helper
@@ -34,8 +34,8 @@ public sealed class SqliteMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestInsert behavior.
-    /// PT: Testa o comportamento de TestInsert.
+    /// EN: Verifies INSERT statements write rows into the SQLite mock.
+    /// PT: Verifica se comandos INSERT gravam linhas no mock SQLite.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1528,8 +1528,8 @@ public sealed class SqliteMockTests
     }
 
     /// <summary>
-    /// EN: Tests ExecuteNonQuery with multi-statement INSERT script behavior.
-    /// PT: Testa o comportamento de ExecuteNonQuery com script de INSERT multi-statement.
+    /// EN: Verifies multi-statement INSERT scripts execute through ExecuteNonQuery.
+    /// PT: Verifica se scripts INSERT com varias instrucoes executam via ExecuteNonQuery.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1555,8 +1555,8 @@ public sealed class SqliteMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestUpdate behavior.
-    /// PT: Testa o comportamento de TestUpdate.
+    /// EN: Verifies UPDATE statements modify the expected SQLite rows.
+    /// PT: Verifica se comandos UPDATE modificam as linhas esperadas no SQLite.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1575,8 +1575,8 @@ public sealed class SqliteMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestDelete behavior.
-    /// PT: Testa o comportamento de TestDelete.
+    /// EN: Verifies DELETE statements remove the expected SQLite rows.
+    /// PT: Verifica se comandos DELETE removem as linhas esperadas no SQLite.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1595,8 +1595,8 @@ public sealed class SqliteMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestTransactionCommit behavior.
-    /// PT: Testa o comportamento de TestTransactionCommit.
+    /// EN: Verifies committed transactions persist SQLite changes.
+    /// PT: Verifica se transacoes confirmadas persistem as alteracoes no SQLite.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1631,8 +1631,8 @@ public sealed class SqliteMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestTransactionCommitInsertUpdate behavior.
-    /// PT: Testa o comportamento de TestTransactionCommitInsertUpdate.
+    /// EN: Verifies insert and update work inside a committed transaction.
+    /// PT: Verifica se insert e update funcionam dentro de uma transacao confirmada.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1654,8 +1654,8 @@ public sealed class SqliteMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestTransactionRollback behavior.
-    /// PT: Testa o comportamento de TestTransactionRollback.
+    /// EN: Verifies rolled back transactions discard SQLite changes.
+    /// PT: Verifica se transacoes revertidas descartam as alteracoes no SQLite.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1865,8 +1865,8 @@ public sealed class SqliteMockTests
 
 
     /// <summary>
-    /// EN: Tests TestBatch_SelectThenUpdateThenChanges_ShouldReflectLastDml behavior.
-    /// PT: Testa o comportamento de TestBatch_SelectThenUpdateThenChanges_ShouldReflectLastDml.
+    /// EN: Verifies a mixed batch reports the last DML change count.
+    /// PT: Verifica se um batch misto reporta a ultima contagem de alteracoes de DML.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1893,8 +1893,8 @@ public sealed class SqliteMockTests
 
 
     /// <summary>
-    /// EN: Tests TestBatch_CallUpdateCommitThenChanges_ShouldReturnZeroAfterCommit behavior.
-    /// PT: Testa o comportamento de TestBatch_CallUpdateCommitThenChanges_ShouldReturnZeroAfterCommit.
+    /// EN: Verifies COMMIT resets the change count in a mixed batch.
+    /// PT: Verifica se COMMIT zera a contagem de alteracoes em um batch misto.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1915,8 +1915,8 @@ public sealed class SqliteMockTests
 
 
     /// <summary>
-    /// EN: Tests TestBatch_UpdateThenSelectThenChanges_ShouldReflectLastSelect behavior.
-    /// PT: Testa o comportamento de TestBatch_UpdateThenSelectThenChanges_ShouldReflectLastSelect.
+    /// EN: Verifies the last SELECT in a batch determines the reported change count.
+    /// PT: Verifica se o ultimo SELECT de um batch determina a contagem de alteracoes reportada.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1947,8 +1947,8 @@ public sealed class SqliteMockTests
     }
 
     /// <summary>
-    /// EN: Tests ExecuteReader_InsertReturning_ShouldReturnInsertedRows behavior.
-    /// PT: Testa o comportamento de ExecuteReader_InsertReturning_ShouldReturnInsertedRows.
+    /// EN: Verifies INSERT RETURNING yields the inserted rows.
+    /// PT: Verifica se INSERT RETURNING devolve as linhas inseridas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1968,8 +1968,8 @@ public sealed class SqliteMockTests
     }
 
     /// <summary>
-    /// EN: Tests ExecuteReader_UpdateReturning_ShouldReturnUpdatedProjection behavior.
-    /// PT: Testa o comportamento de ExecuteReader_UpdateReturning_ShouldReturnUpdatedProjection.
+    /// EN: Verifies UPDATE RETURNING yields the updated projection.
+    /// PT: Verifica se UPDATE RETURNING devolve a projeção atualizada.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1995,8 +1995,8 @@ public sealed class SqliteMockTests
     }
 
     /// <summary>
-    /// EN: Tests ExecuteReader_DeleteReturning_ShouldReturnDeletedRowSnapshot behavior.
-    /// PT: Testa o comportamento de ExecuteReader_DeleteReturning_ShouldReturnDeletedRowSnapshot.
+    /// EN: Verifies DELETE RETURNING yields the deleted row snapshot.
+    /// PT: Verifica se DELETE RETURNING devolve o snapshot da linha removida.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -2023,8 +2023,8 @@ public sealed class SqliteMockTests
     }
 
     /// <summary>
-    /// EN: Tests ExecuteReader_InsertSelectReturning_ShouldReturnAllInsertedRows behavior.
-    /// PT: Testa o comportamento de ExecuteReader_InsertSelectReturning_ShouldReturnAllInsertedRows.
+    /// EN: Verifies INSERT SELECT RETURNING yields every inserted row.
+    /// PT: Verifica se INSERT SELECT RETURNING devolve cada linha inserida.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -2059,8 +2059,8 @@ public sealed class SqliteMockTests
     }
 
     /// <summary>
-    /// EN: Tests ExecuteReader_UpdateReturningQualifiedWildcard_ShouldReturnAllColumns behavior.
-    /// PT: Testa o comportamento de ExecuteReader_UpdateReturningQualifiedWildcard_ShouldReturnAllColumns.
+    /// EN: Verifies qualified wildcard RETURNING includes all updated columns.
+    /// PT: Verifica se RETURNING com curinga qualificado inclui todas as colunas atualizadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]

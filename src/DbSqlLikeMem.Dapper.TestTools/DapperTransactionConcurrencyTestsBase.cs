@@ -3,8 +3,8 @@ using Dapper;
 namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
-/// EN: Defines shared transaction reliability assertions for Dapper provider tests.
-/// PT: Define asserções compartilhadas de confiabilidade transacional para testes de provedores Dapper.
+/// EN: Covers shared transaction reliability assertions for Dapper provider tests.
+/// PT: Cobre assercoes compartilhadas de confiabilidade transacional para testes de provedores Dapper.
 /// </summary>
 public abstract class DapperTransactionConcurrencyTestsBase(
         ITestOutputHelper helper

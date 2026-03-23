@@ -4,8 +4,8 @@ using System.Text;
 namespace DbSqlLikeMem.SqlAzure.Test;
 
 /// <summary>
-/// EN: Validates SQL Azure function execution across supported compatibility levels.
-/// PT: Valida a execucao de funcoes do SQL Azure nos niveis de compatibilidade suportados.
+/// EN: Covers SQL Azure function execution across supported compatibility levels.
+/// PT: Cobre a execucao de funcoes do SQL Azure nos niveis de compatibilidade suportados.
 /// </summary>
 public sealed class SqlAzureFunctionTests
     : XUnitTestBase
@@ -24,8 +24,8 @@ public sealed class SqlAzureFunctionTests
     private readonly SqlAzureConnectionMock _connection;
 
     /// <summary>
-    /// EN: Initializes SQL Azure function fixtures with sample tables and sequences.
-    /// PT: Inicializa os fixtures de funcoes do SQL Azure com tabelas e sequences de exemplo.
+    /// EN: Creates SQL Azure function fixtures with sample tables and sequences.
+    /// PT: Cria fixtures de funcoes do SQL Azure com tabelas e sequences de exemplo.
     /// </summary>
     public SqlAzureFunctionTests(ITestOutputHelper helper)
         : base(helper)
@@ -497,3 +497,7 @@ public sealed class SqlAzureFunctionTests
     private void ExecuteNonQuery(string sql)
         => ExecuteNonQuery(_connection, sql);
 }
+
+
+
+

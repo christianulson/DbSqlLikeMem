@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
-/// EN: Provides provider-specific SQL snippets used by the benchmark session workflows.
-/// PT-br: Fornece trechos SQL específicos do provedor usados pelos fluxos das sessões de benchmark.
+/// EN: Describes provider-specific SQL snippets used by the benchmark session workflows.
+/// PT-br: Descreve trechos SQL especificos do provedor usados pelos fluxos das sessoes de benchmark.
 /// </summary>
 public abstract class ProviderSqlDialect
 {
@@ -112,7 +112,17 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(tableName)} (
     /// EN: Returns the INSERT statement used to add an order row.
     /// PT: Retorna a instrucao INSERT usada para adicionar uma linha de pedido.
     /// </summary>
-    public abstract string InsertOrder(string tableName, string usersTableName, int id, int userId, string note);
+    public abstract string InsertOrder(
+        string tableName,
+        string usersTableName,
+        int id,
+        int userId,
+        string note,
+        string orderNumber,
+        decimal amount,
+        int quantity,
+        bool isPaid,
+        string orderedAtLiteral);
 
     /// <summary>
     /// EN: Returns the SELECT statement used to read a user name by primary key.

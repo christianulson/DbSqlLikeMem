@@ -1,8 +1,8 @@
 ﻿namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
-/// EN: Defines the contract for creating and dropping scenario data.
-/// PT: Define o contrato para criar e remover dados de cenario.
+/// EN: Describes the contract for creating and dropping scenario data.
+/// PT: Descreve o contrato para criar e remover dados de cenario.
 /// </summary>
 public interface ITestScenario<T>
     where T : DbConnection

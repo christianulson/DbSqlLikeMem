@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
-/// EN: Defines the class PostgreSqlAdditionalBehaviorCoverageTests.
-/// PT: Define a classe PostgreSqlAdditionalBehaviorCoverageTests.
+/// EN: Covers additional PostgreSQL behavior scenarios over the Npgsql mock.
+/// PT: Cobre cenarios adicionais de comportamento do PostgreSQL sobre o mock Npgsql.
 /// </summary>
 public sealed class PostgreSqlAdditionalBehaviorCoverageTests(
     ITestOutputHelper helper

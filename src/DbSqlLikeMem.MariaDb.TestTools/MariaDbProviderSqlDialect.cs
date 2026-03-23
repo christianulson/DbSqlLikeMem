@@ -59,7 +59,7 @@ CREATE TABLE {tableName}_{uId} (
     ExtraJson JSON NULL,
     INDEX IX_{tableName}_{uId}_{usersTableName}Id ({usersTableName}Id),
     UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber (OrderNumber),
-    CONSTRAINT FK_{tableName}_{uId}_{usersTableName} FOREIGN KEY ({usersTableName}Id) REFERENCES {usersTableName}_{uId}(Id)
+    CONSTRAINT FK_{tableName}_{uId}_{usersTableName} FOREIGN KEY ({usersTableName}Id) REFERENCES {usersTableName}(Id)
 )";
 
     /// <inheritdoc />
@@ -75,8 +75,18 @@ CREATE TABLE {tableName}_{uId} (
         $"INSERT INTO {tableName} (Id, Name, IsActive, Balance, CreatedAt) VALUES {string.Join(",", values.Select(_ => $"({_.id}, '{_.name}', TRUE, 0.00, CURRENT_TIMESTAMP)"))}";
 
     /// <inheritdoc />
-    public override string InsertOrder(string tableName, string usersTableName, int id, int userId, string note) =>
-        $"INSERT INTO {tableName} (Id, {usersTableName}Id, Note) VALUES ({id}, {userId}, '{note}')";
+    public override string InsertOrder(
+        string tableName,
+        string usersTableName,
+        int id,
+        int userId,
+        string note,
+        string orderNumber,
+        decimal amount,
+        int quantity,
+        bool isPaid,
+        string orderedAtLiteral) =>
+        $"INSERT INTO {tableName} (Id, {usersTableName}Id, Note, OrderNumber, Amount, Quantity, IsPaid, OrderedAt) VALUES ({id}, {userId}, '{note}', '{orderNumber}', {amount.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}, {quantity}, {(isPaid ? "TRUE" : "FALSE")}, {orderedAtLiteral})";
 
     /// <inheritdoc />
     public override string SelectUserNameById(string tableName, int id) =>

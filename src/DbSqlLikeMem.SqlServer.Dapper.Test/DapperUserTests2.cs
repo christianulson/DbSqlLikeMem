@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 
 /// <summary>
-/// EN: Defines the class DapperUserTests2.
-/// PT: Define a classe DapperUserTests2.
+/// EN: Covers the second SQL Server Dapper user-query scenario set against the mock provider.
+/// PT: Cobre o segundo conjunto de cenarios de consulta de usuarios do Dapper para SQL Server contra o provedor mock.
 /// </summary>
 public sealed class DapperUserTests2(
     ITestOutputHelper helper

@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.SqlServer;
 /// <summary>
-/// EN: Defines the class SqlServerLinqExtensions.
-/// PT: Define a classe SqlServerLinqExtensions.
+/// EN: Adds SQL Server-specific LINQ queryable helpers for mock connections.
+/// PT: Adiciona helpers LINQ especificos de SQL Server para conexoes mock.
 /// </summary>
 public static class SqlServerLinqExtensions
 {

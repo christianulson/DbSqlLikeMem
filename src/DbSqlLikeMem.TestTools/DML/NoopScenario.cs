@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.TestTools.DML;
 
 /// <summary>
-/// EN: Provides no-op scenario setup for workflows that only need an open connection.
-/// PT: Fornece preparação de cenário sem operação para fluxos que precisam apenas de uma conexão aberta.
+/// EN: Describes a no-op scenario setup for workflows that only need an open connection.
+/// PT: Descreve uma configuracao de cenario sem operacao para fluxos que precisam apenas de uma conexao aberta.
 /// </summary>
 public sealed class NoopScenario<T> : ITestScenario<T>
     where T : DbConnection

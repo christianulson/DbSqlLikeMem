@@ -1,14 +1,14 @@
 ﻿namespace DbSqlLikeMem.Db2.Dapper.Test;
 
 /// <summary>
-/// Tests that lock-in expected behavior for DB2 features that the in-memory mock already supports.
-/// Keep these green: they protect you from regressions while you implement more advanced gaps elsewhere.
+/// EN: Covers DB2 UNION, LIMIT, and JSON compatibility scenarios already supported by the in-memory mock.
+/// PT: Cobre cenarios de compatibilidade de UNION, LIMIT e JSON do DB2 que o mock em memoria ja suporta.
 /// </summary>
 public sealed class Db2UnionLimitAndJsonCompatibilityTests : DapperUnionLimitAndJsonCompatibilityTestsBase<Db2DbMock, Db2ConnectionMock>
 {
     /// <summary>
-    /// EN: Tests Db2UnionLimitAndJsonCompatibilityTests behavior.
-    /// PT: Testa o comportamento de Db2UnionLimitAndJsonCompatibilityTests.
+    /// EN: Creates the in-memory DB2 connection used by the UNION, LIMIT, and JSON compatibility tests.
+    /// PT: Cria a conexao DB2 em memoria usada pelos testes de compatibilidade de UNION, LIMIT e JSON.
     /// </summary>
     public Db2UnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper) { }
 
@@ -16,8 +16,8 @@ public sealed class Db2UnionLimitAndJsonCompatibilityTests : DapperUnionLimitAnd
     protected override Db2ConnectionMock CreateConnection(Db2DbMock db) => new(db);
 
     /// <summary>
-    /// EN: Tests UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates behavior.
-    /// PT: Testa o comportamento de UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates.
+    /// EN: Verifies UNION ALL keeps duplicates while UNION removes them.
+    /// PT: Verifica se UNION ALL mantem duplicatas enquanto UNION as remove.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2UnionLimitAndJsonCompatibility")]
@@ -25,8 +25,8 @@ public sealed class Db2UnionLimitAndJsonCompatibilityTests : DapperUnionLimitAnd
         => AssertUnionAllKeepsDuplicatesAndUnionRemovesThem();
 
     /// <summary>
-    /// EN: Tests Limit_OffsetCommaSyntax_ShouldWork behavior.
-    /// PT: Testa o comportamento de Limit_OffsetCommaSyntax_ShouldWork.
+    /// EN: Verifies LIMIT supports the comma offset syntax.
+    /// PT: Verifica se LIMIT suporta a sintaxe de offset com virgula.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2UnionLimitAndJsonCompatibility")]
@@ -37,8 +37,8 @@ public sealed class Db2UnionLimitAndJsonCompatibilityTests : DapperUnionLimitAnd
     }
 
     /// <summary>
-    /// EN: Tests Limit_OffsetKeywordSyntax_ShouldWork behavior.
-    /// PT: Testa o comportamento de Limit_OffsetKeywordSyntax_ShouldWork.
+    /// EN: Verifies LIMIT supports the OFFSET keyword syntax.
+    /// PT: Verifica se LIMIT suporta a sintaxe com a palavra-chave OFFSET.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2UnionLimitAndJsonCompatibility")]
@@ -49,8 +49,8 @@ public sealed class Db2UnionLimitAndJsonCompatibilityTests : DapperUnionLimitAnd
     }
 
     /// <summary>
-    /// EN: Tests JsonExtract_SimpleObjectPath_ShouldWork behavior.
-    /// PT: Testa o comportamento de JsonExtract_SimpleObjectPath_ShouldWork.
+    /// EN: Verifies JSON_EXTRACT throws when the dialect does not support it.
+    /// PT: Verifica se JSON_EXTRACT lança erro quando o dialeto nao suporta.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2UnionLimitAndJsonCompatibility")]
@@ -64,8 +64,8 @@ public sealed class Db2UnionLimitAndJsonCompatibilityTests : DapperUnionLimitAnd
 
 
     /// <summary>
-    /// EN: Tests OrderBy_NullsFirst_ShouldThrow_WhenDialectDoesNotSupportModifier behavior.
-    /// PT: Testa o comportamento de OrderBy_NullsFirst_ShouldThrow_WhenDialectDoesNotSupportModifier.
+    /// EN: Verifies ORDER BY NULLS FIRST throws when the dialect does not support that modifier.
+    /// PT: Verifica se ORDER BY NULLS FIRST gera erro quando o dialeto nao suporta esse modificador.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2UnionLimitAndJsonCompatibility")]
@@ -77,8 +77,8 @@ public sealed class Db2UnionLimitAndJsonCompatibilityTests : DapperUnionLimitAnd
 
 
     /// <summary>
-    /// EN: Tests JsonFunction_ShouldThrow_WhenNotSupportedByDialect behavior.
-    /// PT: Testa o comportamento de JsonFunction_ShouldThrow_WhenNotSupportedByDialect.
+    /// EN: Verifies unsupported JSON functions throw the expected exception.
+    /// PT: Verifica se funcoes JSON sem suporte lancam a excecao esperada.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2UnionLimitAndJsonCompatibility")]

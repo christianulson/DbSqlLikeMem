@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.Db2.Dapper.Test;
 
 /// <summary>
-/// EN: Defines the class Db2AdditionalBehaviorCoverageTests.
-/// PT: Define a classe Db2AdditionalBehaviorCoverageTests.
+/// EN: Covers additional DB2 behavior scenarios for the Dapper provider.
+/// PT: Cobre cenarios adicionais de comportamento DB2 para o provedor Dapper.
 /// </summary>
 public sealed class Db2AdditionalBehaviorCoverageTests(
     ITestOutputHelper helper

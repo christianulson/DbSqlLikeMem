@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 
 /// <summary>
-/// EN: Defines the class SqliteJoinTests.
-/// PT: Define a classe SqliteJoinTests.
+/// EN: Covers SQLite join scenarios against the Dapper provider.
+/// PT: Cobre cenarios de join SQLite contra o provedor Dapper.
 /// </summary>
 public sealed class SqliteJoinTests(
     ITestOutputHelper helper

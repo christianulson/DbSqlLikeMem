@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
-/// EN: Defines the class PostgreSqlJoinTests.
-/// PT: Define a classe PostgreSqlJoinTests.
+/// EN: Covers PostgreSQL join scenarios against the Npgsql mock provider.
+/// PT: Cobre cenarios de join do PostgreSQL contra o provedor mock Npgsql.
 /// </summary>
 public sealed class PostgreSqlJoinTests(
     ITestOutputHelper helper

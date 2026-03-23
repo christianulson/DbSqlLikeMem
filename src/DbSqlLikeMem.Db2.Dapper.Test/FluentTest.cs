@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.Db2.Dapper.Test;
 /// <summary>
-/// EN: Defines the class FluentTest.
-/// PT: Define a classe FluentTest.
+/// EN: Covers DB2 fluent mapping scenarios against the Dapper provider.
+/// PT: Cobre cenarios de mapeamento fluent DB2 contra o provedor Dapper.
 /// </summary>
 public sealed class FluentTest(
         ITestOutputHelper helper

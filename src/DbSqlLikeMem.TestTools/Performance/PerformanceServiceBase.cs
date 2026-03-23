@@ -1,8 +1,11 @@
+using System.Collections.Concurrent;
+using System.Reflection;
+
 namespace DbSqlLikeMem.TestTools.Performance;
 
 /// <summary>
-/// EN: Provides shared reflection helpers for benchmark services that inspect provider diagnostics.
-/// PT: Fornece helpers de reflexao compartilhados para services de benchmark que inspecionam diagnosticos do provedor.
+/// EN: Describes shared reflection helpers for benchmark services that inspect provider diagnostics.
+/// PT: Descreve helpers de reflexao compartilhados para services de benchmark que inspecionam diagnosticos do provedor.
 /// </summary>
 public abstract class PerformanceServiceBase<T>(
     T connection,
@@ -11,6 +14,9 @@ public abstract class PerformanceServiceBase<T>(
     ) : BaseServiceTest<T>(connection, testScenario, dialect)
     where T : DbConnection
 {
+    private static readonly ConcurrentDictionary<(Type Type, string MemberName), MemberInfo?> DiagnosticMemberCache = [];
+    private static readonly ConcurrentDictionary<(Type Type, string MethodName, int ParameterCount), MethodInfo?> DiagnosticMethodCache = [];
+
     /// <summary>
     /// EN: Reads a property or field from a diagnostic object when it is available.
     /// PT: Lê uma propriedade ou campo de um objeto de diagnostico quando ele esta disponivel.
@@ -18,19 +24,25 @@ public abstract class PerformanceServiceBase<T>(
     protected static object? TryReadDiagnosticValue(object target, string memberName)
     {
         var type = target.GetType();
-        var property = type.GetProperty(memberName);
-        if (property is not null && property.GetIndexParameters().Length == 0)
-        {
-            return property.GetValue(target);
-        }
+        var member = DiagnosticMemberCache.GetOrAdd(
+            (type, memberName),
+            static key =>
+            {
+                var property = key.Type.GetProperty(key.MemberName);
+                if (property is not null && property.GetIndexParameters().Length == 0)
+                {
+                    return property;
+                }
 
-        var field = type.GetField(memberName);
-        if (field is not null)
-        {
-            return field.GetValue(target);
-        }
+                return key.Type.GetField(key.MemberName);
+            });
 
-        return null;
+        return member switch
+        {
+            PropertyInfo property => property.GetValue(target),
+            FieldInfo field => field.GetValue(target),
+            _ => null
+        };
     }
 
     /// <summary>
@@ -39,7 +51,17 @@ public abstract class PerformanceServiceBase<T>(
     /// </summary>
     protected static bool TryInvokeIfExists(object target, string methodName)
     {
-        var method = target.GetType().GetMethod(methodName, Type.EmptyTypes);
+        var method = DiagnosticMethodCache.GetOrAdd(
+            (target.GetType(), methodName, 0),
+            static key =>
+            {
+                return key.Type
+                    .GetMethods()
+                    .FirstOrDefault(m =>
+                        string.Equals(m.Name, key.MethodName, StringComparison.Ordinal)
+                        && m.GetParameters().Length == key.ParameterCount);
+            });
+
         if (method is null)
         {
             return false;
@@ -55,17 +77,23 @@ public abstract class PerformanceServiceBase<T>(
     /// </summary>
     protected static object? TryInvokeWithArgIfExists(object target, string methodName, object? arg)
     {
-        var methods = target.GetType().GetMethods().Where(m => string.Equals(m.Name, methodName, StringComparison.Ordinal)).ToArray();
-        foreach (var method in methods)
-        {
-            var parameters = method.GetParameters();
-            if (parameters.Length == 1)
+        var method = DiagnosticMethodCache.GetOrAdd(
+            (target.GetType(), methodName, 1),
+            static key =>
             {
-                return method.Invoke(target, [arg]);
-            }
+                return key.Type
+                    .GetMethods()
+                    .FirstOrDefault(m =>
+                        string.Equals(m.Name, key.MethodName, StringComparison.Ordinal)
+                        && m.GetParameters().Length == key.ParameterCount);
+            });
+
+        if (method is null)
+        {
+            return null;
         }
 
-        return null;
+        return method.Invoke(target, [arg]);
     }
 
     /// <summary>
@@ -74,7 +102,17 @@ public abstract class PerformanceServiceBase<T>(
     /// </summary>
     protected static object? TryInvokeSnapshot(object target, string methodName)
     {
-        var method = target.GetType().GetMethod(methodName, Type.EmptyTypes);
+        var method = DiagnosticMethodCache.GetOrAdd(
+            (target.GetType(), methodName, 0),
+            static key =>
+            {
+                return key.Type
+                    .GetMethods()
+                    .FirstOrDefault(m =>
+                        string.Equals(m.Name, key.MethodName, StringComparison.Ordinal)
+                        && m.GetParameters().Length == key.ParameterCount);
+            });
+
         return method?.Invoke(target, null);
     }
 }

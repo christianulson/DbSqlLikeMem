@@ -142,13 +142,13 @@ function Ensure-Db2UserTemporaryTablespace {
     }
 
     Write-Host "Creating DB2 user temporary tablespace '$TablespaceName'..."
-    docker exec $Db2ContainerName bash -lc "su - db2inst1 -c 'db2 connect to $DatabaseName >/dev/null 2>&1 && db2 create user temporary tablespace $TablespaceName managed by automatic storage'"
-    if ($LASTEXITCODE -ne 0) {
+    $createOutput = docker exec $Db2ContainerName bash -lc "su - db2inst1 -c 'db2 connect to $DatabaseName >/dev/null 2>&1 && db2 create user temporary tablespace $TablespaceName managed by automatic storage'" 2>&1 | Out-String
+    if ($LASTEXITCODE -ne 0 -and $createOutput -notmatch [regex]::Escape("SQL0601N") -and $createOutput -notmatch [regex]::Escape("identical to the existing name")) {
         throw "Failed to create DB2 user temporary tablespace '$TablespaceName'."
     }
 
-    docker exec $Db2ContainerName bash -lc "su - db2inst1 -c 'db2 connect to $DatabaseName >/dev/null 2>&1 && db2 grant use of tablespace $TablespaceName to user db2inst1'"
-    if ($LASTEXITCODE -ne 0) {
+    $grantOutput = docker exec $Db2ContainerName bash -lc "su - db2inst1 -c 'db2 connect to $DatabaseName >/dev/null 2>&1 && db2 grant use of tablespace $TablespaceName to user db2inst1'" 2>&1 | Out-String
+    if ($LASTEXITCODE -ne 0 -and $grantOutput -notmatch [regex]::Escape("SQL0554N") -and $grantOutput -notmatch [regex]::Escape("cannot grant a privilege or authority to itself")) {
         throw "Failed to grant use of DB2 user temporary tablespace '$TablespaceName'."
     }
 

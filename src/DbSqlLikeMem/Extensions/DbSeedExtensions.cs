@@ -4,16 +4,16 @@ using System.Linq.Expressions;
 namespace DbSqlLikeMem;
 
 /// <summary>
-/// EN: Defines the class DbSeedExtensions.
-/// PT: Define a classe DbSeedExtensions.
+/// EN: Adds fluent seed and column helpers for mock database connections and tables.
+/// PT: Adiciona helpers fluent de seed e colunas para conexoes e tabelas do mock.
 /// </summary>
 public static class DbSeedExtensions
 {
     private static readonly ConcurrentDictionary<Type, IReadOnlyList<(string Name, Func<object, object?> Getter)>> _seedFieldAccessorCache = new();
 
     /// <summary>
-    /// EN: Implements Define.
-    /// PT: Implementa Define.
+    /// EN: Ensures a table exists in the mock database and returns the same connection instance.
+    /// PT: Garante que uma tabela exista no banco mock e retorna a mesma instancia de conexao.
     /// </summary>
     public static DbConnectionMockBase Define(
         this DbConnectionMockBase cnn,
@@ -30,8 +30,8 @@ public static class DbSeedExtensions
     }
 
     /// <summary>
-    /// EN: Implements DefineTable.
-    /// PT: Implementa DefineTable.
+    /// EN: Ensures a table exists in the mock database and returns the table instance.
+    /// PT: Garante que uma tabela exista no banco mock e retorna a instancia da tabela.
     /// </summary>
     public static ITableMock DefineTable(
         this DbConnectionMockBase cnn,
@@ -89,8 +89,8 @@ public static class DbSeedExtensions
     }
 
     /// <summary>
-    /// EN: Implements this member.
-    /// PT: Implementa este membro.
+    /// EN: Adds a typed column to a mock table through the connection helper.
+    /// PT: Adiciona uma coluna tipada a uma tabela mock pelo helper de conexao.
     /// </summary>
     public static DbConnectionMockBase Column<T>(
         this DbConnectionMockBase cnn,
@@ -130,8 +130,8 @@ public static class DbSeedExtensions
     }
 
     /// <summary>
-    /// EN: Implements this member.
-    /// PT: Implementa este membro.
+    /// EN: Adds a typed column to a mock table instance.
+    /// PT: Adiciona uma coluna tipada a uma instancia de tabela mock.
     /// </summary>
     public static ITableMock Column<T>(
         this ITableMock tb,
@@ -168,8 +168,8 @@ public static class DbSeedExtensions
     }
 
     /// <summary>
-    /// EN: Implements this member.
-    /// PT: Implementa este membro.
+    /// EN: Seeds a mock table from a typed row array.
+    /// PT: Faz o seed de uma tabela mock a partir de um array de linhas tipadas.
     /// </summary>
     public static DbConnectionMockBase Seed<T>(
         this DbConnectionMockBase cnn,
@@ -199,8 +199,8 @@ public static class DbSeedExtensions
     }
 
     /// <summary>
-    /// EN: Implements Seed.
-    /// PT: Implementa Seed.
+    /// EN: Seeds a mock table from an array of positional row values.
+    /// PT: Faz o seed de uma tabela mock a partir de um array de valores posicionais por linha.
     /// </summary>
     public static DbConnectionMockBase Seed(
         this DbConnectionMockBase cnn,

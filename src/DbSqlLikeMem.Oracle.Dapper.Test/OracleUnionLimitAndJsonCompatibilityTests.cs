@@ -1,14 +1,14 @@
 namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
-/// Tests that lock-in expected behavior for MySQL features that the in-memory mock already supports.
-/// Keep these green: they protect you from regressions while you implement more advanced gaps elsewhere.
+/// EN: Covers Oracle UNION, offset/fetch, and JSON compatibility scenarios already supported by the in-memory mock.
+/// PT: Cobre cenarios de compatibilidade de UNION, offset/fetch e JSON do Oracle que o mock em memoria ja suporta.
 /// </summary>
 public sealed class OracleUnionLimitAndJsonCompatibilityTests : DapperUnionLimitAndJsonCompatibilityTestsBase<OracleDbMock, OracleConnectionMock>
 {
     /// <summary>
-    /// EN: Initializes a new instance of OracleUnionLimitAndJsonCompatibilityTests.
-    /// PT: Inicializa uma nova instância de OracleUnionLimitAndJsonCompatibilityTests.
+    /// EN: Creates the in-memory Oracle connection used by the UNION, offset/fetch, and JSON compatibility tests.
+    /// PT: Cria a conexao Oracle em memoria usada pelos testes de compatibilidade de UNION, offset/fetch e JSON.
     /// </summary>
     public OracleUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper) { }
 
@@ -16,8 +16,8 @@ public sealed class OracleUnionLimitAndJsonCompatibilityTests : DapperUnionLimit
     protected override OracleConnectionMock CreateConnection(OracleDbMock db) => new(db);
 
     /// <summary>
-    /// EN: Tests UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates behavior.
-    /// PT: Testa o comportamento de UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates.
+    /// EN: Verifies UNION ALL keeps duplicates while UNION removes them.
+    /// PT: Verifica se UNION ALL mantem duplicatas enquanto UNION as remove.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
@@ -25,8 +25,8 @@ public sealed class OracleUnionLimitAndJsonCompatibilityTests : DapperUnionLimit
         => AssertUnionAllKeepsDuplicatesAndUnionRemovesThem();
 
     /// <summary>
-    /// EN: Tests OffsetFetch_ShouldWork behavior.
-    /// PT: Testa o comportamento de OffsetFetch_ShouldWork.
+    /// EN: Verifies OFFSET/FETCH pagination returns the expected rows.
+    /// PT: Verifica se a paginacao OFFSET/FETCH retorna as linhas esperadas.
     /// </summary>
     [Theory]
     [MemberDataOracleVersion]
@@ -48,8 +48,8 @@ public sealed class OracleUnionLimitAndJsonCompatibilityTests : DapperUnionLimit
     }
 
     /// <summary>
-    /// EN: Tests JsonValue_SimpleObjectPath_ShouldWork behavior.
-    /// PT: Testa o comportamento de JsonValue_SimpleObjectPath_ShouldWork.
+    /// EN: Verifies JSON_VALUE returns the expected scalar values.
+    /// PT: Verifica se JSON_VALUE retorna os valores escalares esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
@@ -76,8 +76,8 @@ public sealed class OracleUnionLimitAndJsonCompatibilityTests : DapperUnionLimit
 
 
     /// <summary>
-    /// EN: Tests OrderBy_NullsFirst_ShouldApplyExplicitNullOrdering behavior.
-    /// PT: Testa o comportamento de OrderBy_NullsFirst_ShouldApplyExplicitNullOrdering.
+    /// EN: Verifies ORDER BY NULLS FIRST applies explicit null ordering.
+    /// PT: Verifica se ORDER BY NULLS FIRST aplica a ordenacao explicita de nulos.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
@@ -89,8 +89,8 @@ public sealed class OracleUnionLimitAndJsonCompatibilityTests : DapperUnionLimit
 
 
     /// <summary>
-    /// EN: Tests JsonFunction_ShouldThrow_WhenNotSupportedByDialect behavior.
-    /// PT: Testa o comportamento de JsonFunction_ShouldThrow_WhenNotSupportedByDialect.
+    /// EN: Verifies unsupported JSON functions throw the expected exception.
+    /// PT: Verifica se funcoes JSON sem suporte lancam a excecao esperada.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]

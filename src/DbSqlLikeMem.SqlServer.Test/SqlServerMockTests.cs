@@ -10,8 +10,8 @@ public sealed class SqlServerMockTests
     private readonly SqlServerConnectionMock _connection;
 
     /// <summary>
-    /// EN: Initializes the SQL Server mock connection used by the test suite.
-    /// PT: Inicializa a conexao mock SQL Server usada pela suite de testes.
+    /// EN: Creates the SQL Server mock connection used by the test suite.
+    /// PT: Cria a conexao mock SQL Server usada pela suite de testes.
     /// </summary>
     public SqlServerMockTests(
         ITestOutputHelper helper

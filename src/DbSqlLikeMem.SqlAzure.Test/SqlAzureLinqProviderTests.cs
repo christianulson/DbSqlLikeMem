@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.SqlAzure.Test;
 
 /// <summary>
-/// EN: Defines SQL Azure LINQ provider smoke tests.
-/// PT: Define testes smoke do provider LINQ de SQL Azure.
+/// EN: Covers SQL Azure LINQ provider smoke scenarios.
+/// PT: Cobre cenarios smoke do provider LINQ de SQL Azure.
 /// </summary>
 public sealed class SqlAzureLinqProviderTests(
         ITestOutputHelper helper
@@ -63,3 +63,6 @@ public sealed class SqlAzureLinqProviderTests(
         Assert.Equal("Ana", list[0].Name);
     }
 }
+
+
+

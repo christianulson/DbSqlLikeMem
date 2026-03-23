@@ -20,11 +20,12 @@ public sealed class UsersScenario<T>(
     {
         var users = (string)pars[0];
         var uId = (string)pars[1];
+        var tableName = $"{users}_{uId}";
         service.ExecuteNonQuery(dialect.CreateUsersTable(users, uId));
 
         foreach (var (id, name) in seedRows)
         {
-            service.ExecuteNonQuery(dialect.InsertUser(users, id, name));
+            service.ExecuteNonQuery(dialect.InsertUser(tableName, id, name));
         }
     }
 

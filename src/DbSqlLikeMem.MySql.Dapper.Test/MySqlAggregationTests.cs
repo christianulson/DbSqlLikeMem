@@ -7,8 +7,8 @@ namespace DbSqlLikeMem.MySql.Dapper.Test;
 public sealed class MySqlAggregationTests : AggregationHavingOrdinalTestsBase<MySqlDbMock, MySqlConnectionMock>
 {
     /// <summary>
-    /// EN: Initializes MySQL aggregation tests.
-    /// PT: Inicializa os testes de agregação do MySQL.
+    /// EN: Creates the MySQL aggregation test suite helper.
+    /// PT: Cria o helper da suite de testes de agregacao do MySQL.
     /// </summary>
     /// <param name="helper">EN: Output helper. PT: Helper de saída.</param>
     public MySqlAggregationTests(ITestOutputHelper helper) : base(helper)
@@ -25,8 +25,8 @@ public sealed class MySqlAggregationTests : AggregationHavingOrdinalTestsBase<My
     protected override List<dynamic> Query(string sql) => Connection.Query<dynamic>(sql).ToList();
 
     /// <summary>
-    /// EN: Tests Distinct_Order_WithPagination_ShouldWork behavior.
-    /// PT: Testa o comportamento de Distinct_Order_WithPagination_ShouldWork.
+    /// EN: Verifies DISTINCT ordering with pagination returns the expected rows.
+    /// PT: Verifica se a ordenacao DISTINCT com paginacao retorna as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]

@@ -699,6 +699,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: a trilha comparativa de benchmark foi materializada em `benchmark/DbSqlLikeMem.Benchmarks`, comparando o runtime do `DbSqlLikeMem` com bancos reais/nativos a partir do mesmo catálogo de cenários.
 - Incremento desta sessão: a infraestrutura comparativa foi padronizada em `Testcontainers` para `MySQL`, `SQL Server`, `PostgreSQL/Npgsql`, `Oracle` e `DB2`, com modo `preprovisioned` para execuções controladas sem custo de boot a cada rodada e `Sqlite` usando baseline nativa embedded.
 - Incremento desta sessão: os artefatos objetivos dessa trilha passaram a ser publicados na wiki espelhada em `docs/Wiki/performance-matrix.md`, `docs/Wiki/performance-matrix-app-specific.md` e `docs/Wiki/BenchmarkResults`, mantendo histórico versionado por rodada de medição.
+- Incremento desta sessão: a frente de performance dos testes foi enxugada no caminho quente e passou a usar flags específicas por suíte para manter o benchmark rápido como padrão, evitando que comparação com container entre por acidente nas execuções normais.
 - TODO: propagar o disclaimer de performance para todos os pontos de consumo de telemetria/planos e manter a documentação de entrada alinhada sempre que novas métricas forem expostas.
 - TODO: enriquecer os artefatos comparativos da wiki com `footprint`, notas de limitação operacional e demais metadados de custo que ainda não aparecem de forma consolidada em todas as matrizes.
 

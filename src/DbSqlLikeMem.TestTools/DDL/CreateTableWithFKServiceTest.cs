@@ -19,6 +19,7 @@ public class CreateTableWithFKServiceTest<T>(
     /// <param name="pars"></param>
     public void RunTest(params object[] pars)
     {
-        ExecuteNonQuery(Dialect.CreateOrdersTable((string)pars[1], (string)pars[0], (string)pars[2]));
+        var usersTable = $"{(string)pars[0]}_{(string)pars[2]}";
+        ExecuteNonQuery(Dialect.CreateOrdersTable((string)pars[1], usersTable, (string)pars[2]));
     }
 }

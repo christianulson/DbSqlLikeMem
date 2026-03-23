@@ -28,12 +28,15 @@ public class DebugTraceServiceTest<T>(
     /// EN: Executes a batch and reads the provider debug SQL batch trace when available.
     /// PT: Executa um lote e lê o rastreamento do lote SQL de debug do provedor quando disponivel.
     /// </summary>
+    /// <param name="pars">EN: The users table name and optional insert ids. PT: O nome da tabela de usuarios e os ids de insert opcionais.</param>
     public object? RunDebugTraceBatch(params object[] pars)
     {
         var users = (string)pars[0];
-        ExecuteNonQuery(Dialect.InsertUser(users, 1, "Alice"));
-        ExecuteNonQuery(Dialect.InsertUser(users, 2, "Bob"));
-        var trace = TryReadDiagnosticValue(Connection, "DebugSqlBatch") ?? (Dialect.InsertUser(users, 1, "Alice") + ";" + Dialect.InsertUser(users, 2, "Bob"));
+        var id1 = pars.Length > 1 ? (int)pars[1] : 1;
+        var id2 = pars.Length > 2 ? (int)pars[2] : 2;
+        ExecuteNonQuery(Dialect.InsertUser(users, id1, "Alice"));
+        ExecuteNonQuery(Dialect.InsertUser(users, id2, "Bob"));
+        var trace = TryReadDiagnosticValue(Connection, "DebugSqlBatch") ?? (Dialect.InsertUser(users, id1, "Alice") + ";" + Dialect.InsertUser(users, id2, "Bob"));
         GC.KeepAlive(trace);
         return trace;
     }

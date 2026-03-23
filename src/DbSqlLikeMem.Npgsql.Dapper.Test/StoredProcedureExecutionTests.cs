@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
-/// EN: Defines the class StoredProcedureExecutionTests.
-/// PT: Define a classe StoredProcedureExecutionTests.
+/// EN: Covers PostgreSQL stored procedure execution scenarios against the Dapper provider.
+/// PT: Cobre cenarios de execucao de stored procedures PostgreSQL contra o provedor Dapper.
 /// </summary>
 public sealed class StoredProcedureExecutionTests(
     ITestOutputHelper helper

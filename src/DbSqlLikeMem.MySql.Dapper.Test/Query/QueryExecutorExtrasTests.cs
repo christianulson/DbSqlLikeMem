@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.MySql.Dapper.Test.Query;
 
 /// <summary>
-/// EN: Defines the class QueryExecutorExtrasTests.
-/// PT: Define a classe QueryExecutorExtrasTests.
+/// EN: Covers MySQL query-executor extras against the Dapper provider.
+/// PT: Cobre extras do executor de consultas MySQL contra o provedor Dapper.
 /// </summary>
 public sealed class QueryExecutorExtrasTests(
     ITestOutputHelper helper

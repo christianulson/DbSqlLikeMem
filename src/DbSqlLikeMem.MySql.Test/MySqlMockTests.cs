@@ -10,8 +10,8 @@ public sealed class MySqlMockTests
     private readonly MySqlConnectionMock _connection;
 
     /// <summary>
-    /// EN: Initializes the MySQL mock connection used by the test suite.
-    /// PT: Inicializa a conexao mock MySQL usada pela suite de testes.
+    /// EN: Creates the MySQL mock connection used by the test suite.
+    /// PT: Cria a conexao mock MySQL usada pela suite de testes.
     /// </summary>
     public MySqlMockTests(
         ITestOutputHelper helper

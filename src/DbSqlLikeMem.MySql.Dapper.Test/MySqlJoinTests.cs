@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.MySql.Dapper.Test;
 
 /// <summary>
-/// EN: Defines the class MySqlJoinTests.
-/// PT: Define a classe MySqlJoinTests.
+/// EN: Covers MySQL join scenarios against the Dapper provider.
+/// PT: Cobre cenarios de join MySQL contra o provedor Dapper.
 /// </summary>
 public sealed class MySqlJoinTests(
     ITestOutputHelper helper

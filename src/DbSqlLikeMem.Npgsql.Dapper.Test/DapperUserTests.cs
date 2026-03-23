@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
-/// EN: Defines the class DapperUserTests.
-/// PT: Define a classe DapperUserTests.
+/// EN: Covers PostgreSQL Dapper user-query scenarios against the mock provider.
+/// PT: Cobre cenarios de consulta de usuarios do Dapper para PostgreSQL contra o provedor mock.
 /// </summary>
 public sealed class DapperUserTests(
     ITestOutputHelper helper

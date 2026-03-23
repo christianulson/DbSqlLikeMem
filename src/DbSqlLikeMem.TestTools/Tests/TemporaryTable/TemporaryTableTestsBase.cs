@@ -33,7 +33,7 @@ public abstract class TemporaryTableTestsBase<T, T2>(
         try
         {
             var resultMock = serviceTest.RunCreateTemporaryTableAsSelectThenSelect("Users", uId);
-            if (RunContainerTests.Value
+            if (IsTemporaryTableContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
             {
                 using var connContainer = connectionContainer(connectionString);
@@ -76,7 +76,7 @@ public abstract class TemporaryTableTestsBase<T, T2>(
         try
         {
             serviceTest.RunTempTableRollback(tableName);
-            if (RunContainerTests.Value
+            if (IsTemporaryTableContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
             {
                 using var connContainer = connectionContainer(connectionString);
@@ -118,7 +118,7 @@ public abstract class TemporaryTableTestsBase<T, T2>(
         try
         {
             var resultMock = serviceTest.RunTemporaryTableCrossConnectionIsolation(tableName);
-            if (RunContainerTests.Value
+            if (IsTemporaryTableContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
             {
                 using var connContainer = connectionContainer(connectionString);

@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.MySql.Dapper.Test;
 
 /// <summary>
-/// EN: Defines the class DapperTests.
-/// PT: Define a classe DapperTests.
+/// EN: Covers MySQL Dapper CRUD scenarios against the mock provider.
+/// PT: Cobre cenarios CRUD de Dapper para MySQL contra o provedor mock.
 /// </summary>
 public sealed class DapperTests(
     ITestOutputHelper helper

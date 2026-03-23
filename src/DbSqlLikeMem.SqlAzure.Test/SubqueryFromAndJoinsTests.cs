@@ -1,16 +1,16 @@
 namespace DbSqlLikeMem.SqlAzure.Test;
 
 /// <summary>
-/// EN: Defines the class SubqueryFromAndJoinsTests.
-/// PT: Define a classe SubqueryFromAndJoinsTests.
+/// EN: Covers SQL Azure subquery and join scenarios over the direct mock connection.
+/// PT: Cobre cenarios de subquery e join do SQL Azure sobre a conexao mock direta.
 /// </summary>
 public sealed class SubqueryFromAndJoinsTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
     /// <summary>
-    /// EN: Tests FromSubquery_ShouldReturnFilteredRows behavior.
-    /// PT: Testa o comportamento de FromSubquery_ShouldReturnFilteredRows.
+    /// EN: Verifies FROM subqueries return the expected filtered rows.
+    /// PT: Verifica se subqueries em FROM retornam as linhas filtradas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SubqueryFromAndJoins")]
@@ -42,8 +42,8 @@ public sealed class SubqueryFromAndJoinsTests(
     }
 
     /// <summary>
-    /// EN: Tests JoinSubquery_ShouldJoinCorrectly behavior.
-    /// PT: Testa o comportamento de JoinSubquery_ShouldJoinCorrectly.
+    /// EN: Verifies joins against a subquery return the expected rows.
+    /// PT: Verifica se joins com subquery retornam as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SubqueryFromAndJoins")]
@@ -87,8 +87,8 @@ ORDER BY u.Id, o.Amount";
     }
 
     /// <summary>
-    /// EN: Tests NestedSubquery_ShouldWork behavior.
-    /// PT: Testa o comportamento de NestedSubquery_ShouldWork.
+    /// EN: Verifies nested subqueries are parsed and executed correctly.
+    /// PT: Verifica se subqueries aninhadas sao interpretadas e executadas corretamente.
     /// </summary>
     [Fact]
     [Trait("Category", "SubqueryFromAndJoins")]
@@ -118,3 +118,7 @@ ORDER BY t.Id";
         ids.Should().Equal(1, 2);
     }
 }
+
+
+
+

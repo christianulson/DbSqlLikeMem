@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
-/// EN: Defines the class ExtendedPostgreSqlMockTests.
-/// PT: Define a classe ExtendedPostgreSqlMockTests.
+/// EN: Covers extended PostgreSQL mock scenarios that are shared across Dapper provider tests.
+/// PT: Cobre cenarios estendidos do mock PostgreSQL compartilhados entre testes de provedor Dapper.
 /// </summary>
 public sealed class ExtendedPostgreSqlMockTests(
         ITestOutputHelper helper

@@ -87,7 +87,7 @@ public abstract class PerformanceTestsBase<T, T2>(
         connMock.Open();
         RunConnectionReopenAfterCloseScenario(connMock);
 
-        if (RunContainerTests.Value
+        if (IsPerformanceContainerComparisonEnabled(dialect.Provider)
             && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
             using var connContainer = connectionContainer(connectionString);
@@ -102,7 +102,7 @@ public abstract class PerformanceTestsBase<T, T2>(
         connMock.Open();
         RunResetVolatileDataScenario(connMock);
 
-        if (RunContainerTests.Value
+        if (IsPerformanceContainerComparisonEnabled(dialect.Provider)
             && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
             using var connContainer = connectionContainer(connectionString);
@@ -117,7 +117,7 @@ public abstract class PerformanceTestsBase<T, T2>(
         connMock.Open();
         RunResetAllVolatileDataScenario(connMock);
 
-        if (RunContainerTests.Value
+        if (IsPerformanceContainerComparisonEnabled(dialect.Provider)
             && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
             using var connContainer = connectionContainer(connectionString);
@@ -132,7 +132,7 @@ public abstract class PerformanceTestsBase<T, T2>(
         connMock.Open();
         var resultMock = RunDebugTraceJsonScenario(connMock);
 
-        if (RunContainerTests.Value
+        if (IsPerformanceContainerComparisonEnabled(dialect.Provider)
             && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
             using var connContainer = connectionContainer(connectionString);
@@ -148,7 +148,7 @@ public abstract class PerformanceTestsBase<T, T2>(
         connMock.Open();
         var resultMock = RunFluentSchemaBuildScenario(connMock);
 
-        if (RunContainerTests.Value
+        if (IsPerformanceContainerComparisonEnabled(dialect.Provider)
             && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
             using var connContainer = connectionContainer(connectionString);
@@ -164,7 +164,7 @@ public abstract class PerformanceTestsBase<T, T2>(
         connMock.Open();
         var resultMock = RunFluentSeed100Scenario(connMock);
 
-        if (RunContainerTests.Value
+        if (IsPerformanceContainerComparisonEnabled(dialect.Provider)
             && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
             using var connContainer = connectionContainer(connectionString);
@@ -180,7 +180,7 @@ public abstract class PerformanceTestsBase<T, T2>(
         connMock.Open();
         var resultMock = RunFluentSeed1000Scenario(connMock);
 
-        if (RunContainerTests.Value
+        if (IsPerformanceContainerComparisonEnabled(dialect.Provider)
             && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
             using var connContainer = connectionContainer(connectionString);
@@ -196,7 +196,7 @@ public abstract class PerformanceTestsBase<T, T2>(
         connMock.Open();
         var resultMock = RunFluentScenarioComposeScenario(connMock);
 
-        if (RunContainerTests.Value
+        if (IsPerformanceContainerComparisonEnabled(dialect.Provider)
             && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
             using var connContainer = connectionContainer(connectionString);

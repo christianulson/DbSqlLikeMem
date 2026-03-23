@@ -49,10 +49,12 @@ public class ExecutionPlanServiceTest<T>(
     /// EN: Executes an insert and reads the provider execution plan diagnostic.
     /// PT: Executa um insert e lê o diagnostico de plano de execucao do provedor.
     /// </summary>
+    /// <param name="pars">EN: The users table name and optional insert id. PT: O nome da tabela de usuarios e o id de insert opcional.</param>
     public object? RunExecutionPlanDml(params object[] pars)
     {
         var users = (string)pars[0];
-        ExecuteNonQuery(Dialect.InsertUser(users, 1, "Alice"));
+        var id = pars.Length > 1 ? (int)pars[1] : 1;
+        ExecuteNonQuery(Dialect.InsertUser(users, id, "Alice"));
         var plan = TryReadDiagnosticValue(Connection, "LastExecutionPlan");
         GC.KeepAlive(plan);
         return plan;

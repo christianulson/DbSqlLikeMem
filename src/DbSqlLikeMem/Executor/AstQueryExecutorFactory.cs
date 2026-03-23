@@ -18,8 +18,8 @@ internal static class AstQueryExecutorFactory
         IAstQueryExecutor>> _executors = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// EN: Implements this member.
-    /// PT: Implementa este membro.
+    /// EN: Gets the registered AST executors keyed by dialect name.
+    /// PT: Obtem os executores de AST registrados pela chave do nome do dialeto.
     /// </summary>
     public static IReadOnlyDictionary<string, Func<
         DbConnectionMockBase,
@@ -40,8 +40,8 @@ internal static class AstQueryExecutorFactory
     }
 
     /// <summary>
-    /// EN: Implements Create.
-    /// PT: Implementa Create.
+    /// EN: Creates an AST executor for the requested dialect or returns a fallback executor when one is unavailable.
+    /// PT: Cria um executor de AST para o dialeto solicitado ou retorna um executor fallback quando ele nao estiver disponivel.
     /// </summary>
     public static IAstQueryExecutor Create(
         ISqlDialect dialect,
@@ -71,8 +71,8 @@ internal static class AstQueryExecutorFactory
         private readonly string _dialectName = dialectName;
 
         /// <summary>
-        /// EN: Implements ExecuteSelect.
-        /// PT: Implementa ExecuteSelect.
+        /// EN: Executes a SELECT through the fallback executor and reports that the dialect is not implemented.
+        /// PT: Executa um SELECT pelo executor fallback e informa que o dialeto nao esta implementado.
         /// </summary>
         public TableResultMock ExecuteSelect(SqlSelectQuery q)
             => throw new NotSupportedException(
@@ -80,8 +80,8 @@ internal static class AstQueryExecutorFactory
                 "Implemente um executor e registre no AstQueryExecutorFactory.");
 
         /// <summary>
-        /// EN: Implements ExecuteUnion.
-        /// PT: Implementa ExecuteUnion.
+        /// EN: Executes a UNION through the fallback executor and reports that the dialect is not implemented.
+        /// PT: Executa um UNION pelo executor fallback e informa que o dialeto nao esta implementado.
         /// </summary>
         public TableResultMock ExecuteUnion(
             IReadOnlyList<SqlSelectQuery> parts,

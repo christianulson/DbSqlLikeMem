@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 
 /// <summary>
-/// EN: Defines the class SqlServerAdditionalBehaviorCoverageTests.
-/// PT: Define a classe SqlServerAdditionalBehaviorCoverageTests.
+/// EN: Covers additional SQL Server behavior scenarios for the Dapper provider.
+/// PT: Cobre cenarios adicionais de comportamento SQL Server para o provedor Dapper.
 /// </summary>
 public sealed class SqlServerAdditionalBehaviorCoverageTests(
     ITestOutputHelper helper

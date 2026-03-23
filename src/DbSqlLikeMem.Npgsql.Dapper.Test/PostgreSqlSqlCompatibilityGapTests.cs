@@ -1,16 +1,16 @@
 namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
-/// TDD guard-rail tests for SQL features where this in-memory PostgreSql mock commonly diverges from real MySQL.
-/// These tests are EXPECTED TO FAIL until the corresponding functionality is implemented in the parser/executor.
+/// EN: Covers PostgreSQL SQL compatibility gap scenarios that intentionally document current divergence from real PostgreSQL.
+/// PT: Cobre cenarios de gap de compatibilidade SQL do PostgreSQL que documentam intencionalmente as divergencias atuais em relacao ao PostgreSQL real.
 /// </summary>
 public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
 {
     private readonly NpgsqlConnectionMock _cnn;
 
     /// <summary>
-    /// EN: Tests PostgreSqlSqlCompatibilityGapTests behavior.
-    /// PT: Testa o comportamento de PostgreSqlSqlCompatibilityGapTests.
+    /// EN: Creates the in-memory PostgreSQL connection used by the SQL compatibility gap tests.
+    /// PT: Cria a conexao PostgreSQL em memoria usada pelos testes de gap de compatibilidade SQL.
     /// </summary>
     public PostgreSqlSqlCompatibilityGapTests(ITestOutputHelper helper) : base(helper)
     {
@@ -41,8 +41,8 @@ public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_Precedence_AND_ShouldBindStrongerThan_OR behavior.
-    /// PT: Testa o comportamento de Where_Precedence_AND_ShouldBindStrongerThan_OR.
+    /// EN: Verifies AND binds stronger than OR in PostgreSQL WHERE coverage.
+    /// PT: Verifica se AND tem maior precedencia que OR na cobertura de WHERE do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSqlCompatibilityGap")]
@@ -55,8 +55,8 @@ public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_OR_ShouldWork behavior.
-    /// PT: Testa o comportamento de Where_OR_ShouldWork.
+    /// EN: Verifies OR filters rows correctly in PostgreSQL WHERE coverage.
+    /// PT: Verifica se OR filtra linhas corretamente na cobertura de WHERE do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSqlCompatibilityGap")]
@@ -67,8 +67,8 @@ public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_ParenthesesGrouping_ShouldWork behavior.
-    /// PT: Testa o comportamento de Where_ParenthesesGrouping_ShouldWork.
+    /// EN: Verifies parentheses grouping works in PostgreSQL WHERE coverage.
+    /// PT: Verifica se o agrupamento com parenteses funciona na cobertura de WHERE do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSqlCompatibilityGap")]
@@ -81,8 +81,8 @@ public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Select_Expressions_Arithmetic_ShouldWork behavior.
-    /// PT: Testa o comportamento de Select_Expressions_Arithmetic_ShouldWork.
+    /// EN: Verifies arithmetic expressions are evaluated in SELECT projections.
+    /// PT: Verifica se expressoes aritmeticas sao avaliadas em projeções SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSqlCompatibilityGap")]
@@ -93,8 +93,8 @@ public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Select_Expressions_CASE_WHEN_ShouldWork behavior.
-    /// PT: Testa o comportamento de Select_Expressions_CASE_WHEN_ShouldWork.
+    /// EN: Verifies CASE WHEN expressions return the expected values.
+    /// PT: Verifica se expressoes CASE WHEN retornam os valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSqlCompatibilityGap")]
@@ -105,8 +105,8 @@ public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Select_Expressions_IF_ShouldWork behavior.
-    /// PT: Testa o comportamento de Select_Expressions_IF_ShouldWork.
+    /// EN: Verifies IF expressions return the expected values.
+    /// PT: Verifica se expressoes IF retornam os valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSqlCompatibilityGap")]
@@ -118,8 +118,8 @@ public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Select_Expressions_IIF_ShouldWork_AsAliasForIF behavior.
-    /// PT: Testa o comportamento de Select_Expressions_IIF_ShouldWork_AsAliasForIF.
+    /// EN: Verifies IIF works as an alias for IF in PostgreSQL compatibility coverage.
+    /// PT: Verifica se IIF funciona como alias de IF na cobertura de compatibilidade do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSqlCompatibilityGap")]
@@ -131,8 +131,8 @@ public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Functions_COALESCE_ShouldWork behavior.
-    /// PT: Testa o comportamento de Functions_COALESCE_ShouldWork.
+    /// EN: Verifies COALESCE returns the first non-null value.
+    /// PT: Verifica se COALESCE retorna o primeiro valor nao nulo.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSqlCompatibilityGap")]
@@ -143,8 +143,8 @@ public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Functions_IFNULL_ShouldWork behavior.
-    /// PT: Testa o comportamento de Functions_IFNULL_ShouldWork.
+    /// EN: Verifies IFNULL falls back to the first non-null value.
+    /// PT: Verifica se IFNULL faz fallback para o primeiro valor nao nulo.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSqlCompatibilityGap")]
@@ -155,8 +155,8 @@ public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Functions_CONCAT_ShouldWork behavior.
-    /// PT: Testa o comportamento de Functions_CONCAT_ShouldWork.
+    /// EN: Verifies CONCAT joins string parts in PostgreSQL coverage.
+    /// PT: Verifica se CONCAT concatena partes de string na cobertura do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSqlCompatibilityGap")]
@@ -167,8 +167,8 @@ public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Distinct_ShouldBeConsistent behavior.
-    /// PT: Testa o comportamento de Distinct_ShouldBeConsistent.
+    /// EN: Verifies DISTINCT returns the expected unique rows.
+    /// PT: Verifica se DISTINCT retorna as linhas unicas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSqlCompatibilityGap")]
@@ -181,8 +181,8 @@ public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Join_ComplexOn_WithOr_ShouldWork behavior.
-    /// PT: Testa o comportamento de Join_ComplexOn_WithOr_ShouldWork.
+    /// EN: Verifies JOIN ON clauses with OR predicates work correctly.
+    /// PT: Verifica se clausulas JOIN ON com predicados OR funcionam corretamente.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSqlCompatibilityGap")]
@@ -202,8 +202,8 @@ public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests GroupBy_Having_ShouldSupportAggregates behavior.
-    /// PT: Testa o comportamento de GroupBy_Having_ShouldSupportAggregates.
+    /// EN: Verifies GROUP BY and HAVING work with aggregate filters.
+    /// PT: Verifica se GROUP BY e HAVING funcionam com filtros agregados.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSqlCompatibilityGap")]
@@ -220,8 +220,8 @@ public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests OrderBy_ShouldSupportAlias_And_Ordinal behavior.
-    /// PT: Testa o comportamento de OrderBy_ShouldSupportAlias_And_Ordinal.
+    /// EN: Verifies ORDER BY supports aliases and ordinal positions.
+    /// PT: Verifica se ORDER BY aceita aliases e posicoes ordinais.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSqlCompatibilityGap")]
@@ -236,8 +236,8 @@ public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Union_ShouldWork behavior.
-    /// PT: Testa o comportamento de Union_ShouldWork.
+    /// EN: Verifies UNION removes duplicates across SELECT parts.
+    /// PT: Verifica se UNION remove duplicatas entre partes do SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSqlCompatibilityGap")]
@@ -252,8 +252,8 @@ public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Union_All_ShouldWork behavior.
-    /// PT: Testa o comportamento de Union_All_ShouldWork.
+    /// EN: Verifies UNION ALL keeps duplicates across SELECT parts.
+    /// PT: Verifica se UNION ALL mantem duplicatas entre partes do SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSqlCompatibilityGap")]
@@ -270,8 +270,8 @@ public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
 
 
     /// <summary>
-    /// EN: Tests Union_Inside_SubSelect_ShouldWork behavior.
-    /// PT: Testa o comportamento de Union_Inside_SubSelect_ShouldWork.
+    /// EN: Verifies UNION works inside subselects.
+    /// PT: Verifica se UNION funciona dentro de subselects.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSqlCompatibilityGap")]
@@ -289,8 +289,8 @@ ORDER BY id
     }
 
     /// <summary>
-    /// EN: Tests Union_All_Inside_SubSelect_ShouldWork behavior.
-    /// PT: Testa o comportamento de Union_All_Inside_SubSelect_ShouldWork.
+    /// EN: Verifies UNION ALL works inside subselects.
+    /// PT: Verifica se UNION ALL funciona dentro de subselects.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSqlCompatibilityGap")]
@@ -309,8 +309,8 @@ ORDER BY id
 
 
     /// <summary>
-    /// EN: Tests Cte_With_ShouldWork behavior.
-    /// PT: Testa o comportamento de Cte_With_ShouldWork.
+    /// EN: Verifies WITH common table expressions work in PostgreSQL coverage.
+    /// PT: Verifica se expressoes de tabela comum WITH funcionam na cobertura do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSqlCompatibilityGap")]
@@ -323,8 +323,8 @@ ORDER BY id
     }
 
     /// <summary>
-    /// EN: Tests Typing_ImplicitCasts_And_Collation_ShouldMatchMySqlDefault behavior.
-    /// PT: Testa o comportamento de Typing_ImplicitCasts_And_Collation_ShouldMatchMySqlDefault.
+    /// EN: Verifies implicit casts and collation match the expected PostgreSQL rules.
+    /// PT: Verifica se casts implicitos e collation seguem as regras esperadas do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSqlCompatibilityGap")]

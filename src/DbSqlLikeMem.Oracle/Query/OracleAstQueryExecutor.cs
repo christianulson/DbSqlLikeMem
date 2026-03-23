@@ -1,14 +1,14 @@
 namespace DbSqlLikeMem.Oracle;
 
 /// <summary>
-/// EN: Defines the class OracleAstQueryExecutorRegister.
-/// PT: Define a classe OracleAstQueryExecutorRegister.
+/// EN: Registers the Oracle AST executor with the shared factory.
+/// PT: Registra o executor AST de Oracle na factory compartilhada.
 /// </summary>
 public static class OracleAstQueryExecutorRegister
 {
     /// <summary>
-    /// EN: Implements Register.
-    /// PT: Implementa Register.
+    /// EN: Registers the Oracle AST executor for the Oracle dialect.
+    /// PT: Registra o executor AST de Oracle para o dialeto Oracle.
     /// </summary>
     public static void Register()
         => AstQueryExecutorFactory.RegisterExecutor(

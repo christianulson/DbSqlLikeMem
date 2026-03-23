@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
-/// EN: Defines shared aggregation and HAVING ordinal scenarios across providers.
-/// PT: Define cenários compartilhados de agregação e ordinal em HAVING entre provedores.
+/// EN: Covers shared aggregation and HAVING ordinal scenarios across providers.
+/// PT: Cobre cenarios compartilhados de agregacao e ordinal em HAVING entre provedores.
 /// </summary>
 /// <typeparam name="TDbMock">EN: Provider database mock type. PT: Tipo do mock de banco do provedor.</typeparam>
 /// <typeparam name="TConnection">EN: Provider connection type. PT: Tipo de conexão do provedor.</typeparam>
@@ -19,8 +19,8 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
     protected DbConnection Connection => _connection;
 
     /// <summary>
-    /// EN: Initializes shared aggregation/HAVING tests.
-    /// PT: Inicializa testes compartilhados de agregação/HAVING.
+    /// EN: Creates the shared aggregation and HAVING test fixture.
+    /// PT: Cria a fixture compartilhada de testes de agregacao e HAVING.
     /// </summary>
     /// <param name="helper">EN: Output helper. PT: Helper de saída.</param>
     protected AggregationHavingOrdinalTestsBase(ITestOutputHelper helper) : base(helper)

@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
-/// EN: Defines the class PostgreSqlTransactionTests.
-/// PT: Define a classe PostgreSqlTransactionTests.
+/// EN: Covers PostgreSQL transaction scenarios against the Dapper provider.
+/// PT: Cobre cenarios de transacao PostgreSQL contra o provedor Dapper.
 /// </summary>
 public sealed class PostgreSqlTransactionTests(
     ITestOutputHelper helper

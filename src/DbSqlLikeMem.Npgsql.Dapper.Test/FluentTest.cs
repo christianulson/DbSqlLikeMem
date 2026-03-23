@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.Npgsql.Test;
 /// <summary>
-/// EN: Defines the class FluentTest.
-/// PT: Define a classe FluentTest.
+/// EN: Contains fluent API smoke tests for the Npgsql provider.
+/// PT: Contem testes de smoke da API fluente para o provedor Npgsql.
 /// </summary>
 public sealed class FluentTest(
         ITestOutputHelper helper

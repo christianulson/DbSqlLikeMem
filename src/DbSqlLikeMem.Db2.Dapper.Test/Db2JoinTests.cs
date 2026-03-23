@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.Db2.Dapper.Test;
 
 /// <summary>
-/// EN: Defines the class Db2JoinTests.
-/// PT: Define a classe Db2JoinTests.
+/// EN: Covers DB2 join scenarios against the Dapper provider.
+/// PT: Cobre cenarios de join DB2 contra o provedor Dapper.
 /// </summary>
 public sealed class Db2JoinTests(
     ITestOutputHelper helper

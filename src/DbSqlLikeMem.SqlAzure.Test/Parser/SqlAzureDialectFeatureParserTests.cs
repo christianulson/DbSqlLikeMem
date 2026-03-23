@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.SqlAzure.Test.Parser;
 
 /// <summary>
-/// EN: Covers SQL Azure parser behavior that reuses SQL Server syntax gates through compatibility levels.
-/// PT: Cobre o comportamento de parser do SQL Azure que reutiliza gates de sintaxe do SQL Server por nivel de compatibilidade.
+/// EN: Covers SQL Azure parser features gated by compatibility levels.
+/// PT: Cobre recursos de parser do SQL Azure controlados por nivel de compatibilidade.
 /// </summary>
 public sealed class SqlAzureDialectFeatureParserTests
 {
@@ -10,8 +10,8 @@ public sealed class SqlAzureDialectFeatureParserTests
         => new SqlAzureDbMock(compatibilityLevel).Dialect;
 
     /// <summary>
-    /// EN: Ensures CREATE SEQUENCE follows SQL Azure compatibility levels mapped to SQL Server 2012 semantics.
-    /// PT: Garante que CREATE SEQUENCE siga os niveis de compatibilidade do SQL Azure mapeados para a semantica do SQL Server 2012.
+    /// EN: Verifies CREATE SEQUENCE follows SQL Azure compatibility-level rules.
+    /// PT: Verifica se CREATE SEQUENCE segue as regras de nivel de compatibilidade do SQL Azure.
     /// </summary>
     /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
@@ -821,3 +821,4 @@ public sealed class SqlAzureDialectFeatureParserTests
         Assert.Contains("STRING_AGG", parsed.SelectItems[0].Raw, StringComparison.OrdinalIgnoreCase);
     }
 }
+

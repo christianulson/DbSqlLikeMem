@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.MySql;
 
 /// <summary>
-/// EN: Defines the class MySqlQueryProvider.
-/// PT: Define a classe MySqlQueryProvider.
+/// EN: Implements the MySQL LINQ query provider for the mock connection model.
+/// PT: Implementa o provedor LINQ de MySQL para o modelo de conexao mock.
 /// </summary>
 public sealed class MySqlQueryProvider(
     MySqlConnectionMock cnn
@@ -12,8 +12,8 @@ public sealed class MySqlQueryProvider(
     private readonly MySqlTranslator _translator = new();
 
     /// <summary>
-    /// EN: Implements CreateQuery.
-    /// PT: Implementa CreateQuery.
+    /// EN: Creates a non-generic LINQ query for the supplied expression.
+    /// PT: Cria uma consulta LINQ nao generica para a expressao informada.
     /// </summary>
     public IQueryable CreateQuery(Expression expression)
     {
@@ -37,8 +37,8 @@ public sealed class MySqlQueryProvider(
     }
 
     /// <summary>
-    /// EN: Implements this member.
-    /// PT: Implementa este membro.
+    /// EN: Creates a generic LINQ query for the supplied expression.
+    /// PT: Cria uma consulta LINQ generica para a expressao informada.
     /// </summary>
     public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
     {
@@ -84,8 +84,8 @@ public sealed class MySqlQueryProvider(
     }
 
     /// <summary>
-    /// EN: Implements this member.
-    /// PT: Implementa este membro.
+    /// EN: Executes the translated query and returns the typed result.
+    /// PT: Executa a consulta traduzida e retorna o resultado tipado.
     /// </summary>
     public TResult Execute<TResult>(Expression expression)
     {

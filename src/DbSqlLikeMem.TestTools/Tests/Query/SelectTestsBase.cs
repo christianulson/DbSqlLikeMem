@@ -1,4 +1,4 @@
-﻿using DbSqlLikeMem.TestTools.Query;
+using DbSqlLikeMem.TestTools.Query;
 
 namespace DbSqlLikeMem.TestTools.Tests.Query;
 
@@ -33,7 +33,7 @@ public abstract class SelectTestsBase<T, T2>(
         var resultMock = serviceTest.RunTest("Users", uId);
         serviceTest.DropScenario("Users", uId);
 
-        if (RunContainerTests.Value
+        if (IsSelectContainerComparisonEnabled(dialect.Provider)
             && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
             using var connContainer = connectionContainer(connectionString);

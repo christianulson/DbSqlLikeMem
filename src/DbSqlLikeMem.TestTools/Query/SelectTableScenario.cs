@@ -26,7 +26,6 @@ public class SelectTableScenario<T>(
             var tableName = users.ToLowerInvariant();
             if (service.Connection is DbSqlLikeMem.DbConnectionMockBase mockConnection)
             {
-                Console.WriteLine($"[SelectScenario][Oracle] Create table via mock API: {tableName}");
                 var table = mockConnection.AddTable(
                     tableName,
                     [
@@ -41,33 +40,15 @@ public class SelectTableScenario<T>(
                         }
                     ]);
                 table.AddPrimaryKeyIndexes("Id");
-
-                Console.WriteLine($"[SelectScenario][Oracle] Seed count: {table.Count}");
-                foreach (var row in table)
-                {
-                    Console.WriteLine($"[SelectScenario][Oracle] Seed row data: Id={row[0]}, Name={row[1]}");
-                }
             }
             else
             {
-                Console.WriteLine($"[SelectScenario][Oracle] Create table: {tableName}");
                 service.ExecuteNonQuery($@"
 CREATE TABLE {tableName} (
     Id NUMBER(10) PRIMARY KEY,
     Name VARCHAR2(100) NOT NULL
 )");
-                Console.WriteLine($"[SelectScenario][Oracle] Seed row: INSERT INTO {tableName} (Id, Name) VALUES (1, 'Alice')");
                 service.ExecuteNonQuery($"INSERT INTO {tableName} (Id, Name) VALUES (1, 'Alice')");
-                Console.WriteLine($"[SelectScenario][Oracle] Seed count: {Convert.ToInt32(service.ExecuteScalar($"SELECT COUNT(*) FROM {tableName}", null), System.Globalization.CultureInfo.InvariantCulture)}");
-                using (var verifyCommand = service.Connection.CreateCommand())
-                {
-                    verifyCommand.CommandText = $"SELECT Id, Name FROM {tableName}";
-                    using var verifyReader = verifyCommand.ExecuteReader();
-                    while (verifyReader.Read())
-                    {
-                        Console.WriteLine($"[SelectScenario][Oracle] Seed row data: Id={verifyReader.GetValue(0)}, Name={verifyReader.GetValue(1)}");
-                    }
-                }
             }
         }
         else

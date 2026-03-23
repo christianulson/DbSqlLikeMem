@@ -7,8 +7,8 @@ namespace DbSqlLikeMem.Oracle.Test;
 public sealed class OracleAggregationTests : AggregationHavingOrdinalTestsBase<OracleDbMock, OracleConnectionMock>
 {
     /// <summary>
-    /// EN: Initializes Oracle aggregation tests.
-    /// PT: Inicializa os testes de agregação do Oracle.
+    /// EN: Creates the Oracle aggregation test suite helper.
+    /// PT: Cria o helper da suite de testes de agregacao do Oracle.
     /// </summary>
     /// <param name="helper">EN: Output helper. PT: Helper de saída.</param>
     public OracleAggregationTests(ITestOutputHelper helper) : base(helper)
@@ -25,8 +25,8 @@ public sealed class OracleAggregationTests : AggregationHavingOrdinalTestsBase<O
     protected override List<dynamic> Query(string sql) => Connection.Query<dynamic>(sql).ToList();
 
     /// <summary>
-    /// EN: Tests Distinct_Order_WithPagination_ShouldWork behavior.
-    /// PT: Testa o comportamento de Distinct_Order_WithPagination_ShouldWork.
+    /// EN: Verifies DISTINCT ordering with pagination returns the expected rows.
+    /// PT: Verifica se a ordenacao DISTINCT com paginacao retorna as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAggregation")]
@@ -36,8 +36,8 @@ public sealed class OracleAggregationTests : AggregationHavingOrdinalTestsBase<O
     }
 
     /// <summary>
-    /// EN: Tests provider string aggregation with custom separator ignoring NULL values.
-    /// PT: Testa agregação textual do provedor com separador customizado ignorando valores NULL.
+    /// EN: Verifies string aggregation with a custom separator returns the expected rows.
+    /// PT: Verifica se a agregacao textual com separador customizado retorna as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAggregation")]
@@ -160,8 +160,8 @@ public sealed class OracleAggregationTests : AggregationHavingOrdinalTestsBase<O
 
 
     /// <summary>
-    /// EN: Tests LISTAGG default separator behavior (empty string when separator is omitted).
-    /// PT: Testa o comportamento padrão do separador do LISTAGG (string vazia quando omitido).
+    /// EN: Verifies LISTAGG uses the expected default separator when one is omitted.
+    /// PT: Verifica se LISTAGG usa o separador padrao esperado quando nenhum e informado.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAggregation")]

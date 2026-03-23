@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
-/// EN: Defines the class OracleAdditionalBehaviorCoverageTests.
-/// PT: Define a classe OracleAdditionalBehaviorCoverageTests.
+/// EN: Covers additional Oracle behavior scenarios for the Dapper provider.
+/// PT: Cobre cenarios adicionais de comportamento Oracle para o provedor Dapper.
 /// </summary>
 public sealed class OracleAdditionalBehaviorCoverageTests(
     ITestOutputHelper helper

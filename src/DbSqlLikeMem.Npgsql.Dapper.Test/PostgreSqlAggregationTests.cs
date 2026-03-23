@@ -7,8 +7,8 @@ namespace DbSqlLikeMem.Npgsql.Test;
 public sealed class PostgreSqlAggregationTests : AggregationHavingOrdinalTestsBase<NpgsqlDbMock, NpgsqlConnectionMock>
 {
     /// <summary>
-    /// EN: Initializes PostgreSQL aggregation tests.
-    /// PT: Inicializa os testes de agregação do PostgreSQL.
+    /// EN: Creates the PostgreSQL aggregation test suite helper.
+    /// PT: Cria o helper da suite de testes de agregacao do PostgreSQL.
     /// </summary>
     /// <param name="helper">EN: Output helper. PT: Helper de saída.</param>
     public PostgreSqlAggregationTests(ITestOutputHelper helper) : base(helper)
@@ -25,8 +25,8 @@ public sealed class PostgreSqlAggregationTests : AggregationHavingOrdinalTestsBa
     protected override List<dynamic> Query(string sql) => Connection.Query<dynamic>(sql).ToList();
 
     /// <summary>
-    /// EN: Tests Distinct_Order_WithPagination_ShouldWork behavior.
-    /// PT: Testa o comportamento de Distinct_Order_WithPagination_ShouldWork.
+    /// EN: Verifies DISTINCT ordering with pagination returns the expected rows.
+    /// PT: Verifica se a ordenacao DISTINCT com paginacao retorna as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]
@@ -36,8 +36,8 @@ public sealed class PostgreSqlAggregationTests : AggregationHavingOrdinalTestsBa
     }
 
     /// <summary>
-    /// EN: Tests PostgreSQL string aggregation with custom separator.
-    /// PT: Testa agregação textual do PostgreSQL com separador customizado.
+    /// EN: Verifies string aggregation with a custom separator returns the expected rows.
+    /// PT: Verifica se a agregacao textual com separador customizado retorna as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]

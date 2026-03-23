@@ -10,8 +10,8 @@ public sealed class Db2FunctionTests
     private readonly Db2ConnectionMock _connection;
 
     /// <summary>
-    /// EN: Initializes DB2 function fixtures with sample tables and sequences.
-    /// PT: Inicializa os fixtures de funcoes DB2 com tabelas e sequences de exemplo.
+    /// EN: Creates DB2 function fixtures with sample tables and sequences.
+    /// PT: Cria fixtures de funcoes DB2 com tabelas e sequences de exemplo.
     /// </summary>
     public Db2FunctionTests(ITestOutputHelper helper)
         : base(helper)

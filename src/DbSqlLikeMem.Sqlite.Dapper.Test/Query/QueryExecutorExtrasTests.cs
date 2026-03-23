@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.Sqlite.Dapper.Test.Query;
 
 /// <summary>
-/// EN: Defines the class QueryExecutorExtrasTests.
-/// PT: Define a classe QueryExecutorExtrasTests.
+/// EN: Covers SQLite query-executor extras against the Dapper provider.
+/// PT: Cobre extras do executor de consultas SQLite contra o provedor Dapper.
 /// </summary>
 public sealed class QueryExecutorExtrasTests(
     ITestOutputHelper helper

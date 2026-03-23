@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.SqlAzure.Test;
 
 /// <summary>
-/// EN: Validates interception pipeline usage on SQL Azure provider entry points.
-/// PT: Valida o uso do pipeline de interceptacao nos pontos de entrada do provider SQL Azure.
+/// EN: Covers interception pipeline usage on SQL Azure provider entry points.
+/// PT: Cobre o uso do pipeline de interceptacao nos pontos de entrada do provider SQL Azure.
 /// </summary>
 public sealed class SqlAzureInterceptionTests(
         ITestOutputHelper helper
@@ -72,3 +72,4 @@ public sealed class SqlAzureInterceptionTests(
             && x.CommandText == "select name from users where id = 2");
     }
 }
+

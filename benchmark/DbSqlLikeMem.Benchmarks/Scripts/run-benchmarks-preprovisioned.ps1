@@ -23,12 +23,51 @@ $env:ORACLE_CONNECTION_STRING=$env:DBSQLLIKEMEM_BENCH_ORACLE_CONNECTION_STRING
 $env:DB2_CONNECTION_STRING=$env:DBSQLLIKEMEM_BENCH_DB2_CONNECTION_STRING
 $env:SQLAZURE_CONNECTION_STRING=$env:DBSQLLIKEMEM_BENCH_SQLSERVER_CONNECTION_STRING
 
-$benchmarkArgs = @("preprovisioned")
-if ($InProcess) {
-    $benchmarkArgs += "inprocess"
+function Invoke-BenchmarkRun {
+    param(
+        [string]$ProjectPath,
+        [string]$Filter,
+        [switch]$InProcess
+    )
+
+    $benchmarkArgs = @("preprovisioned")
+    if ($InProcess) {
+        $benchmarkArgs += "inprocess"
+    }
+
+    $benchmarkArgs += "--filter"
+    $benchmarkArgs += $Filter
+
+    dotnet run -c Release --project $ProjectPath -- @benchmarkArgs
+    if ($LASTEXITCODE -ne 0) {
+        throw "Benchmark run failed for filter '$Filter'."
+    }
 }
 
-$benchmarkArgs += "--filter"
-$benchmarkArgs += $Filter
+function Should-SplitBroadRun {
+    param([string]$Filter, [switch]$InProcess)
 
-dotnet run -c Release --project $ProjectPath -- @benchmarkArgs
+    if (-not $InProcess) {
+        return $false
+    }
+
+    if ([string]::IsNullOrWhiteSpace($Filter)) {
+        return $true
+    }
+
+    return $Filter -eq "*"
+}
+
+if (Should-SplitBroadRun -Filter $Filter -InProcess:$InProcess) {
+    Invoke-BenchmarkRun -ProjectPath $ProjectPath -Filter "*DbSqlLikeMem_Benchmarks*" -InProcess
+    Invoke-BenchmarkRun -ProjectPath $ProjectPath -Filter "*Sqlite_Native_Benchmarks*" -InProcess
+    Invoke-BenchmarkRun -ProjectPath $ProjectPath -Filter "*Testcontainers_Benchmarks*"
+    return
+}
+
+$useInProcess = $InProcess -and ($Filter -like "*DbSqlLikeMem*" -or $Filter -like "*Sqlite*") -and $Filter -notlike "*Testcontainers*"
+if ($InProcess -and -not $useInProcess) {
+    Write-Warning "InProcess was requested but skipped for this filter. Use it only for short DbSqlLikeMem or Sqlite benchmark filters."
+}
+
+Invoke-BenchmarkRun -ProjectPath $ProjectPath -Filter $Filter -InProcess:([bool]$useInProcess)

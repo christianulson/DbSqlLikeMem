@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.Npgsql;
 
 /// <summary>
-/// EN: Defines the class NpgsqlLinqExtensions.
-/// PT: Define a classe NpgsqlLinqExtensions.
+/// EN: Adds Npgsql-specific LINQ queryable helpers for mock connections.
+/// PT: Adiciona helpers LINQ especificos de Npgsql para conexoes mock.
 /// </summary>
 public static class NpgsqlLinqExtensions
 {

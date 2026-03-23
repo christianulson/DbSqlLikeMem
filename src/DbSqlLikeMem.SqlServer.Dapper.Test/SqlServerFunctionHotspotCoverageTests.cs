@@ -1,21 +1,18 @@
 namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 
 /// <summary>
-/// Validates hotspot SQL Server function behavior to ensure fallback and evaluation compatibility.
-/// Valida comportamentos críticos de funções do SQL Server para garantir compatibilidade de fallback e avaliação.
+/// EN: Covers hotspot SQL Server function scenarios that exercise fallback and evaluation compatibility.
+/// PT: Cobre cenarios de funcoes SQL Server que exercitam compatibilidade de fallback e avaliacao.
 /// </summary>
 public sealed class SqlServerFunctionHotspotCoverageTests : XUnitTestBase
 {
     private readonly SqlServerConnectionMock _cnn;
 
     /// <summary>
-    /// Initializes the in-memory SQL Server mock schema and seeds test data for function-coverage scenarios.
-    /// Inicializa o esquema simulado de SQL Server em memória e popula dados de teste para cenários de cobertura de funções.
+    /// EN: Creates the in-memory SQL Server schema and seeds test data for function-coverage scenarios.
+    /// PT: Cria o esquema SQL Server em memoria e popula dados de teste para cenarios de cobertura de funcoes.
     /// </summary>
-    /// <param name="helper">
-    /// Provides xUnit output integration for test diagnostics.
-    /// Fornece integração de saída do xUnit para diagnóstico dos testes.
-    /// </param>
+    /// <param name="helper">EN: xUnit output helper. PT: Helper de saida do xUnit.</param>
     public SqlServerFunctionHotspotCoverageTests(ITestOutputHelper helper) : base(helper)
     {
         var db = new SqlServerDbMock();
@@ -108,8 +105,8 @@ WHERE id = 1");
 
 
     /// <summary>
-    /// EN: Tests TemporalFunctions_ShouldWorkInSelectAndWhere behavior.
-    /// PT: Testa o comportamento de TemporalFunctions_ShouldWorkInSelectAndWhere.
+    /// EN: Verifies temporal functions work consistently in SELECT and WHERE clauses.
+    /// PT: Verifica se funcoes temporais funcionam de forma consistente em clausulas SELECT e WHERE.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerFunctionCoverage")]

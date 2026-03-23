@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.MySql;
 /// <summary>
-/// EN: Defines the class MySqlLinqExtensions.
-/// PT: Define a classe MySqlLinqExtensions.
+/// EN: Adds MySQL-specific LINQ queryable helpers for mock connections.
+/// PT: Adiciona helpers LINQ especificos de MySQL para conexoes mock.
 /// </summary>
 public static class MySqlLinqExtensions
 {

@@ -55,6 +55,10 @@ public abstract partial class BenchmarkSessionBase(
     {
     }
 
+    /// <summary>
+    /// EN: Executes one benchmark feature and routes any provider-specific failure to the benchmark logger.
+    /// PT-br: Executa um recurso de benchmark e encaminha qualquer falha especifica do provedor para o logger do benchmark.
+    /// </summary>
     public virtual void Execute(BenchmarkFeatureId feature)
     {
         try
@@ -421,6 +425,7 @@ public abstract partial class BenchmarkSessionBase(
     /// </summary>
     public virtual void Dispose()
     {
+        DisposePreparedStates();
     }
 
     /// <summary>
@@ -436,32 +441,8 @@ public abstract partial class BenchmarkSessionBase(
     /// </summary>
     protected virtual void RunCreateSchema()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = new CreateTableServiceTest<DbConnection>(
-            connection,
-            BenchmarkScenarioFactory.CreateTableScenario<DbConnection>(),
-            Dialect);
-
-        try
-        {
-            service.CreateScenario(users, uId);
-            service.RunTest(users, uId);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedCreateSchemaState();
+        state.RunCreateSchema();
     }
 
     /// <summary>
@@ -471,56 +452,16 @@ public abstract partial class BenchmarkSessionBase(
     /// <exception cref="InvalidOperationException"></exception>
     protected virtual void RunInsertSingle()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateInsertUsersService(connection);
-
-        try
-        {
-            service.CreateScenario(users, uId);
-            var count = service.RunTest(users, uId, 1);
-            GC.KeepAlive(count);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedInsertUsersState("InsertSingle");
+        var count = state.RunSequentialInsert(1);
+        GC.KeepAlive(count);
     }
 
     protected virtual void RunInsertBatch10()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateInsertUsersService(connection);
-
-        try
-        {
-            service.CreateScenario(users, uId);
-            var count = service.RunTest(users, uId, 10);
-            GC.KeepAlive(count);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedInsertUsersState("InsertBatch10");
+        var count = state.RunSequentialInsert(10);
+        GC.KeepAlive(count);
     }
 
     /// <summary>
@@ -530,29 +471,9 @@ public abstract partial class BenchmarkSessionBase(
     /// <exception cref="InvalidOperationException"></exception>
     protected virtual void RunInsertBatch100()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateInsertUsersService(connection);
-
-        try
-        {
-            service.CreateScenario(users, uId);
-            var count = service.RunTest(users, uId, 100);
-            GC.KeepAlive(count);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedInsertUsersState("InsertBatch100");
+        var count = state.RunSequentialInsert(100);
+        GC.KeepAlive(count);
     }
 
     /// <summary>
@@ -562,30 +483,9 @@ public abstract partial class BenchmarkSessionBase(
     /// <exception cref="InvalidOperationException"></exception>
     protected virtual void RunInsertBatch100Parallel()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-
-        using var setupConnection = CreateConnection();
-        setupConnection.Open();
-        var service = CreateInsertUsersService(setupConnection, CreateConnection);
-
-        try
-        {
-            service.CreateScenario(users, uId);
-            var count = service.RunParallelTest(users, uId, 100);
-            GC.KeepAlive(count);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(setupConnection, users, uId);
-            }
-        }
+        var state = GetPreparedInsertUsersState("InsertBatch100Parallel");
+        var count = state.RunParallelInsert(100);
+        GC.KeepAlive(count);
     }
 
     /// <summary>
@@ -595,32 +495,9 @@ public abstract partial class BenchmarkSessionBase(
     /// <exception cref="InvalidOperationException"></exception>
     protected virtual void RunSelectByPk()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = new SelectByPKServiceTest<DbConnection>(
-            connection,
-            BenchmarkScenarioFactory.CreateSelectTableScenario<DbConnection>(Dialect),
-            Dialect);
-
-        try
-        {
-            service.CreateScenario(users, uId);
-            var value = service.RunTest(users);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedSelectByPkState();
+        var value = state.Service.RunTest(state.Users, state.UId);
+        GC.KeepAlive(value);
     }
 
     /// <summary>
@@ -630,31 +507,9 @@ public abstract partial class BenchmarkSessionBase(
     /// <exception cref="InvalidOperationException"></exception>
     protected virtual void RunSelectJoin()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        var orders = NewOrdersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateMutationService(connection, BenchmarkScenarioFactory.CreateUsersOrdersScenario<DbConnection>(Dialect));
-
-        try
-        {
-            service.CreateScenario(users, orders, uId);
-            var value = service.RunSelectJoin(users, orders);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, orders, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, orders, uId);
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedSelectJoinState();
+        var value = state.Service.RunSelectJoin(state.UsersTable, state.OrdersTable);
+        GC.KeepAlive(value);
     }
 
     /// <summary>
@@ -664,29 +519,9 @@ public abstract partial class BenchmarkSessionBase(
     /// <exception cref="InvalidOperationException"></exception>
     protected virtual void RunUpdateByPk()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateMutationService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Alice")));
-
-        try
-        {
-            service.CreateScenario(users, uId);
-            var value = service.RunUpdateByPk(users);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedCrudUsersState("CrudUsers");
+        var value = state.RunUpdateByPk();
+        GC.KeepAlive(value);
     }
 
     /// <summary>
@@ -696,29 +531,9 @@ public abstract partial class BenchmarkSessionBase(
     /// <exception cref="InvalidOperationException"></exception>
     protected virtual void RunDeleteByPk()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateMutationService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Alice"), (2, "Bob")));
-
-        try
-        {
-            service.CreateScenario(users, uId);
-            var count = service.RunDeleteByPk(users);
-            GC.KeepAlive(count);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedCrudUsersState("CrudUsers");
+        var count = state.RunDeleteByPk();
+        GC.KeepAlive(count);
     }
 
     /// <summary>
@@ -728,30 +543,9 @@ public abstract partial class BenchmarkSessionBase(
     /// <exception cref="InvalidOperationException"></exception>
     protected virtual void RunTransactionCommit()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateMutationService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect));
-        var usersTable = $"{users}_{uId}";
-
-        try
-        {
-            service.CreateScenario(users, uId);
-            var count = service.RunTransactionCommit(usersTable);
-            GC.KeepAlive(count);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedTransactionUsersState("TransactionUsers");
+        var count = state.RunTransactionCommit();
+        GC.KeepAlive(count);
     }
 
     /// <summary>
@@ -761,74 +555,22 @@ public abstract partial class BenchmarkSessionBase(
     /// <exception cref="InvalidOperationException"></exception>
     protected virtual void RunTransactionRollback()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateMutationService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect));
-        var usersTable = $"{users}_{uId}";
-
-        try
-        {
-            service.CreateScenario(users, uId);
-            var count = service.RunTransactionRollback(usersTable);
-            GC.KeepAlive(count);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedTransactionUsersState("TransactionUsers");
+        var count = state.RunTransactionRollback();
+        GC.KeepAlive(count);
     }
 
     protected virtual void RunSavepointCreate()
     {
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateMutationService(connection, BenchmarkScenarioFactory.CreateNoopScenario<DbConnection>());
-        service.CreateScenario();
-        try
-        {
-            service.RunSavepointCreate();
-        }
-        finally
-        {
-            service.DropScenario();
-        }
+        var state = GetPreparedNoopMutationState("NoopMutation");
+        state.Service.RunSavepointCreate();
     }
 
     protected virtual void RunRollbackToSavepoint()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateMutationService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect));
-        var usersTable = $"{users}_{uId}";
-
-        try
-        {
-            service.CreateScenario(users, uId);
-            var count = service.RunRollbackToSavepoint(usersTable);
-            GC.KeepAlive(count);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedTransactionUsersState("TransactionUsers");
+        var count = state.RunRollbackToSavepoint();
+        GC.KeepAlive(count);
     }
 
     protected virtual void RunReleaseSavepoint()
@@ -838,18 +580,8 @@ public abstract partial class BenchmarkSessionBase(
             return;
         }
 
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateMutationService(connection, BenchmarkScenarioFactory.CreateNoopScenario<DbConnection>());
-        service.CreateScenario();
-        try
-        {
-            service.RunReleaseSavepoint();
-        }
-        finally
-        {
-            service.DropScenario();
-        }
+        var state = GetPreparedNoopMutationState("NoopMutation");
+        state.Service.RunReleaseSavepoint();
     }
 
     /// <summary>
@@ -860,29 +592,9 @@ public abstract partial class BenchmarkSessionBase(
     /// <exception cref="InvalidOperationException"></exception>
     protected virtual void RunUpsert()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateMutationService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Alice")));
-
-        try
-        {
-            service.CreateScenario(users, uId);
-            var value = service.RunUpsert(users);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedCrudUsersState("CrudUsers");
+        var value = state.RunUpsert();
+        GC.KeepAlive(value);
     }
 
     /// <summary>
@@ -892,163 +604,44 @@ public abstract partial class BenchmarkSessionBase(
     /// <exception cref="NotSupportedException"></exception>
     protected virtual void RunSequenceNextValue()
     {
-        var sequence = NewSequenceName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateMutationService(connection, BenchmarkScenarioFactory.CreateSequenceScenario<DbConnection>(Dialect));
-
-        try
-        {
-            service.CreateScenario(sequence);
-            var value = service.RunSequenceNextValue(sequence);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(sequence);
-            }
-            catch
-            {
-                SafeDropSequence(connection, sequence);
-            }
-        }
+        var state = GetPreparedSequenceState("SequenceNextValue");
+        var value = state.RunSequenceNextValue();
+        GC.KeepAlive(value);
     }
 
     protected virtual void RunBatchInsert10()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateBatchService(connection, BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
-
-        try
-        {
-            service.CreateScenario(users, uId);
-            var count = service.RunBatchInsert10(users);
-            GC.KeepAlive(count);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedBatchUsersState("BatchUsers");
+        var count = state.RunBatchInsert(10);
+        GC.KeepAlive(count);
     }
 
     protected virtual void RunBatchInsert100()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateBatchService(connection, BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
-
-        try
-        {
-            service.CreateScenario(users, uId);
-            var count = service.RunBatchInsert100(users);
-            GC.KeepAlive(count);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedBatchUsersState("BatchUsers");
+        var count = state.RunBatchInsert(100);
+        GC.KeepAlive(count);
     }
 
     protected virtual void RunBatchMixedReadWrite()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateBatchService(connection, BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
-
-        try
-        {
-            service.CreateScenario(users, uId);
-            var value = service.RunBatchMixedReadWrite(users);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedBatchUsersState("BatchUsers");
+        var value = state.RunBatchMixedReadWrite();
+        GC.KeepAlive(value);
     }
 
     protected virtual void RunBatchScalar()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateBatchService(connection, BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
-
-        try
-        {
-            service.CreateScenario(users, uId);
-            var second = service.RunBatchScalar(users);
-            GC.KeepAlive(second);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedBatchUsersState("BatchUsers");
+        var second = state.RunBatchScalar();
+        GC.KeepAlive(second);
     }
 
     protected virtual void RunBatchNonQuery()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateBatchService(connection, BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
-
-        try
-        {
-            service.CreateScenario(users, uId);
-            var count = service.RunBatchNonQuery(users);
-            GC.KeepAlive(count);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedBatchUsersState("BatchUsers");
+        var count = state.RunBatchNonQuery();
+        GC.KeepAlive(count);
     }
 
     /// <summary>
@@ -1058,60 +651,20 @@ public abstract partial class BenchmarkSessionBase(
     /// <exception cref="NotSupportedException"></exception>
     protected virtual void RunStringAggregate()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(
-            connection,
-            BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Charlie"), (2, "Alice"), (3, "Bob")));
-
-        try
-        {
-            service.CreateScenario(users, uId);
-            var value = service.RunStringAggregate(users);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedUsersQueryState(
+            "StringAggregate",
+            (1, "Charlie"), (2, "Alice"), (3, "Bob"));
+        var value = state.Service.RunStringAggregate(state.UsersTable);
+        GC.KeepAlive(value);
     }
 
     protected virtual void RunStringAggregateOrdered()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(
-            connection,
-            BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Charlie"), (2, "Alice"), (3, "Bob")));
-
-        try
-        {
-            service.CreateScenario(users, uId);
-            var value = service.RunStringAggregateOrdered(users);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedUsersQueryState(
+            "StringAggregateOrdered",
+            (1, "Charlie"), (2, "Alice"), (3, "Bob"));
+        var value = state.Service.RunStringAggregateOrdered(state.UsersTable);
+        GC.KeepAlive(value);
     }
 
     /// <summary>
@@ -1120,74 +673,32 @@ public abstract partial class BenchmarkSessionBase(
     /// </summary>
     protected virtual void RunDateScalar()
     {
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateNoopScenario<DbConnection>());
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var service = state.Service;
         var value = service.RunDateScalar();
         GC.KeepAlive(value);
     }
 
     protected virtual void RunJsonScalarRead()
     {
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateNoopScenario<DbConnection>());
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var service = state.Service;
         var value = service.RunJsonScalarRead();
         GC.KeepAlive(value);
     }
 
     protected virtual void RunRowCountAfterInsert()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateInsertUsersService(connection);
-
-        try
-        {
-            service.CreateScenario(users, uId);
-            var affected = service.RunRowCountAfterInsert(users, uId);
-            GC.KeepAlive(affected);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedInsertUsersState("RowCountAfterInsert");
+        var affected = state.RunRowCountAfterInsert();
+        GC.KeepAlive(affected);
     }
 
     protected virtual void RunRowCountAfterUpdate()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateMutationService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Alice")));
-
-        try
-        {
-            service.CreateScenario(users, uId);
-            var affected = service.RunRowCountAfterUpdate(users);
-            GC.KeepAlive(affected);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedCrudUsersState("CrudUsers");
+        var affected = state.RunRowCountAfterUpdate();
+        GC.KeepAlive(affected);
     }
 
     /// <summary>
@@ -1246,349 +757,125 @@ public abstract partial class BenchmarkSessionBase(
 
     protected virtual void RunNestedSavepointFlow()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateMutationService(connection, BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
-        var usersTable = $"{users}_{uId}";
-        try
-        {
-            service.CreateScenario(users, uId);
-            var count = service.RunNestedSavepointFlow(usersTable);
-            GC.KeepAlive(count);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedTransactionUsersState("TransactionUsers");
+        var count = state.RunNestedSavepointFlow();
+        GC.KeepAlive(count);
     }
 
     protected virtual void RunStringAggregateDistinct()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Bob"), (2, "Alice"), (3, "Bob")));
-        try
-        {
-            service.CreateScenario(users, uId);
-            var value = service.RunStringAggregateDistinct(users);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedUsersQueryState(
+            "StringAggregateDistinct",
+            (1, "Bob"), (2, "Alice"), (3, "Bob"));
+        var value = state.Service.RunStringAggregateDistinct(state.UsersTable);
+        GC.KeepAlive(value);
     }
 
     protected virtual void RunStringAggregateCustomSeparator()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Bob"), (2, "Alice")));
-        try
-        {
-            service.CreateScenario(users, uId);
-            var value = service.RunStringAggregateCustomSeparator(users);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedUsersQueryState(
+            "StringAggregateCustomSeparator",
+            (1, "Bob"), (2, "Alice"));
+        var value = state.Service.RunStringAggregateCustomSeparator(state.UsersTable);
+        GC.KeepAlive(value);
     }
 
     protected virtual void RunStringAggregateLargeGroup()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
         var seedRows = new (int id, string name)[50];
         for (var i = 1; i <= 50; i++)
         {
             seedRows[i - 1] = (i, $"User-{i}");
         }
 
-        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, seedRows));
-        try
-        {
-            service.CreateScenario(users, uId);
-            var value = service.RunStringAggregateLargeGroup(users);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedUsersQueryState("StringAggregateLargeGroup", seedRows);
+        var value = state.Service.RunStringAggregateLargeGroup(state.UsersTable);
+        GC.KeepAlive(value);
     }
 
     protected virtual void RunTemporalCurrentTimestamp()
     {
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateNoopScenario<DbConnection>());
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var service = state.Service;
         var value = service.RunTemporalCurrentTimestamp();
         GC.KeepAlive(value);
     }
 
     protected virtual void RunTemporalDateAdd()
     {
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateNoopScenario<DbConnection>());
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var service = state.Service;
         var value = service.RunTemporalDateAdd();
         GC.KeepAlive(value);
     }
 
     protected virtual void RunTemporalNowWhere()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Alice")));
-        try
-        {
-            service.CreateScenario(users, uId);
-            var value = service.RunTemporalNowWhere(users);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedUsersQueryState("TemporalNowWhere", (1, "Alice"));
+        var value = state.Service.RunTemporalNowWhere(state.UsersTable);
+        GC.KeepAlive(value);
     }
 
     protected virtual void RunTemporalNowOrderBy()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Bob"), (2, "Alice")));
-        try
-        {
-            service.CreateScenario(users, uId);
-            var value = service.RunTemporalNowOrderBy(users);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedUsersQueryState("TemporalNowOrderBy", (1, "Bob"), (2, "Alice"));
+        var value = state.Service.RunTemporalNowOrderBy(state.UsersTable);
+        GC.KeepAlive(value);
     }
 
     protected virtual void RunJsonPathRead()
     {
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateNoopScenario<DbConnection>());
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var service = state.Service;
         var value = service.RunJsonPathRead();
         GC.KeepAlive(value);
     }
 
     protected virtual void RunRowCountAfterSelect()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Alice"), (2, "Bob")));
-        try
-        {
-            service.CreateScenario(users, uId);
-            var count = service.RunRowCountAfterSelect(users);
-            GC.KeepAlive(count);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedUsersQueryState("RowCountAfterSelect", (1, "Alice"), (2, "Bob"));
+        var count = state.Service.RunRowCountAfterSelect(state.UsersTable);
+        GC.KeepAlive(count);
     }
 
     protected virtual void RunCteSimple()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Alice")));
-        try
-        {
-            service.CreateScenario(users, uId);
-            var value = service.RunCteSimple(users);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedUsersQueryState("CteSimple", (1, "Alice"));
+        var value = state.Service.RunCteSimple(state.UsersTable);
+        GC.KeepAlive(value);
     }
 
     protected virtual void RunWindowRowNumber()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Bob"), (2, "Alice"), (3, "Charlie")));
-        try
-        {
-            service.CreateScenario(users, uId);
-            var value = service.RunWindowRowNumber(users);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedUsersQueryState(
+            "WindowRowNumber",
+            (1, "Bob"), (2, "Alice"), (3, "Charlie"));
+        var value = state.Service.RunWindowRowNumber(state.UsersTable);
+        GC.KeepAlive(value);
     }
 
     protected virtual void RunWindowLag()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Bob"), (2, "Alice"), (3, "Charlie")));
-        try
-        {
-            service.CreateScenario(users, uId);
-            var value = service.RunWindowLag(users);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedUsersQueryState(
+            "WindowLag",
+            (1, "Bob"), (2, "Alice"), (3, "Charlie"));
+        var value = state.Service.RunWindowLag(state.UsersTable);
+        GC.KeepAlive(value);
     }
 
 
     protected virtual void RunBatchReaderMultiResult()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateBatchService(connection, BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
-        try
-        {
-            service.CreateScenario(users, uId);
-            var value = service.RunBatchReaderMultiResult(users);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedBatchUsersState("BatchUsers");
+        var value = state.RunBatchReaderMultiResult();
+        GC.KeepAlive(value);
     }
 
     protected virtual void RunBatchTransactionControl()
     {
-        var uId = NextToken();
-        using var connection = CreateConnection();
-        connection.Open();
-        var users = NewUsersTableName();
-        var service = CreateBatchService(connection, BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
-        try
-        {
-            service.CreateScenario(users, uId);
-            var value = service.RunBatchTransactionControl(users);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedBatchUsersState("BatchUsers");
+        var value = state.RunBatchTransactionControl();
+        GC.KeepAlive(value);
     }
 
     protected virtual void RunParseSimpleSelect()
@@ -1641,63 +928,24 @@ public abstract partial class BenchmarkSessionBase(
 
     protected virtual void RunJsonInsertCast()
     {
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateNoopScenario<DbConnection>());
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var service = state.Service;
         var value = service.RunJsonInsertCast();
         GC.KeepAlive(value);
     }
 
     protected virtual void RunRowCountInBatch()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateBatchService(connection, BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
-        try
-        {
-            service.CreateScenario(users, uId);
-            var count = service.RunRowCountInBatch(users);
-            GC.KeepAlive(count);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedBatchUsersState("BatchUsers");
+        var count = state.RunRowCountInBatch();
+        GC.KeepAlive(count);
     }
 
     protected virtual void RunPivotCount()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Alice"), (2, "Bob")));
-        try
-        {
-            service.CreateScenario(users, uId);
-            var value = service.RunPivotCount(users);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedUsersQueryState("PivotCount", (1, "Alice"), (2, "Bob"));
+        var value = state.Service.RunPivotCount(state.UsersTable);
+        GC.KeepAlive(value);
     }
 
     protected virtual void RunReturningInsert()
@@ -1708,28 +956,9 @@ public abstract partial class BenchmarkSessionBase(
             return;
         }
 
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateBatchService(connection, BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
-        try
-        {
-            service.CreateScenario(users, uId);
-            var rows = service.RunReturningInsert(users);
-            GC.KeepAlive(rows);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedReturningInsertState("ReturningInsert");
+        var rows = state.RunReturningInsert();
+        GC.KeepAlive(rows);
     }
 
     protected virtual void RunReturningUpdate()
@@ -1744,377 +973,119 @@ public abstract partial class BenchmarkSessionBase(
 
     protected virtual void RunPartitionPruningSelect()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
         var seedRows = new (int id, string name)[20];
         for (var i = 1; i <= 20; i++)
         {
             seedRows[i - 1] = (i, $"User{i:00}");
         }
 
-        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, seedRows));
-        try
-        {
-            service.CreateScenario(users, uId);
-            var value = service.RunPartitionPruningSelect(users);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedUsersQueryState("PartitionPruningSelect", seedRows);
+        var value = state.Service.RunPartitionPruningSelect(state.UsersTable);
+        GC.KeepAlive(value);
     }
 
 
     protected virtual void RunSelectExistsPredicate()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        var orders = NewOrdersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(
-            connection,
-            BenchmarkScenarioFactory.CreateUsersOrdersScenario<DbConnection>(
-                Dialect,
-                [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
-                [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]));
-        try
-        {
-            service.CreateScenario(users, orders, uId);
-            var value = service.RunSelectExistsPredicate(users, orders);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, orders, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, orders, uId);
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedUsersOrdersQueryState(
+            "UsersOrdersThreeRows",
+            [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
+            [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]);
+        var value = state.Service.RunSelectExistsPredicate(state.UsersTable, state.OrdersTable);
+        GC.KeepAlive(value);
     }
 
     protected virtual void RunSelectCorrelatedCount()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        var orders = NewOrdersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(
-            connection,
-            BenchmarkScenarioFactory.CreateUsersOrdersScenario<DbConnection>(
-                Dialect,
-                [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
-                [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]));
-        try
-        {
-            service.CreateScenario(users, orders, uId);
-            var value = service.RunSelectCorrelatedCount(users, orders);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, orders, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, orders, uId);
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedUsersOrdersQueryState(
+            "UsersOrdersThreeRows",
+            [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
+            [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]);
+        var value = state.Service.RunSelectCorrelatedCount(state.UsersTable, state.OrdersTable);
+        GC.KeepAlive(value);
     }
 
     protected virtual void RunGroupByHaving()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        var orders = NewOrdersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(
-            connection,
-            BenchmarkScenarioFactory.CreateUsersOrdersScenario<DbConnection>(
-                Dialect,
-                [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
-                [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]));
-        try
-        {
-            service.CreateScenario(users, orders, uId);
-            var value = service.RunGroupByHaving(users, orders);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, orders, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, orders, uId);
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedUsersOrdersQueryState(
+            "UsersOrdersThreeRows",
+            [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
+            [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]);
+        var value = state.Service.RunGroupByHaving(state.UsersTable, state.OrdersTable);
+        GC.KeepAlive(value);
     }
 
     protected virtual void RunUnionAllProjection()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Alice"), (2, "Bob")));
-        try
-        {
-            service.CreateScenario(users, uId);
-            var value = service.RunUnionAllProjection(users);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedUsersQueryState("UnionAllProjection", (1, "Alice"), (2, "Bob"));
+        var value = state.Service.RunUnionAllProjection(state.UsersTable);
+        GC.KeepAlive(value);
     }
 
     protected virtual void RunDistinctProjection()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Alice"), (2, "Alice"), (3, "Bob")));
-        try
-        {
-            service.CreateScenario(users, uId);
-            var value = service.RunDistinctProjection(users);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedUsersQueryState(
+            "DistinctProjection",
+            (1, "Alice"), (2, "Alice"), (3, "Bob"));
+        var value = state.Service.RunDistinctProjection(state.UsersTable);
+        GC.KeepAlive(value);
     }
 
     protected virtual void RunMultiJoinAggregate()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        var orders = NewOrdersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(
-            connection,
-            BenchmarkScenarioFactory.CreateUsersOrdersScenario<DbConnection>(
-                Dialect,
-                [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
-                [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]));
-        try
-        {
-            service.CreateScenario(users, orders, uId);
-            var value = service.RunMultiJoinAggregate(users, orders);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, orders, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, orders, uId);
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedUsersOrdersQueryState(
+            "UsersOrdersThreeRows",
+            [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
+            [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]);
+        var value = state.Service.RunMultiJoinAggregate(state.UsersTable, state.OrdersTable);
+        GC.KeepAlive(value);
     }
 
     protected virtual void RunSelectScalarSubquery()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        var orders = NewOrdersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(
-            connection,
-            BenchmarkScenarioFactory.CreateUsersOrdersScenario<DbConnection>(
-                Dialect,
-                [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
-                [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]));
-        try
-        {
-            service.CreateScenario(users, orders, uId);
-            var value = service.RunSelectScalarSubquery(users, orders);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, orders, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, orders, uId);
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedUsersOrdersQueryState(
+            "UsersOrdersThreeRows",
+            [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
+            [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]);
+        var value = state.Service.RunSelectScalarSubquery(state.UsersTable, state.OrdersTable);
+        GC.KeepAlive(value);
     }
 
     protected virtual void RunSelectInSubquery()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        var orders = NewOrdersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(
-            connection,
-            BenchmarkScenarioFactory.CreateUsersOrdersScenario<DbConnection>(
-                Dialect,
-                [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
-                [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]));
-        try
-        {
-            service.CreateScenario(users, orders, uId);
-            var value = service.RunSelectInSubquery(users, orders);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, orders, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, orders, uId);
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedUsersOrdersQueryState(
+            "UsersOrdersThreeRows",
+            [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
+            [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]);
+        var value = state.Service.RunSelectInSubquery(state.UsersTable, state.OrdersTable);
+        GC.KeepAlive(value);
     }
 
     protected virtual void RunCrossApplyProjection()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        var orders = NewOrdersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(
-            connection,
-            BenchmarkScenarioFactory.CreateUsersOrdersScenario<DbConnection>(
-                Dialect,
-                [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
-                [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]));
-        try
-        {
-            service.CreateScenario(users, orders, uId);
-            var value = service.RunCrossApplyProjection(users, orders);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, orders, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, orders, uId);
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedUsersOrdersQueryState(
+            "UsersOrdersThreeRows",
+            [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
+            [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]);
+        var value = state.Service.RunCrossApplyProjection(state.UsersTable, state.OrdersTable);
+        GC.KeepAlive(value);
     }
 
     protected virtual void RunOuterApplyProjection()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        var orders = NewOrdersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateQueryService(
-            connection,
-            BenchmarkScenarioFactory.CreateUsersOrdersScenario<DbConnection>(
-                Dialect,
-                [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
-                [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]));
-        try
-        {
-            service.CreateScenario(users, orders, uId);
-            var value = service.RunOuterApplyProjection(users, orders);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, orders, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, orders, uId);
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedUsersOrdersQueryState(
+            "UsersOrdersThreeRows",
+            [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
+            [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]);
+        var value = state.Service.RunOuterApplyProjection(state.UsersTable, state.OrdersTable);
+        GC.KeepAlive(value);
     }
 
     protected virtual void RunExecutionPlan()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateExecutionPlanService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Alice")));
-        try
-        {
-            service.CreateScenario(users, uId);
-            var plan = service.RunExecutionPlan(users);
-            GC.KeepAlive(plan);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedExecutionPlanState("ExecutionPlan", (1, "Alice"));
+        var plan = state.Service.RunExecutionPlan(state.UsersTable);
+        GC.KeepAlive(plan);
     }
 
     protected virtual void RunExecutionPlanSelect()
@@ -2124,113 +1095,33 @@ public abstract partial class BenchmarkSessionBase(
 
     protected virtual void RunExecutionPlanJoin()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        var orders = NewOrdersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateExecutionPlanService(
-            connection,
-            BenchmarkScenarioFactory.CreateUsersOrdersScenario<DbConnection>(
-                Dialect,
-                [(1, "Alice")],
-                [(1, 1, "order-1")]));
-        try
-        {
-            service.CreateScenario(users, orders, uId);
-            var plan = service.RunExecutionPlanJoin(users, orders);
-            GC.KeepAlive(plan);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, orders, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, orders, uId);
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedExecutionPlanJoinState(
+            "ExecutionPlanJoin",
+            [(1, "Alice")],
+            [(1, 1, "order-1")]);
+        var plan = state.Service.RunExecutionPlanJoin(state.UsersTable, state.OrdersTable);
+        GC.KeepAlive(plan);
     }
 
     protected virtual void RunExecutionPlanDml()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateExecutionPlanService(connection, BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
-        try
-        {
-            service.CreateScenario(users, uId);
-            var plan = service.RunExecutionPlanDml(users);
-            GC.KeepAlive(plan);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedExecutionPlanDmlState("ExecutionPlanDml");
+        var plan = state.RunExecutionPlanDml();
+        GC.KeepAlive(plan);
     }
 
     protected virtual void RunDebugTraceSelect()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateDebugTraceService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Alice")));
-        try
-        {
-            service.CreateScenario(users, uId);
-            var trace = service.RunDebugTraceSelect(users);
-            GC.KeepAlive(trace);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedDebugTraceSelectState("DebugTraceSelect", (1, "Alice"));
+        var trace = state.Service.RunDebugTraceSelect(state.UsersTable);
+        GC.KeepAlive(trace);
     }
 
     protected virtual void RunDebugTraceBatch()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateDebugTraceService(connection, BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
-        try
-        {
-            service.CreateScenario(users, uId);
-            var trace = service.RunDebugTraceBatch(users);
-            GC.KeepAlive(trace);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedDebugTraceBatchState("DebugTraceBatch");
+        var trace = state.RunDebugTraceBatch();
+        GC.KeepAlive(trace);
     }
 
     protected virtual void RunDebugTraceJson()
@@ -2241,103 +1132,29 @@ public abstract partial class BenchmarkSessionBase(
 
     protected virtual void RunLastExecutionPlansHistory()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateExecutionPlanService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Alice")));
-        try
-        {
-            service.CreateScenario(users, uId);
-            var plans = service.RunLastExecutionPlansHistory(users);
-            GC.KeepAlive(plans);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedExecutionPlanState("LastExecutionPlansHistory", (1, "Alice"));
+        var plans = state.Service.RunLastExecutionPlansHistory(state.UsersTable);
+        GC.KeepAlive(plans);
     }
 
     protected virtual void RunTempTableCreateAndUse()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateTemporaryTableService(connection, BenchmarkScenarioFactory.CreateTemporaryTableScenario<DbConnection>(Dialect));
-        try
-        {
-            service.CreateScenario(users, uId);
-            var rows = service.RunCreateTemporaryTableAsSelectThenSelect(users, uId);
-            GC.KeepAlive(rows);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
-        }
+        var state = GetPreparedTemporaryTableSourceState("TempTableSource");
+        var rows = state.RunCreateTemporaryTableAsSelectThenSelect();
+        GC.KeepAlive(rows);
     }
 
     protected virtual void RunTempTableRollback()
     {
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateTemporaryTableService(connection, BenchmarkScenarioFactory.CreateTemporaryUsersScenario<DbConnection>(Dialect));
-        try
-        {
-            service.CreateScenario(users);
-            service.RunTempTableRollback(users);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users);
-            }
-            catch
-            {
-                SafeDropTemporaryTable(connection, users);
-            }
-        }
+        var state = GetPreparedTemporaryUsersState("TempUsers");
+        state.RunTempTableRollback();
     }
 
     protected virtual void RunTempTableCrossConnectionIsolation()
     {
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateTemporaryTableService(connection, BenchmarkScenarioFactory.CreateTemporaryUsersScenario<DbConnection>(Dialect), CreateConnection);
-        try
-        {
-            service.CreateScenario(users);
-            var value = service.RunTemporaryTableCrossConnectionIsolation(users);
-            GC.KeepAlive(value);
-        }
-        finally
-        {
-            try
-            {
-                service.DropScenario(users);
-            }
-            catch
-            {
-                SafeDropTemporaryTable(connection, users);
-            }
-        }
+        var state = GetPreparedTemporaryUsersState("TempUsersIsolation");
+        var value = state.RunTemporaryTableCrossConnectionIsolation();
+        GC.KeepAlive(value);
     }
 
     protected virtual void RunResetVolatileData()
@@ -2366,19 +1183,15 @@ public abstract partial class BenchmarkSessionBase(
 
     protected virtual void RunSchemaSnapshotExport()
     {
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateSchemaSnapshotService(connection);
-        var snapshot = service.RunSchemaSnapshotExport();
+        var state = GetPreparedSchemaSnapshotState("SchemaSnapshot");
+        var snapshot = state.Service.RunSchemaSnapshotExport();
         GC.KeepAlive(snapshot);
     }
 
     protected virtual void RunSchemaSnapshotToJson()
     {
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateSchemaSnapshotService(connection);
-        var json = service.RunSchemaSnapshotToJson();
+        var state = GetPreparedSchemaSnapshotState("SchemaSnapshot");
+        var json = state.Service.RunSchemaSnapshotToJson();
         GC.KeepAlive(json);
     }
 
@@ -2390,28 +1203,22 @@ public abstract partial class BenchmarkSessionBase(
 
     protected virtual void RunSchemaSnapshotApply()
     {
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateSchemaSnapshotService(connection);
-        var applied = service.RunSchemaSnapshotApply();
+        var state = GetPreparedSchemaSnapshotState("SchemaSnapshot");
+        var applied = state.Service.RunSchemaSnapshotApply();
         GC.KeepAlive(applied);
     }
 
     protected virtual void RunSchemaSnapshotRoundTrip()
     {
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateSchemaSnapshotService(connection);
-        var obj = service.RunSchemaSnapshotRoundTrip();
+        var state = GetPreparedSchemaSnapshotState("SchemaSnapshot");
+        var obj = state.Service.RunSchemaSnapshotRoundTrip();
         GC.KeepAlive(obj);
     }
 
     protected virtual void RunSchemaSnapshotCompare()
     {
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateSchemaSnapshotService(connection);
-        var comparison = service.RunSchemaSnapshotCompare();
+        var state = GetPreparedSchemaSnapshotState("SchemaSnapshot");
+        var comparison = state.Service.RunSchemaSnapshotCompare();
         GC.KeepAlive(comparison);
     }
 

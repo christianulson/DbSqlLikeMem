@@ -1,14 +1,14 @@
 namespace DbSqlLikeMem.SqlServer.Dapper.Test.Strategy;
 
 /// <summary>
-/// EN: Defines the class SqlServerMergeUpsertTests.
-/// PT: Define a classe SqlServerMergeUpsertTests.
+/// EN: Covers SQL Server MERGE-based upsert scenarios against the Dapper provider.
+/// PT: Cobre cenarios de upsert baseado em MERGE do SQL Server contra o provedor Dapper.
 /// </summary>
 public sealed class SqlServerMergeUpsertTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
     /// <summary>
-    /// EN: Tests Merge_ShouldInsert_WhenNotMatched behavior.
-    /// PT: Testa o comportamento de Merge_ShouldInsert_WhenNotMatched.
+    /// EN: Verifies MERGE inserts rows when the source row is not matched.
+    /// PT: Verifica se MERGE insere linhas quando a linha de origem nao e correspondida.
     /// </summary>
     [Theory]
     [MemberDataSqlServerVersion]
@@ -47,8 +47,8 @@ WHEN NOT MATCHED THEN
     }
 
     /// <summary>
-    /// EN: Tests Merge_ShouldUpdate_WhenMatched behavior.
-    /// PT: Testa o comportamento de Merge_ShouldUpdate_WhenMatched.
+    /// EN: Verifies MERGE updates rows when the source row is matched.
+    /// PT: Verifica se MERGE atualiza linhas quando a linha de origem e correspondida.
     /// </summary>
     [Theory]
     [MemberDataSqlServerVersion]
@@ -91,8 +91,8 @@ WHEN NOT MATCHED THEN
     }
 
     /// <summary>
-    /// EN: Tests Merge_SourceAliasWithoutAs_ShouldResolveSourceColumns behavior.
-    /// PT: Testa o comportamento de Merge_SourceAliasWithoutAs_ShouldResolveSourceColumns.
+    /// EN: Verifies MERGE resolves source columns when the alias omits AS.
+    /// PT: Verifica se MERGE resolve as colunas de origem quando o alias omite AS.
     /// </summary>
     [Theory]
     [MemberDataSqlServerVersion]

@@ -29,9 +29,7 @@ public class SelectByPKServiceTest<T>(
         if (Dialect.Provider == ProviderId.Oracle)
         {
             var sql = Dialect.SelectUserNameById(tableName, 1);
-            Console.WriteLine($"[SelectByPk][Oracle] SQL: {sql}");
             var rawValue = ExecuteScalar(sql);
-            Console.WriteLine($"[SelectByPk][Oracle] Scalar raw value: {rawValue ?? "<null>"} ({rawValue?.GetType().FullName ?? "<null>"})");
             value = Convert.ToString(rawValue);
 
             if (!string.Equals(value, "Alice", StringComparison.Ordinal))
@@ -43,12 +41,7 @@ public class SelectByPKServiceTest<T>(
                 if (reader.Read())
                 {
                     var nameValue = reader.GetValue(0);
-                    Console.WriteLine($"[SelectByPk][Oracle] Reader fallback row: Name={nameValue ?? "<null>"}");
                     value = Convert.ToString(nameValue);
-                }
-                else
-                {
-                    Console.WriteLine($"[SelectByPk][Oracle] Reader fallback returned no rows for {sql}");
                 }
             }
         }
@@ -56,11 +49,6 @@ public class SelectByPKServiceTest<T>(
         {
             var sql = Dialect.SelectUserNameById(tableName, 1);
             value = Convert.ToString(ExecuteScalar(sql));
-        }
-
-        if (Dialect.Provider == ProviderId.Oracle)
-        {
-            Console.WriteLine($"[SelectByPk][Oracle] Final value: {value ?? "<null>"}");
         }
 
         if (!string.Equals(value, "Alice", StringComparison.Ordinal))

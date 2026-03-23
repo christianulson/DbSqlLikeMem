@@ -12,8 +12,8 @@ public sealed class SqlServerFunctionTests
     private readonly SqlServerConnectionMock _connection;
 
     /// <summary>
-    /// EN: Initializes SQL Server function fixtures with sample tables and sequences.
-    /// PT: Inicializa os fixtures de funcoes SQL Server com tabelas e sequences de exemplo.
+    /// EN: Creates SQL Server function fixtures with sample tables and sequences.
+    /// PT: Cria fixtures de funcoes SQL Server com tabelas e sequences de exemplo.
     /// </summary>
     public SqlServerFunctionTests(ITestOutputHelper helper)
         : base(helper)

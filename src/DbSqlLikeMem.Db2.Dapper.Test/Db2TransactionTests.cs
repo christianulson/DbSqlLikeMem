@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.Db2.Dapper.Test;
 /// <summary>
-/// EN: Defines the class Db2TransactionTests.
-/// PT: Define a classe Db2TransactionTests.
+/// EN: Covers DB2 transaction scenarios against the Dapper provider.
+/// PT: Cobre cenarios de transacao DB2 contra o provedor Dapper.
 /// </summary>
 public sealed class Db2TransactionTests(
     ITestOutputHelper helper

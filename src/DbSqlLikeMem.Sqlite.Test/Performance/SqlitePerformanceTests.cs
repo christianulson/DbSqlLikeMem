@@ -3,24 +3,22 @@
 namespace DbSqlLikeMem.Sqlite.Test.Performance;
 
 /// <summary>
-/// Provides performance tests for basic CRUD operations using a mock SQLite database. Used to benchmark and validate
-/// the efficiency of insert, read, update, and delete operations within a controlled test environment.
+/// EN: Covers SQLite CRUD performance scenarios against the mock provider.
+/// PT: Cobre cenarios de performance CRUD do SQLite contra o provedor mock.
 /// </summary>
-/// <remarks>This class is intended for use with xUnit test frameworks and relies on mock implementations of
-/// SQLite components to simulate database interactions. The tests measure operation timings and report metrics to
-/// assist in identifying performance bottlenecks. Results are output to the test log for analysis. Thread safety is not
-/// guaranteed; tests should be run sequentially.</remarks>
+/// <remarks>
+/// EN: The suite measures insert, read, update, and delete throughput in a controlled test environment.
+/// PT: A suite mede o throughput de insert, read, update e delete em um ambiente de teste controlado.
+/// </remarks>
 public sealed class SqlitePerformanceTests : XUnitTestBase
 {
     private readonly SqliteConnectionMock _connection;
 
     /// <summary>
-    /// Initializes a new instance of the SqlitePerformanceTests class using the specified test output helper.
+    /// EN: Creates the SQLite performance test fixture with a seeded Users table.
+    /// PT: Cria a fixture de testes de performance do SQLite com a tabela Users semeada.
     /// </summary>
-    /// <remarks>This constructor sets up an in-memory SQLite database mock with a 'Users' table and opens a
-    /// connection for use in performance testing scenarios. The database schema is predefined to facilitate consistent
-    /// test results.</remarks>
-    /// <param name="helper">The test output helper used to capture and display test output during performance tests.</param>
+    /// <param name="helper">EN: The xUnit output helper. PT: O helper de saida do xUnit.</param>
     public SqlitePerformanceTests(ITestOutputHelper helper) : base(helper)
     {
         var db = new SqliteDbMock();

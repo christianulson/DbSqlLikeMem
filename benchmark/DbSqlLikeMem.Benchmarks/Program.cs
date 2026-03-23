@@ -15,6 +15,10 @@ namespace DbSqlLikeMem.Benchmarks;
 
 internal static class Program
 {
+    /// <summary>
+    /// EN: Parses the benchmark command line and runs the selected benchmark mode or catalog validation.
+    /// PT: Analisa a linha de comando do benchmark e executa o modo selecionado ou a validacao do catalogo.
+    /// </summary>
     public static void Main(string[] args)
     {
         var options = BenchmarkRunOptions.Parse(args);
@@ -33,6 +37,10 @@ internal static class Program
     }
 }
 
+/// <summary>
+/// EN: Holds the command-line options used to configure benchmark execution.
+/// PT: Guarda as opcoes de linha de comando usadas para configurar a execucao do benchmark.
+/// </summary>
 public sealed record BenchmarkRunOptions(
     bool IsTest,
     bool UseInProcess,
@@ -40,6 +48,12 @@ public sealed record BenchmarkRunOptions(
     bool ValidateCatalog,
     string[] BenchmarkDotNetArgs)
 {
+    /// <summary>
+    /// EN: Parses benchmark command-line arguments into a structured options record.
+    /// PT: Analisa os argumentos de linha de comando do benchmark em um registro estruturado de opcoes.
+    /// </summary>
+    /// <param name="args">EN: The raw command-line arguments. PT: Os argumentos brutos da linha de comando.</param>
+    /// <returns>EN: The parsed benchmark execution options. PT: As opcoes de execucao do benchmark analisadas.</returns>
     public static BenchmarkRunOptions Parse(string[] args)
     {
         var benchmarkArgs = new List<string>();
@@ -82,8 +96,17 @@ public sealed record BenchmarkRunOptions(
     }
 }
 
+/// <summary>
+/// EN: Builds the BenchmarkDotNet configuration used by the benchmark entry point.
+/// PT: Monta a configuracao do BenchmarkDotNet usada pelo ponto de entrada do benchmark.
+/// </summary>
 public class BenchmarkConfig : ManualConfig
 {
+    /// <summary>
+    /// EN: Creates a BenchmarkDotNet configuration for the selected benchmark mode.
+    /// PT: Cria uma configuracao do BenchmarkDotNet para o modo de benchmark selecionado.
+    /// </summary>
+    /// <param name="options">EN: The parsed benchmark execution options. PT: As opcoes de execucao do benchmark analisadas.</param>
     public BenchmarkConfig(BenchmarkRunOptions options)
     {
         AddLogger(ConsoleLogger.Default);
@@ -115,7 +138,14 @@ public class BenchmarkConfig : ManualConfig
             ArtifactsPath = Path.GetFullPath("../../docs/Wiki/BenchmarkResults");
         }
 
-        if (options.UseInProcess)
+        var useInProcess = ShouldUseInProcess(options);
+
+        if (options.UseInProcess && !useInProcess)
+        {
+            Console.WriteLine("InProcess was requested but skipped for this run. Use it only for short DbSqlLikeMem or Sqlite benchmark filters.");
+        }
+
+        if (useInProcess)
         {
             job = job
                 .WithToolchain(InProcessNoEmitToolchain.Instance)
@@ -136,5 +166,43 @@ public class BenchmarkConfig : ManualConfig
             printUnitsInContent: true,
             printZeroValuesInContent: false
         );
+    }
+
+    private static bool ShouldUseInProcess(BenchmarkRunOptions options)
+    {
+        if (!options.UseInProcess)
+        {
+            return false;
+        }
+
+        if (!TryGetFilter(options.BenchmarkDotNetArgs, out var filter))
+        {
+            return false;
+        }
+
+        if (filter.Contains("Testcontainers", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return filter.Contains("DbSqlLikeMem", StringComparison.OrdinalIgnoreCase)
+            || filter.Contains("Sqlite", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool TryGetFilter(string[] args, out string filter)
+    {
+        for (var i = 0; i < args.Length - 1; i++)
+        {
+            var arg = args[i];
+            if (string.Equals(arg, "--filter", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(arg, "-f", StringComparison.OrdinalIgnoreCase))
+            {
+                filter = args[i + 1];
+                return true;
+            }
+        }
+
+        filter = string.Empty;
+        return false;
     }
 }

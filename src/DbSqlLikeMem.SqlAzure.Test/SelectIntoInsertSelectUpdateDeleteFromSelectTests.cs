@@ -37,8 +37,8 @@ JOIN (SELECT userid, SUM(amount) AS total FROM orders GROUP BY userid) s ON s.us
 WHERE u.tenantid = 10";
 
     /// <summary>
-    /// EN: Provides SQL Azure specific syntax for delete with join over a derived select.
-    /// PT: Fornece a sintaxe específica do SQL Azure para delete com join sobre subselect derivado.
+    /// EN: Returns SQL Azure-specific syntax for delete with join over a derived select.
+    /// PT: Retorna a sintaxe especifica do SQL Azure para delete com join sobre subselect derivado.
     /// </summary>
     protected override string DeleteJoinDerivedSelectSql
         => "DELETE u FROM users u JOIN (SELECT id FROM users WHERE tenantid = 10) s ON s.id = u.id";
@@ -76,3 +76,4 @@ WHERE u.tenantid = 10";
         Assert.Contains("DELETE FROM ... USING", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 }
+

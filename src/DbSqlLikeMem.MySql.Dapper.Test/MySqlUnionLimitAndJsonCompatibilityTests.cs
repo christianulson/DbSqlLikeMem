@@ -1,16 +1,16 @@
 namespace DbSqlLikeMem.MySql.Dapper.Test;
 
 /// <summary>
-/// Tests that lock-in expected behavior for MySQL features that the in-memory mock already supports.
-/// Keep these green: they protect you from regressions while you implement more advanced gaps elsewhere.
+/// EN: Covers MySQL UNION, LIMIT, and JSON compatibility scenarios already supported by the in-memory mock.
+/// PT: Cobre cenarios de compatibilidade de UNION, LIMIT e JSON do MySQL que o mock em memoria ja suporta.
 /// </summary>
 public sealed class MySqlUnionLimitAndJsonCompatibilityTests : DapperUnionLimitAndJsonCompatibilityTestsBase<MySqlDbMock, MySqlConnectionMock>
 {
     private const int MySqlJsonExtractMinVersion = 50;
 
     /// <summary>
-    /// EN: Tests MySqlUnionLimitAndJsonCompatibilityTests behavior.
-    /// PT: Testa o comportamento de MySqlUnionLimitAndJsonCompatibilityTests.
+    /// EN: Creates the in-memory MySQL connection used by the UNION, LIMIT, and JSON compatibility tests.
+    /// PT: Cria a conexao MySQL em memoria usada pelos testes de compatibilidade de UNION, LIMIT e JSON.
     /// </summary>
     public MySqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper) { }
 
@@ -22,8 +22,8 @@ public sealed class MySqlUnionLimitAndJsonCompatibilityTests : DapperUnionLimitA
 
 
     /// <summary>
-    /// EN: Tests UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates behavior.
-    /// PT: Testa o comportamento de UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates.
+    /// EN: Verifies UNION ALL keeps duplicates while UNION removes them.
+    /// PT: Verifica se UNION ALL mantem duplicatas enquanto UNION as remove.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlUnionLimitAndJsonCompatibility")]
@@ -31,8 +31,8 @@ public sealed class MySqlUnionLimitAndJsonCompatibilityTests : DapperUnionLimitA
         => AssertUnionAllKeepsDuplicatesAndUnionRemovesThem();
 
     /// <summary>
-    /// EN: Tests Limit_OffsetCommaSyntax_ShouldWork behavior.
-    /// PT: Testa o comportamento de Limit_OffsetCommaSyntax_ShouldWork.
+    /// EN: Verifies LIMIT supports the comma offset syntax.
+    /// PT: Verifica se LIMIT suporta a sintaxe de offset com virgula.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlUnionLimitAndJsonCompatibility")]
@@ -44,8 +44,8 @@ public sealed class MySqlUnionLimitAndJsonCompatibilityTests : DapperUnionLimitA
     }
 
     /// <summary>
-    /// EN: Tests Limit_OffsetKeywordSyntax_ShouldWork behavior.
-    /// PT: Testa o comportamento de Limit_OffsetKeywordSyntax_ShouldWork.
+    /// EN: Verifies LIMIT supports the OFFSET keyword syntax.
+    /// PT: Verifica se LIMIT suporta a sintaxe com a palavra-chave OFFSET.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlUnionLimitAndJsonCompatibility")]
@@ -57,8 +57,8 @@ public sealed class MySqlUnionLimitAndJsonCompatibilityTests : DapperUnionLimitA
     }
 
     /// <summary>
-    /// EN: Tests JsonExtract_SimpleObjectPath_ShouldWork behavior.
-    /// PT: Testa o comportamento de JsonExtract_SimpleObjectPath_ShouldWork.
+    /// EN: Verifies JSON_EXTRACT respects the configured MySQL version.
+    /// PT: Verifica se JSON_EXTRACT respeita a versao MySQL configurada.
     /// </summary>
     [Theory]
     [Trait("Category", "MySqlUnionLimitAndJsonCompatibility")]
@@ -84,8 +84,8 @@ public sealed class MySqlUnionLimitAndJsonCompatibilityTests : DapperUnionLimitA
 
 
     /// <summary>
-    /// EN: Tests OrderBy_NullsFirst_ShouldThrow_WhenDialectDoesNotSupportModifier behavior.
-    /// PT: Testa o comportamento de OrderBy_NullsFirst_ShouldThrow_WhenDialectDoesNotSupportModifier.
+    /// EN: Verifies ORDER BY NULLS FIRST throws when the dialect does not support that modifier.
+    /// PT: Verifica se ORDER BY NULLS FIRST gera erro quando o dialeto nao suporta esse modificador.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlUnionLimitAndJsonCompatibility")]
@@ -97,8 +97,8 @@ public sealed class MySqlUnionLimitAndJsonCompatibilityTests : DapperUnionLimitA
 
 
     /// <summary>
-    /// EN: Tests JsonFunction_ShouldThrow_WhenNotSupportedByDialect behavior.
-    /// PT: Testa o comportamento de JsonFunction_ShouldThrow_WhenNotSupportedByDialect.
+    /// EN: Verifies unsupported JSON functions throw the expected exception.
+    /// PT: Verifica se funcoes JSON sem suporte lancam a excecao esperada.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlUnionLimitAndJsonCompatibility")]

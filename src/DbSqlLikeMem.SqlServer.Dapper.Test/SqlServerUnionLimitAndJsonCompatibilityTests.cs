@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 
 /// <summary>
-/// Tests that lock-in expected behavior for MySQL features that the in-memory mock already supports.
-/// Keep these green: they protect you from regressions while you implement more advanced gaps elsewhere.
+/// EN: Covers SQL Server UNION, OFFSET/FETCH, and JSON compatibility scenarios already supported by the in-memory mock.
+/// PT: Cobre cenarios de compatibilidade de UNION, OFFSET/FETCH e JSON do SQL Server que o mock em memoria ja suporta.
 /// </summary>
 public sealed class SqlServerUnionLimitAndJsonCompatibilityTests : DapperUnionLimitAndJsonCompatibilityTestsBase<SqlServerDbMock, SqlServerConnectionMock>
 {
@@ -10,8 +10,8 @@ public sealed class SqlServerUnionLimitAndJsonCompatibilityTests : DapperUnionLi
     private const int SqlServerJsonFunctionsMinVersion = 2016;
 
     /// <summary>
-    /// EN: Tests SqlServerUnionLimitAndJsonCompatibilityTests behavior.
-    /// PT: Testa o comportamento de SqlServerUnionLimitAndJsonCompatibilityTests.
+    /// EN: Creates the in-memory SQL Server connection used by the UNION, OFFSET/FETCH, and JSON compatibility tests.
+    /// PT: Cria a conexao SQL Server em memoria usada pelos testes de compatibilidade de UNION, OFFSET/FETCH e JSON.
     /// </summary>
     public SqlServerUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper) { }
 
@@ -22,8 +22,8 @@ public sealed class SqlServerUnionLimitAndJsonCompatibilityTests : DapperUnionLi
     protected override SqlServerConnectionMock CreateConnection(SqlServerDbMock db) => new(db);
 
     /// <summary>
-    /// EN: Tests UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates behavior.
-    /// PT: Testa o comportamento de UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates.
+    /// EN: Verifies UNION ALL keeps duplicates while UNION removes them.
+    /// PT: Verifica se UNION ALL mantem duplicatas enquanto UNION as remove.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
@@ -31,8 +31,8 @@ public sealed class SqlServerUnionLimitAndJsonCompatibilityTests : DapperUnionLi
         => AssertUnionAllKeepsDuplicatesAndUnionRemovesThem();
 
     /// <summary>
-    /// EN: Tests OffsetFetch_ShouldWork behavior.
-    /// PT: Testa o comportamento de OffsetFetch_ShouldWork.
+    /// EN: Verifies OFFSET/FETCH respects the configured SQL Server version.
+    /// PT: Verifica se OFFSET/FETCH respeita a versao SQL Server configurada.
     /// </summary>
     [Theory]
     [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
@@ -54,8 +54,8 @@ public sealed class SqlServerUnionLimitAndJsonCompatibilityTests : DapperUnionLi
     }
 
     /// <summary>
-    /// EN: Tests JsonValue_SimpleObjectPath_ShouldWork behavior.
-    /// PT: Testa o comportamento de JsonValue_SimpleObjectPath_ShouldWork.
+    /// EN: Verifies JSON_VALUE respects the configured SQL Server version.
+    /// PT: Verifica se JSON_VALUE respeita a versao SQL Server configurada.
     /// </summary>
     [Theory]
     [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
@@ -81,8 +81,8 @@ public sealed class SqlServerUnionLimitAndJsonCompatibilityTests : DapperUnionLi
 
 
     /// <summary>
-    /// EN: Tests OrderBy_NullsFirst_ShouldThrow_WhenDialectDoesNotSupportModifier behavior.
-    /// PT: Testa o comportamento de OrderBy_NullsFirst_ShouldThrow_WhenDialectDoesNotSupportModifier.
+    /// EN: Verifies ORDER BY NULLS FIRST throws when the dialect does not support that modifier.
+    /// PT: Verifica se ORDER BY NULLS FIRST gera erro quando o dialeto nao suporta esse modificador.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
@@ -94,8 +94,8 @@ public sealed class SqlServerUnionLimitAndJsonCompatibilityTests : DapperUnionLi
 
 
     /// <summary>
-    /// EN: Tests JsonFunction_ShouldThrow_WhenNotSupportedByDialect behavior.
-    /// PT: Testa o comportamento de JsonFunction_ShouldThrow_WhenNotSupportedByDialect.
+    /// EN: Verifies unsupported JSON functions throw the expected exception.
+    /// PT: Verifica se funcoes JSON sem suporte lancam a excecao esperada.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]

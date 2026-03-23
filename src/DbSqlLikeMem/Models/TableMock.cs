@@ -876,8 +876,8 @@ public abstract class TableMock
 
 
     /// <summary>
-    /// EN: Implements CreateForeignKey.
-    /// PT: Implementa CreateForeignKey.
+    /// EN: Creates and registers a foreign key definition for the current table.
+    /// PT: Cria e registra uma definicao de chave estrangeira para a tabela atual.
     /// </summary>
     public ForeignDef CreateForeignKey(
         string name,

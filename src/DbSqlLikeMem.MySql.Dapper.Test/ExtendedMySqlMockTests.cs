@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.MySql.Dapper.Test;
 
 /// <summary>
-/// EN: Defines the class ExtendedMySqlMockTests.
-/// PT: Define a classe ExtendedMySqlMockTests.
+/// EN: Covers extended MySQL mock scenarios that are shared across Dapper provider tests.
+/// PT: Cobre cenarios estendidos do mock MySQL compartilhados entre testes de provedor Dapper.
 /// </summary>
 public sealed class ExtendedMySqlMockTests(
         ITestOutputHelper helper

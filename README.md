@@ -219,6 +219,9 @@ public static class DbSqlLikeMemFactory
 dotnet test src/DbSqlLikeMem.slnx
 ```
 
+**EN:** For benchmark and fidelity comparison runs, keep the default fast path unless you explicitly enable the suite-specific container flags such as `RUN_PERFORMANCE_CONTAINER_TESTS`, `RUN_TEMPORARY_TABLE_CONTAINER_TESTS`, `RUN_TABLE_CONTAINER_TESTS`, `RUN_INSERT_CONTAINER_TESTS`, `RUN_SELECT_CONTAINER_TESTS`, `RUN_SCHEMA_CONTAINER_TESTS`, or `RUN_TRANSACTION_CONTAINER_TESTS`. MariaDB and Db2 comparisons also require `RUN_MARIADB_CONTAINER_TESTS` or `RUN_DB2_CONTAINER_TESTS`. Diagnostic benchmark features should stay disabled unless you are measuring `ExecutionPlan`, `DebugTrace`, or `LastExecutionPlansHistory`.
+**PT-BR:** Para execuções de benchmark e comparação de fidelidade, mantenha o caminho rápido padrão a menos que você habilite explicitamente as flags específicas de container, como `RUN_PERFORMANCE_CONTAINER_TESTS`, `RUN_TEMPORARY_TABLE_CONTAINER_TESTS`, `RUN_TABLE_CONTAINER_TESTS`, `RUN_INSERT_CONTAINER_TESTS`, `RUN_SELECT_CONTAINER_TESTS`, `RUN_SCHEMA_CONTAINER_TESTS` ou `RUN_TRANSACTION_CONTAINER_TESTS`. Comparações de MariaDB e Db2 também exigem `RUN_MARIADB_CONTAINER_TESTS` ou `RUN_DB2_CONTAINER_TESTS`. Os recursos diagnósticos de benchmark devem permanecer desligados, salvo quando você estiver medindo `ExecutionPlan`, `DebugTrace` ou `LastExecutionPlansHistory`.
+
 **EN:** To run one test project only:  
 **PT-BR:** Para executar apenas um projeto de teste:
 

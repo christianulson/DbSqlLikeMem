@@ -8,12 +8,14 @@ namespace DbSqlLikeMem.Benchmarks.Core;
 public abstract class BenchmarkSuiteBase
 {
     /// <summary>
-    /// 
+    /// EN: Gets the benchmark session instance created for the current suite.
+    /// PT: Obtem a instancia de sessao de benchmark criada para a suite atual.
     /// </summary>
     protected IBenchmarkSession Session { get; private set; } = null!;
 
     /// <summary>
-    /// 
+    /// EN: Creates the benchmark session used by the suite.
+    /// PT: Cria a sessao de benchmark usada pela suite.
     /// </summary>
     protected abstract IBenchmarkSession CreateSession();
 
@@ -21,7 +23,8 @@ public abstract class BenchmarkSuiteBase
     private Exception? _setupException;
 
     /// <summary>
-    /// 
+    /// EN: Prepares the benchmark session before the runs start.
+    /// PT: Prepara a sessao de benchmark antes do inicio das execucoes.
     /// </summary>
     [GlobalSetup]
     public void GlobalSetup()
@@ -42,7 +45,8 @@ public abstract class BenchmarkSuiteBase
     }
 
     /// <summary>
-    /// 
+    /// EN: Releases the benchmark session after the runs finish.
+    /// PT: Libera a sessao de benchmark depois que as execucoes terminam.
     /// </summary>
     [GlobalCleanup]
     public void GlobalCleanup()
@@ -51,7 +55,8 @@ public abstract class BenchmarkSuiteBase
     }
 
     /// <summary>
-    /// 
+    /// EN: Executes one benchmark feature through the current session.
+    /// PT: Executa um recurso de benchmark pela sessao atual.
     /// </summary>
     public void Run(BenchmarkFeatureId feature)
     {
@@ -410,166 +415,330 @@ public abstract class BenchmarkSuiteBase
     [BenchmarkCategory("advancedquery")]
     public void OuterApplyProjection() => Run(BenchmarkFeatureId.OuterApplyProjection);
 
+    /// <summary>
+    /// EN: Executes a batch-reader benchmark that returns multiple result sets.
+    /// PT: Executa um benchmark de leitura em lote que retorna varios conjuntos de resultado.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("batch")]
     public void BatchReaderMultiResult() => Run(BenchmarkFeatureId.BatchReaderMultiResult);
 
+    /// <summary>
+    /// EN: Executes a batch benchmark that includes transaction control statements.
+    /// PT: Executa um benchmark em lote que inclui comandos de controle de transacao.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("batch")]
     public void BatchTransactionControl() => Run(BenchmarkFeatureId.BatchTransactionControl);
 
+    /// <summary>
+    /// EN: Executes a simple SELECT parser benchmark.
+    /// PT: Executa um benchmark do parser para um SELECT simples.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
     public void ParseSimpleSelect() => Run(BenchmarkFeatureId.ParseSimpleSelect);
 
+    /// <summary>
+    /// EN: Executes a complex join parser benchmark.
+    /// PT: Executa um benchmark do parser para um join complexo.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
     public void ParseComplexJoin() => Run(BenchmarkFeatureId.ParseComplexJoin);
 
+    /// <summary>
+    /// EN: Executes an INSERT RETURNING parser benchmark.
+    /// PT: Executa um benchmark do parser para INSERT RETURNING.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
     public void ParseInsertReturning() => Run(BenchmarkFeatureId.ParseInsertReturning);
 
+    /// <summary>
+    /// EN: Executes an ON CONFLICT DO UPDATE parser benchmark.
+    /// PT: Executa um benchmark do parser para ON CONFLICT DO UPDATE.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
     public void ParseOnConflictDoUpdate() => Run(BenchmarkFeatureId.ParseOnConflictDoUpdate);
 
+    /// <summary>
+    /// EN: Executes a JSON extract parser benchmark.
+    /// PT: Executa um benchmark do parser para extracao JSON.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("json")]
     public void ParseJsonExtract() => Run(BenchmarkFeatureId.ParseJsonExtract);
 
+    /// <summary>
+    /// EN: Executes a string-aggregate WITHIN GROUP parser benchmark.
+    /// PT: Executa um benchmark do parser para string aggregate WITHIN GROUP.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
     public void ParseStringAggregateWithinGroup() => Run(BenchmarkFeatureId.ParseStringAggregateWithinGroup);
 
+    /// <summary>
+    /// EN: Executes an auto-dialect TOP, LIMIT, or FETCH parser benchmark.
+    /// PT: Executa um benchmark do parser para TOP, LIMIT ou FETCH com autodialeto.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
     public void ParseAutoDialectTopLimitFetch() => Run(BenchmarkFeatureId.ParseAutoDialectTopLimitFetch);
 
+    /// <summary>
+    /// EN: Executes a multi-statement batch parser benchmark.
+    /// PT: Executa um benchmark do parser para lote com multiplas instrucoes.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("batch")]
     public void ParseMultiStatementBatch() => Run(BenchmarkFeatureId.ParseMultiStatementBatch);
 
+    /// <summary>
+    /// EN: Executes a JSON insert cast benchmark.
+    /// PT: Executa um benchmark de cast de JSON em insert.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("json")]
     public void JsonInsertCast() => Run(BenchmarkFeatureId.JsonInsertCast);
 
+    /// <summary>
+    /// EN: Executes a row-count-in-batch benchmark.
+    /// PT: Executa um benchmark de contagem de linhas em lote.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("batch")]
     public void RowCountInBatch() => Run(BenchmarkFeatureId.RowCountInBatch);
 
+    /// <summary>
+    /// EN: Executes a pivot-count benchmark.
+    /// PT: Executa um benchmark de contagem em pivot.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
     public void PivotCount() => Run(BenchmarkFeatureId.PivotCount);
 
+    /// <summary>
+    /// EN: Executes an insert-returning benchmark.
+    /// PT: Executa um benchmark de insert com retorno.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
     public void ReturningInsert() => Run(BenchmarkFeatureId.ReturningInsert);
 
+    /// <summary>
+    /// EN: Executes an update-returning benchmark.
+    /// PT: Executa um benchmark de update com retorno.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
     public void ReturningUpdate() => Run(BenchmarkFeatureId.ReturningUpdate);
 
+    /// <summary>
+    /// EN: Executes a basic merge benchmark.
+    /// PT: Executa um benchmark de merge basico.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
     public void MergeBasic() => Run(BenchmarkFeatureId.MergeBasic);
 
+    /// <summary>
+    /// EN: Executes a partition-pruning select benchmark.
+    /// PT: Executa um benchmark de select com partition pruning.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
     public void PartitionPruningSelect() => Run(BenchmarkFeatureId.PartitionPruningSelect);
 
+    /// <summary>
+    /// EN: Executes an execution-plan benchmark.
+    /// PT: Executa um benchmark de execution plan.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("diagnostics")]
     public void ExecutionPlan() => Run(BenchmarkFeatureId.ExecutionPlan);
 
+    /// <summary>
+    /// EN: Executes an execution-plan benchmark for SELECT statements.
+    /// PT: Executa um benchmark de execution plan para instrucoes SELECT.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("diagnostics")]
     public void ExecutionPlanSelect() => Run(BenchmarkFeatureId.ExecutionPlanSelect);
 
+    /// <summary>
+    /// EN: Executes an execution-plan benchmark for join queries.
+    /// PT: Executa um benchmark de execution plan para consultas com join.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("diagnostics")]
     public void ExecutionPlanJoin() => Run(BenchmarkFeatureId.ExecutionPlanJoin);
 
+    /// <summary>
+    /// EN: Executes an execution-plan benchmark for non-query DML statements.
+    /// PT: Executa um benchmark de execution plan para instrucoes DML non-query.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("diagnostics")]
     public void ExecutionPlanDml() => Run(BenchmarkFeatureId.ExecutionPlanDml);
 
+    /// <summary>
+    /// EN: Executes a debug-trace benchmark for SELECT statements.
+    /// PT: Executa um benchmark de debug trace para instrucoes SELECT.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("diagnostics")]
     public void DebugTraceSelect() => Run(BenchmarkFeatureId.DebugTraceSelect);
 
+    /// <summary>
+    /// EN: Executes a debug-trace benchmark for batch statements.
+    /// PT: Executa um benchmark de debug trace para instrucoes em lote.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("diagnostics")]
     public void DebugTraceBatch() => Run(BenchmarkFeatureId.DebugTraceBatch);
 
+    /// <summary>
+    /// EN: Executes a debug-trace benchmark for JSON output.
+    /// PT: Executa um benchmark de debug trace para saida JSON.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("diagnostics")]
     public void DebugTraceJson() => Run(BenchmarkFeatureId.DebugTraceJson);
 
+    /// <summary>
+    /// EN: Executes a benchmark that reads the last execution-plan history.
+    /// PT: Executa um benchmark que le o historico do ultimo execution plan.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("diagnostics")]
     public void LastExecutionPlansHistory() => Run(BenchmarkFeatureId.LastExecutionPlansHistory);
 
+    /// <summary>
+    /// EN: Executes the temporary-table create and use benchmark.
+    /// PT: Executa o benchmark de criar e usar tabela temporaria.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("setup")]
     public void TempTableCreateAndUse() => Run(BenchmarkFeatureId.TempTableCreateAndUse);
 
+    /// <summary>
+    /// EN: Executes the temporary-table rollback benchmark.
+    /// PT: Executa o benchmark de rollback com tabela temporaria.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("transactions")]
     public void TempTableRollback() => Run(BenchmarkFeatureId.TempTableRollback);
 
+    /// <summary>
+    /// EN: Executes the temporary-table cross-connection isolation benchmark.
+    /// PT: Executa o benchmark de isolamento de tabela temporaria entre conexoes.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("setup")]
     public void TempTableCrossConnectionIsolation() => Run(BenchmarkFeatureId.TempTableCrossConnectionIsolation);
 
+    /// <summary>
+    /// EN: Executes the volatile-data reset benchmark.
+    /// PT: Executa o benchmark de reset de dados volateis.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("setup")]
     public void ResetVolatileData() => Run(BenchmarkFeatureId.ResetVolatileData);
 
+    /// <summary>
+    /// EN: Executes the full volatile-data reset benchmark.
+    /// PT: Executa o benchmark de reset completo de dados volateis.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("setup")]
     public void ResetAllVolatileData() => Run(BenchmarkFeatureId.ResetAllVolatileData);
 
+    /// <summary>
+    /// EN: Executes the connection reopen benchmark after a close.
+    /// PT: Executa o benchmark de reabrir a conexao depois de fechar.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("setup")]
     public void ConnectionReopenAfterClose() => Run(BenchmarkFeatureId.ConnectionReopenAfterClose);
 
+    /// <summary>
+    /// EN: Executes a schema snapshot export benchmark.
+    /// PT: Executa um benchmark de exportacao de snapshot de schema.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("snapshot")]
     public void SchemaSnapshotExport() => Run(BenchmarkFeatureId.SchemaSnapshotExport);
 
+    /// <summary>
+    /// EN: Executes a schema snapshot to JSON benchmark.
+    /// PT: Executa um benchmark de snapshot de schema para JSON.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("snapshot")]
     public void SchemaSnapshotToJson() => Run(BenchmarkFeatureId.SchemaSnapshotToJson);
 
+    /// <summary>
+    /// EN: Executes a schema snapshot load-from-JSON benchmark.
+    /// PT: Executa um benchmark de carregamento de snapshot de schema a partir de JSON.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("snapshot")]
     public void SchemaSnapshotLoadJson() => Run(BenchmarkFeatureId.SchemaSnapshotLoadJson);
 
+    /// <summary>
+    /// EN: Executes a schema snapshot apply benchmark.
+    /// PT: Executa um benchmark de aplicacao de snapshot de schema.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("snapshot")]
     public void SchemaSnapshotApply() => Run(BenchmarkFeatureId.SchemaSnapshotApply);
 
+    /// <summary>
+    /// EN: Executes a schema snapshot round-trip benchmark.
+    /// PT: Executa um benchmark de round-trip de snapshot de schema.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("snapshot")]
     public void SchemaSnapshotRoundTrip() => Run(BenchmarkFeatureId.SchemaSnapshotRoundTrip);
 
+    /// <summary>
+    /// EN: Executes a schema snapshot comparison benchmark.
+    /// PT: Executa um benchmark de comparacao de snapshot de schema.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("snapshot")]
     public void SchemaSnapshotCompare() => Run(BenchmarkFeatureId.SchemaSnapshotCompare);
 
+    /// <summary>
+    /// EN: Executes the fluent schema builder benchmark.
+    /// PT: Executa o benchmark do builder fluente de schema.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("setup")]
     public void FluentSchemaBuild() => Run(BenchmarkFeatureId.FluentSchemaBuild);
 
+    /// <summary>
+    /// EN: Executes the fluent seed benchmark for 100 rows.
+    /// PT: Executa o benchmark de seed fluente para 100 linhas.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("setup")]
     public void FluentSeed100() => Run(BenchmarkFeatureId.FluentSeed100);
 
+    /// <summary>
+    /// EN: Executes the fluent seed benchmark for 1000 rows.
+    /// PT: Executa o benchmark de seed fluente para 1000 linhas.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("setup")]
     public void FluentSeed1000() => Run(BenchmarkFeatureId.FluentSeed1000);
 
+    /// <summary>
+    /// EN: Executes the fluent scenario composition benchmark.
+    /// PT: Executa o benchmark de composicao de cenario fluente.
+    /// </summary>
     [Benchmark]
     [BenchmarkCategory("setup")]
     public void FluentScenarioCompose() => Run(BenchmarkFeatureId.FluentScenarioCompose);

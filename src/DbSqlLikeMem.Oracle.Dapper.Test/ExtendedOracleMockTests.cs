@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
-/// EN: Defines the class ExtendedOracleMockTests.
-/// PT: Define a classe ExtendedOracleMockTests.
+/// EN: Covers extended Oracle mock scenarios that are shared across Dapper provider tests.
+/// PT: Cobre cenarios estendidos do mock Oracle compartilhados entre testes de provedor Dapper.
 /// </summary>
 public sealed class ExtendedOracleMockTests(
         ITestOutputHelper helper

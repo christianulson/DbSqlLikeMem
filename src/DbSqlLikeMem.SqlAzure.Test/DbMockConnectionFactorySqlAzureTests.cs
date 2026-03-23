@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.SqlAzure.Test;
 
 /// <summary>
-/// EN: Validates SqlAzure-specific DbMock connection factory contract behavior.
-/// PT: Valida o comportamento do contrato da factory de conexao DbMock especifica de SqlAzure.
+/// EN: Covers the SqlAzure-specific DbMock connection factory contract.
+/// PT: Cobre o contrato da factory de conexao DbMock especifica de SqlAzure.
 /// </summary>
 public sealed class DbMockConnectionFactorySqlAzureTests(
         ITestOutputHelper helper
@@ -22,3 +22,4 @@ public sealed class DbMockConnectionFactorySqlAzureTests(
     protected override (DbMock Db, IDbConnection Connection) CreateViaProviderShortcut(params Action<DbMock>[] tableMappers)
         => DbMockConnectionFactory.CreateSqlAzureWithTables(tableMappers);
 }
+

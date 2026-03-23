@@ -1,16 +1,16 @@
 namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
-/// EN: Defines the class PostgreSqlSelectAndWhereMoreCoverageTests.
-/// PT: Define a classe PostgreSqlSelectAndWhereMoreCoverageTests.
+/// EN: Covers extra PostgreSQL SELECT and WHERE scenarios over a direct mock connection.
+/// PT: Cobre cenarios extras de SELECT e WHERE PostgreSQL sobre uma conexao mock direta.
 /// </summary>
 public sealed class PostgreSqlSelectAndWhereMoreCoverageTests : XUnitTestBase
 {
     private readonly NpgsqlConnectionMock _cnn;
 
     /// <summary>
-    /// EN: Tests PostgreSqlSelectAndWhereMoreCoverageTests behavior.
-    /// PT: Testa o comportamento de PostgreSqlSelectAndWhereMoreCoverageTests.
+    /// EN: Creates the in-memory PostgreSQL database used by the extra SELECT and WHERE coverage tests.
+    /// PT: Cria o banco PostgreSQL em memoria usado pelos testes extras de cobertura de SELECT e WHERE.
     /// </summary>
     public PostgreSqlSelectAndWhereMoreCoverageTests(ITestOutputHelper helper) : base(helper)
     {
@@ -39,8 +39,8 @@ public sealed class PostgreSqlSelectAndWhereMoreCoverageTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_Between_ShouldWork behavior.
-    /// PT: Testa o comportamento de Where_Between_ShouldWork.
+    /// EN: Verifies BETWEEN filters rows in PostgreSQL SELECT and WHERE coverage.
+    /// PT: Verifica se BETWEEN filtra linhas na cobertura de SELECT e WHERE do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSelectAndWhereMoreCoverage")]
@@ -51,8 +51,8 @@ public sealed class PostgreSqlSelectAndWhereMoreCoverageTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_NotIn_ShouldWork behavior.
-    /// PT: Testa o comportamento de Where_NotIn_ShouldWork.
+    /// EN: Verifies NOT IN filters rows in PostgreSQL SELECT and WHERE coverage.
+    /// PT: Verifica se NOT IN filtra linhas na cobertura de SELECT e WHERE do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSelectAndWhereMoreCoverage")]
@@ -64,8 +64,8 @@ public sealed class PostgreSqlSelectAndWhereMoreCoverageTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_ExistsSubquery_ShouldWork behavior.
-    /// PT: Testa o comportamento de Where_ExistsSubquery_ShouldWork.
+    /// EN: Verifies EXISTS subqueries filter rows in PostgreSQL coverage.
+    /// PT: Verifica se subconsultas EXISTS filtram linhas na cobertura do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSelectAndWhereMoreCoverage")]
@@ -86,8 +86,8 @@ ORDER BY u.id").ToList();
     }
 
     /// <summary>
-    /// EN: Tests Select_CaseWhen_ShouldWork behavior.
-    /// PT: Testa o comportamento de Select_CaseWhen_ShouldWork.
+    /// EN: Verifies CASE WHEN projections return the expected values.
+    /// PT: Verifica se projeções CASE WHEN retornam os valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSelectAndWhereMoreCoverage")]
@@ -106,8 +106,8 @@ ORDER BY id").ToList();
     }
 
     /// <summary>
-    /// EN: Tests Select_IfNull_ShouldWork behavior.
-    /// PT: Testa o comportamento de Select_IfNull_ShouldWork.
+    /// EN: Verifies COALESCE-based null fallback in PostgreSQL SELECT coverage.
+    /// PT: Verifica o fallback de nulos com COALESCE na cobertura de SELECT do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSelectAndWhereMoreCoverage")]

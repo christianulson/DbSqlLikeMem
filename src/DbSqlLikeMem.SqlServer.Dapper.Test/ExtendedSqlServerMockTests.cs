@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 
 /// <summary>
-/// EN: Defines the class ExtendedSqlServerMockTests.
-/// PT: Define a classe ExtendedSqlServerMockTests.
+/// EN: Covers extended SQL Server mock scenarios that are shared across Dapper provider tests.
+/// PT: Cobre cenarios estendidos do mock SQL Server compartilhados entre testes de provedor Dapper.
 /// </summary>
 public sealed class ExtendedSqlServerMockTests(
         ITestOutputHelper helper

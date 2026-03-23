@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.MySql.Dapper.Test;
 
 /// <summary>
-/// EN: Defines the class MySqlAdditionalBehaviorCoverageTests.
-/// PT: Define a classe MySqlAdditionalBehaviorCoverageTests.
+/// EN: Covers additional MySQL behavior scenarios for the Dapper provider.
+/// PT: Cobre cenarios adicionais de comportamento MySQL para o provedor Dapper.
 /// </summary>
 public sealed class MySqlAdditionalBehaviorCoverageTests(
     ITestOutputHelper helper

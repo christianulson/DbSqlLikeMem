@@ -1,4 +1,4 @@
-﻿using DbSqlLikeMem.TestTools.DDL;
+using DbSqlLikeMem.TestTools.DDL;
 
 namespace DbSqlLikeMem.TestTools.Tests.DDL;
 
@@ -33,7 +33,7 @@ public abstract class TableTestsBase<T, T2>(
         serviceTest.RunTest("Users", uId);
         serviceTest.DropScenario("Users", uId);
 
-        if (RunContainerTests.Value
+        if (IsTableContainerComparisonEnabled(dialect.Provider)
             && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
             using var connContainer = connectionContainer(connectionString);
@@ -66,7 +66,7 @@ public abstract class TableTestsBase<T, T2>(
         serviceTest.RunTest(users, orders, uId);
         serviceTest.DropScenario(users, orders, uId);
 
-        if (RunContainerTests.Value
+        if (IsTableContainerComparisonEnabled(dialect.Provider)
             && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
             using var connContainer = connectionContainer(connectionString);
@@ -96,7 +96,7 @@ public abstract class TableTestsBase<T, T2>(
         serviceTest.CreateScenario("Users", "Orders", uId);
         serviceTest.RunTest("Users", uId);
 
-        if (RunContainerTests.Value
+        if (IsTableContainerComparisonEnabled(dialect.Provider)
             && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
             using var connContainer = connectionContainer(connectionString);

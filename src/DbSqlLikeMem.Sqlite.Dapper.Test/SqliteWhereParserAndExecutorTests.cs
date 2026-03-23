@@ -1,16 +1,16 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 
 /// <summary>
-/// EN: Defines the class SqliteWhereParserAndExecutorTests.
-/// PT: Define a classe SqliteWhereParserAndExecutorTests.
+/// EN: Covers SQLite WHERE parser and executor scenarios over a direct mock connection.
+/// PT: Cobre cenarios do parser e executor de WHERE SQLite sobre uma conexao mock direta.
 /// </summary>
 public sealed class SqliteWhereParserAndExecutorTests : XUnitTestBase
 {
     private readonly SqliteConnectionMock _cnn;
 
     /// <summary>
-    /// EN: Tests SqliteWhereParserAndExecutorTests behavior.
-    /// PT: Testa o comportamento de SqliteWhereParserAndExecutorTests.
+    /// EN: Creates the in-memory SQLite database used by the WHERE parser and executor coverage tests.
+    /// PT: Cria o banco SQLite em memoria usado pelos testes de cobertura do parser e executor de WHERE.
     /// </summary>
     public SqliteWhereParserAndExecutorTests(ITestOutputHelper helper) : base(helper)
     {
@@ -36,8 +36,8 @@ public sealed class SqliteWhereParserAndExecutorTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_IndexedEquality_ShouldUseIndexLookupMetric behavior.
-    /// PT: Testa o comportamento de Where_IndexedEquality_ShouldUseIndexLookupMetric.
+    /// EN: Verifies indexed equality predicates update index lookup metrics.
+    /// PT: Verifica se predicados de igualdade indexada atualizam as metricas de busca por indice.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteWhereParserAndExecutor")]
@@ -57,8 +57,8 @@ public sealed class SqliteWhereParserAndExecutorTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_IndexedEqualityWithParameter_ShouldUseCompositeIndexLookupMetric behavior.
-    /// PT: Testa o comportamento de Where_IndexedEqualityWithParameter_ShouldUseCompositeIndexLookupMetric.
+    /// EN: Verifies parameterized indexed equality predicates update composite index lookup metrics.
+    /// PT: Verifica se predicados de igualdade indexada parametrizados atualizam as metricas de busca por indice composto.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteWhereParserAndExecutor")]
@@ -86,8 +86,8 @@ public sealed class SqliteWhereParserAndExecutorTests : XUnitTestBase
 
 
     /// <summary>
-    /// EN: Tests Where_IndexedEqualityWithCompositeValuesContainingSeparator_ShouldReturnCorrectRow behavior.
-    /// PT: Testa o comportamento de Where_IndexedEqualityWithCompositeValuesContainingSeparator_ShouldReturnCorrectRow.
+    /// EN: Verifies indexed equality with composite values containing separators returns the expected row.
+    /// PT: Verifica se igualdade indexada com valores compostos contendo separadores retorna a linha esperada.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteWhereParserAndExecutor")]
@@ -112,8 +112,8 @@ public sealed class SqliteWhereParserAndExecutorTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_IndexWithIncludeCoveringProjection_ShouldExposeRequestedColumnsInIndex behavior.
-    /// PT: Testa o comportamento de Where_IndexWithIncludeCoveringProjection_ShouldExposeRequestedColumnsInIndex.
+    /// EN: Verifies covering indexes expose the requested columns.
+    /// PT: Verifica se indices de cobertura expõem as colunas solicitadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteWhereParserAndExecutor")]
@@ -137,8 +137,8 @@ public sealed class SqliteWhereParserAndExecutorTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_IndexWithoutRequestedColumn_ShouldFallbackToTableRow behavior.
-    /// PT: Testa o comportamento de Where_IndexWithoutRequestedColumn_ShouldFallbackToTableRow.
+    /// EN: Verifies missing indexed columns fall back to the table row.
+    /// PT: Verifica se colunas ausentes no indice voltam para a linha da tabela.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteWhereParserAndExecutor")]
@@ -159,8 +159,8 @@ public sealed class SqliteWhereParserAndExecutorTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_NonIndexedPredicate_ShouldNotIncreaseIndexLookupMetric behavior.
-    /// PT: Testa o comportamento de Where_NonIndexedPredicate_ShouldNotIncreaseIndexLookupMetric.
+    /// EN: Verifies non-indexed predicates do not increase index lookup metrics.
+    /// PT: Verifica se predicados nao indexados nao aumentam as metricas de busca por indice.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteWhereParserAndExecutor")]
@@ -178,8 +178,8 @@ public sealed class SqliteWhereParserAndExecutorTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_IN_ShouldFilter behavior.
-    /// PT: Testa o comportamento de Where_IN_ShouldFilter.
+    /// EN: Verifies IN filters rows as expected.
+    /// PT: Verifica se IN filtra as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteWhereParserAndExecutor")]
@@ -192,8 +192,8 @@ public sealed class SqliteWhereParserAndExecutorTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_IsNotNull_ShouldFilter behavior.
-    /// PT: Testa o comportamento de Where_IsNotNull_ShouldFilter.
+    /// EN: Verifies IS NOT NULL filters rows as expected.
+    /// PT: Verifica se IS NOT NULL filtra as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteWhereParserAndExecutor")]
@@ -204,8 +204,8 @@ public sealed class SqliteWhereParserAndExecutorTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_Operators_ShouldWork behavior.
-    /// PT: Testa o comportamento de Where_Operators_ShouldWork.
+    /// EN: Verifies comparison operators return the expected rows.
+    /// PT: Verifica se operadores de comparacao retornam as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteWhereParserAndExecutor")]
@@ -219,8 +219,8 @@ public sealed class SqliteWhereParserAndExecutorTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_Like_ShouldWork behavior.
-    /// PT: Testa o comportamento de Where_Like_ShouldWork.
+    /// EN: Verifies LIKE filters rows as expected.
+    /// PT: Verifica se LIKE filtra as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteWhereParserAndExecutor")]
@@ -232,8 +232,8 @@ public sealed class SqliteWhereParserAndExecutorTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_FindInSet_ShouldWork behavior.
-    /// PT: Testa o comportamento de Where_FindInSet_ShouldWork.
+    /// EN: Verifies FIND_IN_SET filters rows as expected.
+    /// PT: Verifica se FIND_IN_SET filtra as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteWhereParserAndExecutor")]
@@ -245,8 +245,8 @@ public sealed class SqliteWhereParserAndExecutorTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_AND_ShouldBeCaseInsensitive_InRealLife behavior.
-    /// PT: Testa o comportamento de Where_AND_ShouldBeCaseInsensitive_InRealLife.
+    /// EN: Verifies mixed-case AND is parsed as a logical conjunction.
+    /// PT: Verifica se AND em maiusculas e minusculas mistas e interpretado como conjuncao logica.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteWhereParserAndExecutor")]

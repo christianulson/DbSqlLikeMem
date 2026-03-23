@@ -72,7 +72,7 @@ public abstract class TransactionTestsBase<T, T2>(
         connMock.Open();
         var resultMock = RunTransactionCommitScenario(connMock, users, uId);
 
-        if (RunContainerTests.Value
+        if (IsTransactionContainerComparisonEnabled(dialect.Provider)
             && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
             using var connContainer = connectionContainer(connectionString);
@@ -91,7 +91,7 @@ public abstract class TransactionTestsBase<T, T2>(
         connMock.Open();
         var resultMock = RunTransactionRollbackScenario(connMock, users, uId);
 
-        if (RunContainerTests.Value
+        if (IsTransactionContainerComparisonEnabled(dialect.Provider)
             && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
             using var connContainer = connectionContainer(connectionString);
@@ -107,7 +107,7 @@ public abstract class TransactionTestsBase<T, T2>(
         connMock.Open();
         RunSavepointCreateScenario(connMock);
 
-        if (RunContainerTests.Value
+        if (IsTransactionContainerComparisonEnabled(dialect.Provider)
             && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
             using var connContainer = connectionContainer(connectionString);
@@ -125,7 +125,7 @@ public abstract class TransactionTestsBase<T, T2>(
         connMock.Open();
         var resultMock = RunRollbackToSavepointScenario(connMock, users, uId);
 
-        if (RunContainerTests.Value
+        if (IsTransactionContainerComparisonEnabled(dialect.Provider)
             && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
             using var connContainer = connectionContainer(connectionString);
@@ -148,7 +148,7 @@ public abstract class TransactionTestsBase<T, T2>(
             Assert.Throws<NotSupportedException>(() => RunReleaseSavepointScenario(connMock));
         }
 
-        if (RunContainerTests.Value
+        if (IsTransactionContainerComparisonEnabled(dialect.Provider)
             && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
             using var connContainer = connectionContainer(connectionString);
@@ -173,7 +173,7 @@ public abstract class TransactionTestsBase<T, T2>(
         connMock.Open();
         var resultMock = RunNestedSavepointFlowScenario(connMock, users, uId);
 
-        if (RunContainerTests.Value
+        if (IsTransactionContainerComparisonEnabled(dialect.Provider)
             && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
             using var connContainer = connectionContainer(connectionString);

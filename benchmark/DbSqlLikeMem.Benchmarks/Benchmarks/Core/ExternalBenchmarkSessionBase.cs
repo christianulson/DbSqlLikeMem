@@ -30,7 +30,6 @@ public abstract class ExternalBenchmarkSessionBase(
         {
             ConnectionString = configuredConnection.ConnectionString;
             OwnsRuntime = false;
-            Console.WriteLine($"[benchmarks] Using pre-provisioned {Dialect.DisplayName} runtime from environment variable '{configuredConnection.SourceName}'.");
             EnsureExternalRuntimeIsReady(ConnectionString);
             return;
         }
@@ -56,6 +55,7 @@ public abstract class ExternalBenchmarkSessionBase(
     /// </summary>
     public override void Dispose()
     {
+        base.Dispose();
         if (OwnsRuntime)
         {
             DisposeOwnedRuntime();

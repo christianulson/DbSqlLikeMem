@@ -344,8 +344,8 @@ internal abstract class SqlDialectBase : ISqlDialect
     public virtual SqlIdentifierEscapeStyle IdentifierEscapeStyle => SqlIdentifierEscapeStyle.double_quote;
 
     /// <summary>
-    /// EN: Implements this member.
-    /// PT: Implementa este membro.
+    /// EN: Gets the identifier quote pairs supported by the dialect.
+    /// PT: Obtem os pares de aspas de identificador suportados pelo dialeto.
     /// </summary>
     public virtual IReadOnlyList<SqlQuotePair> IdentifierQuotes
     {
@@ -362,8 +362,8 @@ internal abstract class SqlDialectBase : ISqlDialect
     }
 
     /// <summary>
-    /// EN: Implements this member.
-    /// PT: Implementa este membro.
+    /// EN: Gets the string quote pairs supported by the dialect.
+    /// PT: Obtem os pares de aspas de string suportados pelo dialeto.
     /// </summary>
     public virtual IReadOnlyList<SqlQuotePair> StringQuotes
     {

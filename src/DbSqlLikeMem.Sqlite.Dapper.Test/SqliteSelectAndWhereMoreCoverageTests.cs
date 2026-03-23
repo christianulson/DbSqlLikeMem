@@ -1,16 +1,16 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 
 /// <summary>
-/// EN: Defines the class SqliteSelectAndWhereMoreCoverageTests.
-/// PT: Define a classe SqliteSelectAndWhereMoreCoverageTests.
+/// EN: Covers extra SQLite SELECT and WHERE scenarios over a direct mock connection.
+/// PT: Cobre cenarios extras de SELECT e WHERE SQLite sobre uma conexao mock direta.
 /// </summary>
 public sealed class SqliteSelectAndWhereMoreCoverageTests : XUnitTestBase
 {
     private readonly SqliteConnectionMock _cnn;
 
     /// <summary>
-    /// EN: Tests SqliteSelectAndWhereMoreCoverageTests behavior.
-    /// PT: Testa o comportamento de SqliteSelectAndWhereMoreCoverageTests.
+    /// EN: Creates the in-memory SQLite database used by the extra SELECT and WHERE coverage tests.
+    /// PT: Cria o banco SQLite em memoria usado pelos testes extras de cobertura de SELECT e WHERE.
     /// </summary>
     public SqliteSelectAndWhereMoreCoverageTests(ITestOutputHelper helper) : base(helper)
     {
@@ -54,8 +54,8 @@ public sealed class SqliteSelectAndWhereMoreCoverageTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_Between_ShouldWork behavior.
-    /// PT: Testa o comportamento de Where_Between_ShouldWork.
+    /// EN: Verifies BETWEEN filters rows in the expected range.
+    /// PT: Verifica se BETWEEN filtra as linhas no intervalo esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSelectAndWhereMoreCoverage")]
@@ -66,8 +66,8 @@ public sealed class SqliteSelectAndWhereMoreCoverageTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_NotIn_ShouldWork behavior.
-    /// PT: Testa o comportamento de Where_NotIn_ShouldWork.
+    /// EN: Verifies NOT IN filters rows as expected.
+    /// PT: Verifica se NOT IN filtra as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSelectAndWhereMoreCoverage")]
@@ -79,8 +79,8 @@ public sealed class SqliteSelectAndWhereMoreCoverageTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_ExistsSubquery_ShouldWork behavior.
-    /// PT: Testa o comportamento de Where_ExistsSubquery_ShouldWork.
+    /// EN: Verifies EXISTS subqueries filter rows as expected.
+    /// PT: Verifica se subconsultas EXISTS filtram as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSelectAndWhereMoreCoverage")]
@@ -101,8 +101,8 @@ ORDER BY u.id").ToList();
     }
 
     /// <summary>
-    /// EN: Tests Where_RowInSubquery_ShouldWork behavior.
-    /// PT: Testa o comportamento de Where_RowInSubquery_ShouldWork.
+    /// EN: Verifies row-value IN subqueries return the expected rows.
+    /// PT: Verifica se subconsultas IN com valor de linha retornam as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSelectAndWhereMoreCoverage")]
@@ -125,8 +125,8 @@ ORDER BY a, b").ToList();
     }
 
     /// <summary>
-    /// EN: Tests Where_CorrelatedRowInSubquery_ShouldWork behavior.
-    /// PT: Testa o comportamento de Where_CorrelatedRowInSubquery_ShouldWork.
+    /// EN: Verifies correlated row-value IN subqueries return the expected rows.
+    /// PT: Verifica se subconsultas IN com valor de linha correlacionadas retornam as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSelectAndWhereMoreCoverage")]
@@ -150,8 +150,8 @@ ORDER BY p.a, p.b").ToList();
     }
 
     /// <summary>
-    /// EN: Tests Select_CaseWhen_ShouldWork behavior.
-    /// PT: Testa o comportamento de Select_CaseWhen_ShouldWork.
+    /// EN: Verifies CASE WHEN projections return the expected values.
+    /// PT: Verifica se projeções CASE WHEN retornam os valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSelectAndWhereMoreCoverage")]
@@ -170,8 +170,8 @@ ORDER BY id").ToList();
     }
 
     /// <summary>
-    /// EN: Tests Select_IfNull_ShouldWork behavior.
-    /// PT: Testa o comportamento de Select_IfNull_ShouldWork.
+    /// EN: Verifies IFNULL projections return the expected fallback value.
+    /// PT: Verifica se projeções IFNULL retornam o valor de fallback esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSelectAndWhereMoreCoverage")]

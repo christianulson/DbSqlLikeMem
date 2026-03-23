@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.Db2.Dapper.Test;
 
 /// <summary>
-/// EN: Defines the class ExtendedDb2MockTests.
-/// PT: Define a classe ExtendedDb2MockTests.
+/// EN: Covers extended DB2 mock scenarios that are shared across Dapper provider tests.
+/// PT: Cobre cenarios estendidos do mock DB2 compartilhados entre testes de provedor Dapper.
 /// </summary>
 public sealed class ExtendedDb2MockTests(
         ITestOutputHelper helper

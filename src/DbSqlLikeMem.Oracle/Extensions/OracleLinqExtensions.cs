@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.Oracle;
 /// <summary>
-/// EN: Defines the class OracleLinqExtensions.
-/// PT: Define a classe OracleLinqExtensions.
+/// EN: Adds Oracle-specific LINQ queryable helpers for mock connections.
+/// PT: Adiciona helpers LINQ especificos de Oracle para conexoes mock.
 /// </summary>
 public static class OracleLinqExtensions
 {

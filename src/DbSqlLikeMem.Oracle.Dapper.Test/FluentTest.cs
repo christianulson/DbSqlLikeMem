@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.Oracle.Test;
 /// <summary>
-/// EN: Defines the class FluentTest.
-/// PT: Define a classe FluentTest.
+/// EN: Covers Oracle fluent mapping scenarios against the Dapper provider.
+/// PT: Cobre cenarios de mapeamento fluent Oracle contra o provedor Dapper.
 /// </summary>
 public sealed class FluentTest(
         ITestOutputHelper helper

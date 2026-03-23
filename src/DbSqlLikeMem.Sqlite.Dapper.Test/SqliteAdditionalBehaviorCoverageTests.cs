@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 
 /// <summary>
-/// EN: Defines the class SqliteAdditionalBehaviorCoverageTests.
-/// PT: Define a classe SqliteAdditionalBehaviorCoverageTests.
+/// EN: Covers additional SQLite behavior scenarios for the Dapper provider.
+/// PT: Cobre cenarios adicionais de comportamento SQLite para o provedor Dapper.
 /// </summary>
 public sealed class SqliteAdditionalBehaviorCoverageTests(
     ITestOutputHelper helper

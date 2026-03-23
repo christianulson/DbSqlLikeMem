@@ -1,7 +1,7 @@
 ﻿namespace DbSqlLikeMem.Sqlite;
 /// <summary>
-/// EN: Defines the class SqliteLinqExtensions.
-/// PT: Define a classe SqliteLinqExtensions.
+/// EN: Adds SQLite-specific LINQ queryable helpers for mock connections.
+/// PT: Adiciona helpers LINQ especificos de SQLite para conexoes mock.
 /// </summary>
 public static class SqliteLinqExtensions
 {

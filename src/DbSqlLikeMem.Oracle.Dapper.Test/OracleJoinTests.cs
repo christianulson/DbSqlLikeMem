@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
-/// EN: Defines the class OracleJoinTests.
-/// PT: Define a classe OracleJoinTests.
+/// EN: Covers Oracle join scenarios against the Dapper provider.
+/// PT: Cobre cenarios de join Oracle contra o provedor Dapper.
 /// </summary>
 public sealed class OracleJoinTests(
     ITestOutputHelper helper

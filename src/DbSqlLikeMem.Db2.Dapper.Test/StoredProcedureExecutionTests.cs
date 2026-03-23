@@ -5,8 +5,8 @@ using DB2Parameter = IBM.Data.DB2.iSeries.iDB2Parameter;
 namespace DbSqlLikeMem.Db2.Dapper.Test;
 
 /// <summary>
-/// EN: Defines the class StoredProcedureExecutionTests.
-/// PT: Define a classe StoredProcedureExecutionTests.
+/// EN: Covers DB2 stored procedure execution scenarios against the Dapper provider.
+/// PT: Cobre cenarios de execucao de stored procedures DB2 contra o provedor Dapper.
 /// </summary>
 public sealed class StoredProcedureExecutionTests(
     ITestOutputHelper helper

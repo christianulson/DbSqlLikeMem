@@ -201,6 +201,9 @@ public class Db2CommandMock(
         if (TryExecuteValuesSequenceScalar(CommandText, out var specialValue))
             return specialValue!;
 
+        if (TryExecuteValuesExpressionScalar(out var expressionValue))
+            return expressionValue!;
+
         if (connection.TryHandleExecuteScalarPrelude(
             CommandType,
             CommandText,
@@ -219,6 +222,29 @@ public class Db2CommandMock(
             return reader.GetValue(0);
         }
         return DBNull.Value;
+    }
+
+    private bool TryExecuteValuesExpressionScalar(out object? value)
+    {
+        value = null;
+
+        var trimmed = CommandText!.NormalizeString().Trim();
+        if (!trimmed.StartsWith("VALUES ", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var exprSql = trimmed[7..].Trim();
+        if (string.IsNullOrWhiteSpace(exprSql))
+            return false;
+
+        var selectSql = $"SELECT {exprSql} FROM SYSIBM.SYSDUMMY1";
+        return connection!.TryHandleExecuteScalarPrelude(
+            CommandType,
+            selectSql,
+            Parameters,
+            static () => new Db2DataReaderMock([[]]),
+            normalizeSqlInput: true,
+            TryExecuteTransactionControlCommand,
+            out value);
     }
 
     private bool TryExecuteValuesSequenceScalar(string sqlRaw, out object? value)

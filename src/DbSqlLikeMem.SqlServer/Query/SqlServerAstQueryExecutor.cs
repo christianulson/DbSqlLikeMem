@@ -1,14 +1,14 @@
 namespace DbSqlLikeMem.SqlServer;
 
 /// <summary>
-/// EN: Defines the class SqlServerAstQueryExecutorRegister.
-/// PT: Define a classe SqlServerAstQueryExecutorRegister.
+/// EN: Registers the SQL Server AST executor with the shared factory.
+/// PT: Registra o executor AST de SQL Server na factory compartilhada.
 /// </summary>
 public static class SqlServerAstQueryExecutorRegister
 {
     /// <summary>
-    /// EN: Implements Register.
-    /// PT: Implementa Register.
+    /// EN: Registers the SQL Server AST executor for the SQL Server dialect.
+    /// PT: Registra o executor AST de SQL Server para o dialeto SQL Server.
     /// </summary>
     public static void Register()
         => AstQueryExecutorFactory.RegisterExecutor(

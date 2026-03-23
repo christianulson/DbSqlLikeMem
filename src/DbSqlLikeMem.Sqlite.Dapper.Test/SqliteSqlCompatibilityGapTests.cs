@@ -1,16 +1,16 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 
 /// <summary>
-/// TDD guard-rail tests for SQL features where this in-memory Sqlite mock commonly diverges from real SQLite.
-/// These tests are EXPECTED TO FAIL until the corresponding functionality is implemented in the parser/executor.
+/// EN: Covers SQLite SQL compatibility gap scenarios that intentionally document current divergence from real SQLite.
+/// PT: Cobre cenarios de gap de compatibilidade SQL do SQLite que documentam intencionalmente as divergencias atuais em relacao ao SQLite real.
 /// </summary>
 public sealed class SqliteSqlCompatibilityGapTests : XUnitTestBase
 {
     private readonly SqliteConnectionMock _cnn;
 
     /// <summary>
-    /// EN: Tests SqliteSqlCompatibilityGapTests behavior.
-    /// PT: Testa o comportamento de SqliteSqlCompatibilityGapTests.
+    /// EN: Creates the in-memory SQLite connection used by the SQL compatibility gap tests.
+    /// PT: Cria a conexao SQLite em memoria usada pelos testes de gap de compatibilidade SQL.
     /// </summary>
     public SqliteSqlCompatibilityGapTests(ITestOutputHelper helper) : base(helper)
     {
@@ -41,8 +41,8 @@ public sealed class SqliteSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_Precedence_AND_ShouldBindStrongerThan_OR behavior.
-    /// PT: Testa o comportamento de Where_Precedence_AND_ShouldBindStrongerThan_OR.
+    /// EN: Verifies AND binds stronger than OR in WHERE predicates.
+    /// PT: Verifica se AND tem precedencia maior que OR em predicados WHERE.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSqlCompatibilityGap")]
@@ -55,8 +55,8 @@ public sealed class SqliteSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_OR_ShouldWork behavior.
-    /// PT: Testa o comportamento de Where_OR_ShouldWork.
+    /// EN: Verifies OR predicates return the expected rows.
+    /// PT: Verifica se predicados OR retornam as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSqlCompatibilityGap")]
@@ -67,8 +67,8 @@ public sealed class SqliteSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_ParenthesesGrouping_ShouldWork behavior.
-    /// PT: Testa o comportamento de Where_ParenthesesGrouping_ShouldWork.
+    /// EN: Verifies parentheses group WHERE predicates correctly.
+    /// PT: Verifica se parenteses agrupam corretamente os predicados WHERE.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSqlCompatibilityGap")]
@@ -81,8 +81,8 @@ public sealed class SqliteSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Select_Expressions_Arithmetic_ShouldWork behavior.
-    /// PT: Testa o comportamento de Select_Expressions_Arithmetic_ShouldWork.
+    /// EN: Verifies arithmetic expressions in SELECT return the expected values.
+    /// PT: Verifica se expressoes aritmeticas no SELECT retornam os valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSqlCompatibilityGap")]
@@ -93,8 +93,8 @@ public sealed class SqliteSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Select_Expressions_CASE_WHEN_ShouldWork behavior.
-    /// PT: Testa o comportamento de Select_Expressions_CASE_WHEN_ShouldWork.
+    /// EN: Verifies CASE WHEN expressions in SELECT return the expected values.
+    /// PT: Verifica se expressoes CASE WHEN no SELECT retornam os valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSqlCompatibilityGap")]
@@ -105,8 +105,8 @@ public sealed class SqliteSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Select_Expressions_IF_ShouldWork behavior.
-    /// PT: Testa o comportamento de Select_Expressions_IF_ShouldWork.
+    /// EN: Verifies IF expressions in SELECT return the expected values.
+    /// PT: Verifica se expressoes IF no SELECT retornam os valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSqlCompatibilityGap")]
@@ -118,8 +118,8 @@ public sealed class SqliteSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Select_Expressions_IIF_ShouldWork_AsAliasForIF behavior.
-    /// PT: Testa o comportamento de Select_Expressions_IIF_ShouldWork_AsAliasForIF.
+    /// EN: Verifies IIF behaves as an alias for IF in SELECT expressions.
+    /// PT: Verifica se IIF funciona como alias de IF em expressoes SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSqlCompatibilityGap")]
@@ -131,8 +131,8 @@ public sealed class SqliteSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Functions_COALESCE_ShouldWork behavior.
-    /// PT: Testa o comportamento de Functions_COALESCE_ShouldWork.
+    /// EN: Verifies COALESCE returns the expected fallback values.
+    /// PT: Verifica se COALESCE retorna os valores de fallback esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSqlCompatibilityGap")]
@@ -143,8 +143,8 @@ public sealed class SqliteSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Functions_IFNULL_ShouldWork behavior.
-    /// PT: Testa o comportamento de Functions_IFNULL_ShouldWork.
+    /// EN: Verifies IFNULL returns the expected fallback values.
+    /// PT: Verifica se IFNULL retorna os valores de fallback esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSqlCompatibilityGap")]
@@ -155,8 +155,8 @@ public sealed class SqliteSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Functions_CONCAT_ShouldWork behavior.
-    /// PT: Testa o comportamento de Functions_CONCAT_ShouldWork.
+    /// EN: Verifies CONCAT returns the expected combined strings.
+    /// PT: Verifica se CONCAT retorna as strings combinadas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSqlCompatibilityGap")]
@@ -167,8 +167,8 @@ public sealed class SqliteSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Distinct_ShouldBeConsistent behavior.
-    /// PT: Testa o comportamento de Distinct_ShouldBeConsistent.
+    /// EN: Verifies DISTINCT removes duplicate rows consistently.
+    /// PT: Verifica se DISTINCT remove linhas duplicadas de forma consistente.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSqlCompatibilityGap")]
@@ -181,8 +181,8 @@ public sealed class SqliteSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Join_ComplexOn_WithOr_ShouldWork behavior.
-    /// PT: Testa o comportamento de Join_ComplexOn_WithOr_ShouldWork.
+    /// EN: Verifies joins with OR in the ON clause return the expected rows.
+    /// PT: Verifica se joins com OR na clausula ON retornam as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSqlCompatibilityGap")]
@@ -202,8 +202,8 @@ public sealed class SqliteSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests GroupBy_Having_ShouldSupportAggregates behavior.
-    /// PT: Testa o comportamento de GroupBy_Having_ShouldSupportAggregates.
+    /// EN: Verifies GROUP BY and HAVING handle aggregates as expected.
+    /// PT: Verifica se GROUP BY e HAVING tratam agregados conforme esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSqlCompatibilityGap")]
@@ -220,8 +220,8 @@ public sealed class SqliteSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests OrderBy_ShouldSupportAlias_And_Ordinal behavior.
-    /// PT: Testa o comportamento de OrderBy_ShouldSupportAlias_And_Ordinal.
+    /// EN: Verifies ORDER BY supports aliases and ordinal positions.
+    /// PT: Verifica se ORDER BY suporta aliases e posicoes ordinais.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSqlCompatibilityGap")]
@@ -236,8 +236,8 @@ public sealed class SqliteSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Union_ShouldWork behavior.
-    /// PT: Testa o comportamento de Union_ShouldWork.
+    /// EN: Verifies UNION returns the expected distinct rows.
+    /// PT: Verifica se UNION retorna as linhas distintas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSqlCompatibilityGap")]
@@ -252,8 +252,8 @@ public sealed class SqliteSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Union_All_ShouldWork behavior.
-    /// PT: Testa o comportamento de Union_All_ShouldWork.
+    /// EN: Verifies UNION ALL keeps duplicate rows.
+    /// PT: Verifica se UNION ALL mantem linhas duplicadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSqlCompatibilityGap")]
@@ -270,8 +270,8 @@ public sealed class SqliteSqlCompatibilityGapTests : XUnitTestBase
 
 
     /// <summary>
-    /// EN: Tests Union_Inside_SubSelect_ShouldWork behavior.
-    /// PT: Testa o comportamento de Union_Inside_SubSelect_ShouldWork.
+    /// EN: Verifies UNION works inside a subselect.
+    /// PT: Verifica se UNION funciona dentro de um subselect.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSqlCompatibilityGap")]
@@ -289,8 +289,8 @@ ORDER BY id
     }
 
     /// <summary>
-    /// EN: Tests Union_All_Inside_SubSelect_ShouldWork behavior.
-    /// PT: Testa o comportamento de Union_All_Inside_SubSelect_ShouldWork.
+    /// EN: Verifies UNION ALL works inside a subselect.
+    /// PT: Verifica se UNION ALL funciona dentro de um subselect.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSqlCompatibilityGap")]
@@ -309,8 +309,8 @@ ORDER BY id
 
 
     /// <summary>
-    /// EN: Tests Cte_With_ShouldWork behavior.
-    /// PT: Testa o comportamento de Cte_With_ShouldWork.
+    /// EN: Verifies CTE queries respect the configured SQLite version.
+    /// PT: Verifica se queries com CTE respeitam a versao SQLite configurada.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSqlCompatibilityGap")]
@@ -323,8 +323,8 @@ ORDER BY id
     }
 
     /// <summary>
-    /// EN: Tests Typing_ImplicitCasts_And_Collation_ShouldMatchSqliteDefault behavior.
-    /// PT: Testa o comportamento de Typing_ImplicitCasts_And_Collation_ShouldMatchSqliteDefault.
+    /// EN: Verifies implicit casts and string comparison follow SQLite defaults.
+    /// PT: Verifica se casts implicitos e comparacao de strings seguem os padroes do SQLite.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteSqlCompatibilityGap")]

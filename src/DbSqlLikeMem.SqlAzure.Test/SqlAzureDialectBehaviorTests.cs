@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 
 /// <summary>
 /// EN: Covers SQL Azure dialect behaviors inherited from SQL Server semantics.
-/// PT: Cobre comportamentos de dialeto do SQL Azure herdados da semântica do SQL Server.
+/// PT: Cobre comportamentos de dialeto do SQL Azure herdados da semantica do SQL Server.
 /// </summary>
 public sealed class SqlAzureDialectBehaviorTests(
         ITestOutputHelper helper
@@ -1858,3 +1858,4 @@ public sealed class SqlAzureDialectBehaviorTests(
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
     }
 }
+

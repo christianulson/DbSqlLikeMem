@@ -1,16 +1,16 @@
 ﻿namespace DbSqlLikeMem.Db2.Dapper.Test;
 
 /// <summary>
-/// EN: Defines the class Db2SelectAndWhereMoreCoverageTests.
-/// PT: Define a classe Db2SelectAndWhereMoreCoverageTests.
+/// EN: Covers extra DB2 SELECT and WHERE scenarios over a direct mock connection.
+/// PT: Cobre cenarios extras de SELECT e WHERE DB2 sobre uma conexao mock direta.
 /// </summary>
 public sealed class Db2SelectAndWhereMoreCoverageTests : XUnitTestBase
 {
     private readonly Db2ConnectionMock _cnn;
 
     /// <summary>
-    /// EN: Tests Db2SelectAndWhereMoreCoverageTests behavior.
-    /// PT: Testa o comportamento de Db2SelectAndWhereMoreCoverageTests.
+    /// EN: Creates the in-memory DB2 database used by the extra SELECT and WHERE coverage tests.
+    /// PT: Cria o banco DB2 em memoria usado pelos testes extras de cobertura de SELECT e WHERE.
     /// </summary>
     public Db2SelectAndWhereMoreCoverageTests(ITestOutputHelper helper) : base(helper)
     {
@@ -39,8 +39,8 @@ public sealed class Db2SelectAndWhereMoreCoverageTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_Between_ShouldWork behavior.
-    /// PT: Testa o comportamento de Where_Between_ShouldWork.
+    /// EN: Verifies BETWEEN filters rows in DB2 SELECT and WHERE coverage.
+    /// PT: Verifica se BETWEEN filtra linhas na cobertura de SELECT e WHERE do DB2.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SelectAndWhereMoreCoverage")]
@@ -51,8 +51,8 @@ public sealed class Db2SelectAndWhereMoreCoverageTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_NotIn_ShouldWork behavior.
-    /// PT: Testa o comportamento de Where_NotIn_ShouldWork.
+    /// EN: Verifies NOT IN filters rows in DB2 SELECT and WHERE coverage.
+    /// PT: Verifica se NOT IN filtra linhas na cobertura de SELECT e WHERE do DB2.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SelectAndWhereMoreCoverage")]
@@ -64,8 +64,8 @@ public sealed class Db2SelectAndWhereMoreCoverageTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_ExistsSubquery_ShouldWork behavior.
-    /// PT: Testa o comportamento de Where_ExistsSubquery_ShouldWork.
+    /// EN: Verifies EXISTS subqueries filter rows in DB2 coverage.
+    /// PT: Verifica se subconsultas EXISTS filtram linhas na cobertura do DB2.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SelectAndWhereMoreCoverage")]
@@ -86,8 +86,8 @@ ORDER BY u.id").ToList();
     }
 
     /// <summary>
-    /// EN: Tests Select_CaseWhen_ShouldWork behavior.
-    /// PT: Testa o comportamento de Select_CaseWhen_ShouldWork.
+    /// EN: Verifies CASE WHEN projections return the expected values.
+    /// PT: Verifica se projeções CASE WHEN retornam os valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SelectAndWhereMoreCoverage")]
@@ -106,8 +106,8 @@ ORDER BY id").ToList();
     }
 
     /// <summary>
-    /// EN: Tests Select_IfNull_ShouldWork behavior.
-    /// PT: Testa o comportamento de Select_IfNull_ShouldWork.
+    /// EN: Verifies IFNULL returns the expected fallback value.
+    /// PT: Verifica se IFNULL retorna o valor de fallback esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SelectAndWhereMoreCoverage")]

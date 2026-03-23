@@ -9,8 +9,8 @@ public sealed class SqlAzureCompatibilityTests(
     ) : XUnitTestBase(helper)
 {
     /// <summary>
-    /// EN: Provides sample SQL rows used by compatibility-level theory data composition.
-    /// PT: Fornece linhas SQL de exemplo usadas pela composicao de dados teoricos por nivel de compatibilidade.
+    /// EN: Returns sample SQL rows used by compatibility-level theory data.
+    /// PT: Retorna linhas SQL de exemplo usadas pelos dados teoricos por nivel de compatibilidade.
     /// </summary>
     public static IEnumerable<object[]> SqlSamples()
     {
@@ -176,3 +176,5 @@ public sealed class SqlAzureCompatibilityTests(
         compatibilityLevel.Should().BeGreaterThanOrEqualTo(SqlAzureDbCompatibilityLevels.SqlServer2019);
     }
 }
+
+

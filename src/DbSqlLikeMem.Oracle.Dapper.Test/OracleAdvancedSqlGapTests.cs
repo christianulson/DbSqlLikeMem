@@ -1,17 +1,16 @@
 namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
-/// These are TDD "gap" tests for MySQL features that are NOT implemented yet in the in-memory mock.
-/// They are intentionally skipped so they don't break your build until you decide to implement them.
-/// When you implement a feature, remove the Skip and make it green.
+/// EN: Covers version-gated Oracle gap scenarios that are not fully implemented in the in-memory mock yet.
+/// PT: Cobre cenarios de gap do Oracle controlados por versao que ainda nao estao totalmente implementados no mock em memoria.
 /// </summary>
 public sealed class OracleAdvancedSqlGapTests : XUnitTestBase
 {
     private readonly OracleConnectionMock _cnn;
 
     /// <summary>
-    /// EN: Initializes a new instance of OracleAdvancedSqlGapTests.
-    /// PT: Inicializa uma nova instância de OracleAdvancedSqlGapTests.
+    /// EN: Creates the in-memory Oracle connection used by the advanced gap tests.
+    /// PT: Cria a conexao Oracle em memoria usada pelos testes de gap avancados.
     /// </summary>
     public OracleAdvancedSqlGapTests(ITestOutputHelper helper) : base(helper)
     {
@@ -46,8 +45,8 @@ public sealed class OracleAdvancedSqlGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Window_RowNumber_PartitionBy_ShouldWork behavior.
-    /// PT: Testa o comportamento de Window_RowNumber_PartitionBy_ShouldWork.
+    /// EN: Verifies ROW_NUMBER respects the configured Oracle version.
+    /// PT: Verifica se ROW_NUMBER respeita a versao Oracle configurada.
     /// </summary>
     [Theory]
     [MemberDataOracleVersion]
@@ -73,8 +72,8 @@ ORDER BY tenantid, id";
     }
 
     /// <summary>
-    /// EN: Tests Window_Rank_And_DenseRank_ShouldWork behavior.
-    /// PT: Testa o comportamento de Window_Rank_And_DenseRank_ShouldWork.
+    /// EN: Verifies RANK and DENSE_RANK respect the configured Oracle version.
+    /// PT: Verifica se RANK e DENSE_RANK respeitam a versao Oracle configurada.
     /// </summary>
     [Theory]
     [MemberDataOracleVersion]
@@ -103,8 +102,8 @@ ORDER BY id";
 
 
     /// <summary>
-    /// EN: Tests Window_Ntile_ShouldWork behavior.
-    /// PT: Testa o comportamento de Window_Ntile_ShouldWork.
+    /// EN: Verifies NTILE respects the configured Oracle version.
+    /// PT: Verifica se NTILE respeita a versao Oracle configurada.
     /// </summary>
     [Theory]
     [MemberDataOracleVersion]
@@ -131,8 +130,8 @@ ORDER BY id";
 
 
     /// <summary>
-    /// EN: Tests Window_PercentRank_And_CumeDist_ShouldWork behavior.
-    /// PT: Testa o comportamento de Window_PercentRank_And_CumeDist_ShouldWork.
+    /// EN: Verifies PERCENT_RANK and CUME_DIST respect the configured Oracle version.
+    /// PT: Verifica se PERCENT_RANK e CUME_DIST respeitam a versao Oracle configurada.
     /// </summary>
     [Theory]
     [MemberDataOracleVersion]
@@ -166,8 +165,8 @@ ORDER BY id";
 
 
     /// <summary>
-    /// EN: Tests Window_Lag_And_Lead_ShouldWork behavior.
-    /// PT: Testa o comportamento de Window_Lag_And_Lead_ShouldWork.
+    /// EN: Verifies LAG and LEAD respect the configured Oracle version.
+    /// PT: Verifica se LAG e LEAD respeitam a versao Oracle configurada.
     /// </summary>
     [Theory]
     [MemberDataOracleVersion]
@@ -196,8 +195,8 @@ ORDER BY id";
 
 
     /// <summary>
-    /// EN: Tests Window_FirstValue_And_LastValue_ShouldWork behavior.
-    /// PT: Testa o comportamento de Window_FirstValue_And_LastValue_ShouldWork.
+    /// EN: Verifies FIRST_VALUE and LAST_VALUE respect the configured Oracle version.
+    /// PT: Verifica se FIRST_VALUE e LAST_VALUE respeitam a versao Oracle configurada.
     /// </summary>
     [Theory]
     [MemberDataOracleVersion]
@@ -226,8 +225,8 @@ ORDER BY id";
 
 
     /// <summary>
-    /// EN: Tests Window_NthValue_ShouldWork behavior.
-    /// PT: Testa o comportamento de Window_NthValue_ShouldWork.
+    /// EN: Verifies NTH_VALUE respects the configured Oracle version.
+    /// PT: Verifica se NTH_VALUE respeita a versao Oracle configurada.
     /// </summary>
     [Theory]
     [MemberDataOracleVersion]
@@ -254,8 +253,8 @@ ORDER BY id";
 
 
     /// <summary>
-    /// EN: Tests Window_Lag_Lead_WithZeroOffset_ShouldReturnCurrentRow behavior.
-    /// PT: Testa o comportamento de Window_Lag_Lead_WithZeroOffset_ShouldReturnCurrentRow.
+    /// EN: Verifies zero-offset LAG and LEAD return the current row when the version supports window functions.
+    /// PT: Verifica se LAG e LEAD com offset zero retornam a linha atual quando a versao suporta funcoes de janela.
     /// </summary>
     [Theory]
     [MemberDataOracleVersion]
@@ -363,8 +362,8 @@ ORDER BY tenantid, rn, id";
 
 
     /// <summary>
-    /// EN: Tests Regexp_NotOperator_ShouldWork behavior.
-    /// PT: Testa o comportamento de Regexp_NotOperator_ShouldWork.
+    /// EN: Verifies NOT REGEXP filters rows as expected.
+    /// PT: Verifica se NOT REGEXP filtra as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAdvancedSqlGap")]
@@ -376,8 +375,8 @@ ORDER BY tenantid, rn, id";
 
 
     /// <summary>
-    /// EN: Tests Like_NotOperator_ShouldWork behavior.
-    /// PT: Testa o comportamento de Like_NotOperator_ShouldWork.
+    /// EN: Verifies NOT LIKE filters rows as expected.
+    /// PT: Verifica se NOT LIKE filtra as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAdvancedSqlGap")]
@@ -389,8 +388,8 @@ ORDER BY tenantid, rn, id";
 
 
     /// <summary>
-    /// EN: Tests Window_Lag_And_NthValue_WithExpressionOffset_ShouldWork behavior.
-    /// PT: Testa o comportamento de Window_Lag_And_NthValue_WithExpressionOffset_ShouldWork.
+    /// EN: Verifies expression-based offsets in LAG and NTH_VALUE respect the configured Oracle version.
+    /// PT: Verifica se offsets baseados em expressao em LAG e NTH_VALUE respeitam a versao Oracle configurada.
     /// </summary>
     [Theory]
     [MemberDataOracleVersion]
@@ -419,8 +418,8 @@ ORDER BY id";
 
 
     /// <summary>
-    /// EN: Tests Window_Ntile_WithExpressionBuckets_ShouldWork behavior.
-    /// PT: Testa o comportamento de Window_Ntile_WithExpressionBuckets_ShouldWork.
+    /// EN: Verifies expression-based bucket counts in NTILE respect the configured Oracle version.
+    /// PT: Verifica se contagens de buckets baseadas em expressao no NTILE respeitam a versao Oracle configurada.
     /// </summary>
     [Theory]
     [MemberDataOracleVersion]
@@ -447,8 +446,8 @@ ORDER BY id";
 
 
     /// <summary>
-    /// EN: Tests CorrelatedSubquery_InSelectList_ShouldWork behavior.
-    /// PT: Testa o comportamento de CorrelatedSubquery_InSelectList_ShouldWork.
+    /// EN: Verifies correlated subqueries in the select list return the expected totals.
+    /// PT: Verifica se subconsultas correlacionadas na lista SELECT retornam os totais esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAdvancedSqlGap")]
@@ -464,8 +463,8 @@ ORDER BY u.id").ToList();
     }
 
     /// <summary>
-    /// EN: Tests DateAdd_IntervalDay_ShouldWork behavior.
-    /// PT: Testa o comportamento de DateAdd_IntervalDay_ShouldWork.
+    /// EN: Verifies DATE_ADD with a day interval returns the expected dates.
+    /// PT: Verifica se DATE_ADD com intervalo de dia retorna as datas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAdvancedSqlGap")]
@@ -484,8 +483,8 @@ ORDER BY id").ToList();
     }
 
     /// <summary>
-    /// EN: Tests Cast_StringToInt_ShouldWork behavior.
-    /// PT: Testa o comportamento de Cast_StringToInt_ShouldWork.
+    /// EN: Verifies string-to-int casts return the expected integer value.
+    /// PT: Verifica se casts de string para int retornam o valor inteiro esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAdvancedSqlGap")]
@@ -512,8 +511,8 @@ ORDER BY id").ToList();
     }
 
     /// <summary>
-    /// EN: Tests Regexp_Operator_ShouldWork behavior.
-    /// PT: Testa o comportamento de Regexp_Operator_ShouldWork.
+    /// EN: Verifies REGEXP filters rows as expected.
+    /// PT: Verifica se REGEXP filtra as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAdvancedSqlGap")]
@@ -526,8 +525,8 @@ ORDER BY id").ToList();
 
 
     /// <summary>
-    /// EN: Tests OrderBy_Field_Function_ShouldWork behavior.
-    /// PT: Testa o comportamento de OrderBy_Field_Function_ShouldWork.
+    /// EN: Verifies FIELD can be used to order rows explicitly.
+    /// PT: Verifica se FIELD pode ser usado para ordenar linhas explicitamente.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAdvancedSqlGap")]
@@ -538,8 +537,8 @@ ORDER BY id").ToList();
     }
 
     /// <summary>
-    /// EN: Tests Collation_CaseSensitivity_ShouldFollowColumnCollation behavior.
-    /// PT: Testa o comportamento de Collation_CaseSensitivity_ShouldFollowColumnCollation.
+    /// EN: Verifies string comparison follows the configured column collation.
+    /// PT: Verifica se a comparacao de strings segue a collation configurada da coluna.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAdvancedSqlGap")]
@@ -554,8 +553,8 @@ ORDER BY id").ToList();
 
 
     /// <summary>
-    /// EN: Tests Pivot_Count_ByTenant_ShouldWork behavior.
-    /// PT: Testa o comportamento de Pivot_Count_ByTenant_ShouldWork.
+    /// EN: Verifies PIVOT counting by tenant returns the expected rows.
+    /// PT: Verifica se o PIVOT de contagem por tenant retorna as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAdvancedSqlGap")]

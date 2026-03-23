@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 /// <summary>
-/// EN: Defines the class SqliteTransactionTests.
-/// PT: Define a classe SqliteTransactionTests.
+/// EN: Covers SQLite transaction scenarios against the Dapper provider.
+/// PT: Cobre cenarios de transacao SQLite contra o provedor Dapper.
 /// </summary>
 public sealed class SqliteTransactionTests(
     ITestOutputHelper helper

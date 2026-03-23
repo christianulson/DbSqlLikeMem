@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.MySql.Dapper.Test;
 
 /// <summary>
-/// TDD guard-rail tests for SQL features where this in-memory MySql mock commonly diverges from real MySQL.
-/// These tests are EXPECTED TO FAIL until the corresponding functionality is implemented in the parser/executor.
+/// EN: Covers MySQL SQL compatibility gap scenarios that intentionally document current divergence from real MySQL.
+/// PT: Cobre cenarios de gap de compatibilidade SQL do MySQL que documentam intencionalmente as divergencias atuais em relacao ao MySQL real.
 /// </summary>
 public sealed class MySqlSqlCompatibilityGapTests : XUnitTestBase
 {
@@ -10,8 +10,8 @@ public sealed class MySqlSqlCompatibilityGapTests : XUnitTestBase
     private const int MySqlCteMinVersion = 80;
 
     /// <summary>
-    /// EN: Tests MySqlSqlCompatibilityGapTests behavior.
-    /// PT: Testa o comportamento de MySqlSqlCompatibilityGapTests.
+    /// EN: Creates the in-memory MySQL connection used by the SQL compatibility gap tests.
+    /// PT: Cria a conexao MySQL em memoria usada pelos testes de gap de compatibilidade SQL.
     /// </summary>
     public MySqlSqlCompatibilityGapTests(ITestOutputHelper helper) : base(helper)
     {
@@ -60,8 +60,8 @@ public sealed class MySqlSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests grouped metrics query with HAVING aliases and dynamic CASE-based ORDER BY.
-    /// PT: Testa query agregada de métricas com aliases no HAVING e ORDER BY dinâmico por CASE.
+    /// EN: Verifies the grouped metrics query returns the expected aggregates and ordering.
+    /// PT: Verifica se a query agregada de metricas retorna os agregados e a ordenacao esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlSqlCompatibilityGap")]
@@ -114,8 +114,8 @@ LIMIT @Take OFFSET @Offset;",
     }
 
     /// <summary>
-    /// EN: Tests Where_Precedence_AND_ShouldBindStrongerThan_OR behavior.
-    /// PT: Testa o comportamento de Where_Precedence_AND_ShouldBindStrongerThan_OR.
+    /// EN: Verifies AND binds stronger than OR in WHERE predicates.
+    /// PT: Verifica se AND tem precedencia maior que OR em predicados WHERE.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlSqlCompatibilityGap")]
@@ -128,8 +128,8 @@ LIMIT @Take OFFSET @Offset;",
     }
 
     /// <summary>
-    /// EN: Tests Where_OR_ShouldWork behavior.
-    /// PT: Testa o comportamento de Where_OR_ShouldWork.
+    /// EN: Verifies OR predicates return the expected rows.
+    /// PT: Verifica se predicados OR retornam as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlSqlCompatibilityGap")]
@@ -140,8 +140,8 @@ LIMIT @Take OFFSET @Offset;",
     }
 
     /// <summary>
-    /// EN: Tests Where_ParenthesesGrouping_ShouldWork behavior.
-    /// PT: Testa o comportamento de Where_ParenthesesGrouping_ShouldWork.
+    /// EN: Verifies parentheses group WHERE predicates correctly.
+    /// PT: Verifica se parenteses agrupam corretamente os predicados WHERE.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlSqlCompatibilityGap")]
@@ -154,8 +154,8 @@ LIMIT @Take OFFSET @Offset;",
     }
 
     /// <summary>
-    /// EN: Tests Select_Expressions_Arithmetic_ShouldWork behavior.
-    /// PT: Testa o comportamento de Select_Expressions_Arithmetic_ShouldWork.
+    /// EN: Verifies arithmetic expressions in SELECT return the expected values.
+    /// PT: Verifica se expressoes aritmeticas no SELECT retornam os valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlSqlCompatibilityGap")]
@@ -166,8 +166,8 @@ LIMIT @Take OFFSET @Offset;",
     }
 
     /// <summary>
-    /// EN: Tests Select_Expressions_CASE_WHEN_ShouldWork behavior.
-    /// PT: Testa o comportamento de Select_Expressions_CASE_WHEN_ShouldWork.
+    /// EN: Verifies CASE WHEN expressions in SELECT return the expected values.
+    /// PT: Verifica se expressoes CASE WHEN no SELECT retornam os valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlSqlCompatibilityGap")]
@@ -178,8 +178,8 @@ LIMIT @Take OFFSET @Offset;",
     }
 
     /// <summary>
-    /// EN: Tests Select_Expressions_IF_ShouldWork behavior.
-    /// PT: Testa o comportamento de Select_Expressions_IF_ShouldWork.
+    /// EN: Verifies IF expressions in SELECT return the expected values.
+    /// PT: Verifica se expressoes IF no SELECT retornam os valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlSqlCompatibilityGap")]
@@ -191,8 +191,8 @@ LIMIT @Take OFFSET @Offset;",
     }
 
     /// <summary>
-    /// EN: Tests Select_Expressions_IIF_ShouldWork_AsAliasForIF behavior.
-    /// PT: Testa o comportamento de Select_Expressions_IIF_ShouldWork_AsAliasForIF.
+    /// EN: Verifies IIF behaves as an alias for IF in SELECT expressions.
+    /// PT: Verifica se IIF funciona como alias de IF em expressoes SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlSqlCompatibilityGap")]
@@ -204,8 +204,8 @@ LIMIT @Take OFFSET @Offset;",
     }
 
     /// <summary>
-    /// EN: Tests Functions_COALESCE_ShouldWork behavior.
-    /// PT: Testa o comportamento de Functions_COALESCE_ShouldWork.
+    /// EN: Verifies COALESCE returns the expected fallback values.
+    /// PT: Verifica se COALESCE retorna os valores de fallback esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlSqlCompatibilityGap")]
@@ -216,8 +216,8 @@ LIMIT @Take OFFSET @Offset;",
     }
 
     /// <summary>
-    /// EN: Tests Functions_IFNULL_ShouldWork behavior.
-    /// PT: Testa o comportamento de Functions_IFNULL_ShouldWork.
+    /// EN: Verifies IFNULL returns the expected fallback values.
+    /// PT: Verifica se IFNULL retorna os valores de fallback esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlSqlCompatibilityGap")]
@@ -228,8 +228,8 @@ LIMIT @Take OFFSET @Offset;",
     }
 
     /// <summary>
-    /// EN: Tests Functions_CONCAT_ShouldWork behavior.
-    /// PT: Testa o comportamento de Functions_CONCAT_ShouldWork.
+    /// EN: Verifies CONCAT returns the expected combined strings.
+    /// PT: Verifica se CONCAT retorna as strings combinadas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlSqlCompatibilityGap")]
@@ -240,8 +240,8 @@ LIMIT @Take OFFSET @Offset;",
     }
 
     /// <summary>
-    /// EN: Tests Distinct_ShouldBeConsistent behavior.
-    /// PT: Testa o comportamento de Distinct_ShouldBeConsistent.
+    /// EN: Verifies DISTINCT removes duplicate rows consistently.
+    /// PT: Verifica se DISTINCT remove linhas duplicadas de forma consistente.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlSqlCompatibilityGap")]
@@ -254,8 +254,8 @@ LIMIT @Take OFFSET @Offset;",
     }
 
     /// <summary>
-    /// EN: Tests Join_ComplexOn_WithOr_ShouldWork behavior.
-    /// PT: Testa o comportamento de Join_ComplexOn_WithOr_ShouldWork.
+    /// EN: Verifies joins with OR in the ON clause return the expected rows.
+    /// PT: Verifica se joins com OR na clausula ON retornam as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlSqlCompatibilityGap")]
@@ -275,8 +275,8 @@ LIMIT @Take OFFSET @Offset;",
     }
 
     /// <summary>
-    /// EN: Tests GroupBy_Having_ShouldSupportAggregates behavior.
-    /// PT: Testa o comportamento de GroupBy_Having_ShouldSupportAggregates.
+    /// EN: Verifies GROUP BY and HAVING handle aggregates as expected.
+    /// PT: Verifica se GROUP BY e HAVING tratam agregados conforme esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlSqlCompatibilityGap")]
@@ -293,8 +293,8 @@ LIMIT @Take OFFSET @Offset;",
     }
 
     /// <summary>
-    /// EN: Tests OrderBy_ShouldSupportAlias_And_Ordinal behavior.
-    /// PT: Testa o comportamento de OrderBy_ShouldSupportAlias_And_Ordinal.
+    /// EN: Verifies ORDER BY supports aliases and ordinal positions.
+    /// PT: Verifica se ORDER BY suporta aliases e posicoes ordinais.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlSqlCompatibilityGap")]
@@ -309,8 +309,8 @@ LIMIT @Take OFFSET @Offset;",
     }
 
     /// <summary>
-    /// EN: Tests Union_ShouldWork behavior.
-    /// PT: Testa o comportamento de Union_ShouldWork.
+    /// EN: Verifies UNION returns the expected distinct rows.
+    /// PT: Verifica se UNION retorna as linhas distintas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlSqlCompatibilityGap")]
@@ -325,8 +325,8 @@ LIMIT @Take OFFSET @Offset;",
     }
 
     /// <summary>
-    /// EN: Tests Union_All_ShouldWork behavior.
-    /// PT: Testa o comportamento de Union_All_ShouldWork.
+    /// EN: Verifies UNION ALL keeps duplicate rows.
+    /// PT: Verifica se UNION ALL mantem linhas duplicadas.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlSqlCompatibilityGap")]
@@ -343,8 +343,8 @@ LIMIT @Take OFFSET @Offset;",
 
 
     /// <summary>
-    /// EN: Tests Union_Inside_SubSelect_ShouldWork behavior.
-    /// PT: Testa o comportamento de Union_Inside_SubSelect_ShouldWork.
+    /// EN: Verifies UNION works inside a subselect.
+    /// PT: Verifica se UNION funciona dentro de um subselect.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlSqlCompatibilityGap")]
@@ -362,8 +362,8 @@ ORDER BY id
     }
 
     /// <summary>
-    /// EN: Tests Union_All_Inside_SubSelect_ShouldWork behavior.
-    /// PT: Testa o comportamento de Union_All_Inside_SubSelect_ShouldWork.
+    /// EN: Verifies UNION ALL works inside a subselect.
+    /// PT: Verifica se UNION ALL funciona dentro de um subselect.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlSqlCompatibilityGap")]
@@ -382,8 +382,8 @@ ORDER BY id
 
 
     /// <summary>
-    /// EN: Tests Cte_With_ShouldWork behavior.
-    /// PT: Testa o comportamento de Cte_With_ShouldWork.
+    /// EN: Verifies CTE queries respect the configured MySQL version.
+    /// PT: Verifica se queries com CTE respeitam a versao MySQL configurada.
     /// </summary>
     [Theory]
     [Trait("Category", "MySqlSqlCompatibilityGap")]
@@ -409,8 +409,8 @@ ORDER BY id
     }
 
     /// <summary>
-    /// EN: Tests Typing_ImplicitCasts_And_Collation_ShouldMatchMySqlDefault behavior.
-    /// PT: Testa o comportamento de Typing_ImplicitCasts_And_Collation_ShouldMatchMySqlDefault.
+    /// EN: Verifies implicit casts and string comparison follow MySQL defaults.
+    /// PT: Verifica se casts implicitos e comparacao de strings seguem os padroes do MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlSqlCompatibilityGap")]

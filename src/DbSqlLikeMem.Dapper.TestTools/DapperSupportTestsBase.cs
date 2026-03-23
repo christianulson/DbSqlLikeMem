@@ -59,8 +59,8 @@ internal static class DbMockFactory
 }
 
 /// <summary>
-/// EN: Defines shared Dapper-oriented provider contract tests for mock connections.
-/// PT: Define testes de contrato compartilhados orientados a Dapper para conexões mock.
+/// EN: Covers shared Dapper-oriented provider contract tests for mock connections.
+/// PT: Cobre testes de contrato compartilhados orientados a Dapper para conexoes mock.
 /// </summary>
 public abstract class DapperSupportTestsBase(
     ITestOutputHelper helper
@@ -598,8 +598,8 @@ WHERE u.id = @id",
 }
 
 /// <summary>
-/// EN: Provides a provider-agnostic Dapper smoke test base that opens a connection using a parameterless constructor.
-/// PT: Fornece uma base de testes smoke Dapper agnóstica de provedor que abre conexão usando construtor sem parâmetros.
+/// EN: Covers a provider-agnostic Dapper smoke test base that opens a connection using a parameterless constructor.
+/// PT: Cobre uma base de testes smoke Dapper agnóstica de provedor que abre conexao usando construtor sem parametros.
 /// </summary>
 /// <typeparam name="TConnection">EN: Provider connection type. PT: Tipo de conexão do provedor.</typeparam>
 public abstract class DapperSmokeTestsBase<TConnection>(
@@ -1568,8 +1568,8 @@ public abstract class QueryExecutorExtrasTestsBase<TDb, TConnection, TCommand, T
     protected abstract IQueryable<QueryExecutorFoo> CreateQueryable(TConnection connection);
 
     /// <summary>
-    /// EN: Validates provider-specific pagination fragments emitted for LINQ Skip/Take translation.
-    /// PT: Valida os fragmentos de paginacao especificos do provedor gerados na traducao LINQ de Skip/Take.
+    /// EN: Verifies provider-specific pagination fragments emitted for LINQ Skip/Take translation.
+    /// PT: Verifica os fragmentos de paginacao especificos do provedor gerados na traducao LINQ de Skip/Take.
     /// </summary>
     protected virtual void AssertPaginationSql(string sql)
     {
@@ -2647,8 +2647,8 @@ public abstract class DapperUnionLimitAndJsonCompatibilityTestsBase<TDb, TConnec
     private readonly TConnection _connection;
 
     /// <summary>
-    /// EN: Initializes the shared union, pagination, and JSON compatibility test base.
-    /// PT: Inicializa a base compartilhada de testes de compatibilidade de union, paginacao e JSON.
+    /// EN: Creates the shared union, pagination, and JSON compatibility test base.
+    /// PT: Cria a base compartilhada de testes de compatibilidade de union, paginacao e JSON.
     /// </summary>
     protected DapperUnionLimitAndJsonCompatibilityTestsBase(ITestOutputHelper helper)
         : base(helper)
@@ -2789,8 +2789,8 @@ public abstract class AdditionalBehaviorCoverageTestsBase<TDb, TConnection>
     private readonly TConnection _connection;
 
     /// <summary>
-    /// EN: Initializes the shared additional-behavior coverage test base with a seeded open connection.
-    /// PT: Inicializa a base compartilhada de cobertura de comportamento adicional com uma conexao aberta e populada.
+    /// EN: Creates the shared additional-behavior coverage test base with a seeded open connection.
+    /// PT: Cria a base compartilhada de cobertura de comportamento adicional com uma conexao aberta e populada.
     /// </summary>
     protected AdditionalBehaviorCoverageTestsBase(ITestOutputHelper helper)
         : base(helper)
@@ -3008,3 +3008,6 @@ ORDER BY userid
         return db;
     }
 }
+
+
+

@@ -1,16 +1,16 @@
 namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
-/// EN: Defines the class OracleSelectAndWhereMoreCoverageTests.
-/// PT: Define a classe OracleSelectAndWhereMoreCoverageTests.
+/// EN: Covers extra Oracle SELECT and WHERE scenarios over a direct mock connection.
+/// PT: Cobre cenarios extras de SELECT e WHERE Oracle sobre uma conexao mock direta.
 /// </summary>
 public sealed class OracleSelectAndWhereMoreCoverageTests : XUnitTestBase
 {
     private readonly OracleConnectionMock _cnn;
 
     /// <summary>
-    /// EN: Initializes a new instance of OracleSelectAndWhereMoreCoverageTests.
-    /// PT: Inicializa uma nova instância de OracleSelectAndWhereMoreCoverageTests.
+    /// EN: Creates the in-memory Oracle database used by the extra SELECT and WHERE coverage tests.
+    /// PT: Cria o banco Oracle em memoria usado pelos testes extras de cobertura de SELECT e WHERE.
     /// </summary>
     public OracleSelectAndWhereMoreCoverageTests(ITestOutputHelper helper) : base(helper)
     {
@@ -39,8 +39,8 @@ public sealed class OracleSelectAndWhereMoreCoverageTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_Between_ShouldWork behavior.
-    /// PT: Testa o comportamento de Where_Between_ShouldWork.
+    /// EN: Verifies BETWEEN filters rows in the expected range.
+    /// PT: Verifica se BETWEEN filtra as linhas no intervalo esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleSelectAndWhereMoreCoverage")]
@@ -51,8 +51,8 @@ public sealed class OracleSelectAndWhereMoreCoverageTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_NotIn_ShouldWork behavior.
-    /// PT: Testa o comportamento de Where_NotIn_ShouldWork.
+    /// EN: Verifies NOT IN filters rows as expected.
+    /// PT: Verifica se NOT IN filtra as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleSelectAndWhereMoreCoverage")]
@@ -64,8 +64,8 @@ public sealed class OracleSelectAndWhereMoreCoverageTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests Where_ExistsSubquery_ShouldWork behavior.
-    /// PT: Testa o comportamento de Where_ExistsSubquery_ShouldWork.
+    /// EN: Verifies EXISTS subqueries filter rows as expected.
+    /// PT: Verifica se subconsultas EXISTS filtram as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleSelectAndWhereMoreCoverage")]
@@ -86,8 +86,8 @@ ORDER BY u.id").ToList();
     }
 
     /// <summary>
-    /// EN: Tests Select_CaseWhen_ShouldWork behavior.
-    /// PT: Testa o comportamento de Select_CaseWhen_ShouldWork.
+    /// EN: Verifies CASE WHEN projections return the expected values.
+    /// PT: Verifica se projeções CASE WHEN retornam os valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleSelectAndWhereMoreCoverage")]
@@ -106,8 +106,8 @@ ORDER BY id").ToList();
     }
 
     /// <summary>
-    /// EN: Tests Select_IfNull_ShouldWork behavior.
-    /// PT: Testa o comportamento de Select_IfNull_ShouldWork.
+    /// EN: Verifies COALESCE projections return the expected fallback value.
+    /// PT: Verifica se projeções COALESCE retornam o valor de fallback esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleSelectAndWhereMoreCoverage")]

@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.Db2.Dapper.Test;
 
 /// <summary>
-/// EN: Defines the class DapperTests.
-/// PT: Define a classe DapperTests.
+/// EN: Covers DB2 Dapper CRUD scenarios against the mock provider.
+/// PT: Cobre cenarios CRUD de Dapper para DB2 contra o provedor mock.
 /// </summary>
 public sealed class DapperTests(
     ITestOutputHelper helper

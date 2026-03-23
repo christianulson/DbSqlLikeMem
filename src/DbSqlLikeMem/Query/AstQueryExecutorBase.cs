@@ -1,10 +1,11 @@
 namespace DbSqlLikeMem;
 
 /// <summary>
-/// New query engine that executes the new Pratt-based AST (<see cref="SqlSelectQuery"/>) directly
-/// against <see cref="TableMock"/> tables.
+/// EN: Executes the Pratt-based AST (<see cref="SqlSelectQuery"/>) against <see cref="TableMock"/> tables.
+/// PT: Executa o AST baseado em Pratt (<see cref="SqlSelectQuery"/>) contra tabelas <see cref="TableMock"/>.
 ///
-/// Scope: SELECT/WITH only (as per SqlQueryParser).
+/// EN: The executor currently covers SELECT and WITH queries only, matching the scope of <see cref="SqlQueryParser"/>.
+/// PT: O executor atualmente cobre apenas consultas SELECT e WITH, acompanhando o escopo de <see cref="SqlQueryParser"/>.
 /// </summary>
 internal abstract class AstQueryExecutorBase(
     DbConnectionMockBase cnn,

@@ -2,14 +2,14 @@ namespace DbSqlLikeMem.MySql;
 
 
 /// <summary>
-/// EN: Defines the class MySqlAstQueryExecutorRegister.
-/// PT: Define a classe MySqlAstQueryExecutorRegister.
+/// EN: Registers the MySQL AST executor with the shared factory.
+/// PT: Registra o executor AST de MySQL na factory compartilhada.
 /// </summary>
 public static class MySqlAstQueryExecutorRegister
 {
     /// <summary>
-    /// EN: Implements Register.
-    /// PT: Implementa Register.
+    /// EN: Registers the MySQL AST executor for the default MySQL dialect.
+    /// PT: Registra o executor AST de MySQL para o dialeto MySQL padrao.
     /// </summary>
     public static void Register()
         => Register(MySqlDialect.DialectName);

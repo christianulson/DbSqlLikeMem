@@ -1,14 +1,14 @@
 namespace DbSqlLikeMem;
 
 /// <summary>
-/// EN: Defines the class DbTypeParser.
-/// PT: Define a classe DbTypeParser.
+/// EN: Parses textual values into typed database values based on <see cref="DbType"/>.
+/// PT: Converte valores textuais em valores tipados de banco com base em <see cref="DbType"/>.
 /// </summary>
 public static class DbTypeParser
 {
     /// <summary>
-    /// EN: Implements Parse.
-    /// PT: Implementa Parse.
+    /// EN: Parses a textual value into the CLR value represented by the supplied database type.
+    /// PT: Converte um valor textual no valor CLR representado pelo tipo de banco informado.
     /// </summary>
     public static object? Parse(this DbType dbType, string? value)
     {

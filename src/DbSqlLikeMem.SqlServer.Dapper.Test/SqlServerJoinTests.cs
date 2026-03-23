@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 
 /// <summary>
-/// EN: Defines the class SqlServerJoinTests.
-/// PT: Define a classe SqlServerJoinTests.
+/// EN: Covers SQL Server join scenarios against the Dapper provider.
+/// PT: Cobre cenarios de join SQL Server contra o provedor Dapper.
 /// </summary>
 public sealed class SqlServerJoinTests(
     ITestOutputHelper helper

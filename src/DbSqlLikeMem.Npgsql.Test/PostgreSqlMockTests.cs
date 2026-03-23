@@ -10,8 +10,8 @@ public sealed class PostgreSqlMockTests
     private readonly NpgsqlConnectionMock _connection;
 
     /// <summary>
-    /// EN: Initializes the PostgreSQL mock database used by the test suite.
-    /// PT: Inicializa o banco mock PostgreSQL usado pela suite de testes.
+    /// EN: Creates the PostgreSQL mock database used by the test suite.
+    /// PT: Cria o banco mock PostgreSQL usado pela suite de testes.
     /// </summary>
     public PostgreSqlMockTests(
         ITestOutputHelper helper

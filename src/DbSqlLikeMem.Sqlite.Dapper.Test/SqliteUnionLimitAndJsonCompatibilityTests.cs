@@ -1,14 +1,14 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 
 /// <summary>
-/// Tests that lock-in expected behavior for SQLite features that the in-memory mock already supports.
-/// Keep these green: they protect you from regressions while you implement more advanced gaps elsewhere.
+/// EN: Covers SQLite UNION, LIMIT, and JSON compatibility scenarios already supported by the in-memory mock.
+/// PT: Cobre cenarios de compatibilidade de UNION, LIMIT e JSON do SQLite que o mock em memoria ja suporta.
 /// </summary>
 public sealed class SqliteUnionLimitAndJsonCompatibilityTests : DapperUnionLimitAndJsonCompatibilityTestsBase<SqliteDbMock, SqliteConnectionMock>
 {
     /// <summary>
-    /// EN: Tests SqliteUnionLimitAndJsonCompatibilityTests behavior.
-    /// PT: Testa o comportamento de SqliteUnionLimitAndJsonCompatibilityTests.
+    /// EN: Creates the in-memory SQLite connection used by the UNION, LIMIT, and JSON compatibility tests.
+    /// PT: Cria a conexao SQLite em memoria usada pelos testes de compatibilidade de UNION, LIMIT e JSON.
     /// </summary>
     public SqliteUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper) { }
 
@@ -16,8 +16,8 @@ public sealed class SqliteUnionLimitAndJsonCompatibilityTests : DapperUnionLimit
     protected override SqliteConnectionMock CreateConnection(SqliteDbMock db) => new(db);
 
     /// <summary>
-    /// EN: Tests UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates behavior.
-    /// PT: Testa o comportamento de UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates.
+    /// EN: Verifies UNION ALL keeps duplicates while UNION removes them.
+    /// PT: Verifica se UNION ALL mantem duplicatas enquanto UNION as remove.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteUnionLimitAndJsonCompatibility")]
@@ -25,8 +25,8 @@ public sealed class SqliteUnionLimitAndJsonCompatibilityTests : DapperUnionLimit
         => AssertUnionAllKeepsDuplicatesAndUnionRemovesThem();
 
     /// <summary>
-    /// EN: Tests Limit_OffsetCommaSyntax_ShouldWork behavior.
-    /// PT: Testa o comportamento de Limit_OffsetCommaSyntax_ShouldWork.
+    /// EN: Verifies LIMIT supports the comma offset syntax.
+    /// PT: Verifica se LIMIT suporta a sintaxe de offset com virgula.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteUnionLimitAndJsonCompatibility")]
@@ -37,8 +37,8 @@ public sealed class SqliteUnionLimitAndJsonCompatibilityTests : DapperUnionLimit
     }
 
     /// <summary>
-    /// EN: Tests Limit_OffsetKeywordSyntax_ShouldWork behavior.
-    /// PT: Testa o comportamento de Limit_OffsetKeywordSyntax_ShouldWork.
+    /// EN: Verifies LIMIT supports the OFFSET keyword syntax.
+    /// PT: Verifica se LIMIT suporta a sintaxe com a palavra-chave OFFSET.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteUnionLimitAndJsonCompatibility")]
@@ -49,8 +49,8 @@ public sealed class SqliteUnionLimitAndJsonCompatibilityTests : DapperUnionLimit
     }
 
     /// <summary>
-    /// EN: Tests JsonExtract_SimpleObjectPath_ShouldWork behavior.
-    /// PT: Testa o comportamento de JsonExtract_SimpleObjectPath_ShouldWork.
+    /// EN: Verifies JSON_EXTRACT returns the expected values.
+    /// PT: Verifica se JSON_EXTRACT retorna os valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteUnionLimitAndJsonCompatibility")]
@@ -66,8 +66,8 @@ public sealed class SqliteUnionLimitAndJsonCompatibilityTests : DapperUnionLimit
 
 
     /// <summary>
-    /// EN: Tests OrderBy_NullsFirst_ShouldApplyExplicitNullOrdering behavior.
-    /// PT: Testa o comportamento de OrderBy_NullsFirst_ShouldApplyExplicitNullOrdering.
+    /// EN: Verifies ORDER BY NULLS FIRST applies explicit null ordering.
+    /// PT: Verifica se ORDER BY NULLS FIRST aplica a ordenacao explicita de nulos.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteUnionLimitAndJsonCompatibility")]
@@ -79,8 +79,8 @@ public sealed class SqliteUnionLimitAndJsonCompatibilityTests : DapperUnionLimit
 
 
     /// <summary>
-    /// EN: Tests JsonFunction_ShouldThrow_WhenNotSupportedByDialect behavior.
-    /// PT: Testa o comportamento de JsonFunction_ShouldThrow_WhenNotSupportedByDialect.
+    /// EN: Verifies unsupported JSON functions throw the expected exception.
+    /// PT: Verifica se funcoes JSON sem suporte lancam a excecao esperada.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteUnionLimitAndJsonCompatibility")]

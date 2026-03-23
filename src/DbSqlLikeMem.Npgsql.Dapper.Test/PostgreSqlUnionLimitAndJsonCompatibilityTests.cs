@@ -1,16 +1,16 @@
 namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
-/// Tests that lock-in expected behavior for MySQL features that the in-memory mock already supports.
-/// Keep these green: they protect you from regressions while you implement more advanced gaps elsewhere.
+/// EN: Covers PostgreSQL UNION, LIMIT, and JSON compatibility scenarios already supported by the in-memory mock.
+/// PT: Cobre cenarios de compatibilidade de UNION, LIMIT e JSON do PostgreSQL que o mock em memoria ja suporta.
 /// </summary>
 public sealed class PostgreSqlUnionLimitAndJsonCompatibilityTests : DapperUnionLimitAndJsonCompatibilityTestsBase<NpgsqlDbMock, NpgsqlConnectionMock>
 {
     private const int PostgreSqlJsonbMinVersion = 9;
 
     /// <summary>
-    /// EN: Tests PostgreSqlUnionLimitAndJsonCompatibilityTests behavior.
-    /// PT: Testa o comportamento de PostgreSqlUnionLimitAndJsonCompatibilityTests.
+    /// EN: Creates the in-memory PostgreSQL connection used by the UNION, LIMIT, and JSON compatibility tests.
+    /// PT: Cria a conexao PostgreSQL em memoria usada pelos testes de compatibilidade de UNION, LIMIT e JSON.
     /// </summary>
     public PostgreSqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper) { }
 
@@ -21,8 +21,8 @@ public sealed class PostgreSqlUnionLimitAndJsonCompatibilityTests : DapperUnionL
     protected override NpgsqlConnectionMock CreateConnection(NpgsqlDbMock db) => new(db);
 
     /// <summary>
-    /// EN: Tests UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates behavior.
-    /// PT: Testa o comportamento de UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates.
+    /// EN: Verifies UNION ALL keeps duplicates and UNION removes them.
+    /// PT: Verifica se UNION ALL mantem duplicatas e se UNION as remove.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlUnionLimitAndJsonCompatibility")]
@@ -30,8 +30,8 @@ public sealed class PostgreSqlUnionLimitAndJsonCompatibilityTests : DapperUnionL
         => AssertUnionAllKeepsDuplicatesAndUnionRemovesThem();
 
     /// <summary>
-    /// EN: Tests LimitOffset_ShouldWork behavior.
-    /// PT: Testa o comportamento de LimitOffset_ShouldWork.
+    /// EN: Verifies OFFSET and LIMIT pagination works in PostgreSQL coverage.
+    /// PT: Verifica se a paginacao com OFFSET e LIMIT funciona na cobertura do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlUnionLimitAndJsonCompatibility")]
@@ -43,8 +43,8 @@ public sealed class PostgreSqlUnionLimitAndJsonCompatibilityTests : DapperUnionL
     }
 
     /// <summary>
-    /// EN: Tests JsonPathExtract_ShouldWork behavior.
-    /// PT: Testa o comportamento de JsonPathExtract_ShouldWork.
+    /// EN: Verifies JSON path extraction respects the PostgreSQL version gate.
+    /// PT: Verifica se a extracao por caminho JSON respeita a restricao de versao do PostgreSQL.
     /// </summary>
     [Theory]
     [Trait("Category", "PostgreSqlUnionLimitAndJsonCompatibility")]
@@ -70,8 +70,8 @@ public sealed class PostgreSqlUnionLimitAndJsonCompatibilityTests : DapperUnionL
 
 
     /// <summary>
-    /// EN: Tests OrderBy_NullsFirst_ShouldApplyExplicitNullOrdering behavior.
-    /// PT: Testa o comportamento de OrderBy_NullsFirst_ShouldApplyExplicitNullOrdering.
+    /// EN: Verifies explicit NULLS FIRST ordering is applied in PostgreSQL coverage.
+    /// PT: Verifica se a ordenacao explicita NULLS FIRST e aplicada na cobertura do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlUnionLimitAndJsonCompatibility")]
@@ -83,8 +83,8 @@ public sealed class PostgreSqlUnionLimitAndJsonCompatibilityTests : DapperUnionL
 
 
     /// <summary>
-    /// EN: Tests JsonFunction_ShouldThrow_WhenNotSupportedByDialect behavior.
-    /// PT: Testa o comportamento de JsonFunction_ShouldThrow_WhenNotSupportedByDialect.
+    /// EN: Verifies unsupported JSON functions still throw for this dialect.
+    /// PT: Verifica se funcoes JSON sem suporte ainda lancam erro para este dialeto.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlUnionLimitAndJsonCompatibility")]

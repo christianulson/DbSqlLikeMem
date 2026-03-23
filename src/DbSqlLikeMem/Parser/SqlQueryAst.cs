@@ -44,8 +44,8 @@ internal sealed record SqlInsertQuery : SqlQueryBase
     internal bool IsReplace { get; init; }
     internal bool HasOnDuplicateKeyUpdate { get; init; }
     /// <summary>
-    /// EN: Implements this member.
-    /// PT: Implementa este membro.
+    /// EN: Gets the ON DUPLICATE KEY assignments preserved by the parser.
+    /// PT: Obtem as atribuicoes de ON DUPLICATE KEY preservadas pelo parser.
     /// </summary>
     public IReadOnlyList<(string Col, string ExprRaw)> OnDupAssigns { get; init; } = [];
     /// <summary>

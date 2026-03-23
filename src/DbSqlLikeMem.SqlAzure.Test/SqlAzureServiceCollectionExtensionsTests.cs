@@ -3,8 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 namespace DbSqlLikeMem.SqlAzure.Test;
 
 /// <summary>
-/// EN: Validates SQL Azure service collection registration helpers.
-/// PT: Valida os helpers de registro de SQL Azure na coleção de serviços.
+/// EN: Covers SQL Azure service collection registration helpers.
+/// PT: Cobre os helpers de registro de SQL Azure na colecao de servicos.
 /// </summary>
 public sealed class SqlAzureServiceCollectionExtensionsTests(
         ITestOutputHelper helper
@@ -113,3 +113,4 @@ public sealed class SqlAzureServiceCollectionExtensionsTests(
         second.GetTable("Users").Should().HaveCount(1);
     }
 }
+

@@ -10,8 +10,8 @@ public sealed class Db2MockTests
     private readonly Db2ConnectionMock _connection;
 
     /// <summary>
-    /// EN: Initializes the Db2 mock database used by the test suite.
-    /// PT: Inicializa o banco mock Db2 usado pela suite de testes.
+    /// EN: Creates the Db2 mock database used by the test suite.
+    /// PT: Cria o banco mock Db2 usado pela suite de testes.
     /// </summary>
     public Db2MockTests(
         ITestOutputHelper helper

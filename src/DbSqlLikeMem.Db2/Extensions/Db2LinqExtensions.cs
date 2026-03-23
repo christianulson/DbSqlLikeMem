@@ -1,7 +1,7 @@
 ﻿namespace DbSqlLikeMem.Db2;
 /// <summary>
-/// EN: Defines the class Db2LinqExtensions.
-/// PT: Define a classe Db2LinqExtensions.
+/// EN: Adds Db2-specific LINQ queryable helpers for mock connections.
+/// PT: Adiciona helpers LINQ especificos de DB2 para conexoes mock.
 /// </summary>
 public static class Db2LinqExtensions
 {

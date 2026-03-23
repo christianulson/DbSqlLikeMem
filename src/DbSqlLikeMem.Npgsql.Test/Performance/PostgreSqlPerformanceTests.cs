@@ -3,24 +3,22 @@ using System.Diagnostics;
 namespace DbSqlLikeMem.Npgsql.Test.Performance;
 
 /// <summary>
-/// Provides performance tests for PostgreSQL CRUD operations using mock database components. Designed to measure and
-/// report baseline metrics for insert, read, update, and delete operations within a controlled test environment.
+/// EN: Covers PostgreSQL CRUD performance scenarios against the mock provider.
+/// PT: Cobre cenarios de performance CRUD do PostgreSQL contra o provedor mock.
 /// </summary>
-/// <remarks>This class is intended for use with xUnit test frameworks and leverages mock implementations of
-/// Npgsql database objects to simulate PostgreSQL interactions. The tests focus on evaluating operation throughput and
-/// latency, and are categorized under performance testing. Results are output to the test log for analysis. Thread
-/// safety and parallel execution are not guaranteed; each test instance manages its own mock connection.</remarks>
+/// <remarks>
+/// EN: The suite measures insert, read, update, and delete throughput in a controlled test environment.
+/// PT: A suite mede o throughput de insert, read, update e delete em um ambiente de teste controlado.
+/// </remarks>
 public sealed class PostgreSqlPerformanceTests : XUnitTestBase
 {
     private readonly NpgsqlConnectionMock _connection;
 
     /// <summary>
-    /// Initializes a new instance of the PostgreSqlPerformanceTests class using the specified test output helper.
+    /// EN: Creates the PostgreSQL performance test fixture with a seeded Users table.
+    /// PT: Cria a fixture de testes de performance do PostgreSQL com a tabela Users semeada.
     /// </summary>
-    /// <remarks>This constructor sets up an in-memory mock PostgreSQL database with a 'Users' table and opens
-    /// a mock connection for use in performance tests. The database schema is predefined to facilitate consistent test
-    /// scenarios.</remarks>
-    /// <param name="helper">The test output helper used to capture and display test output during execution. Cannot be null.</param>
+    /// <param name="helper">EN: The xUnit output helper. PT: O helper de saida do xUnit.</param>
     public PostgreSqlPerformanceTests(ITestOutputHelper helper) : base(helper)
     {
         var db = new NpgsqlDbMock();

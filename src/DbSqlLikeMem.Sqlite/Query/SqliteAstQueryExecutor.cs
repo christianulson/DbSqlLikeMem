@@ -2,14 +2,14 @@
 
 
 /// <summary>
-/// EN: Defines the class SqliteAstQueryExecutorRegister.
-/// PT: Define a classe SqliteAstQueryExecutorRegister.
+/// EN: Registers the SQLite AST executor with the shared factory.
+/// PT: Registra o executor AST de SQLite na factory compartilhada.
 /// </summary>
 public static class SqliteAstQueryExecutorRegister
 {
     /// <summary>
-    /// EN: Implements Register.
-    /// PT: Implementa Register.
+    /// EN: Registers the SQLite AST executor for the SQLite dialect.
+    /// PT: Registra o executor AST de SQLite para o dialeto SQLite.
     /// </summary>
     public static void Register()
         => AstQueryExecutorFactory.RegisterExecutor(
