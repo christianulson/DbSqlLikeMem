@@ -1,16 +1,16 @@
 namespace DbSqlLikeMem.Oracle.Test.Strategy;
 
 /// <summary>
-/// EN: Defines the class OracleCommandDeleteTests.
-/// PT: Define a classe OracleCommandDeleteTests.
+/// EN: Covers DELETE execution scenarios in the Oracle mock.
+/// PT: Cobre cenarios de execucao de DELETE no mock Oracle.
 /// </summary>
 public sealed class OracleCommandDeleteTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
     /// <summary>
-    /// EN: Tests ExecuteNonQuery_DELETE_remove_1_linha behavior.
-    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_remove_1_linha.
+    /// EN: Verifies that DELETE removes a single matching row.
+    /// PT: Verifica se DELETE remove uma unica linha correspondente.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -33,8 +33,8 @@ public sealed class OracleCommandDeleteTests(
     }
 
     /// <summary>
-    /// EN: Tests ExecuteNonQuery_DELETE_remove_varias_linhas behavior.
-    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_remove_varias_linhas.
+    /// EN: Verifies that DELETE removes every matching row.
+    /// PT: Verifica se DELETE remove todas as linhas correspondentes.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -58,8 +58,8 @@ public sealed class OracleCommandDeleteTests(
     }
 
     /// <summary>
-    /// EN: Tests ExecuteNonQuery_DELETE_quando_nao_acha_retorna_0 behavior.
-    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_quando_nao_acha_retorna_0.
+    /// EN: Verifies that DELETE returns zero when no rows match.
+    /// PT: Verifica se DELETE retorna zero quando nenhuma linha corresponde.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -80,8 +80,8 @@ public sealed class OracleCommandDeleteTests(
     }
 
     /// <summary>
-    /// EN: Tests ExecuteNonQuery_DELETE_tabela_inexistente_dispara behavior.
-    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_tabela_inexistente_dispara.
+    /// EN: Verifies that DELETE fails when the target table does not exist.
+    /// PT: Verifica se DELETE falha quando a tabela alvo nao existe.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -96,8 +96,8 @@ public sealed class OracleCommandDeleteTests(
     }
 
     /// <summary>
-    /// EN: Tests ExecuteNonQuery_DELETE_sql_invalido_sem_FROM_dispara behavior.
-    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_sql_invalido_sem_FROM_dispara.
+    /// EN: Verifies that DELETE fails when the SQL is invalid without FROM.
+    /// PT: Verifica se DELETE falha quando o SQL e invalido sem FROM.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -116,8 +116,8 @@ public sealed class OracleCommandDeleteTests(
     }
 
     /// <summary>
-    /// EN: Tests ExecuteNonQuery_DELETE_bloqueia_quando_fk_referencia behavior.
-    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_bloqueia_quando_fk_referencia.
+    /// EN: Verifies that DELETE is blocked when a foreign key references the row.
+    /// PT: Verifica se DELETE e bloqueado quando uma FK referencia a linha.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -173,8 +173,8 @@ public sealed class OracleCommandDeleteTests(
     }
 
     /// <summary>
-    /// EN: Tests ExecuteNonQuery_DELETE_funciona_com_ThreadSafe_true_ou_false behavior.
-    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_funciona_com_ThreadSafe_true_ou_false.
+    /// EN: Verifies that DELETE works with both thread-safe modes.
+    /// PT: Verifica se DELETE funciona com ambos os modos thread-safe.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -196,8 +196,8 @@ public sealed class OracleCommandDeleteTests(
     }
 
     /// <summary>
-    /// EN: Tests ExecuteNonQuery_DELETE_case_insensitive behavior.
-    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_case_insensitive.
+    /// EN: Verifies that DELETE parsing is case-insensitive.
+    /// PT: Verifica se o parsing de DELETE e case-insensitive.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -217,8 +217,8 @@ public sealed class OracleCommandDeleteTests(
     }
 
     /// <summary>
-    /// EN: Tests ExecuteNonQuery_DELETE_com_parametro_se_suportado behavior.
-    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_com_parametro_se_suportado.
+    /// EN: Verifies that DELETE supports parameters when the helper does.
+    /// PT: Verifica se DELETE suporta parametros quando o helper suporta.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

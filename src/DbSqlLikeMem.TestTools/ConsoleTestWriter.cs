@@ -13,8 +13,8 @@ public class ConsoleTestWriter(
     private readonly ITestOutputHelper? _helper = helper;
 
     /// <summary>
-    /// EN: Tests WriteLine behavior.
-    /// PT: Testa o comportamento de WriteLine.
+    /// EN: Writes a line to xUnit output when the helper is available and falls back to Debug output otherwise.
+    /// PT: Escreve uma linha no output do xUnit quando o helper esta disponivel e usa Debug como fallback.
     /// </summary>
     public override void WriteLine(string? value)
     {

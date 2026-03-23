@@ -1,8 +1,8 @@
 ﻿namespace DbSqlLikeMem.Db2.Test.Parser;
 
 /// <summary>
-/// EN: Tests SQL expression parser behavior for DB2 dialect versions.
-/// PT: Testa o comportamento do parser de expressões SQL para versões do dialeto DB2.
+/// EN: Covers WHERE expression parsing for the Db2 dialect.
+/// PT: Cobre o parsing de expressoes WHERE para o dialeto Db2.
 /// </summary>
 public sealed class SqlExpressionParserTests(
     ITestOutputHelper helper
@@ -12,8 +12,8 @@ public sealed class SqlExpressionParserTests(
     // ----------- Smoke tests: todas as expressões reais encontradas no zip (suportadas) -----------
 
     /// <summary>
-    /// EN: Tests ParseWhere_ShouldNotThrow_ForSupportedRealWorldExpressions behavior.
-    /// PT: Testa o comportamento de ParseWhere_ShouldNotThrow_ForSupportedRealWorldExpressions.
+    /// EN: Verifies the parser accepts supported real-world WHERE expressions.
+    /// PT: Verifica se o parser aceita expressoes WHERE reais suportadas.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -89,8 +89,8 @@ public sealed class SqlExpressionParserTests(
     // ----------- Negative tests: coisas que aparecem nos testes atuais mas NÃO fazem parte do subset -----------
 
     /// <summary>
-    /// EN: Tests ParseWhere_ShouldThrow_ForUnsupportedExpressions behavior.
-    /// PT: Testa o comportamento de ParseWhere_ShouldThrow_ForUnsupportedExpressions.
+    /// EN: Verifies unsupported WHERE expressions raise an error.
+    /// PT: Verifica se expressoes WHERE nao suportadas geram erro.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -125,8 +125,8 @@ public sealed class SqlExpressionParserTests(
     // ----------- Regras (cenários extra) -----------
 
     /// <summary>
-    /// EN: Tests Precedence_OR_ShouldBindLooserThan_AND behavior.
-    /// PT: Testa o comportamento de Precedence_OR_ShouldBindLooserThan_AND.
+    /// EN: Verifies OR binds looser than AND.
+    /// PT: Verifica se OR tem precedencia menor que AND.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -154,8 +154,8 @@ public sealed class SqlExpressionParserTests(
     }
 
     /// <summary>
-    /// EN: Tests Parentheses_ShouldOverridePrecedence behavior.
-    /// PT: Testa o comportamento de Parentheses_ShouldOverridePrecedence.
+    /// EN: Verifies parentheses override operator precedence.
+    /// PT: Verifica se parenteses sobrescrevem a precedencia dos operadores.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -176,8 +176,8 @@ public sealed class SqlExpressionParserTests(
     }
 
     /// <summary>
-    /// EN: Tests Not_ShouldWork behavior.
-    /// PT: Testa o comportamento de Not_ShouldWork.
+    /// EN: Verifies NOT expressions are parsed correctly.
+    /// PT: Verifica se expressoes NOT sao parseadas corretamente.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -194,8 +194,8 @@ public sealed class SqlExpressionParserTests(
     }
 
     /// <summary>
-    /// EN: Tests IsNotNull_ShouldProduce_IsNullExpr_Negated behavior.
-    /// PT: Testa o comportamento de IsNotNull_ShouldProduce_IsNullExpr_Negated.
+    /// EN: Verifies IS NOT NULL is parsed as a negated IS NULL expression.
+    /// PT: Verifica se IS NOT NULL e parseado como uma expressao IS NULL negada.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -208,8 +208,8 @@ public sealed class SqlExpressionParserTests(
     }
 
     /// <summary>
-    /// EN: Tests In_ShouldParse_List behavior.
-    /// PT: Testa o comportamento de In_ShouldParse_List.
+    /// EN: Verifies IN lists are parsed correctly.
+    /// PT: Verifica se listas IN sao parseadas corretamente.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -222,8 +222,8 @@ public sealed class SqlExpressionParserTests(
     }
 
     /// <summary>
-    /// EN: Tests Like_ShouldParse behavior.
-    /// PT: Testa o comportamento de Like_ShouldParse.
+    /// EN: Verifies LIKE expressions are parsed correctly.
+    /// PT: Verifica se expressoes LIKE sao parseadas corretamente.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -315,8 +315,8 @@ public sealed class SqlExpressionParserTests(
     }
 
     /// <summary>
-    /// EN: Tests Identifier_WithAliasDotColumn_ShouldParse behavior.
-    /// PT: Testa o comportamento de Identifier_WithAliasDotColumn_ShouldParse.
+    /// EN: Verifies aliased column identifiers are parsed correctly.
+    /// PT: Verifica se identificadores de coluna com alias sao parseados corretamente.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -338,8 +338,8 @@ public sealed class SqlExpressionParserTests(
     }
 
     /// <summary>
-    /// EN: Tests Parameter_Tokens_ShouldParse behavior.
-    /// PT: Testa o comportamento de Parameter_Tokens_ShouldParse.
+    /// EN: Verifies parameter tokens are parsed correctly.
+    /// PT: Verifica se tokens de parametro sao parseados corretamente.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -353,8 +353,8 @@ public sealed class SqlExpressionParserTests(
     }
 
     /// <summary>
-    /// EN: Tests Backtick_Identifier_ShouldParse behavior.
-    /// PT: Testa o comportamento de Backtick_Identifier_ShouldParse.
+    /// EN: Verifies backticked identifiers are parsed correctly.
+    /// PT: Verifica se identificadores entre backticks sao parseados corretamente.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -369,8 +369,8 @@ public sealed class SqlExpressionParserTests(
     }
 
     /// <summary>
-    /// EN: Tests DoubleQuoted_String_ShouldParse behavior.
-    /// PT: Testa o comportamento de DoubleQuoted_String_ShouldParse.
+    /// EN: Verifies double-quoted string literals are parsed correctly.
+    /// PT: Verifica se literais de string entre aspas duplas sao parseados corretamente.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -384,8 +384,8 @@ public sealed class SqlExpressionParserTests(
     }
 
     /// <summary>
-    /// EN: Tests NullSafe_Operator_ShouldThrow behavior.
-    /// PT: Testa o comportamento de NullSafe_Operator_ShouldThrow.
+    /// EN: Verifies the null-safe operator is rejected.
+    /// PT: Verifica se o operador null-safe e rejeitado.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -397,8 +397,8 @@ public sealed class SqlExpressionParserTests(
     }
 
     /// <summary>
-    /// EN: Tests Printer_ShouldBeStable_ForSimpleExpression behavior.
-    /// PT: Testa o comportamento de Printer_ShouldBeStable_ForSimpleExpression.
+    /// EN: Verifies the printer is stable for a simple expression.
+    /// PT: Verifica se o printer e estavel para uma expressao simples.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]

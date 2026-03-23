@@ -1,15 +1,15 @@
 namespace DbSqlLikeMem.SqlServer.Test.Strategy;
 /// <summary>
-/// EN: Defines the class SqlServerInsertStrategyTests.
-/// PT: Define a classe SqlServerInsertStrategyTests.
+/// EN: Covers single-row INSERT execution in the SqlServer mock.
+/// PT: Cobre execucao de INSERT de uma linha no mock SqlServer.
 /// </summary>
 public sealed class SqlServerInsertStrategyTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
     /// <summary>
-    /// EN: Tests InsertIntoTableShouldAddNewRow behavior.
-    /// PT: Testa o comportamento de InsertIntoTableShouldAddNewRow.
+    /// EN: Verifies that a single INSERT adds one row to the target table.
+    /// PT: Verifica se um INSERT simples adiciona uma linha na tabela alvo.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

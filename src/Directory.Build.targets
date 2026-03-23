@@ -1,9 +1,6 @@
 <Project>			
-	<PropertyGroup Condition="'$(IsTestProject)' == 'true' And '$(DbSqlLikeMemRunSettingsFileName)' == ''">
-		<DbSqlLikeMemRunSettingsFileName>.runsettings</DbSqlLikeMemRunSettingsFileName>
-	</PropertyGroup>
-
-	<PropertyGroup Condition="'$(IsTestProject)' == 'true' And Exists('$(MSBuildThisFileDirectory)$(DbSqlLikeMemRunSettingsFileName)')">
+	<!-- Keep runsettings selection at the solution/CLI level so Visual Studio can honor the active file. -->
+	<PropertyGroup Condition="'$(IsTestProject)' == 'true' And '$(DbSqlLikeMemRunSettingsFileName)' != '' And Exists('$(MSBuildThisFileDirectory)$(DbSqlLikeMemRunSettingsFileName)')">
 		<RunSettingsFilePath>$(MSBuildThisFileDirectory)$(DbSqlLikeMemRunSettingsFileName)</RunSettingsFilePath>
 	</PropertyGroup>
 

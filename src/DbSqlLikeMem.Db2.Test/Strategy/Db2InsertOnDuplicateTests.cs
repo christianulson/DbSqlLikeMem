@@ -1,8 +1,8 @@
 ﻿namespace DbSqlLikeMem.Db2.Test.Strategy;
 
 /// <summary>
-/// EN: Tests for INSERT ... ON DUPLICATE behavior.
-/// PT: Testes para comportamento de INSERT ... ON DUPLICATE.
+/// EN: Covers INSERT ... ON DUPLICATE scenarios in the Db2 mock.
+/// PT: Cobre cenarios de INSERT ... ON DUPLICATE no mock Db2.
 /// </summary>
 public class Db2InsertOnDuplicateTests(
         ITestOutputHelper helper

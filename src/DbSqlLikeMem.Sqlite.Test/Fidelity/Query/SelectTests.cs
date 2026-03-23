@@ -16,4 +16,11 @@ public class SelectTests(
     s => new SqliteConnection(s)
     )
 {
+    private static readonly int _bootstrap = InitializeBootstrap();
+
+    private static int InitializeBootstrap()
+    {
+        global::DbSqlLikeMem.Sqlite.Test.SqliteBootstrap.Initialize();
+        return 0;
+    }
 }

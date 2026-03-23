@@ -37,6 +37,13 @@ CREATE TABLE {tableName}_{uId} (
 )";
 
     /// <inheritdoc />
+    public override string CreateTemporaryUsersTable(string tableName) =>
+        $@"
+CREATE TEMPORARY TABLE {TemporaryUsersTableName(tableName)} AS
+SELECT CAST(NULL AS SIGNED) AS Id, CAST(NULL AS CHAR(100)) AS Name
+WHERE 1 = 0";
+
+    /// <inheritdoc />
     public override string CreateOrdersTable(string tableName, string usersTableName, string uId) =>
         $@"
 CREATE TABLE {tableName}_{uId} (
@@ -57,15 +64,15 @@ CREATE TABLE {tableName}_{uId} (
 
     /// <inheritdoc />
     public override string InsertUser(string tableName, int id, string name) =>
-        $"INSERT INTO {tableName} (Id, Name) VALUES ({id}, '{name}')";
+        $"INSERT INTO {tableName} (Id, Name, IsActive, Balance, CreatedAt) VALUES ({id}, '{name}', TRUE, 0.00, CURRENT_TIMESTAMP)";
 
     /// <inheritdoc />
     public override string InsertUserReturning(string tableName, int id, string name) =>
-        $"INSERT INTO {tableName} (Id, Name) VALUES ({id}, '{name}') RETURNING Id, Name";
+        $"INSERT INTO {tableName} (Id, Name, IsActive, Balance, CreatedAt) VALUES ({id}, '{name}', TRUE, 0.00, CURRENT_TIMESTAMP) RETURNING Id, Name";
 
     /// <inheritdoc />
     public override string InsertUsers(string tableName, params (int id, string name)[] values) =>
-        $"INSERT INTO {tableName} (Id, Name) VALUES {string.Join(",", values.Select(_ => $"({_.id}, '{_.name}')"))}";
+        $"INSERT INTO {tableName} (Id, Name, IsActive, Balance, CreatedAt) VALUES {string.Join(",", values.Select(_ => $"({_.id}, '{_.name}', TRUE, 0.00, CURRENT_TIMESTAMP)"))}";
 
     /// <inheritdoc />
     public override string InsertOrder(string tableName, string usersTableName, int id, int userId, string note) =>
@@ -114,6 +121,10 @@ CREATE TABLE {tableName}_{uId} (
     /// <inheritdoc />
     public override string DropTable(string tableName, string uId) =>
         $"DROP TABLE IF EXISTS {tableName}_{uId}";
+
+    /// <inheritdoc />
+    public override string DropTemporaryUsersTable(string tableName) =>
+        $"DROP TEMPORARY TABLE IF EXISTS {TemporaryUsersTableName(tableName)}";
 
     /// <inheritdoc />
     public override string DropSequence(string sequenceName) =>

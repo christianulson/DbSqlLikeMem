@@ -43,6 +43,12 @@ public abstract class ProviderSqlDialect
     public virtual bool SupportsSavepoints => true;
 
     /// <summary>
+    /// EN: Indicates whether the provider supports releasing savepoints in the benchmark flow.
+    /// PT: Indica se o provedor suporta liberar savepoints no fluxo de benchmark.
+    /// </summary>
+    public virtual bool SupportsReleaseSavepoints => true;
+
+    /// <summary>
     /// EN: Indicates whether the provider supports JSON scalar reads in the benchmark flow.
     /// PT: Indica se o provedor suporta leitura escalar de JSON no fluxo de benchmark.
     /// </summary>
@@ -53,6 +59,30 @@ public abstract class ProviderSqlDialect
     /// PT: Retorna a instrucao CREATE TABLE para a tabela de usuarios.
     /// </summary>
     public abstract string CreateUsersTable(string tableName, string uId);
+
+    /// <summary>
+    /// EN: Returns the provider-specific temporary users table name used by rollback and isolation workflows.
+    /// PT: Retorna o nome da tabela temporaria de usuarios especifico do provedor usado pelos fluxos de rollback e isolamento.
+    /// </summary>
+    public virtual string TemporaryUsersTableName(string tableName) => tableName;
+
+    /// <summary>
+    /// EN: Returns the CREATE statement for the temporary users table used by rollback and isolation workflows.
+    /// PT: Retorna a instrucao CREATE para a tabela temporaria de usuarios usada pelos fluxos de rollback e isolamento.
+    /// </summary>
+    public virtual string CreateTemporaryUsersTable(string tableName) =>
+        $@"
+CREATE TEMPORARY TABLE {TemporaryUsersTableName(tableName)} (
+    Id INT NOT NULL PRIMARY KEY,
+    Name VARCHAR(100) NOT NULL
+)";
+
+    /// <summary>
+    /// EN: Returns the DROP statement for the temporary users table used by rollback and isolation workflows.
+    /// PT: Retorna a instrucao DROP para a tabela temporaria de usuarios usada pelos fluxos de rollback e isolamento.
+    /// </summary>
+    public virtual string DropTemporaryUsersTable(string tableName) =>
+        $"DROP TABLE {TemporaryUsersTableName(tableName)}";
 
     /// <summary>
     /// EN: Returns the CREATE TABLE statement for the orders table.

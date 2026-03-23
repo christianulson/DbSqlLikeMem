@@ -22,26 +22,32 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public void SelectByPkTest()
     {
+        var uId = NewToken();
+
         using var connMock = connectionMock();
         connMock.Open();
 
         var testScenario = new SelectTableScenario<T>(dialect);
         var serviceTest = new SelectByPKServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario("Users");
-        var resultMock = serviceTest.RunTest();
-        serviceTest.DropScenario("Users");
+        serviceTest.CreateScenario("Users", uId);
+        var resultMock = serviceTest.RunTest("Users", uId);
+        serviceTest.DropScenario("Users", uId);
 
-        if (Environment.GetEnvironmentVariable("RUN_CONTAINER_TESTS") == "true")
+        if (RunContainerTests.Value
+            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
-            using var connContainer = connectionContainer("");// TestConfig.ConnectionString);
+            using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var testScenarioContainer = new SelectTableScenario<T2>(dialect);
             var serviceTestContainer = new SelectByPKServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-            serviceTest.CreateScenario("Users");
-            var resultContainer = serviceTestContainer.RunTest();
-            serviceTestContainer.DropScenario("Users");
+            serviceTestContainer.CreateScenario("Users", uId);
+            var resultContainer = serviceTestContainer.RunTest("Users", uId);
+            serviceTestContainer.DropScenario("Users", uId);
 
             Assert.Equal(resultMock, resultContainer);
         }
     }
+
+    private static string NewToken()
+        => Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
 }

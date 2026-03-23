@@ -1,4 +1,5 @@
-﻿using DbSqlLikeMem.TestTools.Tests.Query;
+using DbSqlLikeMem.MySql.TestTools;
+using DbSqlLikeMem.TestTools.Tests.Query;
 
 namespace DbSqlLikeMem.MySql.Test.Fidelity.Query;
 
@@ -10,7 +11,7 @@ public class SelectTests(
     ITestOutputHelper helper
     ) : SelectTestsBase<MySqlConnectionMock, MySqlConnection>(
     helper,
-    new TestTools.MySqlProviderSqlDialect(),
+    new MySqlProviderSqlDialect(),
     () => new MySqlConnectionMock(),
     s => new MySqlConnection(s)
     )

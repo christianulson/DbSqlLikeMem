@@ -1,7 +1,7 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Test;
 /// <summary>
-/// EN: Defines the class SqliteLinqProviderTest.
-/// PT: Define a classe SqliteLinqProviderTest.
+/// EN: Verifies LINQ query translation and provider metadata behavior for SQLite connections.
+/// PT: Verifica a traducao de consultas LINQ e o comportamento de metadados do provedor para conexoes SQLite.
 /// </summary>
 public sealed class SqliteLinqProviderTest(
         ITestOutputHelper helper
@@ -24,8 +24,8 @@ public sealed class SqliteLinqProviderTest(
 #pragma warning restore CA1812
 
     /// <summary>
-    /// EN: Tests LinqProvider_ShouldQueryWhereAndReturnRows behavior.
-    /// PT: Testa o comportamento de LinqProvider_ShouldQueryWhereAndReturnRows.
+    /// EN: Verifies LINQ queries filter rows and project the expected SQLite results.
+    /// PT: Verifica se consultas LINQ filtram linhas e projetam os resultados esperados no SQLite.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteLinqProviderTest")]

@@ -48,8 +48,8 @@ WHERE u.tenantid = 10";
     protected virtual bool SupportsUpdateDeleteJoinRuntime => false;
 
     /// <summary>
-    /// EN: Tests CreateTableAsSelect_ShouldCreateNewTableWithRows behavior.
-    /// PT: Testa o comportamento de CreateTableAsSelect_ShouldCreateNewTableWithRows.
+    /// EN: Verifies CREATE TABLE AS SELECT creates a new table populated with the selected rows.
+    /// PT: Verifica se CREATE TABLE AS SELECT cria uma nova tabela populada com as linhas selecionadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
@@ -79,8 +79,8 @@ WHERE u.tenantid = 10";
     }
 
     /// <summary>
-    /// EN: Tests InsertIntoSelect_ShouldInsertRowsFromQuery behavior.
-    /// PT: Testa o comportamento de InsertIntoSelect_ShouldInsertRowsFromQuery.
+    /// EN: Verifies INSERT INTO ... SELECT inserts the rows returned by the query.
+    /// PT: Verifica se INSERT INTO ... SELECT insere as linhas retornadas pela consulta.
     /// </summary>
     [Fact]
     [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
@@ -109,8 +109,8 @@ WHERE u.tenantid = 10";
     }
 
     /// <summary>
-    /// EN: Tests UpdateJoinDerivedSelect_ShouldUpdateRows behavior.
-    /// PT: Testa o comportamento de UpdateJoinDerivedSelect_ShouldUpdateRows.
+    /// EN: Verifies UPDATE against a derived select updates the matching rows.
+    /// PT: Verifica se o UPDATE sobre um select derivado atualiza as linhas correspondentes.
     /// </summary>
     [Fact]
     [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
@@ -151,8 +151,8 @@ WHERE u.tenantid = 10";
     }
 
     /// <summary>
-    /// EN: Tests DeleteJoinDerivedSelect_ShouldDeleteRows behavior.
-    /// PT: Testa o comportamento de DeleteJoinDerivedSelect_ShouldDeleteRows.
+    /// EN: Verifies DELETE against a derived select removes the matching rows.
+    /// PT: Verifica se o DELETE sobre um select derivado remove as linhas correspondentes.
     /// </summary>
     [Fact]
     [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]

@@ -1,4 +1,4 @@
-﻿
+using DbSqlLikeMem.MySql.TestTools;
 using DbSqlLikeMem.TestTools.Tests.DDL;
 
 namespace DbSqlLikeMem.MySql.Test.Fidelity.DDL;
@@ -11,7 +11,7 @@ public class TableTests(
     ITestOutputHelper helper
     ) : TableTestsBase<MySqlConnectionMock, MySqlConnection>(
     helper,
-    new TestTools.MySqlProviderSqlDialect(),
+    new MySqlProviderSqlDialect(),
     () => new MySqlConnectionMock(),
     s => new MySqlConnection(s)
     )

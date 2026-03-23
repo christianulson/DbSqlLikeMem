@@ -1,16 +1,16 @@
 ﻿namespace DbSqlLikeMem.Db2.Test.Strategy;
 
 /// <summary>
-/// EN: Defines the class Db2InsertStrategyCoverageTests.
-/// PT: Define a classe Db2InsertStrategyCoverageTests.
+/// EN: Covers multi-row and select-based INSERT scenarios in the Db2 mock.
+/// PT: Cobre cenarios de INSERT com multiplas linhas e baseado em SELECT no mock Db2.
 /// </summary>
 public sealed class Db2InsertStrategyCoverageTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
     /// <summary>
-    /// EN: Tests Insert_MultiRowValues_ShouldInsertAllRows behavior.
-    /// PT: Testa o comportamento de Insert_MultiRowValues_ShouldInsertAllRows.
+    /// EN: Verifies that a multi-row VALUES insert adds every row.
+    /// PT: Verifica se um INSERT VALUES com varias linhas adiciona todas as linhas.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -38,8 +38,8 @@ public sealed class Db2InsertStrategyCoverageTests(
     }
 
     /// <summary>
-    /// EN: Tests Insert_WithIdentityColumnOmitted_ShouldAutoIncrement behavior.
-    /// PT: Testa o comportamento de Insert_WithIdentityColumnOmitted_ShouldAutoIncrement.
+    /// EN: Verifies that omitting an identity column lets Db2 generate the value.
+    /// PT: Verifica se omitir a coluna identity permite ao Db2 gerar o valor.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -69,8 +69,8 @@ public sealed class Db2InsertStrategyCoverageTests(
     }
 
     /// <summary>
-    /// EN: Tests InsertSelect_ShouldInsertRowsFromSelect behavior.
-    /// PT: Testa o comportamento de InsertSelect_ShouldInsertRowsFromSelect.
+    /// EN: Verifies that INSERT ... SELECT copies rows from the source query.
+    /// PT: Verifica se INSERT ... SELECT copia linhas da consulta de origem.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

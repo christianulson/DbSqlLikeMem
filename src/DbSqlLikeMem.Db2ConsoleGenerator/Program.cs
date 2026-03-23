@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Text;
 using Dapper;
 using DbSqlLikeMem;
-using DbSqlLikeMem.VisualStudioExtension.Core;
 using DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 using Microsoft.Extensions.Configuration;

@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.Db2.Test.Parser;
 
 /// <summary>
-/// EN: Tests DB2 dialect parser behavior for unsupported SQL features.
-/// PT: Testa o comportamento do parser de dialeto DB2 para recursos SQL não suportados.
+/// EN: Covers Db2 parser rejections for unsupported SQL features.
+/// PT: Cobre rejeicoes do parser Db2 para recursos SQL nao suportados.
 /// </summary>
 public sealed class Db2DialectFeatureParserTests
 {
@@ -228,7 +228,8 @@ public sealed class Db2DialectFeatureParserTests
     }
 
     /// <summary>
-    /// EN: Tests ParseSelect_WithRecursive_ShouldBeRejected behavior.
+    /// EN: Verifies recursive SELECT statements are rejected.
+    /// PT: Verifica se instrucoes SELECT recursivas sao rejeitadas.
     /// PT: Testa o comportamento de ParseSelect_WithRecursive_ShouldBeRejected.
     /// </summary>
     /// <summary>
@@ -253,7 +254,8 @@ public sealed class Db2DialectFeatureParserTests
     }
 
     /// <summary>
-    /// EN: Tests ParseInsert_OnConflict_ShouldBeRejected behavior.
+    /// EN: Verifies INSERT ... ON CONFLICT statements are rejected.
+    /// PT: Verifica se instrucoes INSERT ... ON CONFLICT sao rejeitadas.
     /// PT: Testa o comportamento de ParseInsert_OnConflict_ShouldBeRejected.
     /// </summary>
     /// <summary>
@@ -521,7 +523,8 @@ public sealed class Db2DialectFeatureParserTests
     }
 
     /// <summary>
-    /// EN: Tests ParseSelect_WithMySqlIndexHints_ShouldBeRejected behavior.
+    /// EN: Verifies MySql index hints are rejected by the Db2 parser.
+    /// PT: Verifica se dicas de indice do MySql sao rejeitadas pelo parser Db2.
     /// PT: Testa o comportamento de ParseSelect_WithMySqlIndexHints_ShouldBeRejected.
     /// </summary>
     /// <summary>

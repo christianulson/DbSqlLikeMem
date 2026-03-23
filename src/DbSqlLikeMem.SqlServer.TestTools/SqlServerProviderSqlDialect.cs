@@ -19,6 +19,26 @@ public class SqlServerProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsSequence => true;
 
     /// <inheritdoc />
+    public override bool SupportsReleaseSavepoints => false;
+
+    /// <inheritdoc />
+    public override string TemporaryUsersTableName(string tableName) =>
+        tableName.StartsWith("#", StringComparison.Ordinal) ? tableName : $"#{tableName}";
+
+    /// <inheritdoc />
+    public override string CreateTemporaryUsersTable(string tableName) =>
+        $@"
+CREATE TABLE {TemporaryUsersTableName(tableName)} (
+    Id INT NOT NULL PRIMARY KEY,
+    Name NVARCHAR(100) NOT NULL
+)
+";
+
+    /// <inheritdoc />
+    public override string DropTemporaryUsersTable(string tableName) =>
+        $"DROP TABLE IF EXISTS {TemporaryUsersTableName(tableName)}";
+
+    /// <inheritdoc />
     public override string CreateUsersTable(string tableName, string uId) =>
         $@"
 CREATE TABLE {tableName}_{uId} (
@@ -56,11 +76,11 @@ CREATE INDEX IX_{tableName}_{uId}_{usersTableName}Id ON {tableName}_{uId} ({user
 
     /// <inheritdoc />
     public override string InsertUser(string tableName, int id, string name) =>
-        $"INSERT INTO {tableName} (Id, Name) VALUES ({id}, '{name}')";
+        $"INSERT INTO {tableName} (Id, Name, IsActive, Balance, CreatedAt) VALUES ({id}, '{name}', 1, 0.00, SYSUTCDATETIME())";
 
     /// <inheritdoc />
     public override string InsertUsers(string tableName, params (int id, string name)[] values) =>
-        $"INSERT INTO {tableName} (Id, Name) VALUES {string.Join(",", values.Select(_ => $"({_.id}, '{_.name}')"))}";
+        $"INSERT INTO {tableName} (Id, Name, IsActive, Balance, CreatedAt) VALUES {string.Join(",", values.Select(_ => $"({_.id}, '{_.name}', 1, 0.00, SYSUTCDATETIME())"))}";
 
     /// <inheritdoc />
     public override string InsertOrder(string tableName, string usersTableName, int id, int userId, string note) =>
@@ -123,10 +143,10 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name);";
         $"SELECT STRING_AGG(Name, ',') WITHIN GROUP (ORDER BY Name) FROM {tableName}";
 
     /// <inheritdoc />
-    public override string Savepoint(string savepointName) => $"SAVEPOINT {savepointName}";
+    public override string Savepoint(string savepointName) => $"SAVE TRANSACTION {savepointName}";
 
     /// <inheritdoc />
-    public override string RollbackToSavepoint(string savepointName) => $"ROLLBACK TO SAVEPOINT {savepointName}";
+    public override string RollbackToSavepoint(string savepointName) => $"ROLLBACK TRANSACTION {savepointName}";
 
     /// <inheritdoc />
     public override string ReleaseSavepoint(string savepointName) => "SELECT 1";

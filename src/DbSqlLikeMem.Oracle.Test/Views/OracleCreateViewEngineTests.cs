@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.Oracle.Test.Views;
 
 /// <summary>
-/// EN: Defines the class OracleCreateViewEngineTests.
-/// PT: Define a classe OracleCreateViewEngineTests.
+/// EN: Covers view execution scenarios in the Oracle mock.
+/// PT: Cobre cenarios de execucao de view no mock Oracle.
 /// </summary>
 public sealed class OracleCreateViewEngineTests : XUnitTestBase
 {
@@ -11,8 +11,8 @@ public sealed class OracleCreateViewEngineTests : XUnitTestBase
     private readonly ITableMock _orders;
 
     /// <summary>
-    /// EN: Initializes a new instance of OracleCreateViewEngineTests.
-    /// PT: Inicializa uma nova instância de OracleCreateViewEngineTests.
+    /// EN: Initializes the users and orders tables used by the view tests.
+    /// PT: Inicializa as tabelas users e orders usadas pelos testes de view.
     /// </summary>
     public OracleCreateViewEngineTests(ITestOutputHelper helper): base(helper)
     {
@@ -37,8 +37,8 @@ public sealed class OracleCreateViewEngineTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Tests CreateView_ThenSelectFromView_ShouldReturnExpectedRows behavior.
-    /// PT: Testa o comportamento de CreateView_ThenSelectFromView_ShouldReturnExpectedRows.
+    /// EN: Verifies that a view returns rows projected from the base table.
+    /// PT: Verifica se a view retorna linhas projetadas a partir da tabela base.
     /// </summary>
     [Fact]
     [Trait("Category", "Views")]
@@ -55,8 +55,8 @@ SELECT id, name FROM users WHERE tenantid = 10;
     }
 
     /// <summary>
-    /// EN: Tests View_IsNotMaterialized_ShouldReflectBaseTableChanges behavior.
-    /// PT: Testa o comportamento de View_IsNotMaterialized_ShouldReflectBaseTableChanges.
+    /// EN: Verifies that view reads reflect later base table changes.
+    /// PT: Verifica se leituras da view refletem alteracoes posteriores na tabela base.
     /// </summary>
     [Fact]
     [Trait("Category", "Views")]
@@ -72,8 +72,8 @@ SELECT id, name FROM users WHERE tenantid = 10;
     }
 
     /// <summary>
-    /// EN: Tests CreateOrReplaceView_ShouldChangeDefinition behavior.
-    /// PT: Testa o comportamento de CreateOrReplaceView_ShouldChangeDefinition.
+    /// EN: Verifies that CREATE OR REPLACE VIEW replaces the stored definition.
+    /// PT: Verifica se CREATE OR REPLACE VIEW substitui a definicao armazenada.
     /// </summary>
     [Fact]
     [Trait("Category", "Views")]
@@ -89,8 +89,8 @@ SELECT id, name FROM users WHERE tenantid = 10;
     }
 
     /// <summary>
-    /// EN: Tests View_NameShouldShadowTable_WhenSameName behavior.
-    /// PT: Testa o comportamento de View_NameShouldShadowTable_WhenSameName.
+    /// EN: Verifies that a view name shadows a table with the same name.
+    /// PT: Verifica se o nome da view sobrescreve uma tabela com o mesmo nome.
     /// </summary>
     [Fact]
     [Trait("Category", "Views")]
@@ -110,8 +110,8 @@ SELECT id, name FROM users WHERE tenantid = 10;
     }
 
     /// <summary>
-    /// EN: Tests View_CanReferenceAnotherView behavior.
-    /// PT: Testa o comportamento de View_CanReferenceAnotherView.
+    /// EN: Verifies that one view can reference another view.
+    /// PT: Verifica se uma view pode referenciar outra view.
     /// </summary>
     [Fact]
     [Trait("Category", "Views")]
@@ -125,8 +125,8 @@ SELECT id, name FROM users WHERE tenantid = 10;
     }
 
     /// <summary>
-    /// EN: Tests View_WithJoinAndAggregation_ShouldWork behavior.
-    /// PT: Testa o comportamento de View_WithJoinAndAggregation_ShouldWork.
+    /// EN: Verifies that a view can project joins and aggregations.
+    /// PT: Verifica se uma view pode projetar joins e agregacoes.
     /// </summary>
     [Fact]
     [Trait("Category", "Views")]
@@ -150,8 +150,8 @@ GROUP BY u.id;
     }
 
     /// <summary>
-    /// EN: Tests CreateView_ExistingNameWithoutOrReplace_ShouldThrow behavior.
-    /// PT: Testa o comportamento de CreateView_ExistingNameWithoutOrReplace_ShouldThrow.
+    /// EN: Verifies that creating a view with an existing name without OR REPLACE fails.
+    /// PT: Verifica se criar uma view com nome existente sem OR REPLACE falha.
     /// </summary>
     [Fact]
     [Trait("Category", "Views")]
@@ -162,8 +162,8 @@ GROUP BY u.id;
     }
 
     /// <summary>
-    /// EN: Tests DropView_ShouldRemoveDefinition behavior.
-    /// PT: Testa o comportamento de DropView_ShouldRemoveDefinition.
+    /// EN: Verifies that dropping a view removes its definition.
+    /// PT: Verifica se remover uma view exclui sua definicao.
     /// </summary>
     [Fact]
     [Trait("Category", "Views")]

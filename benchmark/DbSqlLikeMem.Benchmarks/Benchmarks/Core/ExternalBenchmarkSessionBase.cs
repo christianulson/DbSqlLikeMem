@@ -78,48 +78,6 @@ public abstract class ExternalBenchmarkSessionBase(
     protected abstract DbConnection CreateProviderConnection(string connectionString);
 
     /// <summary>
-    /// EN: Returns the set of environment variables that may contain a pre-provisioned connection string for the current provider.
-    /// PT-br: Retorna o conjunto de variáveis de ambiente que podem conter uma string de conexão pré-provisionada para o provedor atual.
-    /// </summary>
-    protected virtual IReadOnlyList<string> GetConfiguredConnectionStringEnvironmentVariables()
-        => Provider switch
-        {
-            ProviderId.MySql =>
-            [
-                "DBSQLLIKEMEM_BENCH_MYSQL_CONNECTION_STRING",
-                "MYSQL_CONNECTION_STRING"
-            ],
-            ProviderId.MariaDb =>
-            [
-                "DBSQLLIKEMEM_BENCH_MARIADB_CONNECTION_STRING",
-                "MARIADB_CONNECTION_STRING"
-            ],
-            ProviderId.SqlServer =>
-            [
-                "DBSQLLIKEMEM_BENCH_SQLSERVER_CONNECTION_STRING",
-                "SQLSERVER_CONNECTION_STRING"
-            ],
-            ProviderId.Oracle =>
-            [
-                "DBSQLLIKEMEM_BENCH_ORACLE_CONNECTION_STRING",
-                "ORACLE_CONNECTION_STRING"
-            ],
-            ProviderId.Npgsql =>
-            [
-                "DBSQLLIKEMEM_BENCH_NPGSQL_CONNECTION_STRING",
-                "DBSQLLIKEMEM_BENCH_POSTGRES_CONNECTION_STRING",
-                "NPGSQL_CONNECTION_STRING",
-                "POSTGRES_CONNECTION_STRING"
-            ],
-            ProviderId.Db2 =>
-            [
-                "DBSQLLIKEMEM_BENCH_DB2_CONNECTION_STRING",
-                "DB2_CONNECTION_STRING"
-            ],
-            _ => Array.Empty<string>()
-        };
-
-    /// <summary>
     /// EN: Gives derived sessions a hook to wait until a configured or started external runtime is accepting client connections.
     /// PT-br: Oferece às sessões derivadas um ponto de extensão para aguardar até que um runtime externo configurado ou iniciado esteja aceitando conexões de cliente.
     /// </summary>
@@ -158,16 +116,7 @@ public abstract class ExternalBenchmarkSessionBase(
     }
 
     private (string ConnectionString, string SourceName) TryGetConfiguredConnectionString()
-    {
-        foreach (var variableName in GetConfiguredConnectionStringEnvironmentVariables())
-        {
-            var value = Environment.GetEnvironmentVariable(variableName);
-            if (!string.IsNullOrWhiteSpace(value))
-            {
-                return (value, variableName);
-            }
-        }
-
-        return (string.Empty, string.Empty);
-    }
+        => DbSqlLikeMem.TestTools.ProviderConnectionStringResolver.TryResolve(Provider, out var connectionString, out var sourceName)
+            ? (connectionString, sourceName)
+            : (string.Empty, string.Empty);
 }

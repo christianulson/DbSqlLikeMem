@@ -1,16 +1,16 @@
 namespace DbSqlLikeMem.Oracle.Test.Strategy;
 
 /// <summary>
-/// EN: Defines the class OracleUpdateStrategyCoverageTests.
-/// PT: Define a classe OracleUpdateStrategyCoverageTests.
+/// EN: Covers update edge cases in the Oracle mock.
+/// PT: Cobre casos de borda de update no mock Oracle.
 /// </summary>
 public sealed class OracleUpdateStrategyCoverageTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
     /// <summary>
-    /// EN: Tests Update_SetNullableColumnToNull_ShouldWork behavior.
-    /// PT: Testa o comportamento de Update_SetNullableColumnToNull_ShouldWork.
+    /// EN: Verifies that setting a nullable column to NULL succeeds.
+    /// PT: Verifica se definir uma coluna anulavel como NULL funciona.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -35,8 +35,8 @@ public sealed class OracleUpdateStrategyCoverageTests(
     }
 
     /// <summary>
-    /// EN: Tests Update_SetNotNullableColumnToNull_ShouldThrow behavior.
-    /// PT: Testa o comportamento de Update_SetNotNullableColumnToNull_ShouldThrow.
+    /// EN: Verifies that setting a non-nullable column to NULL fails.
+    /// PT: Verifica se definir uma coluna nao anulavel como NULL falha.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

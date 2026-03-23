@@ -17,8 +17,8 @@ public abstract class CsvLoaderAndIndexTestBase<TDbMock, TSqlMockException>(
     protected abstract TDbMock CreateDb();
 
     /// <summary>
-    /// EN: Tests CsvLoader_ShouldLoadRows_ByColumnName behavior.
-    /// PT: Testa o comportamento de CsvLoader_ShouldLoadRows_ByColumnName.
+    /// EN: Verifies CSV loading maps file columns to table columns by name.
+    /// PT: Verifica se o carregamento CSV mapeia as colunas do arquivo para as colunas da tabela por nome.
     /// </summary>
     [Fact]
     [Trait("Category", "CsvLoaderAndIndex")]
@@ -42,8 +42,8 @@ public abstract class CsvLoaderAndIndexTestBase<TDbMock, TSqlMockException>(
     }
 
     /// <summary>
-    /// EN: Tests GetColumn_ShouldThrow_UnknownColumn behavior.
-    /// PT: Testa o comportamento de GetColumn_ShouldThrow_UnknownColumn.
+    /// EN: Verifies missing columns raise the provider-specific unknown-column error.
+    /// PT: Verifica se colunas ausentes geram o erro especifico do provedor para coluna desconhecida.
     /// </summary>
     [Fact]
     [Trait("Category", "CsvLoaderAndIndex")]
@@ -58,8 +58,8 @@ public abstract class CsvLoaderAndIndexTestBase<TDbMock, TSqlMockException>(
     }
 
     /// <summary>
-    /// EN: Tests Index_Lookup_ShouldReturnRowPositions behavior.
-    /// PT: Testa o comportamento de Index_Lookup_ShouldReturnRowPositions.
+    /// EN: Verifies index lookups return the expected row positions.
+    /// PT: Verifica se as consultas ao indice retornam as posicoes esperadas das linhas.
     /// </summary>
     [Fact]
     [Trait("Category", "CsvLoaderAndIndex")]
@@ -81,8 +81,8 @@ public abstract class CsvLoaderAndIndexTestBase<TDbMock, TSqlMockException>(
     }
 
     /// <summary>
-    /// EN: Tests BackupRestore_ShouldRollbackData behavior.
-    /// PT: Testa o comportamento de BackupRestore_ShouldRollbackData.
+    /// EN: Verifies backup and restore roll back table mutations.
+    /// PT: Verifica se backup e restore desfazem as mutacoes da tabela.
     /// </summary>
     [Fact]
     [Trait("Category", "CsvLoaderAndIndex")]

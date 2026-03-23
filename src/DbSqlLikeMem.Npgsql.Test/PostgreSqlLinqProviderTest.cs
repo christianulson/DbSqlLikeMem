@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.Npgsql.Test;
 /// <summary>
-/// EN: Defines the class PostgreSqlLinqProviderTest.
-/// PT: Define a classe PostgreSqlLinqProviderTest.
+/// EN: Verifies LINQ query translation and provider metadata behavior for PostgreSQL connections.
+/// PT: Verifica a traducao de consultas LINQ e o comportamento de metadados do provedor para conexoes PostgreSQL.
 /// </summary>
 public sealed class PostgreSqlLinqProviderTest(
         ITestOutputHelper helper
@@ -24,8 +24,8 @@ public sealed class PostgreSqlLinqProviderTest(
 #pragma warning restore CA1812
 
     /// <summary>
-    /// EN: Tests LinqProvider_ShouldQueryWhereAndReturnRows behavior.
-    /// PT: Testa o comportamento de LinqProvider_ShouldQueryWhereAndReturnRows.
+    /// EN: Verifies LINQ queries filter rows and project the expected PostgreSQL results.
+    /// PT: Verifica se consultas LINQ filtram linhas e projetam os resultados esperados no PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlLinqProviderTest")]

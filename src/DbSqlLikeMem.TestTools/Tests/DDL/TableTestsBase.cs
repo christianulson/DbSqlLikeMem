@@ -22,22 +22,27 @@ public abstract class TableTestsBase<T, T2>(
     [Fact]
     public void CreateTableTest()
     {
+        var uId = NewToken();
+
         using var connMock = connectionMock();
         connMock.Open();
 
         var testScenario = new CreateTableScenario<T>();
         var serviceTest = new CreateTableServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.RunTest();
-        serviceTest.DropScenario("Users");
+        serviceTest.CreateScenario("Users", uId);
+        serviceTest.RunTest("Users", uId);
+        serviceTest.DropScenario("Users", uId);
 
-        if (RunContainerTests.Value)
+        if (RunContainerTests.Value
+            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
-            using var connContainer = connectionContainer("");// TestConfig.ConnectionString);
+            using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var testScenarioContainer = new CreateTableScenario<T2>();
             var serviceTestContainer = new CreateTableServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-            serviceTestContainer.RunTest();
-            serviceTestContainer.DropScenario("Users");
+            serviceTestContainer.CreateScenario("Users", uId);
+            serviceTestContainer.RunTest("Users", uId);
+            serviceTestContainer.DropScenario("Users", uId);
         }
     }
 
@@ -48,22 +53,29 @@ public abstract class TableTestsBase<T, T2>(
     [Fact]
     public void CreateTableWithFKTest()
     {
+        var uId = NewToken();
+        var users = "Users";
+        var orders = "Orders";
+
         using var connMock = connectionMock();
         connMock.Open();
 
         var testScenario = new CreateTableWithFKScenario<T>();
         var serviceTest = new CreateTableWithFKServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.RunTest();
-        serviceTest.DropScenario("Users");
+        serviceTest.CreateScenario(users, uId);
+        serviceTest.RunTest(users, orders, uId);
+        serviceTest.DropScenario(users, orders, uId);
 
-        if (RunContainerTests.Value)
+        if (RunContainerTests.Value
+            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
-            using var connContainer = connectionContainer("");// TestConfig.ConnectionString);
+            using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var testScenarioContainer = new CreateTableWithFKScenario<T2>();
             var serviceTestContainer = new CreateTableWithFKServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-            serviceTestContainer.RunTest();
-            serviceTestContainer.DropScenario("Users");
+            serviceTestContainer.CreateScenario(users, uId);
+            serviceTestContainer.RunTest(users, orders, uId);
+            serviceTestContainer.DropScenario(users, orders, uId);
         }
     }
 
@@ -74,22 +86,28 @@ public abstract class TableTestsBase<T, T2>(
     [Fact]
     public void DropTableTest()
     {
+        var uId = NewToken();
+
         using var connMock = connectionMock();
         connMock.Open();
 
         var testScenario = new DropTableScenario<T>();
         var serviceTest = new DropTableServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario("Users");
-        serviceTest.RunTest();
+        serviceTest.CreateScenario("Users", "Orders", uId);
+        serviceTest.RunTest("Users", uId);
 
-        if (RunContainerTests.Value)
+        if (RunContainerTests.Value
+            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
         {
-            using var connContainer = connectionContainer("");// TestConfig.ConnectionString);
+            using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var testScenarioContainer = new DropTableScenario<T2>();
             var serviceTestContainer = new DropTableServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-            serviceTestContainer.CreateScenario("Users");
-            serviceTestContainer.RunTest();
+            serviceTestContainer.CreateScenario("Users", "Orders", uId);
+            serviceTestContainer.RunTest("Users", uId);
         }
     }
+
+    private static string NewToken()
+        => Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
 }

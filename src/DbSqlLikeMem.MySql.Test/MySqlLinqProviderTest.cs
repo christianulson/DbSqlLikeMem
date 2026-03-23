@@ -2,8 +2,8 @@ using System.Linq.Expressions;
 
 namespace DbSqlLikeMem.MySql.Test;
 /// <summary>
-/// EN: Defines the class MySqlLinqProviderTest.
-/// PT: Define a classe MySqlLinqProviderTest.
+/// EN: Verifies LINQ query translation and provider metadata behavior for MySQL connections.
+/// PT: Verifica a traducao de consultas LINQ e o comportamento de metadados do provedor para conexoes MySQL.
 /// </summary>
 public sealed class MySqlLinqProviderTest(
         ITestOutputHelper helper
@@ -37,8 +37,8 @@ public sealed class MySqlLinqProviderTest(
     }
 
     /// <summary>
-    /// EN: Tests LinqProvider_ShouldQueryWhereAndReturnRows behavior.
-    /// PT: Testa o comportamento de LinqProvider_ShouldQueryWhereAndReturnRows.
+    /// EN: Verifies LINQ queries filter rows and project the expected MySQL results.
+    /// PT: Verifica se consultas LINQ filtram linhas e projetam os resultados esperados no MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlLinqProviderTest")]

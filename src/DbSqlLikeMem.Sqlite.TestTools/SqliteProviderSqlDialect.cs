@@ -18,6 +18,14 @@ public sealed class SqliteProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsUpsert => true;
 
     /// <inheritdoc />
+    public override string CreateTemporaryUsersTable(string tableName) =>
+        $@"
+CREATE TEMPORARY TABLE {TemporaryUsersTableName(tableName)} AS
+SELECT CAST(NULL AS INTEGER) AS Id, CAST(NULL AS TEXT) AS Name
+WHERE 1 = 0
+";
+
+    /// <inheritdoc />
     public override string CreateUsersTable(string tableName, string uId) =>
         $@"
 CREATE TABLE {tableName}_{uId} (
@@ -53,7 +61,7 @@ CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (Order
 
     /// <inheritdoc />
     public override string InsertUser(string tableName, int id, string name) =>
-        $"INSERT INTO {tableName} (Id, Name) VALUES ({id}, '{name}')";
+        $"INSERT INTO {tableName} (Id, Name, IsActive, Balance, CreatedAt) VALUES ({id}, '{name}', 1, 0.00, CURRENT_TIMESTAMP)";
 
     /// <inheritdoc />
     public override string InsertUsers(string tableName, params (int id, string name)[] values) =>
@@ -64,7 +72,7 @@ CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (Order
         var sb = new StringBuilder(64 + values.Length * 16);
         sb.Append("INSERT INTO ");
         sb.Append(tableName);
-        sb.Append(" (Id, Name) VALUES ");
+        sb.Append(" (Id, Name, IsActive, Balance, CreatedAt) VALUES ");
 
         for (var i = 0; i < values.Length; i++)
         {
@@ -75,7 +83,7 @@ CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (Order
             sb.Append(values[i].id);
             sb.Append(", '");
             sb.Append(values[i].name);
-            sb.Append("')");
+            sb.Append("', 1, 0.00, CURRENT_TIMESTAMP)");
         }
 
         return sb.ToString();

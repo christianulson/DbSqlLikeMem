@@ -1,16 +1,16 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Test.TemporaryTable;
 
 /// <summary>
-/// EN: Defines the class SqliteTemporaryTableEngineTests.
-/// PT: Define a classe SqliteTemporaryTableEngineTests.
+/// EN: Covers CREATE TEMPORARY TABLE execution scenarios in the Sqlite mock.
+/// PT: Cobre cenarios de execucao de CREATE TEMPORARY TABLE no mock Sqlite.
 /// </summary>
 public sealed class SqliteTemporaryTableEngineTests
 {
     private static readonly int[] expected = [1, 2];
 
     /// <summary>
-    /// EN: Tests CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows behavior.
-    /// PT: Testa o comportamento de CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows.
+    /// EN: Verifies that CREATE TEMPORARY TABLE AS SELECT returns the projected rows.
+    /// PT: Verifica se CREATE TEMPORARY TABLE AS SELECT retorna as linhas projetadas.
     /// </summary>
     [Fact]
     [Trait("Category", "TemporaryTable")]

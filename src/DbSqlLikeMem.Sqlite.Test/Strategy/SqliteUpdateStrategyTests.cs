@@ -1,16 +1,16 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Test.Strategy;
 
 /// <summary>
-/// EN: Defines the class SqliteUpdateStrategyTests.
-/// PT: Define a classe SqliteUpdateStrategyTests.
+/// EN: Covers UPDATE execution scenarios in the Sqlite mock.
+/// PT: Cobre cenarios de execucao de UPDATE no mock Sqlite.
 /// </summary>
 public sealed class SqliteUpdateStrategyTests(
     ITestOutputHelper helper
 ) : XUnitTestBase(helper)
 {
     /// <summary>
-    /// EN: Tests UpdateTableShouldModifyExistingRow behavior.
-    /// PT: Testa o comportamento de UpdateTableShouldModifyExistingRow.
+    /// EN: Verifies that UPDATE modifies an existing row.
+    /// PT: Verifica se UPDATE modifica uma linha existente.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -38,8 +38,8 @@ public sealed class SqliteUpdateStrategyTests(
     }
 
     /// <summary>
-    /// EN: Tests Update_ShouldReturnZero_WhenNoRowsMatchWhere behavior.
-    /// PT: Testa o comportamento de Update_ShouldReturnZero_WhenNoRowsMatchWhere.
+    /// EN: Verifies that UPDATE returns zero when no rows match the predicate.
+    /// PT: Verifica se UPDATE retorna zero quando nenhuma linha atende ao predicado.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -64,8 +64,8 @@ public sealed class SqliteUpdateStrategyTests(
     }
 
     /// <summary>
-    /// EN: Tests Update_ShouldUpdateMultipleRows_WhenWhereMatchesMultiple behavior.
-    /// PT: Testa o comportamento de Update_ShouldUpdateMultipleRows_WhenWhereMatchesMultiple.
+    /// EN: Verifies that UPDATE changes every row matched by the predicate.
+    /// PT: Verifica se UPDATE altera todas as linhas batidas pelo predicado.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -93,8 +93,8 @@ public sealed class SqliteUpdateStrategyTests(
     }
 
     /// <summary>
-    /// EN: Tests Update_ShouldHandleWhereWithAnd_CaseInsensitive behavior.
-    /// PT: Testa o comportamento de Update_ShouldHandleWhereWithAnd_CaseInsensitive.
+    /// EN: Verifies that UPDATE handles AND in the WHERE clause case-insensitively.
+    /// PT: Verifica se UPDATE trata AND no WHERE de forma case-insensitive.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -122,8 +122,8 @@ public sealed class SqliteUpdateStrategyTests(
     }
 
     /// <summary>
-    /// EN: Tests Update_ShouldUpdateMultipleSetPairs behavior.
-    /// PT: Testa o comportamento de Update_ShouldUpdateMultipleSetPairs.
+    /// EN: Verifies that UPDATE applies multiple SET assignments.
+    /// PT: Verifica se UPDATE aplica multiplas atribuicoes SET.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -148,8 +148,8 @@ public sealed class SqliteUpdateStrategyTests(
     }
 
     /// <summary>
-    /// EN: Tests Update_ShouldBeCaseInsensitive_ForUpdateSetWhereKeywords behavior.
-    /// PT: Testa o comportamento de Update_ShouldBeCaseInsensitive_ForUpdateSetWhereKeywords.
+    /// EN: Verifies that UPDATE keywords are parsed case-insensitively.
+    /// PT: Verifica se as palavras-chave de UPDATE sao parsed de forma case-insensitive.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -173,8 +173,8 @@ public sealed class SqliteUpdateStrategyTests(
     }
 
     /// <summary>
-    /// EN: Tests Update_ShouldWork_WithThreadSafeTrueOrFalse behavior.
-    /// PT: Testa o comportamento de Update_ShouldWork_WithThreadSafeTrueOrFalse.
+    /// EN: Verifies that UPDATE works with both thread-safe modes.
+    /// PT: Verifica se UPDATE funciona com ambos os modos thread-safe.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -200,8 +200,8 @@ public sealed class SqliteUpdateStrategyTests(
     }
 
     /// <summary>
-    /// EN: Tests Update_ShouldThrow_WhenTableDoesNotExist behavior.
-    /// PT: Testa o comportamento de Update_ShouldThrow_WhenTableDoesNotExist.
+    /// EN: Verifies that UPDATE fails when the target table does not exist.
+    /// PT: Verifica se UPDATE falha quando a tabela alvo nao existe.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -219,8 +219,8 @@ public sealed class SqliteUpdateStrategyTests(
     }
 
     /// <summary>
-    /// EN: Tests Update_ShouldThrow_WhenSqlIsInvalid_NoUpdateToken behavior.
-    /// PT: Testa o comportamento de Update_ShouldThrow_WhenSqlIsInvalid_NoUpdateToken.
+    /// EN: Verifies that invalid UPDATE SQL without the UPDATE token fails.
+    /// PT: Verifica se SQL de UPDATE invalido sem o token UPDATE falha.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -241,8 +241,8 @@ public sealed class SqliteUpdateStrategyTests(
     }
 
     /// <summary>
-    /// EN: Tests Update_ShouldNotChangeGeneratedColumn_WhenGetGenValueIsNotNull behavior.
-    /// PT: Testa o comportamento de Update_ShouldNotChangeGeneratedColumn_WhenGetGenValueIsNotNull.
+    /// EN: Verifies that generated columns are not changed when the generated value is not null.
+    /// PT: Verifica se colunas geradas nao mudam quando o valor gerado nao e nulo.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -267,8 +267,8 @@ public sealed class SqliteUpdateStrategyTests(
     }
 
     /// <summary>
-    /// EN: Tests Update_ShouldSupportParameter_IfSqlValueHelperSupports behavior.
-    /// PT: Testa o comportamento de Update_ShouldSupportParameter_IfSqlValueHelperSupports.
+    /// EN: Verifies that UPDATE supports parameters when the SQL value helper does.
+    /// PT: Verifica se UPDATE suporta parametros quando o helper de valores SQL suporta.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -302,8 +302,8 @@ public sealed class SqliteUpdateStrategyTests(
     // ============================================================
     //
     /// <summary>
-    /// EN: Tests Update_ShouldThrowDuplicateKey_WhenUniqueIndexCollides behavior.
-    /// PT: Testa o comportamento de Update_ShouldThrowDuplicateKey_WhenUniqueIndexCollides.
+    /// EN: Verifies that UPDATE fails when a unique index collision occurs.
+    /// PT: Verifica se UPDATE falha quando ocorre colisao em indice unico.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

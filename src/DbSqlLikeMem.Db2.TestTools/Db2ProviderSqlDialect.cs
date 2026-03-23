@@ -53,12 +53,28 @@ CREATE INDEX IX_{tableName}_{uId}_{usersTableName}Id ON {tableName}_{uId} ({user
 CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (OrderNumber)";
 
     /// <inheritdoc />
+    public override string TemporaryUsersTableName(string tableName) =>
+        tableName;
+
+    /// <inheritdoc />
+    public override string CreateTemporaryUsersTable(string tableName) =>
+        $@"
+CREATE TEMPORARY TABLE {TemporaryUsersTableName(tableName)} AS
+SELECT CAST(NULL AS INT) AS Id, CAST(NULL AS VARCHAR(100)) AS Name
+FROM SYSIBM.SYSDUMMY1
+WHERE 1 = 0";
+
+    /// <inheritdoc />
+    public override string DropTemporaryUsersTable(string tableName) =>
+        $"DROP TEMPORARY TABLE {TemporaryUsersTableName(tableName)}";
+
+    /// <inheritdoc />
     public override string InsertUser(string tableName, int id, string name) =>
-        $"INSERT INTO {tableName} (Id, Name) VALUES ({id}, '{name}')";
+        $"INSERT INTO {tableName} (Id, Name, IsActive, Balance, CreatedAt) VALUES ({id}, '{name}', TRUE, 0.00, CURRENT TIMESTAMP)";
 
     /// <inheritdoc />
     public override string InsertUsers(string tableName, params (int id, string name)[] values) =>
-        $"INSERT INTO {tableName} (Id, Name) VALUES {string.Join(",", values.Select(_ => $"({_.id}, '{_.name}')"))}";
+        $"INSERT INTO {tableName} (Id, Name, IsActive, Balance, CreatedAt) VALUES {string.Join(",", values.Select(_ => $"({_.id}, '{_.name}', TRUE, 0.00, CURRENT TIMESTAMP)"))}";
 
     /// <inheritdoc />
     public override string InsertOrder(string tableName, string usersTableName, int id, int userId, string note) =>

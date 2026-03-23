@@ -1,14 +1,14 @@
 namespace DbSqlLikeMem.SqlServer.Test.TemporaryTable;
 
 /// <summary>
-/// EN: Defines the class SqlServerTemporaryTableParserTests.
-/// PT: Define a classe SqlServerTemporaryTableParserTests.
+/// EN: Covers temporary table parser rules for the SqlServer dialect.
+/// PT: Cobre as regras de parser de tabelas temporarias para o dialeto SqlServer.
 /// </summary>
 public sealed class SqlServerTemporaryTableParserTests
 {
     /// <summary>
-    /// EN: Tests ParseMulti_ShouldAccept_CreateTemporaryTable_AsSelect_FollowedBySelect behavior.
-    /// PT: Testa o comportamento de ParseMulti_ShouldAccept_CreateTemporaryTable_AsSelect_FollowedBySelect.
+    /// EN: Verifies CREATE TEMPORARY TABLE followed by SELECT is parsed as a multi-statement batch.
+    /// PT: Verifica se CREATE TEMPORARY TABLE seguido de SELECT e parseado como um lote com multiplas instrucoes.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -63,8 +63,8 @@ WHERE tenantid = 10",
     }
 
     /// <summary>
-    /// EN: Tests Parse_ShouldAccept_CreateTemporaryTable_Variants behavior.
-    /// PT: Testa o comportamento de Parse_ShouldAccept_CreateTemporaryTable_Variants.
+    /// EN: Verifies temporary table creation variants are accepted.
+    /// PT: Verifica se variantes de criacao de tabela temporaria sao aceitas.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -79,8 +79,8 @@ WHERE tenantid = 10",
     }
 
     /// <summary>
-    /// EN: Tests Parse_ShouldRecognize_HashTempTableScopes behavior.
-    /// PT: Testa o comportamento de Parse_ShouldRecognize_HashTempTableScopes.
+    /// EN: Verifies hash-based temporary table scopes are recognized.
+    /// PT: Verifica se escopos de tabelas temporarias baseados em hash sao reconhecidos.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -99,8 +99,8 @@ WHERE tenantid = 10",
     }
 
     /// <summary>
-    /// EN: Tests Parse_CreateOrReplaceTable_ShouldThrow behavior.
-    /// PT: Testa o comportamento de Parse_CreateOrReplaceTable_ShouldThrow.
+    /// EN: Verifies CREATE OR REPLACE TABLE is rejected.
+    /// PT: Verifica se CREATE OR REPLACE TABLE e rejeitado.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -112,8 +112,8 @@ WHERE tenantid = 10",
     }
 
     /// <summary>
-    /// EN: Tests Parse_CreateTemporaryTable_WithUnexpectedSecondStatementInBody_ShouldThrow behavior.
-    /// PT: Testa o comportamento de Parse_CreateTemporaryTable_WithUnexpectedSecondStatementInBody_ShouldThrow.
+    /// EN: Verifies unexpected statements after CREATE TEMPORARY TABLE body are rejected.
+    /// PT: Verifica se instrucoes inesperadas apos o corpo de CREATE TEMPORARY TABLE sao rejeitadas.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -125,8 +125,8 @@ WHERE tenantid = 10",
     }
 
     /// <summary>
-    /// EN: Tests Parse_CreateTemporaryTable_WithMissingBodyAfterAs_ShouldThrow behavior.
-    /// PT: Testa o comportamento de Parse_CreateTemporaryTable_WithMissingBodyAfterAs_ShouldThrow.
+    /// EN: Verifies missing CREATE TEMPORARY TABLE body after AS is rejected.
+    /// PT: Verifica se a ausencia do corpo de CREATE TEMPORARY TABLE apos AS e rejeitada.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -138,8 +138,8 @@ WHERE tenantid = 10",
     }
 
     /// <summary>
-    /// EN: Tests Parse_CreateTemporaryTable_WithEmptyColumnList_ShouldThrow behavior.
-    /// PT: Testa o comportamento de Parse_CreateTemporaryTable_WithEmptyColumnList_ShouldThrow.
+    /// EN: Verifies an empty column list is rejected.
+    /// PT: Verifica se uma lista de colunas vazia e rejeitada.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -151,8 +151,8 @@ WHERE tenantid = 10",
     }
 
     /// <summary>
-    /// EN: Tests Parse_CreateTemporaryTable_WithTrailingCommaInColumnList_ShouldThrow behavior.
-    /// PT: Testa o comportamento de Parse_CreateTemporaryTable_WithTrailingCommaInColumnList_ShouldThrow.
+    /// EN: Verifies a trailing comma in the column list is rejected.
+    /// PT: Verifica se uma virgula no final da lista de colunas e rejeitada.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -164,8 +164,8 @@ WHERE tenantid = 10",
     }
 
     /// <summary>
-    /// EN: Tests Parse_CreateTemporaryTable_WithLeadingCommaInColumnList_ShouldThrow behavior.
-    /// PT: Testa o comportamento de Parse_CreateTemporaryTable_WithLeadingCommaInColumnList_ShouldThrow.
+    /// EN: Verifies a leading comma in the column list is rejected.
+    /// PT: Verifica se uma virgula no inicio da lista de colunas e rejeitada.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -177,8 +177,8 @@ WHERE tenantid = 10",
     }
 
     /// <summary>
-    /// EN: Tests Parse_CreateTemporaryTable_WithUnclosedColumnList_ShouldThrow behavior.
-    /// PT: Testa o comportamento de Parse_CreateTemporaryTable_WithUnclosedColumnList_ShouldThrow.
+    /// EN: Verifies an unclosed column list is rejected.
+    /// PT: Verifica se uma lista de colunas sem fechamento e rejeitada.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -190,8 +190,8 @@ WHERE tenantid = 10",
     }
 
     /// <summary>
-    /// EN: Tests Parse_CreateTemporaryTable_WithMissingCommaBetweenColumns_ShouldThrow behavior.
-    /// PT: Testa o comportamento de Parse_CreateTemporaryTable_WithMissingCommaBetweenColumns_ShouldThrow.
+    /// EN: Verifies a missing comma between columns is rejected.
+    /// PT: Verifica se a ausencia de virgula entre colunas e rejeitada.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -203,8 +203,8 @@ WHERE tenantid = 10",
     }
 
     /// <summary>
-    /// EN: Tests Parse_CreateTemporaryTable_WithMissingCommaAfterParenthesizedType_ShouldThrow behavior.
-    /// PT: Testa o comportamento de Parse_CreateTemporaryTable_WithMissingCommaAfterParenthesizedType_ShouldThrow.
+    /// EN: Verifies a missing comma after a parenthesized type is rejected.
+    /// PT: Verifica se a ausencia de virgula apos um tipo entre parenteses e rejeitada.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -216,8 +216,8 @@ WHERE tenantid = 10",
     }
 
     /// <summary>
-    /// EN: Tests Parse_CreateTemporaryTable_WithDoubleCommaInColumnList_ShouldThrow behavior.
-    /// PT: Testa o comportamento de Parse_CreateTemporaryTable_WithDoubleCommaInColumnList_ShouldThrow.
+    /// EN: Verifies a double comma in the column list is rejected.
+    /// PT: Verifica se uma virgula dupla na lista de colunas e rejeitada.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -229,8 +229,8 @@ WHERE tenantid = 10",
     }
 
     /// <summary>
-    /// EN: Tests Parse_CreateTemporaryTable_WithIfExistsInsteadOfIfNotExists_ShouldThrow behavior.
-    /// PT: Testa o comportamento de Parse_CreateTemporaryTable_WithIfExistsInsteadOfIfNotExists_ShouldThrow.
+    /// EN: Verifies IF EXISTS is rejected when IF NOT EXISTS is required.
+    /// PT: Verifica se IF EXISTS e rejeitado quando IF NOT EXISTS e obrigatorio.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -242,8 +242,8 @@ WHERE tenantid = 10",
     }
 
     /// <summary>
-    /// EN: Tests Parse_ShouldAccept_DropTable_IfExists behavior.
-    /// PT: Testa o comportamento de Parse_ShouldAccept_DropTable_IfExists.
+    /// EN: Verifies DROP TABLE IF EXISTS is accepted.
+    /// PT: Verifica se DROP TABLE IF EXISTS e aceito.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -259,8 +259,8 @@ WHERE tenantid = 10",
     }
 
     /// <summary>
-    /// EN: Tests Parse_ShouldAccept_DropGlobalTemporaryTable_IfExists behavior.
-    /// PT: Testa o comportamento de Parse_ShouldAccept_DropGlobalTemporaryTable_IfExists.
+    /// EN: Verifies DROP GLOBAL TEMPORARY TABLE IF EXISTS is accepted.
+    /// PT: Verifica se DROP GLOBAL TEMPORARY TABLE IF EXISTS e aceito.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -276,8 +276,8 @@ WHERE tenantid = 10",
     }
 
     /// <summary>
-    /// EN: Tests Parse_DropGlobalTable_WithoutTemporaryKeyword_ShouldThrow behavior.
-    /// PT: Testa o comportamento de Parse_DropGlobalTable_WithoutTemporaryKeyword_ShouldThrow.
+    /// EN: Verifies DROP GLOBAL TABLE without TEMPORARY is rejected.
+    /// PT: Verifica se DROP GLOBAL TABLE sem TEMPORARY e rejeitado.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -290,8 +290,8 @@ WHERE tenantid = 10",
 
 
     /// <summary>
-    /// EN: Tests Parse_DropTable_WithoutName_ShouldThrow behavior.
-    /// PT: Testa o comportamento de Parse_DropTable_WithoutName_ShouldThrow.
+    /// EN: Verifies DROP TABLE without a table name is rejected.
+    /// PT: Verifica se DROP TABLE sem nome de tabela e rejeitado.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -303,8 +303,8 @@ WHERE tenantid = 10",
     }
 
     /// <summary>
-    /// EN: Tests Parse_DropTable_WithUnexpectedSecondStatement_ShouldThrow behavior.
-    /// PT: Testa o comportamento de Parse_DropTable_WithUnexpectedSecondStatement_ShouldThrow.
+    /// EN: Verifies unexpected statements after DROP TABLE are rejected.
+    /// PT: Verifica se instrucoes inesperadas apos DROP TABLE sao rejeitadas.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -316,8 +316,8 @@ WHERE tenantid = 10",
     }
 
     /// <summary>
-    /// EN: Tests Parse_CreateGlobalTable_WithoutTemporaryKeyword_ShouldThrow behavior.
-    /// PT: Testa o comportamento de Parse_CreateGlobalTable_WithoutTemporaryKeyword_ShouldThrow.
+    /// EN: Verifies CREATE GLOBAL TABLE without TEMPORARY is rejected.
+    /// PT: Verifica se CREATE GLOBAL TABLE sem TEMPORARY e rejeitado.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]

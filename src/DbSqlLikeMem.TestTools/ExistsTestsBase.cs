@@ -15,8 +15,8 @@ public abstract class ExistsTestsBase(
     protected abstract DbConnectionMockBase CreateConnection();
 
     /// <summary>
-    /// EN: Tests Exists_ShouldFilterUsersWithOrders behavior.
-    /// PT: Testa o comportamento de Exists_ShouldFilterUsersWithOrders.
+    /// EN: Verifies EXISTS returns users that have matching orders.
+    /// PT: Verifica se EXISTS retorna usuarios que possuem pedidos correspondentes.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -47,8 +47,8 @@ ORDER BY u.Id";
     }
 
     /// <summary>
-    /// EN: Tests NotExists_ShouldFilterUsersWithoutOrders behavior.
-    /// PT: Testa o comportamento de NotExists_ShouldFilterUsersWithoutOrders.
+    /// EN: Verifies NOT EXISTS returns users that do not have matching orders.
+    /// PT: Verifica se NOT EXISTS retorna usuarios que nao possuem pedidos correspondentes.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -78,8 +78,8 @@ ORDER BY u.Id";
     }
 
     /// <summary>
-    /// EN: Tests Exists_WithExtraPredicate_ShouldWork behavior.
-    /// PT: Testa o comportamento de Exists_WithExtraPredicate_ShouldWork.
+    /// EN: Verifies EXISTS honors an additional predicate inside the correlated subquery.
+    /// PT: Verifica se EXISTS respeita um predicado adicional dentro da subquery correlacionada.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]

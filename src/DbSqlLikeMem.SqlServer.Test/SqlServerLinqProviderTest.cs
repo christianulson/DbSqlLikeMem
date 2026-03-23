@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.SqlServer.Test;
 /// <summary>
-/// EN: Defines the class SqlServerLinqProviderTest.
-/// PT: Define a classe SqlServerLinqProviderTest.
+/// EN: Verifies LINQ query translation and provider metadata behavior for SQL Server connections.
+/// PT: Verifica a traducao de consultas LINQ e o comportamento de metadados do provedor para conexoes SQL Server.
 /// </summary>
 public sealed class SqlServerLinqProviderTest(
         ITestOutputHelper helper
@@ -24,8 +24,8 @@ public sealed class SqlServerLinqProviderTest(
 #pragma warning restore CA1812
 
     /// <summary>
-    /// EN: Tests LinqProvider_ShouldQueryWhereAndReturnRows behavior.
-    /// PT: Testa o comportamento de LinqProvider_ShouldQueryWhereAndReturnRows.
+    /// EN: Verifies LINQ queries filter rows and project the expected SQL Server results.
+    /// PT: Verifica se consultas LINQ filtram linhas e projetam os resultados esperados no SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerLinqProviderTest")]

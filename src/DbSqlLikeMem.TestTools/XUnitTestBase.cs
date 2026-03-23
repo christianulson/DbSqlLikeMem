@@ -3,8 +3,8 @@
 namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
-/// EN: Defines the class XUnitTestBase.
-/// PT: Define a classe XUnitTestBase.
+/// EN: Provides shared helpers for XUnit-based test classes.
+/// PT: Fornece helpers compartilhados para classes de teste baseadas em XUnit.
 /// </summary>
 public abstract class XUnitTestBase : IDisposable
 {
@@ -19,7 +19,20 @@ public abstract class XUnitTestBase : IDisposable
     /// EN: Gets the lazy flag that enables container-backed test execution.
     /// PT: Obtem a flag preguiçosa que habilita a execucao de testes com container.
     /// </summary>
-    protected static Lazy<bool> RunContainerTests = new(() => Environment.GetEnvironmentVariable("RUN_CONTAINER_TESTS") == "true");
+    protected static Lazy<bool> RunContainerTests = new(() =>
+        Environment.GetEnvironmentVariable("RUN_CONTAINER_TESTS") == "true");
+
+    /// <summary>
+    /// EN: Resolves a container connection string for the specified provider when one is available.
+    /// PT: Resolve uma string de conexao de container para o provedor informado quando houver uma disponivel.
+    /// </summary>
+    /// <param name="provider">EN: The provider identifier used to select the environment variables. PT: O identificador do provedor usado para selecionar as variaveis de ambiente.</param>
+    /// <param name="connectionString">EN: The resolved container connection string when available. PT: A string de conexao de container resolvida quando disponivel.</param>
+    /// <returns>EN: True when the provider has a usable container connection string. PT: True quando o provedor possui uma string de conexao de container utilizavel.</returns>
+    protected static bool TryResolveContainerConnectionString(
+        ProviderId provider,
+        out string connectionString)
+        => ProviderConnectionStringResolver.TryResolve(provider, out connectionString);
 
     /// <summary>
     /// EN: Initializes the base test with the output helper.
@@ -101,8 +114,8 @@ public abstract class XUnitTestBase : IDisposable
     }
 
     /// <summary>
-    /// EN: Tests Dispose behavior.
-    /// PT: Testa o comportamento de Dispose.
+    /// EN: Disposes the test base and suppresses finalization.
+    /// PT: Descarta a base de teste e suprime a finalizacao.
     /// </summary>
     public void Dispose()
     {

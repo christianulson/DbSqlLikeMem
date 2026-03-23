@@ -383,8 +383,8 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
     }
 
     /// <summary>
-    /// EN: Tests GroupBy_WithCountAndSum_ShouldWork behavior.
-    /// PT: Testa o comportamento de GroupBy_WithCountAndSum_ShouldWork.
+    /// EN: Verifies grouped count and sum aggregation return the expected totals.
+    /// PT: Verifica se a contagem agrupada e a soma agregada retornam os totais esperados.
     /// </summary>
     [Fact]
     public void GroupBy_WithCountAndSum_ShouldWork()
@@ -409,8 +409,8 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
     }
 
     /// <summary>
-    /// EN: Tests Having_ShouldFilterAggregates behavior.
-    /// PT: Testa o comportamento de Having_ShouldFilterAggregates.
+    /// EN: Verifies HAVING filters out grouped rows that do not meet the aggregate threshold.
+    /// PT: Verifica se o HAVING filtra linhas agrupadas que nao atingem o limite da agregacao.
     /// </summary>
     [Fact]
     public void Having_ShouldFilterAggregates()

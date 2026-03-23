@@ -15,6 +15,15 @@
 		<ProjectReference Include="..\DbSqlLikeMem.Sqlite.TestTools\DbSqlLikeMem.Sqlite.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 	</ItemGroup>
 
+	<ItemGroup Condition="'$(TargetFramework)' == 'net462'">
+		<PackageReference Include="SQLitePCLRaw.bundle_winsqlite3" Version="2.1.6" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0' Or '$(TargetFramework)' == 'net8.0'">
+		<PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.6" />
+		<PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.6" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<Using Include="DbSqlLikeMem.Sqlite" />
 		<Using Include="Microsoft.Data.Sqlite" />

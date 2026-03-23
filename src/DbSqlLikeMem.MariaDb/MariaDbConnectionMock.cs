@@ -22,6 +22,16 @@ public sealed class MariaDbConnectionMock : MySqlConnectionMock
         string? defaultDatabase = null
         ) : base(db ?? new MariaDbDbMock(), defaultDatabase)
     {
-        _serverVersion = $"MariaDB {Db.Version}";
+        _serverVersion = $"MariaDB {FormatServerVersion(Db.Version)}";
     }
+
+    private static string FormatServerVersion(int version)
+        => version switch
+        {
+            MariaDbDbVersions.Version10_3 => "10.3",
+            MariaDbDbVersions.Version10_5 => "10.5",
+            MariaDbDbVersions.Version10_6 => "10.6",
+            MariaDbDbVersions.Version11_0 => "11.0",
+            _ => version.ToString(),
+        };
 }

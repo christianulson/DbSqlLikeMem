@@ -16,8 +16,8 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
     protected abstract DbConnectionMockBase CreateConnection();
 
     /// <summary>
-    /// EN: Tests StoredProcedure_ShouldValidateRequiredInAndOutParams behavior.
-    /// PT: Testa o comportamento de StoredProcedure_ShouldValidateRequiredInAndOutParams.
+    /// EN: Verifies stored procedure calls validate required input and output parameters.
+    /// PT: Verifica se chamadas de procedure validam parametros de entrada e saida obrigatorios.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureSignature")]
@@ -47,8 +47,8 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
     }
 
     /// <summary>
-    /// EN: Tests StoredProcedure_ShouldThrowWhenMissingRequiredParam behavior.
-    /// PT: Testa o comportamento de StoredProcedure_ShouldThrowWhenMissingRequiredParam.
+    /// EN: Verifies stored procedure calls fail when a required parameter is missing.
+    /// PT: Verifica se chamadas de procedure falham quando um parametro obrigatorio esta ausente.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureSignature")]
@@ -69,8 +69,8 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
     }
 
     /// <summary>
-    /// EN: Tests CallStatement_ShouldValidateAgainstRegisteredProcedure behavior.
-    /// PT: Testa o comportamento de CallStatement_ShouldValidateAgainstRegisteredProcedure.
+    /// EN: Verifies CALL statements are validated against the registered procedure definition.
+    /// PT: Verifica se instrucoes CALL sao validadas contra a definicao da procedure registrada.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureSignature")]

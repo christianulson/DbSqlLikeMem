@@ -1,15 +1,15 @@
 namespace DbSqlLikeMem.Npgsql.Test.Strategy;
 /// <summary>
-/// EN: Defines the class PostgreSqlTransactionTests.
-/// PT: Define a classe PostgreSqlTransactionTests.
+/// EN: Covers transaction commit and rollback scenarios in the Npgsql mock.
+/// PT: Cobre cenarios de commit e rollback de transacao no mock Npgsql.
 /// </summary>
 public sealed class PostgreSqlTransactionTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
     /// <summary>
-    /// EN: Tests TransactionShouldCommit behavior.
-    /// PT: Testa o comportamento de TransactionShouldCommit.
+    /// EN: Verifies that committing a transaction persists the pending changes.
+    /// PT: Verifica se o commit de uma transacao persiste as alteracoes pendentes.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -43,8 +43,8 @@ public sealed class PostgreSqlTransactionTests(
     }
 
     /// <summary>
-    /// EN: Tests TransactionShouldRollback behavior.
-    /// PT: Testa o comportamento de TransactionShouldRollback.
+    /// EN: Verifies that rolling back a transaction discards the pending changes.
+    /// PT: Verifica se o rollback de uma transacao descarta as alteracoes pendentes.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

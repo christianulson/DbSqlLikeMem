@@ -1,7 +1,7 @@
 ﻿namespace DbSqlLikeMem.Db2.Test;
 /// <summary>
-/// EN: Defines the class Db2LinqProviderTest.
-/// PT: Define a classe Db2LinqProviderTest.
+/// EN: Verifies LINQ query translation and provider metadata behavior for Db2 connections.
+/// PT: Verifica a traducao de consultas LINQ e o comportamento de metadados do provedor para conexoes Db2.
 /// </summary>
 public sealed class Db2LinqProviderTest(
         ITestOutputHelper helper
@@ -25,8 +25,8 @@ public sealed class Db2LinqProviderTest(
 #pragma warning restore CA1812
 
     /// <summary>
-    /// EN: Tests LinqProvider_ShouldQueryWhereAndReturnRows behavior.
-    /// PT: Testa o comportamento de LinqProvider_ShouldQueryWhereAndReturnRows.
+    /// EN: Verifies LINQ queries filter rows and project the expected Db2 results.
+    /// PT: Verifica se consultas LINQ filtram linhas e projetam os resultados esperados no Db2.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2LinqProviderTest")]

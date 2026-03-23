@@ -1,15 +1,15 @@
 ﻿namespace DbSqlLikeMem.Db2.Test.Strategy;
 /// <summary>
-/// EN: Defines the class Db2InsertStrategyTests.
-/// PT: Define a classe Db2InsertStrategyTests.
+/// EN: Covers single-row INSERT execution in the Db2 mock.
+/// PT: Cobre execucao de INSERT de uma linha no mock Db2.
 /// </summary>
 public sealed class Db2InsertStrategyTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
     /// <summary>
-    /// EN: Tests InsertIntoTableShouldAddNewRow behavior.
-    /// PT: Testa o comportamento de InsertIntoTableShouldAddNewRow.
+    /// EN: Verifies that a single INSERT adds one row to the target table.
+    /// PT: Verifica se um INSERT simples adiciona uma linha na tabela alvo.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

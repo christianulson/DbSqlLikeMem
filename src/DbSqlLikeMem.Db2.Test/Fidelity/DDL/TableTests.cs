@@ -1,7 +1,7 @@
 using DbSqlLikeMem.Db2.TestTools;
 using DbSqlLikeMem.TestTools.Tests.DDL;
 #if NET462
-using DB2Connection = IBM.Data.DB2.iSeries.iDB2Connection;
+using DB2Connection = IBM.Data.DB2.Core.DB2Connection;
 #endif
 
 namespace DbSqlLikeMem.Db2.Test.Fidelity.DDL;
@@ -16,7 +16,7 @@ public class TableTests(
     helper,
     new Db2ProviderSqlDialect(),
     () => new Db2ConnectionMock(),
-    s => new DB2Connection(s)
+    Db2ConnectionFactory.Create
     )
 {
 }

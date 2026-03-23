@@ -1,5 +1,3 @@
-using DbSqlLikeMem.Sqlite;
-
 namespace DbSqlLikeMem.Sqlite.Test;
 
 /// <summary>

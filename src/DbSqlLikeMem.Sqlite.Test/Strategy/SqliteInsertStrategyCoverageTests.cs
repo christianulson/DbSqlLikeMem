@@ -1,16 +1,16 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Test.Strategy;
 
 /// <summary>
-/// EN: Defines the class SqliteInsertStrategyCoverageTests.
-/// PT: Define a classe SqliteInsertStrategyCoverageTests.
+/// EN: Covers multi-row and select-based INSERT scenarios in the Sqlite mock.
+/// PT: Cobre cenarios de INSERT com multiplas linhas e baseado em SELECT no mock Sqlite.
 /// </summary>
 public sealed class SqliteInsertStrategyCoverageTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
     /// <summary>
-    /// EN: Tests Insert_MultiRowValues_ShouldInsertAllRows behavior.
-    /// PT: Testa o comportamento de Insert_MultiRowValues_ShouldInsertAllRows.
+    /// EN: Verifies that a multi-row VALUES insert adds every row.
+    /// PT: Verifica se um INSERT VALUES com varias linhas adiciona todas as linhas.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -38,8 +38,8 @@ public sealed class SqliteInsertStrategyCoverageTests(
     }
 
     /// <summary>
-    /// EN: Tests Insert_WithIdentityColumnOmitted_ShouldAutoIncrement behavior.
-    /// PT: Testa o comportamento de Insert_WithIdentityColumnOmitted_ShouldAutoIncrement.
+    /// EN: Verifies that omitting an identity column lets SQLite generate the value.
+    /// PT: Verifica se omitir a coluna identity permite ao SQLite gerar o valor.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -69,8 +69,8 @@ public sealed class SqliteInsertStrategyCoverageTests(
     }
 
     /// <summary>
-    /// EN: Tests InsertSelect_ShouldInsertRowsFromSelect behavior.
-    /// PT: Testa o comportamento de InsertSelect_ShouldInsertRowsFromSelect.
+    /// EN: Verifies that INSERT ... SELECT copies rows from the source query.
+    /// PT: Verifica se INSERT ... SELECT copia linhas da consulta de origem.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

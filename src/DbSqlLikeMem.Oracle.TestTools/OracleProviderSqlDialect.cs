@@ -22,6 +22,17 @@ public sealed class OracleProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsJsonScalarRead => true;
 
     /// <inheritdoc />
+    public override bool SupportsReleaseSavepoints => false;
+
+    /// <inheritdoc />
+    public override string CreateTemporaryUsersTable(string tableName) =>
+        $@"
+CREATE GLOBAL TEMPORARY TABLE {TemporaryUsersTableName(tableName)} (
+    Id NUMBER(10),
+    Name VARCHAR2(100)
+) ON COMMIT PRESERVE ROWS";
+
+    /// <inheritdoc />
     public override string CreateUsersTable(string tableName, string uId) =>
         $@"
 CREATE TABLE {tableName}_{uId} (
@@ -53,17 +64,51 @@ CREATE TABLE {tableName}_{uId} (
     ExtraJson CLOB NULL,
     CONSTRAINT CK_{tableName}_{uId}_ExtraJson CHECK (ExtraJson IS JSON),
     CONSTRAINT FK_{tableName}_{uId}_{usersTableName} FOREIGN KEY ({usersTableName}Id) REFERENCES {usersTableName}_{uId}(Id)
-);
-CREATE INDEX IX_{tableName}_{uId}_{usersTableName}Id ON {tableName}_{uId} ({usersTableName}Id);
-CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (OrderNumber)";
+)";
+
+    /// <inheritdoc />
+    public override string DropTemporaryUsersTable(string tableName) =>
+        $"DROP TABLE {TemporaryUsersTableName(tableName)}";
 
     /// <inheritdoc />
     public override string InsertUser(string tableName, int id, string name) =>
-        $"INSERT INTO {tableName} (Id, Name) VALUES ({id}, '{name}')";
+        $@"INSERT INTO {tableName} (
+    Id,
+    Name,
+    Email,
+    IsActive,
+    Age,
+    Balance,
+    CreatedAt,
+    UpdatedAt,
+    ProfileJson
+) VALUES (
+    {id},
+    '{name}',
+    NULL,
+    1,
+    NULL,
+    0.00,
+    CURRENT_TIMESTAMP,
+    NULL,
+    NULL
+)";
 
     /// <inheritdoc />
     public override string InsertUsers(string tableName, params (int id, string name)[] values) =>
-        $"INSERT INTO {tableName} (Id, Name) VALUES {string.Join(",", values.Select(_ => $"({_.id}, '{_.name}')"))}";
+        $@"INSERT INTO {tableName} (
+    Id,
+    Name,
+    Email,
+    IsActive,
+    Age,
+    Balance,
+    CreatedAt,
+    UpdatedAt,
+    ProfileJson
+) VALUES {string.Join(",",
+            values.Select(_ =>
+                $"({_.id}, '{_.name}', NULL, 1, NULL, 0.00, CURRENT_TIMESTAMP, NULL, NULL)"))}";
 
     /// <inheritdoc />
     public override string InsertOrder(string tableName, string usersTableName, int id, int userId, string note) =>
@@ -71,7 +116,7 @@ CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (Order
 
     /// <inheritdoc />
     public override string SelectUserNameById(string tableName, int id) =>
-        $"SELECT Name FROM {tableName} WHERE Id = {id}";
+        $"select name from {tableName} where id = {id}";
 
     /// <inheritdoc />
     public override string CountJoinForUser(string usersTable, string ordersTable, int userId) =>

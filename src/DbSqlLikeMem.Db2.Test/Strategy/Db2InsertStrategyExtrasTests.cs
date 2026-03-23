@@ -1,15 +1,15 @@
 ﻿namespace DbSqlLikeMem.Db2.Test.Strategy;
 /// <summary>
-/// EN: Defines the class Db2InsertStrategyExtrasTests.
-/// PT: Define a classe Db2InsertStrategyExtrasTests.
+/// EN: Covers extra INSERT scenarios in the Db2 mock.
+/// PT: Cobre cenarios extras de INSERT no mock Db2.
 /// </summary>
 public sealed class Db2InsertStrategyExtrasTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
     /// <summary>
-    /// EN: Tests MultiRowInsertShouldAddAllRows behavior.
-    /// PT: Testa o comportamento de MultiRowInsertShouldAddAllRows.
+    /// EN: Verifies that a multi-row INSERT adds every row.
+    /// PT: Verifica se um INSERT com varias linhas adiciona todas as linhas.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -36,8 +36,8 @@ public sealed class Db2InsertStrategyExtrasTests(
     }
 
     /// <summary>
-    /// EN: Tests InsertWithDefaultValueAndIdentityShouldApplyDefaults behavior.
-    /// PT: Testa o comportamento de InsertWithDefaultValueAndIdentityShouldApplyDefaults.
+    /// EN: Verifies that default values and identity columns are applied on INSERT.
+    /// PT: Verifica se valores padrao e colunas identity sao aplicados no INSERT.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -68,8 +68,8 @@ public sealed class Db2InsertStrategyExtrasTests(
     }
 
     /// <summary>
-    /// EN: Tests InsertDuplicatePrimaryKeyShouldThrow behavior.
-    /// PT: Testa o comportamento de InsertDuplicatePrimaryKeyShouldThrow.
+    /// EN: Verifies that duplicate primary keys raise an error.
+    /// PT: Verifica se chaves primarias duplicadas geram erro.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -94,14 +94,14 @@ public sealed class Db2InsertStrategyExtrasTests(
 }
 
 /// <summary>
-/// EN: Tests delete strategy behavior with foreign keys.
-/// PT: Testes do comportamento da estratégia de delete com chaves estrangeiras.
+    /// EN: Covers delete behavior when foreign keys reference the target row.
+    /// PT: Cobre o comportamento de delete quando chaves estrangeiras referenciam a linha alvo.
 /// </summary>
 public class Db2DeleteStrategyForeignKeyTests
 {
     /// <summary>
-    /// EN: Tests DeleteReferencedRowShouldThrow behavior.
-    /// PT: Testa o comportamento de DeleteReferencedRowShouldThrow.
+    /// EN: Verifies that deleting a referenced row raises an error.
+    /// PT: Verifica se apagar uma linha referenciada gera erro.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -140,8 +140,8 @@ public class Db2DeleteStrategyForeignKeyTests
 public class Db2UpdateStrategyExtrasTests
 {
     /// <summary>
-    /// EN: Tests UpdateMultipleConditionsShouldOnlyAffectMatchingRows behavior.
-    /// PT: Testa o comportamento de UpdateMultipleConditionsShouldOnlyAffectMatchingRows.
+    /// EN: Verifies that UPDATE only affects rows matching all conditions.
+    /// PT: Verifica se UPDATE afeta apenas linhas que satisfazem todas as condicoes.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

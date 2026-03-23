@@ -1,0 +1,244 @@
+namespace DbSqlLikeMem.TestTools.TemporaryTable;
+
+public partial class TemporaryTableServiceTest<T>
+{
+    /// <summary>
+    /// EN: Creates a temporary table from the source users table and returns the projected row identifiers.
+    /// PT: Cria uma tabela temporaria a partir da tabela fonte de usuarios e retorna os identificadores projetados das linhas.
+    /// </summary>
+    public List<int> RunCreateTemporaryTableAsSelectThenSelect(params object[] pars)
+    {
+        var users = (string)pars[0];
+        var uId = (string)pars[1];
+        var isMockConnection = Connection is DbSqlLikeMem.DbConnectionMockBase;
+        var tempTable = BuildTemporaryTableName(uId, isMockConnection);
+        var sessionTempTable = Dialect.Provider == ProviderId.Db2 && !isMockConnection
+            ? $"SESSION.{tempTable}"
+            : tempTable;
+        if (Dialect.Provider == ProviderId.Npgsql)
+        {
+            ExecuteNonQuery($@"
+CREATE TEMP TABLE {tempTable} (
+    Id INT,
+    Name VARCHAR(100)
+)");
+            ExecuteNonQuery($@"INSERT INTO {tempTable} (Id, Name)
+SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10");
+        }
+        else if (Dialect.Provider == ProviderId.Db2 && !isMockConnection)
+        {
+            ExecuteNonQuery($@"
+DECLARE GLOBAL TEMPORARY TABLE SESSION.{tempTable} (
+    Id INT,
+    Name VARCHAR(100)
+) ON COMMIT PRESERVE ROWS NOT LOGGED");
+            ExecuteNonQuery($@"INSERT INTO {sessionTempTable} (Id, Name)
+SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10");
+        }
+        else if (Dialect.Provider == ProviderId.Db2)
+        {
+            if (Connection is not DbSqlLikeMem.DbConnectionMockBase mockConnection)
+            {
+                throw new InvalidOperationException("Db2 temporary table mock flow requires a mock connection.");
+            }
+
+            var tempTableMock = mockConnection.AddTemporaryTable(tempTable);
+            tempTableMock.AddColumn("Id", DbType.Int32, false);
+            tempTableMock.AddColumn("Name", DbType.String, false);
+            ExecuteNonQuery($@"
+INSERT INTO {tempTable} (Id, Name)
+SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10");
+        }
+        else if ((Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure) && isMockConnection)
+        {
+            ExecuteNonQuery($@"
+CREATE TEMPORARY TABLE {tempTable} AS
+SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10");
+        }
+        else if (Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure)
+        {
+            ExecuteNonQuery($@"
+SELECT Id, Name INTO {tempTable} FROM {users}_{uId} WHERE TenantId = 10");
+        }
+        else if (Dialect.Provider == ProviderId.Oracle
+            && Connection is not DbSqlLikeMem.DbConnectionMockBase)
+        {
+            ExecuteNonQuery($@"
+CREATE GLOBAL TEMPORARY TABLE {tempTable} (
+    Id NUMBER(10),
+    Name VARCHAR2(100)
+) ON COMMIT PRESERVE ROWS");
+            ExecuteNonQuery($@"INSERT INTO {tempTable} (Id, Name)
+SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10");
+        }
+        else
+        {
+            var createSql = BuildCreateTemporaryTableSql(tempTable, users, uId, isMockConnection);
+            ExecuteNonQuery(createSql);
+        }
+
+        using var command = Connection.CreateCommand();
+        command.CommandText = $"SELECT Id FROM {sessionTempTable} ORDER BY Id";
+
+        using var reader = command.ExecuteReader();
+        var ids = new List<int>();
+        while (reader.Read())
+        {
+            ids.Add(reader.GetInt32(0));
+        }
+
+        if (ids.Count != 2 || ids[0] != 1 || ids[1] != 2)
+        {
+            throw new InvalidOperationException($"Unexpected temporary-table projected rows for {Dialect.DisplayName}: [{string.Join(",", ids)}].");
+        }
+
+        GC.KeepAlive(ids);
+        return ids;
+    }
+
+    private string BuildTemporaryTableName(string uId, bool isMockConnection)
+    {
+        if (Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure)
+        {
+            return isMockConnection ? $"tmp_users_{uId}" : $"#tmp_users_{uId}";
+        }
+
+        return Dialect.Provider == ProviderId.Npgsql
+            ? $"pg_temp.tmp_users_{uId}"
+            : $"tmp_users_{uId}";
+    }
+
+    private string BuildCreateTemporaryTableSql(
+        string tempTable,
+        string users,
+        string uId,
+        bool isMockConnection)
+    {
+        if (Dialect.Provider == ProviderId.Db2 && !isMockConnection)
+        {
+            return $@"
+DECLARE GLOBAL TEMPORARY TABLE SESSION.{tempTable} (
+    Id INT,
+    Name VARCHAR(100)
+) ON COMMIT PRESERVE ROWS NOT LOGGED";
+        }
+
+        if (Dialect.Provider == ProviderId.Db2)
+        {
+            return $@"
+CREATE TEMPORARY TABLE {tempTable} AS
+SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10";
+        }
+
+        return $@"
+CREATE TEMPORARY TABLE {tempTable} AS
+SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10";
+    }
+
+    /// <summary>
+    /// EN: Counts the rows available in the temporary-table scenario.
+    /// PT: Conta as linhas disponiveis no cenario de tabela temporaria.
+    /// </summary>
+    public int RunTempTableCreateAndUse(params object[] pars)
+    {
+        var users = (string)pars[0];
+        ExecuteNonQuery(InsertTemporaryRowSql(users, 1, "Alice"));
+        var count = Convert.ToInt32(ExecuteScalar(Dialect.CountRows(users)), CultureInfo.InvariantCulture);
+        if (count != 1)
+        {
+            throw new InvalidOperationException($"Unexpected temporary-table rowcount for {Dialect.DisplayName}: {count}.");
+        }
+
+        GC.KeepAlive(count);
+        return count;
+    }
+
+    /// <summary>
+    /// EN: Opens a transaction, uses a savepoint, and rolls the work back for the temporary-table scenario.
+    /// PT: Abre uma transacao, usa um savepoint e desfaz o trabalho para o cenario de tabela temporaria.
+    /// </summary>
+    public void RunTempTableRollback(params object[] pars)
+    {
+        var users = Dialect.TemporaryUsersTableName((string)pars[0]);
+        using var tx = Connection.BeginTransaction();
+        ExecuteNonQuery(InsertTemporaryRowSql(users, 1, "Alice"), tx);
+        ExecuteNonQuery(InsertTemporaryRowSql(users, 2, "Bob"), tx);
+        tx.Rollback();
+
+        var count = Convert.ToInt32(ExecuteScalar(Dialect.CountRows(users)), CultureInfo.InvariantCulture);
+        if (count != 0)
+        {
+            throw new InvalidOperationException($"Unexpected temporary-table rollback rowcount for {Dialect.DisplayName}: {count}.");
+        }
+    }
+
+    /// <summary>
+    /// EN: Verifies that a temporary table is not visible or not populated from a secondary connection.
+    /// PT: Verifica se uma tabela temporaria nao fica visivel ou nao fica populada a partir de uma conexao secundaria.
+    /// </summary>
+    /// <param name="pars">EN: The temporary users table name. PT: O nome da tabela temporaria de usuarios.</param>
+    /// <returns>EN: Zero when the secondary connection cannot observe the inserted temporary-table row. PT: Zero quando a conexao secundaria nao consegue observar a linha inserida na tabela temporaria.</returns>
+    public int RunTemporaryTableCrossConnectionIsolation(params object[] pars)
+    {
+        if (connectionFactory is null)
+        {
+            throw new InvalidOperationException($"Cross-connection temporary-table workflows require a connection factory for {Dialect.DisplayName}.");
+        }
+
+        var users = Dialect.TemporaryUsersTableName((string)pars[0]);
+        ExecuteNonQuery(InsertTemporaryRowSql(users, 1, "Alice"));
+
+        using var secondaryConnection = connectionFactory();
+        secondaryConnection.Open();
+
+        try
+        {
+            var count = Convert.ToInt32(ExecuteScalarOnConnection(secondaryConnection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
+            if (count != 0)
+            {
+                throw new InvalidOperationException($"Unexpected temporary-table isolation rowcount for {Dialect.DisplayName}: {count}.");
+            }
+
+            GC.KeepAlive(count);
+            return count;
+        }
+        catch (Exception ex)
+        {
+            if (IsMissingTemporaryTableException(ex))
+            {
+                return 0;
+            }
+
+            throw;
+        }
+    }
+
+    private static object? ExecuteScalarOnConnection(
+        T connection,
+        string sql,
+        DbTransaction? transaction = null)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        if (transaction is not null)
+        {
+            command.Transaction = transaction;
+        }
+
+        return command.ExecuteScalar();
+    }
+
+    private static bool IsMissingTemporaryTableException(Exception ex)
+    {
+        var message = ex.GetBaseException().Message;
+        return message.Contains("no such table", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("does not exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("doesn't exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("doesnt exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("invalid object name", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("not found", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string InsertTemporaryRowSql(string tableName, int id, string name)
+        => $"INSERT INTO {tableName} (Id, Name) VALUES ({id}, '{name}')";
+}

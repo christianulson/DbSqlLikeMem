@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace DbSqlLikeMem;
 
 internal static class DictionaryCompatibilityExtensions

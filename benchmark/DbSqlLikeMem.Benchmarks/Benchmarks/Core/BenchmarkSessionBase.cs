@@ -3,10 +3,12 @@ using Microsoft.Data.SqlClient;
 using MySqlConnector;
 using Npgsql;
 using Oracle.ManagedDataAccess.Client;
+using DbSqlLikeMem.TestTools.Benchmarks;
 using DbSqlLikeMem.TestTools.DDL;
+using DbSqlLikeMem.TestTools.Performance;
+using DbSqlLikeMem.TestTools.Schema;
 using DbSqlLikeMem.TestTools.Query;
 using System.Collections.Concurrent;
-using System.Globalization;
 
 namespace DbSqlLikeMem.Benchmarks.Core;
 
@@ -20,7 +22,7 @@ namespace DbSqlLikeMem.Benchmarks.Core;
 /// </remarks>
 /// <param name="dialect">EN: The provider-specific SQL dialect used to generate benchmark commands. PT-br: O dialeto SQL específico do provedor usado para gerar os comandos de benchmark.</param>
 /// <param name="engine">EN: The benchmark engine that identifies the runtime behind the session. PT-br: O mecanismo de benchmark que identifica o runtime por trás da sessão.</param>
-public abstract class BenchmarkSessionBase(
+public abstract partial class BenchmarkSessionBase(
     ProviderSqlDialect dialect,
     BenchmarkEngine engine
     ) : IBenchmarkSession
@@ -429,40 +431,6 @@ public abstract class BenchmarkSessionBase(
     protected abstract DbConnection CreateConnection();
 
     /// <summary>
-    /// EN: Generates a unique temporary table name for the users table used by a benchmark run.
-    /// PT-br: Gera um nome único de tabela temporária para a tabela de usuários usada em uma execução de benchmark.
-    /// </summary>
-    /// <returns>EN: A unique temporary users table name. PT-br: Um nome único de tabela temporária de usuários.</returns>
-    protected virtual string NewUsersTableName() => $"USR";
-
-    /// <summary>
-    /// EN: Generates a unique temporary table name for the orders table used by a benchmark run.
-    /// PT-br: Gera um nome único de tabela temporária para a tabela de pedidos usada em uma execução de benchmark.
-    /// </summary>
-    /// <returns>EN: A unique temporary orders table name. PT-br: Um nome único de tabela temporária de pedidos.</returns>
-    protected virtual string NewOrdersTableName() => $"ORD";
-
-    /// <summary>
-    /// EN: Generates a unique temporary sequence name for sequence-based benchmark operations.
-    /// PT-br: Gera um nome único de sequência temporária para operações de benchmark baseadas em sequência.
-    /// </summary>
-    /// <returns>EN: A unique temporary sequence name. PT-br: Um nome único de sequência temporária.</returns>
-    protected virtual string NewSequenceName() => $"SEQ_{NextToken()}";
-    protected virtual string NewSavepointName() => $"SP_{NextToken()}";
-    protected static string NextToken() => Interlocked.Increment(ref _objectCounter).ToString("x8", CultureInfo.InvariantCulture).ToUpperInvariant();
-
-    /// <summary>
-    /// EN: Measures the cost of opening a new database connection.
-    /// PT-br: Mede o custo de abrir uma nova conexão de banco de dados.
-    /// </summary>
-    protected virtual void RunConnectionOpen()
-    {
-        using var connection = CreateConnection();
-        connection.Open();
-        GC.KeepAlive(connection.State);
-    }
-
-    /// <summary>
     /// EN: Creates the benchmark users table through the shared CreateTable service and then removes it.
     /// PT-br: Cria a tabela de usuários do benchmark pelo service compartilhado de CreateTable e depois a remove.
     /// </summary>
@@ -475,19 +443,19 @@ public abstract class BenchmarkSessionBase(
         connection.Open();
         var service = new CreateTableServiceTest<DbConnection>(
             connection,
-            new CreateTableScenario<DbConnection>(),
+            BenchmarkScenarioFactory.CreateTableScenario<DbConnection>(),
             Dialect);
 
         try
         {
-            service.CreateScenario(users);
-            service.RunTest(users);
+            service.CreateScenario(users, uId);
+            service.RunTest(users, uId);
         }
         finally
         {
             try
             {
-                service.DropScenario(users);
+                service.DropScenario(users, uId);
             }
             catch
             {
@@ -507,21 +475,24 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateInsertUsersService(connection);
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
-            var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
-            if (count != 1)
-            {
-                throw new InvalidOperationException($"Expected 1 row for {Dialect.DisplayName}, got {count}.");
-            }
+            service.CreateScenario(users, uId);
+            var count = service.RunTest(users, uId, 1);
             GC.KeepAlive(count);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -531,22 +502,24 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateInsertUsersService(connection);
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteSequentialUserInsertBatch(connection, users, 10);
-
-            var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
-            if (count != 10)
-            {
-                throw new InvalidOperationException($"Expected 10 rows for {Dialect.DisplayName}, got {count}.");
-            }
+            service.CreateScenario(users, uId);
+            var count = service.RunTest(users, uId, 10);
             GC.KeepAlive(count);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -561,44 +534,30 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateInsertUsersService(connection);
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteSequentialUserInsertBatch(connection, users, 100);
-
-            var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
-            if (count != 100)
-            {
-                throw new InvalidOperationException($"Expected 100 rows for {Dialect.DisplayName}, got {count}.");
-            }
+            service.CreateScenario(users, uId);
+            var count = service.RunTest(users, uId, 100);
             GC.KeepAlive(count);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
     /// <summary>
-    /// EN: Executes a sequential user insert batch using the current dialect SQL for each row.
-    /// PT-br: Executa um lote sequencial de insercao de usuarios usando a SQL atual do dialeto para cada linha.
-    /// </summary>
-    /// <param name="connection">EN: The connection used to run the insert statements. PT-br: A conexao usada para executar os comandos de insert.</param>
-    /// <param name="tableName">EN: The target users table. PT-br: A tabela de usuarios alvo.</param>
-    /// <param name="rowCount">EN: The number of rows to insert. PT-br: A quantidade de linhas a inserir.</param>
-    /// <param name="transaction">EN: The optional transaction associated with the inserts. PT-br: A transacao opcional associada aos inserts.</param>
-    protected virtual void ExecuteSequentialUserInsertBatch(DbConnection connection, string tableName, int rowCount, DbTransaction? transaction = null)
-    {
-        for (var i = 1; i <= rowCount; i++)
-        {
-            ExecuteNonQuery(connection, Dialect.InsertUser(tableName, i, $"User-{i}"), transaction);
-        }
-    }
-
-    /// <summary>
-    /// EN: Inserts one hundred user rows and validates the final row count.
-    /// PT-br: Insere cem linhas de usuário e valida a contagem final de linhas.
+    /// EN: Inserts one hundred user rows in parallel and validates the final row count.
+    /// PT-br: Insere cem linhas de usuário em paralelo e valida a contagem final de linhas.
     /// </summary>
     /// <exception cref="InvalidOperationException"></exception>
     protected virtual void RunInsertBatch100Parallel()
@@ -608,40 +567,24 @@ public abstract class BenchmarkSessionBase(
 
         using var setupConnection = CreateConnection();
         setupConnection.Open();
+        var service = CreateInsertUsersService(setupConnection, CreateConnection);
 
         try
         {
-            ExecuteNonQuery(setupConnection, Dialect.CreateUsersTable(users, uId));
-
-            var tasks = Enumerable.Range(1, 100)
-                .Select(i => Task.Run(() =>
-                {
-                    using var connection = CreateConnection();
-                    connection.Open();
-                    ExecuteNonQuery(connection, Dialect.InsertUser(users, i, $"User-{i}"));
-                }))
-                .ToArray();
-
-            Task.WhenAll(tasks).GetAwaiter().GetResult();
-
-            var count = Convert.ToInt32(
-                ExecuteScalar(setupConnection, Dialect.CountRows(users)),
-                CultureInfo.InvariantCulture);
-
-            if (count != 100)
-            {
-                LogBenchmarkIssue(
-                    "NA",
-                    BenchmarkFeatureId.InsertBatch100Parallel,
-                    new InvalidOperationException($"Expected 100 rows for {Dialect.DisplayName}, got {count}."));
-                return;
-            }
-
+            service.CreateScenario(users, uId);
+            var count = service.RunParallelTest(users, uId, 100);
             GC.KeepAlive(count);
         }
         finally
         {
-            SafeDropTable(setupConnection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(setupConnection, users, uId);
+            }
         }
     }
 
@@ -658,24 +601,20 @@ public abstract class BenchmarkSessionBase(
         connection.Open();
         var service = new SelectByPKServiceTest<DbConnection>(
             connection,
-            new SelectTableScenario<DbConnection>(Dialect),
+            BenchmarkScenarioFactory.CreateSelectTableScenario<DbConnection>(Dialect),
             Dialect);
 
         try
         {
             service.CreateScenario(users, uId);
-            var value = service.RunTest(users, uId);
-            if (!string.Equals(value, "Alice", StringComparison.Ordinal))
-            {
-                throw new InvalidOperationException($"Unexpected select result for {Dialect.DisplayName}: {value ?? "<null>"}.");
-            }
+            var value = service.RunTest(users);
             GC.KeepAlive(value);
         }
         finally
         {
             try
             {
-                service.DropScenario(users);
+                service.DropScenario(users, uId);
             }
             catch
             {
@@ -696,25 +635,25 @@ public abstract class BenchmarkSessionBase(
         var orders = NewOrdersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateMutationService(connection, BenchmarkScenarioFactory.CreateUsersOrdersScenario<DbConnection>(Dialect));
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders, users, uId));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
-            ExecuteNonQuery(connection, Dialect.InsertOrder(orders, users, 10, 1, "A"));
-            ExecuteNonQuery(connection, Dialect.InsertOrder(orders, users, 11, 1, "B"));
-            var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountJoinForUser(users, orders, 1)), CultureInfo.InvariantCulture);
-            if (value != 2)
-            {
-                throw new InvalidOperationException($"Unexpected join count for {Dialect.DisplayName}: {value}.");
-            }
+            service.CreateScenario(users, orders, uId);
+            var value = service.RunSelectJoin(users, orders);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, orders, uId);
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, orders, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, orders, uId);
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -729,22 +668,24 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateMutationService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Alice")));
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
-            ExecuteNonQuery(connection, Dialect.UpdateUserNameById(users, 1, "Alice-v2"));
-            var value = Convert.ToString(ExecuteScalar(connection, Dialect.SelectUserNameById(users, 1)), CultureInfo.InvariantCulture);
-            if (!string.Equals(value, "Alice-v2", StringComparison.Ordinal))
-            {
-                throw new InvalidOperationException($"Unexpected update result for {Dialect.DisplayName}: {value ?? "<null>"}.");
-            }
+            service.CreateScenario(users, uId);
+            var value = service.RunUpdateByPk(users);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -759,23 +700,24 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateMutationService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Alice"), (2, "Bob")));
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"));
-            ExecuteNonQuery(connection, Dialect.DeleteUserById(users, 1));
-            var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
-            if (count != 1)
-            {
-                throw new InvalidOperationException($"Unexpected delete count for {Dialect.DisplayName}: {count}.");
-            }
+            service.CreateScenario(users, uId);
+            var count = service.RunDeleteByPk(users);
             GC.KeepAlive(count);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -790,23 +732,25 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateMutationService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect));
+        var usersTable = $"{users}_{uId}";
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            using var transaction = connection.BeginTransaction();
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"), transaction);
-            transaction.Commit();
-            var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
-            if (count != 1)
-            {
-                throw new InvalidOperationException($"Unexpected commit count for {Dialect.DisplayName}: {count}.");
-            }
+            service.CreateScenario(users, uId);
+            var count = service.RunTransactionCommit(usersTable);
             GC.KeepAlive(count);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -821,92 +765,91 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateMutationService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect));
+        var usersTable = $"{users}_{uId}";
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            using var transaction = connection.BeginTransaction();
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"), transaction);
-            transaction.Rollback();
-            var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
-            if (count != 0)
-            {
-                throw new InvalidOperationException($"Unexpected rollback count for {Dialect.DisplayName}: {count}.");
-            }
+            service.CreateScenario(users, uId);
+            var count = service.RunTransactionRollback(usersTable);
             GC.KeepAlive(count);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
     protected virtual void RunSavepointCreate()
     {
-        if (!Dialect.SupportsSavepoints)
-        {
-            throw new NotSupportedException($"{Dialect.DisplayName} does not support the savepoint benchmark.");
-        }
-
         using var connection = CreateConnection();
         connection.Open();
-        using var transaction = connection.BeginTransaction();
-        var savepoint = NewSavepointName();
-        ExecuteNonQuery(connection, Dialect.Savepoint(savepoint), transaction);
-        transaction.Rollback();
-        GC.KeepAlive(savepoint);
+        var service = CreateMutationService(connection, BenchmarkScenarioFactory.CreateNoopScenario<DbConnection>());
+        service.CreateScenario();
+        try
+        {
+            service.RunSavepointCreate();
+        }
+        finally
+        {
+            service.DropScenario();
+        }
     }
 
     protected virtual void RunRollbackToSavepoint()
     {
-        if (!Dialect.SupportsSavepoints)
-        {
-            throw new NotSupportedException($"{Dialect.DisplayName} does not support the savepoint benchmark.");
-        }
-
         var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateMutationService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect));
+        var usersTable = $"{users}_{uId}";
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            using var transaction = connection.BeginTransaction();
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"), transaction);
-            var savepoint = NewSavepointName();
-            ExecuteNonQuery(connection, Dialect.Savepoint(savepoint), transaction);
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"), transaction);
-            ExecuteNonQuery(connection, Dialect.RollbackToSavepoint(savepoint), transaction);
-            transaction.Commit();
-            var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
-            if (count != 1)
-            {
-                throw new InvalidOperationException($"Unexpected rollback-to-savepoint count for {Dialect.DisplayName}: {count}.");
-            }
+            service.CreateScenario(users, uId);
+            var count = service.RunRollbackToSavepoint(usersTable);
             GC.KeepAlive(count);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
     protected virtual void RunReleaseSavepoint()
     {
-        if (!Dialect.SupportsSavepoints)
+        if (!Dialect.SupportsReleaseSavepoints)
         {
-            throw new NotSupportedException($"{Dialect.DisplayName} does not support the savepoint benchmark.");
+            return;
         }
 
         using var connection = CreateConnection();
         connection.Open();
-        using var transaction = connection.BeginTransaction();
-        var savepoint = NewSavepointName();
-        ExecuteNonQuery(connection, Dialect.Savepoint(savepoint), transaction);
-        ExecuteNonQuery(connection, Dialect.ReleaseSavepoint(savepoint), transaction);
-        transaction.Rollback();
-        GC.KeepAlive(savepoint);
+        var service = CreateMutationService(connection, BenchmarkScenarioFactory.CreateNoopScenario<DbConnection>());
+        service.CreateScenario();
+        try
+        {
+            service.RunReleaseSavepoint();
+        }
+        finally
+        {
+            service.DropScenario();
+        }
     }
 
     /// <summary>
@@ -917,31 +860,28 @@ public abstract class BenchmarkSessionBase(
     /// <exception cref="InvalidOperationException"></exception>
     protected virtual void RunUpsert()
     {
-        if (!Dialect.SupportsUpsert)
-        {
-            throw new NotSupportedException($"{Dialect.DisplayName} does not support the upsert benchmark.");
-        }
-
         var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateMutationService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Alice")));
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
-            ExecuteNonQuery(connection, Dialect.Upsert(users, 1, "Alice-v2"));
-            var value = Convert.ToString(ExecuteScalar(connection, Dialect.SelectUserNameById(users, 1)), CultureInfo.InvariantCulture);
-            if (!string.Equals(value, "Alice-v2", StringComparison.Ordinal))
-            {
-                throw new InvalidOperationException($"Unexpected upsert result for {Dialect.DisplayName}: {value ?? "<null>"}.");
-            }
+            service.CreateScenario(users, uId);
+            var value = service.RunUpsert(users);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -952,24 +892,27 @@ public abstract class BenchmarkSessionBase(
     /// <exception cref="NotSupportedException"></exception>
     protected virtual void RunSequenceNextValue()
     {
-        if (!Dialect.SupportsSequence)
-        {
-            throw new NotSupportedException($"{Dialect.DisplayName} does not support the sequence benchmark.");
-        }
-
         var sequence = NewSequenceName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateMutationService(connection, BenchmarkScenarioFactory.CreateSequenceScenario<DbConnection>(Dialect));
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateSequence(sequence));
-            var value = ExecuteScalar(connection, Dialect.NextSequenceValue(sequence));
+            service.CreateScenario(sequence);
+            var value = service.RunSequenceNextValue(sequence);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropSequence(connection, sequence);
+            try
+            {
+                service.DropScenario(sequence);
+            }
+            catch
+            {
+                SafeDropSequence(connection, sequence);
+            }
         }
     }
 
@@ -979,29 +922,24 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateBatchService(connection, BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            using var transaction = connection.BeginTransaction();
-
-            var values = new (int id, string name)[10];
-            for (var i = 1; i <= 10; i++)
-                values[i - 1] = (i, $"User-{i}");
-
-            ExecuteNonQuery(connection, Dialect.InsertUsers(users, values), transaction);
-            
-            transaction.Commit();
-            var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
-            if (count != 10)
-            {
-                throw new InvalidOperationException($"Expected 10 rows for {Dialect.DisplayName}, got {count}.");
-            }
+            service.CreateScenario(users, uId);
+            var count = service.RunBatchInsert10(users);
             GC.KeepAlive(count);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -1011,29 +949,24 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateBatchService(connection, BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            using var transaction = connection.BeginTransaction();
-
-            var values = new (int id, string name)[100];
-            for (var i = 1; i <= 100; i++)
-                values[i - 1] = (i, $"User-{i}");
-
-            ExecuteNonQuery(connection, Dialect.InsertUsers(users, values), transaction);
-            
-            transaction.Commit();
-            var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
-            if (count != 100)
-            {
-                throw new InvalidOperationException($"Expected 100 rows for {Dialect.DisplayName}, got {count}.");
-            }
+            service.CreateScenario(users, uId);
+            var count = service.RunBatchInsert100(users);
             GC.KeepAlive(count);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -1043,25 +976,24 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateBatchService(connection, BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            using var transaction = connection.BeginTransaction();
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"), transaction);
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"), transaction);
-            var value = Convert.ToString(ExecuteScalar(connection, Dialect.SelectUserNameById(users, 1), transaction), CultureInfo.InvariantCulture);
-            ExecuteNonQuery(connection, Dialect.UpdateUserNameById(users, 2, "Bob-v2"), transaction);
-            transaction.Commit();
-            if (!string.Equals(value, "Alice", StringComparison.Ordinal))
-            {
-                throw new InvalidOperationException($"Unexpected mixed-batch read result for {Dialect.DisplayName}: {value ?? "<null>"}.");
-            }
+            service.CreateScenario(users, uId);
+            var value = service.RunBatchMixedReadWrite(users);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -1071,25 +1003,24 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateBatchService(connection, BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            using var transaction = connection.BeginTransaction();
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"), transaction);
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"), transaction);
-            transaction.Commit();
-            var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
-            var second = Convert.ToString(ExecuteScalar(connection, Dialect.SelectUserNameById(users, 2)), CultureInfo.InvariantCulture);
-            if (count != 2 || !string.Equals(second, "Bob", StringComparison.Ordinal))
-            {
-                throw new InvalidOperationException($"Unexpected scalar batch result for {Dialect.DisplayName}: count={count}, second={second ?? "<null>"}.");
-            }
+            service.CreateScenario(users, uId);
+            var second = service.RunBatchScalar(users);
             GC.KeepAlive(second);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -1099,26 +1030,24 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateBatchService(connection, BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            using var transaction = connection.BeginTransaction();
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"), transaction);
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"), transaction);
-            ExecuteNonQuery(connection, Dialect.UpdateUserNameById(users, 2, "Bob-v2"), transaction);
-            ExecuteNonQuery(connection, Dialect.DeleteUserById(users, 1), transaction);
-            transaction.Commit();
-            var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
-            if (count != 1)
-            {
-                throw new InvalidOperationException($"Unexpected non-query batch count for {Dialect.DisplayName}: {count}.");
-            }
+            service.CreateScenario(users, uId);
+            var count = service.RunBatchNonQuery(users);
             GC.KeepAlive(count);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -1129,63 +1058,59 @@ public abstract class BenchmarkSessionBase(
     /// <exception cref="NotSupportedException"></exception>
     protected virtual void RunStringAggregate()
     {
-        if (!Dialect.SupportsStringAggregate)
-        {
-            throw new NotSupportedException($"{Dialect.DisplayName} does not support the string aggregate benchmark.");
-        }
-
         var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateQueryService(
+            connection,
+            BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Charlie"), (2, "Alice"), (3, "Bob")));
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(
-                connection,
-                Dialect.InsertUsers(
-                    users,
-                    (1, "Charlie"),
-                    (2, "Alice"),
-                    (3, "Bob")));
-            var value = Convert.ToString(ExecuteScalar(connection, Dialect.StringAggregate(users)), CultureInfo.InvariantCulture);
+            service.CreateScenario(users, uId);
+            var value = service.RunStringAggregate(users);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
     protected virtual void RunStringAggregateOrdered()
     {
-        if (!Dialect.SupportsStringAggregate)
-        {
-            throw new NotSupportedException($"{Dialect.DisplayName} does not support the string aggregate benchmark.");
-        }
-
         var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateQueryService(
+            connection,
+            BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Charlie"), (2, "Alice"), (3, "Bob")));
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(
-                connection,
-                Dialect.InsertUsers(
-                    users,
-                    (1, "Charlie"),
-                    (2, "Alice"),
-                    (3, "Bob")));
-            var value = Convert.ToString(ExecuteScalar(connection, Dialect.StringAggregateOrdered(users)), CultureInfo.InvariantCulture);
+            service.CreateScenario(users, uId);
+            var value = service.RunStringAggregateOrdered(users);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -1197,20 +1122,17 @@ public abstract class BenchmarkSessionBase(
     {
         using var connection = CreateConnection();
         connection.Open();
-        var value = ExecuteScalar(connection, Dialect.DateScalar());
+        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateNoopScenario<DbConnection>());
+        var value = service.RunDateScalar();
         GC.KeepAlive(value);
     }
 
     protected virtual void RunJsonScalarRead()
     {
-        if (!Dialect.SupportsJsonScalarRead)
-        {
-            throw new NotSupportedException($"{Dialect.DisplayName} does not support the JSON scalar benchmark.");
-        }
-
         using var connection = CreateConnection();
         connection.Open();
-        var value = ExecuteScalar(connection, Dialect.JsonScalarRead("{\"name\":\"Alice\"}"));
+        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateNoopScenario<DbConnection>());
+        var value = service.RunJsonScalarRead();
         GC.KeepAlive(value);
     }
 
@@ -1220,20 +1142,24 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateInsertUsersService(connection);
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            var affected = ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
-            if (affected < 1)
-            {
-                throw new InvalidOperationException($"Unexpected insert rowcount for {Dialect.DisplayName}: {affected}.");
-            }
+            service.CreateScenario(users, uId);
+            var affected = service.RunRowCountAfterInsert(users, uId);
             GC.KeepAlive(affected);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -1243,81 +1169,25 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateMutationService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Alice")));
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
-            var affected = ExecuteNonQuery(connection, Dialect.UpdateUserNameById(users, 1, "Alice-v2"));
-            if (affected < 1)
-            {
-                throw new InvalidOperationException($"Unexpected update rowcount for {Dialect.DisplayName}: {affected}.");
-            }
+            service.CreateScenario(users, uId);
+            var affected = service.RunRowCountAfterUpdate(users);
             GC.KeepAlive(affected);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
-    }
-
-    /// <summary>
-    /// EN: Executes a SQL command that does not return a result set.
-    /// PT-br: Executa um comando SQL que não retorna um conjunto de resultados.
-    /// </summary>
-    /// <param name="connection">EN: The database connection used to execute the operation. PT-br: A conexão de banco de dados usada para executar a operação.</param>
-    /// <param name="sql">EN: The SQL command text to execute. PT-br: O texto do comando SQL a ser executado.</param>
-    /// <param name="transaction">EN: The optional transaction associated with the command execution. PT-br: A transação opcional associada à execução do comando.</param>
-    protected static int ExecuteNonQuery(DbConnection connection, string sql, DbTransaction? transaction = null)
-    {
-        using var command = connection.CreateCommand();
-        command.CommandText = sql;
-        if (transaction is not null)
-        {
-            command.Transaction = transaction;
-        }
-        return command.ExecuteNonQuery();
-    }
-
-    protected static async Task<int> ExecuteNonQueryAsync(DbConnection connection, string sql, DbTransaction? transaction = null)
-    {
-        using var command = connection.CreateCommand();
-        command.CommandText = sql;
-        if (transaction is not null)
-        {
-            command.Transaction = transaction;
-        }
-        return await command.ExecuteNonQueryAsync().ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// EN: Executes a SQL command and returns its scalar result.
-    /// PT-br: Executa um comando SQL e retorna o seu resultado escalar.
-    /// </summary>
-    /// <param name="connection">EN: The database connection used to execute the operation. PT-br: A conexão de banco de dados usada para executar a operação.</param>
-    /// <param name="sql">EN: The SQL command text to execute. PT-br: O texto do comando SQL a ser executado.</param>
-    /// <param name="transaction">EN: The optional transaction associated with the command execution. PT-br: A transação opcional associada à execução do comando.</param>
-    /// <returns>EN: The scalar value returned by the SQL command. PT-br: O valor escalar retornado pelo comando SQL.</returns>
-    protected static object? ExecuteScalar(DbConnection connection, string sql, DbTransaction? transaction = null)
-    {
-        using var command = connection.CreateCommand();
-        command.CommandText = sql;
-        if (transaction is not null)
-        {
-            command.Transaction = transaction;
-        }
-        return command.ExecuteScalar();
-    }
-
-    protected static async Task<object?> ExecuteScalarAsync(DbConnection connection, string sql, DbTransaction? transaction = null)
-    {
-        using var command = connection.CreateCommand();
-        command.CommandText = sql;
-        if (transaction is not null)
-        {
-            command.Transaction = transaction;
-        }
-        return await command.ExecuteScalarAsync().ConfigureAwait(false);
     }
 
     /// <summary>
@@ -1329,6 +1199,17 @@ public abstract class BenchmarkSessionBase(
     protected void SafeDropTable(DbConnection connection, string tableName, string uId)
     {
         SafeExecute(connection, Dialect.DropTable(tableName, uId));
+    }
+
+    /// <summary>
+    /// EN: Tries to drop a temporary table using best-effort cleanup semantics.
+    /// PT-br: Tenta remover uma tabela temporaria usando uma limpeza de melhor esforco.
+    /// </summary>
+    /// <param name="connection">EN: The database connection used to execute the operation. PT-br: A conexao de banco de dados usada para executar a operacao.</param>
+    /// <param name="tableName">EN: The temporary table name targeted by the operation. PT-br: O nome da tabela temporaria alvo da operacao.</param>
+    protected void SafeDropTemporaryTable(DbConnection connection, string tableName)
+    {
+        SafeExecute(connection, Dialect.DropTemporaryUsersTable(tableName));
     }
 
     /// <summary>
@@ -1365,40 +1246,28 @@ public abstract class BenchmarkSessionBase(
 
     protected virtual void RunNestedSavepointFlow()
     {
-        if (!Dialect.SupportsSavepoints)
-        {
-            throw new NotSupportedException($"{Dialect.DisplayName} does not support the savepoint benchmark.");
-        }
-
         var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
-
+        var service = CreateMutationService(connection, BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
+        var usersTable = $"{users}_{uId}";
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            using var transaction = connection.BeginTransaction();
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"), transaction);
-            var sp1 = NewSavepointName();
-            ExecuteNonQuery(connection, Dialect.Savepoint(sp1), transaction);
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"), transaction);
-            var sp2 = NewSavepointName();
-            ExecuteNonQuery(connection, Dialect.Savepoint(sp2), transaction);
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 3, "Charlie"), transaction);
-            ExecuteNonQuery(connection, Dialect.RollbackToSavepoint(sp2), transaction);
-            ExecuteNonQuery(connection, Dialect.ReleaseSavepoint(sp1), transaction);
-            transaction.Commit();
-            var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
-            if (count != 2)
-            {
-                throw new InvalidOperationException($"Unexpected nested-savepoint count for {Dialect.DisplayName}: {count}.");
-            }
+            service.CreateScenario(users, uId);
+            var count = service.RunNestedSavepointFlow(usersTable);
             GC.KeepAlive(count);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -1408,22 +1277,23 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Bob"), (2, "Alice"), (3, "Bob")));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(
-                connection,
-                Dialect.InsertUsers(
-                    users,
-                    (1, "Bob"),
-                    (2, "Alice"),
-                    (3, "Bob")));
-            var value = Convert.ToString(ExecuteScalar(connection, Dialect.StringAggregateDistinct(users)), CultureInfo.InvariantCulture);
+            service.CreateScenario(users, uId);
+            var value = service.RunStringAggregateDistinct(users);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -1433,21 +1303,23 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Bob"), (2, "Alice")));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(
-                connection,
-                Dialect.InsertUsers(
-                    users,
-                    (1, "Bob"),
-                    (2, "Alice")));
-            var value = Convert.ToString(ExecuteScalar(connection, Dialect.StringAggregateCustomSeparator(users, ";")), CultureInfo.InvariantCulture);
+            service.CreateScenario(users, uId);
+            var value = service.RunStringAggregateCustomSeparator(users);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -1457,20 +1329,29 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var seedRows = new (int id, string name)[50];
+        for (var i = 1; i <= 50; i++)
+        {
+            seedRows[i - 1] = (i, $"User-{i}");
+        }
+
+        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, seedRows));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            var values = new (int id, string name)[50];
-            for (var i = 1; i <= 50; i++)
-                values[i - 1] = (i, $"User-{i}");
-
-            ExecuteNonQuery(connection, Dialect.InsertUsers(users, values));
-            var value = Convert.ToString(ExecuteScalar(connection, Dialect.StringAggregateLargeGroup(users)), CultureInfo.InvariantCulture);
+            service.CreateScenario(users, uId);
+            var value = service.RunStringAggregateLargeGroup(users);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -1478,7 +1359,8 @@ public abstract class BenchmarkSessionBase(
     {
         using var connection = CreateConnection();
         connection.Open();
-        var value = ExecuteScalar(connection, Dialect.TemporalCurrentTimestamp());
+        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateNoopScenario<DbConnection>());
+        var value = service.RunTemporalCurrentTimestamp();
         GC.KeepAlive(value);
     }
 
@@ -1486,7 +1368,8 @@ public abstract class BenchmarkSessionBase(
     {
         using var connection = CreateConnection();
         connection.Open();
-        var value = ExecuteScalar(connection, Dialect.TemporalDateAdd());
+        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateNoopScenario<DbConnection>());
+        var value = service.RunTemporalDateAdd();
         GC.KeepAlive(value);
     }
 
@@ -1496,16 +1379,23 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Alice")));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
-            var value = ExecuteScalar(connection, Dialect.TemporalNowWhere(users));
+            service.CreateScenario(users, uId);
+            var value = service.RunTemporalNowWhere(users);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -1515,30 +1405,32 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Bob"), (2, "Alice")));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Bob"));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Alice"));
-            var value = ExecuteScalar(connection, Dialect.TemporalNowOrderBy(users));
+            service.CreateScenario(users, uId);
+            var value = service.RunTemporalNowOrderBy(users);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
     protected virtual void RunJsonPathRead()
     {
-        if (!Dialect.SupportsJsonScalarRead)
-        {
-            throw new NotSupportedException($"{Dialect.DisplayName} does not support the JSON path benchmark.");
-        }
-
         using var connection = CreateConnection();
         connection.Open();
-        var value = ExecuteScalar(connection, Dialect.JsonPathRead("{\"user\":{\"name\":\"Alice\"}}"));
+        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateNoopScenario<DbConnection>());
+        var value = service.RunJsonPathRead();
         GC.KeepAlive(value);
     }
 
@@ -1548,21 +1440,23 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Alice"), (2, "Bob")));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"));
-            var count = CountReaderRows(connection, $"SELECT * FROM {users}");
-            if (count != 2)
-            {
-                throw new InvalidOperationException($"Unexpected select rowcount for {Dialect.DisplayName}: {count}.");
-            }
+            service.CreateScenario(users, uId);
+            var count = service.RunRowCountAfterSelect(users);
             GC.KeepAlive(count);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -1572,20 +1466,23 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Alice")));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
-            var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.CteSimple(users)), CultureInfo.InvariantCulture);
-            if (value != 1)
-            {
-                throw new InvalidOperationException($"Unexpected CTE result for {Dialect.DisplayName}: {value}.");
-            }
+            service.CreateScenario(users, uId);
+            var value = service.RunCteSimple(users);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -1595,26 +1492,23 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Bob"), (2, "Alice"), (3, "Charlie")));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(
-                connection,
-                Dialect.InsertUsers(
-                    users,
-                    (1, "Bob"),
-                    (2, "Alice"),
-                    (3, "Charlie")));
-            var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.WindowRowNumber(users)), CultureInfo.InvariantCulture);
-            if (value != 3)
-            {
-                throw new InvalidOperationException($"Unexpected ROW_NUMBER result for {Dialect.DisplayName}: {value}.");
-            }
+            service.CreateScenario(users, uId);
+            var value = service.RunWindowRowNumber(users);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -1624,26 +1518,23 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Bob"), (2, "Alice"), (3, "Charlie")));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(
-                connection,
-                Dialect.InsertUsers(
-                    users,
-                    (1, "Bob"),
-                    (2, "Alice"),
-                    (3, "Charlie")));
-            var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.WindowLag(users)), CultureInfo.InvariantCulture);
-            if (value != 3)
-            {
-                throw new InvalidOperationException($"Unexpected LAG result for {Dialect.DisplayName}: {value}.");
-            }
+            service.CreateScenario(users, uId);
+            var value = service.RunWindowLag(users);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -1654,19 +1545,23 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateBatchService(connection, BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"));
-            var first = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
-            var second = ExecuteScalar(connection, Dialect.SelectUserNameById(users, 1));
-            GC.KeepAlive(first);
-            GC.KeepAlive(second);
+            service.CreateScenario(users, uId);
+            var value = service.RunBatchReaderMultiResult(users);
+            GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -1675,88 +1570,81 @@ public abstract class BenchmarkSessionBase(
         var uId = NextToken();
         using var connection = CreateConnection();
         connection.Open();
-        using var tx = connection.BeginTransaction();
         var users = NewUsersTableName();
+        var service = CreateBatchService(connection, BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId), tx);
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"), tx);
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"), tx);
-            tx.Commit();
-            GC.KeepAlive(users);
+            service.CreateScenario(users, uId);
+            var value = service.RunBatchTransactionControl(users);
+            GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
     protected virtual void RunParseSimpleSelect()
     {
-        var sql = "SELECT Name FROM Users WHERE Id = 1";
-        var tokens = SimpleTokenize(sql);
+        var tokens = ParseServiceTest.RunParseSimpleSelect();
         GC.KeepAlive(tokens);
     }
 
     protected virtual void RunParseComplexJoin()
     {
-        var sql = "SELECT u.Name, COUNT(o.Id) FROM Users u LEFT JOIN Orders o ON o.UsersId = u.Id WHERE u.Name LIKE 'A%' GROUP BY u.Name ORDER BY u.Name";
-        var tokens = SimpleTokenize(sql);
+        var tokens = ParseServiceTest.RunParseComplexJoin();
         GC.KeepAlive(tokens);
     }
 
     protected virtual void RunParseInsertReturning()
     {
-        var sql = "INSERT INTO Users(Id, Name) VALUES(1, 'Alice') RETURNING Id";
-        var tokens = SimpleTokenize(sql);
+        var tokens = ParseServiceTest.RunParseInsertReturning();
         GC.KeepAlive(tokens);
     }
 
     protected virtual void RunParseOnConflictDoUpdate()
     {
-        var sql = "INSERT INTO Users(Id, Name) VALUES(1, 'Alice') ON CONFLICT(Id) DO UPDATE SET Name = EXCLUDED.Name";
-        var tokens = SimpleTokenize(sql);
+        var tokens = ParseServiceTest.RunParseOnConflictDoUpdate();
         GC.KeepAlive(tokens);
     }
 
     protected virtual void RunParseJsonExtract()
     {
-        var sql = "SELECT JSON_VALUE('{\"user\":{\"name\":\"Alice\"}}', '$.user.name')";
-        var tokens = SimpleTokenize(sql);
+        var tokens = ParseServiceTest.RunParseJsonExtract();
         GC.KeepAlive(tokens);
     }
 
     protected virtual void RunParseStringAggregateWithinGroup()
     {
-        var sql = "SELECT LISTAGG(Name, ',') WITHIN GROUP (ORDER BY Name) FROM Users";
-        var tokens = SimpleTokenize(sql);
+        var tokens = ParseServiceTest.RunParseStringAggregateWithinGroup();
         GC.KeepAlive(tokens);
     }
 
     protected virtual void RunParseAutoDialectTopLimitFetch()
     {
-        var sql = "SELECT * FROM Users ORDER BY Id OFFSET 0 ROWS FETCH NEXT 10 ROWS ONLY";
-        var tokens = SimpleTokenize(sql);
+        var tokens = ParseServiceTest.RunParseAutoDialectTopLimitFetch();
         GC.KeepAlive(tokens);
     }
 
     protected virtual void RunParseMultiStatementBatch()
     {
-        var sql = "INSERT INTO Users(Id, Name) VALUES(1, 'Alice'); UPDATE Users SET Name = 'Bob' WHERE Id = 1; SELECT Name FROM Users WHERE Id = 1;";
-        var tokens = SimpleTokenize(sql);
+        var tokens = ParseServiceTest.RunParseMultiStatementBatch();
         GC.KeepAlive(tokens);
     }
 
     protected virtual void RunJsonInsertCast()
     {
-        if (!Dialect.SupportsJsonScalarRead)
-        {
-            throw new NotSupportedException($"{Dialect.DisplayName} does not support the JSON insert/cast benchmark.");
-        }
-
         using var connection = CreateConnection();
         connection.Open();
-        var value = ExecuteScalar(connection, Dialect.JsonScalarRead("{\"value\":42,\"text\":\"Alice\"}"));
+        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateNoopScenario<DbConnection>());
+        var value = service.RunJsonInsertCast();
         GC.KeepAlive(value);
     }
 
@@ -1766,21 +1654,23 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateBatchService(connection, BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"));
-            var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
-            if (count != 2)
-            {
-                throw new InvalidOperationException($"Unexpected batch rowcount for {Dialect.DisplayName}: {count}.");
-            }
+            service.CreateScenario(users, uId);
+            var count = service.RunRowCountInBatch(users);
             GC.KeepAlive(count);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -1790,18 +1680,23 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Alice"), (2, "Bob")));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"));
-            var sql = $"SELECT SUM(CASE WHEN Name LIKE 'A%' THEN 1 ELSE 0 END) + SUM(CASE WHEN Name LIKE 'B%' THEN 1 ELSE 0 END) FROM {users}";
-            var value = Convert.ToInt32(ExecuteScalar(connection, sql), CultureInfo.InvariantCulture);
+            service.CreateScenario(users, uId);
+            var value = service.RunPivotCount(users);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -1817,25 +1712,23 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateBatchService(connection, BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            var rows = CountReaderRows(connection, Dialect.InsertUserReturning(users, 1, "Alice"));
-            if (rows != 1)
-            {
-                throw new InvalidOperationException($"Unexpected RETURNING rowcount for {Dialect.DisplayName}: {rows}.");
-            }
-            var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
-            if (count != 1)
-            {
-                throw new InvalidOperationException($"Unexpected RETURNING insert persistence for {Dialect.DisplayName}: {count}.");
-            }
+            service.CreateScenario(users, uId);
+            var rows = service.RunReturningInsert(users);
             GC.KeepAlive(rows);
-            GC.KeepAlive(count);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -1855,19 +1748,29 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var seedRows = new (int id, string name)[20];
+        for (var i = 1; i <= 20; i++)
+        {
+            seedRows[i - 1] = (i, $"User{i:00}");
+        }
+
+        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, seedRows));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            for (var i = 1; i <= 20; i++)
-            {
-                ExecuteNonQuery(connection, Dialect.InsertUser(users, i, $"User{i:00}"));
-            }
-            var value = Convert.ToInt32(ExecuteScalar(connection, $"SELECT COUNT(*) FROM {users} WHERE Id BETWEEN 5 AND 10"), CultureInfo.InvariantCulture);
+            service.CreateScenario(users, uId);
+            var value = service.RunPartitionPruningSelect(users);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -1879,18 +1782,29 @@ public abstract class BenchmarkSessionBase(
         var orders = NewOrdersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateQueryService(
+            connection,
+            BenchmarkScenarioFactory.CreateUsersOrdersScenario<DbConnection>(
+                Dialect,
+                [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
+                [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders, users, uId));
-            SeedUsersAndOrders(connection, users, orders);
-            var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.SelectExistsPredicate(users, orders)), CultureInfo.InvariantCulture);
+            service.CreateScenario(users, orders, uId);
+            var value = service.RunSelectExistsPredicate(users, orders);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, orders, uId);
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, orders, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, orders, uId);
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -1901,18 +1815,29 @@ public abstract class BenchmarkSessionBase(
         var orders = NewOrdersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateQueryService(
+            connection,
+            BenchmarkScenarioFactory.CreateUsersOrdersScenario<DbConnection>(
+                Dialect,
+                [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
+                [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders, users, uId));
-            SeedUsersAndOrders(connection, users, orders);
-            var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.SelectCorrelatedCount(users, orders)), CultureInfo.InvariantCulture);
+            service.CreateScenario(users, orders, uId);
+            var value = service.RunSelectCorrelatedCount(users, orders);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, orders, uId);
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, orders, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, orders, uId);
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -1923,18 +1848,29 @@ public abstract class BenchmarkSessionBase(
         var orders = NewOrdersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateQueryService(
+            connection,
+            BenchmarkScenarioFactory.CreateUsersOrdersScenario<DbConnection>(
+                Dialect,
+                [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
+                [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders, users, uId));
-            SeedUsersAndOrders(connection, users, orders);
-            var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.GroupByHaving(users, orders)), CultureInfo.InvariantCulture);
+            service.CreateScenario(users, orders, uId);
+            var value = service.RunGroupByHaving(users, orders);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, orders, uId);
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, orders, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, orders, uId);
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -1944,17 +1880,23 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Alice"), (2, "Bob")));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"));
-            var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.UnionAllProjection(users)), CultureInfo.InvariantCulture);
+            service.CreateScenario(users, uId);
+            var value = service.RunUnionAllProjection(users);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -1964,18 +1906,23 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Alice"), (2, "Alice"), (3, "Bob")));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Alice"));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 3, "Bob"));
-            var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.DistinctProjection(users)), CultureInfo.InvariantCulture);
+            service.CreateScenario(users, uId);
+            var value = service.RunDistinctProjection(users);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -1986,18 +1933,29 @@ public abstract class BenchmarkSessionBase(
         var orders = NewOrdersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateQueryService(
+            connection,
+            BenchmarkScenarioFactory.CreateUsersOrdersScenario<DbConnection>(
+                Dialect,
+                [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
+                [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders, users, uId));
-            SeedUsersAndOrders(connection, users, orders);
-            var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.MultiJoinAggregate(users, orders)), CultureInfo.InvariantCulture);
+            service.CreateScenario(users, orders, uId);
+            var value = service.RunMultiJoinAggregate(users, orders);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, orders, uId);
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, orders, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, orders, uId);
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -2008,18 +1966,29 @@ public abstract class BenchmarkSessionBase(
         var orders = NewOrdersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateQueryService(
+            connection,
+            BenchmarkScenarioFactory.CreateUsersOrdersScenario<DbConnection>(
+                Dialect,
+                [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
+                [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders, users, uId));
-            SeedUsersAndOrders(connection, users, orders);
-            var value = ExecuteScalar(connection, Dialect.SelectScalarSubquery(users, orders));
+            service.CreateScenario(users, orders, uId);
+            var value = service.RunSelectScalarSubquery(users, orders);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, orders, uId);
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, orders, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, orders, uId);
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -2030,18 +1999,29 @@ public abstract class BenchmarkSessionBase(
         var orders = NewOrdersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateQueryService(
+            connection,
+            BenchmarkScenarioFactory.CreateUsersOrdersScenario<DbConnection>(
+                Dialect,
+                [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
+                [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders, users, uId));
-            SeedUsersAndOrders(connection, users, orders);
-            var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.SelectInSubquery(users, orders)), CultureInfo.InvariantCulture);
+            service.CreateScenario(users, orders, uId);
+            var value = service.RunSelectInSubquery(users, orders);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, orders, uId);
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, orders, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, orders, uId);
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -2052,18 +2032,29 @@ public abstract class BenchmarkSessionBase(
         var orders = NewOrdersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateQueryService(
+            connection,
+            BenchmarkScenarioFactory.CreateUsersOrdersScenario<DbConnection>(
+                Dialect,
+                [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
+                [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders, users, uId));
-            SeedUsersAndOrders(connection, users, orders);
-            var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.CrossApplyProjection(users, orders)), CultureInfo.InvariantCulture);
+            service.CreateScenario(users, orders, uId);
+            var value = service.RunCrossApplyProjection(users, orders);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, orders, uId);
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, orders, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, orders, uId);
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -2074,29 +2065,30 @@ public abstract class BenchmarkSessionBase(
         var orders = NewOrdersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateQueryService(
+            connection,
+            BenchmarkScenarioFactory.CreateUsersOrdersScenario<DbConnection>(
+                Dialect,
+                [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
+                [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders, users, uId));
-            SeedUsersAndOrders(connection, users, orders);
-            var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.OuterApplyProjection(users, orders)), CultureInfo.InvariantCulture);
+            service.CreateScenario(users, orders, uId);
+            var value = service.RunOuterApplyProjection(users, orders);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection, orders, uId);
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, orders, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, orders, uId);
+                SafeDropTable(connection, users, uId);
+            }
         }
-    }
-
-    private void SeedUsersAndOrders(DbConnection connection, string usersTable, string ordersTable)
-    {
-        ExecuteNonQuery(connection, Dialect.InsertUser(usersTable, 1, "Alice"));
-        ExecuteNonQuery(connection, Dialect.InsertUser(usersTable, 2, "Bob"));
-        ExecuteNonQuery(connection, Dialect.InsertUser(usersTable, 3, "Charlie"));
-        ExecuteNonQuery(connection, Dialect.InsertOrder(ordersTable, usersTable, 1, 1, "o-1"));
-        ExecuteNonQuery(connection, Dialect.InsertOrder(ordersTable, usersTable, 2, 1, "o-2"));
-        ExecuteNonQuery(connection, Dialect.InsertOrder(ordersTable, usersTable, 3, 2, "o-3"));
     }
 
     protected virtual void RunExecutionPlan()
@@ -2105,17 +2097,23 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateExecutionPlanService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Alice")));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
-            _ = ExecuteScalar(connection, Dialect.SelectUserNameById(users, 1));
-            var plan = TryReadDiagnosticValue(connection, "LastExecutionPlan");
+            service.CreateScenario(users, uId);
+            var plan = service.RunExecutionPlan(users);
             GC.KeepAlive(plan);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -2131,20 +2129,29 @@ public abstract class BenchmarkSessionBase(
         var orders = NewOrdersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateExecutionPlanService(
+            connection,
+            BenchmarkScenarioFactory.CreateUsersOrdersScenario<DbConnection>(
+                Dialect,
+                [(1, "Alice")],
+                [(1, 1, "order-1")]));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders, users, uId));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
-            ExecuteNonQuery(connection, Dialect.InsertOrder(orders, users, 1, 1, "order-1"));
-            _ = ExecuteScalar(connection, Dialect.CountJoinForUser(users, orders, 1));
-            var plan = TryReadDiagnosticValue(connection, "LastExecutionPlan");
+            service.CreateScenario(users, orders, uId);
+            var plan = service.RunExecutionPlanJoin(users, orders);
             GC.KeepAlive(plan);
         }
         finally
         {
-            SafeDropTable(connection, orders, uId);
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, orders, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, orders, uId);
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -2154,16 +2161,23 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateExecutionPlanService(connection, BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
-            var plan = TryReadDiagnosticValue(connection, "LastExecutionPlan");
+            service.CreateScenario(users, uId);
+            var plan = service.RunExecutionPlanDml(users);
             GC.KeepAlive(plan);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -2173,17 +2187,23 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateDebugTraceService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Alice")));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
-            _ = ExecuteScalar(connection, Dialect.SelectUserNameById(users, 1));
-            var trace = TryReadDiagnosticValue(connection, "DebugSql") ?? Dialect.SelectUserNameById(users, 1);
+            service.CreateScenario(users, uId);
+            var trace = service.RunDebugTraceSelect(users);
             GC.KeepAlive(trace);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -2193,45 +2213,55 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateDebugTraceService(connection, BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"));
-            var trace = TryReadDiagnosticValue(connection, "DebugSqlBatch") ?? (Dialect.InsertUser(users, 1, "Alice") + ";" + Dialect.InsertUser(users, 2, "Bob"));
+            service.CreateScenario(users, uId);
+            var trace = service.RunDebugTraceBatch(users);
             GC.KeepAlive(trace);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
     protected virtual void RunDebugTraceJson()
     {
-        var payload = new Dictionary<string, object?> { ["provider"] = Dialect.DisplayName, ["engine"] = Engine.ToString(), ["timestamp"] = DateTime.UtcNow };
-        var json = System.Text.Json.JsonSerializer.Serialize(payload);
+        var json = DebugTraceServiceTest<DbConnection>.RunDebugTraceJson(Dialect.DisplayName, Engine.ToString());
         GC.KeepAlive(json);
     }
 
     protected virtual void RunLastExecutionPlansHistory()
     {
         var uId = NextToken();
+        var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
-        var users = NewUsersTableName();
+        var service = CreateExecutionPlanService(connection, BenchmarkScenarioFactory.CreateUsersScenario<DbConnection>(Dialect, (1, "Alice")));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
-            _ = ExecuteScalar(connection, Dialect.SelectUserNameById(users, 1));
-            _ = ExecuteScalar(connection, Dialect.CountRows(users));
-            var plans = TryReadDiagnosticValue(connection, "LastExecutionPlans");
+            service.CreateScenario(users, uId);
+            var plans = service.RunLastExecutionPlansHistory(users);
             GC.KeepAlive(plans);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
@@ -2241,64 +2271,72 @@ public abstract class BenchmarkSessionBase(
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateTemporaryTableService(connection, BenchmarkScenarioFactory.CreateTemporaryTableScenario<DbConnection>(Dialect));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
-            var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
-            GC.KeepAlive(count);
+            service.CreateScenario(users, uId);
+            var rows = service.RunCreateTemporaryTableAsSelectThenSelect(users, uId);
+            GC.KeepAlive(rows);
         }
         finally
         {
-            SafeDropTable(connection, users, uId);
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
         }
     }
 
     protected virtual void RunTempTableRollback()
     {
-        if (!Dialect.SupportsSavepoints)
-        {
-            throw new NotSupportedException($"{Dialect.DisplayName} does not support temp-table rollback benchmark.");
-        }
-
-        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
-        using var tx = connection.BeginTransaction();
+        var service = CreateTemporaryTableService(connection, BenchmarkScenarioFactory.CreateTemporaryUsersScenario<DbConnection>(Dialect));
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users, uId), tx);
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"), tx);
-            ExecuteNonQuery(connection, Dialect.Savepoint(NewSavepointName()), tx);
-            ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"), tx);
-            tx.Rollback();
+            service.CreateScenario(users);
+            service.RunTempTableRollback(users);
         }
         finally
         {
-            try { SafeDropTable(connection, users, uId); } catch {}
+            try
+            {
+                service.DropScenario(users);
+            }
+            catch
+            {
+                SafeDropTemporaryTable(connection, users);
+            }
         }
     }
 
     protected virtual void RunTempTableCrossConnectionIsolation()
     {
-        var uId = NextToken();
         var users = NewUsersTableName();
-        using var connection1 = CreateConnection();
-        connection1.Open();
-        using var connection2 = CreateConnection();
-        connection2.Open();
-
+        using var connection = CreateConnection();
+        connection.Open();
+        var service = CreateTemporaryTableService(connection, BenchmarkScenarioFactory.CreateTemporaryUsersScenario<DbConnection>(Dialect), CreateConnection);
         try
         {
-            ExecuteNonQuery(connection1, Dialect.CreateUsersTable(users, uId));
-            ExecuteNonQuery(connection1, Dialect.InsertUser(users, 1, "Alice"));
-            var value = ExecuteScalar(connection2, Dialect.CountRows(users));
+            service.CreateScenario(users);
+            var value = service.RunTemporaryTableCrossConnectionIsolation(users);
             GC.KeepAlive(value);
         }
         finally
         {
-            SafeDropTable(connection1, users, uId);
+            try
+            {
+                service.DropScenario(users);
+            }
+            catch
+            {
+                SafeDropTemporaryTable(connection, users);
+            }
         }
     }
 
@@ -2306,35 +2344,32 @@ public abstract class BenchmarkSessionBase(
     {
         using var connection = CreateConnection();
         connection.Open();
-        TryInvokeIfExists(connection, "ResetVolatileData");
-        GC.KeepAlive(connection.State);
+        var service = CreateConnectionLifecycleService(connection);
+        service.RunResetVolatileData();
     }
 
     protected virtual void RunResetAllVolatileData()
     {
         using var connection = CreateConnection();
         connection.Open();
-        if (!TryInvokeIfExists(connection, "ResetAllVolatileData"))
-        {
-            TryInvokeIfExists(connection, "ResetVolatileData");
-        }
-        GC.KeepAlive(connection.State);
+        var service = CreateConnectionLifecycleService(connection);
+        service.RunResetAllVolatileData();
     }
 
     protected virtual void RunConnectionReopenAfterClose()
     {
         using var connection = CreateConnection();
         connection.Open();
-        connection.Close();
-        connection.Open();
-        GC.KeepAlive(connection.State);
+        var service = CreateConnectionLifecycleService(connection);
+        service.RunConnectionReopenAfterClose();
     }
 
     protected virtual void RunSchemaSnapshotExport()
     {
         using var connection = CreateConnection();
         connection.Open();
-        var snapshot = TryInvokeSnapshot(connection, "ExportSchemaSnapshot") ?? TryInvokeSnapshot(connection, "GetSchemaSnapshot") ?? new { Provider = Dialect.DisplayName, Engine = Engine.ToString() };
+        var service = CreateSchemaSnapshotService(connection);
+        var snapshot = service.RunSchemaSnapshotExport();
         GC.KeepAlive(snapshot);
     }
 
@@ -2342,15 +2377,14 @@ public abstract class BenchmarkSessionBase(
     {
         using var connection = CreateConnection();
         connection.Open();
-        var snapshot = TryInvokeSnapshot(connection, "ExportSchemaSnapshot") ?? new { Provider = Dialect.DisplayName, Engine = Engine.ToString() };
-        var json = System.Text.Json.JsonSerializer.Serialize(snapshot);
+        var service = CreateSchemaSnapshotService(connection);
+        var json = service.RunSchemaSnapshotToJson();
         GC.KeepAlive(json);
     }
 
     protected virtual void RunSchemaSnapshotLoadJson()
     {
-        var json = "{\"provider\":\"" + Dialect.DisplayName + "\",\"version\":1}";
-        var obj = System.Text.Json.JsonDocument.Parse(json);
+        var obj = SchemaSnapshotServiceTest<DbConnection>.RunSchemaSnapshotLoadJson(Dialect.DisplayName);
         GC.KeepAlive(obj);
     }
 
@@ -2358,8 +2392,8 @@ public abstract class BenchmarkSessionBase(
     {
         using var connection = CreateConnection();
         connection.Open();
-        var snapshot = TryInvokeSnapshot(connection, "ExportSchemaSnapshot") ?? new { Provider = Dialect.DisplayName, Engine = Engine.ToString() };
-        var applied = TryInvokeWithArgIfExists(connection, "ApplySchemaSnapshot", snapshot);
+        var service = CreateSchemaSnapshotService(connection);
+        var applied = service.RunSchemaSnapshotApply();
         GC.KeepAlive(applied);
     }
 
@@ -2367,9 +2401,8 @@ public abstract class BenchmarkSessionBase(
     {
         using var connection = CreateConnection();
         connection.Open();
-        var snapshot = TryInvokeSnapshot(connection, "ExportSchemaSnapshot") ?? new { Provider = Dialect.DisplayName, Engine = Engine.ToString() };
-        var json = System.Text.Json.JsonSerializer.Serialize(snapshot);
-        var obj = System.Text.Json.JsonDocument.Parse(json);
+        var service = CreateSchemaSnapshotService(connection);
+        var obj = service.RunSchemaSnapshotRoundTrip();
         GC.KeepAlive(obj);
     }
 
@@ -2377,126 +2410,33 @@ public abstract class BenchmarkSessionBase(
     {
         using var connection = CreateConnection();
         connection.Open();
-        var snapshot1 = TryInvokeSnapshot(connection, "ExportSchemaSnapshot") ?? new { Provider = Dialect.DisplayName, Engine = Engine.ToString(), Token = 1 };
-        var snapshot2 = TryInvokeSnapshot(connection, "ExportSchemaSnapshot") ?? new { Provider = Dialect.DisplayName, Engine = Engine.ToString(), Token = 2 };
-        var comparison = string.Equals(System.Text.Json.JsonSerializer.Serialize(snapshot1), System.Text.Json.JsonSerializer.Serialize(snapshot2), StringComparison.Ordinal);
+        var service = CreateSchemaSnapshotService(connection);
+        var comparison = service.RunSchemaSnapshotCompare();
         GC.KeepAlive(comparison);
     }
 
     protected virtual void RunFluentSchemaBuild()
     {
-        var model = new
-        {
-            Tables = new[]
-            {
-                new { Name = "Users", Columns = new[] { "Id", "Name" } },
-                new { Name = "Orders", Columns = new[] { "Id", "UsersId", "Note" } }
-            }
-        };
+        var model = FluentServiceTest<DbConnection>.BuildFluentSchemaBuild();
         GC.KeepAlive(model);
     }
 
     protected virtual void RunFluentSeed100()
     {
-        var rows = Enumerable.Range(1, 100).Select(i => new { Id = i, Name = $"User{i}" }).ToArray();
+        var rows = FluentServiceTest<DbConnection>.BuildFluentSeed100();
         GC.KeepAlive(rows);
     }
 
     protected virtual void RunFluentSeed1000()
     {
-        var rows = Enumerable.Range(1, 1000).Select(i => new { Id = i, Name = $"User{i}" }).ToArray();
+        var rows = FluentServiceTest<DbConnection>.BuildFluentSeed1000();
         GC.KeepAlive(rows);
     }
 
     protected virtual void RunFluentScenarioCompose()
     {
-        var scenario = new
-        {
-            Schema = new[] { "Users", "Orders" },
-            Seed = Enumerable.Range(1, 25).Select(i => $"User{i}").ToArray(),
-            Query = "SELECT COUNT(*) FROM Users"
-        };
+        var scenario = FluentServiceTest<DbConnection>.BuildFluentScenarioCompose();
         GC.KeepAlive(scenario);
-    }
-
-    protected static object? TryReadDiagnosticValue(object target, string memberName)
-    {
-        var type = target.GetType();
-        var property = type.GetProperty(memberName);
-        if (property is not null && property.GetIndexParameters().Length == 0)
-        {
-            return property.GetValue(target);
-        }
-
-        var field = type.GetField(memberName);
-        if (field is not null)
-        {
-            return field.GetValue(target);
-        }
-
-        return null;
-    }
-
-    protected static bool TryInvokeIfExists(object target, string methodName)
-    {
-        var method = target.GetType().GetMethod(methodName, Type.EmptyTypes);
-        if (method is null)
-        {
-            return false;
-        }
-
-        method.Invoke(target, null);
-        return true;
-    }
-
-    protected static object? TryInvokeWithArgIfExists(object target, string methodName, object? arg)
-    {
-        var methods = target.GetType().GetMethods().Where(m => string.Equals(m.Name, methodName, StringComparison.Ordinal)).ToArray();
-        foreach (var method in methods)
-        {
-            var parameters = method.GetParameters();
-            if (parameters.Length == 1)
-            {
-                return method.Invoke(target, [arg]);
-            }
-        }
-        return null;
-    }
-
-    protected static object? TryInvokeSnapshot(object target, string methodName)
-    {
-        var method = target.GetType().GetMethod(methodName, Type.EmptyTypes);
-        return method?.Invoke(target, null);
-    }
-
-    protected static int SimpleTokenize(string sql)
-    {
-        var tokens = sql
-            .Replace("(", " ")
-            .Replace(")", " ")
-            .Replace(",", " ")
-            .Replace(";", " ")
-            .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
-        return tokens.Length;
-    }
-
-
-    protected static int CountReaderRows(DbConnection connection, string sql, DbTransaction? transaction = null)
-    {
-        using var command = connection.CreateCommand();
-        command.CommandText = sql;
-        if (transaction is not null)
-        {
-            command.Transaction = transaction;
-        }
-
-        using var reader = command.ExecuteReader();
-        var count = 0;
-        while (reader.Read())
-        {
-            count++;
-        }
-        return count;
     }
 
 }

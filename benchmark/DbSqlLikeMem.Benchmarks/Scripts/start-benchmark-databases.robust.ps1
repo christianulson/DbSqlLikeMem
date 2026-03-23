@@ -127,6 +127,34 @@ function Ensure-Db2Database {
     Write-Host "DB2 database '$DatabaseName' created."
 }
 
+function Ensure-Db2UserTemporaryTablespace {
+    param(
+        [string]$DatabaseName = "BENCH",
+        [string]$TablespaceName = "USRTMPSPC1"
+    )
+
+    Write-Host "Checking DB2 user temporary tablespace '$TablespaceName'..."
+
+    $tablespaceOutput = docker exec $Db2ContainerName bash -lc "su - db2inst1 -c 'db2 connect to $DatabaseName >/dev/null 2>&1 && db2 list tablespaces show detail'" 2>$null | Out-String
+    if ($tablespaceOutput -match [regex]::Escape("Name = $TablespaceName")) {
+        Write-Host "DB2 user temporary tablespace '$TablespaceName' already exists."
+        return
+    }
+
+    Write-Host "Creating DB2 user temporary tablespace '$TablespaceName'..."
+    docker exec $Db2ContainerName bash -lc "su - db2inst1 -c 'db2 connect to $DatabaseName >/dev/null 2>&1 && db2 create user temporary tablespace $TablespaceName managed by automatic storage'"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to create DB2 user temporary tablespace '$TablespaceName'."
+    }
+
+    docker exec $Db2ContainerName bash -lc "su - db2inst1 -c 'db2 connect to $DatabaseName >/dev/null 2>&1 && db2 grant use of tablespace $TablespaceName to user db2inst1'"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to grant use of DB2 user temporary tablespace '$TablespaceName'."
+    }
+
+    Write-Host "DB2 user temporary tablespace '$TablespaceName' created."
+}
+
 Write-Host "Starting benchmark databases..."
 docker compose -f $ComposeFile up -d
 if ($LASTEXITCODE -ne 0) {
@@ -148,6 +176,7 @@ Wait-ForMySqlReady -ContainerName "dbsqllikemem-bench-mysql" -Retries 90
 Wait-ForContainerHealthy -ContainerName $Db2ContainerName -Retries $Db2Retries
 Wait-ForDb2Instance -Retries $Db2Retries
 Ensure-Db2Database -DatabaseName "BENCH"
+Ensure-Db2UserTemporaryTablespace -DatabaseName "BENCH"
 
 Write-Host ""
 Write-Host "Databases ready."

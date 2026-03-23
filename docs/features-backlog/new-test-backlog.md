@@ -260,3 +260,7 @@ Nao devem entrar:
 
 - src\DbSqlLikeMem.MySql.Test\Fidelity\DDL\TableTests.cs
 - src\DbSqlLikeMem.MySql.Test\Fidelity\Query\SelectTests.cs
+
+- a lógica é separar a criação e a destruição do cenário do que estamos querendo validar ou medir no benchmark.
+- futuramente, se for necessário criar cenários com `Seed` diretamente nos objetos `DbMock`, isso ainda pode servir para validar se o comportamento continua equivalente à criação via script SQL.
+- o benchmark agora centraliza a criação dos cenários compartilhados em `BenchmarkScenarioFactory`.

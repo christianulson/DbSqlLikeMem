@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.MySql.Test;
 
 /// <summary>
-/// EN: Defines the class MySqlMockTests.
-/// PT: Define a classe MySqlMockTests.
+/// EN: Verifies MySQL command execution, transaction handling, and query helpers against the mock engine.
+/// PT: Verifica a execucao de comandos MySQL, o tratamento de transacoes e os helpers de consulta no motor mock.
 /// </summary>
 public sealed class MySqlMockTests
     : XUnitTestBase
@@ -10,8 +10,8 @@ public sealed class MySqlMockTests
     private readonly MySqlConnectionMock _connection;
 
     /// <summary>
-    /// EN: Tests MySqlMockTests behavior.
-    /// PT: Testa o comportamento de MySqlMockTests.
+    /// EN: Initializes the MySQL mock connection used by the test suite.
+    /// PT: Inicializa a conexao mock MySQL usada pela suite de testes.
     /// </summary>
     public MySqlMockTests(
         ITestOutputHelper helper
@@ -56,8 +56,8 @@ public sealed class MySqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestInsert behavior.
-    /// PT: Testa o comportamento de TestInsert.
+    /// EN: Verifies INSERT statements persist rows into the MySQL mock table.
+    /// PT: Verifica se instrucoes INSERT persistem linhas na tabela mock do MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -73,8 +73,8 @@ public sealed class MySqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests ExecuteNonQuery with multi-statement INSERT script behavior.
-    /// PT: Testa o comportamento de ExecuteNonQuery com script de INSERT multi-statement.
+    /// EN: Verifies multi-statement INSERT scripts add all rows and return the total affected count.
+    /// PT: Verifica se scripts INSERT com multiplas instrucoes adicionam todas as linhas e retornam o total afetado.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -100,8 +100,8 @@ public sealed class MySqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestUpdate behavior.
-    /// PT: Testa o comportamento de TestUpdate.
+    /// EN: Verifies UPDATE statements modify the targeted MySQL row.
+    /// PT: Verifica se instrucoes UPDATE modificam a linha alvo no MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -120,8 +120,8 @@ public sealed class MySqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestDelete behavior.
-    /// PT: Testa o comportamento de TestDelete.
+    /// EN: Verifies DELETE statements remove the targeted MySQL row.
+    /// PT: Verifica se instrucoes DELETE removem a linha alvo no MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1797,8 +1797,8 @@ public sealed class MySqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestTransactionCommit behavior.
-    /// PT: Testa o comportamento de TestTransactionCommit.
+    /// EN: Verifies committed transactions preserve inserted MySQL rows.
+    /// PT: Verifica se transacoes confirmadas preservam as linhas inseridas no MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1833,8 +1833,8 @@ public sealed class MySqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestTransactionCommitInsertUpdate behavior.
-    /// PT: Testa o comportamento de TestTransactionCommitInsertUpdate.
+    /// EN: Verifies committing a transaction preserves the latest MySQL update.
+    /// PT: Verifica se confirmar uma transacao preserva a ultima atualizacao do MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1856,8 +1856,8 @@ public sealed class MySqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestTransactionRollback behavior.
-    /// PT: Testa o comportamento de TestTransactionRollback.
+    /// EN: Verifies rolled back transactions discard inserted MySQL rows.
+    /// PT: Verifica se transacoes revertidas descartam as linhas inseridas no MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2994,8 +2994,8 @@ public sealed class MySqlMockTests
 
 
     /// <summary>
-    /// EN: Tests TestSelect_TemporalFunctions_ShouldWorkInSelectAndWhere behavior.
-    /// PT: Testa o comportamento de TestSelect_TemporalFunctions_ShouldWorkInSelectAndWhere.
+    /// EN: Verifies MySQL temporal functions work in SELECT projections and WHERE filters.
+    /// PT: Verifica se funcoes temporais do MySQL funcionam em projecoes SELECT e filtros WHERE.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4301,8 +4301,8 @@ public sealed class MySqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestSelect_SqlCalcFoundRows_ShouldExposeCountInFoundRows behavior.
-    /// PT: Testa o comportamento de TestSelect_SqlCalcFoundRows_ShouldExposeCountInFoundRows.
+    /// EN: Verifies SQL_CALC_FOUND_ROWS exposes the full result count.
+    /// PT: Verifica se SQL_CALC_FOUND_ROWS expoe a contagem total de resultados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4328,8 +4328,8 @@ public sealed class MySqlMockTests
 
 
     /// <summary>
-    /// EN: Tests TestSelect_FoundRows_WithArgument_ShouldThrow behavior.
-    /// PT: Testa o comportamento de TestSelect_FoundRows_WithArgument_ShouldThrow.
+    /// EN: Verifies FOUND_ROWS rejects unexpected arguments.
+    /// PT: Verifica se FOUND_ROWS rejeita argumentos inesperados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4345,8 +4345,8 @@ public sealed class MySqlMockTests
 
 
     /// <summary>
-    /// EN: Tests TestInsert_FoundRows_ShouldReturnAffectedRows behavior.
-    /// PT: Testa o comportamento de TestInsert_FoundRows_ShouldReturnAffectedRows.
+    /// EN: Verifies FOUND_ROWS returns the affected row count after INSERT.
+    /// PT: Verifica se FOUND_ROWS retorna a contagem de linhas afetadas apos INSERT.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4365,8 +4365,8 @@ public sealed class MySqlMockTests
 
 
     /// <summary>
-    /// EN: Tests TestUpdate_RowCountFunction_ShouldReturnAffectedRows behavior.
-    /// PT: Testa o comportamento de TestUpdate_RowCountFunction_ShouldReturnAffectedRows.
+    /// EN: Verifies ROW_COUNT returns the affected row count after UPDATE.
+    /// PT: Verifica se ROW_COUNT retorna a contagem de linhas afetadas apos UPDATE.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4387,8 +4387,8 @@ public sealed class MySqlMockTests
 
 
     /// <summary>
-    /// EN: Tests TestBeginTransaction_FoundRows_ShouldReturnZero behavior.
-    /// PT: Testa o comportamento de TestBeginTransaction_FoundRows_ShouldReturnZero.
+    /// EN: Verifies FOUND_ROWS resets to zero after BEGIN TRANSACTION.
+    /// PT: Verifica se FOUND_ROWS volta para zero apos BEGIN TRANSACTION.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4405,8 +4405,8 @@ public sealed class MySqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestBatch_BeginTransactionThenFoundRows_ShouldReturnZero behavior.
-    /// PT: Testa o comportamento de TestBatch_BeginTransactionThenFoundRows_ShouldReturnZero.
+    /// EN: Verifies FOUND_ROWS stays zero in a BEGIN TRANSACTION batch.
+    /// PT: Verifica se FOUND_ROWS permanece zero em um lote com BEGIN TRANSACTION.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4424,8 +4424,8 @@ public sealed class MySqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestBatch_BeginSavepointThenFoundRows_ShouldReturnZero behavior.
-    /// PT: Testa o comportamento de TestBatch_BeginSavepointThenFoundRows_ShouldReturnZero.
+    /// EN: Verifies FOUND_ROWS stays zero after SAVEPOINT in a batch.
+    /// PT: Verifica se FOUND_ROWS permanece zero apos SAVEPOINT em um lote.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4443,8 +4443,8 @@ public sealed class MySqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestBatch_CallThenFoundRows_ShouldReturnZero behavior.
-    /// PT: Testa o comportamento de TestBatch_CallThenFoundRows_ShouldReturnZero.
+    /// EN: Verifies FOUND_ROWS stays zero after CALL in a batch.
+    /// PT: Verifica se FOUND_ROWS permanece zero apos CALL em um lote.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4464,8 +4464,8 @@ public sealed class MySqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestBatch_UpdateCommitThenFoundRows_ShouldReturnZeroAfterCommit behavior.
-    /// PT: Testa o comportamento de TestBatch_UpdateCommitThenFoundRows_ShouldReturnZeroAfterCommit.
+    /// EN: Verifies FOUND_ROWS resets to zero after UPDATE followed by COMMIT.
+    /// PT: Verifica se FOUND_ROWS volta para zero apos UPDATE seguido de COMMIT.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4484,8 +4484,8 @@ public sealed class MySqlMockTests
 
 
     /// <summary>
-    /// EN: Tests TestBatch_RollbackToSavepointThenFoundRows_ShouldReturnZero behavior.
-    /// PT: Testa o comportamento de TestBatch_RollbackToSavepointThenFoundRows_ShouldReturnZero.
+    /// EN: Verifies FOUND_ROWS resets to zero after rollback to savepoint.
+    /// PT: Verifica se FOUND_ROWS volta para zero apos rollback para savepoint.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4503,8 +4503,8 @@ public sealed class MySqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestBatch_ReleaseSavepointThenFoundRows_ShouldReturnZero behavior.
-    /// PT: Testa o comportamento de TestBatch_ReleaseSavepointThenFoundRows_ShouldReturnZero.
+    /// EN: Verifies FOUND_ROWS resets to zero after releasing a savepoint.
+    /// PT: Verifica se FOUND_ROWS volta para zero apos liberar um savepoint.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4523,8 +4523,8 @@ public sealed class MySqlMockTests
 
 
     /// <summary>
-    /// EN: Tests TestBatch_SelectThenUpdateThenFoundRows_ShouldReflectLastDml behavior.
-    /// PT: Testa o comportamento de TestBatch_SelectThenUpdateThenFoundRows_ShouldReflectLastDml.
+    /// EN: Verifies FOUND_ROWS reflects the last DML in a mixed SELECT/UPDATE batch.
+    /// PT: Verifica se FOUND_ROWS reflete a ultima DML em um lote misto de SELECT/UPDATE.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4551,8 +4551,8 @@ public sealed class MySqlMockTests
 
 
     /// <summary>
-    /// EN: Tests TestBatch_CallUpdateCommitThenFoundRows_ShouldReturnZeroAfterCommit behavior.
-    /// PT: Testa o comportamento de TestBatch_CallUpdateCommitThenFoundRows_ShouldReturnZeroAfterCommit.
+    /// EN: Verifies FOUND_ROWS resets to zero after CALL, UPDATE, and COMMIT.
+    /// PT: Verifica se FOUND_ROWS volta para zero apos CALL, UPDATE e COMMIT.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4573,8 +4573,8 @@ public sealed class MySqlMockTests
 
 
     /// <summary>
-    /// EN: Tests TestBatch_UpdateThenSelectThenFoundRows_ShouldReflectLastSelect behavior.
-    /// PT: Testa o comportamento de TestBatch_UpdateThenSelectThenFoundRows_ShouldReflectLastSelect.
+    /// EN: Verifies FOUND_ROWS reflects the last SELECT in a mixed UPDATE/SELECT batch.
+    /// PT: Verifica se FOUND_ROWS reflete o ultimo SELECT em um lote misto de UPDATE/SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]

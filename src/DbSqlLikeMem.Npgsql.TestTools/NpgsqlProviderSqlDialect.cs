@@ -22,6 +22,22 @@ public sealed class NpgsqlProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsJsonScalarRead => true;
 
     /// <inheritdoc />
+    public override string TemporaryUsersTableName(string tableName) =>
+        tableName;
+
+    /// <inheritdoc />
+    public override string CreateTemporaryUsersTable(string tableName) =>
+        $@"
+CREATE TEMP TABLE {TemporaryUsersTableName(tableName)} (
+    Id INT,
+    Name VARCHAR(100)
+)";
+
+    /// <inheritdoc />
+    public override string DropTemporaryUsersTable(string tableName) =>
+        $"DROP TABLE IF EXISTS {TemporaryUsersTableName(tableName)}";
+
+    /// <inheritdoc />
     public override string CreateUsersTable(string tableName, string uId) =>
         $@"
 CREATE TABLE {tableName}_{uId} (
@@ -57,11 +73,11 @@ CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (Order
 
     /// <inheritdoc />
     public override string InsertUser(string tableName, int id, string name) =>
-        $"INSERT INTO {tableName} (Id, Name) VALUES ({id}, '{name}')";
+        $"INSERT INTO {tableName} (Id, Name, IsActive, Balance, CreatedAt) VALUES ({id}, '{name}', TRUE, 0.00, CURRENT_TIMESTAMP)";
 
     /// <inheritdoc />
     public override string InsertUsers(string tableName, params (int id, string name)[] values) =>
-        $"INSERT INTO {tableName} (Id, Name) VALUES {string.Join(",", values.Select(_ => $"({_.id}, '{_.name}')"))}";
+        $"INSERT INTO {tableName} (Id, Name, IsActive, Balance, CreatedAt) VALUES {string.Join(",", values.Select(_ => $"({_.id}, '{_.name}', TRUE, 0.00, CURRENT_TIMESTAMP)"))}";
 
     /// <inheritdoc />
     public override string InsertOrder(string tableName, string usersTableName, int id, int userId, string note) =>

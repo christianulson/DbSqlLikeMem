@@ -24,8 +24,8 @@ public enum SqlCaseExpectation
 }
 
 /// <summary>
-/// EN: Defines the class SqlQueryParserCorpusTests.
-/// PT: Define a classe SqlQueryParserCorpusTests.
+/// EN: Covers parser corpus cases for the Db2 dialect.
+/// PT: Cobre casos de corpus do parser para o dialeto Db2.
 /// </summary>
 public sealed class SqlQueryParserCorpusTests(
     ITestOutputHelper helper
@@ -628,8 +628,8 @@ select id
     }
 
     /// <summary>
-    /// EN: Tests Parse_ShouldHandle_MultiStatementStrings_BySplitting behavior.
-    /// PT: Testa o comportamento de Parse_ShouldHandle_MultiStatementStrings_BySplitting.
+    /// EN: Verifies multi-statement strings are split before parsing.
+    /// PT: Verifica se strings com multiplas instrucoes sao separadas antes do parsing.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -652,8 +652,8 @@ select id
     }
 
     /// <summary>
-    /// EN: Tests Parse_Corpus behavior.
-    /// PT: Testa o comportamento de Parse_Corpus.
+    /// EN: Verifies the parser handles the recorded corpus cases.
+    /// PT: Verifica se o parser trata os casos registrados no corpus.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]

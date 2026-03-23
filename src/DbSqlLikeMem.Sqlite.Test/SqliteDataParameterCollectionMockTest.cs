@@ -1,15 +1,15 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Test;
 /// <summary>
-/// EN: Defines the class SqliteDataParameterCollectionMockTest.
-/// PT: Define a classe SqliteDataParameterCollectionMockTest.
+/// EN: Verifies SQLite parameter collections normalize names, preserve ordering, and enforce guard clauses.
+/// PT: Verifica se colecoes de parametros do SQLite normalizam nomes, preservam a ordem e aplicam validacoes.
 /// </summary>
 public sealed class SqliteDataParameterCollectionMockTest(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
     /// <summary>
-    /// EN: Tests ParameterCollection_Normalize_ShouldWork_ForAtQuestionAndQuotedNames behavior.
-    /// PT: Testa o comportamento de ParameterCollection_Normalize_ShouldWork_ForAtQuestionAndQuotedNames.
+    /// EN: Verifies parameter names normalize correctly for positional, quoted, and prefixed SQLite forms.
+    /// PT: Verifica se nomes de parametros sao normalizados corretamente para formas posicionais, entre aspas e com prefixo do SQLite.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteDataParameterCollectionMockTest")]
@@ -23,8 +23,8 @@ public sealed class SqliteDataParameterCollectionMockTest(
     }
 
     /// <summary>
-    /// EN: Tests ParameterCollection_Add_DuplicateName_ShouldThrow behavior.
-    /// PT: Testa o comportamento de ParameterCollection_Add_DuplicateName_ShouldThrow.
+    /// EN: Verifies duplicate parameter names are rejected case-insensitively.
+    /// PT: Verifica se nomes duplicados de parametros sao rejeitados sem considerar maiusculas e minusculas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteDataParameterCollectionMockTest")]
@@ -37,8 +37,8 @@ public sealed class SqliteDataParameterCollectionMockTest(
     }
 
     /// <summary>
-    /// EN: Tests ParameterCollection_RemoveAt_ShouldReindexDictionary behavior.
-    /// PT: Testa o comportamento de ParameterCollection_RemoveAt_ShouldReindexDictionary.
+    /// EN: Verifies removing a parameter by name keeps the collection index map in sync.
+    /// PT: Verifica se remover um parametro pelo nome mantem o mapa de indices da colecao sincronizado.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteDataParameterCollectionMockTest")]

@@ -1,15 +1,15 @@
 namespace DbSqlLikeMem.Oracle.Test.Strategy;
 /// <summary>
-/// EN: Defines the class OracleInsertStrategyTests.
-/// PT: Define a classe OracleInsertStrategyTests.
+/// EN: Covers single-row INSERT execution in the Oracle mock.
+/// PT: Cobre execucao de INSERT de uma linha no mock Oracle.
 /// </summary>
 public sealed class OracleInsertStrategyTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
     /// <summary>
-    /// EN: Tests InsertIntoTableShouldAddNewRow behavior.
-    /// PT: Testa o comportamento de InsertIntoTableShouldAddNewRow.
+    /// EN: Verifies that a single INSERT adds one row to the target table.
+    /// PT: Verifica se um INSERT simples adiciona uma linha na tabela alvo.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

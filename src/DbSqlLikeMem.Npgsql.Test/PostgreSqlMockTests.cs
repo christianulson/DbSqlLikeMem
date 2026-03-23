@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
-/// EN: Defines the class PostgreSqlMockTests.
-/// PT: Define a classe PostgreSqlMockTests.
+/// EN: Covers PostgreSQL mock CRUD, transaction, batch, and RETURNING behavior.
+/// PT: Cobre comportamento de CRUD, transacoes, batches e RETURNING do mock PostgreSQL.
 /// </summary>
 public sealed class PostgreSqlMockTests
     : XUnitTestBase
@@ -10,8 +10,8 @@ public sealed class PostgreSqlMockTests
     private readonly NpgsqlConnectionMock _connection;
 
     /// <summary>
-    /// EN: Tests PostgreSqlMockTests behavior.
-    /// PT: Testa o comportamento de PostgreSqlMockTests.
+    /// EN: Initializes the PostgreSQL mock database used by the test suite.
+    /// PT: Inicializa o banco mock PostgreSQL usado pela suite de testes.
     /// </summary>
     public PostgreSqlMockTests(
         ITestOutputHelper helper
@@ -33,8 +33,8 @@ public sealed class PostgreSqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestInsert behavior.
-    /// PT: Testa o comportamento de TestInsert.
+    /// EN: Verifies INSERT adds a row to the PostgreSQL mock.
+    /// PT: Verifica se INSERT adiciona uma linha no mock PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -50,8 +50,8 @@ public sealed class PostgreSqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests ExecuteNonQuery with multi-statement INSERT script behavior.
-    /// PT: Testa o comportamento de ExecuteNonQuery com script de INSERT multi-statement.
+    /// EN: Verifies ExecuteNonQuery applies each INSERT in a multi-statement script and returns the total affected rows.
+    /// PT: Verifica se ExecuteNonQuery aplica cada INSERT em um script com multiplas instrucoes e retorna o total de linhas afetadas.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -77,8 +77,8 @@ public sealed class PostgreSqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestUpdate behavior.
-    /// PT: Testa o comportamento de TestUpdate.
+    /// EN: Verifies UPDATE modifies an existing row in the PostgreSQL mock.
+    /// PT: Verifica se UPDATE modifica uma linha existente no mock PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -97,8 +97,8 @@ public sealed class PostgreSqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestDelete behavior.
-    /// PT: Testa o comportamento de TestDelete.
+    /// EN: Verifies DELETE removes an existing row in the PostgreSQL mock.
+    /// PT: Verifica se DELETE remove uma linha existente no mock PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -117,8 +117,8 @@ public sealed class PostgreSqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestTransactionCommit behavior.
-    /// PT: Testa o comportamento de TestTransactionCommit.
+    /// EN: Verifies committed transactions persist their changes.
+    /// PT: Verifica se transacoes confirmadas persistem suas alteracoes.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -153,8 +153,8 @@ public sealed class PostgreSqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestTransactionCommitInsertUpdate behavior.
-    /// PT: Testa o comportamento de TestTransactionCommitInsertUpdate.
+    /// EN: Verifies insert and update changes survive a committed transaction.
+    /// PT: Verifica se alteracoes de insert e update sobrevivem a uma transacao confirmada.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -176,8 +176,8 @@ public sealed class PostgreSqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestTransactionRollback behavior.
-    /// PT: Testa o comportamento de TestTransactionRollback.
+    /// EN: Verifies rolled back transactions discard their changes.
+    /// PT: Verifica se transacoes revertidas descartam suas alteracoes.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -246,8 +246,8 @@ public sealed class PostgreSqlMockTests
 
 
     /// <summary>
-    /// EN: Tests TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount behavior.
-    /// PT: Testa o comportamento de TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount.
+    /// EN: Verifies ROW_COUNT returns the row count from the last SELECT statement.
+    /// PT: Verifica se ROW_COUNT retorna a contagem de linhas do ultimo SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -270,8 +270,8 @@ public sealed class PostgreSqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestSelect_SqlCalcFoundRows_ShouldThrow_NotSupported behavior.
-    /// PT: Testa o comportamento de TestSelect_SqlCalcFoundRows_ShouldThrow_NotSupported.
+    /// EN: Verifies SQL_CALC_FOUND_ROWS is not supported by the PostgreSQL mock.
+    /// PT: Verifica se SQL_CALC_FOUND_ROWS nao tem suporte no mock PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -287,8 +287,8 @@ public sealed class PostgreSqlMockTests
 
 
     /// <summary>
-    /// EN: Tests TestUpdate_RowCountFunction_ShouldReturnAffectedRows behavior.
-    /// PT: Testa o comportamento de TestUpdate_RowCountFunction_ShouldReturnAffectedRows.
+    /// EN: Verifies ROW_COUNT returns the affected row count after UPDATE.
+    /// PT: Verifica se ROW_COUNT retorna a contagem de linhas afetadas apos UPDATE.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -310,8 +310,8 @@ public sealed class PostgreSqlMockTests
 
 
     /// <summary>
-    /// EN: Tests TestBatch_BeginTransactionThenRowCount_ShouldReturnZero behavior.
-    /// PT: Testa o comportamento de TestBatch_BeginTransactionThenRowCount_ShouldReturnZero.
+    /// EN: Verifies ROW_COUNT returns zero after BEGIN TRANSACTION in a batch.
+    /// PT: Verifica se ROW_COUNT retorna zero apos BEGIN TRANSACTION em um batch.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -329,8 +329,8 @@ public sealed class PostgreSqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestBatch_CallThenRowCount_ShouldReturnZero behavior.
-    /// PT: Testa o comportamento de TestBatch_CallThenRowCount_ShouldReturnZero.
+    /// EN: Verifies ROW_COUNT returns zero after CALL in a batch.
+    /// PT: Verifica se ROW_COUNT retorna zero apos CALL em um batch.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -350,8 +350,8 @@ public sealed class PostgreSqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestBatch_UpdateCommitThenRowCount_ShouldReturnZeroAfterCommit behavior.
-    /// PT: Testa o comportamento de TestBatch_UpdateCommitThenRowCount_ShouldReturnZeroAfterCommit.
+    /// EN: Verifies ROW_COUNT returns zero after UPDATE followed by COMMIT.
+    /// PT: Verifica se ROW_COUNT retorna zero apos UPDATE seguido de COMMIT.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -370,8 +370,8 @@ public sealed class PostgreSqlMockTests
 
 
     /// <summary>
-    /// EN: Tests TestBatch_RollbackToSavepointThenRowCount_ShouldReturnZero behavior.
-    /// PT: Testa o comportamento de TestBatch_RollbackToSavepointThenRowCount_ShouldReturnZero.
+    /// EN: Verifies ROW_COUNT returns zero after ROLLBACK TO SAVEPOINT.
+    /// PT: Verifica se ROW_COUNT retorna zero apos ROLLBACK TO SAVEPOINT.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -389,8 +389,8 @@ public sealed class PostgreSqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestBatch_ReleaseSavepointThenRowCount_ShouldReturnZero behavior.
-    /// PT: Testa o comportamento de TestBatch_ReleaseSavepointThenRowCount_ShouldReturnZero.
+    /// EN: Verifies ROW_COUNT returns zero after RELEASE SAVEPOINT.
+    /// PT: Verifica se ROW_COUNT retorna zero apos RELEASE SAVEPOINT.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -409,8 +409,8 @@ public sealed class PostgreSqlMockTests
 
 
     /// <summary>
-    /// EN: Tests TestBatch_SelectThenUpdateThenRowCount_ShouldReflectLastDml behavior.
-    /// PT: Testa o comportamento de TestBatch_SelectThenUpdateThenRowCount_ShouldReflectLastDml.
+    /// EN: Verifies ROW_COUNT reflects the last DML statement in a mixed batch.
+    /// PT: Verifica se ROW_COUNT reflete a ultima instrucao DML em um batch misto.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -437,8 +437,8 @@ public sealed class PostgreSqlMockTests
 
 
     /// <summary>
-    /// EN: Tests TestBatch_CallUpdateCommitThenRowCount_ShouldReturnZeroAfterCommit behavior.
-    /// PT: Testa o comportamento de TestBatch_CallUpdateCommitThenRowCount_ShouldReturnZeroAfterCommit.
+    /// EN: Verifies ROW_COUNT returns zero after CALL, UPDATE, and COMMIT in a batch.
+    /// PT: Verifica se ROW_COUNT retorna zero apos CALL, UPDATE e COMMIT em um batch.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -459,8 +459,8 @@ public sealed class PostgreSqlMockTests
 
 
     /// <summary>
-    /// EN: Tests TestBatch_UpdateThenSelectThenRowCount_ShouldReflectLastSelect behavior.
-    /// PT: Testa o comportamento de TestBatch_UpdateThenSelectThenRowCount_ShouldReflectLastSelect.
+    /// EN: Verifies ROW_COUNT reflects the last SELECT result set in a mixed batch.
+    /// PT: Verifica se ROW_COUNT reflete o ultimo conjunto de resultados SELECT em um batch misto.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -491,8 +491,8 @@ public sealed class PostgreSqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests ExecuteReader_InsertReturning_ShouldReturnInsertedRows behavior.
-    /// PT: Testa o comportamento de ExecuteReader_InsertReturning_ShouldReturnInsertedRows.
+    /// EN: Verifies INSERT ... RETURNING exposes the inserted rows.
+    /// PT: Verifica se INSERT ... RETURNING expõe as linhas inseridas.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -512,8 +512,8 @@ public sealed class PostgreSqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests ExecuteReader_UpdateReturning_ShouldReturnUpdatedProjection behavior.
-    /// PT: Testa o comportamento de ExecuteReader_UpdateReturning_ShouldReturnUpdatedProjection.
+    /// EN: Verifies UPDATE ... RETURNING exposes the updated projection.
+    /// PT: Verifica se UPDATE ... RETURNING expõe a projeção atualizada.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -539,8 +539,8 @@ public sealed class PostgreSqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests ExecuteReader_DeleteReturning_ShouldReturnDeletedRowSnapshot behavior.
-    /// PT: Testa o comportamento de ExecuteReader_DeleteReturning_ShouldReturnDeletedRowSnapshot.
+    /// EN: Verifies DELETE ... RETURNING exposes the deleted row snapshot.
+    /// PT: Verifica se DELETE ... RETURNING expõe o snapshot da linha removida.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -567,8 +567,8 @@ public sealed class PostgreSqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests ExecuteReader_InsertSelectReturning_ShouldReturnAllInsertedRows behavior.
-    /// PT: Testa o comportamento de ExecuteReader_InsertSelectReturning_ShouldReturnAllInsertedRows.
+    /// EN: Verifies INSERT ... SELECT ... RETURNING exposes every inserted row.
+    /// PT: Verifica se INSERT ... SELECT ... RETURNING expõe cada linha inserida.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -603,8 +603,8 @@ public sealed class PostgreSqlMockTests
     }
 
     /// <summary>
-    /// EN: Tests ExecuteReader_UpdateReturningQualifiedWildcard_ShouldReturnAllColumns behavior.
-    /// PT: Testa o comportamento de ExecuteReader_UpdateReturningQualifiedWildcard_ShouldReturnAllColumns.
+    /// EN: Verifies UPDATE ... RETURNING users.* exposes all columns.
+    /// PT: Verifica se UPDATE ... RETURNING users.* expõe todas as colunas.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]

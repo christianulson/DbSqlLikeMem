@@ -1,4 +1,6 @@
-﻿namespace DbSqlLikeMem.Sqlite;
+using SQLitePCL;
+
+namespace DbSqlLikeMem.Sqlite;
 
 /// <summary>
 /// EN: Represents Sqlite Connection Mock.
@@ -9,6 +11,7 @@ public sealed class SqliteConnectionMock
 {
     static SqliteConnectionMock()
     {
+        Batteries_V2.Init();
         SqliteAstQueryExecutorRegister.Register();
     }
 

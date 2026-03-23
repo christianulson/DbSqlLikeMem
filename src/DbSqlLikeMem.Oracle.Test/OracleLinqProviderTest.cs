@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.Oracle.Test;
 /// <summary>
-/// EN: Defines the class OracleLinqProviderTest.
-/// PT: Define a classe OracleLinqProviderTest.
+/// EN: Verifies LINQ query translation and provider metadata behavior for Oracle connections.
+/// PT: Verifica a traducao de consultas LINQ e o comportamento de metadados do provedor para conexoes Oracle.
 /// </summary>
 public sealed class OracleLinqProviderTest(
         ITestOutputHelper helper
@@ -24,8 +24,8 @@ public sealed class OracleLinqProviderTest(
 #pragma warning restore CA1812
 
     /// <summary>
-    /// EN: Tests LinqProvider_ShouldQueryWhereAndReturnRows behavior.
-    /// PT: Testa o comportamento de LinqProvider_ShouldQueryWhereAndReturnRows.
+    /// EN: Verifies LINQ queries filter rows and project the expected Oracle results.
+    /// PT: Verifica se consultas LINQ filtram linhas e projetam os resultados esperados no Oracle.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleLinqProviderTest")]

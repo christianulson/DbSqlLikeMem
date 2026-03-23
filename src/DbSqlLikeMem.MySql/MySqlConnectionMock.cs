@@ -21,8 +21,21 @@ public class MySqlConnectionMock
        string? defaultDatabase = null
     ) : base(db ?? [], defaultDatabase)
     {
-        _serverVersion = $"MySQL {Db.Version}";
+        _serverVersion = $"MySQL {FormatServerVersion(Db.Version)}";
     }
+
+    private static string FormatServerVersion(int version)
+        => version switch
+        {
+            30 => "3.0",
+            40 => "4.0",
+            55 => "5.5",
+            56 => "5.6",
+            57 => "5.7",
+            80 => "8.0",
+            84 => "8.4",
+            _ => version.ToString(),
+        };
 
     /// <summary>
     /// EN: Creates a MySQL transaction mock.

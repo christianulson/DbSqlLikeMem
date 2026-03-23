@@ -1,16 +1,16 @@
 namespace DbSqlLikeMem.MySql.Test.Strategy;
 
 /// <summary>
-/// EN: Tests for INSERT ... ON DUPLICATE behavior.
-/// PT: Testes para comportamento de INSERT ... ON DUPLICATE.
+/// EN: Covers INSERT ... ON DUPLICATE scenarios in the MySql mock.
+/// PT: Cobre cenarios de INSERT ... ON DUPLICATE no mock MySql.
 /// </summary>
 public class MySqlInsertOnDuplicateTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
     /// <summary>
-    /// EN: Tests Insert_OnDuplicate_ShouldInsertWhenNoConflict behavior.
-    /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldInsertWhenNoConflict.
+    /// EN: Verifies that INSERT ... ON DUPLICATE inserts when there is no conflict.
+    /// PT: Verifica se INSERT ... ON DUPLICATE insere quando nao ha conflito.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -35,8 +35,8 @@ public class MySqlInsertOnDuplicateTests(
     }
 
     /// <summary>
-    /// EN: Tests Insert_OnDuplicate_ShouldUpdateExistingRow_ByPrimaryKey_UsingValues behavior.
-    /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldUpdateExistingRow_ByPrimaryKey_UsingValues.
+    /// EN: Verifies that INSERT ... ON DUPLICATE updates an existing row by primary key.
+    /// PT: Verifica se INSERT ... ON DUPLICATE atualiza uma linha existente pela chave primaria.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -63,8 +63,8 @@ public class MySqlInsertOnDuplicateTests(
     }
 
     /// <summary>
-    /// EN: Tests Insert_OnDuplicate_ShouldReturnTwoAffectedRows_WhenConflictUpdates behavior.
-    /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldReturnTwoAffectedRows_WhenConflictUpdates.
+    /// EN: Verifies that a conflict update reports two affected rows.
+    /// PT: Verifica se um update por conflito reporta duas linhas afetadas.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -90,8 +90,8 @@ public class MySqlInsertOnDuplicateTests(
     }
 
     /// <summary>
-    /// EN: Tests Insert_OnDuplicate_ShouldUpdateExistingRow_ByUniqueIndex behavior.
-    /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldUpdateExistingRow_ByUniqueIndex.
+    /// EN: Verifies that INSERT ... ON DUPLICATE updates rows matched by a unique index.
+    /// PT: Verifica se INSERT ... ON DUPLICATE atualiza linhas batidas por indice unico.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -121,8 +121,8 @@ public class MySqlInsertOnDuplicateTests(
     }
 
     /// <summary>
-    /// EN: Tests Insert_OnDuplicate_ShouldUpdateUsingLiteralAndParam behavior.
-    /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldUpdateUsingLiteralAndParam.
+    /// EN: Verifies that INSERT ... ON DUPLICATE accepts literal and parameter values.
+    /// PT: Verifica se INSERT ... ON DUPLICATE aceita valores literais e parametros.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -154,8 +154,8 @@ public class MySqlInsertOnDuplicateTests(
     }
 
     /// <summary>
-    /// EN: Tests Insert_OnDuplicate_ShouldUpdateAggragating behavior.
-    /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldUpdateAggragating.
+    /// EN: Verifies that INSERT ... ON DUPLICATE can update with aggregating expressions.
+    /// PT: Verifica se INSERT ... ON DUPLICATE pode atualizar com expressoes agregadas.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]

@@ -1,15 +1,15 @@
 ﻿namespace DbSqlLikeMem.Db2.Test;
 /// <summary>
-/// EN: Defines the class Db2DataParameterCollectionMockTest.
-/// PT: Define a classe Db2DataParameterCollectionMockTest.
+/// EN: Verifies Db2 parameter collections normalize names, preserve ordering, and enforce guard clauses.
+/// PT: Verifica se colecoes de parametros do Db2 normalizam nomes, preservam a ordem e aplicam validacoes.
 /// </summary>
 public sealed class Db2DataParameterCollectionMockTest(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
     /// <summary>
-    /// EN: Tests ParameterCollection_Normalize_ShouldWork_ForAtQuestionAndQuotedNames behavior.
-    /// PT: Testa o comportamento de ParameterCollection_Normalize_ShouldWork_ForAtQuestionAndQuotedNames.
+    /// EN: Verifies parameter names normalize correctly for positional, quoted, and prefixed Db2 forms.
+    /// PT: Verifica se nomes de parametros sao normalizados corretamente para formas posicionais, entre aspas e com prefixo do Db2.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2DataParameterCollectionMockTest")]
@@ -23,8 +23,8 @@ public sealed class Db2DataParameterCollectionMockTest(
     }
 
     /// <summary>
-    /// EN: Tests ParameterCollection_Add_DuplicateName_ShouldThrow behavior.
-    /// PT: Testa o comportamento de ParameterCollection_Add_DuplicateName_ShouldThrow.
+    /// EN: Verifies duplicate parameter names are rejected case-insensitively.
+    /// PT: Verifica se nomes duplicados de parametros sao rejeitados sem considerar maiusculas e minusculas.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2DataParameterCollectionMockTest")]
@@ -37,8 +37,8 @@ public sealed class Db2DataParameterCollectionMockTest(
     }
 
     /// <summary>
-    /// EN: Tests ParameterCollection_RemoveAt_ShouldReindexDictionary behavior.
-    /// PT: Testa o comportamento de ParameterCollection_RemoveAt_ShouldReindexDictionary.
+    /// EN: Verifies removing a parameter by name keeps the collection index map in sync.
+    /// PT: Verifica se remover um parametro pelo nome mantem o mapa de indices da colecao sincronizado.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2DataParameterCollectionMockTest")]

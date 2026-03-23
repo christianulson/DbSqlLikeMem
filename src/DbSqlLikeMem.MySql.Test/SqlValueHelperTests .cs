@@ -3,16 +3,16 @@ using System.Text.Json;
 namespace DbSqlLikeMem.MySql.Test;
 
 /// <summary>
-/// EN: Defines the class SqlValueHelperTests.
-/// PT: Define a classe SqlValueHelperTests.
+/// EN: Covers SQL value resolution helpers in the MySql mock.
+/// PT: Cobre os helpers de resolucao de valores SQL no mock MySql.
 /// </summary>
 public sealed class SqlValueHelperTests(
     ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
     /// <summary>
-    /// EN: Tests Resolve_ShouldReadDapperParameter_ByName behavior.
-    /// PT: Testa o comportamento de Resolve_ShouldReadDapperParameter_ByName.
+    /// EN: Verifies parameters can be resolved by name.
+    /// PT: Verifica se parametros podem ser resolvidos pelo nome.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlValueHelperTests ")]
@@ -32,8 +32,8 @@ public sealed class SqlValueHelperTests(
     }
 
     /// <summary>
-    /// EN: Tests Resolve_ShouldThrow_WhenParameterMissing behavior.
-    /// PT: Testa o comportamento de Resolve_ShouldThrow_WhenParameterMissing.
+    /// EN: Verifies missing parameters raise an exception.
+    /// PT: Verifica se parametros ausentes geram excecao.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlValueHelperTests ")]
@@ -44,8 +44,8 @@ public sealed class SqlValueHelperTests(
     }
 
     /// <summary>
-    /// EN: Tests Resolve_ShouldParseInList_ToListOfResolvedValues behavior.
-    /// PT: Testa o comportamento de Resolve_ShouldParseInList_ToListOfResolvedValues.
+    /// EN: Verifies IN lists resolve to a list of values.
+    /// PT: Verifica se listas IN sao resolvidas como uma lista de valores.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlValueHelperTests ")]
@@ -58,8 +58,8 @@ public sealed class SqlValueHelperTests(
     }
 
     /// <summary>
-    /// EN: Tests Resolve_NullOnNonNullable_ShouldThrow behavior.
-    /// PT: Testa o comportamento de Resolve_NullOnNonNullable_ShouldThrow.
+    /// EN: Verifies NULL is rejected for non-nullable columns.
+    /// PT: Verifica se NULL e rejeitado para colunas nao anulaveis.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlValueHelperTests ")]
@@ -70,8 +70,8 @@ public sealed class SqlValueHelperTests(
     }
 
     /// <summary>
-    /// EN: Tests Resolve_NullOnNullable_ShouldReturnNull behavior.
-    /// PT: Testa o comportamento de Resolve_NullOnNullable_ShouldReturnNull.
+    /// EN: Verifies NULL is returned as null for nullable columns.
+    /// PT: Verifica se NULL e retornado como null para colunas anulaveis.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlValueHelperTests ")]
@@ -83,8 +83,8 @@ public sealed class SqlValueHelperTests(
     }
 
     /// <summary>
-    /// EN: Tests Resolve_Json_ShouldReturnJsonDocument_WhenValid behavior.
-    /// PT: Testa o comportamento de Resolve_Json_ShouldReturnJsonDocument_WhenValid.
+    /// EN: Verifies valid JSON literals resolve to JsonDocument values.
+    /// PT: Verifica se literais JSON validos sao resolvidos como JsonDocument.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlValueHelperTests ")]
@@ -97,8 +97,8 @@ public sealed class SqlValueHelperTests(
     }
 
     /// <summary>
-    /// EN: Tests Resolve_InvalidJson_ShouldReturnRawString behavior.
-    /// PT: Testa o comportamento de Resolve_InvalidJson_ShouldReturnRawString.
+    /// EN: Verifies invalid JSON literals remain as raw strings.
+    /// PT: Verifica se literais JSON invalidos permanecem como strings brutas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlValueHelperTests ")]
@@ -110,8 +110,8 @@ public sealed class SqlValueHelperTests(
     }
 
     /// <summary>
-    /// EN: Tests Like_ShouldMatch_MySqlStyle behavior.
-    /// PT: Testa o comportamento de Like_ShouldMatch_MySqlStyle.
+    /// EN: Verifies LIKE follows MySQL-style wildcard matching.
+    /// PT: Verifica se LIKE segue a correspondencia de curingas no estilo MySQL.
     /// </summary>
     [Theory]
     [Trait("Category", "SqlValueHelperTests ")]
@@ -126,8 +126,8 @@ public sealed class SqlValueHelperTests(
     }
 
     /// <summary>
-    /// EN: Tests Resolve_Enum_ShouldValidateAgainstColumnDef behavior.
-    /// PT: Testa o comportamento de Resolve_Enum_ShouldValidateAgainstColumnDef.
+    /// EN: Verifies enum columns accept configured values and reject invalid ones.
+    /// PT: Verifica se colunas enum aceitam valores configurados e rejeitam valores invalidos.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlValueHelperTests ")]
@@ -149,8 +149,8 @@ public sealed class SqlValueHelperTests(
     }
 
     /// <summary>
-    /// EN: Tests Resolve_Set_ShouldReturnHashSet_AndValidate behavior.
-    /// PT: Testa o comportamento de Resolve_Set_ShouldReturnHashSet_AndValidate.
+    /// EN: Verifies SET columns resolve to a hash set and validate allowed values.
+    /// PT: Verifica se colunas SET sao resolvidas como um hash set e validam os valores permitidos.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlValueHelperTests ")]
@@ -181,8 +181,8 @@ public sealed class SqlValueHelperTests(
     }
 
     /// <summary>
-    /// EN: Tests Resolve_ShouldValidateStringSize behavior.
-    /// PT: Testa o comportamento de Resolve_ShouldValidateStringSize.
+    /// EN: Verifies string values respect the declared size limit.
+    /// PT: Verifica se valores de texto respeitam o limite de tamanho declarado.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlValueHelperTests ")]
@@ -207,8 +207,8 @@ public sealed class SqlValueHelperTests(
     }
 
     /// <summary>
-    /// EN: Tests Resolve_ShouldValidateDecimalPlaces behavior.
-    /// PT: Testa o comportamento de Resolve_ShouldValidateDecimalPlaces.
+    /// EN: Verifies decimal values respect the declared scale.
+    /// PT: Verifica se valores decimais respeitam a escala declarada.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlValueHelperTests ")]

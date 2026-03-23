@@ -1,16 +1,16 @@
 namespace DbSqlLikeMem.Oracle.Test.TemporaryTable;
 
 /// <summary>
-/// EN: Defines the class OracleTemporaryTableEngineTests.
-/// PT: Define a classe OracleTemporaryTableEngineTests.
+/// EN: Covers CREATE TEMPORARY TABLE execution scenarios in the Oracle mock.
+/// PT: Cobre cenarios de execucao de CREATE TEMPORARY TABLE no mock Oracle.
 /// </summary>
 public sealed class OracleTemporaryTableEngineTests
 {
     private static readonly int[] expected = [1, 2];
 
     /// <summary>
-    /// EN: Tests CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows behavior.
-    /// PT: Testa o comportamento de CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows.
+    /// EN: Verifies that CREATE TEMPORARY TABLE AS SELECT returns the projected rows.
+    /// PT: Verifica se CREATE TEMPORARY TABLE AS SELECT retorna as linhas projetadas.
     /// </summary>
     [Fact]
     [Trait("Category", "TemporaryTable")]

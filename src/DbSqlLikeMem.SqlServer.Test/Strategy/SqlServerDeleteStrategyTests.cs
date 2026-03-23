@@ -1,16 +1,16 @@
 namespace DbSqlLikeMem.SqlServer.Test.Strategy;
 
 /// <summary>
-/// EN: Defines the class SqlServerCommandDeleteTests.
-/// PT: Define a classe SqlServerCommandDeleteTests.
+/// EN: Covers DELETE statements in the SqlServer mock.
+/// PT: Cobre instrucoes DELETE no mock SqlServer.
 /// </summary>
 public sealed class SqlServerCommandDeleteTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
     /// <summary>
-    /// EN: Tests ExecuteNonQuery_DELETE_remove_1_linha behavior.
-    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_remove_1_linha.
+    /// EN: Verifies DELETE removes one matching row.
+    /// PT: Verifica se DELETE remove uma linha correspondente.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -33,8 +33,8 @@ public sealed class SqlServerCommandDeleteTests(
     }
 
     /// <summary>
-    /// EN: Tests ExecuteNonQuery_DELETE_remove_varias_linhas behavior.
-    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_remove_varias_linhas.
+    /// EN: Verifies DELETE removes every matching row.
+    /// PT: Verifica se DELETE remove todas as linhas correspondentes.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -58,8 +58,8 @@ public sealed class SqlServerCommandDeleteTests(
     }
 
     /// <summary>
-    /// EN: Tests ExecuteNonQuery_DELETE_quando_nao_acha_retorna_0 behavior.
-    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_quando_nao_acha_retorna_0.
+    /// EN: Verifies DELETE returns zero when no row matches.
+    /// PT: Verifica se DELETE retorna zero quando nenhuma linha corresponde.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -80,8 +80,8 @@ public sealed class SqlServerCommandDeleteTests(
     }
 
     /// <summary>
-    /// EN: Tests ExecuteNonQuery_DELETE_tabela_inexistente_dispara behavior.
-    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_tabela_inexistente_dispara.
+    /// EN: Verifies DELETE throws when the target table does not exist.
+    /// PT: Verifica se DELETE dispara erro quando a tabela alvo nao existe.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -96,8 +96,8 @@ public sealed class SqlServerCommandDeleteTests(
     }
 
     /// <summary>
-    /// EN: Tests ExecuteNonQuery_DELETE_sem_FROM_remove_1_linha behavior.
-    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_sem_FROM_remove_1_linha.
+    /// EN: Verifies DELETE without FROM still removes one matching row.
+    /// PT: Verifica se DELETE sem FROM ainda remove uma linha correspondente.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -120,8 +120,8 @@ public sealed class SqlServerCommandDeleteTests(
     }
 
     /// <summary>
-    /// EN: Tests ExecuteNonQuery_DELETE_bloqueia_quando_fk_referencia behavior.
-    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_bloqueia_quando_fk_referencia.
+    /// EN: Verifies DELETE is blocked when a foreign key references the target row.
+    /// PT: Verifica se DELETE e bloqueado quando uma chave estrangeira referencia a linha alvo.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -177,8 +177,8 @@ public sealed class SqlServerCommandDeleteTests(
     }
 
     /// <summary>
-    /// EN: Tests ExecuteNonQuery_DELETE_funciona_com_ThreadSafe_true_ou_false behavior.
-    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_funciona_com_ThreadSafe_true_ou_false.
+    /// EN: Verifies DELETE works in thread-safe and non-thread-safe mode.
+    /// PT: Verifica se DELETE funciona em modo thread-safe e nao thread-safe.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -200,8 +200,8 @@ public sealed class SqlServerCommandDeleteTests(
     }
 
     /// <summary>
-    /// EN: Tests ExecuteNonQuery_DELETE_case_insensitive behavior.
-    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_case_insensitive.
+    /// EN: Verifies DELETE parsing is case-insensitive.
+    /// PT: Verifica se o parsing de DELETE nao diferencia maiusculas e minusculas.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -221,8 +221,8 @@ public sealed class SqlServerCommandDeleteTests(
     }
 
     /// <summary>
-    /// EN: Tests ExecuteNonQuery_DELETE_com_parametro_se_suportado behavior.
-    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_com_parametro_se_suportado.
+    /// EN: Verifies DELETE accepts a parameter when the mock supports it.
+    /// PT: Verifica se DELETE aceita parametro quando o mock oferece suporte.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

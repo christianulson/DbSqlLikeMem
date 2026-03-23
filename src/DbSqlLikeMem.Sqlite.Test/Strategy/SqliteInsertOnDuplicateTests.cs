@@ -1,16 +1,16 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Test.Strategy;
 
 /// <summary>
-/// EN: Tests for INSERT ... ON DUPLICATE behavior.
-/// PT: Testes para comportamento de INSERT ... ON DUPLICATE.
+/// EN: Covers INSERT ... ON DUPLICATE scenarios in the Sqlite mock.
+/// PT: Cobre cenarios de INSERT ... ON DUPLICATE no mock Sqlite.
 /// </summary>
 public class SqliteInsertOnDuplicateTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
     /// <summary>
-    /// EN: Tests Insert_OnDuplicate_ShouldInsertWhenNoConflict behavior.
-    /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldInsertWhenNoConflict.
+    /// EN: Verifies INSERT ... ON DUPLICATE KEY inserts a new row when no matching key exists.
+    /// PT: Verifica se INSERT ... ON DUPLICATE KEY insere uma nova linha quando nao existe chave correspondente.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -35,8 +35,8 @@ public class SqliteInsertOnDuplicateTests(
     }
 
     /// <summary>
-    /// EN: Tests Insert_OnDuplicate_ShouldUpdateExistingRow_ByPrimaryKey_UsingValues behavior.
-    /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldUpdateExistingRow_ByPrimaryKey_UsingValues.
+    /// EN: Verifies INSERT ... ON DUPLICATE KEY updates the existing primary-key row with VALUES().
+    /// PT: Verifica se INSERT ... ON DUPLICATE KEY atualiza a linha existente da chave primaria com VALUES().
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -63,8 +63,8 @@ public class SqliteInsertOnDuplicateTests(
     }
 
     /// <summary>
-    /// EN: Tests Insert_OnDuplicate_ShouldUpdateExistingRow_ByUniqueIndex behavior.
-    /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldUpdateExistingRow_ByUniqueIndex.
+    /// EN: Verifies INSERT ... ON DUPLICATE KEY updates the row matched by a unique index.
+    /// PT: Verifica se INSERT ... ON DUPLICATE KEY atualiza a linha encontrada por um indice unico.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -94,8 +94,8 @@ public class SqliteInsertOnDuplicateTests(
     }
 
     /// <summary>
-    /// EN: Tests Insert_OnDuplicate_ShouldUpdateUsingLiteralAndParam behavior.
-    /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldUpdateUsingLiteralAndParam.
+    /// EN: Verifies the update branch can mix literal values and parameters.
+    /// PT: Verifica se a ramificacao de update pode combinar valores literais e parametros.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -127,8 +127,8 @@ public class SqliteInsertOnDuplicateTests(
     }
 
     /// <summary>
-    /// EN: Tests Insert_OnDuplicate_ShouldUpdateAggragating behavior.
-    /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldUpdateAggragating.
+    /// EN: Verifies the update branch can aggregate the existing and incoming values.
+    /// PT: Verifica se a ramificacao de update pode agregar os valores existentes e recebidos.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -161,8 +161,8 @@ INSERT INTO users (Id, Qtd) VALUES (@p0, @p1)
     }
 
     /// <summary>
-    /// EN: Tests Insert_OnConflict_DoNothing_ShouldNotUpdate_WhenConflict behavior.
-    /// PT: Testa o comportamento de Insert_OnConflict_DoNothing_ShouldNotUpdate_WhenConflict.
+    /// EN: Verifies ON CONFLICT DO NOTHING leaves the existing row unchanged.
+    /// PT: Verifica se ON CONFLICT DO NOTHING mantem a linha existente sem alteracao.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -188,8 +188,8 @@ INSERT INTO users (Id, Qtd) VALUES (@p0, @p1)
     }
 
     /// <summary>
-    /// EN: Tests Insert_OnConflict_DoUpdateWhereFalse_ShouldSkipUpdate_WhenConflict behavior.
-    /// PT: Testa o comportamento de Insert_OnConflict_DoUpdateWhereFalse_ShouldSkipUpdate_WhenConflict.
+    /// EN: Verifies the ON CONFLICT DO UPDATE branch is skipped when the predicate is false.
+    /// PT: Verifica se a ramificacao ON CONFLICT DO UPDATE e ignorada quando o predicado e falso.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -215,8 +215,8 @@ INSERT INTO users (Id, Qtd) VALUES (@p0, @p1)
     }
 
     /// <summary>
-    /// EN: Tests Insert_OnConflict_DoUpdateWhereTrue_ShouldApplyUpdate_WhenConflict behavior.
-    /// PT: Testa o comportamento de Insert_OnConflict_DoUpdateWhereTrue_ShouldApplyUpdate_WhenConflict.
+    /// EN: Verifies the ON CONFLICT DO UPDATE branch applies when the predicate is true.
+    /// PT: Verifica se a ramificacao ON CONFLICT DO UPDATE e aplicada quando o predicado e verdadeiro.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]

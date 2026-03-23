@@ -1,15 +1,15 @@
 namespace DbSqlLikeMem.Npgsql.Test.Parser;
 /// <summary>
-/// EN: Defines the class SqlExprPrinterTest.
-/// PT: Define a classe SqlExprPrinterTest.
+/// EN: Covers round-trip SQL expression printing in the Npgsql parser.
+/// PT: Cobre o round-trip de impressao de expressoes SQL no parser Npgsql.
 /// </summary>
 public sealed class SqlExprPrinterTest(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
     /// <summary>
-    /// EN: Tests ExprPrinter_ShouldAllow_Roundtrip_Parse_Print_Parse behavior.
-    /// PT: Testa o comportamento de ExprPrinter_ShouldAllow_Roundtrip_Parse_Print_Parse.
+    /// EN: Verifies parsed expressions can be printed and parsed again without changing the normalized output.
+    /// PT: Verifica se expressoes parseadas podem ser impressas e parseadas novamente sem alterar a saida normalizada.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -27,8 +27,8 @@ public sealed class SqlExprPrinterTest(
     }
 
     /// <summary>
-    /// EN: Provides test data for Expressions.
-    /// PT: Fornece dados de teste para Expressions.
+    /// EN: Provides sample expressions for the round-trip parser test.
+    /// PT: Fornece expressoes de exemplo para o teste de round-trip do parser.
     /// </summary>
     public static IEnumerable<object[]> Expressions()
     {

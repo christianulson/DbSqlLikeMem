@@ -27,7 +27,7 @@ public abstract class BaseServiceTest<T>(
     /// PT: Cria os dados do cenario usando o objeto de cenario configurado.
     /// </summary>
     public virtual void CreateScenario(params object[] pars) {
-        testScenario.CreateSenario(this, pars);
+        testScenario.CreateScenario(this, pars);
     }
 
     /// <summary>

@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.SqlServer.Test;
 
 /// <summary>
-/// EN: Defines the class SqlServerMockTests.
-/// PT: Define a classe SqlServerMockTests.
+/// EN: Verifies SQL Server command execution, transaction handling, and query helpers against the mock engine.
+/// PT: Verifica a execucao de comandos SQL Server, o tratamento de transacoes e os helpers de consulta no motor mock.
 /// </summary>
 public sealed class SqlServerMockTests
     : XUnitTestBase
@@ -10,8 +10,8 @@ public sealed class SqlServerMockTests
     private readonly SqlServerConnectionMock _connection;
 
     /// <summary>
-    /// EN: Tests SqlServerMockTests behavior.
-    /// PT: Testa o comportamento de SqlServerMockTests.
+    /// EN: Initializes the SQL Server mock connection used by the test suite.
+    /// PT: Inicializa a conexao mock SQL Server usada pela suite de testes.
     /// </summary>
     public SqlServerMockTests(
         ITestOutputHelper helper
@@ -33,8 +33,8 @@ public sealed class SqlServerMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestInsert behavior.
-    /// PT: Testa o comportamento de TestInsert.
+    /// EN: Verifies INSERT statements persist rows into the SQL Server mock table.
+    /// PT: Verifica se instrucoes INSERT persistem linhas na tabela mock do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -50,8 +50,8 @@ public sealed class SqlServerMockTests
     }
 
     /// <summary>
-    /// EN: Tests ExecuteNonQuery with multi-statement INSERT script behavior.
-    /// PT: Testa o comportamento de ExecuteNonQuery com script de INSERT multi-statement.
+    /// EN: Verifies multi-statement INSERT scripts add all rows and return the total affected count.
+    /// PT: Verifica se scripts INSERT com multiplas instrucoes adicionam todas as linhas e retornam o total afetado.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -77,8 +77,8 @@ public sealed class SqlServerMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestUpdate behavior.
-    /// PT: Testa o comportamento de TestUpdate.
+    /// EN: Verifies UPDATE statements modify the targeted SQL Server row.
+    /// PT: Verifica se instrucoes UPDATE modificam a linha alvo no SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -97,8 +97,8 @@ public sealed class SqlServerMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestDelete behavior.
-    /// PT: Testa o comportamento de TestDelete.
+    /// EN: Verifies DELETE statements remove the targeted SQL Server row.
+    /// PT: Verifica se instrucoes DELETE removem a linha alvo no SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -117,8 +117,8 @@ public sealed class SqlServerMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestTransactionCommit behavior.
-    /// PT: Testa o comportamento de TestTransactionCommit.
+    /// EN: Verifies committed transactions preserve inserted SQL Server rows.
+    /// PT: Verifica se transacoes confirmadas preservam as linhas inseridas no SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -153,8 +153,8 @@ public sealed class SqlServerMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestTransactionCommitInsertUpdate behavior.
-    /// PT: Testa o comportamento de TestTransactionCommitInsertUpdate.
+    /// EN: Verifies committing a transaction preserves the latest SQL Server update.
+    /// PT: Verifica se confirmar uma transacao preserva a ultima atualizacao do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -176,8 +176,8 @@ public sealed class SqlServerMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestTransactionRollback behavior.
-    /// PT: Testa o comportamento de TestTransactionRollback.
+    /// EN: Verifies rolled back transactions discard inserted SQL Server rows.
+    /// PT: Verifica se transacoes revertidas descartam as linhas inseridas no SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -469,8 +469,8 @@ public sealed class SqlServerMockTests
 
 
     /// <summary>
-    /// EN: Tests TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount behavior.
-    /// PT: Testa o comportamento de TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount.
+    /// EN: Verifies row count functions expose the last SELECT row count.
+    /// PT: Verifica se as funcoes de contagem de linhas expõem a contagem da ultima SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -499,8 +499,8 @@ public sealed class SqlServerMockTests
 
 
     /// <summary>
-    /// EN: Tests TestSelect_SystemRowCountVariable_ShouldReturnLastSelectRowCount behavior.
-    /// PT: Testa o comportamento de TestSelect_SystemRowCountVariable_ShouldReturnLastSelectRowCount.
+    /// EN: Verifies SQL Server row-count variables expose the last SELECT row count.
+    /// PT: Verifica se as variaveis de contagem de linhas do SQL Server expõem a contagem da ultima SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -529,8 +529,8 @@ public sealed class SqlServerMockTests
 
 
     /// <summary>
-    /// EN: Tests TestUpdate_SystemRowCountVariable_ShouldReturnAffectedRows behavior.
-    /// PT: Testa o comportamento de TestUpdate_SystemRowCountVariable_ShouldReturnAffectedRows.
+    /// EN: Verifies SQL Server row-count variables expose affected rows after UPDATE.
+    /// PT: Verifica se as variaveis de contagem de linhas do SQL Server expõem as linhas afetadas apos UPDATE.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -551,8 +551,8 @@ public sealed class SqlServerMockTests
 
 
     /// <summary>
-    /// EN: Tests TestCreateView_SystemRowCountVariable_ShouldReturnZero behavior.
-    /// PT: Testa o comportamento de TestCreateView_SystemRowCountVariable_ShouldReturnZero.
+    /// EN: Verifies SQL Server row-count variables return zero after CREATE VIEW.
+    /// PT: Verifica se as variaveis de contagem de linhas do SQL Server retornam zero apos CREATE VIEW.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -571,8 +571,8 @@ public sealed class SqlServerMockTests
 
 
     /// <summary>
-    /// EN: Tests TestBeginTransaction_SystemRowCountVariable_ShouldReturnZero behavior.
-    /// PT: Testa o comportamento de TestBeginTransaction_SystemRowCountVariable_ShouldReturnZero.
+    /// EN: Verifies SQL Server row-count variables return zero after BEGIN TRANSACTION.
+    /// PT: Verifica se as variaveis de contagem de linhas do SQL Server retornam zero apos BEGIN TRANSACTION.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -589,8 +589,8 @@ public sealed class SqlServerMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestBatch_BeginTransactionThenRowCount_ShouldReturnZero behavior.
-    /// PT: Testa o comportamento de TestBatch_BeginTransactionThenRowCount_ShouldReturnZero.
+    /// EN: Verifies row-count variables are zero in a BEGIN TRANSACTION batch.
+    /// PT: Verifica se as variaveis de contagem de linhas ficam em zero em um lote com BEGIN TRANSACTION.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -608,8 +608,8 @@ public sealed class SqlServerMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestBatch_BeginSavepointThenRowCount_ShouldReturnZero behavior.
-    /// PT: Testa o comportamento de TestBatch_BeginSavepointThenRowCount_ShouldReturnZero.
+    /// EN: Verifies row-count variables are zero after SAVEPOINT in a batch.
+    /// PT: Verifica se as variaveis de contagem de linhas ficam em zero apos SAVEPOINT em um lote.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -627,8 +627,8 @@ public sealed class SqlServerMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestBatch_CallThenRowCount_ShouldReturnZero behavior.
-    /// PT: Testa o comportamento de TestBatch_CallThenRowCount_ShouldReturnZero.
+    /// EN: Verifies row-count variables are zero after CALL in a batch.
+    /// PT: Verifica se as variaveis de contagem de linhas ficam em zero apos CALL em um lote.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -648,8 +648,8 @@ public sealed class SqlServerMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestBatch_UpdateCommitThenRowCount_ShouldReturnZeroAfterCommit behavior.
-    /// PT: Testa o comportamento de TestBatch_UpdateCommitThenRowCount_ShouldReturnZeroAfterCommit.
+    /// EN: Verifies row-count variables are zero after UPDATE followed by COMMIT.
+    /// PT: Verifica se as variaveis de contagem de linhas ficam em zero apos UPDATE seguido de COMMIT.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -668,8 +668,8 @@ public sealed class SqlServerMockTests
 
 
     /// <summary>
-    /// EN: Tests TestBatch_RollbackToSavepointThenRowCount_ShouldReturnZero behavior.
-    /// PT: Testa o comportamento de TestBatch_RollbackToSavepointThenRowCount_ShouldReturnZero.
+    /// EN: Verifies row-count variables are zero after rollback to savepoint.
+    /// PT: Verifica se as variaveis de contagem de linhas ficam em zero apos rollback para savepoint.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -687,8 +687,8 @@ public sealed class SqlServerMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestBatch_ReleaseSavepointThenRowCount_ShouldReturnZero behavior.
-    /// PT: Testa o comportamento de TestBatch_ReleaseSavepointThenRowCount_ShouldReturnZero.
+    /// EN: Verifies row-count variables are zero after releasing a savepoint.
+    /// PT: Verifica se as variaveis de contagem de linhas ficam em zero apos liberar um savepoint.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -707,8 +707,8 @@ public sealed class SqlServerMockTests
 
 
     /// <summary>
-    /// EN: Tests TestBatch_SelectThenUpdateThenRowCount_ShouldReflectLastDml behavior.
-    /// PT: Testa o comportamento de TestBatch_SelectThenUpdateThenRowCount_ShouldReflectLastDml.
+    /// EN: Verifies row-count variables reflect the last DML in a mixed SELECT/UPDATE batch.
+    /// PT: Verifica se as variaveis de contagem de linhas refletem a ultima DML em um lote misto de SELECT/UPDATE.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -735,8 +735,8 @@ public sealed class SqlServerMockTests
 
 
     /// <summary>
-    /// EN: Tests TestBatch_CallUpdateCommitThenRowCount_ShouldReturnZeroAfterCommit behavior.
-    /// PT: Testa o comportamento de TestBatch_CallUpdateCommitThenRowCount_ShouldReturnZeroAfterCommit.
+    /// EN: Verifies row-count variables are zero after CALL, UPDATE, and COMMIT.
+    /// PT: Verifica se as variaveis de contagem de linhas ficam em zero apos CALL, UPDATE e COMMIT.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -757,8 +757,8 @@ public sealed class SqlServerMockTests
 
 
     /// <summary>
-    /// EN: Tests TestBatch_UpdateThenSelectThenRowCount_ShouldReflectLastSelect behavior.
-    /// PT: Testa o comportamento de TestBatch_UpdateThenSelectThenRowCount_ShouldReflectLastSelect.
+    /// EN: Verifies row-count variables reflect the last SELECT in a mixed UPDATE/SELECT batch.
+    /// PT: Verifica se as variaveis de contagem de linhas refletem o ultimo SELECT em um lote misto de UPDATE/SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -792,8 +792,8 @@ public sealed class SqlServerMockTests
     }
 
     /// <summary>
-    /// EN: Tests ExecuteReader_InsertOutput_ShouldReturnInsertedProjection behavior.
-    /// PT: Testa o comportamento de ExecuteReader_InsertOutput_ShouldReturnInsertedProjection.
+    /// EN: Verifies INSERT ... OUTPUT returns the inserted projection.
+    /// PT: Verifica se INSERT ... OUTPUT retorna a projeção inserida.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -813,8 +813,8 @@ public sealed class SqlServerMockTests
     }
 
     /// <summary>
-    /// EN: Tests ExecuteReader_UpdateOutput_ShouldReturnDeletedAndInsertedValues behavior.
-    /// PT: Testa o comportamento de ExecuteReader_UpdateOutput_ShouldReturnDeletedAndInsertedValues.
+    /// EN: Verifies UPDATE ... OUTPUT returns deleted and inserted values.
+    /// PT: Verifica se UPDATE ... OUTPUT retorna os valores excluidos e inseridos.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -840,8 +840,8 @@ public sealed class SqlServerMockTests
     }
 
     /// <summary>
-    /// EN: Tests ExecuteReader_DeleteOutput_ShouldReturnDeletedSnapshot behavior.
-    /// PT: Testa o comportamento de ExecuteReader_DeleteOutput_ShouldReturnDeletedSnapshot.
+    /// EN: Verifies DELETE ... OUTPUT returns the deleted snapshot.
+    /// PT: Verifica se DELETE ... OUTPUT retorna o snapshot das linhas excluidas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]

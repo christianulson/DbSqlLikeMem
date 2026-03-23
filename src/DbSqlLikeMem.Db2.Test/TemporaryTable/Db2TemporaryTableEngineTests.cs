@@ -1,16 +1,16 @@
 ﻿namespace DbSqlLikeMem.Db2.Test.TemporaryTable;
 
 /// <summary>
-/// EN: Defines the class Db2TemporaryTableEngineTests.
-/// PT: Define a classe Db2TemporaryTableEngineTests.
+/// EN: Covers CREATE TEMPORARY TABLE execution scenarios in the Db2 mock.
+/// PT: Cobre cenarios de execucao de CREATE TEMPORARY TABLE no mock Db2.
 /// </summary>
 public sealed class Db2TemporaryTableEngineTests
 {
     private static readonly int[] expected = [1, 2];
 
     /// <summary>
-    /// EN: Tests CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows behavior.
-    /// PT: Testa o comportamento de CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows.
+    /// EN: Verifies that CREATE TEMPORARY TABLE AS SELECT returns the projected rows.
+    /// PT: Verifica se CREATE TEMPORARY TABLE AS SELECT retorna as linhas projetadas.
     /// </summary>
     [Fact]
     [Trait("Category", "TemporaryTable")]

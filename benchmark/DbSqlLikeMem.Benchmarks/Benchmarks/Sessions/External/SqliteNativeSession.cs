@@ -1,5 +1,6 @@
 using Microsoft.Data.Sqlite;
 using System.Globalization;
+using DbSqlLikeMem.TestTools.Benchmarks;
 using DbSqlLikeMem.Sqlite.TestTools;
 
 namespace DbSqlLikeMem.Benchmarks.Sessions.External;
@@ -43,28 +44,33 @@ public sealed class SqliteNativeSession()
     }
 
     /// <summary>
-    /// EN: Creates a SQLite temporary table, inserts one row, and validates the row count within the same connection.
-    /// PT-br: Cria uma tabela temporaria SQLite, insere uma linha e valida a contagem na mesma conexao.
+    /// EN: Creates a SQLite temporary table from the shared source scenario and validates the projected rows within the same connection.
+    /// PT-br: Cria uma tabela temporaria SQLite a partir do cenario compartilhado e valida as linhas projetadas na mesma conexao.
     /// </summary>
     protected override void RunTempTableCreateAndUse()
     {
+        var uId = NextToken();
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
-
-        ExecuteNonQuery(connection, CreateTemporaryUsersTable(users));
-        ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
-
-        var count = Convert.ToInt32(
-            ExecuteScalar(connection, Dialect.CountRows(users)),
-            CultureInfo.InvariantCulture);
-
-        if (count != 1)
+        var service = CreateTemporaryTableService(connection, BenchmarkScenarioFactory.CreateTemporaryTableScenario<DbConnection>(Dialect));
+        try
         {
-            throw new InvalidOperationException($"Expected 1 temp-table row for {Dialect.DisplayName}, got {count}.");
+            service.CreateScenario(users, uId);
+            var rows = service.RunCreateTemporaryTableAsSelectThenSelect(users, uId);
+            GC.KeepAlive(rows);
         }
-
-        GC.KeepAlive(count);
+        finally
+        {
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                SafeDropTable(connection, users, uId);
+            }
+        }
     }
 
     /// <summary>
@@ -81,25 +87,32 @@ public sealed class SqliteNativeSession()
         var users = NewUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
+        var service = CreateTemporaryTableService(connection, BenchmarkScenarioFactory.CreateTemporaryUsersScenario<DbConnection>(Dialect));
+        service.CreateScenario(users);
 
-        ExecuteNonQuery(connection, CreateTemporaryUsersTable(users));
-
-        using var tx = connection.BeginTransaction();
-        ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"), tx);
-        ExecuteNonQuery(connection, Dialect.Savepoint(NewSavepointName()), tx);
-        ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"), tx);
-        tx.Rollback();
-
-        var count = Convert.ToInt32(
-            ExecuteScalar(connection, Dialect.CountRows(users)),
-            CultureInfo.InvariantCulture);
-
-        if (count != 0)
+        try
         {
-            throw new InvalidOperationException($"Expected rollback to clear temp-table rows for {Dialect.DisplayName}, got {count}.");
-        }
+            using var tx = connection.BeginTransaction();
+            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"), tx);
+            ExecuteNonQuery(connection, Dialect.Savepoint(NewSavepointName()), tx);
+            ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"), tx);
+            tx.Rollback();
 
-        GC.KeepAlive(count);
+            var count = Convert.ToInt32(
+                ExecuteScalar(connection, Dialect.CountRows(users)),
+                CultureInfo.InvariantCulture);
+
+            if (count != 0)
+            {
+                throw new InvalidOperationException($"Expected rollback to clear temp-table rows for {Dialect.DisplayName}, got {count}.");
+            }
+
+            GC.KeepAlive(count);
+        }
+        finally
+        {
+            service.DropScenario(users);
+        }
     }
 
     /// <summary>
@@ -111,28 +124,24 @@ public sealed class SqliteNativeSession()
         var users = NewUsersTableName();
         using var connection1 = CreateConnection();
         connection1.Open();
-        using var connection2 = CreateConnection();
-        connection2.Open();
-
-        ExecuteNonQuery(connection1, CreateTemporaryUsersTable(users));
-        ExecuteNonQuery(connection1, Dialect.InsertUser(users, 1, "Alice"));
+        var service = CreateTemporaryTableService(connection1, BenchmarkScenarioFactory.CreateTemporaryUsersScenario<DbConnection>(Dialect), CreateConnection);
+        service.CreateScenario(users);
 
         try
         {
-            var count = Convert.ToInt32(
-                ExecuteScalar(connection2, Dialect.CountRows(users)),
-                CultureInfo.InvariantCulture);
-
-            if (count != 0)
-            {
-                throw new InvalidOperationException($"Expected 0 temp-table rows from the peer connection for {Dialect.DisplayName}, got {count}.");
-            }
-
-            GC.KeepAlive(count);
+            var value = service.RunTemporaryTableCrossConnectionIsolation(users);
+            GC.KeepAlive(value);
         }
-        catch (SqliteException ex) when (ex.Message.Contains("no such table", StringComparison.OrdinalIgnoreCase))
+        finally
         {
-            GC.KeepAlive(ex.Message);
+            try
+            {
+                service.DropScenario(users);
+            }
+            catch
+            {
+                SafeDropTemporaryTable(connection1, users);
+            }
         }
     }
 
@@ -145,7 +154,4 @@ public sealed class SqliteNativeSession()
         _anchorConnection?.Dispose();
         _anchorConnection = null;
     }
-
-    private static string CreateTemporaryUsersTable(string tableName) =>
-        $"CREATE TEMP TABLE {tableName} (Id INTEGER NOT NULL PRIMARY KEY, Name TEXT NOT NULL)";
 }
