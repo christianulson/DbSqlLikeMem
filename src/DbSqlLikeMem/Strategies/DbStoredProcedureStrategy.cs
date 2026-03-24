@@ -16,6 +16,16 @@ internal static class DbStoredProcedureStrategy
 
         procedureName = procedureName.Trim().Trim('`').NormalizeName();
 
+        var dialect = connection.ExecutionDialect;
+        if (dialect.TryGetProcedureDefinition(procedureName, out var dialectProcedure)
+            && dialectProcedure is not null)
+        {
+            connection.ValidateProcedureParameters(dialectProcedure, parameters);
+            PopulateOutDefaults(dialectProcedure, parameters);
+            PopulateStatusReturn(parameters);
+            return new DmlExecutionResult();
+        }
+
         if (!connection.TryGetProcedure(procedureName, out var def/*, extrair schemaName*/ ) || def == null)
             throw connection.NewException($"PROCEDURE {procedureName} does not exist", 1305);
 

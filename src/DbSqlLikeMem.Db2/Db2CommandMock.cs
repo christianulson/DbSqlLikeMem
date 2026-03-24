@@ -141,7 +141,7 @@ public class Db2CommandMock(
         }
         var executor = AstQueryExecutorFactory.Create(connection.ExecutionDialect, connection, Parameters);
 
-        // Parse múltiplo (ex: "SELECT 1; SELECT 2;" ou "BEGIN; SELECT ROW_COUNT();")
+        // ParseCreateView múltiplo (ex: "SELECT 1; SELECT 2;" ou "BEGIN; SELECT ROW_COUNT();")
         var tables = new List<TableResultMock>();
         var parsedStatementCount = 0;
 

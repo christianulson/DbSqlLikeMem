@@ -30,7 +30,10 @@ internal sealed class NpgsqlDialect : SqlDialectBase
             ">=", "<=", "<>", "!=", "==",
             "&&", "||"
         ])
-    { }
+    {
+        NpgsqlScalarFunctionRegistry.Register(this, version);
+        SqlSharedWindowFunctionRegistry.Register(this);
+    }
 
 
     // NOTE: in this project the Npgsql "version" axis starts at 6 and
@@ -68,13 +71,7 @@ internal sealed class NpgsqlDialect : SqlDialectBase
 
     public override bool SupportsWithinGroupForStringAggregates => true;
 
-    public override bool SupportsWithinGroupStringAggregateFunction(string functionName)
-        => functionName.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase);
-
     public override bool SupportsAggregateOrderByForStringAggregates => true;
-
-    public override bool SupportsAggregateOrderByStringAggregateFunction(string functionName)
-        => functionName.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// EN: Gets whether fetch first is supported.
@@ -112,12 +109,6 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     public override bool SupportsCreateOrReplaceFunctionDdl => true;
 
     public override bool SupportsSequenceDdl => true;
-    public override bool SupportsSequenceFunctionCall(string functionName)
-        => functionName.Equals(SqlConst.NEXTVAL, StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals(SqlConst.CURRVAL, StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals(SqlConst.SETVAL, StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals(SqlConst.LASTVAL, StringComparison.OrdinalIgnoreCase);
-
     /// <summary>
     /// EN: Gets whether delete target alias is supported.
     /// PT: Obtém se há suporte a delete target alias.
@@ -126,22 +117,11 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     public override bool SupportsUpdateFromJoinSubquerySyntax => true;
     public override bool SupportsDeleteUsingSubquerySyntax => true;
 
-    public override bool SupportsStringAggregateFunction(string functionName)
-        => functionName.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase);
-
     /// <summary>
     /// EN: Gets whether json arrow operators is supported.
     /// PT: Obtém se há suporte a json arrow operators.
     /// </summary>
     public override bool SupportsJsonArrowOperators => Version >= JsonbMinVersion;
-
-    public override bool SupportsJsonQueryFunction => false;
-
-    public override bool SupportsJsonValueFunction => false;
-
-    public override bool SupportsOracleTimeFunction(string functionName)
-        => functionName.Equals("LOCALTIME", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("LOCALTIMESTAMP", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// EN: Gets or sets allows parser cross dialect json operators.
@@ -177,28 +157,6 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     /// </summary>
     public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["COALESCE"];
 
-    public override IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames
-        => new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["CURRENT_DATE"] = SqlTemporalFunctionKind.Date,
-            ["CURRENT_TIME"] = SqlTemporalFunctionKind.Time,
-            ["CURRENT_TIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
-            ["LOCALTIME"] = SqlTemporalFunctionKind.Time,
-            ["LOCALTIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
-            ["NOW"] = SqlTemporalFunctionKind.DateTime,
-            ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
-        };
-
-
-    public override IReadOnlyCollection<string> TemporalFunctionIdentifierNames
-        => ["CURRENT_DATE", "CURRENT_TIME", "CURRENT_TIMESTAMP", "SYSTEMDATE"];
-
-    public override IReadOnlyCollection<string> TemporalFunctionCallNames
-        => ["NOW", "LOCALTIME", "LOCALTIMESTAMP"];
-
-    public override bool SupportsSqlServerMetadataIdentifier(string identifier)
-        => identifier.Equals("CURRENT_USER", StringComparison.OrdinalIgnoreCase);
-
     /// <summary>
     /// EN: Gets or sets concat returns null on null input.
     /// PT: Obtém ou define concat returns null on null input.
@@ -218,13 +176,4 @@ internal sealed class NpgsqlDialect : SqlDialectBase
             : TemporaryTableScope.None;
     }
 
-    /// <summary>
-    /// EN: Represents Supports Date Add Function.
-    /// PT: Representa suporte Date Add Function.
-    /// </summary>
-    public override bool SupportsDateAddFunction(string functionName)
-        => false;
-
-    public override bool SupportsLastFoundRowsFunction(string functionName)
-        => functionName.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase);
 }

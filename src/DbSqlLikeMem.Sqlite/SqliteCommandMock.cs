@@ -153,7 +153,7 @@ public class SqliteCommandMock(
         var executorDialect = connection!.ExecutionDialect;
         var executor = AstQueryExecutorFactory.Create(executorDialect, connection, Parameters);
 
-        // Parse múltiplo (ex: "SELECT 1; SELECT 2;" ou "BEGIN; SELECT CHANGES();")
+        // ParseCreateView múltiplo (ex: "SELECT 1; SELECT 2;" ou "BEGIN; SELECT CHANGES();")
         var tables = new List<TableResultMock>();
         var parsedStatementCount = 0;
 

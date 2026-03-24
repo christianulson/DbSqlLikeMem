@@ -95,6 +95,10 @@ DECLARE GLOBAL TEMPORARY TABLE SESSION.{TemporaryUsersTableName(tableName)} (
         $"SELECT Name FROM {tableName} WHERE Id = {id}";
 
     /// <inheritdoc />
+    public override string SelectParameterProjection(string projectionList) =>
+        $"SELECT {projectionList} FROM SYSIBM.SYSDUMMY1";
+
+    /// <inheritdoc />
     public override string SelectScalarSubquery(string usersTable, string ordersTable) =>
         $"SELECT (SELECT COUNT(*) FROM {ordersTable} o WHERE o.{usersTable}Id = 1) FROM SYSIBM.SYSDUMMY1";
 
@@ -142,6 +146,14 @@ WHEN NOT MATCHED THEN
         $"VALUES NEXT VALUE FOR {sequenceName}";
 
     /// <inheritdoc />
+    public override string NextSequenceValueExpression(string sequenceName) =>
+        $"NEXT VALUE FOR {sequenceName}";
+
+    /// <inheritdoc />
+    public override string CurrentSequenceValue(string sequenceName) =>
+        $"PREVIOUS VALUE FOR {sequenceName}";
+
+    /// <inheritdoc />
     public override string Savepoint(string savepointName) =>
         $"SAVEPOINT {savepointName} ON ROLLBACK RETAIN CURSORS";
 
@@ -173,8 +185,27 @@ WHEN NOT MATCHED THEN
         $"VALUES JSON_VALUE('{jsonLiteral}', 'strict $.user.name')";
 
     /// <inheritdoc />
+    public override string JsonProfileNameExpression(string jsonColumn) =>
+        $"JSON_VALUE({jsonColumn}, 'strict $.profile.name')";
+
+    /// <inheritdoc />
+    public override string StringLengthExpression(string expression) =>
+        $"LENGTH({expression})";
+
+    /// <inheritdoc />
     public override string TemporalDateAdd() =>
         "VALUES TIMESTAMP('2024-01-01-00.00.00') + 1 DAY";
+
+    /// <inheritdoc />
+    public override string TemporalCurrentTimestampExpression() => "CURRENT TIMESTAMP";
+
+    /// <inheritdoc />
+    public override string TemporalDateAddExpression() =>
+        "CURRENT TIMESTAMP + 1 DAY";
+
+    /// <inheritdoc />
+    public override string StringPrefixExpression(string expression, int length) =>
+        $"SUBSTR({expression}, 1, {length})";
 
     /// <inheritdoc />
     public override string TemporalNowWhere(string tableName) =>

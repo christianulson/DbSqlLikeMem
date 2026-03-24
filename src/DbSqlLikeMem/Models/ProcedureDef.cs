@@ -15,10 +15,12 @@ public sealed record ProcParam(
 /// PT: Define a assinatura de um procedimento armazenado em memória.
 /// </summary>
 public sealed record ProcedureDef(
+    string Name,
     IReadOnlyList<ProcParam> RequiredIn,
     IReadOnlyList<ProcParam> OptionalIn,
     IReadOnlyList<ProcParam> OutParams,
     ProcParam? ReturnParam = null)
+    : ProcessDef(Name)
 {
     /// <summary>
     /// EN: Normalizes the parameter name by removing prefixes and spaces.

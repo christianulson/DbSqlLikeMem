@@ -4450,7 +4450,7 @@ public sealed class MySqlMockTests
     [Trait("Category", "MySqlMock")]
     public void TestBatch_CallThenFoundRows_ShouldReturnZero()
     {
-        _connection.AddProdecure("sp_ping", new ProcedureDef([], [], [], null));
+        _connection.AddProdecure(new ProcedureDef("sp_ping", [], [], [], null));
 
         using var command = new MySqlCommandMock(_connection)
         {
@@ -4558,7 +4558,7 @@ public sealed class MySqlMockTests
     [Trait("Category", "MySqlMock")]
     public void TestBatch_CallUpdateCommitThenFoundRows_ShouldReturnZeroAfterCommit()
     {
-        _connection.AddProdecure("sp_ping", new ProcedureDef([], [], [], null));
+        _connection.AddProdecure(new ProcedureDef("sp_ping", [], [], [], null));
 
         using var command = new MySqlCommandMock(_connection)
         {
@@ -4756,3 +4756,4 @@ public sealed class MySqlMockTests
     }
 
 }
+

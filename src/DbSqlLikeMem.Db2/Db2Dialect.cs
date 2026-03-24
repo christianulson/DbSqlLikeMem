@@ -27,7 +27,12 @@ internal sealed class Db2Dialect : SqlDialectBase
             ">=", "<=", "<>", "!=",
             "||"
         ])
-    { }
+    {
+        Db2ScalarFunctionRegistry.Register(this, version);
+        SqlSharedWindowFunctionRegistry.Register(this);
+        global::DbSqlLikeMem.SqlDialectWindowFunctionRegistryExtensions.AddWindowFunction(this, "ROWNUMBER", 0, 0, requiresOrderBy: true);
+        Db2TableFunctionRegistry.Register(this, version);
+    }
 
  
     internal const int WithCteMinVersion = 8;
@@ -87,9 +92,6 @@ internal sealed class Db2Dialect : SqlDialectBase
 
     public override bool SupportsWithinGroupForStringAggregates => true;
 
-    public override bool SupportsWithinGroupStringAggregateFunction(string functionName)
-        => functionName.Equals("LISTAGG", StringComparison.OrdinalIgnoreCase);
-
     /// <summary>
     /// EN: Gets whether delete target alias is supported.
     /// PT: Obtém se há suporte a delete target alias.
@@ -111,22 +113,6 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// PT: Obtém se há suporte a merge.
     /// </summary>
     public override bool SupportsMerge => Version >= MergeMinVersion;
-    /// <summary>
-    /// EN: Gets whether JSON_QUERY is supported.
-    /// PT: Obtém se há suporte a JSON_QUERY.
-    /// </summary>
-    public override bool SupportsJsonQueryFunction => Version >= JsonFunctionsMinVersion;
-    /// <summary>
-    /// EN: Gets whether JSON_VALUE is supported.
-    /// PT: Obtém se há suporte a JSON_VALUE.
-    /// </summary>
-    public override bool SupportsJsonValueFunction => Version >= JsonFunctionsMinVersion;
-    /// <summary>
-    /// EN: Gets whether JSON_TABLE is supported.
-    /// PT: Obtém se há suporte a JSON_TABLE.
-    /// </summary>
-    public override bool SupportsJsonTableFunction => Version >= JsonFunctionsMinVersion;
-
     public override bool SupportsAlterTableAddColumn => true;
     public override bool SupportsFunctionDdl => true;
     /// <summary>
@@ -137,80 +123,11 @@ internal sealed class Db2Dialect : SqlDialectBase
     public override bool SupportsSequenceDdl => true;
     public override bool SupportsNextValueForSequenceExpression => true;
     public override bool SupportsPreviousValueForSequenceExpression => true;
-    public override bool SupportsEomonthFunction => true;
-
-    public override bool SupportsStringAggregateFunction(string functionName)
-        => functionName.Equals("LISTAGG", StringComparison.OrdinalIgnoreCase);
-
-    /// <inheritdoc />
-    public override bool SupportsOracleSpecificConversionFunction(string functionName)
-        => functionName.Equals("TO_CLOB", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("TO_NCHAR", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("TO_NCLOB", StringComparison.OrdinalIgnoreCase);
-
-    /// <inheritdoc />
-    public override bool SupportsOracleAnalyticsFunction(string functionName)
-        => functionName.Equals("RATIO_TO_REPORT", StringComparison.OrdinalIgnoreCase);
-
-    /// <inheritdoc />
-    public override bool SupportsOracleTimeFunction(string functionName)
-        => functionName.Equals("NEXT_DAY", StringComparison.OrdinalIgnoreCase);
-
-    /// <inheritdoc />
-    public override bool SupportsSqlServerScalarFunction(string functionName)
-        => functionName.Equals("ABS", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("ACOS", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("ASIN", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("ATAN", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("CHAR", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("COT", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("DEGREES", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("EXP", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("FLOOR", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("GROUPING", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("LOG", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("LOG10", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("LOWER", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("POWER", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("RADIANS", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("RAND", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals(SqlConst.REPLACE, StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals(SqlConst.RIGHT, StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("ROUND", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("SIGN", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("SIN", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("SPACE", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("SQRT", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("SUBSTRING", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("TAN", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("TRANSLATE", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("TRIM", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("UPPER", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("LTRIM", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("RTRIM", StringComparison.OrdinalIgnoreCase);
-    
     /// <summary>
     /// EN: Gets the null substitute function names supported by DB2 compatibility behavior.
     /// PT: Obtém os nomes de funções de substituição de nulos suportados pelo comportamento de compatibilidade do DB2.
     /// </summary>
     public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["COALESCE", SqlConst.VALUE, "IFNULL", "NVL"];
-    public override IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames
-        => new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["CURRENT_DATE"] = SqlTemporalFunctionKind.Date,
-            ["CURDATE"] = SqlTemporalFunctionKind.Date,
-            ["CURRENT DATE"] = SqlTemporalFunctionKind.Date,
-            ["CURRENT_TIME"] = SqlTemporalFunctionKind.Time,
-            ["CURRENT TIME"] = SqlTemporalFunctionKind.Time,
-            ["CURRENT_TIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
-            ["CURRENT TIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
-            ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
-        };
-
-
-    public override IReadOnlyCollection<string> TemporalFunctionCallNames
-        => ["CURDATE"];
-
     /// <summary>
     /// EN: Gets or sets allows parser limit offset compatibility.
     /// PT: Obtém ou define allows parser limit offset compatibility.
@@ -223,15 +140,5 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// </summary>
     public override StringComparison TextComparison => StringComparison.OrdinalIgnoreCase;
 
-    /// <summary>
-    /// EN: Represents Supports Date Add Function.
-    /// PT: Representa suporte Date Add Function.
-    /// </summary>
-    public override bool SupportsDateAddFunction(string functionName)
-        => functionName.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase)
-        || functionName.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase);
-
-    public override bool SupportsLastFoundRowsFunction(string functionName)
-        => functionName.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase);
 }
 

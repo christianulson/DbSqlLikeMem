@@ -21,6 +21,8 @@
 	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlDataSourceMock.cs" Link="MySqlDataSourceMock.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlDbVersions.cs" Link="MySqlDbVersions.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlDialect.cs" Link="MySqlDialect.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlScalarFunctionRegistry.cs" Link="MySqlScalarFunctionRegistry.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlTableFunctionRegistry.cs" Link="MySqlTableFunctionRegistry.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlLinqProvider.cs" Link="MySqlLinqProvider.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlMockException.cs" Link="MySqlMockException.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlQueryable.cs" Link="MySqlQueryable.cs" />

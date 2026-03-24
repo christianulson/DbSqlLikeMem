@@ -537,19 +537,17 @@ public abstract class DbMock
     /// EN: Registers a stored procedure in the specified schema.
     /// PT: Registra um procedimento armazenado no schema informado.
     /// </summary>
-    /// <param name="procName">EN: Procedure name. PT: Nome do procedimento.</param>
     /// <param name="pr">EN: Procedure definition. PT: Definição do procedimento.</param>
     /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
     public void AddProdecure(
-        string procName,
         ProcedureDef pr,
         string? schemaName = null)
     {
-        ArgumentNullExceptionCompatible.ThrowIfNull(procName, nameof(procName));
+        ArgumentNullExceptionCompatible.ThrowIfNull(pr.Name, nameof(pr.Name));
         var sc = GetSchemaName(schemaName);
         if (!this.TryGetValue(sc, out var s) || s == null)
             CreateSchema(sc);
-        this[sc].Procedures[procName] = pr;
+        this[sc].Procedures[pr.Name] = pr;
     }
 
     /// <summary>
@@ -582,8 +580,7 @@ public abstract class DbMock
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(functionName, nameof(functionName));
         var sc = GetSchemaName(schemaName);
-        return this[sc].Functions.TryGetValue(functionName.NormalizeName(), out function)
-            && function != null;
+        return this[sc].TryGetFunction(functionName, out function);
     }
 
     internal void CreateFunction(
@@ -601,13 +598,7 @@ public abstract class DbMock
         var sc = GetSchemaName(schemaName);
         if (!this.TryGetValue(sc, out var s) || s == null)
             CreateSchema(sc);
-
-        var normalized = functionName.NormalizeName();
-        var functions = this[sc].Functions;
-        if (functions.ContainsKey(normalized) && !orReplace)
-            throw new InvalidOperationException($"Function '{normalized}' already exists.");
-
-        functions[normalized] = new ScalarFunctionDef(functionName, returnTypeSql.Trim(), parameters, body);
+        this[sc].CreateFunction(functionName, returnTypeSql, parameters, body, orReplace);
     }
 
     internal void DropFunction(
@@ -617,15 +608,7 @@ public abstract class DbMock
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
         var sc = GetSchemaName(schemaName);
-        var normalized = functionName.NormalizeName();
-
-        if (this[sc].Functions.Remove(normalized))
-            return;
-
-        if (ifExists)
-            return;
-
-        throw new InvalidOperationException($"Function '{normalized}' does not exist.");
+        this[sc].DropFunction(functionName, ifExists);
     }
 
     internal void RestoreFunction(
@@ -636,7 +619,7 @@ public abstract class DbMock
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
         ArgumentNullExceptionCompatible.ThrowIfNull(definition, nameof(definition));
         var sc = GetSchemaName(schemaName);
-        this[sc].Functions[functionName.NormalizeName()] = definition;
+        this[sc].RestoreFunction(functionName, definition);
     }
 
     internal void RemoveFunction(
@@ -645,7 +628,7 @@ public abstract class DbMock
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
         var sc = GetSchemaName(schemaName);
-        this[sc].Functions.Remove(functionName.NormalizeName());
+        this[sc].RemoveFunction(functionName);
     }
 
     #endregion

@@ -1,0 +1,258 @@
+using DbSqlLikeMem.Models;
+
+namespace DbSqlLikeMem.Oracle;
+
+internal static class OracleScalarFunctionRegistry
+{
+    internal static void Register(ISqlDialect dialect, int version)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
+
+        SqlSharedScalarFunctionRegistry.Register(dialect);
+        OracleDb2ScalarFunctionRegistry.Register(dialect);
+
+        var body = SqlFunctionBodyFactory.Identity();
+
+        RegisterTemporalFunctions(dialect, version, body);
+        RegisterConversionFunctions(dialect, version, body);
+        RegisterAnalyticsFunctions(dialect, version, body);
+        RegisterClusterFunctions(dialect, version, body);
+        RegisterContainerFunctions(dialect, version, body);
+        RegisterMetadataFunctions(dialect, version, body);
+        RegisterHashFunctions(dialect, version, body);
+        RegisterStringAggregateFunctions(dialect, version, body);
+        RegisterSysFunctions(dialect, version, body);
+        RegisterValidationFunctions(dialect, version, body);
+        RegisterNlsFunctions(dialect, version, body);
+        RegisterTimeFunctions(dialect, version, body);
+        RegisterSequenceFunctions(dialect, body);
+    }
+
+    private static void RegisterTemporalFunctions(ISqlDialect dialect, int version, Func<SqlExpr, object> body)
+    {
+        dialect.AddScalarFunction("SYSDATE", "DATETIME", body, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.DateTime);
+        dialect.AddScalarFunction("SYSTEMDATE", "DATETIME", body, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.DateTime);
+
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleTemporalFunctionMinVersion, "DATE", body,
+            SqlScalarFunctionUsageKind.Identifier,
+            SqlTemporalFunctionKind.Date,
+            "CURRENT_DATE");
+
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleTemporalFunctionMinVersion, "DATETIME", body,
+            SqlScalarFunctionUsageKind.Identifier,
+            SqlTemporalFunctionKind.DateTime,
+            "CURRENT_TIMESTAMP",
+            "SYSTIMESTAMP");
+
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleTemporalFunctionMinVersion, "DATETIME", body,
+            SqlScalarFunctionUsageKind.Identifier,
+            SqlTemporalFunctionKind.DateTime,
+            "LOCALTIMESTAMP");
+    }
+
+    private static void RegisterConversionFunctions(ISqlDialect dialect, int version, Func<SqlExpr, object> body)
+    {
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleBinaryConversionMinVersion, "DOUBLE", body,
+            "TO_BINARY_DOUBLE",
+            "TO_BINARY_FLOAT");
+
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleBlobConversionMinVersion, "BLOB", body,
+            "TO_BLOB");
+
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleTextConversionMinVersion, "CLOB", body,
+            "TO_CLOB",
+            "TO_DSINTERVAL",
+            "TO_NCHAR",
+            "TO_NCLOB",
+            "TO_TIMESTAMP_TZ",
+            "TO_YMINTERVAL");
+
+        dialect.AddScalarFunctions("CLOB", body,
+            "TO_LOB");
+
+        dialect.AddScalarFunctions("VARCHAR", body,
+            "TO_MULTI_BYTE",
+            "TO_SINGLE_BYTE");
+    }
+
+    private static void RegisterAnalyticsFunctions(ISqlDialect dialect, int version, Func<SqlExpr, object> body)
+    {
+        if (version >= 8)
+        {
+            dialect.AddScalarFunction("RATIO_TO_REPORT", "DOUBLE", body);
+        }
+
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.ApproximateAnalyticsMinVersion, "DOUBLE", body,
+            "FEATURE_COMPARE",
+            "FEATURE_DETAILS",
+            "FEATURE_ID",
+            "FEATURE_SET",
+            "FEATURE_VALUE",
+            "NCGR",
+            "POWERMULTISET",
+            "POWERMULTISET_BY_CARDINALITY",
+            "PREDICTION",
+            "PREDICTION_BOUNDS",
+            "PREDICTION_COST",
+            "PREDICTION_DETAILS",
+            "PREDICTION_PROBABILITY",
+            "PREDICTION_SET",
+            "PRESENTNNV",
+            "PRESENTV");
+
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.ApproxCountDistinctMinVersion, "BIGINT", body,
+            "APPROX_COUNT_DISTINCT");
+
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.ApproximateAnalyticsMinVersion, "BIGINT", body,
+            "APPROX_COUNT_DISTINCT_AGG",
+            "APPROX_COUNT_DISTINCT_DETAIL",
+            "APPROX_MEDIAN",
+            "APPROX_PERCENTILE",
+            "APPROX_PERCENTILE_AGG",
+            "APPROX_PERCENTILE_DETAIL");
+
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.ApproximateAnalyticsMinVersion, "BIGINT", body,
+            "TO_APPROX_COUNT_DISTINCT");
+
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.ApproximateAnalyticsMinVersion, "DOUBLE", body,
+            "TO_APPROX_PERCENTILE");
+    }
+
+    private static void RegisterClusterFunctions(ISqlDialect dialect, int version, Func<SqlExpr, object> body)
+    {
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleClusterFunctionMinVersion, "DOUBLE", body,
+            "CLUSTER_ID",
+            "CLUSTER_PROBABILITY",
+            "CLUSTER_SET");
+
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleAdvancedClusterFunctionMinVersion, "DOUBLE", body,
+            "CLUSTER_DETAILS",
+            "CLUSTER_DISTANCE");
+    }
+
+    private static void RegisterContainerFunctions(ISqlDialect dialect, int version, Func<SqlExpr, object> body)
+    {
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleContainerFunctionMinVersion, "INT", body,
+            "CON_DBID_TO_ID",
+            "CON_GUID_TO_ID",
+            "CON_NAME_TO_ID",
+            "CON_UID_TO_ID");
+
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleRowToNCharFunctionMinVersion, "VARCHAR", body,
+            "ROWTONCHAR");
+
+        dialect.AddScalarFunctions("VARCHAR", body,
+            "ROWIDTOCHAR");
+    }
+
+    private static void RegisterMetadataFunctions(ISqlDialect dialect, int version, Func<SqlExpr, object> body)
+    {
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleUserEnvMetadataMinVersion, "VARCHAR", body,
+            "ORA_INVOKING_USER",
+            "ORA_INVOKING_USERID",
+            "ORA_DST_AFFECTED",
+            "ORA_DST_CONVERT",
+            "ORA_DST_ERROR");
+
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.OraclePartitionMetadataMinVersion, "VARCHAR", body,
+            "ORA_DM_PARTITION_NAME");
+
+        dialect.AddScalarFunctions("VARCHAR", body,
+            "USERENV");
+
+        dialect.AddScalarFunctions("BIGINT", body,
+            "ROW_COUNT");
+    }
+
+    private static void RegisterHashFunctions(ISqlDialect dialect, int version, Func<SqlExpr, object> body)
+    {
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleOraHashMinVersion, "VARCHAR", body,
+            "ORA_HASH");
+
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleStandardHashMinVersion, "VARCHAR", body,
+            "STANDARD_HASH");
+    }
+
+    private static void RegisterSysFunctions(ISqlDialect dialect, int version, Func<SqlExpr, object> body)
+    {
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleSysFamilyMinVersion, "VARCHAR", body,
+            "SYS_CONNECT_BY_PATH",
+            "SYS_DBURIGEN",
+            "SYS_EXTRACT_UTC",
+            "SYS_TYPEID",
+            "SYS_XMLAGG",
+            "SYS_XMLGEN");
+
+        dialect.AddScalarFunctions("VARCHAR", body,
+            "SYS_CONTEXT",
+            "SYS_GUID");
+
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleSysZoneIdMinVersion, "VARCHAR", body,
+            "SYS_OP_ZONE_ID");
+    }
+
+    private static void RegisterValidationFunctions(ISqlDialect dialect, int version, Func<SqlExpr, object> body)
+    {
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleValidateConversionMinVersion, "INT", body,
+            "VALIDATE_CONVERSION");
+
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleJsonTransformMinVersion, "VARCHAR", body,
+            "JSON_TRANSFORM");
+
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleJsonSqlFunctionMinVersion, "VARCHAR", body,
+            "JSON_QUERY",
+            "JSON_VALUE");
+    }
+
+    private static void RegisterNlsFunctions(ISqlDialect dialect, int version, Func<SqlExpr, object> body)
+    {
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleCollationFunctionMinVersion, "VARCHAR", body,
+            "COLLATION",
+            "NLS_COLLATION_ID",
+            "NLS_COLLATION_NAME");
+
+        dialect.AddScalarFunctions("VARCHAR", body,
+            "NLS_CHARSET_DECL_LEN",
+            "NLS_CHARSET_ID",
+            "NLS_CHARSET_NAME",
+            "NLS_INITCAP",
+            "NLS_LOWER",
+            "NLS_UPPER",
+            "NLSSORT");
+    }
+
+    private static void RegisterTimeFunctions(ISqlDialect dialect, int version, Func<SqlExpr, object> body)
+    {
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleTemporalFunctionMinVersion, "DATETIME", body,
+            "FROM_TZ",
+            "SESSIONTIMEZONE",
+            "TZ_OFFSET",
+            "NEW_TIME",
+            "NEXT_DAY");
+
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleIntervalFunctionMinVersion, "VARCHAR", body,
+            "NUMTODSINTERVAL",
+            "NUMTOYMINTERVAL");
+
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleScnFunctionMinVersion, "DATETIME", body,
+            "SCN_TO_TIMESTAMP",
+            "TIMESTAMP_TO_SCN");
+    }
+
+    private static void RegisterSequenceFunctions(ISqlDialect dialect, Func<SqlExpr, object> body)
+    {
+        dialect.AddScalarFunctions("BIGINT", body,
+            SqlScalarFunctionUsageKind.Call,
+            null,
+            SqlConst.NEXTVAL,
+            SqlConst.CURRVAL);
+    }
+
+    private static void RegisterStringAggregateFunctions(ISqlDialect dialect, int version, Func<SqlExpr, object> body)
+    {
+        if (version >= OracleDialect.WindowFunctionsMinVersion)
+        {
+            dialect.AddScalarFunction("LISTAGG", "VARCHAR", body);
+        }
+    }
+}

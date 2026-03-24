@@ -85,6 +85,20 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(tableName)} (
         $"DROP TABLE {TemporaryUsersTableName(tableName)}";
 
     /// <summary>
+    /// EN: Returns the SQL parameter placeholder for the specified parameter name.
+    /// PT: Retorna o marcador de parametro SQL para o nome de parametro especificado.
+    /// </summary>
+    public virtual string Parameter(string name) =>
+        $"@{name}";
+
+    /// <summary>
+    /// EN: Returns a scalar SELECT projection statement for parameter roundtrip tests.
+    /// PT: Retorna uma instrucao SELECT escalar para testes de roundtrip de parametros.
+    /// </summary>
+    public virtual string SelectParameterProjection(string projectionList) =>
+        $"SELECT {projectionList}";
+
+    /// <summary>
     /// EN: Returns the CREATE TABLE statement for the orders table.
     /// PT: Retorna a instrucao CREATE TABLE para a tabela de pedidos.
     /// </summary>
@@ -212,6 +226,27 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(tableName)} (
         throw new NotSupportedException($"{DisplayName} does not support sequences in this benchmark.");
 
     /// <summary>
+    /// EN: Returns the SQL expression used to consume the next sequence value inside an INSERT or SELECT.
+    /// PT: Retorna a expressao SQL usada para consumir o proximo valor da sequence dentro de um INSERT ou SELECT.
+    /// </summary>
+    public virtual string NextSequenceValueExpression(string sequenceName) =>
+        throw new NotSupportedException($"{DisplayName} does not support sequence expressions in this benchmark.");
+
+    /// <summary>
+    /// EN: Returns the SQL statement used to read the current sequence value.
+    /// PT: Retorna a instrucao SQL usada para ler o valor corrente da sequence.
+    /// </summary>
+    public virtual string CurrentSequenceValue(string sequenceName) =>
+        throw new NotSupportedException($"{DisplayName} does not support current sequence values in this benchmark.");
+
+    /// <summary>
+    /// EN: Returns the SQL statement used to project the next sequence value inside a SELECT.
+    /// PT: Retorna a instrucao SQL usada para projetar o proximo valor da sequence dentro de um SELECT.
+    /// </summary>
+    public virtual string SelectNextSequenceValue(string sequenceName) =>
+        $"SELECT {NextSequenceValueExpression(sequenceName)} AS SeqValue";
+
+    /// <summary>
     /// EN: Returns the SQL statement used to create a savepoint.
     /// PT: Retorna a instrucao SQL usada para criar um savepoint.
     /// </summary>
@@ -244,16 +279,49 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(tableName)} (
         throw new NotSupportedException($"{DisplayName} does not support the JSON path benchmark.");
 
     /// <summary>
+    /// EN: Returns the SQL expression used to read the profile name from a JSON column.
+    /// PT: Retorna a expressao SQL usada para ler o nome do perfil de uma coluna JSON.
+    /// </summary>
+    public virtual string JsonProfileNameExpression(string jsonColumn) =>
+        throw new NotSupportedException($"{DisplayName} does not support JSON column extraction.");
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to extract a left substring from an expression.
+    /// PT: Retorna a expressao SQL usada para extrair um prefixo textual de uma expressao.
+    /// </summary>
+    public virtual string StringPrefixExpression(string expression, int length) =>
+        $"SUBSTRING({expression}, 1, {length})";
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to measure the length of a string expression.
+    /// PT: Retorna a expressao SQL usada para medir o comprimento de uma expressao de texto.
+    /// </summary>
+    public virtual string StringLengthExpression(string expression) =>
+        $"LENGTH({expression})";
+
+    /// <summary>
     /// EN: Returns the SQL statement used for the current timestamp benchmark.
     /// PT: Retorna a instrucao SQL usada no benchmark de timestamp atual.
     /// </summary>
     public virtual string TemporalCurrentTimestamp() => DateScalar();
 
     /// <summary>
+    /// EN: Returns the SQL expression used for the current timestamp inside a SELECT projection.
+    /// PT: Retorna a expressao SQL usada para timestamp atual dentro de uma projeção SELECT.
+    /// </summary>
+    public virtual string TemporalCurrentTimestampExpression() => "CURRENT_TIMESTAMP";
+
+    /// <summary>
     /// EN: Returns the SQL statement used for the date-add benchmark.
     /// PT: Retorna a instrucao SQL usada no benchmark de soma de data.
     /// </summary>
     public virtual string TemporalDateAdd() => throw new NotSupportedException($"{DisplayName} does not support the temporal DATEADD benchmark.");
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to add one day inside a SELECT projection.
+    /// PT: Retorna a expressao SQL usada para somar um dia dentro de uma projeção SELECT.
+    /// </summary>
+    public virtual string TemporalDateAddExpression() => throw new NotSupportedException($"{DisplayName} does not support the temporal DATEADD expression benchmark.");
 
     /// <summary>
     /// EN: Returns the SQL statement used for the current-time WHERE benchmark.
@@ -266,6 +334,13 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(tableName)} (
     /// PT: Retorna a instrucao SQL usada no benchmark com ORDER BY por tempo atual.
     /// </summary>
     public virtual string TemporalNowOrderBy(string tableName) => $"SELECT Name FROM {tableName} ORDER BY Name";
+
+    /// <summary>
+    /// EN: Returns the SQL statement used for the paged name projection benchmark.
+    /// PT: Retorna a instrucao SQL usada no benchmark de projeção paginada de nomes.
+    /// </summary>
+    public virtual string PagedNameProjection(string tableName, int offset, int fetch) =>
+        $"SELECT Name FROM {tableName} ORDER BY Name OFFSET {offset} ROWS FETCH NEXT {fetch} ROWS ONLY";
 
     /// <summary>
     /// EN: Returns the SQL statement used for the CTE benchmark.
@@ -286,11 +361,24 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(tableName)} (
     public virtual string WindowLag(string tableName) => $"SELECT COUNT(*) FROM (SELECT LAG(Name) OVER (ORDER BY Id) AS PrevName FROM {tableName}) q";
 
     /// <summary>
+    /// EN: Returns the SQL statement used for the LEAD benchmark.
+    /// PT: Retorna a instrucao SQL usada no benchmark de LEAD.
+    /// </summary>
+    public virtual string WindowLead(string tableName) => $"SELECT COUNT(*) FROM (SELECT LEAD(Name) OVER (ORDER BY Id) AS NextName FROM {tableName}) q WHERE NextName IS NOT NULL";
+
+    /// <summary>
     /// EN: Returns the SQL statement used for the EXISTS benchmark.
     /// PT: Retorna a instrucao SQL usada no benchmark de EXISTS.
     /// </summary>
     public virtual string SelectExistsPredicate(string usersTable, string ordersTable) =>
         $"SELECT COUNT(*) FROM {usersTable} u WHERE EXISTS (SELECT 1 FROM {ordersTable} o WHERE o.{usersTable}Id = u.Id)";
+
+    /// <summary>
+    /// EN: Returns the SQL statement used for the NOT EXISTS benchmark.
+    /// PT: Retorna a instrucao SQL usada no benchmark de NOT EXISTS.
+    /// </summary>
+    public virtual string SelectNotExistsPredicate(string usersTable, string ordersTable) =>
+        $"SELECT COUNT(*) FROM {usersTable} u WHERE NOT EXISTS (SELECT 1 FROM {ordersTable} o WHERE o.{usersTable}Id = u.Id)";
 
     /// <summary>
     /// EN: Returns the SQL statement used for the correlated COUNT benchmark.
@@ -312,6 +400,13 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(tableName)} (
     /// </summary>
     public virtual string UnionAllProjection(string tableName) =>
         $"SELECT COUNT(*) FROM (SELECT Name FROM {tableName} WHERE Id = 1 UNION ALL SELECT Name FROM {tableName} WHERE Id = 2) q";
+
+    /// <summary>
+    /// EN: Returns the SQL statement used for the UNION projection benchmark.
+    /// PT: Retorna a instrucao SQL usada no benchmark de projecao UNION.
+    /// </summary>
+    public virtual string UnionDistinctProjection(string tableName) =>
+        $"SELECT COUNT(*) FROM (SELECT Name FROM {tableName} WHERE Id IN (1, 2) UNION SELECT Name FROM {tableName} WHERE Id IN (2, 3)) q";
 
     /// <summary>
     /// EN: Returns the SQL statement used for the DISTINCT projection benchmark.
@@ -340,6 +435,13 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(tableName)} (
     /// </summary>
     public virtual string SelectInSubquery(string usersTable, string ordersTable) =>
         $"SELECT COUNT(*) FROM {usersTable} WHERE Id IN (SELECT {usersTable}Id FROM {ordersTable})";
+
+    /// <summary>
+    /// EN: Returns the SQL statement used for the NOT IN subquery benchmark.
+    /// PT: Retorna a instrucao SQL usada no benchmark de subconsulta NOT IN.
+    /// </summary>
+    public virtual string SelectNotInSubquery(string usersTable, string ordersTable) =>
+        $"SELECT COUNT(*) FROM {usersTable} WHERE Id NOT IN (SELECT {usersTable}Id FROM {ordersTable})";
 
     /// <summary>
     /// EN: Returns the SQL statement used for the CROSS APPLY benchmark.

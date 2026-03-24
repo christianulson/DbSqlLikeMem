@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.Sqlite.Test;
+namespace DbSqlLikeMem.Sqlite.Test;
 
 /// <summary>
 /// EN: Covers SQLite mock command and transaction scenarios.
@@ -1792,7 +1792,7 @@ public sealed class SqliteMockTests
     [Trait("Category", "SqliteMock")]
     public void TestBatch_CallThenChanges_ShouldReturnZero()
     {
-        _connection.AddProdecure("sp_ping", new ProcedureDef([], [], [], null));
+        _connection.AddProdecure(new ProcedureDef("sp_ping", [], [], [], null));
 
         using var command = new SqliteCommandMock(_connection)
         {
@@ -1900,7 +1900,7 @@ public sealed class SqliteMockTests
     [Trait("Category", "SqliteMock")]
     public void TestBatch_CallUpdateCommitThenChanges_ShouldReturnZeroAfterCommit()
     {
-        _connection.AddProdecure("sp_ping", new ProcedureDef([], [], [], null));
+        _connection.AddProdecure(new ProcedureDef("sp_ping", [], [], [], null));
 
         using var command = new SqliteCommandMock(_connection)
         {
@@ -2087,3 +2087,4 @@ public sealed class SqliteMockTests
     }
 
 }
+

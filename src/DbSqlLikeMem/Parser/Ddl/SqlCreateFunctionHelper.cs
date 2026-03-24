@@ -1,0 +1,182 @@
+namespace DbSqlLikeMem;
+
+internal static class SqlCreateFunctionHelper
+{
+    internal static SqlCreateFunctionQuery ParseCreateFunction(
+        this SqlQueryParserContext ctx,
+        bool orReplace)
+    {
+        if (orReplace && !ctx.Dialect.SupportsCreateOrReplaceFunctionDdl)
+            throw new InvalidOperationException("CREATE OR REPLACE FUNCTION is not supported for this dialect in the mock.");
+
+        if (!ctx.Dialect.SupportsFunctionDdl)
+            throw SqlUnsupported.ForDialect(ctx.Dialect, "CREATE FUNCTION");
+
+        if (!ctx.IsWord(SqlConst.FUNCTION))
+            throw new InvalidOperationException("CREATE FUNCTION requires FUNCTION keyword.");
+
+        ctx.Consume(); // FUNCTION
+
+        var functionNameToken = ctx.Peek();
+        if (SqlQueryParserContext.IsEnd(functionNameToken)
+            || SqlQueryParserContext.IsSymbol(functionNameToken, ";"))
+            throw new InvalidOperationException("CREATE FUNCTION requires a function name.");
+
+        var function = ctx.ParseQualifiedObjectName();
+        var rawParameterList = ctx.IsSymbol("(")
+            ? ReadBalancedParenRawTokens(ctx).Trim()
+            : null;
+        var parameters = ctx.ParseFunctionParameters(
+            rawParameterList,
+            allowMissingParameterList: ctx.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase));
+
+        if (ctx.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+            return ctx.ParseOracleCreateFunction(function, parameters, orReplace);
+
+        if (ctx.Dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+            return ctx.ParsePostgreSqlCreateFunction(function, parameters, orReplace);
+
+        if (ctx.Dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase)
+            || ctx.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        {
+            return ctx.ParseInlineReturnCreateFunction(function, parameters, orReplace);
+        }
+
+        return ctx.ParseSqlServerStyleCreateFunction(function, parameters, orReplace);
+    }
+
+    private static SqlCreateFunctionQuery ParseSqlServerStyleCreateFunction(
+        this SqlQueryParserContext ctx,
+        SqlTableSource function,
+        IReadOnlyList<ScalarFunctionParameterDef> parameters,
+        bool orReplace)
+    {
+        ctx.ExpectWord(SqlConst.RETURNS);
+        var returnTypeSql = ctx.ParseFunctionReturnTypeSql(SqlConst.AS);
+        ctx.ExpectWord(SqlConst.AS);
+        var body = ctx.ParseFunctionReturnBody(
+            allowBeginEndBlock: true,
+            requireBeginEndBlock: false);
+        return ctx.BuildCreateFunctionQuery(function, parameters, returnTypeSql, body, orReplace, "CREATE FUNCTION");
+    }
+
+    private static SqlCreateFunctionQuery ParseInlineReturnCreateFunction(
+        this SqlQueryParserContext ctx,
+        SqlTableSource function,
+        IReadOnlyList<ScalarFunctionParameterDef> parameters,
+        bool orReplace)
+    {
+        ctx.ExpectWord(SqlConst.RETURNS);
+        var returnTypeSql = ctx.ParseFunctionReturnTypeSql(SqlConst.RETURN, SqlConst.BEGIN);
+        var body = ctx.ParseFunctionReturnBody(
+            allowBeginEndBlock: true,
+            requireBeginEndBlock: false);
+        return ctx.BuildCreateFunctionQuery(function, parameters, returnTypeSql, body, orReplace, "CREATE FUNCTION");
+    }
+
+    private static SqlCreateFunctionQuery ParseOracleCreateFunction(
+        this SqlQueryParserContext ctx,
+        SqlTableSource function,
+        IReadOnlyList<ScalarFunctionParameterDef> parameters,
+        bool orReplace)
+    {
+        ctx.ExpectWord(SqlConst.RETURN);
+        var returnTypeSql = ctx.ParseFunctionReturnTypeSql(SqlConst.IS, SqlConst.AS);
+
+        if (!ctx.IsWord(SqlConst.IS) && !ctx.IsWord(SqlConst.AS))
+            throw new InvalidOperationException("CREATE FUNCTION in Oracle syntax requires IS or AS before the body.");
+
+        ctx.Consume();
+        var body = ctx.ParseFunctionReturnBody(
+            allowBeginEndBlock: true,
+            requireBeginEndBlock: true);
+        return ctx.BuildCreateFunctionQuery(function, parameters, returnTypeSql, body, orReplace, "CREATE FUNCTION");
+    }
+
+    private static SqlCreateFunctionQuery ParsePostgreSqlCreateFunction(
+        this SqlQueryParserContext ctx,
+        SqlTableSource function,
+        IReadOnlyList<ScalarFunctionParameterDef> parameters,
+        bool orReplace)
+    {
+        ctx.ExpectWord(SqlConst.RETURNS);
+        var returnTypeSql = ctx.ParseFunctionReturnTypeSql(SqlConst.AS, SqlConst.LANGUAGE);
+
+        string? bodySql = null;
+        string? language = null;
+
+        if (ctx.IsWord(SqlConst.AS))
+        {
+            ctx.Consume();
+            bodySql = ctx.ParseQuotedFunctionBodySql();
+        }
+
+        if (ctx.IsWord(SqlConst.LANGUAGE))
+        {
+            ctx.Consume();
+            language = ctx.ExpectIdentifier();
+        }
+
+        if (bodySql is null && ctx.IsWord(SqlConst.AS))
+        {
+            ctx.Consume();
+            bodySql = ctx.ParseQuotedFunctionBodySql();
+        }
+
+        if (bodySql is null)
+            throw new InvalidOperationException("CREATE FUNCTION in PostgreSQL syntax requires AS '<body>'.");
+
+        if (!string.Equals(language, "SQL", StringComparison.OrdinalIgnoreCase))
+            throw new NotSupportedException("CREATE FUNCTION currently supports only PostgreSQL LANGUAGE SQL bodies in the mock.");
+
+        var body = ctx.ParsePostgreSqlSqlFunctionBody(bodySql);
+        return ctx.BuildCreateFunctionQuery(function, parameters, returnTypeSql, body, orReplace, "CREATE FUNCTION");
+    }
+
+    private static string ReadBalancedParenRawTokens(
+        this SqlQueryParserContext ctx)
+    {
+        if (!((ctx.Peek().Kind == SqlTokenKind.Symbol) && ctx.Peek().Text == "("))
+            throw new InvalidOperationException("Expected '('");
+
+        ctx.Consume();
+        var buf = new List<SqlToken>();
+        var depth = 1;
+        while (true)
+        {
+            var token = ctx.Peek();
+            if (token.Kind == SqlTokenKind.EndOfFile)
+                throw new InvalidOperationException("CREATE FUNCTION parameter list was not closed correctly.");
+
+            ctx.Consume();
+            if (token.Kind == SqlTokenKind.Symbol && token.Text == "(")
+                depth++;
+            else if (token.Kind == SqlTokenKind.Symbol && token.Text == ")")
+            {
+                depth--;
+                if (depth == 0)
+                    break;
+            }
+
+            buf.Add(token);
+        }
+
+        return TokensToSql(buf);
+    }
+
+    private static string TokensToSql(List<SqlToken> tokens)
+    {
+        var sb = new StringBuilder();
+        SqlToken? prev = null;
+        foreach (var token in tokens)
+        {
+            if (prev is not null && prev.Value.Kind != SqlTokenKind.Symbol && token.Kind != SqlTokenKind.Symbol)
+                sb.Append(' ');
+
+            sb.Append(token.Text);
+            prev = token;
+        }
+
+        return sb.ToString();
+    }
+}

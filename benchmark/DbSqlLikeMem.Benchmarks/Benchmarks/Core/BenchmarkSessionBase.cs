@@ -3,8 +3,6 @@ using Microsoft.Data.SqlClient;
 using MySqlConnector;
 using Npgsql;
 using Oracle.ManagedDataAccess.Client;
-using DbSqlLikeMem.TestTools.Benchmarks;
-using DbSqlLikeMem.TestTools.DDL;
 using DbSqlLikeMem.TestTools.Performance;
 using DbSqlLikeMem.TestTools.Schema;
 using DbSqlLikeMem.TestTools.Query;
@@ -161,6 +159,15 @@ public abstract partial class BenchmarkSessionBase(
             case BenchmarkFeatureId.Upsert:
                 RunUpsert();
                 break;
+            case BenchmarkFeatureId.ParameterProjection:
+                RunParameterProjection();
+                break;
+            case BenchmarkFeatureId.ParameterInsertSingle:
+                RunParameterInsertSingle();
+                break;
+            case BenchmarkFeatureId.StoredProcedureCall:
+                RunStoredProcedureCall();
+                break;
             case BenchmarkFeatureId.SequenceNextValue:
                 RunSequenceNextValue();
                 break;
@@ -232,6 +239,24 @@ public abstract partial class BenchmarkSessionBase(
                 break;
             case BenchmarkFeatureId.WindowLag:
                 RunWindowLag();
+                break;
+            case BenchmarkFeatureId.WindowLead:
+                RunWindowLead();
+                break;
+            case BenchmarkFeatureId.WindowRankDenseRank:
+                RunWindowRankDenseRank();
+                break;
+            case BenchmarkFeatureId.WindowFirstLastValue:
+                RunWindowFirstLastValue();
+                break;
+            case BenchmarkFeatureId.WindowNtile:
+                RunWindowNtile();
+                break;
+            case BenchmarkFeatureId.WindowPercentRankCumeDist:
+                RunWindowPercentRankCumeDist();
+                break;
+            case BenchmarkFeatureId.WindowNthValue:
+                RunWindowNthValue();
                 break;
             case BenchmarkFeatureId.BatchReaderMultiResult:
                 RunBatchReaderMultiResult();
@@ -371,20 +396,35 @@ public abstract partial class BenchmarkSessionBase(
             case BenchmarkFeatureId.SelectExistsPredicate:
                 RunSelectExistsPredicate();
                 break;
+            case BenchmarkFeatureId.SelectNotExistsPredicate:
+                RunSelectNotExistsPredicate();
+                break;
             case BenchmarkFeatureId.SelectScalarSubquery:
                 RunSelectScalarSubquery();
+                break;
+            case BenchmarkFeatureId.SelectScalarCaseMatrix:
+                RunSelectScalarCaseMatrix();
                 break;
             case BenchmarkFeatureId.DistinctProjection:
                 RunDistinctProjection();
                 break;
+            case BenchmarkFeatureId.UnionDistinctProjection:
+                RunUnionDistinctProjection();
+                break;
             case BenchmarkFeatureId.SelectInSubquery:
                 RunSelectInSubquery();
+                break;
+            case BenchmarkFeatureId.SelectNotInSubquery:
+                RunSelectNotInSubquery();
                 break;
             case BenchmarkFeatureId.OuterApplyProjection:
                 RunOuterApplyProjection();
                 break;
             case BenchmarkFeatureId.CrossApplyProjection:
                 RunCrossApplyProjection();
+                break;
+            case BenchmarkFeatureId.PagedNameProjection:
+                RunPagedNameProjection();
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(feature), feature, null);
@@ -595,6 +635,38 @@ public abstract partial class BenchmarkSessionBase(
         var state = GetPreparedCrudUsersState("CrudUsers");
         var value = state.RunUpsert();
         GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes a parameter binding benchmark using a scalar projection query.
+    /// PT-br: Executa um benchmark de binding de parametros usando uma consulta de projeção escalar.
+    /// </summary>
+    protected virtual void RunParameterProjection()
+    {
+        var state = GetPreparedParameterProjectionState("ParameterProjection");
+        var value = state.RunParameterProjection();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes a parameter binding benchmark using a single-row INSERT statement.
+    /// PT-br: Executa um benchmark de binding de parametros usando uma instrucao INSERT de uma linha.
+    /// </summary>
+    protected virtual void RunParameterInsertSingle()
+    {
+        var state = GetPreparedInsertUsersState("ParameterInsertSingle");
+        var count = state.RunParameterInsertSingle();
+        GC.KeepAlive(count);
+    }
+
+    /// <summary>
+    /// EN: Executes a stored procedure call benchmark.
+    /// PT-br: Executa um benchmark de chamada de procedimento armazenado.
+    /// </summary>
+    /// <exception cref="NotSupportedException"></exception>
+    protected virtual void RunStoredProcedureCall()
+    {
+        throw new NotSupportedException($"{Dialect.DisplayName} does not support stored procedure benchmarks.");
     }
 
     /// <summary>
@@ -863,6 +935,60 @@ public abstract partial class BenchmarkSessionBase(
         GC.KeepAlive(value);
     }
 
+    protected virtual void RunWindowLead()
+    {
+        var state = GetPreparedUsersQueryState(
+            "WindowLead",
+            (1, "Bob"), (2, "Alice"), (3, "Charlie"));
+        var value = state.Service.RunWindowLead(state.UsersTable);
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunWindowRankDenseRank()
+    {
+        var state = GetPreparedUsersQueryState(
+            "WindowRankDenseRank",
+            (1, "Aaron"), (2, "Bravo"), (3, "Bravo"), (4, "Charlie"));
+        var value = state.Service.RunWindowRankDenseRank(state.UsersTable);
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunWindowFirstLastValue()
+    {
+        var state = GetPreparedUsersQueryState(
+            "WindowFirstLastValue",
+            (1, "Aaron"), (2, "Bravo"), (3, "Bravo"), (4, "Charlie"));
+        var value = state.Service.RunWindowFirstLastValue(state.UsersTable);
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunWindowNtile()
+    {
+        var state = GetPreparedUsersQueryState(
+            "WindowNtile",
+            (1, "Aaron"), (2, "Bravo"), (3, "Bravo"), (4, "Charlie"));
+        var value = state.Service.RunWindowNtile(state.UsersTable);
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunWindowPercentRankCumeDist()
+    {
+        var state = GetPreparedUsersQueryState(
+            "WindowPercentRankCumeDist",
+            (1, "Aaron"), (2, "Bravo"), (3, "Bravo"), (4, "Charlie"));
+        var value = state.Service.RunWindowPercentRankCumeDist(state.UsersTable);
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunWindowNthValue()
+    {
+        var state = GetPreparedUsersQueryState(
+            "WindowNthValue",
+            (1, "Aaron"), (2, "Bravo"), (3, "Bravo"), (4, "Charlie"));
+        var value = state.Service.RunWindowNthValue(state.UsersTable);
+        GC.KeepAlive(value);
+    }
+
 
     protected virtual void RunBatchReaderMultiResult()
     {
@@ -995,6 +1121,16 @@ public abstract partial class BenchmarkSessionBase(
         GC.KeepAlive(value);
     }
 
+    protected virtual void RunSelectNotExistsPredicate()
+    {
+        var state = GetPreparedUsersOrdersQueryState(
+            "UsersOrdersThreeRows",
+            [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
+            [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]);
+        var value = state.Service.RunSelectNotExistsPredicate(state.UsersTable, state.OrdersTable);
+        GC.KeepAlive(value);
+    }
+
     protected virtual void RunSelectCorrelatedCount()
     {
         var state = GetPreparedUsersOrdersQueryState(
@@ -1002,6 +1138,16 @@ public abstract partial class BenchmarkSessionBase(
             [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
             [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]);
         var value = state.Service.RunSelectCorrelatedCount(state.UsersTable, state.OrdersTable);
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunSelectScalarCaseMatrix()
+    {
+        var state = GetPreparedUsersOrdersQueryState(
+            "UsersOrdersThreeRows",
+            [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
+            [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]);
+        var value = state.Service.RunSelectScalarCaseMatrix(state.UsersTable, state.OrdersTable);
         GC.KeepAlive(value);
     }
 
@@ -1019,6 +1165,13 @@ public abstract partial class BenchmarkSessionBase(
     {
         var state = GetPreparedUsersQueryState("UnionAllProjection", (1, "Alice"), (2, "Bob"));
         var value = state.Service.RunUnionAllProjection(state.UsersTable);
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunUnionDistinctProjection()
+    {
+        var state = GetPreparedUsersQueryState("UnionDistinctProjection", (1, "Alice"), (2, "Bob"), (3, "Charlie"));
+        var value = state.Service.RunUnionDistinctProjection(state.UsersTable);
         GC.KeepAlive(value);
     }
 
@@ -1061,6 +1214,16 @@ public abstract partial class BenchmarkSessionBase(
         GC.KeepAlive(value);
     }
 
+    protected virtual void RunSelectNotInSubquery()
+    {
+        var state = GetPreparedUsersOrdersQueryState(
+            "UsersOrdersThreeRows",
+            [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
+            [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]);
+        var value = state.Service.RunSelectNotInSubquery(state.UsersTable, state.OrdersTable);
+        GC.KeepAlive(value);
+    }
+
     protected virtual void RunCrossApplyProjection()
     {
         var state = GetPreparedUsersOrdersQueryState(
@@ -1079,6 +1242,19 @@ public abstract partial class BenchmarkSessionBase(
             [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]);
         var value = state.Service.RunOuterApplyProjection(state.UsersTable, state.OrdersTable);
         GC.KeepAlive(value);
+    }
+
+    protected virtual void RunPagedNameProjection()
+    {
+        var state = GetPreparedUsersQueryState(
+            "PagedNameProjection",
+            (1, "Charlie"),
+            (2, "Bob"),
+            (3, "Alice"),
+            (4, "Delta"),
+            (5, "Echo"));
+        var count = CountReaderRows(state.Connection, Dialect.PagedNameProjection(state.UsersTable, 1, 2));
+        GC.KeepAlive(count);
     }
 
     protected virtual void RunExecutionPlan()

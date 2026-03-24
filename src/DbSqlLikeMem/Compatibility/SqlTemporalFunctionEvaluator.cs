@@ -5,10 +5,19 @@ internal static class SqlTemporalFunctionEvaluator
     private static readonly HashSet<string> KnownTemporalFunctionNames = new(StringComparer.OrdinalIgnoreCase)
     {
         "CURRENT_DATE",
+        "CURRENT DATE",
         "CURDATE",
         "CURRENT_TIME",
+        "CURRENT TIME",
         "CURRENT_TIMESTAMP",
+        "CURRENT TIMESTAMP",
+        "CURTIME",
         "NOW",
+        "LOCALTIME",
+        "LOCALTIMESTAMP",
+        "UTC_DATE",
+        "UTC_TIME",
+        "UTC_TIMESTAMP",
         "SYSDATE",
         "SYSTEMDATE",
         "GETDATE",
@@ -29,6 +38,20 @@ internal static class SqlTemporalFunctionEvaluator
         => !string.IsNullOrWhiteSpace(functionName)
             && KnownTemporalFunctionNames.Contains(functionName);
 
+    /// <summary>
+    /// EN: Checks whether the provided temporal name is known by the current dialect or by compatibility fallback.
+    /// PT: Verifica se o nome temporal informado é conhecido pelo dialeto atual ou pelo fallback de compatibilidade.
+    /// </summary>
+    /// <param name="dialect">EN: Dialect used to inspect registry-backed temporal support. PT: Dialeto usado para inspecionar suporte temporal baseado em registry.</param>
+    /// <param name="functionName">EN: Function/token name to inspect. PT: Nome da função/token a inspecionar.</param>
+    /// <returns>EN: True when the name is recognized as temporal in the dialect or compatibility list. PT: True quando o nome é reconhecido como temporal no dialeto ou na lista de compatibilidade.</returns>
+    public static bool IsKnownTemporalFunctionName(ISqlDialect dialect, string functionName)
+        => dialect is not null
+            && !string.IsNullOrWhiteSpace(functionName)
+            && (dialect.AllowsTemporalIdentifier(functionName)
+                || dialect.AllowsTemporalCall(functionName)
+                || IsKnownTemporalFunctionName(functionName));
+
     public static bool TryEvaluateZeroArgIdentifier(
         ISqlDialect dialect,
         string functionName,
@@ -40,21 +63,10 @@ internal static class SqlTemporalFunctionEvaluator
         if (dialect is null || string.IsNullOrWhiteSpace(functionName))
             return false;
 
-        var identifierNames = dialect.TemporalFunctionIdentifierNames;
-        var identifierSupported = false;
-        foreach (var name in identifierNames)
-        {
-            if (name.Equals(functionName, StringComparison.OrdinalIgnoreCase))
-            {
-                identifierSupported = true;
-                break;
-            }
-        }
-
-        if (!identifierSupported)
+        if (!dialect.AllowsTemporalIdentifier(functionName))
             return false;
 
-        if (!dialect.TemporalFunctionNames.TryGetValue(functionName, out var kind))
+        if (!dialect.TryGetTemporalFunctionKind(functionName, out var kind))
             return false;
 
         return TryMapKind(kind, localNow, utcNow, out value);
@@ -74,21 +86,10 @@ internal static class SqlTemporalFunctionEvaluator
         if (dialect is null || string.IsNullOrWhiteSpace(functionName))
             return false;
 
-        var callNames = dialect.TemporalFunctionCallNames;
-        var callSupported = false;
-        foreach (var name in callNames)
-        {
-            if (name.Equals(functionName, StringComparison.OrdinalIgnoreCase))
-            {
-                callSupported = true;
-                break;
-            }
-        }
-
-        if (!callSupported)
+        if (!dialect.AllowsTemporalCall(functionName))
             return false;
 
-        if (!dialect.TemporalFunctionNames.TryGetValue(functionName, out var kind))
+        if (!dialect.TryGetTemporalFunctionKind(functionName, out var kind))
             return false;
 
         return TryMapKind(kind, localNow, utcNow, out value);

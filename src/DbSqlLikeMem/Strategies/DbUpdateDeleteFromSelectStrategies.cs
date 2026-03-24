@@ -115,7 +115,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
         if (!connection.TryGetTable(tableName, out var target, query.Table?.DbName) || target == null)
             throw SqlUnsupported.ForTableDoesNotExist(tableName);
 
-        // Parse ON: s.k = a.k  OR a.k = s.k
+        // ParseCreateView ON: s.k = a.k  OR a.k = s.k
         var onM = Regex.Match(onSql,
             @"^(?<l>[A-Za-z0-9_]+)\.(?<lc>[A-Za-z0-9_`]+)\s*=\s*(?<r>[A-Za-z0-9_]+)\.(?<rc>[A-Za-z0-9_`]+)$",
             RegexOptions.IgnoreCase);
@@ -144,7 +144,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
             throw new InvalidOperationException(SqlExceptionMessages.JoinOnMustReferenceTargetAndSubqueryAliases());
         }
 
-        // Parse SET: a.col = s.col  (single assignment for now)
+        // ParseCreateView SET: a.col = s.col  (single assignment for now)
         var setM = Regex.Match(setSql,
             @"^(?<ta>[A-Za-z0-9_]+)\.(?<tcol>[A-Za-z0-9_`]+)\s*=\s*(?<sa>[A-Za-z0-9_]+)\.(?<scol>[A-Za-z0-9_`]+)$",
             RegexOptions.IgnoreCase);
@@ -159,7 +159,11 @@ internal static class DbUpdateDeleteFromSelectStrategies
 
         // Execute subquery
         var executor = AstQueryExecutorFactory.Create(dialect, connection, pars);
-        var q = SqlQueryParser.Parse(subSql, dialect);
+        var q = SqlQueryParser.Parse(
+            subSql,
+            dialect,
+            null,
+            SqlCustomFunctionResolverFactory.Create(connection));
         var subRes = executor.ExecuteSelect((SqlSelectQuery)q);
 
         // Map join key -> set value (last wins, like typical join)
@@ -395,7 +399,11 @@ internal static class DbUpdateDeleteFromSelectStrategies
         }
 
         var executor = AstQueryExecutorFactory.Create(dialect, connection, pars);
-        var q = SqlQueryParser.Parse(subSql, dialect);
+        var q = SqlQueryParser.Parse(
+            subSql,
+            dialect,
+            null,
+            SqlCustomFunctionResolverFactory.Create(connection));
         var subRes = executor.ExecuteSelect((SqlSelectQuery)q);
 
         int subJoinIdx = subRes.GetColumnIndexOrThrow(subJoinCol);

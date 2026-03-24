@@ -314,7 +314,7 @@ public class MySqlCommandMock(
         }
         var executor = AstQueryExecutorFactory.Create(connection!.ExecutionDialect, connection, Parameters);
 
-        // Parse múltiplo (ex: "SELECT 1; SELECT 2;" ou "BEGIN; SELECT FOUND_ROWS();")
+        // ParseCreateView múltiplo (ex: "SELECT 1; SELECT 2;" ou "BEGIN; SELECT FOUND_ROWS();")
         var tables = new List<TableResultMock>();
         var parsedStatementCount = 0;
 

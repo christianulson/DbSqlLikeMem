@@ -20,15 +20,26 @@ internal sealed record QuantifiedComparisonExpr(
     SqlExpr Left,
     SqlQuantifier Quantifier,
     SubqueryExpr Subquery) : SqlExpr;
-internal sealed record FunctionCallExpr(string Name, IReadOnlyList<SqlExpr> Args) : SqlExpr;
+internal sealed record FunctionCallExpr(string Name, IReadOnlyList<SqlExpr> Args) : SqlExpr
+{
+    internal DbScalarFunctionDef? ResolvedScalarFunction { get; init; }
+
+    internal DbTableFunctionDef? ResolvedTableFunction { get; init; }
+}
 internal sealed record JsonAccessExpr(SqlExpr Target, SqlExpr Path, bool Unquote) : SqlExpr;
 internal sealed record CallExpr(
     string Name,
     IReadOnlyList<SqlExpr> Args,
     bool Distinct = false,
     IReadOnlyList<WindowOrderItem>? WithinGroupOrderBy = null,
-    SqlExpr? Filter = null) : SqlExpr;
-internal sealed record WindowFunctionExpr(string Name, IReadOnlyList<SqlExpr> Args, WindowSpec Spec, bool Distinct = false) : SqlExpr;
+    SqlExpr? Filter = null) : SqlExpr
+{
+    internal DbScalarFunctionDef? ResolvedScalarFunction { get; init; }
+}
+internal sealed record WindowFunctionExpr(string Name, IReadOnlyList<SqlExpr> Args, WindowSpec Spec, bool Distinct = false) : SqlExpr
+{
+    internal DbWindowFunctionDef? ResolvedWindowFunction { get; init; }
+}
 internal sealed record WindowSpec(
     IReadOnlyList<SqlExpr> PartitionBy,
     IReadOnlyList<WindowOrderItem> OrderBy,

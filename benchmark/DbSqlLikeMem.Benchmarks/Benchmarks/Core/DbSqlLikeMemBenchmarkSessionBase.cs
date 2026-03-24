@@ -1,4 +1,3 @@
-using System.Globalization;
 using DbSqlLikeMem.TestTools.Benchmarks;
 
 namespace DbSqlLikeMem.Benchmarks.Core;
@@ -95,5 +94,15 @@ public abstract class DbSqlLikeMemBenchmarkSessionBase(ProviderSqlDialect dialec
                 SafeDropTemporaryTable(connection1, users);
             }
         }
+    }
+
+    /// <summary>
+    /// EN: Executes the stored procedure benchmark against the in-memory DbSqlLikeMem mock runtime.
+    /// PT: Executa o benchmark de procedimento armazenado contra o runtime mock em memoria DbSqlLikeMem.
+    /// </summary>
+    protected override void RunStoredProcedureCall()
+    {
+        var count = RunPreparedStoredProcedureCall("StoredProcedureCall");
+        GC.KeepAlive(count);
     }
 }

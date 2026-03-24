@@ -638,7 +638,7 @@ select id
     {
         var d = new Db2Dialect(version);
         const string multi = "SELECT 1; SELECT 2 FROM t WHERE id = 1; INSERT INTO t(id) VALUES(1);";
-        var stmts = SqlQueryParser.SplitStatementsTopLevel(multi, d);
+        var stmts = SqlStatementSplitter.SplitStatementsTopLevel(multi, d);
 
         Assert.Equal(3, stmts.Count);
 

@@ -452,7 +452,7 @@ public sealed class SqlAzureFunctionTests
 
         var connection = new SqlAzureConnectionMock(db);
         connection.Open();
-        connection.AddProdecure("sp_ping", new ProcedureDef([], [], [], null));
+        connection.AddProdecure(new ProcedureDef("sp_ping", [], [], [], null));
 
         ExecuteNonQuery(connection, "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', '{\"profile\":{\"active\":true,\"name\":\"Ana\"}}')");
         ExecuteNonQuery(connection, "INSERT INTO Users (Id, Name, Email) VALUES (2, 'Bob', '{\"profile\":{\"active\":false,\"name\":\"Bob\"}}')");
@@ -497,6 +497,7 @@ public sealed class SqlAzureFunctionTests
     private void ExecuteNonQuery(string sql)
         => ExecuteNonQuery(_connection, sql);
 }
+
 
 
 

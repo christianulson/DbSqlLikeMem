@@ -169,6 +169,38 @@ public abstract class BenchmarkSuiteBase
     public void Upsert() => Run(BenchmarkFeatureId.Upsert);
 
     /// <summary>
+    /// EN: Executes a parameter projection benchmark.
+    /// PT: Executa um benchmark de projeção parametrizada.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void ParameterProjection() => Run(BenchmarkFeatureId.ParameterProjection);
+
+    /// <summary>
+    /// EN: Executes a parameterized single-row insert benchmark.
+    /// PT: Executa um benchmark de insercao parametrizada de uma linha.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void ParameterInsertSingle() => Run(BenchmarkFeatureId.ParameterInsertSingle);
+
+    /// <summary>
+    /// EN: Executes a stored procedure call benchmark.
+    /// PT: Executa um benchmark de chamada de procedimento armazenado.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void StoredProcedureCall() => Run(BenchmarkFeatureId.StoredProcedureCall);
+
+    ///// <summary>
+    ///// EN: Executes a sequence next-value benchmark.
+    ///// PT: Executa um benchmark de proximo valor de sequencia.
+    ///// </summary>
+    //[Benchmark]
+    //[BenchmarkCategory("core")]
+    //public void SequenceNextValue() => Run(BenchmarkFeatureId.SequenceNextValue);
+
+    /// <summary>
     /// EN: Executes a string-aggregation benchmark.
     /// PT: Executa um benchmark de agregacao de strings.
     /// </summary>
@@ -336,6 +368,54 @@ public abstract class BenchmarkSuiteBase
     public void WindowLag() => Run(BenchmarkFeatureId.WindowLag);
 
     /// <summary>
+    /// EN: Executes a LEAD window benchmark query.
+    /// PT: Executa uma consulta de benchmark de janela com LEAD.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("advancedquery")]
+    public void WindowLead() => Run(BenchmarkFeatureId.WindowLead);
+
+    /// <summary>
+    /// EN: Executes a RANK and DENSE_RANK window benchmark query.
+    /// PT: Executa uma consulta de benchmark de janela com RANK e DENSE_RANK.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("advancedquery")]
+    public void WindowRankDenseRank() => Run(BenchmarkFeatureId.WindowRankDenseRank);
+
+    /// <summary>
+    /// EN: Executes a FIRST_VALUE and LAST_VALUE window benchmark query.
+    /// PT: Executa uma consulta de benchmark de janela com FIRST_VALUE e LAST_VALUE.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("advancedquery")]
+    public void WindowFirstLastValue() => Run(BenchmarkFeatureId.WindowFirstLastValue);
+
+    /// <summary>
+    /// EN: Executes an NTILE window benchmark query.
+    /// PT: Executa uma consulta de benchmark de janela com NTILE.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("advancedquery")]
+    public void WindowNtile() => Run(BenchmarkFeatureId.WindowNtile);
+
+    /// <summary>
+    /// EN: Executes a PERCENT_RANK and CUME_DIST window benchmark query.
+    /// PT: Executa uma consulta de benchmark de janela com PERCENT_RANK e CUME_DIST.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("advancedquery")]
+    public void WindowPercentRankCumeDist() => Run(BenchmarkFeatureId.WindowPercentRankCumeDist);
+
+    /// <summary>
+    /// EN: Executes an NTH_VALUE window benchmark query.
+    /// PT: Executa uma consulta de benchmark de janela com NTH_VALUE.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("advancedquery")]
+    public void WindowNthValue() => Run(BenchmarkFeatureId.WindowNthValue);
+
+    /// <summary>
     /// EN: Executes an EXISTS predicate benchmark query.
     /// PT: Executa uma consulta de benchmark com predicado EXISTS.
     /// </summary>
@@ -344,12 +424,28 @@ public abstract class BenchmarkSuiteBase
     public void SelectExistsPredicate() => Run(BenchmarkFeatureId.SelectExistsPredicate);
 
     /// <summary>
+    /// EN: Executes a NOT EXISTS predicate benchmark query.
+    /// PT: Executa uma consulta de benchmark com predicado NOT EXISTS.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("advancedquery")]
+    public void SelectNotExistsPredicate() => Run(BenchmarkFeatureId.SelectNotExistsPredicate);
+
+    /// <summary>
     /// EN: Executes a correlated COUNT subquery benchmark.
     /// PT: Executa um benchmark com subconsulta correlacionada de COUNT.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
     public void SelectCorrelatedCount() => Run(BenchmarkFeatureId.SelectCorrelatedCount);
+
+    /// <summary>
+    /// EN: Executes a scalar subquery and CASE matrix benchmark.
+    /// PT: Executa um benchmark com subconsulta escalar e matriz CASE.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("advancedquery")]
+    public void SelectScalarCaseMatrix() => Run(BenchmarkFeatureId.SelectScalarCaseMatrix);
 
     /// <summary>
     /// EN: Executes a GROUP BY HAVING benchmark query.
@@ -366,6 +462,14 @@ public abstract class BenchmarkSuiteBase
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
     public void UnionAllProjection() => Run(BenchmarkFeatureId.UnionAllProjection);
+
+    /// <summary>
+    /// EN: Executes a UNION projection benchmark query.
+    /// PT: Executa uma consulta de benchmark com projeção UNION.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("advancedquery")]
+    public void UnionDistinctProjection() => Run(BenchmarkFeatureId.UnionDistinctProjection);
 
     /// <summary>
     /// EN: Executes a DISTINCT projection benchmark query.
@@ -400,6 +504,14 @@ public abstract class BenchmarkSuiteBase
     public void SelectInSubquery() => Run(BenchmarkFeatureId.SelectInSubquery);
 
     /// <summary>
+    /// EN: Executes a NOT IN subquery benchmark query.
+    /// PT: Executa uma consulta de benchmark com subconsulta NOT IN.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("advancedquery")]
+    public void SelectNotInSubquery() => Run(BenchmarkFeatureId.SelectNotInSubquery);
+
+    /// <summary>
     /// EN: Executes a CROSS APPLY benchmark query.
     /// PT: Executa uma consulta de benchmark com CROSS APPLY.
     /// </summary>
@@ -414,6 +526,14 @@ public abstract class BenchmarkSuiteBase
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
     public void OuterApplyProjection() => Run(BenchmarkFeatureId.OuterApplyProjection);
+
+    /// <summary>
+    /// EN: Executes a paged name projection benchmark query.
+    /// PT: Executa uma consulta de benchmark com projeção paginada de nomes.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("advancedquery")]
+    public void PagedNameProjection() => Run(BenchmarkFeatureId.PagedNameProjection);
 
     /// <summary>
     /// EN: Executes a batch-reader benchmark that returns multiple result sets.

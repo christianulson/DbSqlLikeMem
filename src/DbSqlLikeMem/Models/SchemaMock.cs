@@ -35,7 +35,7 @@ public abstract class SchemaMock
                 CreateTable(it.Key, it.Value.columns, it.Value.rows);
         if (procedures != null)
             foreach (var it in procedures)
-                Procedures.Add(it.Key, it.Value);
+                Procedures.Add(it.Key.NormalizeName(), it.Value);
         if (sequences != null)
             foreach (var it in sequences)
                 this.sequences.Add(it.Key, it.Value);
@@ -75,8 +75,69 @@ public abstract class SchemaMock
     public IDictionary<string, ProcedureDef> Procedures { get; } =
         new Dictionary<string, ProcedureDef>(StringComparer.OrdinalIgnoreCase);
 
-    internal IDictionary<string, ScalarFunctionDef> Functions { get; } =
+    internal IDictionary<string, ScalarFunctionDef> ScalarFunctions { get; } =
         new Dictionary<string, ScalarFunctionDef>(StringComparer.OrdinalIgnoreCase);
+
+    internal bool TryGetFunction(
+        string functionName,
+        out ScalarFunctionDef? function)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
+        return ScalarFunctions.TryGetValue(functionName.NormalizeName(), out function)
+            && function != null;
+    }
+
+    internal void CreateFunction(
+        string functionName,
+        string returnTypeSql,
+        IReadOnlyList<ScalarFunctionParameterDef> parameters,
+        SqlExpr body,
+        bool orReplace = false)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(returnTypeSql, nameof(returnTypeSql));
+        ArgumentNullExceptionCompatible.ThrowIfNull(parameters, nameof(parameters));
+        ArgumentNullExceptionCompatible.ThrowIfNull(body, nameof(body));
+
+        var normalized = functionName.NormalizeName();
+        if (ScalarFunctions.ContainsKey(normalized) && !orReplace)
+            throw new InvalidOperationException($"Function '{normalized}' already exists.");
+
+        ScalarFunctions[normalized] = new ScalarFunctionDef(functionName, returnTypeSql.Trim(), parameters, body);
+    }
+
+    internal void DropFunction(
+        string functionName,
+        bool ifExists)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
+
+        var normalized = functionName.NormalizeName();
+        if (ScalarFunctions.Remove(normalized))
+            return;
+
+        if (ifExists)
+            return;
+
+        throw new InvalidOperationException($"Function '{normalized}' does not exist.");
+    }
+
+    internal void RestoreFunction(
+        string functionName,
+        ScalarFunctionDef definition)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
+        ArgumentNullExceptionCompatible.ThrowIfNull(definition, nameof(definition));
+
+        ScalarFunctions[functionName.NormalizeName()] = definition;
+    }
+
+    internal void RemoveFunction(
+        string functionName)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
+        ScalarFunctions.Remove(functionName.NormalizeName());
+    }
 
     /// <summary>
     /// EN: Sequence definitions registered in the schema.

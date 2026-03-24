@@ -327,7 +327,7 @@ public sealed class OracleMockTests
     [Trait("Category", "OracleMock")]
     public void TestBatch_CallThenRowCount_ShouldReturnZero()
     {
-        _connection.AddProdecure("sp_ping", new ProcedureDef([], [], [], null));
+        _connection.AddProdecure(new ProcedureDef("sp_ping", [], [], [], null));
 
         using var command = new OracleCommandMock(_connection)
         {
@@ -435,7 +435,7 @@ public sealed class OracleMockTests
     [Trait("Category", "OracleMock")]
     public void TestBatch_CallUpdateCommitThenRowCount_ShouldReturnZeroAfterCommit()
     {
-        _connection.AddProdecure("sp_ping", new ProcedureDef([], [], [], null));
+        _connection.AddProdecure(new ProcedureDef("sp_ping", [], [], [], null));
 
         using var command = new OracleCommandMock(_connection)
         {
@@ -595,4 +595,5 @@ public sealed class OracleMockTests
     }
 
 }
+
 

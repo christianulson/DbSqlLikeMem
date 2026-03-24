@@ -20,7 +20,7 @@ public sealed class SqlQueryParserSplitStatementsTests(
         var dialect = new MySqlDialect(version);
         var sql = "SELECT ';' AS txt, CONCAT('a;', 'b') AS c FROM `semi;table`; SELECT 2;";
 
-        var parts = SqlQueryParser.SplitStatementsTopLevel(sql, dialect);
+        var parts = SqlStatementSplitter.SplitStatementsTopLevel(sql, dialect);
 
         Assert.Equal(2, parts.Count);
         Assert.Equal("SELECT ';' AS txt, CONCAT('a;', 'b') AS c FROM `semi;table`", parts[0]);
@@ -42,7 +42,7 @@ public sealed class SqlQueryParserSplitStatementsTests(
                 + "ON DUPLICATE KEY UPDATE Name = VALUES(Name);\n"
                 + "SELECT COUNT(*) FROM users;";
 
-        var parts = SqlQueryParser.SplitStatementsTopLevel(sql, dialect);
+        var parts = SqlStatementSplitter.SplitStatementsTopLevel(sql, dialect);
 
         Assert.Equal(2, parts.Count);
         var insertAst = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(parts[0], dialect));

@@ -7,6 +7,10 @@ internal static class SqlUnsupported
             ? $"{dialect.Name}/npgsql"
             : dialect.Name;
 
+    public static NotSupportedException ForDialect(
+        this SqlExpressionParserContext ctx, string feature)
+        => ForDialect(ctx.Dialect, feature);
+
     public static NotSupportedException ForDialect(ISqlDialect dialect, string feature)
         => new($"SQL não suportado para dialeto '{FormatDialectLabel(dialect)}' (v{dialect.Version}): {feature}.");
 

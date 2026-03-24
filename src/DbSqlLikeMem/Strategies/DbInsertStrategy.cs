@@ -1220,7 +1220,11 @@ internal static class DbInsertStrategy
         {
             var colInfo = table.GetColumn(assignment.Column);
             if (colInfo.GetGenValue != null) continue;
-            var expr = assignment.ValueExpr ?? SqlExpressionParser.ParseScalar(assignment.ValueRaw, dialect);
+            var expr = assignment.ValueExpr ?? SqlExpressionParser.ParseScalar(
+                assignment.ValueRaw,
+                dialect,
+                null,
+                SqlCustomFunctionResolverFactory.Create(table.Schema.Db, table.Schema.SchemaName));
             var resolved = Eval(expr);
             var coerced = Coerce(colInfo.DbType, resolved);
             targetRow[colInfo.Index] = coerced;
@@ -1412,7 +1416,11 @@ internal static class DbInsertStrategy
             var colInfo = table.GetColumn(assignment.Column);
             if (colInfo.GetGenValue != null) continue;
 
-            var ast = assignment.ValueExpr ?? SqlExpressionParser.ParseScalar(assignment.ValueRaw, dialect);
+            var ast = assignment.ValueExpr ?? SqlExpressionParser.ParseScalar(
+                assignment.ValueRaw,
+                dialect,
+                null,
+                SqlCustomFunctionResolverFactory.Create(table.Schema.Db, table.Schema.SchemaName));
             var value = Eval(ast);
 
             table.UpdateRowColumn(
@@ -1555,25 +1563,7 @@ internal static class DbInsertStrategy
     }
 
     private static void EnsureDialectSupportsSequenceFunction(ISqlDialect dialect, string? functionName)
-    {
-        if (string.IsNullOrWhiteSpace(functionName)) return;
-        if (functionName!.Equals("NEXT_VALUE_FOR", StringComparison.OrdinalIgnoreCase) && !dialect.SupportsNextValueForSequenceExpression)
-            throw SqlUnsupported.ForDialect(dialect, "NEXT VALUE FOR");
-        if (functionName.Equals("PREVIOUS_VALUE_FOR", StringComparison.OrdinalIgnoreCase) && !dialect.SupportsPreviousValueForSequenceExpression)
-            throw SqlUnsupported.ForDialect(dialect, "PREVIOUS VALUE FOR");
-        if ((functionName.Equals(SqlConst.NEXTVAL, StringComparison.OrdinalIgnoreCase) || functionName.Equals(SqlConst.CURRVAL, StringComparison.OrdinalIgnoreCase) || functionName.Equals(SqlConst.SETVAL, StringComparison.OrdinalIgnoreCase) || functionName.Equals(SqlConst.LASTVAL, StringComparison.OrdinalIgnoreCase)) && !SupportsSequenceFunctionCall(dialect, functionName))
-            throw SqlUnsupported.ForDialect(dialect, functionName.ToUpperInvariant());
-    }
-
-    private static bool SupportsSequenceFunctionCall(ISqlDialect dialect, string functionName)
-    {
-        if (dialect.SupportsSequenceFunctionCall(functionName)) return true;
-        if (dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
-            return functionName.Equals(SqlConst.NEXTVAL, StringComparison.OrdinalIgnoreCase) || functionName.Equals(SqlConst.CURRVAL, StringComparison.OrdinalIgnoreCase) || functionName.Equals(SqlConst.SETVAL, StringComparison.OrdinalIgnoreCase) || functionName.Equals(SqlConst.LASTVAL, StringComparison.OrdinalIgnoreCase);
-        if (dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
-            return (functionName.Equals(SqlConst.NEXTVAL, StringComparison.OrdinalIgnoreCase) || functionName.Equals(SqlConst.CURRVAL, StringComparison.OrdinalIgnoreCase)) && dialect.SupportsSequenceDotValueExpression(functionName);
-        return false;
-    }
+        => SequenceFunctionSupportHelper.EnsureSupported(dialect, functionName);
 
     private static void TryExecuteTableTrigger(
         DbConnectionMockBase connection,

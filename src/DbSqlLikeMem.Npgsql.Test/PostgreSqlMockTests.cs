@@ -336,7 +336,7 @@ public sealed class PostgreSqlMockTests
     [Trait("Category", "PostgreSqlMock")]
     public void TestBatch_CallThenRowCount_ShouldReturnZero()
     {
-        _connection.AddProdecure("sp_ping", new ProcedureDef([], [], [], null));
+        _connection.AddProdecure(new ProcedureDef("sp_ping", [], [], [], null));
 
         using var command = new NpgsqlCommandMock(_connection)
         {
@@ -444,7 +444,7 @@ public sealed class PostgreSqlMockTests
     [Trait("Category", "PostgreSqlMock")]
     public void TestBatch_CallUpdateCommitThenRowCount_ShouldReturnZeroAfterCommit()
     {
-        _connection.AddProdecure("sp_ping", new ProcedureDef([], [], [], null));
+        _connection.AddProdecure(new ProcedureDef("sp_ping", [], [], [], null));
 
         using var command = new NpgsqlCommandMock(_connection)
         {
@@ -631,4 +631,5 @@ public sealed class PostgreSqlMockTests
     }
 
 }
+
 

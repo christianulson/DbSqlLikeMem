@@ -134,6 +134,14 @@ CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (Order
         $"SELECT nextval('{sequenceName}')";
 
     /// <inheritdoc />
+    public override string NextSequenceValueExpression(string sequenceName) =>
+        $"nextval('{sequenceName}')";
+
+    /// <inheritdoc />
+    public override string CurrentSequenceValue(string sequenceName) =>
+        $"currval('{sequenceName}')";
+
+    /// <inheritdoc />
     public override string DropTable(string tableName, string uId) =>
         $"DROP TABLE IF EXISTS {tableName}_{uId}";
 
@@ -166,8 +174,23 @@ CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (Order
         $"SELECT ('{jsonLiteral}'::json -> 'user' ->> 'name')";
 
     /// <inheritdoc />
+    public override string JsonProfileNameExpression(string jsonColumn) =>
+        $"({jsonColumn}::jsonb -> 'profile' ->> 'name')";
+
+    /// <inheritdoc />
+    public override string StringLengthExpression(string expression) =>
+        $"CHAR_LENGTH({expression})";
+
+    /// <inheritdoc />
     public override string TemporalDateAdd() =>
         "SELECT TIMESTAMP '2024-01-01 00:00:00' + INTERVAL '1 day'";
+
+    /// <inheritdoc />
+    public override string TemporalCurrentTimestampExpression() => "CURRENT_TIMESTAMP";
+
+    /// <inheritdoc />
+    public override string TemporalDateAddExpression() =>
+        "CURRENT_TIMESTAMP + INTERVAL '1 day'";
 
     /// <inheritdoc />
     public override string TemporalNowWhere(string tableName) =>

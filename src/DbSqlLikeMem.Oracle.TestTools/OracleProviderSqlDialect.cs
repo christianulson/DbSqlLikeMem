@@ -71,6 +71,14 @@ CREATE TABLE {tableName}_{uId} (
         $"DROP TABLE {TemporaryUsersTableName(tableName)}";
 
     /// <inheritdoc />
+    public override string Parameter(string name) =>
+        $":{name}";
+
+    /// <inheritdoc />
+    public override string SelectParameterProjection(string projectionList) =>
+        $"SELECT {projectionList} FROM DUAL";
+
+    /// <inheritdoc />
     public override string InsertUser(string tableName, int id, string name) =>
         $@"INSERT INTO {tableName} (
     Id,
@@ -169,6 +177,14 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
         $"SELECT {sequenceName}.NEXTVAL FROM DUAL";
 
     /// <inheritdoc />
+    public override string NextSequenceValueExpression(string sequenceName) =>
+        $"{sequenceName}.NEXTVAL";
+
+    /// <inheritdoc />
+    public override string CurrentSequenceValue(string sequenceName) =>
+        $"{sequenceName}.CURRVAL";
+
+    /// <inheritdoc />
     public override string StringAggregateOrdered(string tableName) =>
         $"SELECT LISTAGG(Name, ',') WITHIN GROUP (ORDER BY Name) FROM {tableName}";
 
@@ -193,8 +209,27 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
         $"SELECT JSON_VALUE('{jsonLiteral}', '$.user.name') FROM DUAL";
 
     /// <inheritdoc />
+    public override string JsonProfileNameExpression(string jsonColumn) =>
+        $"JSON_VALUE({jsonColumn}, '$.profile.name')";
+
+    /// <inheritdoc />
+    public override string StringLengthExpression(string expression) =>
+        $"LENGTH({expression})";
+
+    /// <inheritdoc />
     public override string TemporalDateAdd() =>
         "SELECT TO_TIMESTAMP('2024-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS') + INTERVAL '1' DAY FROM DUAL";
+
+    /// <inheritdoc />
+    public override string TemporalCurrentTimestampExpression() => "CURRENT_TIMESTAMP";
+
+    /// <inheritdoc />
+    public override string TemporalDateAddExpression() =>
+        "CURRENT_TIMESTAMP + INTERVAL '1' DAY";
+
+    /// <inheritdoc />
+    public override string StringPrefixExpression(string expression, int length) =>
+        $"SUBSTR({expression}, 1, {length})";
 
     /// <inheritdoc />
     public override string CteSimple(string tableName) =>

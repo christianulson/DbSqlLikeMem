@@ -77,7 +77,21 @@
         "SelectScalarSubquery",
         "SelectInSubquery",
         "CrossApplyProjection",
-        "OuterApplyProjection"
+        "OuterApplyProjection",
+        "ParameterProjection",
+        "ParameterInsertSingle",
+        "StoredProcedureCall",
+        "WindowLead",
+        "WindowRankDenseRank",
+        "WindowFirstLastValue",
+        "WindowNtile",
+        "WindowPercentRankCumeDist",
+        "WindowNthValue",
+        "SelectNotExistsPredicate",
+        "SelectScalarCaseMatrix",
+        "UnionDistinctProjection",
+        "SelectNotInSubquery",
+        "PagedNameProjection"
       ],
       "supportsExternalFeatures": [
         "ConnectionOpen",
@@ -130,7 +144,20 @@
         "SelectScalarSubquery",
         "SelectInSubquery",
         "CrossApplyProjection",
-        "OuterApplyProjection"
+        "OuterApplyProjection",
+        "ParameterProjection",
+        "ParameterInsertSingle",
+        "WindowLead",
+        "WindowRankDenseRank",
+        "WindowFirstLastValue",
+        "WindowNtile",
+        "WindowPercentRankCumeDist",
+        "WindowNthValue",
+        "SelectNotExistsPredicate",
+        "SelectScalarCaseMatrix",
+        "UnionDistinctProjection",
+        "SelectNotInSubquery",
+        "PagedNameProjection"
       ]
     },
     {
@@ -195,7 +222,21 @@
         "SelectScalarSubquery",
         "SelectInSubquery",
         "CrossApplyProjection",
-        "OuterApplyProjection"
+        "OuterApplyProjection",
+        "ParameterProjection",
+        "ParameterInsertSingle",
+        "StoredProcedureCall",
+        "WindowLead",
+        "WindowRankDenseRank",
+        "WindowFirstLastValue",
+        "WindowNtile",
+        "WindowPercentRankCumeDist",
+        "WindowNthValue",
+        "SelectNotExistsPredicate",
+        "SelectScalarCaseMatrix",
+        "UnionDistinctProjection",
+        "SelectNotInSubquery",
+        "PagedNameProjection"
       ],
       "supportsExternalFeatures": [
         "ConnectionOpen",
@@ -253,7 +294,20 @@
         "SelectScalarSubquery",
         "SelectInSubquery",
         "CrossApplyProjection",
-        "OuterApplyProjection"
+        "OuterApplyProjection",
+        "ParameterProjection",
+        "ParameterInsertSingle",
+        "WindowLead",
+        "WindowRankDenseRank",
+        "WindowFirstLastValue",
+        "WindowNtile",
+        "WindowPercentRankCumeDist",
+        "WindowNthValue",
+        "SelectNotExistsPredicate",
+        "SelectScalarCaseMatrix",
+        "UnionDistinctProjection",
+        "SelectNotInSubquery",
+        "PagedNameProjection"
       ]
     },
     {
@@ -330,7 +384,21 @@
         "SelectScalarSubquery",
         "SelectInSubquery",
         "CrossApplyProjection",
-        "OuterApplyProjection"
+        "OuterApplyProjection",
+        "ParameterProjection",
+        "ParameterInsertSingle",
+        "StoredProcedureCall",
+        "WindowLead",
+        "WindowRankDenseRank",
+        "WindowFirstLastValue",
+        "WindowNtile",
+        "WindowPercentRankCumeDist",
+        "WindowNthValue",
+        "SelectNotExistsPredicate",
+        "SelectScalarCaseMatrix",
+        "UnionDistinctProjection",
+        "SelectNotInSubquery",
+        "PagedNameProjection"
       ],
       "supportsExternalFeatures": [
         "ConnectionOpen",
@@ -391,7 +459,20 @@
         "SelectScalarSubquery",
         "SelectInSubquery",
         "CrossApplyProjection",
-        "OuterApplyProjection"
+        "OuterApplyProjection",
+        "ParameterProjection",
+        "ParameterInsertSingle",
+        "WindowLead",
+        "WindowRankDenseRank",
+        "WindowFirstLastValue",
+        "WindowNtile",
+        "WindowPercentRankCumeDist",
+        "WindowNthValue",
+        "SelectNotExistsPredicate",
+        "SelectScalarCaseMatrix",
+        "UnionDistinctProjection",
+        "SelectNotInSubquery",
+        "PagedNameProjection"
       ]
     },
     {
@@ -468,9 +549,37 @@
         "SelectScalarSubquery",
         "SelectInSubquery",
         "CrossApplyProjection",
-        "OuterApplyProjection"
+        "OuterApplyProjection",
+        "ParameterProjection",
+        "ParameterInsertSingle",
+        "StoredProcedureCall",
+        "WindowLead",
+        "WindowRankDenseRank",
+        "WindowFirstLastValue",
+        "WindowNtile",
+        "WindowPercentRankCumeDist",
+        "WindowNthValue",
+        "SelectNotExistsPredicate",
+        "SelectScalarCaseMatrix",
+        "UnionDistinctProjection",
+        "SelectNotInSubquery",
+        "PagedNameProjection"
       ],
-      "supportsExternalFeatures": [],
+      "supportsExternalFeatures": [
+        "ParameterProjection",
+        "ParameterInsertSingle",
+        "WindowLead",
+        "WindowRankDenseRank",
+        "WindowFirstLastValue",
+        "WindowNtile",
+        "WindowPercentRankCumeDist",
+        "WindowNthValue",
+        "SelectNotExistsPredicate",
+        "SelectScalarCaseMatrix",
+        "UnionDistinctProjection",
+        "SelectNotInSubquery",
+        "PagedNameProjection"
+      ],
       "notes": "Use SQL Server as the nearest real-engine proxy in local benchmarks."
     },
     {
@@ -545,7 +654,21 @@
         "SelectScalarSubquery",
         "SelectInSubquery",
         "CrossApplyProjection",
-        "OuterApplyProjection"
+        "OuterApplyProjection",
+        "ParameterProjection",
+        "ParameterInsertSingle",
+        "StoredProcedureCall",
+        "WindowLead",
+        "WindowRankDenseRank",
+        "WindowFirstLastValue",
+        "WindowNtile",
+        "WindowPercentRankCumeDist",
+        "WindowNthValue",
+        "SelectNotExistsPredicate",
+        "SelectScalarCaseMatrix",
+        "UnionDistinctProjection",
+        "SelectNotInSubquery",
+        "PagedNameProjection"
       ],
       "supportsExternalFeatures": [
         "ConnectionOpen",
@@ -604,7 +727,20 @@
         "SelectScalarSubquery",
         "SelectInSubquery",
         "CrossApplyProjection",
-        "OuterApplyProjection"
+        "OuterApplyProjection",
+        "ParameterProjection",
+        "ParameterInsertSingle",
+        "WindowLead",
+        "WindowRankDenseRank",
+        "WindowFirstLastValue",
+        "WindowNtile",
+        "WindowPercentRankCumeDist",
+        "WindowNthValue",
+        "SelectNotExistsPredicate",
+        "SelectScalarCaseMatrix",
+        "UnionDistinctProjection",
+        "SelectNotInSubquery",
+        "PagedNameProjection"
       ]
     },
     {
@@ -680,7 +816,21 @@
         "SelectScalarSubquery",
         "SelectInSubquery",
         "CrossApplyProjection",
-        "OuterApplyProjection"
+        "OuterApplyProjection",
+        "ParameterProjection",
+        "ParameterInsertSingle",
+        "StoredProcedureCall",
+        "WindowLead",
+        "WindowRankDenseRank",
+        "WindowFirstLastValue",
+        "WindowNtile",
+        "WindowPercentRankCumeDist",
+        "WindowNthValue",
+        "SelectNotExistsPredicate",
+        "SelectScalarCaseMatrix",
+        "UnionDistinctProjection",
+        "SelectNotInSubquery",
+        "PagedNameProjection"
       ],
       "supportsExternalFeatures": [
         "ConnectionOpen",
@@ -740,7 +890,20 @@
         "SelectScalarSubquery",
         "SelectInSubquery",
         "CrossApplyProjection",
-        "OuterApplyProjection"
+        "OuterApplyProjection",
+        "ParameterProjection",
+        "ParameterInsertSingle",
+        "WindowLead",
+        "WindowRankDenseRank",
+        "WindowFirstLastValue",
+        "WindowNtile",
+        "WindowPercentRankCumeDist",
+        "WindowNthValue",
+        "SelectNotExistsPredicate",
+        "SelectScalarCaseMatrix",
+        "UnionDistinctProjection",
+        "SelectNotInSubquery",
+        "PagedNameProjection"
       ]
     },
     {
@@ -812,7 +975,21 @@
         "DistinctProjection",
         "MultiJoinAggregate",
         "SelectScalarSubquery",
-        "SelectInSubquery"
+        "SelectInSubquery",
+        "ParameterProjection",
+        "ParameterInsertSingle",
+        "StoredProcedureCall",
+        "WindowLead",
+        "WindowRankDenseRank",
+        "WindowFirstLastValue",
+        "WindowNtile",
+        "WindowPercentRankCumeDist",
+        "WindowNthValue",
+        "SelectNotExistsPredicate",
+        "SelectScalarCaseMatrix",
+        "UnionDistinctProjection",
+        "SelectNotInSubquery",
+        "PagedNameProjection"
       ],
       "supportsExternalFeatures": [
         "ConnectionOpen",
@@ -868,7 +1045,20 @@
         "DistinctProjection",
         "MultiJoinAggregate",
         "SelectScalarSubquery",
-        "SelectInSubquery"
+        "SelectInSubquery",
+        "ParameterProjection",
+        "ParameterInsertSingle",
+        "WindowLead",
+        "WindowRankDenseRank",
+        "WindowFirstLastValue",
+        "WindowNtile",
+        "WindowPercentRankCumeDist",
+        "WindowNthValue",
+        "SelectNotExistsPredicate",
+        "SelectScalarCaseMatrix",
+        "UnionDistinctProjection",
+        "SelectNotInSubquery",
+        "PagedNameProjection"
       ]
     },
     {
@@ -944,7 +1134,21 @@
         "SelectScalarSubquery",
         "SelectInSubquery",
         "CrossApplyProjection",
-        "OuterApplyProjection"
+        "OuterApplyProjection",
+        "ParameterProjection",
+        "ParameterInsertSingle",
+        "StoredProcedureCall",
+        "WindowLead",
+        "WindowRankDenseRank",
+        "WindowFirstLastValue",
+        "WindowNtile",
+        "WindowPercentRankCumeDist",
+        "WindowNthValue",
+        "SelectNotExistsPredicate",
+        "SelectScalarCaseMatrix",
+        "UnionDistinctProjection",
+        "SelectNotInSubquery",
+        "PagedNameProjection"
       ],
       "supportsExternalFeatures": [
         "ConnectionOpen",
@@ -1004,7 +1208,20 @@
         "SelectScalarSubquery",
         "SelectInSubquery",
         "CrossApplyProjection",
-        "OuterApplyProjection"
+        "OuterApplyProjection",
+        "ParameterProjection",
+        "ParameterInsertSingle",
+        "WindowLead",
+        "WindowRankDenseRank",
+        "WindowFirstLastValue",
+        "WindowNtile",
+        "WindowPercentRankCumeDist",
+        "WindowNthValue",
+        "SelectNotExistsPredicate",
+        "SelectScalarCaseMatrix",
+        "UnionDistinctProjection",
+        "SelectNotInSubquery",
+        "PagedNameProjection"
       ],
       "notes": "Change the image tag here if you prefer to stay strictly inside the Db2 11 family."
     }
@@ -1128,6 +1345,27 @@
       "category": "Core",
       "comparable": true,
       "notes": "Measures the provider-specific upsert path."
+    },
+    {
+      "id": "ParameterProjection",
+      "displayName": "Parameter projection",
+      "category": "Core",
+      "comparable": true,
+      "notes": "Benchmark for binding a broad set of parameter types in a scalar projection."
+    },
+    {
+      "id": "ParameterInsertSingle",
+      "displayName": "Parameter insert single",
+      "category": "Core",
+      "comparable": true,
+      "notes": "Benchmark for binding parameters in a single-row INSERT."
+    },
+    {
+      "id": "StoredProcedureCall",
+      "displayName": "Stored procedure call",
+      "category": "Core",
+      "comparable": false,
+      "notes": "Benchmark for calling a registered stored procedure in the mock runtime."
     },
     {
       "id": "SequenceNextValue",
@@ -1485,6 +1723,94 @@
       "category": "AdvancedQuery",
       "comparable": true,
       "notes": "Complex query benchmark using OUTER APPLY or LEFT LATERAL semantics."
+    },
+    {
+      "id": "WindowLead",
+      "displayName": "Window LEAD",
+      "category": "AdvancedQuery",
+      "comparable": true,
+      "indexRefs": [],
+      "notes": "Backlog benchmark for LEAD/analytic window processing."
+    },
+    {
+      "id": "WindowRankDenseRank",
+      "displayName": "Window RANK and DENSE_RANK",
+      "category": "AdvancedQuery",
+      "comparable": true,
+      "indexRefs": [],
+      "notes": "Backlog benchmark for ranking window functions."
+    },
+    {
+      "id": "WindowFirstLastValue",
+      "displayName": "Window FIRST_VALUE and LAST_VALUE",
+      "category": "AdvancedQuery",
+      "comparable": true,
+      "indexRefs": [],
+      "notes": "Backlog benchmark for first/last value window functions."
+    },
+    {
+      "id": "WindowNtile",
+      "displayName": "Window NTILE",
+      "category": "AdvancedQuery",
+      "comparable": true,
+      "indexRefs": [],
+      "notes": "Backlog benchmark for NTILE distribution windows."
+    },
+    {
+      "id": "WindowPercentRankCumeDist",
+      "displayName": "Window PERCENT_RANK and CUME_DIST",
+      "category": "AdvancedQuery",
+      "comparable": true,
+      "indexRefs": [],
+      "notes": "Backlog benchmark for percentile distribution windows."
+    },
+    {
+      "id": "WindowNthValue",
+      "displayName": "Window NTH_VALUE",
+      "category": "AdvancedQuery",
+      "comparable": true,
+      "indexRefs": [],
+      "notes": "Backlog benchmark for NTH_VALUE window function."
+    },
+    {
+      "id": "SelectNotExistsPredicate",
+      "displayName": "Select NOT EXISTS predicate",
+      "category": "AdvancedQuery",
+      "comparable": true,
+      "indexRefs": [],
+      "notes": "Complex query benchmark using NOT EXISTS with a correlated subquery."
+    },
+    {
+      "id": "SelectScalarCaseMatrix",
+      "displayName": "Select scalar CASE matrix",
+      "category": "AdvancedQuery",
+      "comparable": true,
+      "indexRefs": [],
+      "notes": "Complex query benchmark combining scalar subqueries and CASE expressions."
+    },
+    {
+      "id": "UnionDistinctProjection",
+      "displayName": "UNION projection",
+      "category": "AdvancedQuery",
+      "comparable": true,
+      "indexRefs": [],
+      "notes": "Complex query benchmark for UNION over compatible projections."
+    },
+    {
+      "id": "SelectNotInSubquery",
+      "displayName": "Select NOT IN subquery",
+      "category": "AdvancedQuery",
+      "comparable": true,
+      "indexRefs": [],
+      "notes": "Complex query benchmark using a NOT IN sub-select predicate."
+    },
+    {
+      "id": "PagedNameProjection",
+      "displayName": "Paged name projection",
+      "category": "AdvancedQuery",
+      "comparable": true,
+      "indexRefs": [],
+      "notes": "Complex query benchmark for ordered pagination across dialects."
     }
   ]
 }

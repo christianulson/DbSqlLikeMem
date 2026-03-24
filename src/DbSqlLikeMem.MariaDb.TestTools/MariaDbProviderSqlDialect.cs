@@ -129,6 +129,14 @@ CREATE TABLE {tableName}_{uId} (
         $"SELECT NEXT VALUE FOR {sequenceName}";
 
     /// <inheritdoc />
+    public override string NextSequenceValueExpression(string sequenceName) =>
+        $"NEXT VALUE FOR {sequenceName}";
+
+    /// <inheritdoc />
+    public override string CurrentSequenceValue(string sequenceName) =>
+        $"PREVIOUS VALUE FOR {sequenceName}";
+
+    /// <inheritdoc />
     public override string DropTable(string tableName, string uId) =>
         $"DROP TABLE IF EXISTS {tableName}_{uId}";
 
@@ -165,8 +173,23 @@ CREATE TABLE {tableName}_{uId} (
         $"SELECT JSON_UNQUOTE(JSON_EXTRACT('{jsonLiteral}', '$.user.name'))";
 
     /// <inheritdoc />
+    public override string JsonProfileNameExpression(string jsonColumn) =>
+        $"JSON_UNQUOTE(JSON_EXTRACT({jsonColumn}, '$.profile.name'))";
+
+    /// <inheritdoc />
+    public override string StringLengthExpression(string expression) =>
+        $"CHAR_LENGTH({expression})";
+
+    /// <inheritdoc />
     public override string TemporalDateAdd() =>
         "SELECT DATE_ADD('2024-01-01 00:00:00', INTERVAL 1 DAY)";
+
+    /// <inheritdoc />
+    public override string TemporalCurrentTimestampExpression() => "CURRENT_TIMESTAMP";
+
+    /// <inheritdoc />
+    public override string TemporalDateAddExpression() =>
+        "DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 1 DAY)";
 
     /// <inheritdoc />
     public override string TemporalNowWhere(string tableName) =>
@@ -175,6 +198,10 @@ CREATE TABLE {tableName}_{uId} (
     /// <inheritdoc />
     public override string TemporalNowOrderBy(string tableName) =>
         $"SELECT Name FROM {tableName} ORDER BY CURRENT_TIMESTAMP, Name LIMIT 1";
+
+    /// <inheritdoc />
+    public override string PagedNameProjection(string tableName, int offset, int fetch) =>
+        $"SELECT Name FROM {tableName} ORDER BY Name LIMIT {fetch} OFFSET {offset}";
 
     /// <inheritdoc />
     public override string CrossApplyProjection(string usersTable, string ordersTable) =>

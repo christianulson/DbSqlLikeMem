@@ -20,6 +20,7 @@ internal sealed class MariaDbDialect
     internal MariaDbDialect(int version)
         : base(DialectName, version)
     {
+        MariaDbTableFunctionRegistry.Register(this, version);
     }
 
     /// <inheritdoc />
@@ -49,6 +50,4 @@ internal sealed class MariaDbDialect
     /// <inheritdoc />
     public override bool SupportsPreviousValueForSequenceExpression => Version >= SequenceMinVersion;
 
-    /// <inheritdoc />
-    public override bool SupportsJsonTableFunction => Version >= JsonTableMinVersion;
 }

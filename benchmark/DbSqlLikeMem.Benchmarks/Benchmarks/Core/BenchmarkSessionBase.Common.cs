@@ -6,7 +6,7 @@ using DbSqlLikeMem.TestTools.Schema;
 using DbSqlLikeMem.TestTools.TemporaryTable;
 using DbSqlLikeMem.TestTools.Query;
 using System.Globalization;
-using System.Collections.Generic;
+using System.Data;
 
 namespace DbSqlLikeMem.Benchmarks.Core;
 
@@ -208,6 +208,53 @@ public abstract partial class BenchmarkSessionBase
                 connection.Open();
                 var service = CreateQueryService(connection, BenchmarkScenarioFactory.CreateNoopScenario<DbConnection>());
                 return new PreparedNoopQueryState(connection, service);
+            });
+
+    private PreparedParameterProjectionState GetPreparedParameterProjectionState(string key)
+        => GetOrCreatePreparedState(
+            key,
+            () =>
+            {
+                var connection = CreateConnection();
+                connection.Open();
+                return new PreparedParameterProjectionState(connection, Dialect);
+            });
+
+    protected int RunPreparedStoredProcedureCall(string key)
+        => GetPreparedStoredProcedureState(key).RunStoredProcedureCall();
+
+    private PreparedStoredProcedureState GetPreparedStoredProcedureState(string key)
+        => GetOrCreatePreparedState(
+            key,
+            () =>
+            {
+                var connection = CreateConnection();
+                connection.Open();
+
+                if (connection is not DbConnectionMockBase mockConnection)
+                {
+                    throw new NotSupportedException($"{Dialect.DisplayName} does not support stored procedure benchmarks.");
+                }
+
+                var procedure = new ProcedureDef(
+                    "sp_benchmark",
+                    RequiredIn:
+                    [
+                        new ProcParam("tenantId", DbType.Int32, Required: true)
+                    ],
+                    OptionalIn:
+                    [
+                        new ProcParam("note", DbType.String, Required: false)
+                    ],
+                    OutParams:
+                    [
+                        new ProcParam("counter", DbType.Int32, Required: true),
+                        new ProcParam("message", DbType.String, Required: true)
+                    ],
+                    ReturnParam: new ProcParam("resultCode", DbType.Int32, Value: 0));
+
+                mockConnection.AddProdecure(procedure);
+                return new PreparedStoredProcedureState(connection, procedure.Name);
             });
 
     private PreparedSequenceState GetPreparedSequenceState(string key)
@@ -435,6 +482,23 @@ public abstract partial class BenchmarkSessionBase
         return command.ExecuteNonQuery();
     }
 
+    protected static int ExecuteNonQuery(
+        DbConnection connection,
+        string sql,
+        Action<DbCommand> configureCommand,
+        DbTransaction? transaction = null)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        if (transaction is not null)
+        {
+            command.Transaction = transaction;
+        }
+
+        configureCommand(command);
+        return command.ExecuteNonQuery();
+    }
+
     protected static object? ExecuteScalar(
         DbConnection connection,
         string sql,
@@ -448,6 +512,45 @@ public abstract partial class BenchmarkSessionBase
         }
 
         return command.ExecuteScalar();
+    }
+
+    protected static object? ExecuteScalar(
+        DbConnection connection,
+        string sql,
+        Action<DbCommand> configureCommand,
+        DbTransaction? transaction = null)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        if (transaction is not null)
+        {
+            command.Transaction = transaction;
+        }
+
+        configureCommand(command);
+        return command.ExecuteScalar();
+    }
+
+    protected static int CountReaderRows(
+        DbConnection connection,
+        string sql,
+        DbTransaction? transaction = null)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        if (transaction is not null)
+        {
+            command.Transaction = transaction;
+        }
+
+        using var reader = command.ExecuteReader();
+        var count = 0;
+        while (reader.Read())
+        {
+            count++;
+        }
+
+        return count;
     }
 
     /// <summary>
@@ -724,6 +827,42 @@ public abstract partial class BenchmarkSessionBase
             _nextInsertId += 1;
             _rowCount += 1;
             return affected;
+        }
+
+        public int RunParameterInsertSingle()
+        {
+            var id = _nextInsertId;
+            var sql = $"""
+INSERT INTO {UsersTable} (
+    Id,
+    Name
+)
+VALUES (
+    {_service.Dialect.Parameter("id")},
+    {_service.Dialect.Parameter("name")}
+)
+""";
+
+            var affected = ExecuteNonQuery(_connection, sql, command =>
+            {
+                AddParameter(command, "id", DbType.Int32, id);
+                AddParameter(command, "name", DbType.String, $"User {id}");
+            });
+
+            _nextInsertId += 1;
+            _rowCount += 1;
+            return affected;
+        }
+
+        private string UsersTable => $"{_users}_{_uId}";
+
+        private static void AddParameter(DbCommand command, string name, DbType dbType, object? value)
+        {
+            var parameter = command.CreateParameter();
+            parameter.ParameterName = name;
+            parameter.DbType = dbType;
+            parameter.Value = value ?? DBNull.Value;
+            command.Parameters.Add(parameter);
         }
 
         public void Dispose()
@@ -1052,6 +1191,130 @@ public abstract partial class BenchmarkSessionBase
             {
                 _connection.Dispose();
             }
+        }
+    }
+
+    private sealed class PreparedParameterProjectionState : IDisposable
+    {
+        private readonly DbConnection _connection;
+        private readonly ProviderSqlDialect _dialect;
+
+        public PreparedParameterProjectionState(
+            DbConnection connection,
+            ProviderSqlDialect dialect)
+        {
+            _connection = connection;
+            _dialect = dialect;
+        }
+
+        public object? RunParameterProjection()
+        {
+            var sql = _dialect.SelectParameterProjection($@"
+    {_dialect.Parameter("textValue")} AS TextValue,
+    {_dialect.Parameter("ansiTextValue")} AS AnsiTextValue,
+    {_dialect.Parameter("ansiFixedTextValue")} AS AnsiFixedTextValue,
+    {_dialect.Parameter("fixedTextValue")} AS FixedTextValue,
+    {_dialect.Parameter("int16Value")} AS Int16Value,
+    {_dialect.Parameter("int32Value")} AS Int32Value,
+    {_dialect.Parameter("int64Value")} AS Int64Value,
+    {_dialect.Parameter("boolValue")} AS BoolValue,
+    {_dialect.Parameter("decimalValue")} AS DecimalValue,
+    {_dialect.Parameter("doubleValue")} AS DoubleValue,
+    {_dialect.Parameter("timeSpanValue")} AS TimeSpanValue,
+    {_dialect.Parameter("dateTimeOffsetValue")} AS DateTimeOffsetValue,
+    {_dialect.Parameter("dateTimeValue")} AS DateTimeValue,
+    {_dialect.Parameter("guidValue")} AS GuidValue,
+    {_dialect.Parameter("binaryValue")} AS BinaryValue,
+    {_dialect.Parameter("dateValue")} AS DateValue,
+    {_dialect.Parameter("currencyValue")} AS CurrencyValue");
+
+            return ExecuteScalar(_connection, sql, command =>
+            {
+                AddParameter(command, "textValue", DbType.String, "benchmark");
+                AddParameter(command, "ansiTextValue", DbType.AnsiString, "ansi");
+                AddParameter(command, "ansiFixedTextValue", DbType.AnsiStringFixedLength, "fixed-ansi");
+                AddParameter(command, "fixedTextValue", DbType.StringFixedLength, "fixed-text");
+                AddParameter(command, "int16Value", DbType.Int16, (short) 16);
+                AddParameter(command, "int32Value", DbType.Int32, 32);
+                AddParameter(command, "int64Value", DbType.Int64, 64L);
+                AddParameter(command, "boolValue", DbType.Boolean, true);
+                AddParameter(command, "decimalValue", DbType.Decimal, 12.34m);
+                AddParameter(command, "doubleValue", DbType.Double, 56.78d);
+                AddParameter(command, "timeSpanValue", DbType.Time, TimeSpan.FromHours(1.5));
+                AddParameter(command, "dateTimeOffsetValue", DbType.DateTimeOffset, new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.Zero));
+                AddParameter(command, "dateTimeValue", DbType.DateTime, new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
+                AddParameter(command, "guidValue", DbType.Guid, Guid.Parse("11111111-2222-3333-4444-555555555555"));
+                AddParameter(command, "binaryValue", DbType.Binary, new byte[] { 1, 2, 3, 4 });
+                AddParameter(command, "dateValue", DbType.Date, new DateTime(2024, 1, 2));
+                AddParameter(command, "currencyValue", DbType.Currency, 123.45m);
+            });
+        }
+
+        private static void AddParameter(DbCommand command, string name, DbType dbType, object? value)
+        {
+            var parameter = command.CreateParameter();
+            parameter.ParameterName = name;
+            parameter.DbType = dbType;
+            parameter.Value = value ?? DBNull.Value;
+            command.Parameters.Add(parameter);
+        }
+
+        public void Dispose()
+        {
+            _connection.Dispose();
+        }
+    }
+
+    private sealed class PreparedStoredProcedureState : IDisposable
+    {
+        private readonly DbConnection _connection;
+        private readonly string _procedureName;
+
+        public PreparedStoredProcedureState(
+            DbConnection connection,
+            string procedureName)
+        {
+            _connection = connection;
+            _procedureName = procedureName;
+        }
+
+        public int RunStoredProcedureCall()
+        {
+            using var command = _connection.CreateCommand();
+            command.CommandType = CommandType.StoredProcedure;
+            command.CommandText = _procedureName;
+
+            AddParameter(command, "tenantId", DbType.Int32, 10, ParameterDirection.Input);
+            AddParameter(command, "note", DbType.String, "benchmark", ParameterDirection.Input);
+            AddParameter(command, "counter", DbType.Int32, DBNull.Value, ParameterDirection.Output);
+            AddParameter(command, "message", DbType.String, DBNull.Value, ParameterDirection.Output);
+            AddParameter(command, "resultCode", DbType.Int32, DBNull.Value, ParameterDirection.ReturnValue);
+
+            var affected = command.ExecuteNonQuery();
+            GC.KeepAlive(command.Parameters["counter"].Value);
+            GC.KeepAlive(command.Parameters["message"].Value);
+            GC.KeepAlive(command.Parameters["resultCode"].Value);
+            return affected;
+        }
+
+        private static void AddParameter(
+            DbCommand command,
+            string name,
+            DbType dbType,
+            object? value,
+            ParameterDirection direction)
+        {
+            var parameter = command.CreateParameter();
+            parameter.ParameterName = name;
+            parameter.DbType = dbType;
+            parameter.Direction = direction;
+            parameter.Value = value ?? DBNull.Value;
+            command.Parameters.Add(parameter);
+        }
+
+        public void Dispose()
+        {
+            _connection.Dispose();
         }
     }
 
@@ -1540,6 +1803,8 @@ public abstract partial class BenchmarkSessionBase
         private readonly DbConnection _connection;
         private readonly string _users;
         private readonly string _uId;
+
+        public DbConnection Connection => _connection;
 
         public PreparedUsersQueryState(
             DbConnection connection,

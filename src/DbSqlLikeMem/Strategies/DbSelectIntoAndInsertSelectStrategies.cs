@@ -476,7 +476,11 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             var selectSql = m.Groups["select"].Value;
 
             var executor = AstQueryExecutorFactory.Create(dialect, connection, pars);
-            var q = SqlQueryParser.Parse(selectSql, dialect);
+            var q = SqlQueryParser.Parse(
+                selectSql,
+                dialect,
+                null,
+                SqlCustomFunctionResolverFactory.Create(connection));
             var res = executor.ExecuteSelect((SqlSelectQuery)q);
 
             var newTable = connection.AddTable(tableName);
@@ -838,7 +842,11 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     {
         var plan = BuildInsertSelectPlan(connection, query);
         var executor = AstQueryExecutorFactory.Create(dialect, connection, pars);
-        var q = SqlQueryParser.Parse(plan.SelectSql, dialect);
+        var q = SqlQueryParser.Parse(
+            plan.SelectSql,
+            dialect,
+            null,
+            SqlCustomFunctionResolverFactory.Create(connection));
         var res = executor.ExecuteSelect((SqlSelectQuery)q);
 
         if (plan.Columns.Count != res.Columns.Count)

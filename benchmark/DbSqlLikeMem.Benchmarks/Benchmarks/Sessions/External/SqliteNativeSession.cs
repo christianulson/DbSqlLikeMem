@@ -1,5 +1,4 @@
 using Microsoft.Data.Sqlite;
-using DbSqlLikeMem.TestTools.Benchmarks;
 using DbSqlLikeMem.Sqlite.TestTools;
 
 namespace DbSqlLikeMem.Benchmarks.Sessions.External;

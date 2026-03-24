@@ -37,7 +37,11 @@ internal sealed class CommandExecutionPipelineContext(
         if (Connection.Metrics.Enabled)
             Connection.Metrics.IncrementNonQueryParseCacheMiss();
         parsedSqlRaw = sqlRaw;
-        parsedQuery = SqlQueryParser.Parse(sqlRaw, Connection.ExecutionDialect);
+        parsedQuery = SqlQueryParser.Parse(
+            sqlRaw,
+            Connection.ExecutionDialect,
+            null,
+            SqlCustomFunctionResolverFactory.Create(Connection));
         return parsedQuery;
     }
 }

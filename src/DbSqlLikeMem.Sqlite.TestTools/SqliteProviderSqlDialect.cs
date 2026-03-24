@@ -167,8 +167,27 @@ CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (Order
         $"SELECT json_extract('{jsonLiteral}', '$.user.name')";
 
     /// <inheritdoc />
+    public override string JsonProfileNameExpression(string jsonColumn) =>
+        $"json_extract({jsonColumn}, '$.profile.name')";
+
+    /// <inheritdoc />
+    public override string StringLengthExpression(string expression) =>
+        $"LENGTH({expression})";
+
+    /// <inheritdoc />
     public override string TemporalDateAdd() =>
         "SELECT datetime('2024-01-01 00:00:00', '+1 day')";
+
+    /// <inheritdoc />
+    public override string TemporalCurrentTimestampExpression() => "CURRENT_TIMESTAMP";
+
+    /// <inheritdoc />
+    public override string TemporalDateAddExpression() =>
+        "datetime(CURRENT_TIMESTAMP, '+1 day')";
+
+    /// <inheritdoc />
+    public override string StringPrefixExpression(string expression, int length) =>
+        $"SUBSTR({expression}, 1, {length})";
 
     /// <inheritdoc />
     public override string TemporalNowWhere(string tableName) =>
@@ -177,4 +196,8 @@ CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (Order
     /// <inheritdoc />
     public override string TemporalNowOrderBy(string tableName) =>
         $"SELECT Name FROM {tableName} ORDER BY CURRENT_TIMESTAMP, Name LIMIT 1";
+
+    /// <inheritdoc />
+    public override string PagedNameProjection(string tableName, int offset, int fetch) =>
+        $"SELECT Name FROM {tableName} ORDER BY Name LIMIT {fetch} OFFSET {offset}";
 }

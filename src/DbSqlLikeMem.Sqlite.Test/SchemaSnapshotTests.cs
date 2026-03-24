@@ -228,8 +228,9 @@ public sealed class SchemaSnapshotTests(
     {
         var sourceDb = new SqliteDbMock();
         sourceDb.AddProdecure(
-            "usp_sync_user",
+
             new ProcedureDef(
+                "usp_sync_user",
                 RequiredIn: [new ProcParam("@userId", DbType.Int32)],
                 OptionalIn: [new ProcParam("@status", DbType.String, Required: false, Value: "new")],
                 OutParams: [new ProcParam("@affected", DbType.Int32, Required: false)],
@@ -274,8 +275,8 @@ public sealed class SchemaSnapshotTests(
         ], schemaName: "app");
         sourceDb.AddSequence("seq_report", startValue: 5, incrementBy: 2, currentValue: 9, schemaName: "reporting");
         sourceDb.AddProdecure(
-            "usp_refresh_report",
             new ProcedureDef(
+                "usp_refresh_report",
                 RequiredIn: [new ProcParam("@reportId", DbType.Int32)],
                 OptionalIn: [],
                 OutParams: []),
@@ -623,8 +624,8 @@ public sealed class SchemaSnapshotTests(
 
         sourceDb.AddSequence("seq_reports", startValue: 100, incrementBy: 10, currentValue: 120, schemaName: "reporting");
         sourceDb.AddProdecure(
-            "usp_refresh_report",
             new ProcedureDef(
+                "usp_refresh_report",
                 RequiredIn: [new ProcParam("@reportId", DbType.Int32)],
                 OptionalIn: [new ProcParam("@mode", DbType.String, Required: false, Value: "full")],
                 OutParams: []),
@@ -658,8 +659,8 @@ public sealed class SchemaSnapshotTests(
     {
         var snapshot = SchemaSnapshot.Export(new SqliteDbMock(version: 5) { })
             with
-            {
-                Schemas =
+        {
+            Schemas =
                 [
                     new SchemaSnapshotSchema
                     {
@@ -690,7 +691,7 @@ public sealed class SchemaSnapshotTests(
                         Sequences = []
                     }
                 ]
-            };
+        };
 
         var targetDb = new SqliteDbMock(version: 6);
         targetDb.CreateSchema("legacy");

@@ -295,7 +295,8 @@ internal static class DbMergeStrategy
         ISqlDialect dialect)
     {
         var executor = AstQueryExecutorFactory.Create(dialect, connection, pars);
-        var parsedSource = SqlQueryParser.Parse(selectSql, dialect) as SqlSelectQuery
+        var customFunctionSupported = SqlCustomFunctionResolverFactory.Create(connection);
+        var parsedSource = SqlQueryParser.Parse(selectSql, dialect, null, customFunctionSupported) as SqlSelectQuery
             ?? throw new InvalidOperationException(SqlExceptionMessages.MergeSourceSelectInvalid());
 
         return executor.ExecuteSelect(parsedSource);

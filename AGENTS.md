@@ -10,6 +10,7 @@ This file defines the minimum operating rules for any agent working in this repo
 
 - Repository: `DbSqlLikeMem`
 - Main stack: `.NET / C#`
+- Im using windows so the end line must be windows ending (CR LF)
 - Main concern in the current maintenance cycle:
   - remove `CS1591` warnings and errors
   - standardize XML documentation

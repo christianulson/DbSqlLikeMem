@@ -72,7 +72,8 @@ internal static class CommandScalarExecutionPrelude
             return true;
         }
 
-        var q = SqlQueryParser.Parse(sqlRaw, connection.ExecutionDialect, pars);
+        var customFunctionSupported = SqlCustomFunctionResolverFactory.Create(connection);
+        var q = SqlQueryParser.Parse(sqlRaw, connection.ExecutionDialect, pars, customFunctionSupported);
         if (q is SqlSelectQuery rowCountQuery && IsRowCountHelperSelect(rowCountQuery))
         {
             scalar = connection.GetLastFoundRows();
@@ -449,8 +450,15 @@ internal static class CommandScalarExecutionPrelude
             return false;
         }
 
-        if (!dialect.SupportsDateAddFunction(functionName))
-            throw SqlUnsupported.ForDialect(dialect, functionName.ToUpperInvariant());
+        if (!dialect.TryGetScalarFunctionDefinition(functionName, out var addDefinition)
+            || addDefinition is null
+            || !addDefinition.AllowsCall)
+        {
+            if (addDefinition is not null)
+                throw SqlUnsupported.ForDialect(dialect, functionName.ToUpperInvariant());
+
+            return false;
+        }
 
         if (functionName.Equals("ADDDATE", StringComparison.OrdinalIgnoreCase))
         {
@@ -608,23 +616,39 @@ internal static class CommandScalarExecutionPrelude
 
         var extracted = QueryJsonFunctionHelper.TryReadJsonPathValue(json!, path!);
         value = functionName.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
-            ? QueryJsonFunctionHelper.ApplyJsonValueReturningClause(new FunctionCallExpr(functionName, args), extracted)
+            ? QueryJsonFunctionHelper.ApplyJsonValueReturningClause(
+                new FunctionCallExpr(functionName, args).BindScalarFunctionDefinition(dialect),
+                extracted)
             : extracted;
         return true;
     }
 
     private static void EnsureJsonExtractionSupported(string functionName, ISqlDialect dialect)
     {
+        if (dialect.TryGetScalarFunctionDefinition(functionName, out var definition))
+        {
+            if (definition is null || definition.AllowsCall)
+                return;
+
+            throw SqlUnsupported.ForDialect(dialect, functionName.ToUpperInvariant());
+        }
+
         if (functionName.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
-            && !dialect.SupportsJsonExtractFunction)
+            && (!dialect.TryGetScalarFunctionDefinition("JSON_EXTRACT", out var jsonExtractDefinition)
+                || jsonExtractDefinition is null
+                || !jsonExtractDefinition.AllowsCall))
             throw SqlUnsupported.ForDialect(dialect, "JSON_EXTRACT");
 
         if (functionName.Equals("JSON_QUERY", StringComparison.OrdinalIgnoreCase)
-            && !dialect.SupportsJsonQueryFunction)
+            && (!dialect.TryGetScalarFunctionDefinition("JSON_QUERY", out var jsonQueryDefinition)
+                || jsonQueryDefinition is null
+                || !jsonQueryDefinition.AllowsCall))
             throw SqlUnsupported.ForDialect(dialect, "JSON_QUERY");
 
         if (functionName.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
-            && !dialect.SupportsJsonValueFunction)
+            && (!dialect.TryGetScalarFunctionDefinition("JSON_VALUE", out var jsonValueDefinition)
+                || jsonValueDefinition is null
+                || !jsonValueDefinition.AllowsCall))
             throw SqlUnsupported.ForDialect(dialect, "JSON_VALUE");
     }
 

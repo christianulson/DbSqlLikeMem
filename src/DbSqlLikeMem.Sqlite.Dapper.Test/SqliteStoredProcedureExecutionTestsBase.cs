@@ -54,7 +54,7 @@ public abstract class SqliteStoredProcedureExecutionTestsBase(
     public void ExecuteNonQuery_StoredProcedure_ShouldValidateRequiredInputs()
     {
         using var c = CreateOpenConnection();
-        c.AddProdecure("sp_add_user", new ProcedureDef(
+        c.AddProdecure(new ProcedureDef("sp_add_user",
             RequiredIn:
             [
                 new ProcParam("p_name", DbType.String),
@@ -80,7 +80,7 @@ public abstract class SqliteStoredProcedureExecutionTestsBase(
     public void ExecuteNonQuery_StoredProcedure_ShouldThrow_WhenMissingRequiredInput()
     {
         using var c = CreateOpenConnection();
-        c.AddProdecure("sp_add_user", new ProcedureDef(
+        c.AddProdecure(new ProcedureDef("sp_add_user",
             RequiredIn:
             [
                 new ProcParam("p_name", DbType.String),
@@ -106,7 +106,7 @@ public abstract class SqliteStoredProcedureExecutionTestsBase(
     public void ExecuteNonQuery_StoredProcedure_ShouldThrow_WhenRequiredInputIsNull()
     {
         using var c = CreateOpenConnection();
-        c.AddProdecure("sp_add_user", new ProcedureDef(
+        c.AddProdecure(new ProcedureDef("sp_add_user", 
             RequiredIn:
             [
                 new ProcParam("p_name", DbType.String),
@@ -133,7 +133,7 @@ public abstract class SqliteStoredProcedureExecutionTestsBase(
     public void ExecuteNonQuery_StoredProcedure_ShouldPopulateOutParameters_DefaultValue()
     {
         using var c = CreateOpenConnection();
-        c.AddProdecure("sp_create_token", new ProcedureDef(
+        c.AddProdecure(new ProcedureDef("sp_create_token",
             RequiredIn:
             [
                 new ProcParam("p_userid", DbType.Int32),
@@ -166,7 +166,7 @@ public abstract class SqliteStoredProcedureExecutionTestsBase(
     public void ExecuteReader_CallSyntax_ShouldValidateAndReturnEmptyResultset()
     {
         using var c = CreateOpenConnection();
-        c.AddProdecure("sp_ping", new ProcedureDef(
+        c.AddProdecure(new ProcedureDef("sp_ping", 
             RequiredIn: [new ProcParam("p_id", DbType.Int32)],
             OptionalIn: [],
             OutParams: [],
@@ -190,7 +190,7 @@ public abstract class SqliteStoredProcedureExecutionTestsBase(
     public void ExecuteNonQuery_StoredProcedure_ShouldKeepReturnValueUnset_WhenProviderDoesNotSupportDirection()
     {
         using var c = CreateOpenConnection();
-        c.AddProdecure("sp_with_status", new ProcedureDef(
+        c.AddProdecure(new ProcedureDef("sp_with_status",
             RequiredIn: [new ProcParam("p_id", DbType.Int32)],
             OptionalIn: [],
             OutParams: [],
@@ -214,7 +214,7 @@ public abstract class SqliteStoredProcedureExecutionTestsBase(
     public void ExecuteNonQuery_StoredProcedure_ShouldNotThrow_WhenProviderCannotRepresentOutputDirection()
     {
         using var c = CreateOpenConnection();
-        c.AddProdecure("sp_with_input", new ProcedureDef(
+        c.AddProdecure(new ProcedureDef("sp_with_input", 
             RequiredIn: [new ProcParam("p_id", DbType.Int32)],
             OptionalIn: [],
             OutParams: [],
@@ -235,7 +235,7 @@ public abstract class SqliteStoredProcedureExecutionTestsBase(
     public void DapperExecute_CommandTypeStoredProcedure_ShouldWork()
     {
         using var c = CreateOpenConnection();
-        c.AddProdecure("sp_add_user", new ProcedureDef(
+        c.AddProdecure(new ProcedureDef("sp_add_user",
             RequiredIn:
             [
                 new ProcParam("p_name", DbType.String),
@@ -262,7 +262,7 @@ public abstract class SqliteStoredProcedureExecutionTestsBase(
     public void DapperExecute_CommandTypeStoredProcedure_ShouldThrow_OnMissingParam()
     {
         using var c = CreateOpenConnection();
-        c.AddProdecure("sp_add_user", new ProcedureDef(
+        c.AddProdecure(new ProcedureDef("sp_add_user",
             RequiredIn:
             [
                 new ProcParam("p_name", DbType.String),

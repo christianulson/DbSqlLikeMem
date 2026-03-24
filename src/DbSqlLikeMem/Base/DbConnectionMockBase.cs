@@ -1367,15 +1367,12 @@ public abstract class DbConnectionMockBase(
     /// EN: Registers a stored procedure.
     /// PT: Registra um procedimento armazenado.
     /// </summary>
-    /// <param name="procName">EN: Procedure name. PT: Nome do procedimento.</param>
     /// <param name="pr">EN: Procedure definition. PT: Definição do procedimento.</param>
     /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
     public void AddProdecure(
-        string procName,
         ProcedureDef pr,
         string? schemaName = null)
         => Db.AddProdecure(
-            procName,
             pr,
             schemaName ?? Database);
 

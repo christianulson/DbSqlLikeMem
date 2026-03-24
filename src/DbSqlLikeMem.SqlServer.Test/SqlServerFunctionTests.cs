@@ -598,7 +598,7 @@ public sealed class SqlServerFunctionTests
 
         var connection = new SqlServerConnectionMock(db);
         connection.Open();
-        connection.AddProdecure("sp_ping", new ProcedureDef([], [], [], null));
+        connection.AddProdecure( new ProcedureDef("sp_ping",[], [], [], null));
 
         ExecuteNonQuery(connection, "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', '{\"profile\":{\"active\":true,\"name\":\"Ana\"}}')");
         ExecuteNonQuery(connection, "INSERT INTO Users (Id, Name, Email) VALUES (2, 'Bob', '{\"profile\":{\"active\":false,\"name\":\"Bob\"}}')");

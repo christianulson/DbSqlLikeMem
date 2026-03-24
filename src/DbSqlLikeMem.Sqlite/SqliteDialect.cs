@@ -30,7 +30,10 @@ internal sealed class SqliteDialect : SqlDialectBase
             ">=", "<=", "<>", "!=", "==",
             "&&", "||"
         ])
-    { }
+    {
+        SqliteScalarFunctionRegistry.Register(this, version);
+        SqlSharedWindowFunctionRegistry.Register(this);
+    }
 
  
     internal const int WithCteMinVersion = 3;
@@ -129,26 +132,7 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// EN: Gets or sets null substitute function names.
     /// PT: Obtém ou define null substitute function names.
     /// </summary>
-        public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["IFNULL"];
-    public override IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames
-        => new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["CURRENT_DATE"] = SqlTemporalFunctionKind.Date,
-            ["CURRENT_TIME"] = SqlTemporalFunctionKind.Time,
-            ["CURRENT_TIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
-            ["NOW"] = SqlTemporalFunctionKind.DateTime,
-            ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
-        };
-
-    public override IReadOnlyCollection<string> TemporalFunctionIdentifierNames
-        => ["CURRENT_DATE", "CURRENT_TIME", "CURRENT_TIMESTAMP", "SYSTEMDATE"];
-
-    public override IReadOnlyCollection<string> TemporalFunctionCallNames
-        => ["NOW"];
-
-    public override bool SupportsStringAggregateFunction(string functionName)
-        => functionName.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase);
-
+    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["IFNULL", "ISNULL", "NVL"];
     /// <summary>
     /// EN: Gets or sets concat returns null on null input.
     /// PT: Obtém ou define concat returns null on null input.
@@ -159,12 +143,6 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// PT: Obtém se há suporte a json arrow operators.
     /// </summary>
     public override bool SupportsJsonArrowOperators => true;
-    /// <summary>
-    /// EN: Gets whether json extract function is supported.
-    /// PT: Obtém se há suporte a json extract function.
-    /// </summary>
-    public override bool SupportsJsonExtractFunction => true;
-
     /// <summary>
     /// EN: Gets or sets text comparison.
     /// PT: Obtém ou define text comparison.
@@ -177,18 +155,6 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsImplicitNumericStringComparison => true;
 
-    /// <summary>
-    /// EN: Represents Supports Date Add Function.
-    /// PT: Representa suporte Date Add Function.
-    /// </summary>
-    public override bool SupportsDateAddFunction(string functionName)
-        => functionName.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase);
-
     public override bool SupportsAggregateOrderByForStringAggregates => true;
 
-    public override bool SupportsAggregateOrderByStringAggregateFunction(string functionName)
-        => functionName.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase);
-
-    public override bool SupportsLastFoundRowsFunction(string functionName)
-        => functionName.Equals("CHANGES", StringComparison.OrdinalIgnoreCase);
 }

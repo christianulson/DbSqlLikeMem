@@ -454,7 +454,11 @@ public sealed record SchemaSnapshot
 
             foreach (var viewSnapshot in schemaSnapshot.Views)
             {
-                var parsed = SqlQueryParser.Parse(viewSnapshot.SelectSql, db.Dialect);
+                var parsed = SqlQueryParser.Parse(
+                    viewSnapshot.SelectSql,
+                    db.Dialect,
+                    null,
+                    SqlCustomFunctionResolverFactory.Create(db, schemaSnapshot.Name));
                 schemaMock.Views[viewSnapshot.Name] = parsed as SqlSelectQuery
                     ?? throw new InvalidOperationException($"View '{viewSnapshot.Name}' did not deserialize to SELECT.");
             }
@@ -470,7 +474,7 @@ public sealed record SchemaSnapshot
             }
 
             foreach (var procedureSnapshot in schemaSnapshot.Procedures)
-                db.AddProdecure(procedureSnapshot.Name, procedureSnapshot.ToProcedureDef(), schemaSnapshot.Name);
+                db.AddProdecure(procedureSnapshot.ToProcedureDef(), schemaSnapshot.Name);
         }
 
         if (db.Count == 0)
@@ -1067,6 +1071,7 @@ public sealed record SchemaSnapshotProcedure
 
     internal ProcedureDef ToProcedureDef()
         => new(
+            Name,
             [.. RequiredIn.Select(static parameter => parameter.ToParameter())],
             [.. OptionalIn.Select(static parameter => parameter.ToParameter())],
             [.. OutParams.Select(static parameter => parameter.ToParameter())],

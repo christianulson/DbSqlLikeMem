@@ -141,6 +141,10 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name);";
         $"SELECT NEXT VALUE FOR {sequenceName}";
 
     /// <inheritdoc />
+    public override string NextSequenceValueExpression(string sequenceName) =>
+        $"NEXT VALUE FOR {sequenceName}";
+
+    /// <inheritdoc />
     public override string DropTable(string tableName, string uId) =>
         $"DROP TABLE IF EXISTS {tableName}_{uId}";
 
@@ -185,8 +189,23 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name);";
         $"SELECT JSON_VALUE('{jsonLiteral}', '$.user.name')";
 
     /// <inheritdoc />
+    public override string JsonProfileNameExpression(string jsonColumn) =>
+        $"JSON_VALUE({jsonColumn}, '$.profile.name')";
+
+    /// <inheritdoc />
+    public override string StringLengthExpression(string expression) =>
+        $"LEN({expression})";
+
+    /// <inheritdoc />
     public override string TemporalDateAdd() =>
         "SELECT DATEADD(day, 1, CAST('2024-01-01T00:00:00' AS datetime2))";
+
+    /// <inheritdoc />
+    public override string TemporalCurrentTimestampExpression() => "CURRENT_TIMESTAMP";
+
+    /// <inheritdoc />
+    public override string TemporalDateAddExpression() =>
+        "DATEADD(day, 1, CURRENT_TIMESTAMP)";
 
     /// <inheritdoc />
     public override string TemporalNowWhere(string tableName) =>

@@ -11,4 +11,5 @@ internal sealed record ScalarFunctionDef(
     string Name,
     string ReturnTypeSql,
     IReadOnlyList<ScalarFunctionParameterDef> Parameters,
-    SqlExpr Body);
+    SqlExpr Body)
+    : ProcessDef(Name);

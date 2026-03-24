@@ -354,7 +354,7 @@ public sealed class Db2MockTests
     [Trait("Category", "Db2Mock")]
     public void TestBatch_CallThenRowCount_ShouldReturnZero()
     {
-        _connection.AddProdecure("sp_ping", new ProcedureDef([], [], [], null));
+        _connection.AddProdecure(new ProcedureDef("sp_ping", [], [], [], null));
 
         using var command = new Db2CommandMock(_connection)
         {
@@ -544,7 +544,7 @@ public sealed class Db2MockTests
     [Trait("Category", "Db2Mock")]
     public void TestBatch_CallUpdateCommitThenRowCount_ShouldReturnZeroAfterCommit()
     {
-        _connection.AddProdecure("sp_ping", new ProcedureDef([], [], [], null));
+        _connection.AddProdecure(new ProcedureDef("sp_ping", [], [], [], null));
 
         using var command = new Db2CommandMock(_connection)
         {
@@ -591,3 +591,4 @@ public sealed class Db2MockTests
     }
 
 }
+

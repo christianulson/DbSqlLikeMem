@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.MySql;
 /// EN: SQL dialect implementation for the MySQL family supported by this provider.
 /// PT: Implementação de dialeto SQL para a família MySQL suportada por este provedor.
 /// </summary>
-internal class MySqlDialect : SqlDialectBase
+internal partial class MySqlDialect : SqlDialectBase
 {
     internal const string DialectName = "mysql";
 
@@ -51,16 +51,15 @@ internal class MySqlDialect : SqlDialectBase
             ">=", "<=", "<>", "!=", "==",
             "&&", "||"
         ])
-    { }
+    {
+        RegisterScalarFunctions(version);
+        SqlSharedWindowFunctionRegistry.Register(this);
+        RegisterTableFunctions(version);
+    }
 
-    /// <inheritdoc />
-    public override bool SupportsOracleCollationFunction(string functionName)
-        => functionName.Equals("COLLATION", StringComparison.OrdinalIgnoreCase);
+    partial void RegisterScalarFunctions(int version);
 
-    /// <inheritdoc />
-    public override bool SupportsOracleTimeFunction(string functionName)
-        => functionName.Equals("LOCALTIMESTAMP", StringComparison.OrdinalIgnoreCase);
-
+    partial void RegisterTableFunctions(int version);
 
     internal const int WithCteMinVersion = 80;
     internal const int MergeMinVersion = int.MaxValue;
@@ -186,30 +185,6 @@ internal class MySqlDialect : SqlDialectBase
     public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["IFNULL"];
 
     /// <summary>
-    /// EN: Gets the datetime-substitution function names recognized by this dialect.
-    /// PT: Obtém os nomes de funções de substituição de data e hora reconhecidos por este dialeto.
-    /// </summary>
-    public override IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames
-        => new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["CURDATE"] = SqlTemporalFunctionKind.Date,
-            ["CURTIME"] = SqlTemporalFunctionKind.Time,
-            ["CURRENT_DATE"] = SqlTemporalFunctionKind.Date,
-            ["CURRENT_TIME"] = SqlTemporalFunctionKind.Time,
-            ["CURRENT_TIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
-            ["NOW"] = SqlTemporalFunctionKind.DateTime,
-            ["SYSDATE"] = SqlTemporalFunctionKind.DateTime,
-            ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
-        };
-
-
-    public override IReadOnlyCollection<string> TemporalFunctionIdentifierNames
-        => ["CURRENT_DATE", "CURRENT_TIME", "CURRENT_TIMESTAMP", "SYSTEMDATE"];
-
-    public override IReadOnlyCollection<string> TemporalFunctionCallNames
-        => ["CURDATE", "CURTIME", "NOW", "SYSDATE"];
-
-    /// <summary>
     /// EN: Indicates whether string concatenation returns <c>NULL</c> when any operand is <c>NULL</c>.
     /// PT: Indica se a concatenação de strings retorna <c>NULL</c> quando qualquer operando é <c>NULL</c>.
     /// </summary>
@@ -227,94 +202,16 @@ internal class MySqlDialect : SqlDialectBase
     public override bool AllowsParserCrossDialectJsonOperators => Version >= JsonExtractMinVersion;
 
     /// <summary>
-    /// EN: Indicates whether JSON extraction functions are supported by the configured MySQL version.
-    /// PT: Indica se funções de extração JSON são suportadas pela versão configurada do MySQL.
-    /// </summary>
-    public override bool SupportsJsonExtractFunction => Version >= JsonExtractMinVersion;
-
-    /// <summary>
-    /// EN: Indicates whether JSON_TABLE table functions are supported by the configured MySQL version.
-    /// PT: Indica se funcoes de tabela JSON_TABLE sao suportadas pela versao configurada do MySQL.
-    /// </summary>
-    public override bool SupportsJsonTableFunction => Version >= JsonExtractMinVersion;
-
-    /// <summary>
     /// EN: Indicates whether MySQL index hints are supported in SQL generation.
     /// PT: Indica se hints de índice do MySQL são suportados na geração de SQL.
     /// </summary>
     public override bool SupportsMySqlIndexHints => true;
 
-    /// <summary>
-    /// EN: Determines whether a date-add function name is supported by this dialect.
-    /// PT: Determina se um nome de função de soma de data é suportado por este dialeto.
-    /// </summary>
-    /// <param name="functionName">EN: Function name to validate. PT: Nome da função para validar.</param>
-    /// <returns>
-    /// EN: <c>true</c> when the name is <c>DATE_ADD</c>, <c>ADDDATE</c>, <c>ADDTIME</c>, or <c>TIMESTAMPADD</c>; otherwise, <c>false</c>.
-    /// PT: <c>true</c> quando o nome é <c>DATE_ADD</c>, <c>ADDDATE</c>, <c>ADDTIME</c> ou <c>TIMESTAMPADD</c>; caso contrário, <c>false</c>.
-    /// </returns>
-    public override bool SupportsDateAddFunction(string functionName)
-        => functionName.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase)
-        || functionName.Equals("ADDDATE", StringComparison.OrdinalIgnoreCase)
-        || functionName.Equals("ADDTIME", StringComparison.OrdinalIgnoreCase)
-        || functionName.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase);
-
-    public override bool SupportsStringAggregateFunction(string functionName)
-        => functionName.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase);
-
-    /// <inheritdoc />
-    public override bool SupportsTryCastFunction => true;
-
-    /// <inheritdoc />
-    public override bool SupportsSqlServerScalarFunction(string functionName)
-        => functionName.Equals("ABS", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("ACOS", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("ASIN", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("ATAN", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("ATN2", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("ASCII", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("CEIL", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("CEILING", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals(SqlConst.CONCAT, StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals(SqlConst.CONCAT_WS, StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("LN", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("LOCATE", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("LOG", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("LOG10", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("LOG2", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("LOWER", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("MOD", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("PI", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("POW", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("POWER", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("RADIANS", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("RAND", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("REVERSE", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals(SqlConst.RIGHT, StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("ROUND", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("SIN", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("SPACE", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("SQRT", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("SUBSTRING", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("TAN", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("TRIM", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("UPPER", StringComparison.OrdinalIgnoreCase);
-
     public override bool SupportsAggregateOrderByForStringAggregates => true;
-
-    public override bool SupportsAggregateOrderByStringAggregateFunction(string functionName)
-        => functionName.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase);
 
     public override bool SupportsAggregateSeparatorKeywordForStringAggregates => true;
 
-    public override bool SupportsAggregateSeparatorKeywordStringAggregateFunction(string functionName)
-        => functionName.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase);
-
     public override bool SupportsMatchAgainstPredicate => true;
-
-    public override bool SupportsLastFoundRowsFunction(string functionName)
-        => functionName.Equals("FOUND_ROWS", StringComparison.OrdinalIgnoreCase)
-            || functionName.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase);
 
     public override bool SupportsSqlCalcFoundRowsModifier => true;
 
