@@ -12,6 +12,35 @@ using System.Text.Json.Nodes;
 internal static class AstQueryPostgresJsonFunctionEvaluator
 {
     private const int JsonPathParseCacheSoftLimit = 512;
+    private static readonly HashSet<string> _supportedFunctionNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "TO_JSON",
+        "TO_JSONB",
+        "ROW_TO_JSON",
+        "JSON_SCALAR",
+        "JSON_SERIALIZE",
+        "JSONB_PATH_EXISTS",
+        "JSONB_PATH_QUERY_ARRAY",
+        "JSON_TYPEOF",
+        "JSONB_TYPEOF",
+        "JSON_ARRAY_LENGTH",
+        "JSONB_ARRAY_LENGTH",
+        "JSON_BUILD_ARRAY",
+        "JSONB_BUILD_ARRAY",
+        "JSON_BUILD_OBJECT",
+        "JSONB_BUILD_OBJECT",
+        "JSON_EXTRACT_PATH",
+        "JSONB_EXTRACT_PATH",
+        "JSON_EXTRACT_PATH_TEXT",
+        "JSONB_EXTRACT_PATH_TEXT",
+        "JSON_STRIP_NULLS",
+        "JSONB_STRIP_NULLS",
+        "JSONB_OBJECT",
+        "JSONB_SET",
+        "JSONB_SET_LAX",
+        "JSONB_INSERT",
+        "JSONB_PRETTY"
+    };
     private static readonly ConcurrentDictionary<string, JsonPathTokenCacheEntry> _jsonPathTokenCache = new(StringComparer.Ordinal);
     private static readonly ConcurrentDictionary<string, JsonPathTokenCacheEntry> _postgresJsonPathTokenCache = new(StringComparer.Ordinal);
 
@@ -21,14 +50,8 @@ internal static class AstQueryPostgresJsonFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!context.Dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var name = fn.Name.ToUpperInvariant();
-        if (name is not ("TO_JSON" or "TO_JSONB" or "ROW_TO_JSON" or "JSON_SCALAR" or "JSON_SERIALIZE" or "JSONB_PATH_EXISTS" or "JSONB_PATH_QUERY_ARRAY" or "JSON_TYPEOF" or "JSONB_TYPEOF" or "JSON_ARRAY_LENGTH" or "JSONB_ARRAY_LENGTH" or "JSON_BUILD_ARRAY" or "JSONB_BUILD_ARRAY" or "JSON_BUILD_OBJECT" or "JSONB_BUILD_OBJECT" or "JSON_EXTRACT_PATH" or "JSONB_EXTRACT_PATH" or "JSON_EXTRACT_PATH_TEXT" or "JSONB_EXTRACT_PATH_TEXT" or "JSON_STRIP_NULLS" or "JSONB_STRIP_NULLS" or "JSONB_OBJECT" or "JSONB_SET" or "JSONB_SET_LAX" or "JSONB_INSERT" or "JSONB_PRETTY"))
+        if (!_supportedFunctionNames.Contains(name))
         {
             result = null;
             return false;

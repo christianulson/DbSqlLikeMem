@@ -52,7 +52,7 @@ internal partial class MySqlDialect
             QueryExecutionContext context,
             Func<int, object?> evalArg,
             out object? result)
-            => AstQueryExecutorBase.TryEvalNumericFunction(fn, evalArg, out result);
+            => AstQueryGeneralScalarFunctionEvaluator.TryEvalNumericFunction(fn, context, evalArg, out result);
 
         bool TryEvalMySqlDateTimeFunction(
             FunctionCallExpr fn,
@@ -80,10 +80,12 @@ internal partial class MySqlDialect
         }
 
         static bool TryEvalNoopSessionContextFunction(
+            QueryExecutionContext context,
             FunctionCallExpr fn,
             Func<int, object?> evalArg,
             out object? result)
         {
+            _ = context;
             _ = fn;
             _ = evalArg;
             result = null;
@@ -123,11 +125,11 @@ internal partial class MySqlDialect
         var tryEvalMySqlNumericFunction = (AstQueryGeneralScalarFunctionHandler)TryEvalMySqlNumericFunction;
         var tryEvalMySqlGeneralSystemAndJsonFunction = (AstQueryGeneralScalarFunctionHandler)TryEvalMySqlGeneralSystemAndJsonFunction;
         var tryEvalMySqlConversionAndMetadataFunction = (AstQueryGeneralScalarFunctionHandler)AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate;
-        var tryEvalConvertFunction = (AstQueryGeneralScalarFunctionHandler)AstQueryExecutorBase.TryEvalConvertFunction;
+        var tryEvalConvertFunction = (AstQueryGeneralScalarFunctionHandler)AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate;
         var tryEvalDateFunction = (AstQueryGeneralScalarFunctionHandler)AstQueryGeneralDateFunctionEvaluator.TryEvaluate;
         var tryEvalDateTimeFunction = (AstQueryGeneralScalarFunctionHandler)AstQueryGeneralDateTimeFunctionEvaluator.TryEvaluate;
-        var tryEvalJsonUtilityFunctions = (AstQueryGeneralScalarFunctionHandler)AstQueryExecutorBase.TryEvalJsonUtilityFunctions;
-        var tryEvalJsonExtractionFunction = (AstQueryGeneralScalarFunctionHandler)AstQueryExecutorBase.TryEvalJsonExtractionFunction;
+        var tryEvalJsonUtilityFunctions = (AstQueryGeneralScalarFunctionHandler)AstQueryGeneralScalarFunctionEvaluator.TryEvalJsonUtilityFunctions;
+        var tryEvalJsonExtractionFunction = (AstQueryGeneralScalarFunctionHandler)AstQueryGeneralScalarFunctionEvaluator.TryEvalJsonExtractionFunction;
         var tryEvalFindInSetFunction = (AstQueryGeneralScalarFunctionHandler)TryEvalMySqlFindInSetFunction;
 
         this.AddScalarFunction(

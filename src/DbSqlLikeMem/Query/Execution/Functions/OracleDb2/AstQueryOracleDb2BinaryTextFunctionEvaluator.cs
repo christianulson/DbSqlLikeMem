@@ -2,6 +2,34 @@ namespace DbSqlLikeMem;
 
 internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
 {
+    private static readonly HashSet<string> _hashFunctionNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "STANDARD_HASH",
+        "ORA_HASH"
+    };
+
+    private static readonly HashSet<string> _rawFunctionNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "RAWTOHEX",
+        "RAWTONHEX",
+        "REF",
+        "REFTOHEX"
+    };
+
+    private static readonly HashSet<string> _regexFunctionNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "REGEXP_COUNT",
+        "REGEXP_INSTR",
+        "REGEXP_REPLACE",
+        "REGEXP_SUBSTR"
+    };
+
+    private static readonly HashSet<string> _rowIdFunctionNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "ROWIDTOCHAR",
+        "ROWTONCHAR"
+    };
+
     private static readonly Dictionary<string, AstQueryGeneralScalarFunctionHandler> _handlers = CreateHandlers();
 
     private static Dictionary<string, AstQueryGeneralScalarFunctionHandler> CreateHandlers()
@@ -53,13 +81,6 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
             return false;
         }
 
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, fn);
 
         if (fn.Args.Count < 2)
@@ -84,14 +105,7 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
         out object? result)
     {
         var name = fn.Name.ToUpperInvariant();
-        if (name is not ("STANDARD_HASH" or "ORA_HASH"))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!_hashFunctionNames.Contains(name))
         {
             result = null;
             return false;
@@ -153,17 +167,10 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
         out object? result)
     {
         var name = fn.Name.ToUpperInvariant();
-        if (name is not ("RAWTOHEX" or "RAWTONHEX" or "REF" or "REFTOHEX"))
+        if (!_rawFunctionNames.Contains(name))
         {
             result = null;
             return false;
-        }
-
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         if (fn.Args.Count == 0)
@@ -203,14 +210,7 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
         out object? result)
     {
         var name = fn.Name.ToUpperInvariant();
-        if (name is not ("REGEXP_COUNT" or "REGEXP_INSTR" or "REGEXP_REPLACE" or "REGEXP_SUBSTR"))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!_regexFunctionNames.Contains(name))
         {
             result = null;
             return false;
@@ -295,13 +295,6 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
             return false;
         }
 
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("REMAINDER() espera 2 argumentos.");
 
@@ -332,17 +325,10 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
         out object? result)
     {
         var name = fn.Name.ToUpperInvariant();
-        if (name is not ("ROWIDTOCHAR" or "ROWTONCHAR"))
+        if (!_rowIdFunctionNames.Contains(name))
         {
             result = null;
             return false;
-        }
-
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, name);
@@ -368,13 +354,6 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
         {
             result = null;
             return false;
-        }
-
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         var value = evalArg(0)?.ToString() ?? string.Empty;

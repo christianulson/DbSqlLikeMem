@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using DbSqlLikeMem.Models;
 
 namespace DbSqlLikeMem.Npgsql;
@@ -96,11 +98,13 @@ internal static class NpgsqlScalarFunctionRegistry
             => AstQueryGeneralScalarFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result);
 
         static bool TryEvalNoopSessionContextFunction(
+            QueryExecutionContext context,
             FunctionCallExpr fn,
             Func<int, object?> evalArg,
             out object? result)
         {
             _ = fn;
+            _ = context;
             _ = evalArg;
             result = null;
             return false;
@@ -141,6 +145,7 @@ internal static class NpgsqlScalarFunctionRegistry
         RegisterBinaryFunctions(dialect, body);
         RegisterMiscFunctions(dialect, body);
         RegisterAggregateFunctions(dialect, body);
+        RegisterPostgresCompatibilityFunctions(dialect, body);
 
         dialect.AddScalarFunction("STRING_AGG", "VARCHAR", body);
         dialect.AddScalarFunction("ROW_COUNT", "BIGINT", body);
@@ -209,7 +214,7 @@ internal static class NpgsqlScalarFunctionRegistry
             QueryExecutionContext context,
             Func<int, object?> evalArg,
             out object? result)
-            => AstQueryExecutorBase.TryEvalToNumberFunction(fn, evalArg, out result);
+            => AstQueryGeneralScalarFunctionEvaluator.TryEvalToNumberFunction(fn, evalArg, out result);
 
         dialect.AddScalarFunction("DATE_TRUNC", "DATETIME", tryEvalPostgresDateFunction);
         dialect.AddScalarFunction("DATE_PART", "DOUBLE", tryEvalPostgresDateFunction);
@@ -278,6 +283,17 @@ internal static class NpgsqlScalarFunctionRegistry
     {
         var generalScalarFunction = tryEvalGeneralScalarFunction;
         dialect.AddScalarFunction("CBRT", "DOUBLE", generalScalarFunction);
+    }
+
+    private static void RegisterPostgresCompatibilityFunctions(
+        ISqlDialect dialect,
+        Func<SqlExpr, object> body)
+    {
+        _ = body;
+
+        dialect.AddScalarFunction("LOG", "DOUBLE", TryEvalPostgresLogFunction);
+        dialect.AddScalarFunction("FORMAT", "VARCHAR", TryEvalPostgresFormatFunction);
+        dialect.AddScalarFunction("RANDOM", "DOUBLE", TryEvalPostgresRandomFunction);
     }
 
     private static void RegisterNetworkFunctions(
@@ -414,5 +430,170 @@ internal static class NpgsqlScalarFunctionRegistry
         dialect.AddScalarFunction("OCTET_LENGTH", "INT", tryEvalGeneralScalarFunction);
         dialect.AddScalarFunction("POSITION", "INT", tryEvalGeneralScalarFunction);
         dialect.AddScalarFunction("BIT_LENGTH", "INT", tryEvalGeneralScalarFunction);
+    }
+
+    private static bool TryEvalPostgresLogFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+        if (!fn.Name.Equals("LOG", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count == 0)
+        {
+            result = null;
+            return true;
+        }
+
+        if (fn.Args.Count > 1)
+        {
+            var baseValue = evalArg(0);
+            var numberValue = evalArg(1);
+            if (AstQueryExecutorBase.IsNullish(baseValue) || AstQueryExecutorBase.IsNullish(numberValue))
+            {
+                result = null;
+                return true;
+            }
+
+            try
+            {
+                var baseNumber = Convert.ToDouble(baseValue, CultureInfo.InvariantCulture);
+                var number = Convert.ToDouble(numberValue, CultureInfo.InvariantCulture);
+                if (baseNumber <= 0d || baseNumber == 1d || number <= 0d)
+                {
+                    result = null;
+                    return true;
+                }
+
+                result = Math.Log(number, baseNumber);
+                return true;
+            }
+            catch
+            {
+                result = null;
+                return true;
+            }
+        }
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            result = Math.Log10(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalPostgresFormatFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+        if (!fn.Name.Equals("FORMAT", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count == 0)
+            throw new InvalidOperationException("FORMAT() espera ao menos o formato.");
+
+        var format = evalArg(0)?.ToString() ?? string.Empty;
+        var args = new object?[Math.Max(0, fn.Args.Count - 1)];
+        for (var i = 1; i < fn.Args.Count; i++)
+            args[i - 1] = evalArg(i);
+
+        result = FormatPostgreSql(format, args);
+        return true;
+    }
+
+    private static string FormatPostgreSql(string format, IReadOnlyList<object?> args)
+    {
+        var builder = new StringBuilder();
+        var argIndex = 0;
+        for (var i = 0; i < format.Length; i++)
+        {
+            var ch = format[i];
+            if (ch != '%' || i + 1 >= format.Length)
+            {
+                builder.Append(ch);
+                continue;
+            }
+
+            var token = format[++i];
+            if (token == '%')
+            {
+                builder.Append('%');
+                continue;
+            }
+
+            var value = argIndex < args.Count ? args[argIndex++] : null;
+            builder.Append(token switch
+            {
+                's' => value?.ToString() ?? string.Empty,
+                'I' => QuoteFormatIdentifier(value),
+                'L' => QuoteFormatLiteral(value),
+                _ => value?.ToString() ?? string.Empty
+            });
+        }
+
+        return builder.ToString();
+    }
+
+    private static string QuoteFormatIdentifier(object? value)
+    {
+        var text = value?.ToString() ?? string.Empty;
+        return $"\"{text.Replace("\"", "\"\"")}\"";
+    }
+
+    private static string QuoteFormatLiteral(object? value)
+    {
+        if (value is null || value is DBNull)
+            return SqlConst.NULL;
+
+        var text = value.ToString() ?? string.Empty;
+        return $"'{text.Replace("'", "''")}'";
+    }
+
+    private static bool TryEvalPostgresRandomFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+        _ = evalArg;
+        if (!fn.Name.Equals("RANDOM", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count != 0)
+        {
+            result = null;
+            return false;
+        }
+
+        result = AstQueryExecutorBase.NextRandomDouble();
+        return true;
     }
 }

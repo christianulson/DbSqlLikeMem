@@ -4,6 +4,35 @@ namespace DbSqlLikeMem;
 
 internal static class QueryMariaDbSpecialFunctionHelper
 {
+    private static readonly HashSet<string> _dynamicColumnFunctionNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "COLUMN_CREATE",
+        "COLUMN_ADD",
+        "COLUMN_DELETE",
+        "COLUMN_EXISTS",
+        "COLUMN_CHECK",
+        "COLUMN_JSON",
+        "COLUMN_LIST",
+        "COLUMN_GET"
+    };
+
+    private static readonly HashSet<string> _vectorFunctionNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "VECTOR",
+        "VEC_FROMTEXT",
+        "VEC_TOTEXT",
+        "VEC_DISTANCE",
+        "VEC_DISTANCE_EUCLIDEAN",
+        "VEC_DISTANCE_COSINE"
+    };
+
+    private static readonly HashSet<string> _wsrepFunctionNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "WSREP_LAST_SEEN_GTID",
+        "WSREP_LAST_WRITTEN_GTID",
+        "WSREP_SYNC_WAIT_UPTO_GTID"
+    };
+
     private delegate bool MariaDbSpecialFunctionHandler(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
@@ -17,12 +46,6 @@ internal static class QueryMariaDbSpecialFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!context.Dialect.Name.Equals("mariadb", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (_handlers.TryGetValue(fn.Name, out var handler))
             return handler(fn, evalArg, out result);
 
@@ -33,26 +56,19 @@ internal static class QueryMariaDbSpecialFunctionHelper
     private static Dictionary<string, MariaDbSpecialFunctionHandler> CreateHandlers()
     {
         var handlers = new Dictionary<string, MariaDbSpecialFunctionHandler>(StringComparer.OrdinalIgnoreCase);
-        Register(handlers, TryEvalDynamicColumnFunctions,
-            "COLUMN_CREATE",
-            "COLUMN_ADD",
-            "COLUMN_DELETE",
-            "COLUMN_EXISTS",
-            "COLUMN_CHECK",
-            "COLUMN_JSON",
-            "COLUMN_LIST",
-            "COLUMN_GET");
-        Register(handlers, TryEvalVectorFunctions,
-            "VECTOR",
-            "VEC_FROMTEXT",
-            "VEC_TOTEXT",
-            "VEC_DISTANCE",
-            "VEC_DISTANCE_EUCLIDEAN",
-            "VEC_DISTANCE_COSINE");
-        Register(handlers, TryEvalWsrepFunctions,
-            "WSREP_LAST_SEEN_GTID",
-            "WSREP_LAST_WRITTEN_GTID",
-            "WSREP_SYNC_WAIT_UPTO_GTID");
+        Register(handlers, TryEvalColumnCreateFunction, "COLUMN_CREATE");
+        Register(handlers, TryEvalColumnAddFunction, "COLUMN_ADD");
+        Register(handlers, TryEvalColumnDeleteFunction, "COLUMN_DELETE");
+        Register(handlers, TryEvalColumnExistsFunction, "COLUMN_EXISTS");
+        Register(handlers, TryEvalColumnCheckFunction, "COLUMN_CHECK");
+        Register(handlers, TryEvalColumnJsonFunction, "COLUMN_JSON");
+        Register(handlers, TryEvalColumnListFunction, "COLUMN_LIST");
+        Register(handlers, TryEvalColumnGetFunction, "COLUMN_GET");
+        Register(handlers, TryEvalVectorFunction, "VECTOR", "VEC_FROMTEXT");
+        Register(handlers, TryEvalVecToTextFunction, "VEC_TOTEXT");
+        Register(handlers, TryEvalVecDistanceFunction, "VEC_DISTANCE", "VEC_DISTANCE_EUCLIDEAN", "VEC_DISTANCE_COSINE");
+        Register(handlers, TryEvalWsrepLastSeenOrWrittenFunction, "WSREP_LAST_SEEN_GTID", "WSREP_LAST_WRITTEN_GTID");
+        Register(handlers, TryEvalWsrepSyncWaitFunction, "WSREP_SYNC_WAIT_UPTO_GTID");
         return handlers;
     }
 
@@ -65,171 +81,178 @@ internal static class QueryMariaDbSpecialFunctionHelper
             handlers[name] = handler;
     }
 
-    private static bool TryEvalDynamicColumnFunctions(
+    private static bool TryEvalColumnCheckFunction(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
-        var name = fn.Name.ToUpperInvariant();
-        if (name is not ("COLUMN_CREATE" or "COLUMN_ADD" or "COLUMN_DELETE" or "COLUMN_EXISTS" or "COLUMN_CHECK" or "COLUMN_JSON" or "COLUMN_LIST" or "COLUMN_GET"))
-        {
-            result = null;
-            return false;
-        }
-
-        if (name == "COLUMN_CHECK")
-        {
-            result = TryReadDynamicColumnObject(evalArg(0), out _) ? 1 : 0;
-            return true;
-        }
-
-        if (name == "COLUMN_EXISTS")
-        {
-            if (fn.Args.Count < 2)
-                throw new InvalidOperationException("COLUMN_EXISTS() espera blob e nome de coluna.");
-
-            if (!TryReadDynamicColumnObject(evalArg(0), out var obj))
-            {
-                result = 0;
-                return true;
-            }
-
-            var key = ReadDynamicColumnKey(fn.Args[1], evalArg(1));
-            result = obj.ContainsKey(key) ? 1 : 0;
-            return true;
-        }
-
-        if (name == "COLUMN_LIST")
-        {
-            if (!TryReadDynamicColumnObject(evalArg(0), out var obj))
-            {
-                result = null;
-                return true;
-            }
-
-            result = string.Join(",", obj.Select(static kvp => kvp.Key));
-            return true;
-        }
-
-        if (name == "COLUMN_JSON")
-        {
-            if (!TryReadDynamicColumnObject(evalArg(0), out var obj))
-            {
-                result = null;
-                return true;
-            }
-
-            result = obj.ToJsonString();
-            return true;
-        }
-
-        if (name == "COLUMN_CREATE")
-        {
-            if (fn.Args.Count == 0 || fn.Args.Count % 2 != 0)
-                throw new InvalidOperationException("COLUMN_CREATE() espera pares nome/valor.");
-
-            var obj = new JsonObject();
-            for (var i = 0; i < fn.Args.Count; i += 2)
-            {
-                var key = ReadDynamicColumnKey(fn.Args[i], evalArg(i));
-                obj[key] = ConvertToJsonNode(evalArg(i + 1));
-            }
-
-            result = SerializeDynamicColumns(obj);
-            return true;
-        }
-
-        if (name == "COLUMN_ADD")
-        {
-            if (fn.Args.Count < 3 || fn.Args.Count % 2 == 0)
-                throw new InvalidOperationException("COLUMN_ADD() espera blob seguido de pares nome/valor.");
-
-            if (!TryReadDynamicColumnObject(evalArg(0), out var obj))
-                obj = new JsonObject();
-
-            for (var i = 1; i < fn.Args.Count; i += 2)
-            {
-                var key = ReadDynamicColumnKey(fn.Args[i], evalArg(i));
-                obj[key] = ConvertToJsonNode(evalArg(i + 1));
-            }
-
-            result = SerializeDynamicColumns(obj);
-            return true;
-        }
-
-        if (name == "COLUMN_DELETE")
-        {
-            if (fn.Args.Count < 2)
-                throw new InvalidOperationException("COLUMN_DELETE() espera blob e ao menos um nome.");
-
-            if (!TryReadDynamicColumnObject(evalArg(0), out var obj))
-            {
-                result = null;
-                return true;
-            }
-
-            for (var i = 1; i < fn.Args.Count; i++)
-            {
-                var key = ReadDynamicColumnKey(fn.Args[i], evalArg(i));
-                obj.Remove(key);
-            }
-
-            result = SerializeDynamicColumns(obj);
-            return true;
-        }
-
-        if (name == "COLUMN_GET")
-        {
-            if (fn.Args.Count < 2)
-                throw new InvalidOperationException("COLUMN_GET() espera blob e nome.");
-
-            if (!TryReadDynamicColumnObject(evalArg(0), out var obj))
-            {
-                result = null;
-                return true;
-            }
-
-            var key = ReadDynamicColumnKey(fn.Args[1], evalArg(1));
-            if (!obj.TryGetPropertyValue(key, out var value))
-            {
-                result = null;
-                return true;
-            }
-
-            result = ConvertFromJsonNode(value);
-            return true;
-        }
-
-        result = null;
-        return false;
+        result = TryReadDynamicColumnObject(evalArg(0), out _) ? 1 : 0;
+        return true;
     }
 
-    private static bool TryEvalVectorFunctions(
+    private static bool TryEvalColumnExistsFunction(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
-        var name = fn.Name.ToUpperInvariant();
-        if (name is not ("VECTOR" or "VEC_FROMTEXT" or "VEC_TOTEXT" or "VEC_DISTANCE" or "VEC_DISTANCE_EUCLIDEAN" or "VEC_DISTANCE_COSINE"))
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("COLUMN_EXISTS() espera blob e nome de coluna.");
+
+        if (!TryReadDynamicColumnObject(evalArg(0), out var obj))
+        {
+            result = 0;
+            return true;
+        }
+
+        var key = ReadDynamicColumnKey(fn.Args[1], evalArg(1));
+        result = obj.ContainsKey(key) ? 1 : 0;
+        return true;
+    }
+
+    private static bool TryEvalColumnListFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!TryReadDynamicColumnObject(evalArg(0), out var obj))
         {
             result = null;
-            return false;
-        }
-
-        if (name is "VECTOR" or "VEC_FROMTEXT")
-        {
-            result = TryParseVector(evalArg(0), out var vector) ? vector : null;
             return true;
         }
 
-        if (name == "VEC_TOTEXT")
+        result = string.Join(",", obj.Select(static kvp => kvp.Key));
+        return true;
+    }
+
+    private static bool TryEvalColumnJsonFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!TryReadDynamicColumnObject(evalArg(0), out var obj))
         {
-            result = TryParseVector(evalArg(0), out var vector) ? VectorToText(vector) : null;
+            result = null;
             return true;
         }
 
+        result = obj.ToJsonString();
+        return true;
+    }
+
+    private static bool TryEvalColumnCreateFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (fn.Args.Count == 0 || fn.Args.Count % 2 != 0)
+            throw new InvalidOperationException("COLUMN_CREATE() espera pares nome/valor.");
+
+        var obj = new JsonObject();
+        for (var i = 0; i < fn.Args.Count; i += 2)
+        {
+            var key = ReadDynamicColumnKey(fn.Args[i], evalArg(i));
+            obj[key] = ConvertToJsonNode(evalArg(i + 1));
+        }
+
+        result = SerializeDynamicColumns(obj);
+        return true;
+    }
+
+    private static bool TryEvalColumnAddFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (fn.Args.Count < 3 || fn.Args.Count % 2 == 0)
+            throw new InvalidOperationException("COLUMN_ADD() espera blob seguido de pares nome/valor.");
+
+        if (!TryReadDynamicColumnObject(evalArg(0), out var obj))
+            obj = new JsonObject();
+
+        for (var i = 1; i < fn.Args.Count; i += 2)
+        {
+            var key = ReadDynamicColumnKey(fn.Args[i], evalArg(i));
+            obj[key] = ConvertToJsonNode(evalArg(i + 1));
+        }
+
+        result = SerializeDynamicColumns(obj);
+        return true;
+    }
+
+    private static bool TryEvalColumnDeleteFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
         if (fn.Args.Count < 2)
-            throw new InvalidOperationException($"{name}() espera dois vetores.");
+            throw new InvalidOperationException("COLUMN_DELETE() espera blob e ao menos um nome.");
+
+        if (!TryReadDynamicColumnObject(evalArg(0), out var obj))
+        {
+            result = null;
+            return true;
+        }
+
+        for (var i = 1; i < fn.Args.Count; i++)
+        {
+            var key = ReadDynamicColumnKey(fn.Args[i], evalArg(i));
+            obj.Remove(key);
+        }
+
+        result = SerializeDynamicColumns(obj);
+        return true;
+    }
+
+    private static bool TryEvalColumnGetFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("COLUMN_GET() espera blob e nome.");
+
+        if (!TryReadDynamicColumnObject(evalArg(0), out var obj))
+        {
+            result = null;
+            return true;
+        }
+
+        var key = ReadDynamicColumnKey(fn.Args[1], evalArg(1));
+        if (!obj.TryGetPropertyValue(key, out var value))
+        {
+            result = null;
+            return true;
+        }
+
+        result = ConvertFromJsonNode(value);
+        return true;
+    }
+
+    private static bool TryEvalVectorFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        result = TryParseVector(evalArg(0), out var vector) ? vector : null;
+        return true;
+    }
+
+    private static bool TryEvalVecToTextFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        result = TryParseVector(evalArg(0), out var vector) ? VectorToText(vector) : null;
+        return true;
+    }
+
+    private static bool TryEvalVecDistanceFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException($"{fn.Name.ToUpperInvariant()}() espera dois vetores.");
 
         if (!TryParseVector(evalArg(0), out var left) || !TryParseVector(evalArg(1), out var right))
         {
@@ -237,32 +260,27 @@ internal static class QueryMariaDbSpecialFunctionHelper
             return true;
         }
 
-        result = name switch
-        {
-            "VEC_DISTANCE_COSINE" => VectorDistanceCosine(left, right),
-            _ => VectorDistanceEuclidean(left, right)
-        };
+        result = fn.Name.Equals("VEC_DISTANCE_COSINE", StringComparison.OrdinalIgnoreCase)
+            ? VectorDistanceCosine(left, right)
+            : VectorDistanceEuclidean(left, right);
         return true;
     }
 
-    private static bool TryEvalWsrepFunctions(
+    private static bool TryEvalWsrepLastSeenOrWrittenFunction(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
-        var name = fn.Name.ToUpperInvariant();
-        if (name is not ("WSREP_LAST_SEEN_GTID" or "WSREP_LAST_WRITTEN_GTID" or "WSREP_SYNC_WAIT_UPTO_GTID"))
-        {
-            result = null;
-            return false;
-        }
+        _ = evalArg;
+        result = "0-0-0";
+        return true;
+    }
 
-        if (name is "WSREP_LAST_SEEN_GTID" or "WSREP_LAST_WRITTEN_GTID")
-        {
-            result = "0-0-0";
-            return true;
-        }
-
+    private static bool TryEvalWsrepSyncWaitFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
         if (fn.Args.Count < 1)
             throw new InvalidOperationException("WSREP_SYNC_WAIT_UPTO_GTID() espera um GTID.");
 

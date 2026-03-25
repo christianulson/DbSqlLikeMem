@@ -74,7 +74,7 @@ internal static class Db2ScalarFunctionRegistry
             version >= Db2Dialect.JsonFunctionsMinVersion,
             new DbScalarFunctionDef("JSON_QUERY", "VARCHAR", [], body)
             {
-                AstExecutor = AstQueryExecutorBase.TryEvalJsonExtractionFunction
+                AstExecutor = AstQueryGeneralScalarFunctionEvaluator.TryEvalJsonExtractionFunction
             },
             "JSON_QUERY",
             "JSON_VALUE");

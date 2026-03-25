@@ -87,12 +87,6 @@ internal static class QueryMySqlDateTimeFunctionHelper
             return false;
         }
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("DATE_FORMAT() espera data e formato.");
 
@@ -122,12 +116,6 @@ internal static class QueryMySqlDateTimeFunctionHelper
         _ = tryConvertNumericToInt64;
         _ = tryCoerceDateTime;
         if (!fn.Name.Equals("STR_TO_DATE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -180,12 +168,6 @@ internal static class QueryMySqlDateTimeFunctionHelper
             return false;
         }
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count == 0)
             throw new InvalidOperationException("FROM_UNIXTIME() espera um argumento.");
 
@@ -233,12 +215,6 @@ internal static class QueryMySqlDateTimeFunctionHelper
             return false;
         }
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count == 0)
             throw new InvalidOperationException("FROM_DAYS() espera um argumento.");
 
@@ -268,12 +244,6 @@ internal static class QueryMySqlDateTimeFunctionHelper
         _ = tryCoerceDateTime;
         _ = tryParseExactCachedDateTime;
         if (!fn.Name.Equals("GET_FORMAT", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -328,12 +298,6 @@ internal static class QueryMySqlDateTimeFunctionHelper
         _ = tryConvertNumericToInt64;
         _ = tryParseExactCachedDateTime;
         if (!fn.Name.Equals("CONVERT_TZ", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;

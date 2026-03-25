@@ -365,12 +365,6 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
             return true;
         }
 
-        if (context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = GetIsoWeekOfYear(dateTime);
-            return true;
-        }
-
         // MySQL WEEK(date) default mode is 0: Sunday-first, range 0-53.
         var firstDayOfYear = new DateTime(dateTime.Year, 1, 1);
         var dayOffset = (int)firstDayOfYear.DayOfWeek;

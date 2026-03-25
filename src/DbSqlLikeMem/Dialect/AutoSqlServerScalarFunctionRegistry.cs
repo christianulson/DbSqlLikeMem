@@ -11,7 +11,7 @@ internal static class AutoSqlServerScalarFunctionRegistry
             QueryExecutionContext context,
             Func<int, object?> evalArg,
             out object? result)
-            => AstQueryExecutorBase.TryEvalCurrentUserFunction(fn, context, out result);
+            => AstQuerySqlServerUtilityFunctionEvaluator.TryEvalCurrentUserFunction(fn, context, evalArg, out result);
 
         bool TryEvalSessionUserFunction(
             FunctionCallExpr fn,

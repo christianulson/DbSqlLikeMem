@@ -15,6 +15,57 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         "TO_APPROX_PERCENTILE",
     };
 
+    private static readonly HashSet<string> OracleAnalyticsFunctionNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "FEATURE_COMPARE",
+        "FEATURE_DETAILS",
+        "FEATURE_ID",
+        "FEATURE_SET",
+        "FEATURE_VALUE",
+        "NCGR",
+        "POWERMULTISET",
+        "POWERMULTISET_BY_CARDINALITY",
+        "PREDICTION",
+        "PREDICTION_BOUNDS",
+        "PREDICTION_COST",
+        "PREDICTION_DETAILS",
+        "PREDICTION_PROBABILITY",
+        "PREDICTION_SET",
+        "PRESENTNNV",
+        "PRESENTV",
+        "RATIO_TO_REPORT"
+    };
+
+    private static readonly HashSet<string> OracleScnFunctionNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "SCN_TO_TIMESTAMP",
+        "TIMESTAMP_TO_SCN"
+    };
+
+    private static readonly HashSet<string> OracleXmlFunctionNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "EXTRACTVALUE",
+        "XMLCAST",
+        "XMLCDATA",
+        "XMLCOLATTVAL",
+        "XMLCOMMENT",
+        "XMLCONCAT",
+        "XMLDIFF",
+        "XMLELEMENT",
+        "XMLEXISTS",
+        "XMLFOREST",
+        "XMLISVALID",
+        "XMLPARSE",
+        "XMLPATCH",
+        "XMLPI",
+        "XMLQUERY",
+        "XMLROOT",
+        "XMLSEQUENCE",
+        "XMLSERIALIZE",
+        "XMLTABLE",
+        "XMLTRANSFORM"
+    };
+
     private static readonly Dictionary<string, AstQueryGeneralScalarFunctionHandler> _handlers = CreateHandlers();
 
     private static Dictionary<string, AstQueryGeneralScalarFunctionHandler> CreateHandlers()
@@ -130,13 +181,6 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
             return false;
         }
 
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
-        }
-
         result = null;
         return true;
     }
@@ -148,20 +192,10 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         out object? result)
     {
         var name = fn.Name.ToUpperInvariant();
-        if (name is not ("FEATURE_COMPARE" or "FEATURE_DETAILS" or "FEATURE_ID" or "FEATURE_SET" or "FEATURE_VALUE"
-            or "NCGR" or "POWERMULTISET" or "POWERMULTISET_BY_CARDINALITY" or "PREDICTION" or "PREDICTION_BOUNDS"
-            or "PREDICTION_COST" or "PREDICTION_DETAILS" or "PREDICTION_PROBABILITY" or "PREDICTION_SET"
-            or "PRESENTNNV" or "PRESENTV" or "RATIO_TO_REPORT"))
+        if (!OracleAnalyticsFunctionNames.Contains(name))
         {
             result = null;
             return false;
-        }
-
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, name);
@@ -177,17 +211,10 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         out object? result)
     {
         var name = fn.Name.ToUpperInvariant();
-        if (name is not ("SCN_TO_TIMESTAMP" or "TIMESTAMP_TO_SCN"))
+        if (!OracleScnFunctionNames.Contains(name))
         {
             result = null;
             return false;
-        }
-
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, name);
@@ -212,13 +239,6 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         {
             result = null;
             return false;
-        }
-
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         if (fn.Args.Count == 0)
@@ -258,13 +278,6 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
             return false;
         }
 
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
-        }
-
         var offset = DateTimeOffset.Now.Offset;
         result = $"{(offset < TimeSpan.Zero ? "-" : "+")}{offset:hh\\:mm}";
         return true;
@@ -276,13 +289,6 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
-        }
-
         QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, fn.Name);
 
         if (fn.Args.Count == 0)
@@ -310,13 +316,6 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         out object? result)
     {
         _ = evalArg;
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
-        }
-
         QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, fn.Name);
         result = "SYS";
         return true;
@@ -329,13 +328,6 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         out object? result)
     {
         _ = evalArg;
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
-        }
-
         QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, fn.Name);
         result = 0;
         return true;
@@ -348,13 +340,6 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         out object? result)
     {
         _ = evalArg;
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
-        }
-
         QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, fn.Name);
         result = null;
         return true;
@@ -371,13 +356,6 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         {
             result = null;
             return false;
-        }
-
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, name);
@@ -420,13 +398,6 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
             return false;
         }
 
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("MONTHS_BETWEEN() espera duas datas.");
 
@@ -465,13 +436,6 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
             return false;
         }
 
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
-        }
-
         result = 1;
         return true;
     }
@@ -486,13 +450,6 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         {
             result = null;
             return false;
-        }
-
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         var value = evalArg(0);
@@ -516,13 +473,6 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         {
             result = null;
             return false;
-        }
-
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         if (fn.Args.Count < 2)
@@ -553,13 +503,6 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
             return false;
         }
 
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
-        }
-
         var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value))
         {
@@ -583,13 +526,6 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
             return false;
         }
 
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
-        }
-
         result = evalArg(0);
         return true;
     }
@@ -604,13 +540,6 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         {
             result = null;
             return false;
-        }
-
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         var value = evalArg(0);
@@ -637,13 +566,6 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
             return false;
         }
 
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
-        }
-
         var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value))
         {
@@ -665,13 +587,6 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         {
             result = null;
             return false;
-        }
-
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         var value = evalArg(0);
@@ -697,13 +612,6 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
             return false;
         }
 
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
-        }
-
         result = null;
         return true;
     }
@@ -718,13 +626,6 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         {
             result = null;
             return false;
-        }
-
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         if (fn.Args.Count == 0)
@@ -755,13 +656,6 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         {
             result = null;
             return false;
-        }
-
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         if (fn.Args.Count < 4)
@@ -815,19 +709,10 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         out object? result)
     {
         var name = fn.Name.ToUpperInvariant();
-        if (name is not ("EXTRACTVALUE" or "XMLCAST" or "XMLCDATA" or "XMLCOLATTVAL" or "XMLCOMMENT" or "XMLCONCAT"
-            or "XMLDIFF" or "XMLELEMENT" or "XMLEXISTS" or "XMLFOREST" or "XMLISVALID" or "XMLPARSE" or "XMLPATCH"
-            or "XMLPI" or "XMLQUERY" or "XMLROOT" or "XMLSEQUENCE" or "XMLSERIALIZE" or "XMLTABLE" or "XMLTRANSFORM"))
+        if (!OracleXmlFunctionNames.Contains(name))
         {
             result = null;
             return false;
-        }
-
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         result = null;
@@ -842,13 +727,6 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
     {
         _ = evalArg;
         if (!fn.Name.Equals("USER", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;

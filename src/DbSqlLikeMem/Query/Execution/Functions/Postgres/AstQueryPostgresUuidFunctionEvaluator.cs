@@ -9,12 +9,6 @@ internal static class AstQueryPostgresUuidFunctionEvaluator
         QueryExecutionContext context,
         out object? result)
     {
-        if (!context.Dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (!fn.Name.Equals("GEN_RANDOM_UUID", StringComparison.OrdinalIgnoreCase))
         {
             result = null;

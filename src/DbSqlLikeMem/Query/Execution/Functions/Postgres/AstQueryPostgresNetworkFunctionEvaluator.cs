@@ -1,52 +1,144 @@
 namespace DbSqlLikeMem;
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
+
+internal delegate bool AstQueryTryEvalPostgresNetworkFunction(
+    FunctionCallExpr fn,
+    QueryExecutionContext context,
+    Func<int, object?> evalArg,
+    out object? result);
 
 internal static class AstQueryPostgresNetworkFunctionEvaluator
 {
+    private static readonly IReadOnlyDictionary<string, AstQueryTryEvalPostgresNetworkFunction> _handlers =
+        CreateHandlers();
+
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
         QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!context.Dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        if (!_handlers.TryGetValue(fn.Name, out var handler))
         {
             result = null;
             return false;
         }
 
-        var name = fn.Name.ToUpperInvariant();
-        if (name is not ("HOST" or "HOSTMASK" or "INET_SAME_FAMILY" or "MASKLEN" or "NETMASK" or "NETWORK"))
+        return handler(fn, context, evalArg, out result);
+    }
+
+    private static IReadOnlyDictionary<string, AstQueryTryEvalPostgresNetworkFunction> CreateHandlers()
+    {
+        var handlers = new Dictionary<string, AstQueryTryEvalPostgresNetworkFunction>(StringComparer.OrdinalIgnoreCase);
+        Register(handlers, TryEvalHostFunction, "HOST");
+        Register(handlers, TryEvalHostMaskFunction, "HOSTMASK");
+        Register(handlers, TryEvalInetSameFamilyFunction, "INET_SAME_FAMILY");
+        Register(handlers, TryEvalMaskLenFunction, "MASKLEN");
+        Register(handlers, TryEvalNetmaskFunction, "NETMASK");
+        Register(handlers, TryEvalNetworkFunction, "NETWORK");
+        return handlers;
+    }
+
+    private static void Register(
+        IDictionary<string, AstQueryTryEvalPostgresNetworkFunction> handlers,
+        AstQueryTryEvalPostgresNetworkFunction handler,
+        params string[] names)
+    {
+        foreach (var name in names)
+            handlers[name] = handler;
+    }
+
+    private static bool TryEvalInetSameFamilyFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("INET_SAME_FAMILY() espera dois enderecos.");
+
+        var left = evalArg(0);
+        var right = evalArg(1);
+        if (AstQueryExecutorBase.IsNullish(left) || AstQueryExecutorBase.IsNullish(right))
         {
             result = null;
-            return false;
-        }
-
-        if (name is "INET_SAME_FAMILY")
-        {
-            if (fn.Args.Count < 2)
-                throw new InvalidOperationException("INET_SAME_FAMILY() espera dois enderecos.");
-
-            var left = evalArg(0);
-            var right = evalArg(1);
-            if (AstQueryExecutorBase.IsNullish(left) || AstQueryExecutorBase.IsNullish(right))
-            {
-                result = null;
-                return true;
-            }
-
-            if (!AstQueryGeneralScalarFunctionEvaluator.TryParsePostgresInetValue(left, out var leftAddress, out _)
-                || !AstQueryGeneralScalarFunctionEvaluator.TryParsePostgresInetValue(right, out var rightAddress, out _))
-            {
-                result = null;
-                return true;
-            }
-
-            result = leftAddress.AddressFamily == rightAddress.AddressFamily;
             return true;
         }
+
+        if (!AstQueryGeneralScalarFunctionEvaluator.TryParsePostgresInetValue(left, out var leftAddress, out _)
+            || !AstQueryGeneralScalarFunctionEvaluator.TryParsePostgresInetValue(right, out var rightAddress, out _))
+        {
+            result = null;
+            return true;
+        }
+
+        result = leftAddress.AddressFamily == rightAddress.AddressFamily;
+        return true;
+    }
+
+    private static bool TryEvalHostFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalInetAddressFunction(fn, context, evalArg, value => value.Address.ToString(), out result);
+
+    private static bool TryEvalHostMaskFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalInetAddressFunction(
+            fn,
+            context,
+            evalArg,
+            value => new System.Net.IPAddress([.. value.MaskBytes.Select(static b => (byte)~b)]).ToString(),
+            out result);
+
+    private static bool TryEvalMaskLenFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalInetAddressFunction(fn, context, evalArg, value => value.PrefixLength, out result);
+
+    private static bool TryEvalNetmaskFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalInetAddressFunction(
+            fn,
+            context,
+            evalArg,
+            value => new System.Net.IPAddress(value.MaskBytes).ToString(),
+            out result);
+
+    private static bool TryEvalNetworkFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalInetAddressFunction(
+            fn,
+            context,
+            evalArg,
+            value => $"{new System.Net.IPAddress(AstQueryGeneralScalarFunctionEvaluator.ApplyNetworkMask(value.Address.GetAddressBytes(), value.MaskBytes))}/{value.PrefixLength}",
+            out result);
+
+    private static bool TryEvalInetAddressFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        Func<(System.Net.IPAddress Address, byte[] MaskBytes, int PrefixLength), object?> transform,
+        out object? result)
+    {
+        _ = context;
 
         if (fn.Args.Count == 0)
         {
@@ -69,16 +161,7 @@ internal static class AstQueryPostgresNetworkFunctionEvaluator
 
         var byteLength = address.GetAddressBytes().Length;
         var maskBytes = AstQueryGeneralScalarFunctionEvaluator.BuildPrefixMaskBytes(byteLength, prefixLength);
-
-        result = name switch
-        {
-            "HOST" => address.ToString(),
-            "MASKLEN" => prefixLength,
-            "NETMASK" => new System.Net.IPAddress(maskBytes).ToString(),
-            "HOSTMASK" => new System.Net.IPAddress([.. maskBytes.Select(static b => (byte)~b)]).ToString(),
-            "NETWORK" => $"{new System.Net.IPAddress(AstQueryGeneralScalarFunctionEvaluator.ApplyNetworkMask(address.GetAddressBytes(), maskBytes))}/{prefixLength}",
-            _ => null
-        };
+        result = transform((address, maskBytes, prefixLength));
         return true;
     }
 }

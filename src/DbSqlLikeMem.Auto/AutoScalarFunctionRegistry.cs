@@ -55,7 +55,7 @@ internal static class AutoScalarFunctionRegistry
         dialect.AddScalarFunctions(
             new DbScalarFunctionDef("JSON_EXTRACT", "VARCHAR", [], SqlFunctionBodyFactory.Identity())
             {
-                AstExecutor = AstQueryExecutorBase.TryEvalJsonExtractionFunction
+                AstExecutor = AstQueryGeneralScalarFunctionEvaluator.TryEvalJsonExtractionFunction
             },
             "JSON_EXTRACT",
             "JSON_QUERY",

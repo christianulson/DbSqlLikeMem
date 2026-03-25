@@ -1,6 +1,7 @@
 namespace DbSqlLikeMem;
 
 internal delegate bool AstQueryTryEvalSessionContextFunction(
+    QueryExecutionContext context,
     FunctionCallExpr fn,
     Func<int, object?> evalArg,
     out object? result);
@@ -179,7 +180,7 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
         out object? result)
     {
         _ = context.Dialect;
-        return _tryEvalSessionContextFunction(fn, evalArg, out result);
+        return _tryEvalSessionContextFunction(context, fn, evalArg, out result);
     }
 
     internal static bool TryEvalIsDateFunction(
@@ -416,8 +417,9 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
         out object? result)
     {
         _ = evalArg;
+        _ = context;
 
-        result = MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect) ? "root@localhost" : "dbo";
+        result = "dbo";
         return true;
     }
 

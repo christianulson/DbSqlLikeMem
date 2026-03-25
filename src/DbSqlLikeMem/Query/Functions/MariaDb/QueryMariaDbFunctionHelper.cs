@@ -23,12 +23,6 @@ internal static class QueryMariaDbFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!context.Dialect.Name.Equals("mariadb", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (_handlers.TryGetValue(fn.Name, out var handler))
             return handler(fn, context, evalArg, out result);
 
@@ -101,9 +95,6 @@ internal static class QueryMariaDbFunctionHelper
         foreach (var name in names)
             handlers[name] = handler;
     }
-
-    private static bool IsMariaDbDialect(ISqlDialect dialect)
-        => dialect.Name.Equals("mariadb", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryEvalBenchmarkFunction(
         FunctionCallExpr fn,

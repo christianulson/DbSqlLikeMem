@@ -261,6 +261,11 @@ internal interface ISqlDialect
     /// </summary>
     bool SupportsOracleSysFunction(string functionName);
     /// <summary>
+    /// EN: Indicates whether an Oracle reserved identifier is supported by the current dialect/version.
+    /// PT: Indica se um identificador reservado Oracle e suportado pelo dialeto/versao atual.
+    /// </summary>
+    bool SupportsOracleReservedIdentifier(string identifier);
+    /// <summary>
     /// EN: Indicates whether an Oracle time/date helper is supported by the current dialect/version.
     /// PT: Indica se um helper Oracle de tempo/data e suportado pelo dialeto/versao atual.
     /// </summary>

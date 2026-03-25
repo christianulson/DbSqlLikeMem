@@ -4,6 +4,28 @@ internal delegate bool TryConvertNumericToInt64Delegate(object value, out long n
 
 internal static class QueryMySqlUtilityFunctionHelper
 {
+    private static readonly HashSet<string> _networkFunctionNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "INET_ATON",
+        "INET_NTOA",
+        "INET6_ATON",
+        "INET6_NTOA"
+    };
+
+    private static readonly HashSet<string> _ipValidationFunctionNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "IS_IPV4",
+        "IS_IPV4_COMPAT",
+        "IS_IPV4_MAPPED",
+        "IS_IPV6"
+    };
+
+    private static readonly HashSet<string> _uuidFunctionNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "UUID_TO_BIN",
+        "BIN_TO_UUID"
+    };
+
     private delegate bool MySqlUtilityFunctionHandler(
         FunctionCallExpr fn,
         QueryExecutionContext context,
@@ -34,9 +56,16 @@ internal static class QueryMySqlUtilityFunctionHelper
         Register(handlers, TryEvalMySqlBase64Functions, "FROM_BASE64", "TO_BASE64");
         Register(handlers, TryEvalMySqlStringCompareFunction, "STRCMP");
         Register(handlers, TryEvalMySqlChecksumFunction, "CRC32");
-        Register(handlers, TryEvalMySqlNetworkFunctions, "INET_ATON", "INET_NTOA", "INET6_ATON", "INET6_NTOA");
-        Register(handlers, TryEvalMySqlIpValidationFunctions, "IS_IPV4", "IS_IPV4_COMPAT", "IS_IPV4_MAPPED", "IS_IPV6");
-        Register(handlers, TryEvalMySqlUuidFunctions, "UUID_TO_BIN", "BIN_TO_UUID");
+        Register(handlers, TryEvalInetAtonFunction, "INET_ATON");
+        Register(handlers, TryEvalInetNtoAFunction, "INET_NTOA");
+        Register(handlers, TryEvalInet6AtonFunction, "INET6_ATON");
+        Register(handlers, TryEvalInet6NtoAFunction, "INET6_NTOA");
+        Register(handlers, TryEvalIsIpv4Function, "IS_IPV4");
+        Register(handlers, TryEvalIsIpv4CompatFunction, "IS_IPV4_COMPAT");
+        Register(handlers, TryEvalIsIpv4MappedFunction, "IS_IPV4_MAPPED");
+        Register(handlers, TryEvalIsIpv6Function, "IS_IPV6");
+        Register(handlers, TryEvalUuidToBinFunction, "UUID_TO_BIN");
+        Register(handlers, TryEvalBinToUuidFunction, "BIN_TO_UUID");
         return handlers;
     }
 
@@ -59,12 +88,6 @@ internal static class QueryMySqlUtilityFunctionHelper
         _ = tryConvertNumericToInt64;
         if (!(fn.Name.Equals("FROM_BASE64", StringComparison.OrdinalIgnoreCase)
             || fn.Name.Equals("TO_BASE64", StringComparison.OrdinalIgnoreCase)))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -124,12 +147,6 @@ internal static class QueryMySqlUtilityFunctionHelper
             return false;
         }
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("STRCMP() espera dois argumentos.");
 
@@ -164,12 +181,6 @@ internal static class QueryMySqlUtilityFunctionHelper
             return false;
         }
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count == 0)
             throw new InvalidOperationException("CRC32() espera um argumento.");
 
@@ -186,7 +197,7 @@ internal static class QueryMySqlUtilityFunctionHelper
         return true;
     }
 
-    private static bool TryEvalMySqlNetworkFunctions(
+    private static bool TryEvalInetAtonFunction(
         FunctionCallExpr fn,
         QueryExecutionContext context,
         Func<int, object?> evalArg,
@@ -194,96 +205,93 @@ internal static class QueryMySqlUtilityFunctionHelper
         out object? result)
     {
         _ = tryConvertNumericToInt64;
-        var name = fn.Name.ToUpperInvariant();
-        if (name is not ("INET_ATON" or "INET_NTOA" or "INET6_ATON" or "INET6_NTOA"))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
-
-        if (fn.Args.Count == 0)
+        var textValue = evalArg(0);
+        if (IsNullish(textValue))
         {
             result = null;
             return true;
         }
 
-        if (name is "INET_ATON")
+        var text = Convert.ToString(textValue, CultureInfo.InvariantCulture) ?? string.Empty;
+        if (!IPAddress.TryParse(text, out var address) || address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
         {
-            var textValue = evalArg(0);
-            if (IsNullish(textValue))
-            {
-                result = null;
-                return true;
-            }
-
-            var text = Convert.ToString(textValue, CultureInfo.InvariantCulture) ?? string.Empty;
-            if (!IPAddress.TryParse(text, out var address) || address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
-            {
-                result = null;
-                return true;
-            }
-
-            var bytes = address.GetAddressBytes();
-            var numeric = ((uint)bytes[0] << 24) | ((uint)bytes[1] << 16) | ((uint)bytes[2] << 8) | bytes[3];
-            result = (long)numeric;
+            result = null;
             return true;
         }
 
-        if (name is "INET_NTOA")
+        var bytes = address.GetAddressBytes();
+        var numeric = ((uint)bytes[0] << 24) | ((uint)bytes[1] << 16) | ((uint)bytes[2] << 8) | bytes[3];
+        result = (long)numeric;
+        return true;
+    }
+
+    private static bool TryEvalInetNtoAFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = context;
+        var value = evalArg(0);
+        if (IsNullish(value))
         {
-            var value = evalArg(0);
-            if (IsNullish(value))
-            {
-                result = null;
-                return true;
-            }
-
-            if (!TryConvertNumericToUInt64(value!, out var numeric) || numeric > uint.MaxValue)
-            {
-                result = null;
-                return true;
-            }
-
-            var bytes = new[]
-            {
-                (byte)((numeric >> 24) & 0xFF),
-                (byte)((numeric >> 16) & 0xFF),
-                (byte)((numeric >> 8) & 0xFF),
-                (byte)(numeric & 0xFF)
-            };
-            result = new IPAddress(bytes).ToString();
+            result = null;
             return true;
         }
 
-        if (name is "INET6_ATON")
+        if (!TryConvertNumericToUInt64(value!, out var numeric) || numeric > uint.MaxValue)
         {
-            if (context.Dialect.Version < 56 || context.Dialect.Version >= 84)
-                throw SqlUnsupported.ForDialect(context.Dialect, "INET6_ATON");
-
-            var textValue = evalArg(0);
-            if (IsNullish(textValue))
-            {
-                result = null;
-                return true;
-            }
-
-            var text = Convert.ToString(textValue, CultureInfo.InvariantCulture) ?? string.Empty;
-            if (!IPAddress.TryParse(text, out var address))
-            {
-                result = null;
-                return true;
-            }
-
-            result = address.GetAddressBytes();
+            result = null;
             return true;
         }
 
+        var bytes = new[]
+        {
+            (byte)((numeric >> 24) & 0xFF),
+            (byte)((numeric >> 16) & 0xFF),
+            (byte)((numeric >> 8) & 0xFF),
+            (byte)(numeric & 0xFF)
+        };
+        result = new IPAddress(bytes).ToString();
+        return true;
+    }
+
+    private static bool TryEvalInet6AtonFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        if (context.Dialect.Version < 56 || context.Dialect.Version >= 84)
+            throw SqlUnsupported.ForDialect(context.Dialect, "INET6_ATON");
+
+        var textValue = evalArg(0);
+        if (IsNullish(textValue))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = Convert.ToString(textValue, CultureInfo.InvariantCulture) ?? string.Empty;
+        if (!IPAddress.TryParse(text, out var address))
+        {
+            result = null;
+            return true;
+        }
+
+        result = address.GetAddressBytes();
+        return true;
+    }
+
+    private static bool TryEvalInet6NtoAFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
         if (context.Dialect.Version < 56 || context.Dialect.Version >= 84)
             throw SqlUnsupported.ForDialect(context.Dialect, "INET6_NTOA");
 
@@ -304,27 +312,148 @@ internal static class QueryMySqlUtilityFunctionHelper
         return true;
     }
 
-    private static bool TryEvalMySqlIpValidationFunctions(
+    private static bool TryEvalIsIpv4Function(
         FunctionCallExpr fn,
         QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
         out object? result)
     {
+        _ = fn;
+        _ = context;
         _ = tryConvertNumericToInt64;
-        var name = fn.Name.ToUpperInvariant();
-        if (name is not ("IS_IPV4" or "IS_IPV4_COMPAT" or "IS_IPV4_MAPPED" or "IS_IPV6"))
+        return TryEvalIpVersionFunction(evalArg, expectedV4: true, expectedV6: false, out result);
+    }
+
+    private static bool TryEvalIsIpv4CompatFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        out object? result)
+    {
+        _ = fn;
+        _ = context;
+        _ = tryConvertNumericToInt64;
+        return TryEvalIpv4CompatOrMapped(evalArg, compat: true, out result);
+    }
+
+    private static bool TryEvalIsIpv4MappedFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        out object? result)
+    {
+        _ = fn;
+        _ = context;
+        _ = tryConvertNumericToInt64;
+        return TryEvalIpv4CompatOrMapped(evalArg, compat: false, out result);
+    }
+
+    private static bool TryEvalIsIpv6Function(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        out object? result)
+    {
+        _ = fn;
+        _ = context;
+        _ = tryConvertNumericToInt64;
+        return TryEvalIpVersionFunction(evalArg, expectedV4: false, expectedV6: true, out result);
+    }
+
+    private static bool TryEvalUuidToBinFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        out object? result)
+    {
+        _ = context;
+        if (fn.Args.Count == 0)
+            throw new InvalidOperationException("UUID_TO_BIN() espera ao menos um argumento.");
+
+        var swapFlag = false;
+        if (fn.Args.Count > 1)
         {
-            result = null;
-            return false;
+            var flagValue = evalArg(1);
+            if (!IsNullish(flagValue) && tryConvertNumericToInt64(flagValue!, out var numericFlag))
+                swapFlag = numericFlag != 0;
         }
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
+        if (context.Dialect.Version < 80)
+            throw SqlUnsupported.ForDialect(context.Dialect, "UUID_TO_BIN");
+
+        var value = evalArg(0);
+        if (IsNullish(value))
         {
             result = null;
-            return false;
+            return true;
         }
 
+        if (value is byte[] byteValue)
+        {
+            if (byteValue.Length != 16)
+            {
+                result = null;
+                return true;
+            }
+
+            result = swapFlag ? ApplyMySqlUuidSwap(byteValue) : [.. byteValue];
+            return true;
+        }
+
+        var text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        if (!TryParseUuidHex(text, out var bytes))
+        {
+            result = null;
+            return true;
+        }
+
+        result = swapFlag ? ApplyMySqlUuidSwap(bytes) : bytes;
+        return true;
+    }
+
+    private static bool TryEvalBinToUuidFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        out object? result)
+    {
+        _ = fn;
+        _ = tryConvertNumericToInt64;
+        if (context.Dialect.Version < 80)
+            throw SqlUnsupported.ForDialect(context.Dialect, "BIN_TO_UUID");
+
+        var binValue = evalArg(0);
+        if (IsNullish(binValue))
+        {
+            result = null;
+            return true;
+        }
+
+        if (binValue is not byte[] binBytes || binBytes.Length != 16)
+        {
+            result = null;
+            return true;
+        }
+
+        var normalized = fn.Args.Count > 1 && !IsNullish(evalArg(1)) && tryConvertNumericToInt64(evalArg(1)!, out var numericFlag) && numericFlag != 0
+            ? ApplyMySqlUuidUnswap(binBytes)
+            : [.. binBytes];
+        result = FormatUuid(normalized);
+        return true;
+    }
+
+    private static bool TryEvalIpVersionFunction(
+        Func<int, object?> evalArg,
+        bool expectedV4,
+        bool expectedV6,
+        out object? result)
+    {
         var value = evalArg(0);
         if (IsNullish(value))
         {
@@ -339,15 +468,28 @@ internal static class QueryMySqlUtilityFunctionHelper
             return true;
         }
 
-        if (name is "IS_IPV4")
+        result = expectedV4
+            ? (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? 1 : 0)
+            : (expectedV6 && ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6 ? 1 : 0);
+        return true;
+    }
+
+    private static bool TryEvalIpv4CompatOrMapped(
+        Func<int, object?> evalArg,
+        bool compat,
+        out object? result)
+    {
+        var value = evalArg(0);
+        if (IsNullish(value))
         {
-            result = ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? 1 : 0;
+            result = null;
             return true;
         }
 
-        if (name is "IS_IPV6")
+        var text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        if (!IPAddress.TryParse(text, out var ip))
         {
-            result = ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6 ? 1 : 0;
+            result = 0;
             return true;
         }
 
@@ -365,96 +507,9 @@ internal static class QueryMySqlUtilityFunctionHelper
         }
 
         var isV4Mapped = bytes.Take(10).All(static b => b == 0) && bytes[10] == 0xff && bytes[11] == 0xff;
-        result = name.Equals("IS_IPV4_MAPPED", StringComparison.OrdinalIgnoreCase)
-            ? (isV4Mapped ? 1 : 0)
-            : (name.Equals("IS_IPV4_COMPAT", StringComparison.OrdinalIgnoreCase) ? (!isV4Mapped && bytes.Take(12).All(static b => b == 0) ? 1 : 0) : 0);
-        return true;
-    }
-
-    private static bool TryEvalMySqlUuidFunctions(
-        FunctionCallExpr fn,
-        QueryExecutionContext context,
-        Func<int, object?> evalArg,
-        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
-        out object? result)
-    {
-        var name = fn.Name.ToUpperInvariant();
-        if (name is not ("UUID_TO_BIN" or "BIN_TO_UUID"))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
-
-        if (fn.Args.Count == 0)
-            throw new InvalidOperationException($"{name}() espera ao menos um argumento.");
-
-        var swapFlag = false;
-        if (fn.Args.Count > 1)
-        {
-            var flagValue = evalArg(1);
-            if (!IsNullish(flagValue) && tryConvertNumericToInt64(flagValue!, out var numericFlag))
-                swapFlag = numericFlag != 0;
-        }
-
-        if (name == "UUID_TO_BIN")
-        {
-            if (context.Dialect.Version < 80)
-                throw SqlUnsupported.ForDialect(context.Dialect, "UUID_TO_BIN");
-
-            var value = evalArg(0);
-            if (IsNullish(value))
-            {
-                result = null;
-                return true;
-            }
-
-            if (value is byte[] byteValue)
-            {
-                if (byteValue.Length != 16)
-                {
-                    result = null;
-                    return true;
-                }
-
-                result = swapFlag ? ApplyMySqlUuidSwap(byteValue) : [.. byteValue];
-                return true;
-            }
-
-            var text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
-            if (!TryParseUuidHex(text, out var bytes))
-            {
-                result = null;
-                return true;
-            }
-
-            result = swapFlag ? ApplyMySqlUuidSwap(bytes) : bytes;
-            return true;
-        }
-
-        if (context.Dialect.Version < 80)
-            throw SqlUnsupported.ForDialect(context.Dialect, "BIN_TO_UUID");
-
-        var binValue = evalArg(0);
-        if (IsNullish(binValue))
-        {
-            result = null;
-            return true;
-        }
-
-        if (binValue is not byte[] binBytes || binBytes.Length != 16)
-        {
-            result = null;
-            return true;
-        }
-
-        var normalized = swapFlag ? ApplyMySqlUuidUnswap(binBytes) : [.. binBytes];
-        result = FormatUuid(normalized);
+        result = compat
+            ? (!isV4Mapped && bytes.Take(12).All(static b => b == 0) ? 1 : 0)
+            : (isV4Mapped ? 1 : 0);
         return true;
     }
 

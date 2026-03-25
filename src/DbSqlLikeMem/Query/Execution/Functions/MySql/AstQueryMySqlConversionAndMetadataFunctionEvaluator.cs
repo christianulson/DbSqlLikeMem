@@ -25,7 +25,10 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     {
         var handlers = new Dictionary<string, AstQueryGeneralScalarFunctionHandler>(StringComparer.OrdinalIgnoreCase);
         Register(handlers, TryEvalMySqlConvFunction, "CONV");
-        Register(handlers, TryEvalMySqlDayFunctions, "DAYNAME", "DAYOFMONTH", "DAYOFWEEK", "DAYOFYEAR");
+        Register(handlers, TryEvalMySqlDayNameFunction, "DAYNAME");
+        Register(handlers, TryEvalMySqlDayOfMonthFunction, "DAYOFMONTH");
+        Register(handlers, TryEvalMySqlDayOfWeekFunction, "DAYOFWEEK");
+        Register(handlers, TryEvalMySqlDayOfYearFunction, "DAYOFYEAR");
         Register(handlers, TryEvalMySqlVersionFunction, "VERSION");
         Register(handlers, TryEvalMySqlCurrentDateFunction, "CURDATE", "CURRENT_DATE");
         Register(handlers, TryEvalMySqlUtcDateFunction, "UTC_DATE");
@@ -33,8 +36,16 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
         Register(handlers, TryEvalMySqlUtcTimeFunction, "UTC_TIME");
         Register(handlers, TryEvalMySqlLocalTimestampFunction, "CURRENT_TIMESTAMP", "LOCALTIMESTAMP", "NOW", "SYSDATE", "SYSTEMDATE");
         Register(handlers, TryEvalMySqlUtcTimestampFunction, "UTC_TIMESTAMP");
-        Register(handlers, TryEvalMySqlDatabaseFunctions, "DATABASE", "SCHEMA", "SESSION_USER", "CURRENT_USER", "USER", "SYSTEM_USER", "CONNECTION_ID");
-        Register(handlers, TryEvalMySqlStringMetadataFunctions, "CHARSET", "COLLATION", "COERCIBILITY");
+        Register(handlers, TryEvalMySqlDatabaseFunction, "DATABASE");
+        Register(handlers, TryEvalMySqlSchemaFunction, "SCHEMA");
+        Register(handlers, TryEvalMySqlSessionUserFunction, "SESSION_USER");
+        Register(handlers, TryEvalMySqlCurrentUserFunction, "CURRENT_USER");
+        Register(handlers, TryEvalMySqlUserFunction, "USER");
+        Register(handlers, TryEvalMySqlSystemUserFunction, "SYSTEM_USER");
+        Register(handlers, TryEvalMySqlConnectionIdFunction, "CONNECTION_ID");
+        Register(handlers, TryEvalMySqlCharsetFunction, "CHARSET");
+        Register(handlers, TryEvalMySqlCollationFunction, "COLLATION");
+        Register(handlers, TryEvalMySqlCoercibilityFunction, "COERCIBILITY");
         return handlers;
     }
 
@@ -54,12 +65,6 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
         out object? result)
     {
         if (!fn.Name.Equals("CONV", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -113,25 +118,12 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
         return true;
     }
 
-    private static bool TryEvalMySqlDayFunctions(
+    private static bool TryEvalMySqlDayNameFunction(
         FunctionCallExpr fn,
         QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        var name = fn.Name.ToUpperInvariant();
-        if (name is not ("DAYNAME" or "DAYOFMONTH" or "DAYOFWEEK" or "DAYOFYEAR"))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count == 0)
         {
             result = null;
@@ -145,14 +137,79 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
             return true;
         }
 
-        result = name switch
+        result = CultureInfo.InvariantCulture.DateTimeFormat.GetDayName(date.DayOfWeek);
+        return true;
+    }
+
+    private static bool TryEvalMySqlDayOfMonthFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+        if (fn.Args.Count == 0)
         {
-            "DAYNAME" => CultureInfo.InvariantCulture.DateTimeFormat.GetDayName(date.DayOfWeek),
-            "DAYOFMONTH" => date.Day,
-            "DAYOFWEEK" => ((int)date.DayOfWeek + 1),
-            "DAYOFYEAR" => date.DayOfYear,
-            _ => null
-        };
+            result = null;
+            return true;
+        }
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value) || !AstQueryExecutorBase.TryCoerceDateTime(value!, out var date))
+        {
+            result = null;
+            return true;
+        }
+
+        result = date.Day;
+        return true;
+    }
+
+    private static bool TryEvalMySqlDayOfWeekFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+        if (fn.Args.Count == 0)
+        {
+            result = null;
+            return true;
+        }
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value) || !AstQueryExecutorBase.TryCoerceDateTime(value!, out var date))
+        {
+            result = null;
+            return true;
+        }
+
+        result = (int)date.DayOfWeek + 1;
+        return true;
+    }
+
+    private static bool TryEvalMySqlDayOfYearFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+        if (fn.Args.Count == 0)
+        {
+            result = null;
+            return true;
+        }
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value) || !AstQueryExecutorBase.TryCoerceDateTime(value!, out var date))
+        {
+            result = null;
+            return true;
+        }
+
+        result = date.DayOfYear;
         return true;
     }
 
@@ -164,12 +221,6 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     {
         _ = fn;
         _ = evalArg;
-
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
 
         result = $"MySQL {FormatMySqlServerVersion(context.Dialect.Version)}";
         return true;
@@ -183,12 +234,6 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     {
         _ = fn;
         _ = evalArg;
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
-
         result = DateTime.Now.Date;
         return true;
     }
@@ -201,12 +246,6 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     {
         _ = fn;
         _ = evalArg;
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
-
         result = DateTime.UtcNow.Date;
         return true;
     }
@@ -219,12 +258,6 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     {
         _ = fn;
         _ = evalArg;
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
-
         result = DateTime.Now.TimeOfDay;
         return true;
     }
@@ -237,12 +270,6 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     {
         _ = fn;
         _ = evalArg;
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
-
         result = DateTime.UtcNow.TimeOfDay;
         return true;
     }
@@ -255,12 +282,6 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     {
         _ = fn;
         _ = evalArg;
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
-
         result = DateTime.Now;
         return true;
     }
@@ -273,70 +294,112 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     {
         _ = fn;
         _ = evalArg;
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
-
         result = DateTime.UtcNow;
         return true;
     }
 
-    private static bool TryEvalMySqlDatabaseFunctions(
+    private static bool TryEvalMySqlDatabaseFunction(
         FunctionCallExpr fn,
         QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        var name = fn.Name.ToUpperInvariant();
-        if (name is not ("DATABASE" or "SCHEMA" or "SESSION_USER" or "CURRENT_USER" or "USER" or "SYSTEM_USER" or "CONNECTION_ID"))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count != 0)
-            throw new InvalidOperationException($"{name}() nao aceita argumentos.");
+            throw new InvalidOperationException("DATABASE() nao aceita argumentos.");
 
-        result = name switch
-        {
-            "DATABASE" or "SCHEMA" => "DefaultSchema",
-            "SESSION_USER" => "root@localhost",
-            "CURRENT_USER" => "root@localhost",
-            "USER" => "root@localhost",
-            "SYSTEM_USER" => "root@localhost",
-            "CONNECTION_ID" => 1L,
-            _ => null
-        };
+        _ = context;
+        _ = evalArg;
+
+        result = "DefaultSchema";
         return true;
     }
 
-    private static bool TryEvalMySqlStringMetadataFunctions(
+    private static bool TryEvalMySqlSchemaFunction(
         FunctionCallExpr fn,
         QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        var name = fn.Name.ToUpperInvariant();
-        if (name is not ("CHARSET" or "COLLATION" or "COERCIBILITY"))
-        {
-            result = null;
-            return false;
-        }
+        _ = fn;
+        _ = context;
+        _ = evalArg;
+        result = "DefaultSchema";
+        return true;
+    }
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
+    private static bool TryEvalMySqlSessionUserFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = context;
+        _ = evalArg;
+        result = "root@localhost";
+        return true;
+    }
 
+    private static bool TryEvalMySqlCurrentUserFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = context;
+        _ = evalArg;
+        result = "root@localhost";
+        return true;
+    }
+
+    private static bool TryEvalMySqlUserFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = context;
+        _ = evalArg;
+        result = "root@localhost";
+        return true;
+    }
+
+    private static bool TryEvalMySqlSystemUserFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = context;
+        _ = evalArg;
+        result = "root@localhost";
+        return true;
+    }
+
+    private static bool TryEvalMySqlConnectionIdFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = context;
+        _ = evalArg;
+        result = 1L;
+        return true;
+    }
+
+    private static bool TryEvalMySqlCharsetFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = context;
         if (fn.Args.Count == 0)
         {
             result = null;
@@ -350,13 +413,57 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
             return true;
         }
 
-        result = name switch
+        result = "utf8mb4";
+        return true;
+    }
+
+    private static bool TryEvalMySqlCollationFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = context;
+        if (fn.Args.Count == 0)
         {
-            "CHARSET" => "utf8mb4",
-            "COLLATION" => "utf8mb4_general_ci",
-            "COERCIBILITY" => 0,
-            _ => null
-        };
+            result = null;
+            return true;
+        }
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        result = "utf8mb4_general_ci";
+        return true;
+    }
+
+    private static bool TryEvalMySqlCoercibilityFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = context;
+        if (fn.Args.Count == 0)
+        {
+            result = null;
+            return true;
+        }
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        result = 0;
         return true;
     }
 

@@ -21,12 +21,6 @@ internal static class AstQueryDb2DateFunctionEvaluator
         Func<string, TemporalUnit> resolveTemporalUnit,
         out object? result)
     {
-        if (!context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (_handlers.TryGetValue(fn.Name, out var handler)
             && handler(fn, context, evalArg, resolveTemporalUnit, out result))
         {

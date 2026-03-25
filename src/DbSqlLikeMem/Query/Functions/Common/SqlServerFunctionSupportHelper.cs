@@ -4,9 +4,6 @@ internal static class SqlServerFunctionSupportHelper
 {
     public static void EnsureSupport(FunctionCallExpr fn, QueryExecutionContext context)
     {
-        if (!context.Dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
-            return;
-
         var definition = fn.ResolvedScalarFunction;
         if (definition is not null
             && definition.AllowsCall)

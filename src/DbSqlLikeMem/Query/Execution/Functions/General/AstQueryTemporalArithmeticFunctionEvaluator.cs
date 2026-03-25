@@ -78,12 +78,6 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
             return false;
         }
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
-
         var baseValue = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(baseValue) || !AstQueryExecutorBase.TryCoerceDateTime(baseValue, out var dateTime))
         {
@@ -259,11 +253,8 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
             return false;
         }
 
-        if (MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
+        if (fn.Args.Count == 2)
         {
-            if (fn.Args.Count != 2)
-                throw new InvalidOperationException("DATEDIFF() no MySQL espera 2 argumentos.");
-
             var startValueMySql = evalArg(0);
             var endValueMySql = evalArg(1);
             if (AstQueryExecutorBase.IsNullish(startValueMySql) || AstQueryExecutorBase.IsNullish(endValueMySql)

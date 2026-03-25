@@ -56,14 +56,14 @@ internal static class SqliteScalarFunctionRegistry
         dialect.AddScalarFunctions(
             new DbScalarFunctionDef("JSON_EXTRACT", "VARCHAR", [], body)
             {
-                AstExecutor = AstQueryExecutorBase.TryEvalJsonExtractionFunction
+                AstExecutor = AstQueryGeneralScalarFunctionEvaluator.TryEvalJsonExtractionFunction
             },
             "JSON_EXTRACT",
             "JSON_VALUE");
         dialect.AddScalarFunction(
             new DbScalarFunctionDef("JSON_UNQUOTE", "VARCHAR", [], body)
             {
-                AstExecutor = AstQueryExecutorBase.TryEvalJsonUtilityFunctions
+                AstExecutor = AstQueryGeneralScalarFunctionEvaluator.TryEvalJsonUtilityFunctions
             });
         dialect.AddScalarFunction("DATE_ADD", "DATETIME", body);
     }

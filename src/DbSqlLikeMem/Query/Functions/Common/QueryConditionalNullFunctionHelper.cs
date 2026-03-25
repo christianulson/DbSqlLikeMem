@@ -129,17 +129,8 @@ internal static class QueryConditionalNullFunctionHelper
             return false;
         }
 
-        if (context.Dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (fn.Args.Count == 2)
         {
-            result = null;
-            return false;
-        }
-
-        if (context.Dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
-        {
-            if (fn.Args.Count != 2)
-                throw new InvalidOperationException("DECODE() no PostgreSQL espera payload e formato.");
-
             var payload = evalArg(0)?.ToString();
             var format = evalArg(1)?.ToString();
             if (string.IsNullOrWhiteSpace(payload) || string.IsNullOrWhiteSpace(format))

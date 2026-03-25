@@ -32,6 +32,27 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         ["SAT"] = DayOfWeek.Saturday
     };
 
+    private static readonly HashSet<string> _conIdFunctionNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "CON_DBID_TO_ID",
+        "CON_GUID_TO_ID",
+        "CON_NAME_TO_ID",
+        "CON_UID_TO_ID"
+    };
+
+    private static readonly HashSet<string> _nlsFunctionNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "NLS_CHARSET_DECL_LEN",
+        "NLS_CHARSET_ID",
+        "NLS_CHARSET_NAME",
+        "NLS_COLLATION_ID",
+        "NLS_COLLATION_NAME",
+        "NLS_INITCAP",
+        "NLS_LOWER",
+        "NLS_UPPER",
+        "NLSSORT"
+    };
+
     private static Dictionary<string, OracleDb2LegacyFunctionHandler> CreateHandlers()
     {
         var handlers = new Dictionary<string, OracleDb2LegacyFunctionHandler>(StringComparer.OrdinalIgnoreCase);
@@ -142,7 +163,7 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     {
         var dialect = context.Dialect;
         var name = fn.Name.ToUpperInvariant();
-        if (name is not ("CON_DBID_TO_ID" or "CON_GUID_TO_ID" or "CON_NAME_TO_ID" or "CON_UID_TO_ID"))
+        if (!_conIdFunctionNames.Contains(name))
         {
             result = null;
             return false;
@@ -1096,8 +1117,7 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     {
         var dialect = context.Dialect;
         var name = fn.Name.ToUpperInvariant();
-        if (name is not ("NLS_CHARSET_DECL_LEN" or "NLS_CHARSET_ID" or "NLS_CHARSET_NAME" or "NLS_COLLATION_ID"
-            or "NLS_COLLATION_NAME" or "NLS_INITCAP" or "NLS_LOWER" or "NLS_UPPER" or "NLSSORT"))
+        if (!_nlsFunctionNames.Contains(name))
         {
             result = null;
             return false;
@@ -1112,30 +1132,31 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
 
         QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, name);
 
-        if (name is "NLS_CHARSET_DECL_LEN" or "NLS_CHARSET_ID")
+        return name switch
         {
-            result = 0;
-            return true;
-        }
+            "NLS_CHARSET_DECL_LEN" or "NLS_CHARSET_ID" => SetNlsConstantResult(0, out result),
+            "NLS_CHARSET_NAME" => SetNlsConstantResult("AL32UTF8", out result),
+            "NLS_COLLATION_ID" => SetNlsConstantResult(0, out result),
+            "NLS_COLLATION_NAME" => SetNlsConstantResult("BINARY", out result),
+            "NLS_INITCAP" => TryEvalNlsTextResult(evalArg, ApplyInitCap, out result),
+            "NLS_LOWER" => TryEvalNlsTextResult(evalArg, static text => text.ToLowerInvariant(), out result),
+            "NLS_UPPER" => TryEvalNlsTextResult(evalArg, static text => text.ToUpperInvariant(), out result),
+            "NLSSORT" => TryEvalNlsTextResult(evalArg, static text => text, out result),
+            _ => SetNlsUnsupportedResult(out result)
+        };
+    }
 
-        if (name is "NLS_CHARSET_NAME")
-        {
-            result = "AL32UTF8";
-            return true;
-        }
+    private static bool SetNlsConstantResult(object? value, out object? result)
+    {
+        result = value;
+        return true;
+    }
 
-        if (name is "NLS_COLLATION_ID")
-        {
-            result = 0;
-            return true;
-        }
-
-        if (name is "NLS_COLLATION_NAME")
-        {
-            result = "BINARY";
-            return true;
-        }
-
+    private static bool TryEvalNlsTextResult(
+        Func<int, object?> evalArg,
+        Func<string, string> transform,
+        out object? result)
+    {
         var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value))
         {
@@ -1144,26 +1165,14 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         }
 
         var text = value?.ToString() ?? string.Empty;
-        if (name is "NLS_INITCAP")
-        {
-            result = ApplyInitCap(text);
-            return true;
-        }
-
-        if (name is "NLS_LOWER")
-        {
-            result = text.ToLowerInvariant();
-            return true;
-        }
-
-        if (name is "NLS_UPPER")
-        {
-            result = text.ToUpperInvariant();
-            return true;
-        }
-
-        result = text;
+        result = transform(text);
         return true;
+    }
+
+    private static bool SetNlsUnsupportedResult(out object? result)
+    {
+        result = null;
+        return false;
     }
 
     private static bool TryEvalNumIntervalFunctions(

@@ -22,7 +22,7 @@ internal static class SqlServerScalarFunctionRegistry
             QueryExecutionContext context,
             Func<int, object?> evalArg,
             out object? result)
-            => utilityEvaluator.TryEvaluate(fn, evalArg, out result);
+            => utilityEvaluator.TryEvaluate(fn, context, evalArg, out result);
 
         RegisterTemporalFunctions(dialect, version, TryEvalSqlServerUtilityFunction);
         RegisterMetadataFunctions(dialect, version);
@@ -41,97 +41,6 @@ internal static class SqlServerScalarFunctionRegistry
         {
             AstExecutor = executor
         };
-
-    private static bool TryEvalSqlServerAppNameFunction(
-        FunctionCallExpr fn,
-        QueryExecutionContext context,
-        Func<int, object?> evalArg,
-        out object? result)
-        => AstQueryExecutorBase.TryEvalAppNameFunction(fn, out result);
-
-    private static bool TryEvalSqlServerCurrentUserFunction(
-        FunctionCallExpr fn,
-        QueryExecutionContext context,
-        Func<int, object?> evalArg,
-        out object? result)
-        => AstQueryExecutorBase.TryEvalCurrentUserFunction(fn, context, out result);
-
-    private static bool TryEvalSqlServerErrorFunctions(
-        FunctionCallExpr fn,
-        QueryExecutionContext context,
-        Func<int, object?> evalArg,
-        out object? result)
-        => AstQueryExecutorBase.TryEvalErrorFunctions(fn, out result);
-
-    private static bool TryEvalSqlServerNumericFunction(
-        FunctionCallExpr fn,
-        QueryExecutionContext context,
-        Func<int, object?> evalArg,
-        out object? result)
-        => AstQueryExecutorBase.TryEvalNumericFunction(fn, evalArg, out result);
-
-    private static bool TryEvalSqlServerCharIndexFunction(
-        FunctionCallExpr fn,
-        QueryExecutionContext context,
-        Func<int, object?> evalArg,
-        out object? result)
-        => AstQueryExecutorBase.TryEvalCharIndexFunction(fn, evalArg, out result);
-
-    private static bool TryEvalSqlServerChecksumFunction(
-        FunctionCallExpr fn,
-        QueryExecutionContext context,
-        Func<int, object?> evalArg,
-        out object? result)
-        => AstQueryExecutorBase.TryEvalSqlServerChecksumFunction(fn, evalArg, out result);
-
-    private static bool TryEvalSqlServerDataLengthFunction(
-        FunctionCallExpr fn,
-        QueryExecutionContext context,
-        Func<int, object?> evalArg,
-        out object? result)
-        => AstQueryExecutorBase.TryEvalDataLengthFunction(fn, evalArg, out result);
-
-    private static bool TryEvalSqlServerFormatMessageFunction(
-        FunctionCallExpr fn,
-        QueryExecutionContext context,
-        Func<int, object?> evalArg,
-        out object? result)
-        => AstQueryExecutorBase.TryEvalSqlServerFormatMessageFunction(fn, evalArg, out result);
-
-    private static bool TryEvalSqlServerCompressFunction(
-        FunctionCallExpr fn,
-        QueryExecutionContext context,
-        Func<int, object?> evalArg,
-        out object? result)
-        => AstQueryExecutorBase.TryEvalSqlServerCompressFunction(fn, evalArg, out result);
-
-    private static bool TryEvalSqlServerDecompressFunction(
-        FunctionCallExpr fn,
-        QueryExecutionContext context,
-        Func<int, object?> evalArg,
-        out object? result)
-        => AstQueryExecutorBase.TryEvalSqlServerDecompressFunction(fn, evalArg, out result);
-
-    private static bool TryEvalSqlServerIsDateFunction(
-        FunctionCallExpr fn,
-        QueryExecutionContext context,
-        Func<int, object?> evalArg,
-        out object? result)
-        => AstQueryExecutorBase.TryEvalIsDateFunction(fn, evalArg, out result);
-
-    private static bool TryEvalSqlServerIsJsonFunction(
-        FunctionCallExpr fn,
-        QueryExecutionContext context,
-        Func<int, object?> evalArg,
-        out object? result)
-        => AstQueryExecutorBase.TryEvalIsJsonFunction(fn, evalArg, out result);
-
-    private static bool TryEvalSqlServerIsNumericFunction(
-        FunctionCallExpr fn,
-        QueryExecutionContext context,
-        Func<int, object?> evalArg,
-        out object? result)
-        => AstQueryExecutorBase.TryEvalIsNumericFunction(fn, evalArg, out result);
 
     private static void RegisterTemporalFunctions(
         SqlServerDialect dialect,
@@ -212,7 +121,7 @@ internal static class SqlServerScalarFunctionRegistry
 
         dialect.AddScalarFunctionIf(
             version >= SqlServerDialect.FormatMinVersion,
-            CreateScalarFunctionDef("FORMAT", "VARCHAR", AstQueryExecutorBase.TryEvalSqlServerFormatFunction));
+            CreateScalarFunctionDef("FORMAT", "VARCHAR", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSqlServerFormatFunction));
 
         dialect.AddScalarFunctionsIf(version >= SqlServerDialect.ParseMinVersion, "VARCHAR",
             SqlFunctionBodyFactory.Identity(),
@@ -241,7 +150,7 @@ internal static class SqlServerScalarFunctionRegistry
     {
         var body = SqlFunctionBodyFactory.Identity();
 
-        dialect.AddScalarFunction(CreateScalarFunctionDef("APP_NAME", "VARCHAR", TryEvalSqlServerAppNameFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("APP_NAME", "VARCHAR", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalAppNameFunction));
         dialect.AddScalarFunction(CreateScalarFunctionDef("GETANSINULL", "VARCHAR", AstQueryGeneralSystemAndJsonFunctionEvaluator.TryEvalGetAnsiNullFunction));
         dialect.AddScalarFunctions(
             CreateScalarFunctionDef("HOST_ID", "VARCHAR", AstQueryGeneralSystemAndJsonFunctionEvaluator.TryEvalHostIdFunction),
@@ -311,12 +220,12 @@ internal static class SqlServerScalarFunctionRegistry
             "USER_NAME",
             "XACT_STATE");
 
-        dialect.AddScalarFunction(CreateScalarFunctionDef("ERROR_LINE", "VARCHAR", TryEvalSqlServerErrorFunctions));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("ERROR_MESSAGE", "VARCHAR", TryEvalSqlServerErrorFunctions));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("ERROR_NUMBER", "VARCHAR", TryEvalSqlServerErrorFunctions));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("ERROR_PROCEDURE", "VARCHAR", TryEvalSqlServerErrorFunctions));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("ERROR_SEVERITY", "VARCHAR", TryEvalSqlServerErrorFunctions));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("ERROR_STATE", "VARCHAR", TryEvalSqlServerErrorFunctions));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("ERROR_LINE", "VARCHAR", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalErrorFunctions));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("ERROR_MESSAGE", "VARCHAR", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalErrorFunctions));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("ERROR_NUMBER", "VARCHAR", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalErrorFunctions));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("ERROR_PROCEDURE", "VARCHAR", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalErrorFunctions));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("ERROR_SEVERITY", "VARCHAR", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalErrorFunctions));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("ERROR_STATE", "VARCHAR", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalErrorFunctions));
 
         dialect.AddScalarFunctionsIf(version >= SqlServerDialect.SessionContextMinVersion, "VARCHAR", body, "SESSION_CONTEXT");
 
@@ -347,7 +256,7 @@ internal static class SqlServerScalarFunctionRegistry
             CreateScalarFunctionDef(
                 "CURRENT_USER",
                 "VARCHAR",
-                TryEvalSqlServerCurrentUserFunction,
+                AstQuerySqlServerUtilityFunctionEvaluator.TryEvalCurrentUserFunction,
                 SqlScalarFunctionUsageKind.Identifier));
 
         dialect.AddScalarFunction(
@@ -372,7 +281,7 @@ internal static class SqlServerScalarFunctionRegistry
     {
         var body = SqlFunctionBodyFactory.Identity();
 
-        dialect.AddScalarFunctions("DOUBLE", TryEvalSqlServerNumericFunction,
+        dialect.AddScalarFunctions("DOUBLE", AstQueryGeneralScalarFunctionEvaluator.TryEvalNumericFunction,
             "ABS",
             "ACOS",
             "ASIN",
@@ -382,25 +291,25 @@ internal static class SqlServerScalarFunctionRegistry
             "COS",
             "COT");
 
-        dialect.AddScalarFunction("ASCII", "INT", TryEvalSqlServerNumericFunction);
+        dialect.AddScalarFunction("ASCII", "INT", AstQueryGeneralScalarFunctionEvaluator.TryEvalNumericFunction);
 
-        dialect.AddScalarFunction("CHARINDEX", "INT", TryEvalSqlServerCharIndexFunction);
+        dialect.AddScalarFunction("CHARINDEX", "INT", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalCharIndexFunction);
 
-        dialect.AddScalarFunctions("INT", TryEvalSqlServerChecksumFunction,
+        dialect.AddScalarFunctions("INT", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSqlServerChecksumFunction,
             "CHECKSUM",
             "BINARY_CHECKSUM");
 
-        dialect.AddScalarFunction("DATALENGTH", "INT", TryEvalSqlServerDataLengthFunction);
+        dialect.AddScalarFunction("DATALENGTH", "INT", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalDataLengthFunction);
 
-        dialect.AddScalarFunctions("INT", AstQueryExecutorBase.TryEvalGroupingFunctions,
+        dialect.AddScalarFunctions("INT", TryEvalSqlServerGroupingFunctions,
             "GROUPING",
             "GROUPING_ID");
 
-        dialect.AddScalarFunction("ISDATE", "INT", TryEvalSqlServerIsDateFunction);
+        dialect.AddScalarFunction("ISDATE", "INT", AstQueryGeneralSystemAndJsonFunctionEvaluator.TryEvalIsDateFunction);
 
-        dialect.AddScalarFunction("ISJSON", "INT", TryEvalSqlServerIsJsonFunction);
+        dialect.AddScalarFunction("ISJSON", "INT", AstQueryGeneralSystemAndJsonFunctionEvaluator.TryEvalIsJsonFunction);
 
-        dialect.AddScalarFunction("ISNUMERIC", "INT", TryEvalSqlServerIsNumericFunction);
+        dialect.AddScalarFunction("ISNUMERIC", "INT", AstQueryGeneralSystemAndJsonFunctionEvaluator.TryEvalIsNumericFunction);
 
         dialect.AddScalarFunctions("INT", body,
             "ROWCOUNT");
@@ -408,11 +317,11 @@ internal static class SqlServerScalarFunctionRegistry
         dialect.AddScalarFunctions("BIGINT", body,
             "ROWCOUNT_BIG");
 
-        dialect.AddScalarFunction("CHAR", "VARCHAR", AstQueryExecutorBase.TryEvalCharFunction);
+        dialect.AddScalarFunction("CHAR", "VARCHAR", AstQueryGeneralScalarFunctionEvaluator.TryEvalCharFunction);
 
-        dialect.AddScalarFunction("FORMATMESSAGE", "VARCHAR", TryEvalSqlServerFormatMessageFunction);
+        dialect.AddScalarFunction("FORMATMESSAGE", "VARCHAR", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSqlServerFormatMessageFunction);
 
-        dialect.AddScalarFunction("NCHAR", "VARCHAR", AstQueryExecutorBase.TryEvalCharFunction);
+        dialect.AddScalarFunction("NCHAR", "VARCHAR", AstQueryGeneralScalarFunctionEvaluator.TryEvalCharFunction);
 
         dialect.AddScalarFunctions("VARCHAR", AstQuerySqlServerScalarFunctionEvaluator.TryEvaluate,
             "QUOTENAME",
@@ -438,11 +347,11 @@ internal static class SqlServerScalarFunctionRegistry
 
         dialect.AddScalarFunctionIf(
             version >= SqlServerDialect.CompressionFunctionsMinVersion,
-            CreateScalarFunctionDef("COMPRESS", "VARBINARY", TryEvalSqlServerCompressFunction));
+            CreateScalarFunctionDef("COMPRESS", "VARBINARY", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSqlServerCompressFunction));
 
         dialect.AddScalarFunctionIf(
             version >= SqlServerDialect.CompressionFunctionsMinVersion,
-            CreateScalarFunctionDef("DECOMPRESS", "VARBINARY", TryEvalSqlServerDecompressFunction));
+            CreateScalarFunctionDef("DECOMPRESS", "VARBINARY", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSqlServerDecompressFunction));
 
         dialect.AddScalarFunctions("VARCHAR", QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions,
             "IF",
@@ -452,13 +361,13 @@ internal static class SqlServerScalarFunctionRegistry
             version >= SqlServerDialect.JsonFunctionsMinVersion,
             "JSON_QUERY",
             "VARCHAR",
-            AstQueryExecutorBase.TryEvalJsonExtractionFunction);
+            AstQueryGeneralScalarFunctionEvaluator.TryEvalJsonExtractionFunction);
 
         dialect.AddScalarFunctionIf(
             version >= SqlServerDialect.JsonFunctionsMinVersion,
             "JSON_VALUE",
             "VARCHAR",
-            AstQueryExecutorBase.TryEvalJsonExtractionFunction);
+            AstQueryGeneralScalarFunctionEvaluator.TryEvalJsonExtractionFunction);
 
         dialect.AddScalarFunctionIf(
             version >= SqlServerDialect.TranslateMinVersion,
@@ -507,6 +416,18 @@ internal static class SqlServerScalarFunctionRegistry
             "SIN",
             "SQRT",
             "TAN");
+    }
+
+    private static bool TryEvalSqlServerGroupingFunctions(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (AstQueryGeneralSystemAndJsonFunctionEvaluator.TryEvalGroupingFunction(fn, context, evalArg, out result))
+            return true;
+
+        return AstQueryGeneralSystemAndJsonFunctionEvaluator.TryEvalGroupingIdFunction(fn, context, evalArg, out result);
     }
 
     private static void RegisterAggregateFunctions(SqlServerDialect dialect, int version)

@@ -158,6 +158,12 @@ internal sealed class OracleDialect : SqlDialectBase
     public override bool SupportsOracleSpecificConversionFunction(string functionName)
         => functionName.Equals("CONVERT", StringComparison.OrdinalIgnoreCase);
 
+    /// <inheritdoc />
+    public override bool SupportsOracleReservedIdentifier(string identifier)
+        => identifier.Equals("USER", StringComparison.OrdinalIgnoreCase)
+            || identifier.Equals("ORA_INVOKING_USER", StringComparison.OrdinalIgnoreCase)
+            || identifier.Equals("ORA_INVOKING_USERID", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>
     /// EN: Gets or sets null substitute function names.
     /// PT: Obtém ou define null substitute function names.

@@ -60,13 +60,6 @@ internal static class QueryOracleDb2UtilityFunctionHelper
             return false;
         }
 
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         EnsureOracleDb2FunctionSupported(context, fn);
 
         var value = evalArg(0);
@@ -126,13 +119,6 @@ internal static class QueryOracleDb2UtilityFunctionHelper
             return false;
         }
 
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         EnsureOracleDb2FunctionSupported(context, fn);
 
         var value = evalArg(0);
@@ -173,13 +159,6 @@ internal static class QueryOracleDb2UtilityFunctionHelper
             return false;
         }
 
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         EnsureOracleDb2FunctionSupported(context, fn);
 
         var value = evalArg(0);
@@ -206,13 +185,6 @@ internal static class QueryOracleDb2UtilityFunctionHelper
             return false;
         }
 
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         EnsureOracleDb2FunctionSupported(context, fn);
 
         result = "+00:00";
@@ -226,13 +198,6 @@ internal static class QueryOracleDb2UtilityFunctionHelper
         out object? result)
     {
         if (!fn.Name.Equals("DECOMPOSE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -267,13 +232,6 @@ internal static class QueryOracleDb2UtilityFunctionHelper
             return false;
         }
 
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         EnsureOracleDb2FunctionSupported(context, fn);
 
         result = fn.Name.Equals("EMPTY_BLOB", StringComparison.OrdinalIgnoreCase)
@@ -289,13 +247,6 @@ internal static class QueryOracleDb2UtilityFunctionHelper
         out object? result)
     {
         if (!fn.Name.Equals("INITCAP", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -351,13 +302,6 @@ internal static class QueryOracleDb2UtilityFunctionHelper
             return false;
         }
 
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         EnsureOracleDb2FunctionSupported(context, fn);
 
         var value = evalArg(0);
@@ -377,20 +321,6 @@ internal static class QueryOracleDb2UtilityFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        var name = fn.Name.ToUpperInvariant();
-        if (name is not ("CLUSTER_DETAILS" or "CLUSTER_DISTANCE" or "CLUSTER_ID" or "CLUSTER_PROBABILITY" or "CLUSTER_SET"))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         EnsureOracleDb2FunctionSupported(context, fn);
         result = null;
         return true;

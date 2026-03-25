@@ -35,12 +35,6 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!IsOracleDb2Dialect(context))
-        {
-            result = null;
-            return false;
-        }
-
         if (!_handlers.TryGetValue(fn.Name, out var handler))
         {
             result = null;
@@ -91,10 +85,6 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
         foreach (var name in names)
             handlers[name] = handler;
     }
-
-    private static bool IsOracleDb2Dialect(QueryExecutionContext context)
-        => context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            || context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryEvalConvertFunction(
         FunctionCallExpr fn,

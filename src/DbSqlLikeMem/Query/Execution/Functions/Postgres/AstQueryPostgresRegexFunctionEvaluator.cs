@@ -1,36 +1,125 @@
 namespace DbSqlLikeMem;
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 
+internal delegate bool AstQueryTryEvalPostgresRegexFunction(
+    FunctionCallExpr fn,
+    QueryExecutionContext context,
+    Func<int, object?> evalArg,
+    out object? result);
+
 internal static class AstQueryPostgresRegexFunctionEvaluator
 {
+    private static readonly IReadOnlyDictionary<string, AstQueryTryEvalPostgresRegexFunction> _handlers =
+        CreateHandlers();
+
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
         QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!context.Dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        if (!_handlers.TryGetValue(fn.Name, out var handler))
         {
             result = null;
             return false;
         }
 
-        var name = fn.Name.ToUpperInvariant();
-        if (name is not ("REGEXP_COUNT" or "REGEXP_INSTR" or "REGEXP_LIKE" or "REGEXP_MATCH" or "REGEXP_REPLACE" or "REGEXP_SPLIT_TO_ARRAY" or "REGEXP_SUBSTR"))
-        {
-            result = null;
-            return false;
-        }
+        return handler(fn, context, evalArg, out result);
+    }
 
-        if (!context.Dialect.TryGetScalarFunctionDefinition(name, out _))
-        {
-            result = null;
-            return false;
-        }
+    private static IReadOnlyDictionary<string, AstQueryTryEvalPostgresRegexFunction> CreateHandlers()
+    {
+        var handlers = new Dictionary<string, AstQueryTryEvalPostgresRegexFunction>(StringComparer.OrdinalIgnoreCase);
+        Register(handlers, TryEvalRegexCountFunction, "REGEXP_COUNT");
+        Register(handlers, TryEvalRegexInstrFunction, "REGEXP_INSTR");
+        Register(handlers, TryEvalRegexLikeFunction, "REGEXP_LIKE");
+        Register(handlers, TryEvalRegexMatchFunction, "REGEXP_MATCH");
+        Register(handlers, TryEvalRegexReplaceFunction, "REGEXP_REPLACE");
+        Register(handlers, TryEvalRegexSplitToArrayFunction, "REGEXP_SPLIT_TO_ARRAY");
+        Register(handlers, TryEvalRegexSubstrFunction, "REGEXP_SUBSTR");
+        return handlers;
+    }
+
+    private static void Register(
+        IDictionary<string, AstQueryTryEvalPostgresRegexFunction> handlers,
+        AstQueryTryEvalPostgresRegexFunction handler,
+        params string[] names)
+    {
+        foreach (var name in names)
+            handlers[name] = handler;
+    }
+
+    private static bool TryEvalRegexCountFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalRegexCore(fn, context, evalArg, out result, static (_, _, _, _) => null, countMatches: true, returnsBool: false);
+
+    private static bool TryEvalRegexInstrFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalRegexCore(fn, context, evalArg, out result, static (_, _, _, _) => null, countMatches: false, returnsBool: false, returnIndex: true);
+
+    private static bool TryEvalRegexLikeFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalRegexCore(fn, context, evalArg, out result, static (_, _, _, _) => null, countMatches: false, returnsBool: true);
+
+    private static bool TryEvalRegexMatchFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalRegexCore(fn, context, evalArg, out result, static (_, match, _, _) => match.Groups.Count > 1
+            ? match.Groups.Cast<Group>().Skip(1).Select(static g => g.Value).ToArray()
+            : [match.Value], countMatches: false, returnsBool: false, returnCapture: true);
+
+    private static bool TryEvalRegexReplaceFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalRegexCore(fn, context, evalArg, out result, static (source, match, replacement, replaceAll) => null, countMatches: false, returnsBool: false, replace: true);
+
+    private static bool TryEvalRegexSplitToArrayFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalRegexCore(fn, context, evalArg, out result, static (source, match, replacement, replaceAll) => null, countMatches: false, returnsBool: false, split: true);
+
+    private static bool TryEvalRegexSubstrFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalRegexCore(fn, context, evalArg, out result, static (_, match, _, _) => match.Value, countMatches: false, returnsBool: false, returnSubstring: true);
+
+    private static bool TryEvalRegexCore(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result,
+        Func<string, Group, string, bool, object?> projector,
+        bool countMatches,
+        bool returnsBool,
+        bool returnIndex = false,
+        bool returnCapture = false,
+        bool replace = false,
+        bool split = false,
+        bool returnSubstring = false)
+    {
+        _ = context;
 
         if (fn.Args.Count < 2)
         {
@@ -61,7 +150,7 @@ internal static class AstQueryPostgresRegexFunctionEvaluator
             var segment = source[startIndex..];
             var regex = new Regex(pattern, regexOptions);
 
-            if (name is "REGEXP_REPLACE")
+            if (replace)
             {
                 var replacement = fn.Args.Count >= 3 ? evalArg(2)?.ToString() ?? string.Empty : string.Empty;
                 var replaceAll = HasRegexFlag(flags, 'g');
@@ -69,20 +158,20 @@ internal static class AstQueryPostgresRegexFunctionEvaluator
                 return true;
             }
 
-            if (name is "REGEXP_SPLIT_TO_ARRAY")
+            if (split)
             {
                 result = regex.Split(source);
                 return true;
             }
 
             var matches = regex.Matches(segment);
-            if (name is "REGEXP_COUNT")
+            if (countMatches)
             {
                 result = matches.Count;
                 return true;
             }
 
-            if (name is "REGEXP_LIKE")
+            if (returnsBool)
             {
                 result = matches.Count > 0;
                 return true;
@@ -90,29 +179,34 @@ internal static class AstQueryPostgresRegexFunctionEvaluator
 
             if (matches.Count == 0)
             {
-                result = name == "REGEXP_INSTR" ? 0 : null;
+                result = returnIndex ? 0 : null;
                 return true;
             }
 
             var index = Math.Min(Math.Max(1, occurrence) - 1, matches.Count - 1);
             var match = matches[index];
 
-            if (name is "REGEXP_INSTR")
+            if (returnIndex)
             {
                 result = startIndex + match.Index + 1;
                 return true;
             }
 
-            if (name is "REGEXP_SUBSTR")
+            if (returnSubstring)
             {
                 result = match.Value;
                 return true;
             }
 
-            var captureValues = match.Groups.Count > 1
-                ? match.Groups.Cast<Group>().Skip(1).Select(static g => g.Value).ToArray()
-                : [match.Value];
-            result = captureValues;
+            if (returnCapture)
+            {
+                result = match.Groups.Count > 1
+                    ? match.Groups.Cast<Group>().Skip(1).Select(static g => g.Value).ToArray()
+                    : [match.Value];
+                return true;
+            }
+
+            result = projector(source, match, string.Empty, false);
             return true;
         }
         catch

@@ -74,6 +74,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Register(handlers, TryEvalExpFunction, "EXP");
         Register(handlers, TryEvalFloorFunction, "FLOOR");
         Register(handlers, TryEvalSignFunction, "SIGN");
+        Register(handlers, TryEvalNumericFunction, "ABS", "ABSVAL", "BIN");
         Register(handlers, AstQueryGeneralDateFunctionEvaluator.TryEvaluate, "DATE", "TIMESTAMP", "DATETIME", "TIME", "STRFTIME", "MAKEDATE", "MAKETIME", "MICROSECOND", "MONTHNAME", "PERIOD_ADD", "PERIOD_DIFF", "QUARTER", "SEC_TO_TIME");
         Register(handlers, AstQuerySqlServerScalarFunctionEvaluator.TryEvaluate, "QUOTENAME", "REPLICATE", "SQUARE", "STUFF", "PARSENAME");
         Register(handlers, TryEvalRadiansFunction, "RADIANS");
@@ -177,44 +178,6 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
         var text = value?.ToString() ?? string.Empty;
         result = text.Length == 0 ? 0 : (int)text[0];
-        return true;
-    }
-
-    private static bool TryEvalCharFunction(
-        FunctionCallExpr fn,
-        QueryExecutionContext context,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("CHAR", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        var value = evalArg(0);
-        if (IsNullish(value))
-        {
-            result = null;
-            return true;
-        }
-
-        if (context.Dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
-            || MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
-        {
-            try
-            {
-                var codePoint = Convert.ToInt32(value, CultureInfo.InvariantCulture);
-                result = char.ConvertFromUtf32(codePoint);
-                return true;
-            }
-            catch
-            {
-                // Fall back to textual conversion when the argument is not numeric.
-            }
-        }
-
-        result = value!.ToString() ?? string.Empty;
         return true;
     }
 
@@ -345,10 +308,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        var isPostgreSql = context.Dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase);
-        result = isLog && isPostgreSql
-            ? Math.Log10(number)
-            : Math.Log(number);
+        result = Math.Log(number);
         return true;
     }
 
@@ -463,7 +423,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         return true;
     }
 
-    private static bool TryEvalDegreesFunction(
+    internal static bool TryEvalDegreesFunction(
         FunctionCallExpr fn,
         QueryExecutionContext context,
         Func<int, object?> evalArg,
@@ -495,7 +455,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         }
     }
 
-    private static bool TryEvalDifferenceFunction(
+    internal static bool TryEvalDifferenceFunction(
         FunctionCallExpr fn,
         QueryExecutionContext context,
         Func<int, object?> evalArg,
@@ -522,7 +482,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         return true;
     }
 
-    private static bool TryEvalExpFunction(
+    internal static bool TryEvalExpFunction(
         FunctionCallExpr fn,
         QueryExecutionContext context,
         Func<int, object?> evalArg,
@@ -554,7 +514,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         }
     }
 
-    private static bool TryEvalFloorFunction(
+    internal static bool TryEvalFloorFunction(
         FunctionCallExpr fn,
         QueryExecutionContext context,
         Func<int, object?> evalArg,
@@ -854,7 +814,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         }
     }
 
-    private static bool TryEvalReplaceFunction(
+    internal static bool TryEvalReplaceFunction(
         FunctionCallExpr fn,
         QueryExecutionContext context,
         Func<int, object?> evalArg,
@@ -888,14 +848,6 @@ internal class AstQueryGeneralScalarFunctionEvaluator
     {
         if (!fn.Name.Equals("TRANSLATE", StringComparison.OrdinalIgnoreCase)
             && !fn.Name.Equals("TRANSLATE...USING", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
-            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -984,13 +936,6 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         var args = new object?[Math.Max(0, fn.Args.Count - 1)];
         for (var i = 1; i < fn.Args.Count; i++)
             args[i - 1] = evalArg(i);
-
-        if (fn.Name.Equals("FORMAT", StringComparison.OrdinalIgnoreCase)
-            && context.Dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
-        {
-            result = FormatPostgreSql(format, args);
-            return true;
-        }
 
         result = FormatPrintf(format, args);
         return true;
@@ -1089,9 +1034,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
     {
         if (fn.Name.Equals("RANDOM", StringComparison.OrdinalIgnoreCase))
         {
-            result = context.Dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase)
-                ? NextRandomDouble()
-                : NextRandomInt64();
+            result = NextRandomInt64();
             return true;
         }
 
@@ -1519,6 +1462,12 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
+        if (name is "LAST_INSERT_ROWID")
+        {
+            result = _cnn.GetLastInsertId() ?? 0;
+            return true;
+        }
+
         if (name is "SQLITE3_CREATE_FUNCTION"
             or "SQLITE3_CREATE_WINDOW_FUNCTION"
             or "SQLITE3_STEP"
@@ -1642,12 +1591,6 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
         if (fn.Name.Equals("JSON_MERGE_PATCH", StringComparison.OrdinalIgnoreCase))
         {
-            if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
-            {
-                result = null;
-                return false;
-            }
-
             if (!context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
             {
                 result = null;
@@ -1695,12 +1638,6 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         if (fn.Name.Equals("JSON_MERGE", StringComparison.OrdinalIgnoreCase)
             || fn.Name.Equals("JSON_MERGE_PRESERVE", StringComparison.OrdinalIgnoreCase))
         {
-            if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
-            {
-                result = null;
-                return false;
-            }
-
             if (!context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
             {
                 result = null;
@@ -1748,12 +1685,6 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         if (fn.Name.Equals("JSON_APPEND", StringComparison.OrdinalIgnoreCase)
             || fn.Name.Equals("JSON_ARRAY_APPEND", StringComparison.OrdinalIgnoreCase))
         {
-            if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
-            {
-                result = null;
-                return false;
-            }
-
             if (!context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
             {
                 result = null;
@@ -1793,50 +1724,40 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
         if (fn.Name.Equals("JSON_ARRAY_INSERT", StringComparison.OrdinalIgnoreCase))
         {
-            if (MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
+            if (!context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
             {
-                if (!context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
-                {
-                    result = null;
-                    return false;
-                }
+                result = null;
+                return false;
+            }
 
-                if (fn.Args.Count < 3 || fn.Args.Count % 2 == 0)
-                    throw new InvalidOperationException("JSON_ARRAY_INSERT() espera um JSON seguido de pares path/valor.");
+            if (fn.Args.Count < 3 || fn.Args.Count % 2 == 0)
+                throw new InvalidOperationException("JSON_ARRAY_INSERT() espera um JSON seguido de pares path/valor.");
 
-                var json = evalArg(0);
-                if (IsNullish(json) || !TryParseJsonNode(json!, out var root) || root is null)
+            var json = evalArg(0);
+            if (IsNullish(json) || !TryParseJsonNode(json!, out var root) || root is null)
+            {
+                result = null;
+                return true;
+            }
+
+            for (var i = 1; i < fn.Args.Count; i += 2)
+            {
+                var path = evalArg(i)?.ToString();
+                if (string.IsNullOrWhiteSpace(path) || !TryParseJsonPathTokens(path!, out var tokens))
                 {
                     result = null;
                     return true;
                 }
 
-                for (var i = 1; i < fn.Args.Count; i += 2)
+                var value = evalArg(i + 1);
+                if (!TryInsertJsonPathValue(ref root, tokens, value))
                 {
-                    var path = evalArg(i)?.ToString();
-                    if (string.IsNullOrWhiteSpace(path) || !TryParseJsonPathTokens(path!, out var tokens))
-                    {
-                        result = null;
-                        return true;
-                    }
-
-                    var value = evalArg(i + 1);
-                    if (!TryInsertJsonPathValue(ref root, tokens, value))
-                    {
-                        result = null;
-                        return true;
-                    }
+                    result = null;
+                    return true;
                 }
-
-                result = root.ToJsonString();
-                return true;
             }
 
-            var shim = new FunctionCallExpr("JSON_INSERT", fn.Args)
-                .BindScalarFunctionDefinition(context.Dialect);
-            result = TryEvalJsonUtilityFunctions(shim, context, evalArg, out var jsonInsertResult)
-                ? jsonInsertResult
-                : null;
+            result = root.ToJsonString();
             return true;
         }
 
@@ -2022,6 +1943,938 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             sb.Append(b.ToString("x2", CultureInfo.InvariantCulture));
 
         result = sb.ToString();
+        return true;
+    }
+
+    internal static bool TryEvalToNumberFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("TO_NUMBER", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (value is byte or sbyte or short or ushort or int or uint or long or ulong)
+        {
+            result = Convert.ToInt64(value, CultureInfo.InvariantCulture);
+            return true;
+        }
+
+        if (value is decimal or double or float)
+        {
+            result = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+            return true;
+        }
+
+        var text = value?.ToString();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            result = null;
+            return true;
+        }
+
+        if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var integerValue))
+        {
+            result = integerValue;
+            return true;
+        }
+
+        if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var decimalValue))
+        {
+            result = decimalValue;
+            return true;
+        }
+
+        result = null;
+        return true;
+    }
+
+    internal static bool TryEvalNumericFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context.Dialect;
+        var name = fn.Name;
+        var value = evalArg(0);
+
+        if (name.Equals("ABS", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("ABSVAL", StringComparison.OrdinalIgnoreCase))
+        {
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            try
+            {
+                if (value is decimal dec)
+                {
+                    result = Math.Abs(dec);
+                    return true;
+                }
+
+                if (value is float or double)
+                {
+                    result = Math.Abs(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+                    return true;
+                }
+
+                result = Math.Abs(Convert.ToDecimal(value, CultureInfo.InvariantCulture));
+                return true;
+            }
+            catch
+            {
+                result = null;
+                return true;
+            }
+        }
+
+        if (name.Equals("BIN", StringComparison.OrdinalIgnoreCase))
+        {
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            try
+            {
+                var number = Convert.ToInt64(value, CultureInfo.InvariantCulture);
+                result = Convert.ToString(number, 2);
+                return true;
+            }
+            catch
+            {
+                result = null;
+                return true;
+            }
+        }
+
+        result = null;
+        return false;
+    }
+
+    internal static bool TryEvalJsonUtilityFunctions(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var dialect = context.Dialect;
+        if (fn.Name.Equals("JSON_VALID", StringComparison.OrdinalIgnoreCase))
+        {
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            var text = value?.ToString();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                result = 0;
+                return true;
+            }
+
+            try
+            {
+                QueryJsonFunctionHelper.TryGetJsonRootElement(text!, out _);
+                result = 1;
+            }
+            catch
+            {
+                result = 0;
+            }
+
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_TYPE", StringComparison.OrdinalIgnoreCase))
+        {
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            if (value is null || !TryParseJsonElement(value, out var element))
+            {
+                result = null;
+                return true;
+            }
+
+            result = element.ValueKind switch
+            {
+                JsonValueKind.Object => "OBJECT",
+                JsonValueKind.Array => "ARRAY",
+                JsonValueKind.String => "STRING",
+                JsonValueKind.Number => element.TryGetInt64(out _)
+                    ? "INTEGER"
+                    : "DOUBLE",
+                JsonValueKind.True => "BOOLEAN",
+                JsonValueKind.False => "BOOLEAN",
+                JsonValueKind.Null => SqlConst.NULL,
+                _ => null
+            };
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_LENGTH", StringComparison.OrdinalIgnoreCase))
+        {
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            if (value is null || !TryParseJsonElement(value, out var element))
+            {
+                result = null;
+                return true;
+            }
+
+            if (fn.Args.Count > 1)
+            {
+                var path = evalArg(1)?.ToString();
+                if (!string.IsNullOrWhiteSpace(path)
+                    && QueryJsonFunctionHelper.TryReadJsonPathElement(element, path!, out var pathElement))
+                {
+                    element = pathElement;
+                }
+                else if (!string.IsNullOrWhiteSpace(path))
+                {
+                    result = null;
+                    return true;
+                }
+            }
+
+            result = element.ValueKind switch
+            {
+                JsonValueKind.Array => element.GetArrayLength(),
+                JsonValueKind.Object => element.EnumerateObject().Count(),
+                _ => 1
+            };
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_STORAGE_SIZE", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
+            {
+                result = null;
+                return false;
+            }
+
+            if (fn.Args.Count == 0)
+                throw new InvalidOperationException("JSON_STORAGE_SIZE() espera um JSON.");
+
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            if (!TryParseJsonElement(value!, out var element))
+            {
+                result = null;
+                return true;
+            }
+
+            var raw = element.GetRawText();
+            result = (long)Encoding.UTF8.GetByteCount(raw);
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_OVERLAPS", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
+            {
+                result = null;
+                return false;
+            }
+
+            if (fn.Args.Count < 2)
+                throw new InvalidOperationException("JSON_OVERLAPS() espera dois JSONs.");
+
+            var leftValue = evalArg(0);
+            var rightValue = evalArg(1);
+            if (IsNullish(leftValue) || IsNullish(rightValue))
+            {
+                result = null;
+                return true;
+            }
+
+            if (!TryParseJsonElement(leftValue!, out var leftElement)
+                || !TryParseJsonElement(rightValue!, out var rightElement))
+            {
+                result = null;
+                return true;
+            }
+
+            result = JsonOverlaps(leftElement, rightElement) ? 1 : 0;
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_OBJECT", StringComparison.OrdinalIgnoreCase))
+        {
+            if (fn.Args.Count % 2 != 0)
+                throw new InvalidOperationException("JSON_OBJECT() espera um número par de argumentos.");
+
+            var pairs = new List<(string Key, object? Value)>();
+            for (var i = 0; i < fn.Args.Count; i += 2)
+            {
+                var key = evalArg(i)?.ToString() ?? string.Empty;
+                var val = evalArg(i + 1);
+                pairs.Add((key, val));
+            }
+
+            result = BuildJsonObject(pairs);
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_QUOTE", StringComparison.OrdinalIgnoreCase))
+        {
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            var text = value?.ToString() ?? string.Empty;
+            result = JsonSerializer.Serialize(text);
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_PRETTY", StringComparison.OrdinalIgnoreCase))
+        {
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            if (value is null || !TryParseJsonElement(value!, out var element))
+            {
+                result = null;
+                return true;
+            }
+
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = true
+            };
+            result = JsonSerializer.Serialize(element, options)
+                .Replace("\r\n", "\\n");
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_KEYS", StringComparison.OrdinalIgnoreCase))
+        {
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            if (value is null || !TryParseJsonElement(value!, out var element))
+            {
+                result = null;
+                return true;
+            }
+
+            if (fn.Args.Count > 1)
+            {
+                var path = evalArg(1)?.ToString();
+                if (!string.IsNullOrWhiteSpace(path)
+                    && QueryJsonFunctionHelper.TryReadJsonPathElement(element, path!, out var pathElement))
+                {
+                    element = pathElement;
+                }
+                else if (!string.IsNullOrWhiteSpace(path))
+                {
+                    result = null;
+                    return true;
+                }
+            }
+
+            if (element.ValueKind != JsonValueKind.Object)
+            {
+                result = null;
+                return true;
+            }
+
+            var keys = element.EnumerateObject().Select(static prop => (object?)prop.Name).ToArray();
+            result = BuildJsonArray(keys);
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_SET", StringComparison.OrdinalIgnoreCase))
+        {
+            if (fn.Args.Count < 3 || fn.Args.Count % 2 == 0)
+                throw new InvalidOperationException("JSON_SET() espera um JSON seguido de pares path/valor.");
+
+            var json = evalArg(0);
+            if (IsNullish(json) || !TryParseJsonNode(json!, out var root) || root is null)
+            {
+                result = null;
+                return true;
+            }
+
+            for (var i = 1; i < fn.Args.Count; i += 2)
+            {
+                var path = evalArg(i)?.ToString();
+                if (string.IsNullOrWhiteSpace(path) || !TryParseJsonPathTokens(path!, out var tokens))
+                {
+                    result = null;
+                    return true;
+                }
+
+                var value = evalArg(i + 1);
+                if (!TrySetJsonPathValue(ref root, tokens, value))
+                {
+                    result = null;
+                    return true;
+                }
+            }
+
+            result = root.ToJsonString();
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_REMOVE", StringComparison.OrdinalIgnoreCase))
+        {
+            if (fn.Args.Count < 2)
+                throw new InvalidOperationException("JSON_REMOVE() espera um JSON e ao menos um path.");
+
+            var json = evalArg(0);
+            if (IsNullish(json) || !TryParseJsonNode(json!, out var root) || root is null)
+            {
+                result = null;
+                return true;
+            }
+
+            for (var i = 1; i < fn.Args.Count; i++)
+            {
+                var path = evalArg(i)?.ToString();
+                if (string.IsNullOrWhiteSpace(path) || !TryParseJsonPathTokens(path!, out var tokens))
+                {
+                    result = null;
+                    return true;
+                }
+
+                TryRemoveJsonPathValue(root, tokens);
+            }
+
+            result = root.ToJsonString();
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_INSERT", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("JSON_REPLACE", StringComparison.OrdinalIgnoreCase))
+        {
+            var isInsert = fn.Name.Equals("JSON_INSERT", StringComparison.OrdinalIgnoreCase);
+            if (fn.Args.Count < 3 || fn.Args.Count % 2 == 0)
+                throw new InvalidOperationException($"{fn.Name.ToUpperInvariant()}() espera um JSON seguido de pares path/valor.");
+
+            var json = evalArg(0);
+            if (IsNullish(json) || !TryParseJsonNode(json!, out var root) || root is null)
+            {
+                result = null;
+                return true;
+            }
+
+            for (var i = 1; i < fn.Args.Count; i += 2)
+            {
+                var path = evalArg(i)?.ToString();
+                if (string.IsNullOrWhiteSpace(path) || !TryParseJsonPathTokens(path!, out var tokens))
+                {
+                    result = null;
+                    return true;
+                }
+
+                var value = evalArg(i + 1);
+                var exists = TryGetJsonNodeAtPath(root, tokens, out _);
+                if (isInsert && exists)
+                    continue;
+
+                if (!isInsert && !exists)
+                    continue;
+
+                if (!TrySetJsonPathValue(ref root, tokens, value))
+                {
+                    result = null;
+                    return true;
+                }
+            }
+
+            result = root.ToJsonString();
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_CONTAINS", StringComparison.OrdinalIgnoreCase))
+        {
+            if (fn.Args.Count < 2)
+                throw new InvalidOperationException("JSON_CONTAINS() espera um JSON e um candidato.");
+
+            var targetValue = evalArg(0);
+            var candidateValue = evalArg(1);
+            if (IsNullish(targetValue) || IsNullish(candidateValue))
+            {
+                result = null;
+                return true;
+            }
+
+            if (targetValue is null || candidateValue is null
+                || !TryParseJsonElement(targetValue, out var targetElement)
+                || !TryParseJsonCandidate(candidateValue, out var candidateElement))
+            {
+                result = null;
+                return true;
+            }
+
+            if (fn.Args.Count > 2)
+            {
+                var path = evalArg(2)?.ToString();
+                if (string.IsNullOrWhiteSpace(path)
+                    || !QueryJsonFunctionHelper.TryReadJsonPathElement(targetElement, path!, out var pathElement))
+                {
+                    result = 0;
+                    return true;
+                }
+
+                result = JsonContains(pathElement, candidateElement) ? 1 : 0;
+                return true;
+            }
+
+            result = JsonContains(targetElement, candidateElement) ? 1 : 0;
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_CONTAINS_PATH", StringComparison.OrdinalIgnoreCase))
+        {
+            if (fn.Args.Count < 3)
+                throw new InvalidOperationException("JSON_CONTAINS_PATH() espera um JSON, modo e paths.");
+
+            var json = evalArg(0);
+            var mode = evalArg(1)?.ToString() ?? string.Empty;
+            if (IsNullish(json))
+            {
+                result = null;
+                return true;
+            }
+
+            if (json is null || !TryParseJsonElement(json, out var element))
+            {
+                result = null;
+                return true;
+            }
+
+            var requireAll = mode.Equals("all", StringComparison.OrdinalIgnoreCase);
+            var requireOne = mode.Equals("one", StringComparison.OrdinalIgnoreCase);
+            if (!requireAll && !requireOne)
+            {
+                result = null;
+                return true;
+            }
+
+            var anyFound = false;
+            for (var i = 2; i < fn.Args.Count; i++)
+            {
+                var path = evalArg(i)?.ToString();
+                if (string.IsNullOrWhiteSpace(path))
+                {
+                    if (requireAll)
+                    {
+                        result = 0;
+                        return true;
+                    }
+
+                    continue;
+                }
+
+                var found = QueryJsonFunctionHelper.TryReadJsonPathElement(element, path!, out _);
+                if (found)
+                    anyFound = true;
+
+                if (requireAll && !found)
+                {
+                    result = 0;
+                    return true;
+                }
+
+                if (requireOne && found)
+                {
+                    result = 1;
+                    return true;
+                }
+            }
+
+            result = requireAll ? 1 : (anyFound ? 1 : 0);
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_SEARCH", StringComparison.OrdinalIgnoreCase))
+        {
+            if (fn.Args.Count < 3)
+                throw new InvalidOperationException("JSON_SEARCH() espera JSON, modo e termo.");
+
+            var json = evalArg(0);
+            var mode = evalArg(1)?.ToString() ?? string.Empty;
+            var search = evalArg(2)?.ToString() ?? string.Empty;
+            if (IsNullish(json) || string.IsNullOrWhiteSpace(search))
+            {
+                result = null;
+                return true;
+            }
+
+            if (json is null || !TryParseJsonElement(json, out var element))
+            {
+                result = null;
+                return true;
+            }
+
+            var requireAll = mode.Equals("all", StringComparison.OrdinalIgnoreCase);
+            var requireOne = mode.Equals("one", StringComparison.OrdinalIgnoreCase);
+            if (!requireAll && !requireOne)
+            {
+                result = null;
+                return true;
+            }
+
+            var pathStart = 3;
+            if (fn.Args.Count > 4)
+            {
+                var escapeCandidate = evalArg(3)?.ToString();
+                if (!string.IsNullOrEmpty(escapeCandidate)
+                    && escapeCandidate!.Length == 1)
+                    pathStart = 4;
+            }
+
+            var results = new List<string>();
+            if (fn.Args.Count > pathStart)
+            {
+                for (var i = pathStart; i < fn.Args.Count; i++)
+                {
+                    var path = evalArg(i)?.ToString();
+                    if (string.IsNullOrWhiteSpace(path))
+                        continue;
+
+                    if (QueryJsonFunctionHelper.TryReadJsonPathElement(element, path!, out var scoped))
+                        CollectJsonSearchMatches(scoped, path!, search, results);
+                }
+            }
+            else
+            {
+                CollectJsonSearchMatches(element, "$", search, results);
+            }
+
+            if (results.Count == 0)
+            {
+                result = null;
+                return true;
+            }
+
+            result = requireOne ? results[0] : BuildJsonArray(results.Cast<object?>());
+            return true;
+        }
+
+        result = null;
+        return false;
+    }
+
+    internal static bool TryEvalJsonAccessShimFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!(fn.Name.Equals("__JSON_ACCESS_JSON", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("__JSON_ACCESS_TEXT", StringComparison.OrdinalIgnoreCase)))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!TryGetJsonAndPathArguments(evalArg, out var json, out var path))
+        {
+            result = null;
+            return true;
+        }
+
+        var value = QueryJsonFunctionHelper.TryReadJsonPathValue(json!, path!);
+        result = fn.Name.Equals("__JSON_ACCESS_TEXT", StringComparison.OrdinalIgnoreCase)
+            ? value?.ToString()
+            : value;
+        return true;
+    }
+
+    internal static bool TryEvalJsonExtractionFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var dialect = context.Dialect;
+        if (!(fn.Name.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("JSON_QUERY", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)))
+        {
+            result = null;
+            return false;
+        }
+
+        EnsureJsonExtractionSupported(fn.Name, dialect);
+        var json = evalArg(0);
+        if (IsNullish(json))
+        {
+            result = null;
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_QUERY", StringComparison.OrdinalIgnoreCase)
+            && fn.Args.Count == 1)
+        {
+            result = TryEvalJsonQueryWithoutPath(json!);
+            return true;
+        }
+
+        var path = evalArg(1)?.ToString();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            result = null;
+            return true;
+        }
+
+        result = TryEvalJsonExtractionValue(fn, json!, path!);
+        return true;
+    }
+
+    internal static void EnsureJsonExtractionSupported(string functionName, ISqlDialect dialect)
+    {
+        if (dialect.TryGetScalarFunctionDefinition(functionName, out var definition))
+        {
+            if (definition is null || definition.AllowsCall)
+                return;
+
+            throw SqlUnsupported.ForDialect(dialect, functionName.ToUpperInvariant());
+        }
+
+        if (functionName.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
+            && (!dialect.TryGetScalarFunctionDefinition("JSON_EXTRACT", out var jsonExtractDefinition)
+                || jsonExtractDefinition is null
+                || !jsonExtractDefinition.AllowsCall))
+            throw SqlUnsupported.ForDialect(dialect, "JSON_EXTRACT");
+
+        if (functionName.Equals("JSON_QUERY", StringComparison.OrdinalIgnoreCase)
+            && (!dialect.TryGetScalarFunctionDefinition("JSON_QUERY", out var jsonQueryDefinition)
+                || jsonQueryDefinition is null
+                || !jsonQueryDefinition.AllowsCall))
+            throw SqlUnsupported.ForDialect(dialect, "JSON_QUERY");
+
+        if (functionName.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
+            && (!dialect.TryGetScalarFunctionDefinition("JSON_VALUE", out var jsonValueDefinition)
+                || jsonValueDefinition is null
+                || !jsonValueDefinition.AllowsCall))
+            throw SqlUnsupported.ForDialect(dialect, "JSON_VALUE");
+    }
+
+    internal static object? TryEvalJsonExtractionValue(FunctionCallExpr fn, object json, string path)
+    {
+        try
+        {
+            if (fn.Name.Equals("JSON_QUERY", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!QueryJsonFunctionHelper.TryReadJsonPathElement(json, path, out var element))
+                    return null;
+
+                return element.ValueKind is JsonValueKind.Object or JsonValueKind.Array
+                    ? element.GetRawText()
+                    : null;
+            }
+
+            var value = QueryJsonFunctionHelper.TryReadJsonPathValue(json, path);
+            return fn.Name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
+                ? QueryJsonFunctionHelper.ApplyJsonValueReturningClause(fn, value)
+                : value;
+        }
+#pragma warning disable CA1031
+        catch (Exception e)
+        {
+            LogFunctionEvaluationFailure(e);
+            return null;
+        }
+#pragma warning restore CA1031
+    }
+
+    internal static object? TryEvalJsonQueryWithoutPath(object json)
+    {
+        if (!QueryJsonFunctionHelper.TryGetJsonRootElement(json, out var root))
+            return null;
+
+        return root.ValueKind is JsonValueKind.Object or JsonValueKind.Array
+            ? root.GetRawText()
+            : null;
+    }
+
+    internal static bool TryEvalOpenJsonFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var dialect = context.Dialect;
+        if (!fn.Name.Equals(SqlConst.OPENJSON, StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.TryGetTableFunctionDefinition(SqlConst.OPENJSON, out var openJsonDefinition)
+            || openJsonDefinition is null)
+            throw SqlUnsupported.ForDialect(dialect, SqlConst.OPENJSON);
+
+        var json = evalArg(0);
+        result = IsNullish(json) ? null : json?.ToString();
+        return true;
+    }
+
+    internal static bool TryEvalJsonUnquoteFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("JSON_UNQUOTE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = value!.ToString() ?? string.Empty;
+        result = text.Length >= 2 && ((text[0] == '"' && text[^1] == '"') || (text[0] == '\'' && text[^1] == '\''))
+            ? text[1..^1]
+            : text;
+        return true;
+    }
+
+    internal static bool TryEvalSqlServerJsonModifyFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var dialect = context.Dialect;
+        if (!fn.Name.Equals("JSON_MODIFY", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var definition = fn.ResolvedScalarFunction;
+        if (definition is not null
+            && !definition.AllowsCall)
+        {
+            throw SqlUnsupported.ForDialect(dialect, "JSON_MODIFY");
+        }
+
+        if (definition is null)
+            throw SqlUnsupported.ForDialect(dialect, "JSON_MODIFY");
+
+        if (fn.Args.Count < 3)
+            throw new InvalidOperationException("JSON_MODIFY() espera JSON, path e novo valor.");
+
+        var json = evalArg(0);
+        var pathValue = evalArg(1)?.ToString();
+        var newValue = evalArg(2);
+        if (IsNullish(json) || string.IsNullOrWhiteSpace(pathValue) || !TryParseJsonNode(json!, out var root) || root is null)
+        {
+            result = null;
+            return true;
+        }
+
+        if (!TryParseSqlServerJsonModifyPath(pathValue!, out var tokens, out var append, out var strict))
+        {
+            result = null;
+            return true;
+        }
+
+        var exists = TryGetJsonNodeAtPath(root, tokens, out var existingNode);
+        if (append)
+        {
+            if (!exists || existingNode is not System.Text.Json.Nodes.JsonArray array)
+            {
+                if (strict)
+                    throw new InvalidOperationException($"JSON_MODIFY strict path '{pathValue}' was not found in the JSON payload.");
+
+                result = root.ToJsonString();
+                return true;
+            }
+
+            array.Add(CreateJsonNodeFromValue(newValue));
+            result = root.ToJsonString();
+            return true;
+        }
+
+        if (IsNullish(newValue))
+        {
+            if (strict)
+            {
+                if (!exists)
+                    throw new InvalidOperationException($"JSON_MODIFY strict path '{pathValue}' was not found in the JSON payload.");
+
+                if (!TrySetJsonPathValue(ref root, tokens, null))
+                {
+                    result = null;
+                    return true;
+                }
+            }
+            else if (exists)
+            {
+                TryRemoveJsonPathValue(root, tokens);
+            }
+
+            result = root.ToJsonString();
+            return true;
+        }
+
+        if (strict && !exists)
+            throw new InvalidOperationException($"JSON_MODIFY strict path '{pathValue}' was not found in the JSON payload.");
+
+        if (!TrySetJsonPathValue(ref root, tokens, newValue))
+        {
+            if (strict)
+                throw new InvalidOperationException($"JSON_MODIFY strict path '{pathValue}' was not found in the JSON payload.");
+
+            result = root.ToJsonString();
+            return true;
+        }
+
+        result = root.ToJsonString();
         return true;
     }
 
@@ -3030,6 +3883,45 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         }
 
         result = 0;
+        return true;
+    }
+
+    internal static bool TryEvalCharFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("CHAR", StringComparison.OrdinalIgnoreCase)
+            && !fn.Name.Equals("NCHAR", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        // SQL Server/MySQL CHAR(n) and SQL Server NCHAR(n) return the character represented by the numeric code.
+        if (context.Dialect.SupportsSqlServerScalarFunction(fn.Name))
+        {
+            try
+            {
+                var codePoint = Convert.ToInt32(value, CultureInfo.InvariantCulture);
+                result = char.ConvertFromUtf32(codePoint);
+                return true;
+            }
+            catch
+            {
+                // Fall back to textual conversion when the argument is not numeric.
+            }
+        }
+
+        result = value!.ToString() ?? string.Empty;
         return true;
     }
 

@@ -26,9 +26,6 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
     {
         result = null;
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
-            return false;
-
         if (_handlers.TryGetValue(fn.Name, out var handler))
             return handler(fn, context, row, evalArg, tryConvertNumericToInt64, tryConvertNumericToDouble, out result);
 
@@ -44,6 +41,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         Register(handlers, TryEvalFormatFunction, "FORMAT");
         Register(handlers, TryEvalRandomBytesFunction, "RANDOM_BYTES");
         Register(handlers, TryEvalSleepFunction, "SLEEP");
+        Register(handlers, TryEvalLastInsertIdFunction, "LAST_INSERT_ID");
         Register(handlers, TryEvalCompressFunctions, "COMPRESS", "UNCOMPRESS", "UNCOMPRESSED_LENGTH");
         Register(handlers, TryEvalFormatBytesFunction, "FORMAT_BYTES");
         Register(handlers, TryEvalFormatPicoTimeFunction, "FORMAT_PICO_TIME");
@@ -51,7 +49,10 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         Register(handlers, TryEvalCryptoFunctions, "AES_ENCRYPT", "AES_DECRYPT", "DES_ENCRYPT", "DES_DECRYPT", "ENCODE", "DECODE", "ENCRYPT");
         Register(handlers, TryEvalDefaultFunction, SqlConst.DEFAULT);
         Register(handlers, TryEvalMemberOfFunction, "MEMBER_OF");
-        Register(handlers, TryEvalIpValidationFunctions, "IS_IPV4", "IS_IPV4_COMPAT", "IS_IPV4_MAPPED", "IS_IPV6");
+        Register(handlers, TryEvalIsIpv4Function, "IS_IPV4");
+        Register(handlers, TryEvalIsIpv4CompatFunction, "IS_IPV4_COMPAT");
+        Register(handlers, TryEvalIsIpv4MappedFunction, "IS_IPV4_MAPPED");
+        Register(handlers, TryEvalIsIpv6Function, "IS_IPV6");
         Register(handlers, TryEvalRegexFunctions, "REGEXP_INSTR", "REGEXP_REPLACE", "REGEXP_SUBSTR", "REGEXP_LIKE");
 
         return handlers;
@@ -557,6 +558,37 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         return false;
     }
 
+    private static bool TryEvalLastInsertIdFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        EvalRow row,
+        Func<int, object?> evalArg,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        out object? result)
+    {
+        _ = row;
+        _ = tryConvertNumericToInt64;
+        _ = tryConvertNumericToDouble;
+
+        if (!fn.Name.Equals("LAST_INSERT_ID", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count > 0)
+        {
+            var value = evalArg(0);
+            context.Connection.SetLastInsertId(value);
+            result = value;
+            return true;
+        }
+
+        result = context.Connection.GetLastInsertId() ?? 0;
+        return true;
+    }
+
     private static bool TryEvalCryptoFunctions(
         FunctionCallExpr fn,
         QueryExecutionContext context,
@@ -987,7 +1019,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         return true;
     }
 
-    private static bool TryEvalIpValidationFunctions(
+    private static bool TryEvalIsIpv4Function(
         FunctionCallExpr fn,
         QueryExecutionContext context,
         EvalRow row,
@@ -996,18 +1028,110 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         out object? result)
     {
-        var name = fn.Name.ToUpperInvariant();
-        if (name is not ("IS_IPV4" or "IS_IPV4_COMPAT" or "IS_IPV4_MAPPED" or "IS_IPV6"))
-        {
-            result = null;
-            return false;
-        }
+        _ = fn;
+        _ = context;
+        _ = row;
+        _ = tryConvertNumericToInt64;
+        _ = tryConvertNumericToDouble;
 
+        result = TryEvalIpVersionFunction(evalArg, static ip => ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork, out var value)
+            ? value
+            : null;
+        return true;
+    }
+
+    private static bool TryEvalIsIpv6Function(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        EvalRow row,
+        Func<int, object?> evalArg,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        out object? result)
+    {
+        _ = fn;
+        _ = context;
+        _ = row;
+        _ = tryConvertNumericToInt64;
+        _ = tryConvertNumericToDouble;
+
+        result = TryEvalIpVersionFunction(evalArg, static ip => ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6, out var value)
+            ? value
+            : null;
+        return true;
+    }
+
+    private static bool TryEvalIsIpv4CompatFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        EvalRow row,
+        Func<int, object?> evalArg,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        out object? result)
+    {
+        _ = fn;
+        _ = context;
+        _ = row;
+        _ = tryConvertNumericToInt64;
+        _ = tryConvertNumericToDouble;
+
+        result = TryEvalIpv4CompatOrMapped(evalArg, false);
+        return true;
+    }
+
+    private static bool TryEvalIsIpv4MappedFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        EvalRow row,
+        Func<int, object?> evalArg,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        out object? result)
+    {
+        _ = fn;
+        _ = context;
+        _ = row;
+        _ = tryConvertNumericToInt64;
+        _ = tryConvertNumericToDouble;
+
+        result = TryEvalIpv4CompatOrMapped(evalArg, true);
+        return true;
+    }
+
+    private static object? TryEvalIpv4CompatOrMapped(Func<int, object?> evalArg, bool mapped)
+    {
+        var value = evalArg(0);
+        if (IsNullish(value))
+            return null;
+
+        var text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        if (!IPAddress.TryParse(text, out var ip))
+            return 0;
+
+        if (ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetworkV6)
+            return 0;
+
+        var bytes = ip.GetAddressBytes();
+        if (bytes.Length != 16)
+            return 0;
+
+        var isV4Mapped = bytes.Take(10).All(static b => b == 0) && bytes[10] == 0xff && bytes[11] == 0xff;
+        return mapped
+            ? (isV4Mapped ? 1 : 0)
+            : (!isV4Mapped && bytes.Take(12).All(static b => b == 0) ? 1 : 0);
+    }
+
+    private static bool TryEvalIpVersionFunction(
+        Func<int, object?> evalArg,
+        Func<IPAddress, bool> predicate,
+        out object? result)
+    {
         var value = evalArg(0);
         if (IsNullish(value))
         {
             result = null;
-            return true;
+            return false;
         }
 
         var text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
@@ -1017,35 +1141,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
             return true;
         }
 
-        if (name is "IS_IPV4")
-        {
-            result = ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? 1 : 0;
-            return true;
-        }
-
-        if (name is "IS_IPV6")
-        {
-            result = ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6 ? 1 : 0;
-            return true;
-        }
-
-        if (ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetworkV6)
-        {
-            result = 0;
-            return true;
-        }
-
-        var bytes = ip.GetAddressBytes();
-        if (bytes.Length != 16)
-        {
-            result = 0;
-            return true;
-        }
-
-        var isV4Mapped = bytes.Take(10).All(static b => b == 0) && bytes[10] == 0xff && bytes[11] == 0xff;
-        result = name.Equals("IS_IPV4_MAPPED", StringComparison.OrdinalIgnoreCase)
-            ? (isV4Mapped ? 1 : 0)
-            : (name.Equals("IS_IPV4_COMPAT", StringComparison.OrdinalIgnoreCase) ? (!isV4Mapped && bytes.Take(12).All(static b => b == 0) ? 1 : 0) : 0);
+        result = predicate(ip) ? 1 : 0;
         return true;
     }
 

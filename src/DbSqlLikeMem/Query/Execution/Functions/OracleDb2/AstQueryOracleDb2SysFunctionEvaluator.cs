@@ -23,12 +23,6 @@ internal static class AstQueryOracleDb2SysFunctionEvaluator
             return false;
         }
 
-        if (!IsOracleDb2Dialect(context))
-        {
-            result = null;
-            return true;
-        }
-
         QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, fn.Name);
         return handler(fn, context, evalArg, out result);
     }
@@ -57,10 +51,6 @@ internal static class AstQueryOracleDb2SysFunctionEvaluator
         foreach (var name in names)
             handlers[name] = handler;
     }
-
-    private static bool IsOracleDb2Dialect(QueryExecutionContext context)
-        => context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            || context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryEvalSysGuidFunction(
         FunctionCallExpr fn,

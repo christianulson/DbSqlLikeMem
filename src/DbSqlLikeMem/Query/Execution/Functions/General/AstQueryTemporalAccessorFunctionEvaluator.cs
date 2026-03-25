@@ -4,6 +4,18 @@ namespace DbSqlLikeMem;
 
 internal static class AstQueryTemporalAccessorFunctionEvaluator
 {
+    private delegate bool TemporalAccessorFunctionHandler(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        Func<int, object?> evalArg,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, TemporalUnit> getTemporalUnit,
+        Func<string, TemporalUnit> resolveTemporalUnit,
+        out object? result);
+
+    private static readonly IReadOnlyDictionary<string, TemporalAccessorFunctionHandler> _handlers = CreateHandlers();
+
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
         EvalRow row,
@@ -14,18 +26,31 @@ internal static class AstQueryTemporalAccessorFunctionEvaluator
         Func<string, TemporalUnit> resolveTemporalUnit,
         out object? result)
     {
-        var name = fn.Name.ToUpperInvariant();
         result = null;
 
-        return name switch
-        {
-            "DAYS" => TryEvalDaysFunction(fn, evalArg, out result),
-            "DATENAME" => TryEvalDateNameFunction(fn, row, group, ctes, evalArg, getTemporalUnit, out result),
-            "DATEPART" or "DAY" or "MONTH" or SqlConst.YEAR or "HOUR" or "MINUTE" or "SECOND"
-                => TryEvalDatePartFunction(fn, row, group, ctes, evalArg, getTemporalUnit, resolveTemporalUnit, out result),
-            "EXTRACT" => TryEvalExtractFunction(fn, row, group, ctes, evalArg, getTemporalUnit, out result),
-            _ => false
-        };
+        if (_handlers.TryGetValue(fn.Name, out var handler))
+            return handler(fn, row, group, ctes, evalArg, getTemporalUnit, resolveTemporalUnit, out result);
+
+        return false;
+    }
+
+    private static Dictionary<string, TemporalAccessorFunctionHandler> CreateHandlers()
+    {
+        var handlers = new Dictionary<string, TemporalAccessorFunctionHandler>(StringComparer.OrdinalIgnoreCase);
+        Register(handlers, TryEvalDaysFunction, "DAYS");
+        Register(handlers, TryEvalDateNameFunction, "DATENAME");
+        Register(handlers, TryEvalDatePartFunction, "DATEPART", "DAY", "MONTH", SqlConst.YEAR, "HOUR", "MINUTE", "SECOND");
+        Register(handlers, TryEvalExtractFunction, "EXTRACT");
+        return handlers;
+    }
+
+    private static void Register(
+        IDictionary<string, TemporalAccessorFunctionHandler> handlers,
+        TemporalAccessorFunctionHandler handler,
+        params string[] names)
+    {
+        foreach (var name in names)
+            handlers[name] = handler;
     }
 
     private static bool TryEvalDaysFunction(
@@ -33,12 +58,6 @@ internal static class AstQueryTemporalAccessorFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("DAYS", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count != 1)
             throw new InvalidOperationException("DAYS() espera 1 argumento.");
 
@@ -62,12 +81,6 @@ internal static class AstQueryTemporalAccessorFunctionEvaluator
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, TemporalUnit> getTemporalUnit,
         out object? result)
     {
-        if (!fn.Name.Equals("DATENAME", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("DATENAME() espera 2 argumentos.");
 
@@ -103,12 +116,6 @@ internal static class AstQueryTemporalAccessorFunctionEvaluator
         out object? result)
     {
         var name = fn.Name.ToUpperInvariant();
-        if (name is not ("DATEPART" or "DAY" or "MONTH" or SqlConst.YEAR or "HOUR" or "MINUTE" or "SECOND"))
-        {
-            result = null;
-            return false;
-        }
-
         if (name == "DATEPART" && fn.Args.Count < 2)
             throw new InvalidOperationException("DATEPART() espera 2 argumentos.");
 
@@ -142,8 +149,7 @@ internal static class AstQueryTemporalAccessorFunctionEvaluator
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, TemporalUnit> getTemporalUnit,
         out object? result)
     {
-        if (!fn.Name.Equals("EXTRACT", StringComparison.OrdinalIgnoreCase)
-            || fn.Args.Count < 2)
+        if (fn.Args.Count < 2)
         {
             result = null;
             return false;

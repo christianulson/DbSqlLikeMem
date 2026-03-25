@@ -2,246 +2,405 @@ namespace DbSqlLikeMem;
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text.Json;
 
+internal delegate bool AstQueryTryEvalPostgresArrayFunction(
+    FunctionCallExpr fn,
+    QueryExecutionContext context,
+    Func<int, object?> evalArg,
+    out object? result);
+
 internal static class AstQueryPostgresArrayFunctionEvaluator
 {
+    private static readonly IReadOnlyDictionary<string, AstQueryTryEvalPostgresArrayFunction> _handlers =
+        CreateHandlers();
+
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
         QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!context.Dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        if (!_handlers.TryGetValue(fn.Name, out var handler))
         {
             result = null;
             return false;
         }
 
-        var name = fn.Name.ToUpperInvariant();
-        if (name is not ("ARRAY_TO_STRING" or "ARRAY_LENGTH" or "ARRAY_UPPER" or "ARRAY_LOWER" or "ARRAY_DIMS" or "ARRAY_NDIMS" or "ARRAY_POSITION" or "ARRAY_POSITIONS" or "ARRAY_TO_JSON" or "ARRAY_APPEND" or "ARRAY_PREPEND" or "ARRAY_CAT" or "ARRAY_REMOVE" or "ARRAY_REPLACE"))
+        return handler(fn, context, evalArg, out result);
+    }
+
+    private static IReadOnlyDictionary<string, AstQueryTryEvalPostgresArrayFunction> CreateHandlers()
+    {
+        var handlers = new Dictionary<string, AstQueryTryEvalPostgresArrayFunction>(StringComparer.OrdinalIgnoreCase);
+        Register(handlers, TryEvalArrayToStringFunction, "ARRAY_TO_STRING");
+        Register(handlers, TryEvalArrayLengthFunction, "ARRAY_LENGTH");
+        Register(handlers, TryEvalArrayUpperFunction, "ARRAY_UPPER");
+        Register(handlers, TryEvalArrayLowerFunction, "ARRAY_LOWER");
+        Register(handlers, TryEvalArrayDimsFunction, "ARRAY_DIMS");
+        Register(handlers, TryEvalArrayNdimsFunction, "ARRAY_NDIMS");
+        Register(handlers, TryEvalArrayPositionFunction, "ARRAY_POSITION");
+        Register(handlers, TryEvalArrayPositionsFunction, "ARRAY_POSITIONS");
+        Register(handlers, TryEvalArrayToJsonFunction, "ARRAY_TO_JSON");
+        Register(handlers, TryEvalArrayAppendFunction, "ARRAY_APPEND");
+        Register(handlers, TryEvalArrayPrependFunction, "ARRAY_PREPEND");
+        Register(handlers, TryEvalArrayCatFunction, "ARRAY_CAT");
+        Register(handlers, TryEvalArrayRemoveFunction, "ARRAY_REMOVE");
+        Register(handlers, TryEvalArrayReplaceFunction, "ARRAY_REPLACE");
+        return handlers;
+    }
+
+    private static void Register(
+        IDictionary<string, AstQueryTryEvalPostgresArrayFunction> handlers,
+        AstQueryTryEvalPostgresArrayFunction handler,
+        params string[] names)
+    {
+        foreach (var name in names)
+            handlers[name] = handler;
+    }
+
+    private static bool TryEvalArrayToStringFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("ARRAY_TO_STRING() espera array e separador.");
+
+        var value = evalArg(0);
+        var separator = evalArg(1)?.ToString() ?? string.Empty;
+        if (AstQueryExecutorBase.IsNullish(value))
         {
             result = null;
-            return false;
-        }
-
-        if (name is "ARRAY_TO_STRING")
-        {
-            if (fn.Args.Count < 2)
-                throw new InvalidOperationException("ARRAY_TO_STRING() espera array e separador.");
-
-            var value = evalArg(0);
-            var separator = evalArg(1)?.ToString() ?? string.Empty;
-            if (AstQueryExecutorBase.IsNullish(value))
-            {
-                result = null;
-                return true;
-            }
-
-            if (value is IEnumerable enumerable)
-            {
-                var items = new List<string>();
-                foreach (var item in enumerable)
-                    items.Add(item?.ToString() ?? string.Empty);
-                result = string.Join(separator, items);
-                return true;
-            }
-        }
-
-        if (name is "ARRAY_LENGTH" or "ARRAY_UPPER" or "ARRAY_LOWER")
-        {
-            var value = evalArg(0);
-            if (AstQueryExecutorBase.IsNullish(value))
-            {
-                result = null;
-                return true;
-            }
-
-            var list = value is IEnumerable enumerable
-                ? enumerable.Cast<object?>().ToList()
-                : [];
-
-            if (list.Count == 0)
-            {
-                result = null;
-                return true;
-            }
-
-            result = name switch
-            {
-                "ARRAY_LENGTH" => list.Count,
-                "ARRAY_UPPER" => list.Count,
-                _ => 1
-            };
             return true;
         }
 
-        if (name is "ARRAY_DIMS" or "ARRAY_NDIMS")
+        if (value is IEnumerable enumerable)
         {
-            var value = evalArg(0);
-            if (AstQueryExecutorBase.IsNullish(value))
-            {
-                result = null;
-                return true;
-            }
-
-            var list = value is IEnumerable enumerable
-                ? enumerable.Cast<object?>().ToList()
-                : [];
-
-            if (list.Count == 0)
-            {
-                result = null;
-                return true;
-            }
-
-            result = name == "ARRAY_DIMS"
-                ? $"[1:{list.Count}]"
-                : 1;
+            var items = new List<string>();
+            foreach (var item in enumerable)
+                items.Add(item?.ToString() ?? string.Empty);
+            result = string.Join(separator, items);
             return true;
         }
 
-        if (name is "ARRAY_POSITION")
+        result = null;
+        return true;
+    }
+
+    private static bool TryEvalArrayLengthFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = context;
+        return TryEvalArrayCountFunction(evalArg, out result, value => value.Count);
+    }
+
+    private static bool TryEvalArrayUpperFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = context;
+        return TryEvalArrayCountFunction(evalArg, out result, value => value.Count);
+    }
+
+    private static bool TryEvalArrayLowerFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = context;
+        return TryEvalArrayCountFunction(evalArg, out result, _ => 1);
+    }
+
+    private static bool TryEvalArrayDimsFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = context;
+        return TryEvalArrayDimensionFunction(evalArg, out result, list => $"[1:{list.Count}]");
+    }
+
+    private static bool TryEvalArrayNdimsFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = context;
+        return TryEvalArrayDimensionFunction(evalArg, out result, _ => 1);
+    }
+
+    private static bool TryEvalArrayPositionFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("ARRAY_POSITION() espera array e valor.");
+
+        var value = evalArg(0);
+        var target = evalArg(1);
+        if (AstQueryExecutorBase.IsNullish(value))
         {
-            if (fn.Args.Count < 2)
-                throw new InvalidOperationException("ARRAY_POSITION() espera array e valor.");
-
-            var value = evalArg(0);
-            var target = evalArg(1);
-            if (AstQueryExecutorBase.IsNullish(value))
-            {
-                result = null;
-                return true;
-            }
-
-            var list = value is IEnumerable enumerable
-                ? enumerable.Cast<object?>().ToList()
-                : [];
-            var index = list.FindIndex(item => Equals(item, target));
-            result = index >= 0 ? index + 1 : (object?)null;
+            result = null;
             return true;
         }
 
-        if (name is "ARRAY_POSITIONS")
+        var list = value is IEnumerable enumerable
+            ? enumerable.Cast<object?>().ToList()
+            : [];
+        var index = list.FindIndex(item => Equals(item, target));
+        result = index >= 0 ? index + 1 : (object?)null;
+        return true;
+    }
+
+    private static bool TryEvalArrayPositionsFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("ARRAY_POSITIONS() espera array e valor.");
+
+        var value = evalArg(0);
+        var target = evalArg(1);
+        if (AstQueryExecutorBase.IsNullish(value))
         {
-            if (fn.Args.Count < 2)
-                throw new InvalidOperationException("ARRAY_POSITIONS() espera array e valor.");
-
-            var value = evalArg(0);
-            var target = evalArg(1);
-            if (AstQueryExecutorBase.IsNullish(value))
-            {
-                result = null;
-                return true;
-            }
-
-            var list = value is IEnumerable enumerable
-                ? enumerable.Cast<object?>().ToList()
-                : [];
-
-            var matches = new List<object?>(list.Count);
-            for (var i = 0; i < list.Count; i++)
-            {
-                if (Equals(list[i], target))
-                    matches.Add(i + 1);
-            }
-
-            result = matches.ToArray();
+            result = null;
             return true;
         }
 
-        if (name is "ARRAY_TO_JSON")
+        var list = value is IEnumerable enumerable
+            ? enumerable.Cast<object?>().ToList()
+            : [];
+
+        var matches = new List<object?>(list.Count);
+        for (var i = 0; i < list.Count; i++)
         {
-            if (fn.Args.Count == 0)
-                throw new InvalidOperationException("ARRAY_TO_JSON() espera array.");
+            if (Equals(list[i], target))
+                matches.Add(i + 1);
+        }
 
-            var value = evalArg(0);
-            if (AstQueryExecutorBase.IsNullish(value))
-            {
-                result = null;
-                return true;
-            }
+        result = matches.ToArray();
+        return true;
+    }
 
-            var list = value is IEnumerable enumerable
-                ? enumerable.Cast<object?>().ToList()
-                : [];
+    private static bool TryEvalArrayToJsonFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
 
-            var writeIndented = fn.Args.Count > 1 && Convert.ToBoolean(evalArg(1), CultureInfo.InvariantCulture);
-            var options = writeIndented
-                ? new JsonSerializerOptions { WriteIndented = true }
-                : null;
-            result = JsonSerializer.Serialize(list, options);
+        if (fn.Args.Count == 0)
+            throw new InvalidOperationException("ARRAY_TO_JSON() espera array.");
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = null;
             return true;
         }
 
-        if (name is "ARRAY_APPEND" or "ARRAY_PREPEND" or "ARRAY_CAT" or "ARRAY_REMOVE" or "ARRAY_REPLACE")
-        {
-            var left = name is "ARRAY_PREPEND" ? evalArg(1) : evalArg(0);
-            var leftEnumerable = !AstQueryExecutorBase.IsNullish(left) && left is IEnumerable enumerable ? enumerable : null;
-            var list = leftEnumerable is ICollection leftCollection
-                ? new List<object?>(leftCollection.Count)
-                : new List<object?>();
-            if (leftEnumerable is not null)
-                list.AddRange(leftEnumerable.Cast<object?>());
+        var list = value is IEnumerable enumerable
+            ? enumerable.Cast<object?>().ToList()
+            : [];
 
-            if (name is "ARRAY_CAT")
+        var writeIndented = fn.Args.Count > 1 && Convert.ToBoolean(evalArg(1), CultureInfo.InvariantCulture);
+        var options = writeIndented
+            ? new JsonSerializerOptions { WriteIndented = true }
+            : null;
+        result = JsonSerializer.Serialize(list, options);
+        return true;
+    }
+
+    private static bool TryEvalArrayAppendFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalArrayMutationFunction(fn, context, evalArg, out result, (list, args) => list.Add(args[1]));
+
+    private static bool TryEvalArrayPrependFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalArrayMutationFunction(fn, context, evalArg, out result, (list, args) => list.Insert(0, args[0]));
+
+    private static bool TryEvalArrayCatFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalArrayMutationFunction(
+            fn,
+            context,
+            evalArg,
+            out result,
+            (list, args) =>
             {
-                var right = evalArg(1);
+                var right = args[1];
                 if (!AstQueryExecutorBase.IsNullish(right) && right is IEnumerable rightEnum)
-                {
-                    if (rightEnum is ICollection rightCollection
-                        && list.Capacity < list.Count + rightCollection.Count)
-                    {
-                        list.Capacity = list.Count + rightCollection.Count;
-                    }
-
                     list.AddRange(rightEnum.Cast<object?>());
-                }
+            });
 
-                result = list.ToArray();
-                return true;
-            }
-
-            if (name is "ARRAY_APPEND")
+    private static bool TryEvalArrayRemoveFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalArrayMutationFunction(
+            fn,
+            context,
+            evalArg,
+            out result,
+            (list, args) =>
             {
-                list.Add(evalArg(1));
-                result = list.ToArray();
-                return true;
-            }
+                var target = args[1];
+                list.RemoveAll(item => Equals(item, target));
+            });
 
-            if (name is "ARRAY_PREPEND")
+    private static bool TryEvalArrayReplaceFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalArrayMutationFunction(
+            fn,
+            context,
+            evalArg,
+            out result,
+            (list, args) =>
             {
-                list.Insert(0, evalArg(0));
-                result = list.ToArray();
-                return true;
-            }
-
-            if (name is "ARRAY_REMOVE")
-            {
-                var target = evalArg(1);
-                list = [.. list.Where(item => !Equals(item, target))];
-                result = list.ToArray();
-                return true;
-            }
-
-            if (name is "ARRAY_REPLACE")
-            {
-                var target = evalArg(1);
-                var replacement = evalArg(2);
+                var target = args[1];
+                var replacement = args[2];
                 for (var i = 0; i < list.Count; i++)
                 {
                     if (Equals(list[i], target))
                         list[i] = replacement;
                 }
+            });
 
-                result = list.ToArray();
-                return true;
+    private static bool TryEvalArrayMutationFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result,
+        Action<List<object?>, object?[]> mutate)
+    {
+        _ = context;
+
+        var args = new object?[fn.Args.Count];
+        for (var i = 0; i < fn.Args.Count; i++)
+            args[i] = evalArg(i);
+
+        var left = fn.Name.Equals("ARRAY_PREPEND", StringComparison.OrdinalIgnoreCase) ? args[1] : args[0];
+        var leftEnumerable = !AstQueryExecutorBase.IsNullish(left) && left is IEnumerable enumerable ? enumerable : null;
+        var list = leftEnumerable is ICollection leftCollection
+            ? new List<object?>(leftCollection.Count)
+            : new List<object?>();
+        if (leftEnumerable is not null)
+            list.AddRange(leftEnumerable.Cast<object?>());
+
+        if (fn.Name.Equals("ARRAY_CAT", StringComparison.OrdinalIgnoreCase))
+        {
+            var right = args[1];
+            if (!AstQueryExecutorBase.IsNullish(right) && right is IEnumerable rightEnum)
+            {
+                if (rightEnum is ICollection rightCollection
+                    && list.Capacity < list.Count + rightCollection.Count)
+                {
+                    list.Capacity = list.Count + rightCollection.Count;
+                }
+
+                list.AddRange(rightEnum.Cast<object?>());
             }
+
+            result = list.ToArray();
+            return true;
         }
 
-        result = null;
-        return false;
+        mutate(list, args);
+        result = list.ToArray();
+        return true;
+    }
+
+    private static bool TryEvalArrayCountFunction(
+        Func<int, object?> evalArg,
+        out object? result,
+        Func<List<object?>, int> selector)
+    {
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        var list = value is IEnumerable enumerable
+            ? enumerable.Cast<object?>().ToList()
+            : [];
+
+        if (list.Count == 0)
+        {
+            result = null;
+            return true;
+        }
+
+        result = selector(list);
+        return true;
+    }
+
+    private static bool TryEvalArrayDimensionFunction(
+        Func<int, object?> evalArg,
+        out object? result,
+        Func<List<object?>, object?> selector)
+    {
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        var list = value is IEnumerable enumerable
+            ? enumerable.Cast<object?>().ToList()
+            : [];
+
+        if (list.Count == 0)
+        {
+            result = null;
+            return true;
+        }
+
+        result = selector(list);
+        return true;
     }
 }

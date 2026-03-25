@@ -414,6 +414,9 @@ internal abstract class SqlDialectBase : ISqlDialect
     public virtual bool SupportsOracleSysFunction(string functionName)
         => SupportsRegisteredScalarCall(functionName);
 
+    public virtual bool SupportsOracleReservedIdentifier(string identifier)
+        => false;
+
     public virtual bool SupportsOracleTimeFunction(string functionName)
         => SupportsRegisteredScalarCall(functionName);
     public virtual bool IsRowNumberWindowFunction(string functionName)

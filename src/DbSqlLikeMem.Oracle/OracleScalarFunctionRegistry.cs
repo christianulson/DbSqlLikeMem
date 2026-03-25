@@ -257,7 +257,7 @@ internal static class OracleScalarFunctionRegistry
         dialect.AddScalarFunctionsIf(
             version >= OracleDialect.OracleJsonSqlFunctionMinVersion,
             "VARCHAR",
-            AstQueryExecutorBase.TryEvalJsonExtractionFunction,
+            AstQueryGeneralScalarFunctionEvaluator.TryEvalJsonExtractionFunction,
             "JSON_QUERY",
             "JSON_VALUE");
     }
