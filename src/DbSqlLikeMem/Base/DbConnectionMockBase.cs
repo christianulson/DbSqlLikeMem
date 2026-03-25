@@ -140,7 +140,7 @@ public abstract class DbConnectionMockBase(
     private int _selectPlanCacheGeneration;
     private long _lastFoundRows;
     private object? _lastInsertId;
-    private readonly AutoSqlDialect _autoSqlDialect = new();
+    private readonly ISqlDialect _autoSqlDialect = AutoDialectFactory.Create();
     private readonly Dictionary<string, long> _sessionSequenceValues =
         new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, object?> _sessionContextValues =

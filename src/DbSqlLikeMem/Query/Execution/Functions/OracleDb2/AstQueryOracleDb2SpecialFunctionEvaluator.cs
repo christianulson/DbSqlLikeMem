@@ -15,23 +15,107 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         "TO_APPROX_PERCENTILE",
     };
 
+    private static readonly Dictionary<string, AstQueryGeneralScalarFunctionHandler> _handlers = CreateHandlers();
+
+    private static Dictionary<string, AstQueryGeneralScalarFunctionHandler> CreateHandlers()
+    {
+        var handlers = new Dictionary<string, AstQueryGeneralScalarFunctionHandler>(StringComparer.OrdinalIgnoreCase);
+
+        Register(handlers, TryEvalOracleApproxFunctions,
+            "APPROX_COUNT_DISTINCT",
+            "APPROX_COUNT_DISTINCT_AGG",
+            "APPROX_COUNT_DISTINCT_DETAIL",
+            "APPROX_MEDIAN",
+            "APPROX_PERCENTILE",
+            "APPROX_PERCENTILE_AGG",
+            "APPROX_PERCENTILE_DETAIL",
+            "TO_APPROX_COUNT_DISTINCT",
+            "TO_APPROX_PERCENTILE");
+
+        Register(handlers, TryEvalOracleAnalyticsFunctions,
+            "FEATURE_COMPARE",
+            "FEATURE_DETAILS",
+            "FEATURE_ID",
+            "FEATURE_SET",
+            "FEATURE_VALUE",
+            "NCGR",
+            "POWERMULTISET",
+            "POWERMULTISET_BY_CARDINALITY",
+            "PREDICTION",
+            "PREDICTION_BOUNDS",
+            "PREDICTION_COST",
+            "PREDICTION_DETAILS",
+            "PREDICTION_PROBABILITY",
+            "PREDICTION_SET",
+            "PRESENTNNV",
+            "PRESENTV",
+            "RATIO_TO_REPORT");
+
+        Register(handlers, TryEvalOracleScnFunctions, "SCN_TO_TIMESTAMP", "TIMESTAMP_TO_SCN");
+        Register(handlers, TryEvalOracleTimeZoneOffsetFunction, "TZ_OFFSET");
+        Register(handlers, TryEvalOracleSessionTimeZoneFunction, "SESSIONTIMEZONE");
+        Register(handlers, TryEvalOracleUserEnvFunction, "USERENV");
+        Register(handlers, TryEvalOracleInvokingUserFunction, "ORA_INVOKING_USER");
+        Register(handlers, TryEvalOracleInvokingUserIdFunction, "ORA_INVOKING_USERID");
+        Register(handlers, TryEvalOracleDstNoopFunction, "ORA_DST_AFFECTED", "ORA_DST_CONVERT", "ORA_DST_ERROR", "ORA_DM_PARTITION_NAME");
+        Register(handlers, TryEvalOracleValidateConversionFunction, "VALIDATE_CONVERSION");
+        Register(handlers, TryEvalOracleMonthsBetweenFunction, "MONTHS_BETWEEN");
+        Register(handlers, TryEvalOracleIterationNumberFunction, "ITERATION_NUMBER");
+        Register(handlers, TryEvalOracleLnnvlFunction, "LNNVL");
+        Register(handlers, TryEvalOracleNanvlFunction, "NANVL");
+        Register(handlers, TryEvalOracleDepthFunction, "DEPTH");
+        Register(handlers, TryEvalOracleDerefFunction, "DEREF");
+        Register(handlers, TryEvalOracleDumpFunction, "DUMP");
+        Register(handlers, TryEvalOracleExistsNodeFunction, "EXISTSNODE");
+        Register(handlers, TryEvalOracleJsonDataGuideFunction, "JSON_DATAGUIDE");
+        Register(handlers, TryEvalOracleMakeRefFunction, "MAKE_REF");
+        Register(handlers, TryEvalOracleVsizeFunction, "VSIZE");
+        Register(handlers, TryEvalOracleWidthBucketFunction, "WIDTH_BUCKET");
+        Register(handlers, TryEvalOracleXmlFunctions,
+            "EXTRACTVALUE",
+            "XMLCAST",
+            "XMLCDATA",
+            "XMLCOLATTVAL",
+            "XMLCOMMENT",
+            "XMLCONCAT",
+            "XMLDIFF",
+            "XMLELEMENT",
+            "XMLFOREST",
+            "XMLISVALID",
+            "XMLPARSE",
+            "XMLPATCH",
+            "XMLPI",
+            "XMLQUERY",
+            "XMLROOT",
+            "XMLSEQUENCE",
+            "XMLSERIALIZE",
+            "XMLTABLE",
+            "XMLTRANSFORM");
+        Register(handlers, TryEvalOracleUserFunction, "USER");
+
+        return handlers;
+    }
+
+    private static void Register(
+        IDictionary<string, AstQueryGeneralScalarFunctionHandler> handlers,
+        AstQueryGeneralScalarFunctionHandler handler,
+        params string[] names)
+    {
+        foreach (var name in names)
+            handlers[name] = handler;
+    }
+
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
         ISqlDialect dialect,
         Func<int, object?> evalArg,
         out object? result)
     {
-        return TryEvalOracleApproxFunctions(fn, dialect, evalArg, out result)
-            || TryEvalOracleAnalyticsFunctions(fn, dialect, evalArg, out result)
-            || TryEvalOracleScnFunctions(fn, dialect, evalArg, out result)
-            || TryEvalOracleTimeZoneOffsetFunction(fn, dialect, evalArg, out result)
-            || TryEvalOracleSessionTimeZoneFunction(fn, dialect, out result)
-            || TryEvalOracleUserEnvFunctions(fn, dialect, evalArg, out result)
-            || TryEvalOracleValidateConversionFunction(fn, dialect, evalArg, out result)
-            || TryEvalOracleVsizeFunction(fn, dialect, evalArg, out result)
-            || TryEvalOracleWidthBucketFunction(fn, dialect, evalArg, out result)
-            || TryEvalOracleXmlFunctions(fn, dialect, evalArg, out result)
-            || TryEvalOracleUserFunction(fn, dialect, out result);
+        if (_handlers.TryGetValue(fn.Name, out var handler))
+            return handler(fn, dialect, evalArg, out result);
+
+        result = null;
+        return false;
     }
 
     private static bool TryEvalOracleApproxFunctions(
@@ -164,8 +248,10 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
     private static bool TryEvalOracleSessionTimeZoneFunction(
         FunctionCallExpr fn,
         ISqlDialect dialect,
+        Func<int, object?> evalArg,
         out object? result)
     {
+        _ = evalArg;
         if (!fn.Name.Equals("SESSIONTIMEZONE", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -184,19 +270,12 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         return true;
     }
 
-    private static bool TryEvalOracleUserEnvFunctions(
+    private static bool TryEvalOracleUserEnvFunction(
         FunctionCallExpr fn,
         ISqlDialect dialect,
         Func<int, object?> evalArg,
         out object? result)
     {
-        var name = fn.Name.ToUpperInvariant();
-        if (name is not ("USERENV" or "ORA_INVOKING_USER" or "ORA_INVOKING_USERID" or "ORA_DST_AFFECTED" or "ORA_DST_CONVERT" or "ORA_DST_ERROR" or "ORA_DM_PARTITION_NAME"))
-        {
-            result = null;
-            return false;
-        }
-
         if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
             && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
@@ -204,37 +283,81 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
             return true;
         }
 
-        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(dialect, name);
+        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(dialect, fn.Name);
 
-        switch (name)
+        if (fn.Args.Count == 0)
         {
-            case "ORA_INVOKING_USER":
-                result = "SYS";
-                return true;
-            case "ORA_INVOKING_USERID":
-                result = 0;
-                return true;
-            case "USERENV":
-                if (fn.Args.Count == 0)
-                {
-                    result = null;
-                    return true;
-                }
-
-                var param = evalArg(0)?.ToString();
-                if (string.Equals(param, "CURRENT_SCHEMA", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(param, "SESSION_USER", StringComparison.OrdinalIgnoreCase))
-                {
-                    result = "SYS";
-                    return true;
-                }
-
-                result = null;
-                return true;
-            default:
-                result = null;
-                return true;
+            result = null;
+            return true;
         }
+
+        var param = evalArg(0)?.ToString();
+        if (string.Equals(param, "CURRENT_SCHEMA", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(param, "SESSION_USER", StringComparison.OrdinalIgnoreCase))
+        {
+            result = "SYS";
+            return true;
+        }
+
+        result = null;
+        return true;
+    }
+
+    private static bool TryEvalOracleInvokingUserFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = evalArg;
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(dialect, fn.Name);
+        result = "SYS";
+        return true;
+    }
+
+    private static bool TryEvalOracleInvokingUserIdFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = evalArg;
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(dialect, fn.Name);
+        result = 0;
+        return true;
+    }
+
+    private static bool TryEvalOracleDstNoopFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = evalArg;
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(dialect, fn.Name);
+        result = null;
+        return true;
     }
 
     private static bool TryEvalOracleValidateConversionFunction(
@@ -282,6 +405,306 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         };
 
         result = isValid ? 1 : 0;
+        return true;
+    }
+
+    private static bool TryEvalOracleMonthsBetweenFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("MONTHS_BETWEEN", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("MONTHS_BETWEEN() espera duas datas.");
+
+        var left = evalArg(0);
+        var right = evalArg(1);
+        if (AstQueryExecutorBase.IsNullish(left) || AstQueryExecutorBase.IsNullish(right))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!AstQueryExecutorBase.TryCoerceDateTime(left, out var leftDate) || !AstQueryExecutorBase.TryCoerceDateTime(right, out var rightDate))
+        {
+            result = null;
+            return true;
+        }
+
+        var monthsLeft = leftDate.Year * 12 + leftDate.Month;
+        var monthsRight = rightDate.Year * 12 + rightDate.Month;
+        var monthDiff = monthsLeft - monthsRight;
+        var dayDiff = (leftDate.Day - rightDate.Day) / 31m;
+        result = monthDiff + dayDiff;
+        return true;
+    }
+
+    private static bool TryEvalOracleIterationNumberFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = evalArg;
+        if (!fn.Name.Equals("ITERATION_NUMBER", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        result = 1;
+        return true;
+    }
+
+    private static bool TryEvalOracleLnnvlFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("LNNVL", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = 1;
+            return true;
+        }
+
+        result = value.ToBool() ? 0 : 1;
+        return true;
+    }
+
+    private static bool TryEvalOracleNanvlFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("NANVL", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("NANVL() espera 2 argumentos.");
+
+        var first = evalArg(0);
+        var second = evalArg(1);
+        if (AstQueryExecutorBase.IsNullish(first))
+        {
+            result = second;
+            return true;
+        }
+
+        var number = Convert.ToDouble(first, CultureInfo.InvariantCulture);
+        result = double.IsNaN(number) ? second : first;
+        return true;
+    }
+
+    private static bool TryEvalOracleDepthFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("DEPTH", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        result = 1;
+        return true;
+    }
+
+    private static bool TryEvalOracleDerefFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("DEREF", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        result = evalArg(0);
+        return true;
+    }
+
+    private static bool TryEvalOracleDumpFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("DUMP", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = value?.ToString() ?? string.Empty;
+        result = $"Typ=1 Len={text.Length}";
+        return true;
+    }
+
+    private static bool TryEvalOracleExistsNodeFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("EXISTSNODE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        result = 1;
+        return true;
+    }
+
+    private static bool TryEvalOracleJsonDataGuideFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("JSON_DATAGUIDE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        result = "{}";
+        return true;
+    }
+
+    private static bool TryEvalOracleMakeRefFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("MAKE_REF", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        result = null;
         return true;
     }
 
@@ -414,8 +837,10 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
     private static bool TryEvalOracleUserFunction(
         FunctionCallExpr fn,
         ISqlDialect dialect,
+        Func<int, object?> evalArg,
         out object? result)
     {
+        _ = evalArg;
         if (!fn.Name.Equals("USER", StringComparison.OrdinalIgnoreCase))
         {
             result = null;

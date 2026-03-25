@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Auto/">
+    <Project Path="DbSqlLikeMem.Auto/DbSqlLikeMem.Auto.csproj" />
+  </Folder>
   <Folder Name="/Db2/">
     <Project Path="DbSqlLikeMem.Db2.EfCore/DbSqlLikeMem.Db2.EfCore.csproj" />
     <Project Path="DbSqlLikeMem.Db2.LinqToDb/DbSqlLikeMem.Db2.LinqToDb.csproj" />

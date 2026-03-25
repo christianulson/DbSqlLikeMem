@@ -107,7 +107,7 @@ internal sealed class SqlQueryParser
     /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
     /// <returns>EN: Parsed query AST root. PT: Raiz da AST da query parseada.</returns>
     public static SqlQueryBase ParseAuto(string sql)
-        => Parse(sql, new AutoSqlDialect(), null);
+        => Parse(sql, AutoDialectFactory.Create(), null);
 
     /// <summary>
     /// EN: Parses one SQL statement using the automatic dialect compatibility mode and optional parameters.
@@ -117,7 +117,7 @@ internal sealed class SqlQueryParser
     /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized numeric values. PT: Parametros de comando opcionais usados por caminhos do parser que resolvem valores numericos parametrizados.</param>
     /// <returns>EN: Parsed query AST root. PT: Raiz da AST da query parseada.</returns>
     public static SqlQueryBase ParseAuto(string sql, IDataParameterCollection? parameters)
-        => Parse(sql, new AutoSqlDialect(), parameters);
+        => Parse(sql, AutoDialectFactory.Create(), parameters);
 
     /// <summary>
     /// EN: Parses one SQL statement into an AST root using dialect capabilities and optional command parameters.
@@ -201,7 +201,7 @@ internal sealed class SqlQueryParser
             return cached;
 
         var tokens = new SqlTokenizer(sql, dialect).Tokenize();
-        var autoSyntaxFeatures = dialect is AutoSqlDialect
+        var autoSyntaxFeatures = AutoDialectFactory.IsAutoDialect(dialect)
             ? SqlSyntaxDetector.Detect(sql, tokens)
             : AutoSqlSyntaxFeatures.None;
 
@@ -333,7 +333,7 @@ internal sealed class SqlQueryParser
     /// <param name="sql">EN: SQL batch text. PT: Texto SQL em lote.</param>
     /// <returns>EN: Sequence of parsed AST roots. PT: Sequencia de raizes de AST parseadas.</returns>
     public static IEnumerable<SqlQueryBase> ParseMultiAuto(string sql)
-        => ParseMulti(sql, new AutoSqlDialect(), null);
+        => ParseMulti(sql, AutoDialectFactory.Create(), null);
 
     /// <summary>
     /// EN: Parses a SQL batch using the automatic dialect compatibility mode and optional parameters.
@@ -345,7 +345,7 @@ internal sealed class SqlQueryParser
     public static IEnumerable<SqlQueryBase> ParseMultiAuto(
         string sql,
         IDataParameterCollection? parameters)
-        => ParseMulti(sql, new AutoSqlDialect(), parameters);
+        => ParseMulti(sql, AutoDialectFactory.Create(), parameters);
 
     /// <summary>
     /// EN: Parses a SQL batch and yields AST roots for each top-level statement split by semicolon boundaries.
@@ -387,7 +387,7 @@ internal sealed class SqlQueryParser
     /// <param name="sql">EN: SQL batch text. PT: Texto SQL em lote.</param>
     /// <returns>EN: Top-level SQL statements. PT: Statements SQL de topo.</returns>
     public static IEnumerable<string> SplitStatementsAuto(string sql)
-        => SqlStatementSplitter.SplitStatementsTopLevel(sql, new AutoSqlDialect());
+        => SqlStatementSplitter.SplitStatementsTopLevel(sql, AutoDialectFactory.Create());
 
     // Mantido para compatibilidade com lógica de Union
     /// <summary>
@@ -427,7 +427,7 @@ internal sealed class SqlQueryParser
     /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
     /// <returns>EN: Normalized UNION chain representation. PT: Representacao normalizada de cadeia UNION.</returns>
     public static UnionChain ParseUnionChainAuto(string sql)
-        => ParseUnionChain(sql, new AutoSqlDialect());
+        => ParseUnionChain(sql, AutoDialectFactory.Create());
 
     // ------------------------------------------------------------
     // NOVAS IMPLEMENTAÃ‡Ã•ES DE INSERT / UPDATE / DELETE VIA TOKENS
@@ -787,7 +787,7 @@ internal sealed class SqlQueryParser
             Table = table
         };
 
-        if (_dialect is AutoSqlDialect)
+        if (AutoDialectFactory.IsAutoDialect(_dialect))
         {
             query = DialectNormalizer.NormalizeAutoSelect(
                 query,

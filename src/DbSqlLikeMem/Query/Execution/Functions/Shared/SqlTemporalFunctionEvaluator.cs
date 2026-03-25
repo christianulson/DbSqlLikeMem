@@ -111,5 +111,3 @@ internal static class SqlTemporalFunctionEvaluator
         return true;
     }
 }
-
-

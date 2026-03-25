@@ -8,48 +8,110 @@ internal delegate bool AstQueryTryParseCachedDateTimeOffset(string text, DateTim
 
 internal delegate bool AstQueryTryConvertNumericToDecimal(object? value, out decimal result);
 
-internal sealed class AstQuerySqlServerUtilityFunctionEvaluator(
-    Func<ISqlDialect?> getDialect,
-    AstQueryTryConvertNumericToDecimal tryConvertNumericToDecimal,
-    AstQueryTryCoerceDateTime tryCoerceDateTime,
-    AstQueryTryParseOffset tryParseOffset,
-    AstQueryTryParseCachedDateTimeOffset tryParseCachedDateTimeOffset)
+internal delegate bool AstQueryTryEvalSqlServerUtilityFunction(
+    FunctionCallExpr fn,
+    Func<int, object?> evalArg,
+    out object? result);
+
+internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
 {
-    private readonly Func<ISqlDialect?> _getDialect = getDialect ?? throw new ArgumentNullException(nameof(getDialect));
-    private readonly AstQueryTryConvertNumericToDecimal _tryConvertNumericToDecimal = tryConvertNumericToDecimal ?? throw new ArgumentNullException(nameof(tryConvertNumericToDecimal));
-    private readonly AstQueryTryCoerceDateTime _tryCoerceDateTime = tryCoerceDateTime ?? throw new ArgumentNullException(nameof(tryCoerceDateTime));
-    private readonly AstQueryTryParseOffset _tryParseOffset = tryParseOffset ?? throw new ArgumentNullException(nameof(tryParseOffset));
-    private readonly AstQueryTryParseCachedDateTimeOffset _tryParseCachedDateTimeOffset = tryParseCachedDateTimeOffset ?? throw new ArgumentNullException(nameof(tryParseCachedDateTimeOffset));
+    private readonly Func<ISqlDialect?> _getDialect;
+    private readonly AstQueryTryConvertNumericToDecimal _tryConvertNumericToDecimal;
+    private readonly AstQueryTryCoerceDateTime _tryCoerceDateTime;
+    private readonly AstQueryTryParseOffset _tryParseOffset;
+    private readonly AstQueryTryParseCachedDateTimeOffset _tryParseCachedDateTimeOffset;
+    private readonly IReadOnlyDictionary<string, AstQueryTryEvalSqlServerUtilityFunction> _handlers;
+
+    internal AstQuerySqlServerUtilityFunctionEvaluator(
+        Func<ISqlDialect?> getDialect,
+        AstQueryTryConvertNumericToDecimal tryConvertNumericToDecimal,
+        AstQueryTryCoerceDateTime tryCoerceDateTime,
+        AstQueryTryParseOffset tryParseOffset,
+        AstQueryTryParseCachedDateTimeOffset tryParseCachedDateTimeOffset)
+    {
+        _getDialect = getDialect ?? throw new ArgumentNullException(nameof(getDialect));
+        _tryConvertNumericToDecimal = tryConvertNumericToDecimal ?? throw new ArgumentNullException(nameof(tryConvertNumericToDecimal));
+        _tryCoerceDateTime = tryCoerceDateTime ?? throw new ArgumentNullException(nameof(tryCoerceDateTime));
+        _tryParseOffset = tryParseOffset ?? throw new ArgumentNullException(nameof(tryParseOffset));
+        _tryParseCachedDateTimeOffset = tryParseCachedDateTimeOffset ?? throw new ArgumentNullException(nameof(tryParseCachedDateTimeOffset));
+        _handlers = CreateHandlers();
+    }
+
+    private Dictionary<string, AstQueryTryEvalSqlServerUtilityFunction> CreateHandlers()
+    {
+        var handlers = new Dictionary<string, AstQueryTryEvalSqlServerUtilityFunction>(StringComparer.OrdinalIgnoreCase);
+        Register(handlers, TryEvalSqlServerGuidFunction, "NEWID", "NEWSEQUENTIALID");
+        Register(handlers, TryEvalSqlServerLocalDateTimeFunction, "CURRENT_TIMESTAMP", "GETDATE", "SYSTEMDATE", "SYSDATETIME");
+        Register(handlers, TryEvalSqlServerUtcDateTimeFunction, "SYSUTCDATETIME", "GETUTCDATE");
+        Register(handlers, TryEvalSqlServerDateTimeOffsetFunction, "SYSDATETIMEOFFSET");
+        Register(handlers, TryEvalSqlServerStringEscapeFunction, "STRING_ESCAPE");
+        Register(handlers, TryEvalSqlServerStrFunction, "STR");
+        Register(handlers, TryEvalSqlServerToDateTimeOffsetFunction, "TODATETIMEOFFSET");
+        Register(handlers, TryEvalSqlServerSwitchOffsetFunction, "SWITCHOFFSET");
+        return handlers;
+    }
+
+    private static void Register(
+        IDictionary<string, AstQueryTryEvalSqlServerUtilityFunction> handlers,
+        AstQueryTryEvalSqlServerUtilityFunction handler,
+        params string[] names)
+    {
+        foreach (var name in names)
+            handlers[name] = handler;
+    }
 
     internal bool TryEvaluate(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (TryEvalSqlServerGuidFunctions(fn, out result)
-            || TryEvalSqlServerStringEscapeFunction(fn, evalArg, out result)
-            || TryEvalSqlServerStrFunction(fn, evalArg, out result)
-            || TryEvalSqlServerDateTimeOffsetFunctions(fn, evalArg, out result))
-        {
-            return true;
-        }
+        if (_handlers.TryGetValue(fn.Name, out var handler))
+            return handler(fn, evalArg, out result);
 
         result = null;
         return false;
     }
 
-    private static bool TryEvalSqlServerGuidFunctions(
+    private static bool TryEvalSqlServerGuidFunction(
         FunctionCallExpr fn,
+        Func<int, object?> evalArg,
         out object? result)
     {
-        if (!(fn.Name.Equals("NEWID", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("NEWSEQUENTIALID", StringComparison.OrdinalIgnoreCase)))
-        {
-            result = null;
-            return false;
-        }
-
+        _ = evalArg;
         result = Guid.NewGuid().ToString("D");
+        return true;
+    }
+
+    private static bool TryEvalSqlServerLocalDateTimeFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = evalArg;
+        _ = fn;
+        result = DateTime.Now;
+        return true;
+    }
+
+    private static bool TryEvalSqlServerUtcDateTimeFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = evalArg;
+        result = DateTime.UtcNow;
+        return true;
+    }
+
+    private static bool TryEvalSqlServerDateTimeOffsetFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = evalArg;
+        result = DateTimeOffset.Now;
         return true;
     }
 
@@ -158,18 +220,11 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator(
         return true;
     }
 
-    private bool TryEvalSqlServerDateTimeOffsetFunctions(
+    private bool TryEvalSqlServerToDateTimeOffsetFunction(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
-        var name = fn.Name.ToUpperInvariant();
-        if (name is not ("TODATETIMEOFFSET" or "SWITCHOFFSET"))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException($"{fn.Name}() expects value and offset.");
 
@@ -187,15 +242,35 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator(
             return true;
         }
 
-        if (name == "TODATETIMEOFFSET")
+        if (!_tryCoerceDateTime(baseValue, out var dateTime))
         {
-            if (!_tryCoerceDateTime(baseValue, out var dateTime))
-            {
-                result = null;
-                return true;
-            }
+            result = null;
+            return true;
+        }
 
-            result = new DateTimeOffset(DateTime.SpecifyKind(dateTime, DateTimeKind.Unspecified), offset);
+        result = new DateTimeOffset(DateTime.SpecifyKind(dateTime, DateTimeKind.Unspecified), offset);
+        return true;
+    }
+
+    private bool TryEvalSqlServerSwitchOffsetFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException($"{fn.Name}() expects value and offset.");
+
+        var baseValue = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(baseValue))
+        {
+            result = null;
+            return true;
+        }
+
+        var offsetText = evalArg(1)?.ToString() ?? string.Empty;
+        if (!_tryParseOffset(offsetText, out var offset))
+        {
+            result = null;
             return true;
         }
 

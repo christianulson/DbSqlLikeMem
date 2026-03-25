@@ -89,12 +89,44 @@ public abstract class BenchmarkSuiteBase
     public void CreateSchema() => Run(BenchmarkFeatureId.CreateSchema);
 
     /// <summary>
+    /// EN: Executes a benchmark that creates the users and orders tables with a foreign key.
+    /// PT: Executa um benchmark que cria as tabelas de usuarios e pedidos com chave estrangeira.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("setup")]
+    public void CreateTableWithFK() => Run(BenchmarkFeatureId.CreateTableWithFK);
+
+    /// <summary>
+    /// EN: Executes a benchmark that creates the foreign-key tables and inserts a referenced row.
+    /// PT: Executa um benchmark que cria as tabelas com chave estrangeira e insere uma linha referenciada.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("setup")]
+    public void CreateTableWithFKInsert() => Run(BenchmarkFeatureId.CreateTableWithFKInsert);
+
+    /// <summary>
+    /// EN: Executes a benchmark that drops the users table created by the DDL workflow.
+    /// PT: Executa um benchmark que remove a tabela de usuarios criada pelo fluxo de DDL.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("setup")]
+    public void DropTable() => Run(BenchmarkFeatureId.DropTable);
+
+    /// <summary>
     /// EN: Executes a single-row insert benchmark.
     /// PT: Executa um benchmark de insercao de uma linha.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
     public void InsertSingle() => Run(BenchmarkFeatureId.InsertSingle);
+
+    /// <summary>
+    /// EN: Executes an insert benchmark that starts from a custom id.
+    /// PT: Executa um benchmark de insercao que inicia em um id customizado.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void InsertCustomStartId() => Run(BenchmarkFeatureId.InsertCustomStartId);
 
     /// <summary>
     /// EN: Executes a 100-row batch insert benchmark.
@@ -432,6 +464,14 @@ public abstract class BenchmarkSuiteBase
     public void SelectNotExistsPredicate() => Run(BenchmarkFeatureId.SelectNotExistsPredicate);
 
     /// <summary>
+    /// EN: Executes a LEFT JOIN anti-join benchmark query.
+    /// PT: Executa uma consulta de benchmark com anti-join via LEFT JOIN.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("advancedquery")]
+    public void SelectLeftJoinAntiJoin() => Run(BenchmarkFeatureId.SelectLeftJoinAntiJoin);
+
+    /// <summary>
     /// EN: Executes a correlated COUNT subquery benchmark.
     /// PT: Executa um benchmark com subconsulta correlacionada de COUNT.
     /// </summary>
@@ -510,6 +550,14 @@ public abstract class BenchmarkSuiteBase
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
     public void SelectNotInSubquery() => Run(BenchmarkFeatureId.SelectNotInSubquery);
+
+    /// <summary>
+    /// EN: Executes a combined BETWEEN, LIKE, and ORDER BY benchmark query.
+    /// PT: Executa uma consulta de benchmark combinada com BETWEEN, LIKE e ORDER BY.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("advancedquery")]
+    public void SelectBetweenLikeOrderByMatrix() => Run(BenchmarkFeatureId.SelectBetweenLikeOrderByMatrix);
 
     /// <summary>
     /// EN: Executes a CROSS APPLY benchmark query.

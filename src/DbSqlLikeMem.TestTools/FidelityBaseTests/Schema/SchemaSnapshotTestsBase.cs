@@ -48,6 +48,14 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
     public void SchemaSnapshotCompareTest()
         => RunSchemaSnapshotCompareTest();
 
+    /// <summary>
+    /// EN: Verifies that exporting, serializing, loading, and applying a schema snapshot stays stable for mock and container runs.
+    /// PT: Verifica se exportar, serializar, carregar e aplicar um snapshot de schema permanece estavel nas execucoes com mock e container.
+    /// </summary>
+    [Fact]
+    public void SchemaSnapshotRoundTripTest()
+        => RunSchemaSnapshotRoundTripTest();
+
     private void RunSchemaSnapshotExportTest()
     {
         using var connMock = connectionMock();
@@ -112,7 +120,23 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunSchemaSnapshotCompareScenario(connContainer);
-            Assert.Equal(resultMock, resultContainer);
+                Assert.Equal(resultMock, resultContainer);
+        }
+    }
+
+    private void RunSchemaSnapshotRoundTripTest()
+    {
+        using var connMock = connectionMock();
+        connMock.Open();
+        using var resultMock = RunSchemaSnapshotRoundTripScenario(connMock);
+
+        if (IsSchemaContainerComparisonEnabled(dialect.Provider)
+            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        {
+            using var connContainer = connectionContainer(connectionString);
+            connContainer.Open();
+            using var resultContainer = RunSchemaSnapshotRoundTripScenario(connContainer);
+            Assert.Equal(resultMock.RootElement.GetRawText(), resultContainer.RootElement.GetRawText());
         }
     }
 
@@ -142,6 +166,13 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
     {
         var service = new SchemaSnapshotServiceTest<TConnection>(connection, new DbSqlLikeMem.TestTools.DML.NoopScenario<TConnection>(), dialect);
         return service.RunSchemaSnapshotCompare();
+    }
+
+    private JsonDocument RunSchemaSnapshotRoundTripScenario<TConnection>(TConnection connection)
+        where TConnection : DbConnection
+    {
+        var service = new SchemaSnapshotServiceTest<TConnection>(connection, new DbSqlLikeMem.TestTools.DML.NoopScenario<TConnection>(), dialect);
+        return service.RunSchemaSnapshotRoundTrip();
     }
 
     private static string NormalizeSchemaSnapshotJson(object? value, DbConnection connection, ProviderSqlDialect dialect)

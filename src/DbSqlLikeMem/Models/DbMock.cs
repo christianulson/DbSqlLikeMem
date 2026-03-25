@@ -547,7 +547,7 @@ public abstract class DbMock
         var sc = GetSchemaName(schemaName);
         if (!this.TryGetValue(sc, out var s) || s == null)
             CreateSchema(sc);
-        this[sc].Procedures[pr.Name] = pr;
+        this[sc].CreateProcedure(pr.Name, pr, orReplace: true);
     }
 
     /// <summary>
@@ -565,8 +565,7 @@ public abstract class DbMock
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(procName, nameof(procName));
         var sc = GetSchemaName(schemaName);
-        return this[sc].Procedures.TryGetValue(procName, out pr)
-            && pr != null;
+        return this[sc].TryGetProcedure(procName, out pr);
     }
 
     #endregion
@@ -654,13 +653,7 @@ public abstract class DbMock
         var sc = GetSchemaName(schemaName);
         if (!this.TryGetValue(sc, out var s) || s == null)
             CreateSchema(sc);
-
-        var normalized = procedureName.NormalizeName();
-        var procedures = this[sc].Procedures;
-        if (procedures.ContainsKey(normalized) && !orReplace)
-            throw new InvalidOperationException($"Procedure '{normalized}' already exists.");
-
-        procedures[normalized] = procedure;
+        this[sc].CreateProcedure(procedureName, procedure, orReplace);
     }
 
     /// <summary>
@@ -678,7 +671,7 @@ public abstract class DbMock
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(procedureName, nameof(procedureName));
         ArgumentNullExceptionCompatible.ThrowIfNull(procedure, nameof(procedure));
         var sc = GetSchemaName(schemaName);
-        this[sc].Procedures[procedureName.NormalizeName()] = procedure;
+        this[sc].RestoreProcedure(procedureName, procedure);
     }
 
     /// <summary>
@@ -693,7 +686,7 @@ public abstract class DbMock
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(procedureName, nameof(procedureName));
         var sc = GetSchemaName(schemaName);
-        this[sc].Procedures.Remove(procedureName.NormalizeName());
+        this[sc].RemoveProcedure(procedureName);
     }
 
     #endregion

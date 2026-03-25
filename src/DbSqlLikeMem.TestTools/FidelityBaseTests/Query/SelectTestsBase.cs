@@ -480,6 +480,53 @@ public abstract class SelectTestsBase<T, T2>(
     }
 
     /// <summary>
+    /// EN: Verifies a combined BETWEEN, LIKE, and ORDER BY query returns the expected row order for the current provider.
+    /// PT: Verifica se uma consulta combinada com BETWEEN, LIKE e ORDER BY retorna a ordem esperada de linhas para o provedor atual.
+    /// </summary>
+    [Fact]
+    public void SelectBetweenLikeOrderByTest()
+    {
+        var users = "Users";
+        var uId = NewToken();
+
+        using var connMock = connectionMock();
+        connMock.Open();
+
+        var testScenario = new UsersScenario<T>(dialect, [(1, "Aaron"), (2, "Alice"), (3, "Bob"), (4, "Charlie"), (5, "Delta")]);
+        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
+        serviceTest.CreateScenario(users, uId);
+
+        try
+        {
+            var resultMock = serviceTest.RunBetweenLikeOrderByMatrix(users);
+            Assert.Equal(2, resultMock);
+
+            if (IsSelectContainerComparisonEnabled(dialect.Provider)
+                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+            {
+                using var connContainer = connectionContainer(connectionString);
+                connContainer.Open();
+                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Aaron"), (2, "Alice"), (3, "Bob"), (4, "Charlie"), (5, "Delta")]);
+                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
+                serviceTestContainer.CreateScenario(users, uId);
+                try
+                {
+                    var resultContainer = serviceTestContainer.RunBetweenLikeOrderByMatrix(users);
+                    Assert.Equal(resultMock, resultContainer);
+                }
+                finally
+                {
+                    serviceTestContainer.DropScenario(users, uId);
+                }
+            }
+        }
+        finally
+        {
+            serviceTest.DropScenario(users, uId);
+        }
+    }
+
+    /// <summary>
     /// EN: Verifies a NOT LIKE predicate returns the expected row count for the current provider.
     /// PT: Verifica se um predicado NOT LIKE retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>

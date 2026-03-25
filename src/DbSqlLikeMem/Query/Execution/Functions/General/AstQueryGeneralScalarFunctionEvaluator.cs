@@ -36,6 +36,13 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         var handlers = new Dictionary<string, AstQueryGeneralScalarFunctionHandler>(StringComparer.OrdinalIgnoreCase);
 
         Register(handlers, TryEvalMinMaxFunctions, "GREATEST", "LEAST");
+        Register(handlers, TryEvalAcosFunction, "ACOS");
+        Register(handlers, TryEvalAsinFunction, "ASIN");
+        Register(handlers, TryEvalAtanFunction, "ATAN");
+        Register(handlers, TryEvalAtan2Function, "ATAN2");
+        Register(handlers, TryEvalCeilingFunction, "CEIL", "CEILING");
+        Register(handlers, TryEvalCosFunction, "COS");
+        Register(handlers, TryEvalCotFunction, "COT");
         Register(handlers, TryEvalLocateFunction, "LOCATE");
         Register(handlers, TryEvalLogFunctions, "LN", "LOG", "LOG10", "LOG2");
         Register(handlers, TryEvalInstrFunction, "INSTR");
@@ -47,6 +54,8 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Register(handlers, TryEvalTypeofFunction, "TYPEOF");
         Register(handlers, TryEvalUnicodeFunctions, "UNICODE", "UNISTR", "UNISTR_QUOTE");
         Register(handlers, TryEvalLikelihoodFunctions, "LIKELY", "UNLIKELY", "LIKELIHOOD");
+        Register(handlers, TryEvalAsciiFunction, "ASCII");
+        Register(handlers, TryEvalBasicStringFunctions, "LOWER", "LCASE", "UPPER", "UCASE", "TRIM", "RTRIM", "LTRIM", "TO_CHAR", "LENGTH", "CHAR_LENGTH", "CHARACTER_LENGTH", "LEN");
         Register(handlers, TryEvalPadFunctions, "LPAD");
         Register(handlers, TryEvalMd5Function, "MD5");
         Register(handlers, TryEvalModFunction, "MOD");
@@ -60,16 +69,26 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Register(handlers, TryEvalPiFunction, "PI");
         Register(handlers, TryEvalPowerFunctions, "POWER", "POW");
         Register(handlers, TryEvalQuoteFunction, "QUOTE");
+        Register(handlers, TryEvalDegreesFunction, "DEGREES");
+        Register(handlers, TryEvalDifferenceFunction, "DIFFERENCE");
+        Register(handlers, TryEvalExpFunction, "EXP");
+        Register(handlers, TryEvalFloorFunction, "FLOOR");
+        Register(handlers, TryEvalSignFunction, "SIGN");
         Register(handlers, AstQueryGeneralDateFunctionEvaluator.TryEvaluate, "DATE", "TIMESTAMP", "DATETIME", "TIME", "STRFTIME", "MAKEDATE", "MAKETIME", "MICROSECOND", "MONTHNAME", "PERIOD_ADD", "PERIOD_DIFF", "QUARTER", "SEC_TO_TIME");
         Register(handlers, AstQuerySqlServerScalarFunctionEvaluator.TryEvaluate, "QUOTENAME", "REPLICATE", "SQUARE", "STUFF", "PARSENAME");
         Register(handlers, TryEvalRadiansFunction, "RADIANS");
         Register(handlers, TryEvalRandFunction, "RAND");
         Register(handlers, TryEvalRepeatFunction, "REPEAT");
         Register(handlers, TryEvalReverseFunction, "REVERSE");
+        Register(handlers, TryEvalReplaceFunction, "REPLACE");
+        Register(handlers, TryEvalTranslateFunctions, "TRANSLATE");
+        Register(handlers, TryEvalCharFunction, "CHAR");
         Register(handlers, TryEvalLeftFunction, SqlConst.LEFT);
         Register(handlers, TryEvalRightFunction, SqlConst.RIGHT);
         Register(handlers, TryEvalRoundFunction, "ROUND");
         Register(handlers, TryEvalPadRightFunction, "RPAD");
+        Register(handlers, TryEvalBitCountFunction, "BIT_COUNT");
+        Register(handlers, TryEvalBitLengthFunction, "BIT_LENGTH");
         Register(handlers, TryEvalShaFunctions, "SHA", "SHA1", "SHA2");
         Register(handlers, TryEvalSinFunction, "SIN");
         Register(handlers, TryEvalSoundexFunction, "SOUNDEX");
@@ -136,6 +155,75 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         result = current;
         return true;
     }
+
+    private static bool TryEvalAsciiFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("ASCII", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = value?.ToString() ?? string.Empty;
+        result = text.Length == 0 ? 0 : (int)text[0];
+        return true;
+    }
+
+    private static bool TryEvalCharFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("CHAR", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
+            || MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        {
+            try
+            {
+                var codePoint = Convert.ToInt32(value, CultureInfo.InvariantCulture);
+                result = char.ConvertFromUtf32(codePoint);
+                return true;
+            }
+            catch
+            {
+                // Fall back to textual conversion when the argument is not numeric.
+            }
+        }
+
+        result = value!.ToString() ?? string.Empty;
+        return true;
+    }
+
+    private static bool TryEvalBasicStringFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalBasicStringFunction(fn, evalArg, out result);
 
     private static bool TryEvalLocateFunction(
         FunctionCallExpr fn,
@@ -372,6 +460,472 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         }
 
         result = value!.ToString()!.PatIndex(pattern!.ToString()!, dialect);
+        return true;
+    }
+
+    private static bool TryEvalDegreesFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("DEGREES", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var radians = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            result = radians * (180d / Math.PI);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalDifferenceFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("DIFFERENCE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var first = evalArg(0)?.ToString() ?? string.Empty;
+        var second = evalArg(1)?.ToString() ?? string.Empty;
+        var soundex1 = ComputeSoundex(first);
+        var soundex2 = ComputeSoundex(second);
+        var score = 0;
+        for (var i = 0; i < Math.Min(soundex1.Length, soundex2.Length); i++)
+        {
+            if (soundex1[i] == soundex2[i])
+                score++;
+        }
+
+        result = score;
+        return true;
+    }
+
+    private static bool TryEvalExpFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("EXP", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            result = Math.Exp(number);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalFloorFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("FLOOR", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            if (value is decimal dec)
+            {
+                result = Math.Floor(dec);
+                return true;
+            }
+
+            result = Math.Floor(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalCeilingFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!(fn.Name.Equals("CEIL", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("CEILING", StringComparison.OrdinalIgnoreCase)))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            if (value is decimal dec)
+            {
+                result = Math.Ceiling(dec);
+                return true;
+            }
+
+            result = Math.Ceiling(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalAcosFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("ACOS", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            result = Math.Acos(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalAsinFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("ASIN", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            result = Math.Asin(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalAtanFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("ATAN", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            result = Math.Atan(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalAtan2Function(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("ATAN2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("ATAN2() espera 2 argumentos.");
+
+        var yValue = evalArg(0);
+        var xValue = evalArg(1);
+        if (IsNullish(yValue) || IsNullish(xValue))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            result = Math.Atan2(
+                Convert.ToDouble(yValue, CultureInfo.InvariantCulture),
+                Convert.ToDouble(xValue, CultureInfo.InvariantCulture));
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalCosFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("COS", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            result = Math.Cos(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalCotFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("COT", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var tangent = Math.Tan(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+            result = 1d / tangent;
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalSignFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("SIGN", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            result = number == 0d ? 0 : (number > 0d ? 1 : -1);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalReplaceFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("REPLACE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var source = evalArg(0);
+        var from = evalArg(1);
+        var to = evalArg(2);
+        if (IsNullish(source) || IsNullish(from) || IsNullish(to))
+        {
+            result = null;
+            return true;
+        }
+
+        result = (source!.ToString() ?? string.Empty)
+            .Replace(from!.ToString() ?? string.Empty, to!.ToString() ?? string.Empty);
+        return true;
+    }
+
+    private static bool TryEvalTranslateFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("TRANSLATE", StringComparison.OrdinalIgnoreCase)
+            && !fn.Name.Equals("TRANSLATE...USING", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 3)
+        {
+            result = null;
+            return true;
+        }
+
+        var source = evalArg(0)?.ToString() ?? string.Empty;
+        var from = evalArg(1)?.ToString() ?? string.Empty;
+        var to = evalArg(2)?.ToString() ?? string.Empty;
+
+        var builder = new StringBuilder(source.Length);
+        foreach (var ch in source)
+        {
+            var index = from.IndexOf(ch);
+            if (index < 0)
+            {
+                builder.Append(ch);
+                continue;
+            }
+
+            if (index < to.Length)
+                builder.Append(to[index]);
+        }
+
+        result = builder.ToString();
         return true;
     }
 
@@ -2668,6 +3222,76 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         }
     }
 
+    private static bool TryEvalBitCountFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("BIT_COUNT", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var number = Convert.ToInt64(value, CultureInfo.InvariantCulture);
+            var bits = unchecked((ulong)number);
+            var count = 0;
+            while (bits != 0)
+            {
+                count += (int)(bits & 1UL);
+                bits >>= 1;
+            }
+
+            result = count;
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalBitLengthFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("BIT_LENGTH", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (value is byte[] bytes)
+        {
+            result = bytes.Length * 8;
+            return true;
+        }
+
+        var text = value?.ToString() ?? string.Empty;
+        result = text.Length * 8;
+        return true;
+    }
+
     private static bool TryEvalHexFunction(
         FunctionCallExpr fn,
         ISqlDialect dialect,
@@ -3376,6 +4000,43 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             'R' => '6',
             _ => null
         };
+    }
+
+    private static string ComputeSoundex(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return string.Empty;
+
+        var firstLetter = char.ToUpperInvariant(value[0]);
+        var codes = new StringBuilder();
+
+        char? lastCode = null;
+        foreach (var ch in value.Skip(1))
+        {
+            var code = GetSoundexCode(ch);
+            if (code is null)
+            {
+                lastCode = null;
+                continue;
+            }
+
+            if (lastCode.HasValue && lastCode.Value == code.Value)
+                continue;
+
+            codes.Append(code.Value);
+            lastCode = code.Value;
+        }
+
+        var soundex = new StringBuilder(4);
+        soundex.Append(firstLetter);
+        soundex.Append(codes);
+        while (soundex.Length < 4)
+            soundex.Append('0');
+
+        if (soundex.Length > 4)
+            soundex.Length = 4;
+
+        return soundex.ToString();
     }
 
     private static bool TryEvalSpaceFunction(

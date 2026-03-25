@@ -145,6 +145,39 @@ public abstract partial class BenchmarkSessionBase
                 return new PreparedCreateSchemaState(this, connection, service, users, uId);
             });
 
+    private PreparedCreateTableWithFkState GetPreparedCreateTableWithFkState()
+        => GetOrCreatePreparedState(
+            "create-table-with-fk",
+            () =>
+            {
+                var uId = NextToken();
+                var users = NewUsersTableName();
+                var orders = NewOrdersTableName();
+                var connection = CreateConnection();
+                connection.Open();
+                var service = new CreateTableWithFKServiceTest<DbConnection>(
+                    connection,
+                    BenchmarkScenarioFactory.CreateTableWithFKScenario<DbConnection>(),
+                    Dialect);
+                return new PreparedCreateTableWithFkState(this, connection, service, users, orders, uId);
+            });
+
+    private PreparedDropTableState GetPreparedDropTableState()
+        => GetOrCreatePreparedState(
+            "drop-table",
+            () =>
+            {
+                var uId = NextToken();
+                var users = NewUsersTableName();
+                var connection = CreateConnection();
+                connection.Open();
+                var service = new DropTableServiceTest<DbConnection>(
+                    connection,
+                    BenchmarkScenarioFactory.CreateDropTableScenario<DbConnection>(),
+                    Dialect);
+                return new PreparedDropTableState(this, connection, service, users, uId);
+            });
+
     private PreparedInsertUsersState GetPreparedInsertUsersState(string key)
         => GetOrCreatePreparedState(
             key,
@@ -779,6 +812,213 @@ public abstract partial class BenchmarkSessionBase
         }
     }
 
+    private sealed class PreparedCreateTableWithFkState : IDisposable
+    {
+        private readonly BenchmarkSessionBase _owner;
+        private readonly CreateTableWithFKServiceTest<DbConnection> _service;
+        private readonly DbConnection _connection;
+        private readonly string _users;
+        private readonly string _orders;
+        private readonly string _uId;
+
+        public PreparedCreateTableWithFkState(
+            BenchmarkSessionBase owner,
+            DbConnection connection,
+            CreateTableWithFKServiceTest<DbConnection> service,
+            string users,
+            string orders,
+            string uId)
+        {
+            _owner = owner;
+            _connection = connection;
+            _service = service;
+            _users = users;
+            _orders = orders;
+            _uId = uId;
+        }
+
+        public void RunCreateTableWithFk()
+        {
+            try
+            {
+                _service.CreateScenario(_users, _uId);
+                _service.RunTest(_users, _orders, _uId);
+            }
+            finally
+            {
+                try
+                {
+                    _service.DropScenario(_users, _orders, _uId);
+                }
+                catch
+                {
+                    try
+                    {
+                        _owner.SafeDropTable(_connection, _orders, _uId);
+                    }
+                    catch
+                    {
+                        // Ignore cleanup failures during benchmark teardown.
+                    }
+
+                    try
+                    {
+                        _owner.SafeDropTable(_connection, _users, _uId);
+                    }
+                    catch
+                    {
+                        // Ignore cleanup failures during benchmark teardown.
+                    }
+                }
+            }
+        }
+
+        public int RunCreateTableWithFkInsert()
+        {
+            var orderedAt = _service.Dialect.Provider == ProviderId.Db2 ? "CURRENT TIMESTAMP" : "CURRENT_TIMESTAMP";
+
+            try
+            {
+                _service.CreateScenario(_users, _uId);
+                _service.RunTest(_users, _orders, _uId);
+
+                var usersTable = $"{_users}_{_uId}";
+                var ordersTable = $"{_orders}_{_uId}";
+
+                ExecuteNonQuery(_connection, _service.Dialect.InsertUser(usersTable, 1, "Ana"));
+                ExecuteNonQuery(_connection, _service.Dialect.InsertOrder(ordersTable, usersTable, 10, 1, "first", "o-10", 12.34m, 2, true, orderedAt));
+
+                var count = Convert.ToInt32(
+                    ExecuteScalar(_connection, _service.Dialect.CountJoinForUser(usersTable, ordersTable, 1)),
+                    CultureInfo.InvariantCulture);
+                if (count != 1)
+                {
+                    throw new InvalidOperationException($"Unexpected foreign-key insert benchmark join count for {_service.Dialect.DisplayName}: {count}.");
+                }
+
+                return count;
+            }
+            finally
+            {
+                try
+                {
+                    _service.DropScenario(_users, _orders, _uId);
+                }
+                catch
+                {
+                    try
+                    {
+                        _owner.SafeDropTable(_connection, _orders, _uId);
+                    }
+                    catch
+                    {
+                        // Ignore cleanup failures during benchmark teardown.
+                    }
+
+                    try
+                    {
+                        _owner.SafeDropTable(_connection, _users, _uId);
+                    }
+                    catch
+                    {
+                        // Ignore cleanup failures during benchmark teardown.
+                    }
+                }
+            }
+        }
+
+        public void Dispose()
+        {
+            try
+            {
+                _service.DropScenario(_users, _orders, _uId);
+            }
+            catch
+            {
+                try
+                {
+                    _owner.SafeDropTable(_connection, _orders, _uId);
+                }
+                catch
+                {
+                    // Ignore cleanup failures during benchmark teardown.
+                }
+
+                try
+                {
+                    _owner.SafeDropTable(_connection, _users, _uId);
+                }
+                catch
+                {
+                    // Ignore cleanup failures during benchmark teardown.
+                }
+            }
+            finally
+            {
+                _connection.Dispose();
+            }
+        }
+    }
+
+    private sealed class PreparedDropTableState : IDisposable
+    {
+        private readonly BenchmarkSessionBase _owner;
+        private readonly DropTableServiceTest<DbConnection> _service;
+        private readonly DbConnection _connection;
+        private readonly string _users;
+        private readonly string _uId;
+
+        public PreparedDropTableState(
+            BenchmarkSessionBase owner,
+            DbConnection connection,
+            DropTableServiceTest<DbConnection> service,
+            string users,
+            string uId)
+        {
+            _owner = owner;
+            _connection = connection;
+            _service = service;
+            _users = users;
+            _uId = uId;
+        }
+
+        public void RunDropTable()
+        {
+            try
+            {
+                _service.CreateScenario(_users, "Orders", _uId);
+                _service.RunTest(_users, _uId);
+            }
+            finally
+            {
+                try
+                {
+                    _owner.SafeDropTable(_connection, _users, _uId);
+                }
+                catch
+                {
+                    // Ignore cleanup failures during benchmark teardown.
+                }
+            }
+        }
+
+        public void Dispose()
+        {
+            try
+            {
+                _owner.SafeDropTable(_connection, _users, _uId);
+            }
+            catch
+            {
+                // Ignore cleanup failures during benchmark teardown.
+            }
+            finally
+            {
+                _connection.Dispose();
+            }
+        }
+    }
+
     private sealed class PreparedInsertUsersState : IDisposable
     {
         private readonly InsertUsersServiceTest<DbConnection> _service;
@@ -852,6 +1092,51 @@ VALUES (
             _nextInsertId += 1;
             _rowCount += 1;
             return affected;
+        }
+
+        public (string firstName, string lastName) RunInsertCustomStartId()
+        {
+            try
+            {
+                _service.RunTest(_users, _uId, 3, 10, 3);
+                var firstName = Convert.ToString(ExecuteScalar(_connection, _service.Dialect.SelectUserNameById(UsersTable, 10)), CultureInfo.InvariantCulture) ?? string.Empty;
+                var lastName = Convert.ToString(ExecuteScalar(_connection, _service.Dialect.SelectUserNameById(UsersTable, 12)), CultureInfo.InvariantCulture) ?? string.Empty;
+                if (!string.Equals(firstName, "User-10", StringComparison.Ordinal) || !string.Equals(lastName, "User-12", StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException($"Unexpected custom-start insert benchmark result for {_service.Dialect.DisplayName}: {firstName}, {lastName}.");
+                }
+
+                return (firstName, lastName);
+            }
+            finally
+            {
+                try
+                {
+                    ExecuteNonQuery(_connection, _service.Dialect.DeleteUserById(UsersTable, 12));
+                }
+                catch
+                {
+                    // Ignore cleanup failures during benchmark teardown.
+                }
+
+                try
+                {
+                    ExecuteNonQuery(_connection, _service.Dialect.DeleteUserById(UsersTable, 11));
+                }
+                catch
+                {
+                    // Ignore cleanup failures during benchmark teardown.
+                }
+
+                try
+                {
+                    ExecuteNonQuery(_connection, _service.Dialect.DeleteUserById(UsersTable, 10));
+                }
+                catch
+                {
+                    // Ignore cleanup failures during benchmark teardown.
+                }
+            }
         }
 
         private string UsersTable => $"{_users}_{_uId}";
@@ -1826,6 +2111,25 @@ VALUES (
 
         public string UsersTable => $"{_users}_{_uId}";
 
+        public int RunBetweenLikeOrderByMatrix()
+        {
+            var count = CountReaderRows(
+                _connection,
+                $"""
+SELECT Name
+FROM {UsersTable}
+WHERE Id BETWEEN 1 AND 4
+  AND Name LIKE 'A%'
+ORDER BY Name
+""");
+            if (count != 2)
+            {
+                throw new InvalidOperationException($"Unexpected BETWEEN/LIKE/ORDER BY benchmark rowcount for {_service.Dialect.DisplayName}: {count}.");
+            }
+
+            return count;
+        }
+
         public void Dispose()
         {
             try
@@ -1883,6 +2187,19 @@ VALUES (
         public string UsersTable => $"{_users}_{_uId}";
 
         public string OrdersTable => $"{_orders}_{_uId}";
+
+        public int RunSelectLeftJoinAntiJoin()
+        {
+            var count = Convert.ToInt32(
+                ExecuteScalar(_connection, _service.Dialect.SelectLeftJoinAntiJoin(UsersTable, OrdersTable)),
+                CultureInfo.InvariantCulture);
+            if (count != 1)
+            {
+                throw new InvalidOperationException($"Unexpected LEFT JOIN anti-join benchmark count for {_service.Dialect.DisplayName}: {count}.");
+            }
+
+            return count;
+        }
 
         public void Dispose()
         {

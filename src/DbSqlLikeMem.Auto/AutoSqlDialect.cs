@@ -1,8 +1,8 @@
-namespace DbSqlLikeMem;
+namespace DbSqlLikeMem.Auto;
 
 /// <summary>
-/// EN: Provides the compatibility fallback for the automatic SQL dialect mode when the Auto assembly is not loaded.
-/// PT: Fornece o fallback de compatibilidade do modo automatico de dialeto SQL quando o assembly Auto nao esta carregado.
+/// EN: Provides the automatic SQL dialect implementation from the dedicated Auto assembly.
+/// PT: Fornece a implementacao do dialeto SQL automatico no assembly Auto dedicado.
 /// </summary>
 internal sealed class AutoSqlDialect : SqlDialectBase
 {

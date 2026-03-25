@@ -30,14 +30,14 @@ internal static class Db2ScalarFunctionRegistry
 
     private static void RegisterTemporalFunctions(ISqlDialect dialect, Func<SqlExpr, object> body)
     {
-        dialect.AddScalarFunction("CURDATE", "DATE", body, SqlScalarFunctionUsageKind.Call, SqlTemporalFunctionKind.Date);
-        dialect.AddScalarFunction("CURRENT_DATE", "DATE", body, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.Date);
-        dialect.AddScalarFunction("CURRENT DATE", "DATE", body, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.Date);
-        dialect.AddScalarFunction("CURRENT_TIME", "TIME", body, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.Time);
-        dialect.AddScalarFunction("CURRENT TIME", "TIME", body, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.Time);
-        dialect.AddScalarFunction("CURRENT_TIMESTAMP", "DATETIME", body, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.DateTime);
-        dialect.AddScalarFunction("CURRENT TIMESTAMP", "DATETIME", body, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.DateTime);
-        dialect.AddScalarFunction("SYSTEMDATE", "DATETIME", body, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.DateTime);
+        dialect.AddScalarFunction("CURDATE", "DATE", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, SqlScalarFunctionUsageKind.Call, SqlTemporalFunctionKind.Date);
+        dialect.AddScalarFunction("CURRENT_DATE", "DATE", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.Date);
+        dialect.AddScalarFunction("CURRENT DATE", "DATE", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.Date);
+        dialect.AddScalarFunction("CURRENT_TIME", "TIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.Time);
+        dialect.AddScalarFunction("CURRENT TIME", "TIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.Time);
+        dialect.AddScalarFunction("CURRENT_TIMESTAMP", "DATETIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.DateTime);
+        dialect.AddScalarFunction("CURRENT TIMESTAMP", "DATETIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.DateTime);
+        dialect.AddScalarFunction("SYSTEMDATE", "DATETIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.DateTime);
 
         dialect.AddScalarFunction("NEXT_DAY", "DATE", body);
         dialect.AddScalarFunction("DATE_ADD", "DATE", body);
@@ -52,10 +52,17 @@ internal static class Db2ScalarFunctionRegistry
 
     private static void RegisterStringFunctions(ISqlDialect dialect, int version, Func<SqlExpr, object> body)
     {
-        dialect.AddScalarFunctions("VARCHAR", body,
-            "VALUE",
+        dialect.AddScalarFunctions(
+            new DbScalarFunctionDef(SqlConst.VALUE, "VARCHAR", [], body)
+            {
+                AstExecutor = QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions
+            },
+            SqlConst.VALUE,
+            "IFNULL",
             "NVL",
-            "NVL2",
+            "NVL2");
+
+        dialect.AddScalarFunctions("VARCHAR", body,
             "BITAND",
             "BITANDNOT",
             "BITNOT",
@@ -63,7 +70,12 @@ internal static class Db2ScalarFunctionRegistry
             "BITXOR",
             "LISTAGG");
 
-        dialect.AddScalarFunctionsIf(version >= Db2Dialect.JsonFunctionsMinVersion, "VARCHAR", body,
+        dialect.AddScalarFunctionsIf(
+            version >= Db2Dialect.JsonFunctionsMinVersion,
+            new DbScalarFunctionDef("JSON_QUERY", "VARCHAR", [], body)
+            {
+                AstExecutor = AstQueryExecutorBase.TryEvalJsonExtractionFunction
+            },
             "JSON_QUERY",
             "JSON_VALUE");
 

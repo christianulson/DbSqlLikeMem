@@ -1,27 +1,56 @@
 namespace DbSqlLikeMem;
 
+internal delegate bool AstQueryTryEvalMySqlConversionAndMetadataFunction(
+    FunctionCallExpr fn,
+    ISqlDialect dialect,
+    Func<int, object?> evalArg,
+    out object? result);
+
 internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
 {
+    private static readonly IReadOnlyDictionary<string, AstQueryTryEvalMySqlConversionAndMetadataFunction> _handlers =
+        CreateHandlers();
+
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
         ISqlDialect dialect,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (TryEvalMySqlConvFunction(fn, dialect, evalArg, out result))
+        if (_handlers.TryGetValue(fn.Name, out var handler)
+            && handler(fn, dialect, evalArg, out result))
+        {
             return true;
-
-        if (TryEvalMySqlDayFunctions(fn, dialect, evalArg, out result))
-            return true;
-
-        if (TryEvalMySqlDatabaseFunctions(fn, dialect, evalArg, out result))
-            return true;
-
-        if (TryEvalMySqlStringMetadataFunctions(fn, dialect, evalArg, out result))
-            return true;
+        }
 
         result = null;
         return false;
+    }
+
+    private static Dictionary<string, AstQueryTryEvalMySqlConversionAndMetadataFunction> CreateHandlers()
+    {
+        var handlers = new Dictionary<string, AstQueryTryEvalMySqlConversionAndMetadataFunction>(StringComparer.OrdinalIgnoreCase);
+        Register(handlers, TryEvalMySqlConvFunction, "CONV");
+        Register(handlers, TryEvalMySqlDayFunctions, "DAYNAME", "DAYOFMONTH", "DAYOFWEEK", "DAYOFYEAR");
+        Register(handlers, TryEvalMySqlVersionFunction, "VERSION");
+        Register(handlers, TryEvalMySqlCurrentDateFunction, "CURDATE", "CURRENT_DATE");
+        Register(handlers, TryEvalMySqlUtcDateFunction, "UTC_DATE");
+        Register(handlers, TryEvalMySqlCurrentTimeFunction, "CURTIME", "CURRENT_TIME", "LOCALTIME");
+        Register(handlers, TryEvalMySqlUtcTimeFunction, "UTC_TIME");
+        Register(handlers, TryEvalMySqlLocalTimestampFunction, "CURRENT_TIMESTAMP", "LOCALTIMESTAMP", "NOW", "SYSDATE", "SYSTEMDATE");
+        Register(handlers, TryEvalMySqlUtcTimestampFunction, "UTC_TIMESTAMP");
+        Register(handlers, TryEvalMySqlDatabaseFunctions, "DATABASE", "SCHEMA", "SESSION_USER", "CURRENT_USER", "USER", "SYSTEM_USER", "CONNECTION_ID");
+        Register(handlers, TryEvalMySqlStringMetadataFunctions, "CHARSET", "COLLATION", "COERCIBILITY");
+        return handlers;
+    }
+
+    private static void Register(
+        IDictionary<string, AstQueryTryEvalMySqlConversionAndMetadataFunction> handlers,
+        AstQueryTryEvalMySqlConversionAndMetadataFunction handler,
+        params string[] names)
+    {
+        foreach (var name in names)
+            handlers[name] = handler;
     }
 
     private static bool TryEvalMySqlConvFunction(
@@ -133,6 +162,133 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
         return true;
     }
 
+    private static bool TryEvalMySqlVersionFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = evalArg;
+
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        {
+            result = null;
+            return false;
+        }
+
+        result = $"MySQL {FormatMySqlServerVersion(dialect.Version)}";
+        return true;
+    }
+
+    private static bool TryEvalMySqlCurrentDateFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = evalArg;
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        {
+            result = null;
+            return false;
+        }
+
+        result = DateTime.Now.Date;
+        return true;
+    }
+
+    private static bool TryEvalMySqlUtcDateFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = evalArg;
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        {
+            result = null;
+            return false;
+        }
+
+        result = DateTime.UtcNow.Date;
+        return true;
+    }
+
+    private static bool TryEvalMySqlCurrentTimeFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = evalArg;
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        {
+            result = null;
+            return false;
+        }
+
+        result = DateTime.Now.TimeOfDay;
+        return true;
+    }
+
+    private static bool TryEvalMySqlUtcTimeFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = evalArg;
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        {
+            result = null;
+            return false;
+        }
+
+        result = DateTime.UtcNow.TimeOfDay;
+        return true;
+    }
+
+    private static bool TryEvalMySqlLocalTimestampFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = evalArg;
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        {
+            result = null;
+            return false;
+        }
+
+        result = DateTime.Now;
+        return true;
+    }
+
+    private static bool TryEvalMySqlUtcTimestampFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = evalArg;
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        {
+            result = null;
+            return false;
+        }
+
+        result = DateTime.UtcNow;
+        return true;
+    }
+
     private static bool TryEvalMySqlDatabaseFunctions(
         FunctionCallExpr fn,
         ISqlDialect dialect,
@@ -140,7 +296,7 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
         out object? result)
     {
         var name = fn.Name.ToUpperInvariant();
-        if (name is not ("DATABASE" or "SCHEMA" or "SESSION_USER" or "CURRENT_USER" or "LOCALTIME" or "LOCALTIMESTAMP" or "CONNECTION_ID"))
+        if (name is not ("DATABASE" or "SCHEMA" or "SESSION_USER" or "CURRENT_USER" or "USER" or "SYSTEM_USER" or "CONNECTION_ID"))
         {
             result = null;
             return false;
@@ -160,8 +316,8 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
             "DATABASE" or "SCHEMA" => "DefaultSchema",
             "SESSION_USER" => "root@localhost",
             "CURRENT_USER" => "root@localhost",
-            "LOCALTIME" => DateTime.Now,
-            "LOCALTIMESTAMP" => DateTime.Now,
+            "USER" => "root@localhost",
+            "SYSTEM_USER" => "root@localhost",
             "CONNECTION_ID" => 1L,
             _ => null
         };
@@ -209,6 +365,19 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
         };
         return true;
     }
+
+    private static string FormatMySqlServerVersion(int version)
+        => version switch
+        {
+            30 => "3.0",
+            40 => "4.0",
+            55 => "5.5",
+            56 => "5.6",
+            57 => "5.7",
+            80 => "8.0",
+            84 => "8.4",
+            _ => version.ToString(CultureInfo.InvariantCulture),
+        };
 
     private static bool TryParseBaseN(string text, int radix, out long value)
     {

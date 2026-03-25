@@ -1,47 +1,54 @@
 namespace DbSqlLikeMem;
 
-using System;
 using System.Globalization;
+
+internal delegate bool AstQueryTryEvalOracleDb2ConversionFunction(
+    FunctionCallExpr fn,
+    ISqlDialect dialect,
+    Func<int, object?> evalArg,
+    out object? result);
 
 internal static class AstQueryOracleDb2ConversionFunctionEvaluator
 {
+    private static readonly IReadOnlyDictionary<string, AstQueryTryEvalOracleDb2ConversionFunction> _handlers =
+        CreateHandlers();
+
+    private static readonly HashSet<string> _requiresSupportCheck = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "TO_BINARY_DOUBLE",
+        "TO_BINARY_FLOAT",
+        "TO_BLOB",
+        "TO_CLOB",
+        "TO_DSINTERVAL",
+        "TO_LOB",
+        "TO_MULTI_BYTE",
+        "TO_NCHAR",
+        "TO_NCLOB",
+        "TO_SINGLE_BYTE",
+        "TO_TIMESTAMP_TZ",
+        "TO_YMINTERVAL"
+    };
+
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
         ISqlDialect dialect,
         Func<int, object?> evalArg,
         out object? result)
     {
-        var name = fn.Name.ToUpperInvariant();
-        if (name is not ("TO_BINARY_DOUBLE" or "TO_BINARY_FLOAT" or "TO_BLOB" or "TO_CHAR" or "TO_CLOB" or "TO_DATE"
-            or "TO_DSINTERVAL" or "TO_LOB" or "TO_MULTI_BYTE" or "TO_NCHAR" or "TO_NCLOB" or "TO_NUMBER"
-            or "TO_SINGLE_BYTE" or "TO_TIMESTAMP" or "TO_TIMESTAMP_TZ" or "TO_YMINTERVAL"))
+        if (!IsOracleDb2Dialect(dialect))
         {
             result = null;
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!_handlers.TryGetValue(fn.Name, out var handler))
         {
             result = null;
             return false;
         }
 
-        if ((name.Equals("TO_BINARY_DOUBLE", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("TO_BINARY_FLOAT", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("TO_BLOB", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("TO_CLOB", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("TO_DSINTERVAL", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("TO_LOB", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("TO_MULTI_BYTE", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("TO_NCHAR", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("TO_NCLOB", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("TO_SINGLE_BYTE", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("TO_TIMESTAMP_TZ", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("TO_YMINTERVAL", StringComparison.OrdinalIgnoreCase)))
-        {
-            QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(dialect, name);
-        }
+        if (_requiresSupportCheck.Contains(fn.Name))
+            QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(dialect, fn.Name);
 
         if (fn.Args.Count == 0)
         {
@@ -56,123 +63,262 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
             return true;
         }
 
-        switch (name)
+        return handler(fn, dialect, evalArg, out result);
+    }
+
+    private static Dictionary<string, AstQueryTryEvalOracleDb2ConversionFunction> CreateHandlers()
+    {
+        var handlers = new Dictionary<string, AstQueryTryEvalOracleDb2ConversionFunction>(StringComparer.OrdinalIgnoreCase);
+        Register(handlers, TryEvalConvertFunction, "CONVERT");
+        Register(handlers, TryEvalToBinaryDoubleFunction, "TO_BINARY_DOUBLE");
+        Register(handlers, TryEvalToBinaryFloatFunction, "TO_BINARY_FLOAT");
+        Register(handlers, TryEvalToNumberFunction, "TO_NUMBER");
+        Register(handlers, TryEvalToCharFunction, "TO_CHAR");
+        Register(handlers, TryEvalToDateFunction, "TO_DATE");
+        Register(handlers, TryEvalToTimestampFunction, "TO_TIMESTAMP");
+        Register(handlers, TryEvalToTimestampTzFunction, "TO_TIMESTAMP_TZ");
+        Register(handlers, TryEvalToDsIntervalFunction, "TO_DSINTERVAL");
+        Register(handlers, TryEvalToYmIntervalFunction, "TO_YMINTERVAL");
+        Register(handlers, TryEvalToTextFunction, "TO_BLOB", "TO_CLOB", "TO_LOB", "TO_MULTI_BYTE", "TO_NCHAR", "TO_NCLOB", "TO_SINGLE_BYTE");
+        return handlers;
+    }
+
+    private static void Register(
+        IDictionary<string, AstQueryTryEvalOracleDb2ConversionFunction> handlers,
+        AstQueryTryEvalOracleDb2ConversionFunction handler,
+        params string[] names)
+    {
+        foreach (var name in names)
+            handlers[name] = handler;
+    }
+
+    private static bool IsOracleDb2Dialect(ISqlDialect dialect)
+        => dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            || dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase);
+
+    private static bool TryEvalConvertFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = dialect;
+        var value = evalArg(0);
+        result = value is string textValue ? textValue : value!.ToString();
+        return true;
+    }
+
+    private static bool TryEvalToBinaryDoubleFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = dialect;
+        result = Convert.ToDouble(evalArg(0), CultureInfo.InvariantCulture);
+        return true;
+    }
+
+    private static bool TryEvalToBinaryFloatFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = dialect;
+        result = Convert.ToSingle(evalArg(0), CultureInfo.InvariantCulture);
+        return true;
+    }
+
+    private static bool TryEvalToNumberFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = dialect;
+        var value = evalArg(0);
+        if (value is string numberText)
         {
-            case "TO_BINARY_DOUBLE":
-                result = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            var mask = fn.Args.Count > 1 ? evalArg(1)?.ToString() : null;
+            if (AstQueryFormatFunctionHelper.TryParseOracleNumber(numberText, mask, out var parsedNumber))
+            {
+                result = parsedNumber;
                 return true;
-            case "TO_BINARY_FLOAT":
-                result = Convert.ToSingle(value, CultureInfo.InvariantCulture);
-                return true;
-            case "TO_NUMBER":
-                if (value is string numberText)
-                {
-                    var mask = fn.Args.Count > 1 ? evalArg(1)?.ToString() : null;
-                    if (AstQueryFormatFunctionHelper.TryParseOracleNumber(numberText, mask, out var parsedNumber))
-                    {
-                        result = parsedNumber;
-                        return true;
-                    }
-                }
-
-                result = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
-                return true;
-            case "TO_CHAR":
-                if (value is DateTime dateValue)
-                {
-                    if (fn.Args.Count > 1 && evalArg(1) is string fmt)
-                    {
-                        var netFormat = AstQueryFormatFunctionHelper.NormalizeOracleFormatMask(fmt, out _);
-                        result = dateValue.ToString(netFormat ?? fmt, CultureInfo.InvariantCulture);
-                    }
-                    else
-                    {
-                        result = dateValue.ToString(CultureInfo.InvariantCulture);
-                    }
-
-                    return true;
-                }
-
-                if (value is DateTimeOffset dtoValue)
-                {
-                    if (fn.Args.Count > 1 && evalArg(1) is string fmt)
-                    {
-                        var netFormat = AstQueryFormatFunctionHelper.NormalizeOracleFormatMask(fmt, out _);
-                        result = dtoValue.ToString(netFormat ?? fmt, CultureInfo.InvariantCulture);
-                    }
-                    else
-                    {
-                        result = dtoValue.ToString(CultureInfo.InvariantCulture);
-                    }
-
-                    return true;
-                }
-
-                if (AstQueryFormatFunctionHelper.IsNumericValue(value))
-                {
-                    var mask = fn.Args.Count > 1 ? evalArg(1)?.ToString() : null;
-                    if (!string.IsNullOrWhiteSpace(mask))
-                    {
-                        result = AstQueryFormatFunctionHelper.FormatOracleNumber(value!, mask!);
-                        return true;
-                    }
-                }
-
-                result = value!.ToString();
-                return true;
-            case "TO_DATE":
-            case "TO_TIMESTAMP":
-            case "TO_TIMESTAMP_TZ":
-                if (value is DateTime dt)
-                {
-                    result = dt;
-                    return true;
-                }
-
-                var textValue = value?.ToString() ?? string.Empty;
-                var maskValue = fn.Args.Count > 1 ? evalArg(1)?.ToString() : null;
-                if (name == "TO_TIMESTAMP_TZ")
-                {
-                    if (AstQueryFormatFunctionHelper.TryParseOracleDateTimeOffset(textValue, maskValue, out var parsedOffset))
-                    {
-                        result = parsedOffset;
-                        return true;
-                    }
-
-                    result = null;
-                    return true;
-                }
-
-                if (AstQueryFormatFunctionHelper.TryParseOracleDateTime(textValue, maskValue, out var parsed))
-                {
-                    result = parsed;
-                    return true;
-                }
-
-                result = null;
-                return true;
-            case "TO_DSINTERVAL":
-            case "TO_YMINTERVAL":
-                if (AstQueryExecutorBase.TryCoerceTimeSpan(value, out var parsedSpan))
-                {
-                    result = parsedSpan;
-                    return true;
-                }
-
-                result = null;
-                return true;
-            case "TO_BLOB":
-            case "TO_CLOB":
-            case "TO_NCLOB":
-            case "TO_LOB":
-            case "TO_MULTI_BYTE":
-            case "TO_SINGLE_BYTE":
-            case "TO_NCHAR":
-                result = value?.ToString();
-                return true;
-            default:
-                result = value;
-                return true;
+            }
         }
+
+        result = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+        return true;
+    }
+
+    private static bool TryEvalToCharFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = dialect;
+        var value = evalArg(0);
+
+        if (value is DateTime dateValue)
+        {
+            if (fn.Args.Count > 1 && evalArg(1) is string fmt)
+            {
+                var netFormat = AstQueryFormatFunctionHelper.NormalizeOracleFormatMask(fmt, out _);
+                result = dateValue.ToString(netFormat ?? fmt, CultureInfo.InvariantCulture);
+            }
+            else
+            {
+                result = dateValue.ToString(CultureInfo.InvariantCulture);
+            }
+
+            return true;
+        }
+
+        if (value is DateTimeOffset dtoValue)
+        {
+            if (fn.Args.Count > 1 && evalArg(1) is string fmt)
+            {
+                var netFormat = AstQueryFormatFunctionHelper.NormalizeOracleFormatMask(fmt, out _);
+                result = dtoValue.ToString(netFormat ?? fmt, CultureInfo.InvariantCulture);
+            }
+            else
+            {
+                result = dtoValue.ToString(CultureInfo.InvariantCulture);
+            }
+
+            return true;
+        }
+
+        if (AstQueryFormatFunctionHelper.IsNumericValue(value))
+        {
+            var mask = fn.Args.Count > 1 ? evalArg(1)?.ToString() : null;
+            if (!string.IsNullOrWhiteSpace(mask))
+            {
+                result = AstQueryFormatFunctionHelper.FormatOracleNumber(value!, mask!);
+                return true;
+            }
+        }
+
+        result = value!.ToString();
+        return true;
+    }
+
+    private static bool TryEvalToDateFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = dialect;
+        return TryEvalOracleDateTimeFunction(fn, evalArg, allowOffset: false, out result);
+    }
+
+    private static bool TryEvalToTimestampFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = dialect;
+        return TryEvalOracleDateTimeFunction(fn, evalArg, allowOffset: false, out result);
+    }
+
+    private static bool TryEvalToTimestampTzFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = dialect;
+        return TryEvalOracleDateTimeFunction(fn, evalArg, allowOffset: true, out result);
+    }
+
+    private static bool TryEvalOracleDateTimeFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        bool allowOffset,
+        out object? result)
+    {
+        var value = evalArg(0);
+        if (value is DateTime dt)
+        {
+            result = dt;
+            return true;
+        }
+
+        var textValue = value?.ToString() ?? string.Empty;
+        var maskValue = fn.Args.Count > 1 ? evalArg(1)?.ToString() : null;
+        if (allowOffset)
+        {
+            if (AstQueryFormatFunctionHelper.TryParseOracleDateTimeOffset(textValue, maskValue, out var parsedOffset))
+            {
+                result = parsedOffset;
+                return true;
+            }
+
+            result = null;
+            return true;
+        }
+
+        if (AstQueryFormatFunctionHelper.TryParseOracleDateTime(textValue, maskValue, out var parsed))
+        {
+            result = parsed;
+            return true;
+        }
+
+        result = null;
+        return true;
+    }
+
+    private static bool TryEvalToDsIntervalFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = dialect;
+        if (AstQueryExecutorBase.TryCoerceTimeSpan(evalArg(0), out var parsedSpan))
+        {
+            result = parsedSpan;
+            return true;
+        }
+
+        result = null;
+        return true;
+    }
+
+    private static bool TryEvalToYmIntervalFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = dialect;
+        if (AstQueryExecutorBase.TryCoerceTimeSpan(evalArg(0), out var parsedSpan))
+        {
+            result = parsedSpan;
+            return true;
+        }
+
+        result = null;
+        return true;
+    }
+
+    private static bool TryEvalToTextFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = dialect;
+        result = evalArg(0)?.ToString();
+        return true;
     }
 }

@@ -2,18 +2,47 @@ namespace DbSqlLikeMem;
 
 internal static class QueryConditionalNullFunctionHelper
 {
+    private delegate bool ConditionalNullFunctionHandler(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result);
+
+    private static readonly Dictionary<string, ConditionalNullFunctionHandler> _handlers = CreateHandlers();
+
     public static bool TryEvalConditionalAndNullFunctions(
         FunctionCallExpr fn,
         ISqlDialect dialect,
         Func<int, object?> evalArg,
         out object? result)
     {
-        return TryEvalConditionalFunction(fn, dialect, evalArg, out result)
-            || TryEvalNullSubstituteFunction(fn, dialect, evalArg, out result)
-            || TryEvalNvl2Function(fn, evalArg, out result)
-            || TryEvalDecodeFunction(fn, dialect, evalArg, out result)
-            || TryEvalCoalesceFunction(fn, evalArg, out result)
-            || TryEvalNullIfFunction(fn, dialect, evalArg, out result);
+        if (_handlers.TryGetValue(fn.Name, out var handler)
+            && handler(fn, dialect, evalArg, out result))
+        {
+            return true;
+        }
+
+        return TryEvalNullSubstituteFunction(fn, dialect, evalArg, out result);
+    }
+
+    private static Dictionary<string, ConditionalNullFunctionHandler> CreateHandlers()
+    {
+        var handlers = new Dictionary<string, ConditionalNullFunctionHandler>(StringComparer.OrdinalIgnoreCase);
+        Register(handlers, SqlConst.IF, TryEvalConditionalFunction);
+        Register(handlers, "IIF", TryEvalConditionalFunction);
+        Register(handlers, "NVL2", TryEvalNvl2Function);
+        Register(handlers, "DECODE", TryEvalDecodeFunction);
+        Register(handlers, "COALESCE", TryEvalCoalesceFunction);
+        Register(handlers, "NULLIF", TryEvalNullIfFunction);
+        return handlers;
+    }
+
+    private static void Register(
+        Dictionary<string, ConditionalNullFunctionHandler> handlers,
+        string name,
+        ConditionalNullFunctionHandler handler)
+    {
+        handlers[name] = handler;
     }
 
     private static bool TryEvalConditionalFunction(
@@ -70,9 +99,12 @@ internal static class QueryConditionalNullFunctionHelper
 
     private static bool TryEvalNvl2Function(
         FunctionCallExpr fn,
+        ISqlDialect dialect,
         Func<int, object?> evalArg,
         out object? result)
     {
+        _ = dialect;
+
         if (!fn.Name.Equals("NVL2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -161,9 +193,12 @@ internal static class QueryConditionalNullFunctionHelper
 
     private static bool TryEvalCoalesceFunction(
         FunctionCallExpr fn,
+        ISqlDialect dialect,
         Func<int, object?> evalArg,
         out object? result)
     {
+        _ = dialect;
+
         if (!fn.Name.Equals("COALESCE", StringComparison.OrdinalIgnoreCase))
         {
             result = null;

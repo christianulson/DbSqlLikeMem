@@ -2,18 +2,43 @@ namespace DbSqlLikeMem;
 
 internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
 {
+    private static readonly Dictionary<string, AstQueryGeneralScalarFunctionHandler> _handlers = CreateHandlers();
+
+    private static Dictionary<string, AstQueryGeneralScalarFunctionHandler> CreateHandlers()
+    {
+        var handlers = new Dictionary<string, AstQueryGeneralScalarFunctionHandler>(StringComparer.OrdinalIgnoreCase);
+
+        Register(handlers, TryEvalOracleBfilenameFunction, "BFILENAME");
+        Register(handlers, TryEvalOracleHashFunction, "STANDARD_HASH", "ORA_HASH");
+        Register(handlers, TryEvalOracleRawFunctions, "RAWTOHEX", "RAWTONHEX", "REF", "REFTOHEX");
+        Register(handlers, TryEvalOracleRegexFunctions, "REGEXP_COUNT", "REGEXP_INSTR", "REGEXP_REPLACE", "REGEXP_SUBSTR");
+        Register(handlers, TryEvalOracleRemainderFunction, "REMAINDER");
+        Register(handlers, TryEvalOracleRowIdFunctions, "ROWIDTOCHAR", "ROWTONCHAR");
+        Register(handlers, TryEvalOracleHexToRawFunction, "HEXTORAW");
+
+        return handlers;
+    }
+
+    private static void Register(
+        IDictionary<string, AstQueryGeneralScalarFunctionHandler> handlers,
+        AstQueryGeneralScalarFunctionHandler handler,
+        params string[] names)
+    {
+        foreach (var name in names)
+            handlers[name] = handler;
+    }
+
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
         ISqlDialect dialect,
         Func<int, object?> evalArg,
         out object? result)
     {
-        return TryEvalOracleBfilenameFunction(fn, dialect, evalArg, out result)
-            || TryEvalOracleHashFunction(fn, dialect, evalArg, out result)
-            || TryEvalOracleRawFunctions(fn, dialect, evalArg, out result)
-            || TryEvalOracleRegexFunctions(fn, dialect, evalArg, out result)
-            || TryEvalOracleRemainderFunction(fn, dialect, evalArg, out result)
-            || TryEvalOracleRowIdFunctions(fn, dialect, evalArg, out result);
+        if (_handlers.TryGetValue(fn.Name, out var handler))
+            return handler(fn, dialect, evalArg, out result);
+
+        result = null;
+        return false;
     }
 
     private static bool TryEvalOracleBfilenameFunction(
@@ -330,6 +355,77 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
 
         var value = evalArg(0);
         result = AstQueryExecutorBase.IsNullish(value) ? null : value?.ToString();
+        return true;
+    }
+
+    private static bool TryEvalOracleHexToRawFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("HEXTORAW", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        var value = evalArg(0)?.ToString() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!TryNormalizeHexPayload(value, out var hex) || hex.Length % 2 != 0)
+        {
+            result = null;
+            return true;
+        }
+
+        var buffer = new byte[hex.Length / 2];
+        for (var i = 0; i < hex.Length; i += 2)
+        {
+            if (!byte.TryParse(hex.Substring(i, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var part))
+            {
+                result = null;
+                return true;
+            }
+
+            buffer[i / 2] = part;
+        }
+
+        result = buffer;
+        return true;
+    }
+
+    private static bool TryNormalizeHexPayload(string trimmed, out string hex)
+    {
+        hex = string.Empty;
+
+        if (trimmed.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+        {
+            hex = trimmed[2..];
+            return true;
+        }
+
+        if (trimmed.Length >= 3
+            && (trimmed[0] == 'x' || trimmed[0] == 'X')
+            && trimmed[1] == '\''
+            && trimmed[^1] == '\'')
+        {
+            hex = trimmed[2..^1];
+            return true;
+        }
+
+        hex = trimmed;
         return true;
     }
 

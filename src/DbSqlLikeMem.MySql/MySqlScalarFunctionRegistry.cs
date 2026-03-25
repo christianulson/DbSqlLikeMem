@@ -10,155 +10,499 @@ internal partial class MySqlDialect
         SqlSharedScalarFunctionRegistry.Register(this);
 
         var body = SqlFunctionBodyFactory.Identity();
+        var emptyUtilityRow = new AstQueryExecutorBase.EvalRow(
+            new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase),
+            new Dictionary<string, AstQueryExecutorBase.Source>(StringComparer.OrdinalIgnoreCase));
 
-        this.AddScalarFunction("IFNULL", "VARCHAR", body);
-        this.AddScalarFunction("DATABASE", "VARCHAR", body);
-        this.AddScalarFunction("SCHEMA", "VARCHAR", body);
-        this.AddScalarFunction("CONNECTION_ID", "BIGINT", body);
-        this.AddScalarFunction("VERSION", "VARCHAR", body);
-        this.AddScalarFunction("CHARSET", "VARCHAR", body);
-        this.AddScalarFunction("COLLATION", "VARCHAR", body);
-        this.AddScalarFunction("CURRENT_USER", "VARCHAR", body, SqlScalarFunctionUsageKind.CallOrIdentifier, null);
-        this.AddScalarFunction("SESSION_USER", "VARCHAR", body, SqlScalarFunctionUsageKind.CallOrIdentifier, null);
-        this.AddScalarFunction("USER", "VARCHAR", body, SqlScalarFunctionUsageKind.CallOrIdentifier, null);
-        this.AddScalarFunction("SYSTEM_USER", "VARCHAR", body, SqlScalarFunctionUsageKind.CallOrIdentifier, null);
-        this.AddScalarFunction("FOUND_ROWS", "BIGINT", body);
-        this.AddScalarFunction("ROW_COUNT", "BIGINT", body);
+        bool TryEvalMySqlGeneralScalarFunction(
+            FunctionCallExpr fn,
+            ISqlDialect currentDialect,
+            Func<int, object?> evalArg,
+            out object? result)
+            => AstQueryGeneralScalarFunctionEvaluator.TryEvaluate(fn, currentDialect, evalArg, out result);
+
+        bool TryEvalMySqlUtilityFunction(
+            FunctionCallExpr fn,
+            ISqlDialect currentDialect,
+            Func<int, object?> evalArg,
+            out object? result)
+            => AstQueryMySqlUtilityFunctionEvaluator.TryEvaluate(
+                fn,
+                currentDialect,
+                emptyUtilityRow,
+                evalArg,
+                AstQueryExecutorBase.TryConvertNumericToInt64,
+                AstQueryExecutorBase.TryConvertNumericToDouble,
+                out result);
+
+        bool TryEvalMySqlQueryUtilityFunction(
+            FunctionCallExpr fn,
+            ISqlDialect currentDialect,
+            Func<int, object?> evalArg,
+            out object? result)
+            => QueryMySqlUtilityFunctionHelper.TryEvalUtilityFunctions(
+                fn,
+                currentDialect,
+                evalArg,
+                AstQueryExecutorBase.TryConvertNumericToInt64,
+                out result);
+
+        bool TryEvalMySqlNumericFunction(
+            FunctionCallExpr fn,
+            ISqlDialect currentDialect,
+            Func<int, object?> evalArg,
+            out object? result)
+            => AstQueryExecutorBase.TryEvalNumericFunction(fn, evalArg, out result);
+
+        bool TryEvalMySqlDateTimeFunction(
+            FunctionCallExpr fn,
+            ISqlDialect currentDialect,
+            Func<int, object?> evalArg,
+            out object? result)
+            => QueryMySqlDateTimeFunctionHelper.TryEvalFunctions(
+                fn,
+                currentDialect,
+                evalArg,
+                AstQueryExecutorBase.TryConvertNumericToDouble,
+                AstQueryExecutorBase.TryConvertNumericToInt64,
+                AstQueryExecutorBase.TryCoerceDateTime,
+                AstQueryExecutorBase.TryParseExactCachedDateTime,
+                out result);
+
+        this.AddScalarFunction(
+            "IFNULL",
+            "VARCHAR",
+            QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions);
+        this.AddScalarFunctions(
+            "VARCHAR",
+            AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate,
+            "DATABASE",
+            "SCHEMA");
+        this.AddScalarFunctions(
+            "VARCHAR",
+            AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate,
+            SqlScalarFunctionUsageKind.CallOrIdentifier,
+            null,
+            "SESSION_USER",
+            "CURRENT_USER");
+        this.AddScalarFunction(
+            "CONNECTION_ID",
+            "BIGINT",
+            AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate);
+        this.AddScalarFunction(
+            "VERSION",
+            "VARCHAR",
+            AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate);
+        this.AddScalarFunctions(
+            "VARCHAR",
+            AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate,
+            "CHARSET",
+            "COLLATION",
+            "COERCIBILITY");
+        this.AddScalarFunctions(
+            "VARCHAR",
+            AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate,
+            SqlScalarFunctionUsageKind.CallOrIdentifier,
+            null,
+            "USER",
+            "SYSTEM_USER");
+        this.AddScalarFunctions("BIGINT", body, "FOUND_ROWS", "ROW_COUNT");
         this.AddScalarFunction("LAST_INSERT_ID", "BIGINT", body);
-        this.AddScalarFunction("UUID_SHORT", "BIGINT", body);
         this.AddScalarFunction("GROUP_CONCAT", "VARCHAR", body, SqlScalarFunctionUsageKind.Call, null);
 
-        this.AddScalarFunction("CURDATE", "DATE", body, SqlScalarFunctionUsageKind.Call, SqlTemporalFunctionKind.Date);
-        this.AddScalarFunction("CURTIME", "TIME", body, SqlScalarFunctionUsageKind.Call, SqlTemporalFunctionKind.Time);
-        this.AddScalarFunction("CURRENT_DATE", "DATE", body, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.Date);
-        this.AddScalarFunction("CURRENT_TIME", "TIME", body, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.Time);
-        this.AddScalarFunction("CURRENT_TIMESTAMP", "DATETIME", body, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.DateTime);
-        this.AddScalarFunction("LOCALTIME", "TIME", body, SqlScalarFunctionUsageKind.CallOrIdentifier, SqlTemporalFunctionKind.Time);
-        this.AddScalarFunction("LOCALTIMESTAMP", "DATETIME", body, SqlScalarFunctionUsageKind.CallOrIdentifier, SqlTemporalFunctionKind.DateTime);
-        this.AddScalarFunction("NOW", "DATETIME", body, SqlScalarFunctionUsageKind.Call, SqlTemporalFunctionKind.DateTime);
-        this.AddScalarFunction("SYSDATE", "DATETIME", body, SqlScalarFunctionUsageKind.Call, SqlTemporalFunctionKind.DateTime);
-        this.AddScalarFunction("SYSTEMDATE", "DATETIME", body, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.DateTime);
-        this.AddScalarFunction("UTC_DATE", "DATE", body, SqlScalarFunctionUsageKind.Call, SqlTemporalFunctionKind.Date);
-        this.AddScalarFunction("UTC_TIME", "TIME", body, SqlScalarFunctionUsageKind.Call, SqlTemporalFunctionKind.Time);
-        this.AddScalarFunction("UTC_TIMESTAMP", "DATETIME", body, SqlScalarFunctionUsageKind.Call, SqlTemporalFunctionKind.DateTime);
+        this.AddScalarFunction(
+            "CURDATE",
+            "DATE",
+            AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate,
+            SqlScalarFunctionUsageKind.Call,
+            SqlTemporalFunctionKind.Date);
+        this.AddScalarFunction(
+            "CURTIME",
+            "TIME",
+            AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate,
+            SqlScalarFunctionUsageKind.Call,
+            SqlTemporalFunctionKind.Time);
+        this.AddScalarFunction(
+            "CURRENT_DATE",
+            "DATE",
+            AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate,
+            SqlScalarFunctionUsageKind.Identifier,
+            SqlTemporalFunctionKind.Date);
+        this.AddScalarFunction(
+            "CURRENT_TIME",
+            "TIME",
+            AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate,
+            SqlScalarFunctionUsageKind.Identifier,
+            SqlTemporalFunctionKind.Time);
+        this.AddScalarFunction(
+            "CURRENT_TIMESTAMP",
+            "DATETIME",
+            AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate,
+            SqlScalarFunctionUsageKind.Identifier,
+            SqlTemporalFunctionKind.DateTime);
+        this.AddScalarFunction(
+            "LOCALTIME",
+            "TIME",
+            AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate,
+            SqlScalarFunctionUsageKind.CallOrIdentifier,
+            SqlTemporalFunctionKind.Time);
+        this.AddScalarFunction(
+            "LOCALTIMESTAMP",
+            "DATETIME",
+            AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate,
+            SqlScalarFunctionUsageKind.CallOrIdentifier,
+            SqlTemporalFunctionKind.DateTime);
+        this.AddScalarFunction(
+            "NOW",
+            "DATETIME",
+            AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate,
+            SqlScalarFunctionUsageKind.Call,
+            SqlTemporalFunctionKind.DateTime);
+        this.AddScalarFunction(
+            "SYSDATE",
+            "DATETIME",
+            AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate,
+            SqlScalarFunctionUsageKind.Call,
+            SqlTemporalFunctionKind.DateTime);
+        this.AddScalarFunction(
+            "SYSTEMDATE",
+            "DATETIME",
+            AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate,
+            SqlScalarFunctionUsageKind.Identifier,
+            SqlTemporalFunctionKind.DateTime);
+        this.AddScalarFunction(
+            "UTC_DATE",
+            "DATE",
+            AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate,
+            SqlScalarFunctionUsageKind.Call,
+            SqlTemporalFunctionKind.Date);
+        this.AddScalarFunction(
+            "UTC_TIME",
+            "TIME",
+            AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate,
+            SqlScalarFunctionUsageKind.Call,
+            SqlTemporalFunctionKind.Time);
+        this.AddScalarFunction(
+            "UTC_TIMESTAMP",
+            "DATETIME",
+            AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate,
+            SqlScalarFunctionUsageKind.Call,
+            SqlTemporalFunctionKind.DateTime);
 
-        this.AddScalarFunction("DATE", "DATE", body);
-        this.AddScalarFunction("TIME", "TIME", body);
-        this.AddScalarFunction("TIMESTAMP", "DATETIME", body);
-        this.AddScalarFunction("CHAR_LENGTH", "BIGINT", body);
-        this.AddScalarFunction("CHARACTER_LENGTH", "BIGINT", body);
-        this.AddScalarFunction("BIT_LENGTH", "INT", body);
-        this.AddScalarFunction("BIT_COUNT", "INT", body);
-        this.AddScalarFunction("BIN", "VARCHAR", body);
-        this.AddScalarFunction("CRC32", "BIGINT", body);
-        this.AddScalarFunction("CONVERT", "VARCHAR", body);
-        this.AddScalarFunction("CONV", "VARCHAR", body);
-        this.AddScalarFunction("CONVERT_TZ", "DATETIME", body);
-        this.AddScalarFunction("DATE_SUB", "DATETIME", body);
-        this.AddScalarFunction("ELT", "VARCHAR", body);
-        this.AddScalarFunction("EXPORT_SET", "VARCHAR", body);
-        this.AddScalarFunction("FIND_IN_SET", "INT", body);
-        this.AddScalarFunction("FROM_BASE64", "VARBINARY", body);
-        this.AddScalarFunction("TO_BASE64", "VARCHAR", body);
-        this.AddScalarFunction("FROM_DAYS", "DATE", body);
-        this.AddScalarFunction("GET_FORMAT", "VARCHAR", body);
-        this.AddScalarFunction("INET_ATON", "BIGINT", body);
-        this.AddScalarFunction("INET_NTOA", "VARCHAR", body);
-        this.AddScalarFunction("INET6_ATON", "VARBINARY", body);
-        this.AddScalarFunction("INET6_NTOA", "VARCHAR", body);
-        this.AddScalarFunction("IS_IPV4", "INT", body);
-        this.AddScalarFunction("IS_IPV4_COMPAT", "INT", body);
-        this.AddScalarFunction("IS_IPV4_MAPPED", "INT", body);
-        this.AddScalarFunction("IS_IPV6", "INT", body);
-        this.AddScalarFunction("AES_ENCRYPT", "VARBINARY", body);
-        this.AddScalarFunction("AES_DECRYPT", "VARCHAR", body);
-        this.AddScalarFunction("DES_ENCRYPT", "VARBINARY", body);
-        this.AddScalarFunction("DES_DECRYPT", "VARCHAR", body);
-        this.AddScalarFunction("ENCODE", "VARBINARY", body);
-        this.AddScalarFunction("DECODE", "VARCHAR", body);
-        this.AddScalarFunction("ENCRYPT", "VARCHAR", body);
-        this.AddScalarFunction("DEFAULT", "VARCHAR", body);
-        this.AddScalarFunction("MEMBER_OF", "BOOLEAN", body);
-        this.AddScalarFunction("EXTRACTVALUE", "VARCHAR", body);
-        this.AddScalarFunction("UPDATEXML", "VARCHAR", body);
-        this.AddScalarFunction("LOG2", "DOUBLE", body);
-        this.AddScalarFunction("MAKE_SET", "VARCHAR", body);
-        this.AddScalarFunction("OCT", "VARCHAR", body);
-        this.AddScalarFunction("ORD", "INT", body);
-        this.AddScalarFunction("GREATEST", "VARCHAR", body, SqlScalarFunctionUsageKind.CallOrIdentifier, null);
-        this.AddScalarFunction("LEAST", "VARCHAR", body, SqlScalarFunctionUsageKind.CallOrIdentifier, null);
-        this.AddScalarFunction("POSITION", "INT", body);
-        this.AddScalarFunction("RPAD", "VARCHAR", body);
-        this.AddScalarFunction("SLEEP", "INT", body);
-        this.AddScalarFunction("SUBSTRING_INDEX", "VARCHAR", body);
-        this.AddScalarFunction("OCTET_LENGTH", "INT", body);
-        this.AddScalarFunction("COMPRESS", "VARBINARY", body);
-        this.AddScalarFunction("UNCOMPRESS", "VARBINARY", body);
-        this.AddScalarFunction("CONVERT_TZ", "DATETIME", body);
-        this.AddScalarFunction("TRUNCATE", "DECIMAL", body);
-        this.AddScalarFunction("UNIX_TIMESTAMP", "BIGINT", body);
-        this.AddScalarFunction("SHA", "VARCHAR", body);
-        this.AddScalarFunction("SHA1", "VARCHAR", body);
-        this.AddScalarFunction("SHA2", "VARCHAR", body);
-        this.AddScalarFunction("UNCOMPRESSED_LENGTH", "BIGINT", body);
-        this.AddScalarFunctionIf(version >= MySqlDialect.JsonExtractMinVersion, "JSON_EXTRACT", "VARCHAR", body);
-        this.AddScalarFunctionIf(version >= MySqlDialect.JsonExtractMinVersion, "JSON_UNQUOTE", "VARCHAR", body);
-        this.AddScalarFunctionIf(version >= MySqlDialect.JsonExtractMinVersion, "JSON_DEPTH", "INT", body);
-        this.AddScalarFunctionIf(version >= MySqlDialect.JsonExtractMinVersion, "JSON_VALID", "INT", body);
-        this.AddScalarFunctionIf(version >= MySqlDialect.JsonExtractMinVersion, "JSON_TYPE", "VARCHAR", body);
-        this.AddScalarFunctionIf(version >= MySqlDialect.JsonExtractMinVersion, "JSON_LENGTH", "INT", body);
-        this.AddScalarFunctionIf(version >= MySqlDialect.JsonExtractMinVersion, "JSON_ARRAY", "VARCHAR", body);
-        this.AddScalarFunctionIf(version >= MySqlDialect.JsonExtractMinVersion, "JSON_OBJECT", "VARCHAR", body);
-        this.AddScalarFunctionIf(version >= MySqlDialect.JsonExtractMinVersion, "JSON_QUOTE", "VARCHAR", body);
-        this.AddScalarFunctionIf(version >= MySqlDialect.JsonExtractMinVersion, "JSON_PRETTY", "VARCHAR", body);
-        this.AddScalarFunctionIf(version >= MySqlDialect.JsonExtractMinVersion, "JSON_KEYS", "VARCHAR", body);
-        this.AddScalarFunctionIf(version >= MySqlDialect.JsonExtractMinVersion, "JSON_SET", "VARCHAR", body);
-        this.AddScalarFunctionIf(version >= MySqlDialect.JsonExtractMinVersion, "JSON_REMOVE", "VARCHAR", body);
-        this.AddScalarFunctionIf(version >= MySqlDialect.JsonExtractMinVersion, "JSON_CONTAINS", "INT", body);
-        this.AddScalarFunctionIf(version >= MySqlDialect.JsonExtractMinVersion, "JSON_CONTAINS_PATH", "INT", body);
-        this.AddScalarFunctionIf(version >= MySqlDialect.JsonExtractMinVersion, "JSON_SEARCH", "VARCHAR", body);
-        this.AddScalarFunctionIf(version >= MySqlDialect.JsonExtractMinVersion, "JSON_INSERT", "VARCHAR", body);
-        this.AddScalarFunctionIf(version >= MySqlDialect.JsonExtractMinVersion, "JSON_REPLACE", "VARCHAR", body);
-        this.AddScalarFunction("DATE_ADD", "DATETIME", body);
-        this.AddScalarFunction("ADDDATE", "DATETIME", body);
-        this.AddScalarFunction("ADDTIME", "DATETIME", body);
-        this.AddScalarFunction("TIMESTAMPADD", "DATETIME", body);
+        this.AddScalarFunctions(
+            "DATE",
+            AstQueryGeneralDateFunctionEvaluator.TryEvaluate,
+            "DATE",
+            "TIME",
+            "TIMESTAMP");
+
+        this.AddScalarFunctions(
+            "BIGINT",
+            TryEvalMySqlGeneralScalarFunction,
+            "CHAR_LENGTH",
+            "CHARACTER_LENGTH");
+        this.AddScalarFunctions(
+            "INT",
+            TryEvalMySqlGeneralScalarFunction,
+            "BIT_LENGTH",
+            "BIT_COUNT");
+        this.AddScalarFunction(
+            "BIN",
+            "VARCHAR",
+            TryEvalMySqlNumericFunction);
+        this.AddScalarFunction(
+            "CRC32",
+            "BIGINT",
+            TryEvalMySqlQueryUtilityFunction);
+        this.AddScalarFunction(
+            "CONVERT",
+            "VARCHAR",
+            AstQueryExecutorBase.TryEvalConvertFunction);
+        this.AddScalarFunction(
+            "CONV",
+            "VARCHAR",
+            AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate);
+        this.AddScalarFunction(
+            "DATE_SUB",
+            "DATETIME",
+            AstQueryTemporalArithmeticFunctionEvaluator.TryEvaluate);
+        this.AddScalarFunctions(
+            "VARCHAR",
+            TryEvalMySqlUtilityFunction,
+            "ELT",
+            "MAKE_SET",
+            "EXPORT_SET");
+        this.AddScalarFunction(
+            "FIND_IN_SET",
+            "INT",
+            QueryTextSearchFunctionHelper.TryEvalFindInSetFunction);
+        this.AddScalarFunction(
+            "FROM_BASE64",
+            "VARBINARY",
+            TryEvalMySqlQueryUtilityFunction);
+        this.AddScalarFunction(
+            "TO_BASE64",
+            "VARCHAR",
+            TryEvalMySqlQueryUtilityFunction);
+        this.AddScalarFunction(
+            "FROM_DAYS",
+            "DATE",
+            TryEvalMySqlDateTimeFunction);
+        this.AddScalarFunction(
+            "GET_FORMAT",
+            "VARCHAR",
+            TryEvalMySqlDateTimeFunction);
+        this.AddScalarFunction(
+            "INET_ATON",
+            "BIGINT",
+            TryEvalMySqlQueryUtilityFunction);
+        this.AddScalarFunction(
+            "INET_NTOA",
+            "VARCHAR",
+            TryEvalMySqlQueryUtilityFunction);
+        this.AddScalarFunction(
+            "INET6_ATON",
+            "VARBINARY",
+            TryEvalMySqlQueryUtilityFunction);
+        this.AddScalarFunction(
+            "INET6_NTOA",
+            "VARCHAR",
+            TryEvalMySqlQueryUtilityFunction);
+        this.AddScalarFunction(
+            "IS_IPV4",
+            "INT",
+            TryEvalMySqlQueryUtilityFunction);
+        this.AddScalarFunction(
+            "IS_IPV4_COMPAT",
+            "INT",
+            TryEvalMySqlQueryUtilityFunction);
+        this.AddScalarFunction(
+            "IS_IPV4_MAPPED",
+            "INT",
+            TryEvalMySqlQueryUtilityFunction);
+        this.AddScalarFunction(
+            "IS_IPV6",
+            "INT",
+            TryEvalMySqlQueryUtilityFunction);
+        this.AddScalarFunctions(
+            "VARBINARY",
+            TryEvalMySqlUtilityFunction,
+            "AES_ENCRYPT",
+            "DES_ENCRYPT",
+            "ENCODE");
+        this.AddScalarFunctions(
+            "VARCHAR",
+            TryEvalMySqlUtilityFunction,
+            "AES_DECRYPT",
+            "DES_DECRYPT",
+            "DECODE",
+            "ENCRYPT");
+        this.AddScalarFunction("DEFAULT", "VARCHAR", TryEvalMySqlUtilityFunction);
+        this.AddScalarFunction("MEMBER_OF", "BOOLEAN", TryEvalMySqlUtilityFunction);
+        this.AddScalarFunctions("VARCHAR", TryEvalMySqlUtilityFunction, "EXTRACTVALUE", "UPDATEXML");
+        this.AddScalarFunction("LOG2", "DOUBLE", TryEvalMySqlGeneralScalarFunction);
+        this.AddScalarFunction("OCT", "VARCHAR", AstQueryGeneralScalarFunctionEvaluator.TryEvaluate);
+        this.AddScalarFunction("ORD", "INT", AstQueryGeneralScalarFunctionEvaluator.TryEvaluate);
+        this.AddScalarFunctions(
+            "VARCHAR",
+            AstQueryGeneralScalarFunctionEvaluator.TryEvaluate,
+            SqlScalarFunctionUsageKind.CallOrIdentifier,
+            null,
+            "GREATEST",
+            "LEAST");
+        this.AddScalarFunction("POSITION", "INT", AstQueryGeneralScalarFunctionEvaluator.TryEvaluate);
+        this.AddScalarFunction("RPAD", "VARCHAR", AstQueryGeneralScalarFunctionEvaluator.TryEvaluate);
+        this.AddScalarFunction("SLEEP", "INT", TryEvalMySqlUtilityFunction);
+        this.AddScalarFunction("SUBSTRING_INDEX", "VARCHAR", AstQueryGeneralScalarFunctionEvaluator.TryEvaluate);
+        this.AddScalarFunction("OCTET_LENGTH", "INT", AstQueryGeneralScalarFunctionEvaluator.TryEvaluate);
+        this.AddScalarFunctions("VARBINARY", TryEvalMySqlUtilityFunction, "COMPRESS");
+        this.AddScalarFunctions("VARBINARY", TryEvalMySqlUtilityFunction, "UNCOMPRESS");
+        this.AddScalarFunction(
+            "CONVERT_TZ",
+            "DATETIME",
+            TryEvalMySqlDateTimeFunction);
+        this.AddScalarFunction(
+            "TRUNCATE",
+            "DECIMAL",
+            AstQueryGeneralDateTimeFunctionEvaluator.TryEvaluate);
+        this.AddScalarFunction(
+            "UNIX_TIMESTAMP",
+            "BIGINT",
+            AstQueryGeneralDateTimeFunctionEvaluator.TryEvaluate);
+        this.AddScalarFunctions(
+            "VARCHAR",
+            TryEvalMySqlGeneralScalarFunction,
+            "SHA",
+            "SHA1",
+            "SHA2");
+        this.AddScalarFunction(
+            "UNCOMPRESSED_LENGTH",
+            "BIGINT",
+            TryEvalMySqlUtilityFunction);
+        this.AddScalarFunction(
+            "FORMAT",
+            "VARCHAR",
+            TryEvalMySqlUtilityFunction);
+        this.AddScalarFunction(
+            "HEX",
+            "VARCHAR",
+            TryEvalMySqlUtilityFunction);
+        this.AddScalarFunction(
+            "UNHEX",
+            "VARBINARY",
+            TryEvalMySqlUtilityFunction);
+        this.AddScalarFunctions(
+            "INT",
+            TryEvalMySqlUtilityFunction,
+            "REGEXP_INSTR",
+            "REGEXP_REPLACE",
+            "REGEXP_SUBSTR",
+            "REGEXP_LIKE");
+        this.AddScalarFunctionsIf(
+            version >= MySqlDialect.JsonExtractMinVersion,
+            "VARCHAR",
+            AstQueryExecutorBase.TryEvalJsonExtractionFunction,
+            "JSON_EXTRACT",
+            "JSON_QUERY",
+            "JSON_VALUE");
+
+        this.AddScalarFunctionsIf(
+            version >= MySqlDialect.JsonExtractMinVersion,
+            "VARCHAR",
+            AstQueryExecutorBase.TryEvalJsonUtilityFunctions,
+            "JSON_UNQUOTE",
+            "JSON_OBJECT",
+            "JSON_QUOTE",
+            "JSON_PRETTY",
+            "JSON_KEYS",
+            "JSON_SET",
+            "JSON_REMOVE",
+            "JSON_CONTAINS",
+            "JSON_CONTAINS_PATH",
+            "JSON_SEARCH",
+            "JSON_INSERT",
+            "JSON_REPLACE",
+            "JSON_APPEND",
+            "JSON_ARRAY_APPEND",
+            "JSON_ARRAY_INSERT",
+            "JSON_MERGE",
+            "JSON_MERGE_PRESERVE",
+            "JSON_MERGE_PATCH");
+
+        this.AddScalarFunctionIf(
+            version >= MySqlDialect.JsonExtractMinVersion,
+            "JSON_TYPE",
+            "VARCHAR",
+            AstQueryExecutorBase.TryEvalJsonUtilityFunctions);
+
+        this.AddScalarFunctionsIf(
+            version >= MySqlDialect.JsonExtractMinVersion,
+            "INT",
+            AstQueryExecutorBase.TryEvalJsonUtilityFunctions,
+            "JSON_VALID",
+            "JSON_LENGTH",
+            "JSON_CONTAINS",
+            "JSON_CONTAINS_PATH",
+            "JSON_OVERLAPS");
+
+        this.AddScalarFunctionIf(
+            version >= MySqlDialect.JsonExtractMinVersion,
+            "JSON_ARRAY",
+            "VARCHAR",
+            AstQueryGeneralSystemAndJsonFunctionEvaluator.TryEvaluate);
+
+        this.AddScalarFunctionIf(version >= 56, "JSON_ARRAYAGG", "VARCHAR", body, SqlScalarFunctionUsageKind.Call, null);
+        this.AddScalarFunctionIf(version >= 56, "JSON_OBJECTAGG", "VARCHAR", body, SqlScalarFunctionUsageKind.Call, null);
+
+        this.AddScalarFunctionIf(
+            version >= 80,
+            "JSON_STORAGE_SIZE",
+            "BIGINT",
+            AstQueryExecutorBase.TryEvalJsonUtilityFunctions);
+
+        this.AddScalarFunctionIf(
+            version >= 80,
+            "JSON_DEPTH",
+            "INT",
+            AstQueryGeneralSystemAndJsonFunctionEvaluator.TryEvaluate);
+
+        this.AddScalarFunctionIf(
+            version >= 80,
+            "IS_UUID",
+            "INT",
+            AstQueryGeneralSystemAndJsonFunctionEvaluator.TryEvaluate);
+
+        this.AddScalarFunctionIf(
+            version >= 80,
+            "UUID_SHORT",
+            "BIGINT",
+            AstQueryGeneralSystemAndJsonFunctionEvaluator.TryEvaluate);
+        this.AddScalarFunctions(
+            "DATETIME",
+            AstQueryGeneralDateArithmeticFunctionEvaluator.TryEvaluate,
+            "ADDDATE",
+            "ADDTIME",
+            "LAST_DAY",
+            "EOMONTH",
+            "SUBTIME");
+
+        this.AddScalarFunction("DATE_ADD", "DATETIME", AstQueryTemporalArithmeticFunctionEvaluator.TryEvaluate);
+        this.AddScalarFunction("TIMESTAMPADD", "DATETIME", AstQueryTemporalArithmeticFunctionEvaluator.TryEvaluate);
         this.AddScalarFunction("TRY_CAST", "VARCHAR", body);
-        this.AddScalarFunction("DATEDIFF", "INT", body);
-        this.AddScalarFunction("TIMESTAMPDIFF", "INT", body);
-        this.AddScalarFunction("DAY", "INT", body);
-        this.AddScalarFunction("MONTH", "INT", body);
-        this.AddScalarFunction("YEAR", "INT", body);
-        this.AddScalarFunction("QUARTER", "INT", body);
-        this.AddScalarFunction("WEEK", "INT", body);
-        this.AddScalarFunction("HOUR", "INT", body);
-        this.AddScalarFunction("MINUTE", "INT", body);
-        this.AddScalarFunction("SECOND", "INT", body);
-        this.AddScalarFunction("MAKEDATE", "DATE", body);
-        this.AddScalarFunction("MAKETIME", "TIME", body);
-        this.AddScalarFunction("MICROSECOND", "INT", body);
-        this.AddScalarFunction("MONTHNAME", "VARCHAR", body);
-        this.AddScalarFunction("PERIOD_ADD", "INT", body);
-        this.AddScalarFunction("PERIOD_DIFF", "INT", body);
-        this.AddScalarFunction("SEC_TO_TIME", "TIME", body);
-        this.AddScalarFunction("TIME_TO_SEC", "INT", body);
-        this.AddScalarFunction("TO_DAYS", "INT", body);
-        this.AddScalarFunction("TO_SECONDS", "BIGINT", body);
-        this.AddScalarFunction("SUBDATE", "DATETIME", body);
-        this.AddScalarFunction("SUBTIME", "DATETIME", body);
-        this.AddScalarFunction("LAST_DAY", "DATE", body);
-        this.AddScalarFunction("TIME_FORMAT", "VARCHAR", body);
-        this.AddScalarFunction("TIMEDIFF", "TIME", body);
-        this.AddScalarFunction("DATE_FORMAT", "VARCHAR", body);
-        this.AddScalarFunction("STR_TO_DATE", "DATETIME", body);
-        this.AddScalarFunction("FROM_UNIXTIME", "DATETIME", body);
-        this.AddScalarFunction("DAYNAME", "VARCHAR", body);
-        this.AddScalarFunction("DAYOFMONTH", "INT", body);
-        this.AddScalarFunction("DAYOFWEEK", "INT", body);
-        this.AddScalarFunction("DAYOFYEAR", "INT", body);
-        this.AddScalarFunction("WEEKDAY", "INT", body);
-        this.AddScalarFunction("WEEKOFYEAR", "INT", body);
-        this.AddScalarFunction("YEARWEEK", "INT", body);
+        this.AddScalarFunction("DATEDIFF", "INT", AstQueryGeneralDateFunctionEvaluator.TryEvaluate);
+        this.AddScalarFunction("TIMESTAMPDIFF", "INT", AstQueryGeneralDateFunctionEvaluator.TryEvaluate);
+        this.AddScalarFunction("DAY", "INT", AstQueryGeneralDateFunctionEvaluator.TryEvaluate);
+        this.AddScalarFunction("MONTH", "INT", AstQueryGeneralDateFunctionEvaluator.TryEvaluate);
+        this.AddScalarFunction("YEAR", "INT", AstQueryGeneralDateFunctionEvaluator.TryEvaluate);
+        this.AddScalarFunction("HOUR", "INT", AstQueryGeneralDateFunctionEvaluator.TryEvaluate);
+        this.AddScalarFunction("MINUTE", "INT", AstQueryGeneralDateFunctionEvaluator.TryEvaluate);
+        this.AddScalarFunction("SECOND", "INT", AstQueryGeneralDateFunctionEvaluator.TryEvaluate);
+
+        this.AddScalarFunctions(
+            "DATE",
+            AstQueryGeneralDateFunctionEvaluator.TryEvaluate,
+            "MAKEDATE",
+            "MAKETIME",
+            "MICROSECOND",
+            "MONTHNAME",
+            "PERIOD_ADD",
+            "PERIOD_DIFF",
+            "QUARTER",
+            "SEC_TO_TIME");
+
+        this.AddScalarFunctions(
+            "VARCHAR",
+            AstQueryGeneralDateTimeFunctionEvaluator.TryEvaluate,
+            "TIME_FORMAT",
+            "TIME_TO_SEC",
+            "TIMEDIFF",
+            "TO_DAYS",
+            "TO_SECONDS",
+            "TRUNCATE",
+            "WEEK",
+            "WEEKDAY",
+            "WEEKOFYEAR",
+            "YEARWEEK");
+
+        this.AddScalarFunction(
+            "DATE_FORMAT",
+            "VARCHAR",
+            TryEvalMySqlDateTimeFunction);
+        this.AddScalarFunction(
+            "STR_TO_DATE",
+            "DATETIME",
+            TryEvalMySqlDateTimeFunction);
+        this.AddScalarFunction(
+            "FROM_UNIXTIME",
+            "DATETIME",
+            TryEvalMySqlDateTimeFunction);
+        this.AddScalarFunctions(
+            "VARCHAR",
+            AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate,
+            "DAYNAME",
+            "DAYOFMONTH",
+            "DAYOFWEEK",
+            "DAYOFYEAR");
         this.AddScalarFunction("ANY_VALUE", "VARCHAR", body, SqlScalarFunctionUsageKind.Call, null);
         this.AddScalarFunction("BIT_AND", "BIGINT", body, SqlScalarFunctionUsageKind.Call, null);
         this.AddScalarFunction("BIT_OR", "BIGINT", body, SqlScalarFunctionUsageKind.Call, null);
@@ -170,22 +514,31 @@ internal partial class MySqlDialect
         this.AddScalarFunction("VAR_POP", "DOUBLE", body, SqlScalarFunctionUsageKind.Call, null);
         this.AddScalarFunction("VAR_SAMP", "DOUBLE", body, SqlScalarFunctionUsageKind.Call, null);
         this.AddScalarFunction("VARIANCE", "DOUBLE", body, SqlScalarFunctionUsageKind.Call, null);
-        this.AddScalarFunctionIf(version >= 56, "JSON_ARRAYAGG", "VARCHAR", body, SqlScalarFunctionUsageKind.Call, null);
-        this.AddScalarFunctionIf(version >= 56, "JSON_OBJECTAGG", "VARCHAR", body, SqlScalarFunctionUsageKind.Call, null);
-
-        this.AddScalarFunctionIf(version >= 56, "RANDOM_BYTES", "VARBINARY", body);
+        this.AddScalarFunctionIf(
+            version >= 56,
+            "RANDOM_BYTES",
+            "VARBINARY",
+            TryEvalMySqlUtilityFunction);
         this.AddScalarFunctionIf(version >= 56 && version < 80, "JSON_APPEND", "VARCHAR", body);
-        this.AddScalarFunctionIf(version >= 56, "JSON_ARRAY_APPEND", "VARCHAR", body);
-        this.AddScalarFunctionIf(version >= 56, "JSON_ARRAY_INSERT", "VARCHAR", body);
-        this.AddScalarFunctionIf(version >= 56, "JSON_MERGE", "VARCHAR", body);
-        this.AddScalarFunctionIf(version >= 56, "JSON_MERGE_PRESERVE", "VARCHAR", body);
-        this.AddScalarFunctionIf(version >= 56, "JSON_MERGE_PATCH", "VARCHAR", body);
-        this.AddScalarFunctionIf(version >= 80, "FORMAT_BYTES", "VARCHAR", body);
-        this.AddScalarFunctionIf(version >= 80, "FORMAT_PICO_TIME", "VARCHAR", body);
-        this.AddScalarFunctionIf(version >= 80, "JSON_STORAGE_SIZE", "BIGINT", body);
-        this.AddScalarFunctionIf(version >= 80, "JSON_OVERLAPS", "INT", body);
-        this.AddScalarFunctionIf(version >= 80, "UUID_TO_BIN", "VARBINARY", body);
-        this.AddScalarFunctionIf(version >= 80, "BIN_TO_UUID", "VARCHAR", body);
-        this.AddScalarFunctionIf(version >= 80, "IS_UUID", "INT", body);
+        this.AddScalarFunctionIf(
+            version >= 80,
+            "FORMAT_BYTES",
+            "VARCHAR",
+            TryEvalMySqlUtilityFunction);
+        this.AddScalarFunctionIf(
+            version >= 80,
+            "FORMAT_PICO_TIME",
+            "VARCHAR",
+            TryEvalMySqlUtilityFunction);
+        this.AddScalarFunctionIf(
+            version >= 80,
+            "UUID_TO_BIN",
+            "VARBINARY",
+            TryEvalMySqlQueryUtilityFunction);
+        this.AddScalarFunctionIf(
+            version >= 80,
+            "BIN_TO_UUID",
+            "VARCHAR",
+            TryEvalMySqlQueryUtilityFunction);
     }
 }

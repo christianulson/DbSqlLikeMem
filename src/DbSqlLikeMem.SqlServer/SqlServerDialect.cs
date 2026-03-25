@@ -1,5 +1,3 @@
-using System.Linq;
-
 namespace DbSqlLikeMem.SqlServer;
 
 internal sealed class SqlServerDialect : SqlDialectBase

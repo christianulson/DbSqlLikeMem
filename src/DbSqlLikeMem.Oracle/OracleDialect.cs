@@ -1,5 +1,3 @@
-using DbSqlLikeMem;
-
 namespace DbSqlLikeMem.Oracle;
 
 internal sealed class OracleDialect : SqlDialectBase

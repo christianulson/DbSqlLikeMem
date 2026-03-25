@@ -381,6 +381,13 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(tableName)} (
         $"SELECT COUNT(*) FROM {usersTable} u WHERE NOT EXISTS (SELECT 1 FROM {ordersTable} o WHERE o.{usersTable}Id = u.Id)";
 
     /// <summary>
+    /// EN: Returns the SQL statement used for the LEFT JOIN anti-join benchmark.
+    /// PT: Retorna a instrucao SQL usada no benchmark de anti-join com LEFT JOIN.
+    /// </summary>
+    public virtual string SelectLeftJoinAntiJoin(string usersTable, string ordersTable) =>
+        $"SELECT COUNT(*) FROM {usersTable} u LEFT JOIN {ordersTable} o ON o.{usersTable}Id = u.Id WHERE o.{usersTable}Id IS NULL";
+
+    /// <summary>
     /// EN: Returns the SQL statement used for the correlated COUNT benchmark.
     /// PT: Retorna a instrucao SQL usada no benchmark de COUNT correlacionado.
     /// </summary>

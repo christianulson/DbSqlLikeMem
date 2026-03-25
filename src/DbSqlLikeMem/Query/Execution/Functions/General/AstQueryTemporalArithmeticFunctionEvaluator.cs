@@ -4,6 +4,20 @@ namespace DbSqlLikeMem;
 
 internal static class AstQueryTemporalArithmeticFunctionEvaluator
 {
+    private delegate bool AstQueryTryEvalTemporalArithmeticFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        Func<int, object?> evalArg,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> evalExpr,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, TemporalUnit> getTemporalUnit,
+        out object? result);
+
+    private static readonly IReadOnlyDictionary<string, AstQueryTryEvalTemporalArithmeticFunction> _handlers =
+        CreateHandlers();
+
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
         ISqlDialect dialect,
@@ -15,23 +29,34 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, TemporalUnit> getTemporalUnit,
         out object? result)
     {
-        if (TryEvalMySqlDateAddSubFunction(fn, dialect, row, group, ctes, evalArg, evalExpr, getTemporalUnit, out result))
+        if (_handlers.TryGetValue(fn.Name, out var handler)
+            && handler(fn, dialect, row, group, ctes, evalArg, evalExpr, getTemporalUnit, out result))
+        {
             return true;
-
-        if (TryEvalTimestampAddStyleFunction(fn, dialect, row, group, ctes, evalArg, getTemporalUnit, out result))
-            return true;
-
-        if (TryEvalDateDiffBigFunction(fn, row, group, ctes, evalArg, getTemporalUnit, out result))
-            return true;
-
-        if (TryEvalTimestampDiffFunction(fn, row, group, ctes, evalArg, getTemporalUnit, out result))
-            return true;
-
-        if (TryEvalDateDiffFunction(fn, dialect, row, group, ctes, evalArg, getTemporalUnit, out result))
-            return true;
+        }
 
         result = null;
         return false;
+    }
+
+    private static Dictionary<string, AstQueryTryEvalTemporalArithmeticFunction> CreateHandlers()
+    {
+        var handlers = new Dictionary<string, AstQueryTryEvalTemporalArithmeticFunction>(StringComparer.OrdinalIgnoreCase);
+        Register(handlers, TryEvalMySqlDateAddSubFunction, "DATE_ADD", "DATE_SUB");
+        Register(handlers, TryEvalTimestampAddStyleFunction, "TIMESTAMPADD", "DATEADD");
+        Register(handlers, TryEvalDateDiffBigFunction, "DATEDIFF_BIG");
+        Register(handlers, TryEvalTimestampDiffFunction, "TIMESTAMPDIFF");
+        Register(handlers, TryEvalDateDiffFunction, "DATEDIFF");
+        return handlers;
+    }
+
+    private static void Register(
+        IDictionary<string, AstQueryTryEvalTemporalArithmeticFunction> handlers,
+        AstQueryTryEvalTemporalArithmeticFunction handler,
+        params string[] names)
+    {
+        foreach (var name in names)
+            handlers[name] = handler;
     }
 
     private static bool TryEvalMySqlDateAddSubFunction(
@@ -95,9 +120,11 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
         EvalGroup? group,
         IDictionary<string, Source> ctes,
         Func<int, object?> evalArg,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> evalExpr,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, TemporalUnit> getTemporalUnit,
         out object? result)
     {
+        _ = evalExpr;
         if (!(fn.Name.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase)
             || fn.Name.Equals("DATEADD", StringComparison.OrdinalIgnoreCase)))
         {
@@ -142,13 +169,17 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
 
     private static bool TryEvalDateDiffBigFunction(
         FunctionCallExpr fn,
+        ISqlDialect dialect,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
         Func<int, object?> evalArg,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> evalExpr,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, TemporalUnit> getTemporalUnit,
         out object? result)
     {
+        _ = dialect;
+        _ = evalExpr;
         if (!fn.Name.Equals("DATEDIFF_BIG", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -175,13 +206,17 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
 
     private static bool TryEvalTimestampDiffFunction(
         FunctionCallExpr fn,
+        ISqlDialect dialect,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
         Func<int, object?> evalArg,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> evalExpr,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, TemporalUnit> getTemporalUnit,
         out object? result)
     {
+        _ = dialect;
+        _ = evalExpr;
         if (!fn.Name.Equals("TIMESTAMPDIFF", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -213,9 +248,11 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
         EvalGroup? group,
         IDictionary<string, Source> ctes,
         Func<int, object?> evalArg,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> evalExpr,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, TemporalUnit> getTemporalUnit,
         out object? result)
     {
+        _ = evalExpr;
         if (!fn.Name.Equals("DATEDIFF", StringComparison.OrdinalIgnoreCase))
         {
             result = null;

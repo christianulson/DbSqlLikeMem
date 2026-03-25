@@ -78,6 +78,45 @@ ORDER BY u.Id";
     }
 
     /// <summary>
+    /// EN: Verifies a LEFT JOIN anti-join returns the same users as NOT EXISTS for the current provider.
+    /// PT: Verifica se um anti-join com LEFT JOIN retorna os mesmos usuarios que NOT EXISTS para o provedor atual.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void LeftJoinAntiJoin_ShouldMatchNotExists()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        cnn.Seed("users", null,
+            [1, "Ana"],
+            [2, "Bob"],
+            [3, "Cid"]);
+
+        cnn.Seed("orders", null,
+            [10, 1, 50m],
+            [11, 3, 10m]);
+
+        const string notExistsSql = @"SELECT u.Id
+FROM users u
+WHERE NOT EXISTS (SELECT 1 FROM orders o WHERE o.UserId = u.Id)
+ORDER BY u.Id";
+
+        const string leftJoinSql = @"SELECT u.Id
+FROM users u
+LEFT JOIN orders o ON o.UserId = u.Id
+WHERE o.UserId IS NULL
+ORDER BY u.Id";
+
+        var notExistsIds = ExecuteAndReadIds(cnn, notExistsSql);
+        var leftJoinIds = ExecuteAndReadIds(cnn, leftJoinSql);
+
+        leftJoinIds.Should().Equal(notExistsIds);
+        leftJoinIds.Should().Equal(2);
+    }
+
+    /// <summary>
     /// EN: Verifies EXISTS honors an additional predicate inside the correlated subquery.
     /// PT: Verifica se EXISTS respeita um predicado adicional dentro da subquery correlacionada.
     /// </summary>

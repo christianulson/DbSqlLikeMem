@@ -47,6 +47,14 @@ public abstract class InsertTestsBase<T, T2>(
     public void RowCountAfterInsertTest()
         => RunRowCountAfterInsertTest();
 
+    /// <summary>
+    /// EN: Verifies that inserts starting from a custom id persist the expected key range and row names for the current provider.
+    /// PT: Verifica se inserts iniciando em um id customizado persistem a faixa de chaves e os nomes esperados para o provedor atual.
+    /// </summary>
+    [Fact]
+    public void InsertCustomStartIdTest()
+        => RunInsertCustomStartIdTest();
+
     private void RunInsertCountTest(int rowCount)
     {
         var users = "Users";
@@ -83,6 +91,28 @@ public abstract class InsertTestsBase<T, T2>(
             connContainer.Open();
             var resultContainer = RunRowCountAfterInsertScenario(connContainer, users, uId);
             Assert.Equal(resultMock, resultContainer);
+        }
+    }
+
+    private void RunInsertCustomStartIdTest()
+    {
+        var users = "Users";
+        var uId = NewToken();
+
+        using var connMock = connectionMock();
+        connMock.Open();
+        var resultMock = RunInsertCustomStartIdScenario(connMock, users, uId);
+        Assert.Equal("User-10", resultMock.firstName);
+        Assert.Equal("User-12", resultMock.lastName);
+
+        if (IsInsertContainerComparisonEnabled(dialect.Provider)
+            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        {
+            using var connContainer = connectionContainer(connectionString);
+            connContainer.Open();
+            var resultContainer = RunInsertCustomStartIdScenario(connContainer, users, uId);
+            Assert.Equal(resultMock.firstName, resultContainer.firstName);
+            Assert.Equal(resultMock.lastName, resultContainer.lastName);
         }
     }
 
@@ -127,6 +157,33 @@ public abstract class InsertTestsBase<T, T2>(
         }
     }
 
+    private (string firstName, string lastName) RunInsertCustomStartIdScenario<TConnection>(
+        TConnection connection,
+        string users,
+        string uId)
+        where TConnection : DbConnection
+    {
+        var testScenario = new InsertUsersScenario<TConnection>(dialect);
+        var serviceTest = new InsertUsersServiceTest<TConnection>(connection, testScenario, dialect);
+        serviceTest.CreateScenario(users, uId);
+
+        try
+        {
+            serviceTest.RunTest(users, uId, 3, 10, 3);
+            var tableName = BuildScenarioTableName(users, uId);
+            var firstName = Convert.ToString(serviceTest.ExecuteScalar(dialect.SelectUserNameById(tableName, 10))) ?? string.Empty;
+            var lastName = Convert.ToString(serviceTest.ExecuteScalar(dialect.SelectUserNameById(tableName, 12))) ?? string.Empty;
+            return (firstName, lastName);
+        }
+        finally
+        {
+            serviceTest.DropScenario(users, uId);
+        }
+    }
+
     private static string NewToken()
         => Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+
+    private static string BuildScenarioTableName(string users, string uId)
+        => $"{users}_{uId}";
 }

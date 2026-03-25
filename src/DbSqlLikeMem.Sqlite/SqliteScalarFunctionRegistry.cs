@@ -13,27 +13,58 @@ internal static class SqliteScalarFunctionRegistry
 
         var body = SqlFunctionBodyFactory.Identity();
 
-        dialect.AddScalarFunctions("VARCHAR", body,
+        dialect.AddScalarFunctions(
+            new DbScalarFunctionDef("IF", "VARCHAR", [], body)
+            {
+                AstExecutor = QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions
+            },
             "IF",
-            "IIF");
-        dialect.AddScalarFunction("IFNULL", "VARCHAR", body);
-        dialect.AddScalarFunction("ISNULL", "VARCHAR", body);
-        dialect.AddScalarFunction("NVL", "VARCHAR", body);
-        dialect.AddScalarFunction("NOW", "DATETIME", body, SqlScalarFunctionUsageKind.Call, SqlTemporalFunctionKind.DateTime);
-        dialect.AddScalarFunction("CURRENT_DATE", "DATE", body, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.Date);
-        dialect.AddScalarFunction("CURRENT_TIME", "TIME", body, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.Time);
-        dialect.AddScalarFunction("CURRENT_TIMESTAMP", "DATETIME", body, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.DateTime);
-        dialect.AddScalarFunction("SYSTEMDATE", "DATETIME", body, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.DateTime);
-        dialect.AddScalarFunction("DATE", "DATE", body);
-        dialect.AddScalarFunction("TIME", "TIME", body);
-        dialect.AddScalarFunction("DATETIME", "DATETIME", body);
-        dialect.AddScalarFunction("JULIANDAY", "DOUBLE", body);
-        dialect.AddScalarFunction("STRFTIME", "VARCHAR", body);
+            "IIF",
+            "IFNULL",
+            "ISNULL",
+            "NVL");
+        dialect.AddScalarFunctions(
+            new DbScalarFunctionDef("DATE", "DATE", [], body)
+            {
+                AstExecutor = AstQueryGeneralDateFunctionEvaluator.TryEvaluate
+            },
+            "DATE",
+            "TIME",
+            "DATETIME");
+
+        dialect.AddScalarFunctions(
+            new DbScalarFunctionDef("JULIANDAY", "DOUBLE", [], body)
+            {
+                AstExecutor = AstQueryGeneralDateFunctionEvaluator.TryEvaluate
+            },
+            "JULIANDAY");
+
+        dialect.AddScalarFunctions(
+            new DbScalarFunctionDef("STRFTIME", "VARCHAR", [], body)
+            {
+                AstExecutor = AstQueryGeneralDateFunctionEvaluator.TryEvaluate
+            },
+            "STRFTIME");
+
+        dialect.AddScalarFunction("NOW", "DATETIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, SqlScalarFunctionUsageKind.Call, SqlTemporalFunctionKind.DateTime);
+        dialect.AddScalarFunction("CURRENT_DATE", "DATE", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.Date);
+        dialect.AddScalarFunction("CURRENT_TIME", "TIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.Time);
+        dialect.AddScalarFunction("CURRENT_TIMESTAMP", "DATETIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.DateTime);
+        dialect.AddScalarFunction("SYSTEMDATE", "DATETIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.DateTime);
         dialect.AddScalarFunction("GROUP_CONCAT", "VARCHAR", body);
         dialect.AddScalarFunction("CHANGES", "INT", body);
-        dialect.AddScalarFunction("JSON_EXTRACT", "VARCHAR", body);
-        dialect.AddScalarFunction("JSON_VALUE", "VARCHAR", body);
-        dialect.AddScalarFunction("JSON_UNQUOTE", "VARCHAR", body);
+        dialect.AddScalarFunctions(
+            new DbScalarFunctionDef("JSON_EXTRACT", "VARCHAR", [], body)
+            {
+                AstExecutor = AstQueryExecutorBase.TryEvalJsonExtractionFunction
+            },
+            "JSON_EXTRACT",
+            "JSON_VALUE");
+        dialect.AddScalarFunction(
+            new DbScalarFunctionDef("JSON_UNQUOTE", "VARCHAR", [], body)
+            {
+                AstExecutor = AstQueryExecutorBase.TryEvalJsonUtilityFunctions
+            });
         dialect.AddScalarFunction("DATE_ADD", "DATETIME", body);
     }
 }

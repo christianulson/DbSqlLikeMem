@@ -1,5 +1,3 @@
-using DbSqlLikeMem;
-
 namespace DbSqlLikeMem.MySql;
 
 internal partial class MySqlDialect

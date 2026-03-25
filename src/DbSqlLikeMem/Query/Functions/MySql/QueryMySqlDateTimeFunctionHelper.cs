@@ -9,6 +9,19 @@ internal static class QueryMySqlDateTimeFunctionHelper
 {
     private static readonly ConcurrentDictionary<string, string> _dateFormatCache = new(StringComparer.Ordinal);
 
+    private delegate bool MySqlDateTimeFunctionHandler(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryCoerceDateTimeDelegate tryCoerceDateTime,
+        TryParseExactCachedDateTimeDelegate tryParseExactCachedDateTime,
+        out object? result);
+
+    private static readonly IReadOnlyDictionary<string, MySqlDateTimeFunctionHandler> _handlers =
+        CreateHandlers();
+
     public static bool TryEvalFunctions(
         FunctionCallExpr fn,
         ISqlDialect dialect,
@@ -19,21 +32,55 @@ internal static class QueryMySqlDateTimeFunctionHelper
         TryParseExactCachedDateTimeDelegate tryParseExactCachedDateTime,
         out object? result)
     {
-        return TryEvalMySqlDateFormatFunction(fn, dialect, evalArg, tryCoerceDateTime, out result)
-            || TryEvalMySqlStrToDateFunction(fn, dialect, evalArg, tryParseExactCachedDateTime, out result)
-            || TryEvalMySqlFromUnixTimeFunction(fn, dialect, evalArg, tryConvertNumericToDouble, out result)
-            || TryEvalMySqlFromDaysFunction(fn, dialect, evalArg, tryConvertNumericToInt64, out result)
-            || TryEvalMySqlGetFormatFunction(fn, dialect, evalArg, out result)
-            || TryEvalMySqlConvertTzFunction(fn, dialect, evalArg, tryCoerceDateTime, out result);
+        if (_handlers.TryGetValue(fn.Name, out var handler))
+            return handler(
+                fn,
+                dialect,
+                evalArg,
+                tryConvertNumericToDouble,
+                tryConvertNumericToInt64,
+                tryCoerceDateTime,
+                tryParseExactCachedDateTime,
+                out result);
+
+        result = null;
+        return false;
+    }
+
+    private static Dictionary<string, MySqlDateTimeFunctionHandler> CreateHandlers()
+    {
+        var handlers = new Dictionary<string, MySqlDateTimeFunctionHandler>(StringComparer.OrdinalIgnoreCase);
+        Register(handlers, TryEvalMySqlDateFormatFunction, "DATE_FORMAT");
+        Register(handlers, TryEvalMySqlStrToDateFunction, "STR_TO_DATE");
+        Register(handlers, TryEvalMySqlFromUnixTimeFunction, "FROM_UNIXTIME");
+        Register(handlers, TryEvalMySqlFromDaysFunction, "FROM_DAYS");
+        Register(handlers, TryEvalMySqlGetFormatFunction, "GET_FORMAT");
+        Register(handlers, TryEvalMySqlConvertTzFunction, "CONVERT_TZ");
+        return handlers;
+    }
+
+    private static void Register(
+        IDictionary<string, MySqlDateTimeFunctionHandler> handlers,
+        MySqlDateTimeFunctionHandler handler,
+        params string[] names)
+    {
+        foreach (var name in names)
+            handlers[name] = handler;
     }
 
     private static bool TryEvalMySqlDateFormatFunction(
         FunctionCallExpr fn,
         ISqlDialect dialect,
         Func<int, object?> evalArg,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
         TryCoerceDateTimeDelegate tryCoerceDateTime,
+        TryParseExactCachedDateTimeDelegate tryParseExactCachedDateTime,
         out object? result)
     {
+        _ = tryConvertNumericToDouble;
+        _ = tryConvertNumericToInt64;
+        _ = tryParseExactCachedDateTime;
         if (!fn.Name.Equals("DATE_FORMAT", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -65,9 +112,15 @@ internal static class QueryMySqlDateTimeFunctionHelper
         FunctionCallExpr fn,
         ISqlDialect dialect,
         Func<int, object?> evalArg,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryCoerceDateTimeDelegate tryCoerceDateTime,
         TryParseExactCachedDateTimeDelegate tryParseExactCachedDateTime,
         out object? result)
     {
+        _ = tryConvertNumericToDouble;
+        _ = tryConvertNumericToInt64;
+        _ = tryCoerceDateTime;
         if (!fn.Name.Equals("STR_TO_DATE", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -113,8 +166,14 @@ internal static class QueryMySqlDateTimeFunctionHelper
         ISqlDialect dialect,
         Func<int, object?> evalArg,
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryCoerceDateTimeDelegate tryCoerceDateTime,
+        TryParseExactCachedDateTimeDelegate tryParseExactCachedDateTime,
         out object? result)
     {
+        _ = tryConvertNumericToInt64;
+        _ = tryCoerceDateTime;
+        _ = tryParseExactCachedDateTime;
         if (!fn.Name.Equals("FROM_UNIXTIME", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -159,9 +218,15 @@ internal static class QueryMySqlDateTimeFunctionHelper
         FunctionCallExpr fn,
         ISqlDialect dialect,
         Func<int, object?> evalArg,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryCoerceDateTimeDelegate tryCoerceDateTime,
+        TryParseExactCachedDateTimeDelegate tryParseExactCachedDateTime,
         out object? result)
     {
+        _ = tryConvertNumericToDouble;
+        _ = tryCoerceDateTime;
+        _ = tryParseExactCachedDateTime;
         if (!fn.Name.Equals("FROM_DAYS", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -192,8 +257,16 @@ internal static class QueryMySqlDateTimeFunctionHelper
         FunctionCallExpr fn,
         ISqlDialect dialect,
         Func<int, object?> evalArg,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryCoerceDateTimeDelegate tryCoerceDateTime,
+        TryParseExactCachedDateTimeDelegate tryParseExactCachedDateTime,
         out object? result)
     {
+        _ = tryConvertNumericToDouble;
+        _ = tryConvertNumericToInt64;
+        _ = tryCoerceDateTime;
+        _ = tryParseExactCachedDateTime;
         if (!fn.Name.Equals("GET_FORMAT", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -245,9 +318,15 @@ internal static class QueryMySqlDateTimeFunctionHelper
         FunctionCallExpr fn,
         ISqlDialect dialect,
         Func<int, object?> evalArg,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
         TryCoerceDateTimeDelegate tryCoerceDateTime,
+        TryParseExactCachedDateTimeDelegate tryParseExactCachedDateTime,
         out object? result)
     {
+        _ = tryConvertNumericToDouble;
+        _ = tryConvertNumericToInt64;
+        _ = tryParseExactCachedDateTime;
         if (!fn.Name.Equals("CONVERT_TZ", StringComparison.OrdinalIgnoreCase))
         {
             result = null;

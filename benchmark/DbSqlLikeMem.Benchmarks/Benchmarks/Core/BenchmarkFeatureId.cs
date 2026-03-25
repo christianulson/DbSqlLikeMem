@@ -19,10 +19,34 @@ public enum BenchmarkFeatureId
     CreateSchema,
 
     /// <summary>
+    /// EN: Creates the benchmark users and orders tables with a foreign key.
+    /// PT: Cria as tabelas de usuarios e pedidos do benchmark com chave estrangeira.
+    /// </summary>
+    CreateTableWithFK,
+
+    /// <summary>
+    /// EN: Creates the benchmark foreign-key tables and inserts a referenced row.
+    /// PT: Cria as tabelas com chave estrangeira do benchmark e insere uma linha referenciada.
+    /// </summary>
+    CreateTableWithFKInsert,
+
+    /// <summary>
+    /// EN: Drops the benchmark users table.
+    /// PT: Remove a tabela de usuarios do benchmark.
+    /// </summary>
+    DropTable,
+
+    /// <summary>
     /// EN: Inserts a single row.
     /// PT: Insere uma unica linha.
     /// </summary>
     InsertSingle,
+
+    /// <summary>
+    /// EN: Inserts rows starting from a custom id.
+    /// PT: Insere linhas iniciando em um id customizado.
+    /// </summary>
+    InsertCustomStartId,
 
     /// <summary>
     /// EN: Inserts ten rows sequentially.
@@ -289,6 +313,12 @@ public enum BenchmarkFeatureId
     SelectNotExistsPredicate,
 
     /// <summary>
+    /// EN: Executes a LEFT JOIN anti-join query.
+    /// PT: Executa uma consulta anti-join com LEFT JOIN.
+    /// </summary>
+    SelectLeftJoinAntiJoin,
+
+    /// <summary>
     /// EN: Executes a correlated subquery count flow.
     /// PT: Executa um fluxo com subconsulta correlacionada de contagem.
     /// </summary>
@@ -347,6 +377,12 @@ public enum BenchmarkFeatureId
     /// PT: Executa um predicado NOT IN com subconsulta.
     /// </summary>
     SelectNotInSubquery,
+
+    /// <summary>
+    /// EN: Executes a combined BETWEEN, LIKE, and ORDER BY query.
+    /// PT: Executa uma consulta combinada com BETWEEN, LIKE e ORDER BY.
+    /// </summary>
+    SelectBetweenLikeOrderByMatrix,
 
     /// <summary>
     /// EN: Executes a CROSS APPLY style projection.

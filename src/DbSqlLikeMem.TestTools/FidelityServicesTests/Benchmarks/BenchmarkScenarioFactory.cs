@@ -44,6 +44,26 @@ public static class BenchmarkScenarioFactory
         => new();
 
     /// <summary>
+    /// EN: Creates the create-table-with-foreign-key scenario used by DDL benchmarks.
+    /// PT: Cria o cenario de create-table com chave estrangeira usado pelos benchmarks de DDL.
+    /// </summary>
+    /// <typeparam name="TConnection">EN: The connection type bound to the scenario. PT: O tipo de conexao vinculado ao cenario.</typeparam>
+    /// <returns>EN: A create-table-with-foreign-key scenario instance. PT: Uma instancia de cenario de create-table com chave estrangeira.</returns>
+    public static CreateTableWithFKScenario<TConnection> CreateTableWithFKScenario<TConnection>()
+        where TConnection : DbConnection
+        => new();
+
+    /// <summary>
+    /// EN: Creates the drop-table scenario used by DDL benchmarks.
+    /// PT: Cria o cenario de drop-table usado pelos benchmarks de DDL.
+    /// </summary>
+    /// <typeparam name="TConnection">EN: The connection type bound to the scenario. PT: O tipo de conexao vinculado ao cenario.</typeparam>
+    /// <returns>EN: A drop-table scenario instance. PT: Uma instancia de cenario de drop-table.</returns>
+    public static DropTableScenario<TConnection> CreateDropTableScenario<TConnection>()
+        where TConnection : DbConnection
+        => new();
+
+    /// <summary>
     /// EN: Creates the select-table scenario used by query benchmarks.
     /// PT: Cria o cenario de select-table usado pelos benchmarks de consulta.
     /// </summary>

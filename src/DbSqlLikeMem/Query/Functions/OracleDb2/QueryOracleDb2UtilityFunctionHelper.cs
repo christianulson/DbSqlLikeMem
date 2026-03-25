@@ -2,21 +2,50 @@ namespace DbSqlLikeMem;
 
 internal static class QueryOracleDb2UtilityFunctionHelper
 {
+    private delegate bool OracleDb2UtilityFunctionHandler(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result);
+
+    private static readonly IReadOnlyDictionary<string, OracleDb2UtilityFunctionHandler> _handlers =
+        CreateHandlers();
+
     public static bool TryEvalUtilityFunctions(
         FunctionCallExpr fn,
         ISqlDialect dialect,
         Func<int, object?> evalArg,
         out object? result)
     {
-        return TryEvalCardinalityFunction(fn, dialect, evalArg, out result)
-            || TryEvalChrFunction(fn, dialect, evalArg, out result)
-            || TryEvalComposeFunction(fn, dialect, evalArg, out result)
-            || TryEvalDbTimeZoneFunction(fn, dialect, out result)
-            || TryEvalDecomposeFunction(fn, dialect, evalArg, out result)
-            || TryEvalEmptyLobFunction(fn, dialect, out result)
-            || TryEvalInitCapFunction(fn, dialect, evalArg, out result)
-            || TryEvalChartoRowidFunction(fn, dialect, evalArg, out result)
-            || TryEvalClusterFunctions(fn, dialect, evalArg, out result);
+        if (_handlers.TryGetValue(fn.Name, out var handler))
+            return handler(fn, dialect, evalArg, out result);
+
+        result = null;
+        return false;
+    }
+
+    private static Dictionary<string, OracleDb2UtilityFunctionHandler> CreateHandlers()
+    {
+        var handlers = new Dictionary<string, OracleDb2UtilityFunctionHandler>(StringComparer.OrdinalIgnoreCase);
+        Register(handlers, TryEvalCardinalityFunction, "CARDINALITY");
+        Register(handlers, TryEvalChrFunction, "CHR");
+        Register(handlers, TryEvalComposeFunction, "COMPOSE");
+        Register(handlers, TryEvalDbTimeZoneFunction, "DBTIMEZONE");
+        Register(handlers, TryEvalDecomposeFunction, "DECOMPOSE");
+        Register(handlers, TryEvalEmptyLobFunction, "EMPTY_BLOB", "EMPTY_CLOB", "EMPTY_DBCLOB", "EMPTY_NCLOB");
+        Register(handlers, TryEvalInitCapFunction, "INITCAP");
+        Register(handlers, TryEvalChartoRowidFunction, "CHARTOROWID");
+        Register(handlers, TryEvalClusterFunctions, "CLUSTER_DETAILS", "CLUSTER_DISTANCE", "CLUSTER_ID", "CLUSTER_PROBABILITY", "CLUSTER_SET");
+        return handlers;
+    }
+
+    private static void Register(
+        IDictionary<string, OracleDb2UtilityFunctionHandler> handlers,
+        OracleDb2UtilityFunctionHandler handler,
+        params string[] names)
+    {
+        foreach (var name in names)
+            handlers[name] = handler;
     }
 
     private static bool TryEvalCardinalityFunction(
@@ -167,8 +196,10 @@ internal static class QueryOracleDb2UtilityFunctionHelper
     private static bool TryEvalDbTimeZoneFunction(
         FunctionCallExpr fn,
         ISqlDialect dialect,
+        Func<int, object?> evalArg,
         out object? result)
     {
+        _ = evalArg;
         if (!fn.Name.Equals("DBTIMEZONE", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -223,8 +254,10 @@ internal static class QueryOracleDb2UtilityFunctionHelper
     private static bool TryEvalEmptyLobFunction(
         FunctionCallExpr fn,
         ISqlDialect dialect,
+        Func<int, object?> evalArg,
         out object? result)
     {
+        _ = evalArg;
         if (!(fn.Name.Equals("EMPTY_BLOB", StringComparison.OrdinalIgnoreCase)
             || fn.Name.Equals("EMPTY_CLOB", StringComparison.OrdinalIgnoreCase)
             || fn.Name.Equals("EMPTY_DBCLOB", StringComparison.OrdinalIgnoreCase)

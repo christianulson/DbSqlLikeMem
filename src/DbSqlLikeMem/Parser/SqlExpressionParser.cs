@@ -29,7 +29,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
     /// <param name="whereSql">EN: WHERE expression text. PT: Texto da expressao WHERE.</param>
     /// <returns>EN: Parsed expression AST. PT: AST da expressao parseada.</returns>
     public static SqlExpr ParseWhereAuto(string whereSql)
-        => ParseWhere(whereSql, new AutoSqlDialect(), null);
+        => ParseWhere(whereSql, AutoDialectFactory.Create(), null);
 
     /// <summary>
     /// EN: Parses a WHERE expression using the automatic dialect compatibility mode and optional parameters.
@@ -39,7 +39,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
     /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized values. PT: Parametros de comando opcionais usados por caminhos do parser que resolvem valores parametrizados.</param>
     /// <returns>EN: Parsed expression AST. PT: AST da expressao parseada.</returns>
     public static SqlExpr ParseWhereAuto(string whereSql, IDataParameterCollection? parameters)
-        => ParseWhere(whereSql, new AutoSqlDialect(), parameters);
+        => ParseWhere(whereSql, AutoDialectFactory.Create(), parameters);
 
     /// <summary>
     /// EN: Parses a WHERE expression using the provided dialect, parameters, and optional custom function resolver.
@@ -74,7 +74,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
     /// <param name="sql">EN: Scalar SQL expression to parse. PT: Expressao SQL escalar para parsear.</param>
     /// <returns>EN: Parsed expression AST. PT: AST da expressao parseada.</returns>
     public static SqlExpr ParseScalarAuto(string sql)
-        => ParseScalar(sql, new AutoSqlDialect(), null);
+        => ParseScalar(sql, AutoDialectFactory.Create(), null);
 
     /// <summary>
     /// EN: Parses a scalar expression using the automatic dialect compatibility mode and optional parameters.
@@ -84,7 +84,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
     /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized values. PT: Parametros de comando opcionais usados por caminhos do parser que resolvem valores parametrizados.</param>
     /// <returns>EN: Parsed expression AST. PT: AST da expressao parseada.</returns>
     public static SqlExpr ParseScalarAuto(string sql, IDataParameterCollection? parameters)
-        => ParseScalar(sql, new AutoSqlDialect(), parameters);
+        => ParseScalar(sql, AutoDialectFactory.Create(), parameters);
 
     /// <summary>
     /// EN: Parses a scalar expression using the provided dialect, parameters, and optional custom function resolver.
@@ -1835,16 +1835,9 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
             return sequenceCall;
 
         if (parts.Count == 1
-            && (parts[0].Equals("@@DATEFIRST", StringComparison.OrdinalIgnoreCase)
-                || parts[0].Equals("@@IDENTITY", StringComparison.OrdinalIgnoreCase)
-                || parts[0].Equals("@@MAX_PRECISION", StringComparison.OrdinalIgnoreCase)
-                || parts[0].Equals("@@TEXTSIZE", StringComparison.OrdinalIgnoreCase)
-                || parts[0].Equals("CURRENT_USER", StringComparison.OrdinalIgnoreCase)
-                || parts[0].Equals("SESSION_USER", StringComparison.OrdinalIgnoreCase)
-                || parts[0].Equals("SYSTEM_USER", StringComparison.OrdinalIgnoreCase))
-            && (!_context.Dialect.TryGetScalarFunctionDefinition(parts[0], out var metadataDefinition)
-                || metadataDefinition is null
-                || !metadataDefinition.AllowsIdentifier))
+            && _context.Dialect.TryGetScalarFunctionDefinition(parts[0], out var metadataDefinition)
+            && metadataDefinition is not null
+            && !metadataDefinition.AllowsIdentifier)
         {
             throw SqlUnsupported.ForDialect(_context.Dialect, parts[0].ToUpperInvariant());
         }

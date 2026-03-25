@@ -6,41 +6,129 @@ internal static class OracleDb2ScalarFunctionRegistry
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
 
-        var body = SqlFunctionBodyFactory.Identity();
+        dialect.AddScalarFunction(
+            "ADD_MONTHS",
+            "DATETIME",
+            QueryOracleDb2ScalarFunctionHelper.TryEvalCoreFunctions);
 
-        dialect.AddScalarFunction("ADD_MONTHS", "DATETIME", body);
-        dialect.AddScalarFunction("ASCIISTR", "VARCHAR", body);
-        dialect.AddScalarFunction("BIN_TO_NUM", "BIGINT", body);
-        dialect.AddScalarFunction("BITAND", "BIGINT", body);
-        dialect.AddScalarFunction("MONTHS_BETWEEN", "DECIMAL", body);
-        dialect.AddScalarFunction("TO_DATE", "DATE", body);
-        dialect.AddScalarFunction("TO_TIMESTAMP", "DATETIME", body);
-        dialect.AddScalarFunction("TO_CHAR", "VARCHAR", body);
-        dialect.AddScalarFunction("TO_NUMBER", "DECIMAL", body);
-        dialect.AddScalarFunction("HEXTORAW", "VARBINARY", body);
-        dialect.AddScalarFunction("RAWTOHEX", "VARCHAR", body);
-        dialect.AddScalarFunction("RAWTONHEX", "VARCHAR", body);
-        dialect.AddScalarFunction("REF", "VARCHAR", body);
-        dialect.AddScalarFunction("REFTOHEX", "VARCHAR", body);
-        dialect.AddScalarFunction("BFILENAME", "VARCHAR", body);
-        dialect.AddScalarFunction("CONVERT", "VARCHAR", body);
-        dialect.AddScalarFunction("REGEXP_COUNT", "INT", body);
-        dialect.AddScalarFunction("REGEXP_INSTR", "INT", body);
-        dialect.AddScalarFunction("REGEXP_REPLACE", "VARCHAR", body);
-        dialect.AddScalarFunction("REGEXP_SUBSTR", "VARCHAR", body);
-        dialect.AddScalarFunction("EXISTSNODE", "INT", body);
-        dialect.AddScalarFunction("ITERATION_NUMBER", "INT", body);
-        dialect.AddScalarFunction("LNNVL", "INT", body);
-        dialect.AddScalarFunction("NANVL", "DOUBLE", body);
-        dialect.AddScalarFunction("REMAINDER", "DOUBLE", body);
-        dialect.AddScalarFunction("DEREF", "VARCHAR", body);
-        dialect.AddScalarFunction("DEPTH", "INT", body);
-        dialect.AddScalarFunction("DUMP", "VARCHAR", body);
-        dialect.AddScalarFunction("MAKE_REF", "VARCHAR", body);
-        dialect.AddScalarFunction("VSIZE", "INT", body);
-        dialect.AddScalarFunction("WIDTH_BUCKET", "INT", body);
-        dialect.AddScalarFunction("JSON_DATAGUIDE", "VARCHAR", body);
-        dialect.AddScalarFunctions("VARCHAR", body,
+        dialect.AddScalarFunction(
+            "ASCIISTR",
+            "VARCHAR",
+            QueryOracleDb2ScalarFunctionHelper.TryEvalCoreFunctions);
+
+        dialect.AddScalarFunction(
+            "BIN_TO_NUM",
+            "BIGINT",
+            QueryOracleDb2ScalarFunctionHelper.TryEvalCoreFunctions);
+
+        dialect.AddScalarFunction(
+            "BITAND",
+            "BIGINT",
+            QueryOracleDb2ScalarFunctionHelper.TryEvalCoreFunctions);
+        dialect.AddScalarFunction(
+            "MONTHS_BETWEEN",
+            "DECIMAL",
+            AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate);
+        dialect.AddScalarFunctions(
+            "DATE",
+            AstQueryOracleDb2ConversionFunctionEvaluator.TryEvaluate,
+            "TO_DATE",
+            "TO_TIMESTAMP",
+            "TO_CHAR",
+            "TO_NUMBER");
+        dialect.AddScalarFunctions(
+            "VARCHAR",
+            AstQueryOracleDb2BinaryTextFunctionEvaluator.TryEvaluate,
+            "RAWTOHEX",
+            "RAWTONHEX",
+            "REF",
+            "REFTOHEX");
+        dialect.AddScalarFunction(
+            "BFILENAME",
+            "VARCHAR",
+            AstQueryOracleDb2BinaryTextFunctionEvaluator.TryEvaluate);
+        dialect.AddScalarFunctions(
+            "INT",
+            AstQueryOracleDb2BinaryTextFunctionEvaluator.TryEvaluate,
+            "REGEXP_COUNT",
+            "REGEXP_INSTR",
+            "REGEXP_REPLACE",
+            "REGEXP_SUBSTR");
+        dialect.AddScalarFunction(
+            "REMAINDER",
+            "DOUBLE",
+            AstQueryOracleDb2BinaryTextFunctionEvaluator.TryEvaluate);
+        dialect.AddScalarFunctions(
+            "VARCHAR",
+            AstQueryOracleDb2BinaryTextFunctionEvaluator.TryEvaluate,
+            "ROWIDTOCHAR",
+            "ROWTONCHAR");
+        dialect.AddScalarFunction(
+            "VSIZE",
+            "INT",
+            AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate);
+        dialect.AddScalarFunction(
+            "WIDTH_BUCKET",
+            "INT",
+            AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate);
+
+        dialect.AddScalarFunction(
+            "HEXTORAW",
+            "VARBINARY",
+            AstQueryOracleDb2BinaryTextFunctionEvaluator.TryEvaluate);
+
+        dialect.AddScalarFunction(
+            "CONVERT",
+            "VARCHAR",
+            AstQueryOracleDb2ConversionFunctionEvaluator.TryEvaluate);
+
+        dialect.AddScalarFunction(
+            "EXISTSNODE",
+            "INT",
+            AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate);
+
+        dialect.AddScalarFunction(
+            "ITERATION_NUMBER",
+            "INT",
+            AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate);
+
+        dialect.AddScalarFunction(
+            "LNNVL",
+            "INT",
+            AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate);
+
+        dialect.AddScalarFunction(
+            "NANVL",
+            "DOUBLE",
+            AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate);
+
+        dialect.AddScalarFunction(
+            "DEREF",
+            "VARCHAR",
+            AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate);
+
+        dialect.AddScalarFunction(
+            "DEPTH",
+            "INT",
+            AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate);
+
+        dialect.AddScalarFunction(
+            "DUMP",
+            "VARCHAR",
+            AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate);
+
+        dialect.AddScalarFunction(
+            "MAKE_REF",
+            "VARCHAR",
+            AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate);
+
+        dialect.AddScalarFunction(
+            "JSON_DATAGUIDE",
+            "VARCHAR",
+            AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate);
+        dialect.AddScalarFunctions(
+            "VARCHAR",
+            AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate,
             "EXTRACTVALUE",
             "XMLCAST",
             "XMLCDATA",
@@ -59,20 +147,44 @@ internal static class OracleDb2ScalarFunctionRegistry
             "XMLSERIALIZE",
             "XMLTABLE",
             "XMLTRANSFORM");
-        dialect.AddScalarFunctions("INT", body,
+        dialect.AddScalarFunctions(
+            "INT",
+            AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate,
             "XMLEXISTS",
             "XMLISVALID");
 
-        dialect.AddScalarFunction("CARDINALITY", "INT", body);
-        dialect.AddScalarFunction("CHR", "VARCHAR", body);
-        dialect.AddScalarFunction("COMPOSE", "VARCHAR", body);
-        dialect.AddScalarFunction("DBTIMEZONE", "VARCHAR", body);
-        dialect.AddScalarFunction("DECOMPOSE", "VARCHAR", body);
-        dialect.AddScalarFunction("EMPTY_BLOB", "VARBINARY", body);
-        dialect.AddScalarFunction("EMPTY_CLOB", "VARCHAR", body);
-        dialect.AddScalarFunction("EMPTY_DBCLOB", "VARCHAR", body);
-        dialect.AddScalarFunction("EMPTY_NCLOB", "VARCHAR", body);
-        dialect.AddScalarFunction("INITCAP", "VARCHAR", body);
-        dialect.AddScalarFunction("CHARTOROWID", "VARCHAR", body);
+        dialect.AddScalarFunction(
+            "CARDINALITY",
+            "INT",
+            QueryOracleDb2UtilityFunctionHelper.TryEvalUtilityFunctions);
+
+        dialect.AddScalarFunctions(
+            "VARCHAR",
+            QueryOracleDb2UtilityFunctionHelper.TryEvalUtilityFunctions,
+            "CHR",
+            "COMPOSE",
+            "DBTIMEZONE",
+            "DECOMPOSE",
+            "INITCAP",
+            "CHARTOROWID");
+
+        dialect.AddScalarFunctions(
+            "VARBINARY",
+            QueryOracleDb2UtilityFunctionHelper.TryEvalUtilityFunctions,
+            "EMPTY_BLOB",
+            "EMPTY_CLOB",
+            "EMPTY_DBCLOB",
+            "EMPTY_NCLOB");
+
+        dialect.AddScalarFunction(
+            "NVL",
+            "VARCHAR",
+            QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions);
+
+        dialect.AddScalarFunction(
+            "NVL2",
+            "VARCHAR",
+            QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions);
     }
+
 }

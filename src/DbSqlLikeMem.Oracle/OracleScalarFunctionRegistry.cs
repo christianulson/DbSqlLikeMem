@@ -30,21 +30,21 @@ internal static class OracleScalarFunctionRegistry
 
     private static void RegisterTemporalFunctions(ISqlDialect dialect, int version, Func<SqlExpr, object> body)
     {
-        dialect.AddScalarFunction("SYSDATE", "DATETIME", body, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.DateTime);
-        dialect.AddScalarFunction("SYSTEMDATE", "DATETIME", body, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.DateTime);
+        dialect.AddScalarFunction("SYSDATE", "DATETIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.DateTime);
+        dialect.AddScalarFunction("SYSTEMDATE", "DATETIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.DateTime);
 
-        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleTemporalFunctionMinVersion, "DATE", body,
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleTemporalFunctionMinVersion, "DATE", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction,
             SqlScalarFunctionUsageKind.Identifier,
             SqlTemporalFunctionKind.Date,
             "CURRENT_DATE");
 
-        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleTemporalFunctionMinVersion, "DATETIME", body,
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleTemporalFunctionMinVersion, "DATETIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction,
             SqlScalarFunctionUsageKind.Identifier,
             SqlTemporalFunctionKind.DateTime,
             "CURRENT_TIMESTAMP",
             "SYSTIMESTAMP");
 
-        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleTemporalFunctionMinVersion, "DATETIME", body,
+        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleTemporalFunctionMinVersion, "DATETIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction,
             SqlScalarFunctionUsageKind.Identifier,
             SqlTemporalFunctionKind.DateTime,
             "LOCALTIMESTAMP");
@@ -52,14 +52,23 @@ internal static class OracleScalarFunctionRegistry
 
     private static void RegisterConversionFunctions(ISqlDialect dialect, int version, Func<SqlExpr, object> body)
     {
-        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleBinaryConversionMinVersion, "DOUBLE", body,
+        dialect.AddScalarFunctionsIf(
+            version >= OracleDialect.OracleBinaryConversionMinVersion,
+            "DOUBLE",
+            AstQueryOracleDb2ConversionFunctionEvaluator.TryEvaluate,
             "TO_BINARY_DOUBLE",
             "TO_BINARY_FLOAT");
 
-        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleBlobConversionMinVersion, "BLOB", body,
+        dialect.AddScalarFunctionsIf(
+            version >= OracleDialect.OracleBlobConversionMinVersion,
+            "BLOB",
+            AstQueryOracleDb2ConversionFunctionEvaluator.TryEvaluate,
             "TO_BLOB");
 
-        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleTextConversionMinVersion, "CLOB", body,
+        dialect.AddScalarFunctionsIf(
+            version >= OracleDialect.OracleTextConversionMinVersion,
+            "CLOB",
+            AstQueryOracleDb2ConversionFunctionEvaluator.TryEvaluate,
             "TO_CLOB",
             "TO_DSINTERVAL",
             "TO_NCHAR",
@@ -67,10 +76,14 @@ internal static class OracleScalarFunctionRegistry
             "TO_TIMESTAMP_TZ",
             "TO_YMINTERVAL");
 
-        dialect.AddScalarFunctions("CLOB", body,
-            "TO_LOB");
+        dialect.AddScalarFunction(
+            "TO_LOB",
+            "CLOB",
+            AstQueryOracleDb2ConversionFunctionEvaluator.TryEvaluate);
 
-        dialect.AddScalarFunctions("VARCHAR", body,
+        dialect.AddScalarFunctions(
+            "VARCHAR",
+            AstQueryOracleDb2ConversionFunctionEvaluator.TryEvaluate,
             "TO_MULTI_BYTE",
             "TO_SINGLE_BYTE");
     }
@@ -79,10 +92,16 @@ internal static class OracleScalarFunctionRegistry
     {
         if (version >= 8)
         {
-            dialect.AddScalarFunction("RATIO_TO_REPORT", "DOUBLE", body);
+            dialect.AddScalarFunction(
+                "RATIO_TO_REPORT",
+                "DOUBLE",
+                AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate);
         }
 
-        dialect.AddScalarFunctionsIf(version >= OracleDialect.ApproximateAnalyticsMinVersion, "DOUBLE", body,
+        dialect.AddScalarFunctionsIf(
+            version >= OracleDialect.ApproximateAnalyticsMinVersion,
+            "DOUBLE",
+            AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate,
             "FEATURE_COMPARE",
             "FEATURE_DETAILS",
             "FEATURE_ID",
@@ -100,10 +119,16 @@ internal static class OracleScalarFunctionRegistry
             "PRESENTNNV",
             "PRESENTV");
 
-        dialect.AddScalarFunctionsIf(version >= OracleDialect.ApproxCountDistinctMinVersion, "BIGINT", body,
+        dialect.AddScalarFunctionsIf(
+            version >= OracleDialect.ApproxCountDistinctMinVersion,
+            "BIGINT",
+            AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate,
             "APPROX_COUNT_DISTINCT");
 
-        dialect.AddScalarFunctionsIf(version >= OracleDialect.ApproximateAnalyticsMinVersion, "BIGINT", body,
+        dialect.AddScalarFunctionsIf(
+            version >= OracleDialect.ApproximateAnalyticsMinVersion,
+            "BIGINT",
+            AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate,
             "APPROX_COUNT_DISTINCT_AGG",
             "APPROX_COUNT_DISTINCT_DETAIL",
             "APPROX_MEDIAN",
@@ -111,21 +136,33 @@ internal static class OracleScalarFunctionRegistry
             "APPROX_PERCENTILE_AGG",
             "APPROX_PERCENTILE_DETAIL");
 
-        dialect.AddScalarFunctionsIf(version >= OracleDialect.ApproximateAnalyticsMinVersion, "BIGINT", body,
+        dialect.AddScalarFunctionsIf(
+            version >= OracleDialect.ApproximateAnalyticsMinVersion,
+            "BIGINT",
+            AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate,
             "TO_APPROX_COUNT_DISTINCT");
 
-        dialect.AddScalarFunctionsIf(version >= OracleDialect.ApproximateAnalyticsMinVersion, "DOUBLE", body,
+        dialect.AddScalarFunctionsIf(
+            version >= OracleDialect.ApproximateAnalyticsMinVersion,
+            "DOUBLE",
+            AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate,
             "TO_APPROX_PERCENTILE");
     }
 
     private static void RegisterClusterFunctions(ISqlDialect dialect, int version, Func<SqlExpr, object> body)
     {
-        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleClusterFunctionMinVersion, "DOUBLE", body,
+        dialect.AddScalarFunctionsIf(
+            version >= OracleDialect.OracleClusterFunctionMinVersion,
+            "DOUBLE",
+            QueryOracleDb2UtilityFunctionHelper.TryEvalUtilityFunctions,
             "CLUSTER_ID",
             "CLUSTER_PROBABILITY",
             "CLUSTER_SET");
 
-        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleAdvancedClusterFunctionMinVersion, "DOUBLE", body,
+        dialect.AddScalarFunctionsIf(
+            version >= OracleDialect.OracleAdvancedClusterFunctionMinVersion,
+            "DOUBLE",
+            QueryOracleDb2UtilityFunctionHelper.TryEvalUtilityFunctions,
             "CLUSTER_DETAILS",
             "CLUSTER_DISTANCE");
     }
@@ -137,45 +174,55 @@ internal static class OracleScalarFunctionRegistry
             "CON_GUID_TO_ID",
             "CON_NAME_TO_ID",
             "CON_UID_TO_ID");
-
-        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleRowToNCharFunctionMinVersion, "VARCHAR", body,
-            "ROWTONCHAR");
-
-        dialect.AddScalarFunctions("VARCHAR", body,
-            "ROWIDTOCHAR");
     }
 
     private static void RegisterMetadataFunctions(ISqlDialect dialect, int version, Func<SqlExpr, object> body)
     {
-        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleUserEnvMetadataMinVersion, "VARCHAR", body,
+        dialect.AddScalarFunctionsIf(
+            version >= OracleDialect.OracleUserEnvMetadataMinVersion,
+            "VARCHAR",
+            AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate,
             "ORA_INVOKING_USER",
             "ORA_INVOKING_USERID",
             "ORA_DST_AFFECTED",
             "ORA_DST_CONVERT",
             "ORA_DST_ERROR");
 
-        dialect.AddScalarFunctionsIf(version >= OracleDialect.OraclePartitionMetadataMinVersion, "VARCHAR", body,
+        dialect.AddScalarFunctionsIf(
+            version >= OracleDialect.OraclePartitionMetadataMinVersion,
+            "VARCHAR",
+            AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate,
             "ORA_DM_PARTITION_NAME");
 
-        dialect.AddScalarFunctions("VARCHAR", body,
-            "USERENV");
+        dialect.AddScalarFunction(
+            "USERENV",
+            "VARCHAR",
+            AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate);
 
-        dialect.AddScalarFunctions("BIGINT", body,
-            "ROW_COUNT");
+        dialect.AddScalarFunction("ROW_COUNT", "BIGINT", body);
     }
 
     private static void RegisterHashFunctions(ISqlDialect dialect, int version, Func<SqlExpr, object> body)
     {
-        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleOraHashMinVersion, "VARCHAR", body,
+        dialect.AddScalarFunctionsIf(
+            version >= OracleDialect.OracleOraHashMinVersion,
+            "VARCHAR",
+            AstQueryOracleDb2BinaryTextFunctionEvaluator.TryEvaluate,
             "ORA_HASH");
 
-        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleStandardHashMinVersion, "VARCHAR", body,
+        dialect.AddScalarFunctionsIf(
+            version >= OracleDialect.OracleStandardHashMinVersion,
+            "VARCHAR",
+            AstQueryOracleDb2BinaryTextFunctionEvaluator.TryEvaluate,
             "STANDARD_HASH");
     }
 
     private static void RegisterSysFunctions(ISqlDialect dialect, int version, Func<SqlExpr, object> body)
     {
-        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleSysFamilyMinVersion, "VARCHAR", body,
+        dialect.AddScalarFunctionsIf(
+            version >= OracleDialect.OracleSysFamilyMinVersion,
+            "VARCHAR",
+            AstQueryOracleDb2SysFunctionEvaluator.TryEvaluate,
             "SYS_CONNECT_BY_PATH",
             "SYS_DBURIGEN",
             "SYS_EXTRACT_UTC",
@@ -183,23 +230,34 @@ internal static class OracleScalarFunctionRegistry
             "SYS_XMLAGG",
             "SYS_XMLGEN");
 
-        dialect.AddScalarFunctions("VARCHAR", body,
+        dialect.AddScalarFunctions(
+            "VARCHAR",
+            AstQueryOracleDb2SysFunctionEvaluator.TryEvaluate,
             "SYS_CONTEXT",
             "SYS_GUID");
 
-        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleSysZoneIdMinVersion, "VARCHAR", body,
+        dialect.AddScalarFunctionsIf(
+            version >= OracleDialect.OracleSysZoneIdMinVersion,
+            "VARCHAR",
+            AstQueryOracleDb2SysFunctionEvaluator.TryEvaluate,
             "SYS_OP_ZONE_ID");
     }
 
     private static void RegisterValidationFunctions(ISqlDialect dialect, int version, Func<SqlExpr, object> body)
     {
-        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleValidateConversionMinVersion, "INT", body,
+        dialect.AddScalarFunctionsIf(
+            version >= OracleDialect.OracleValidateConversionMinVersion,
+            "INT",
+            AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate,
             "VALIDATE_CONVERSION");
 
         dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleJsonTransformMinVersion, "VARCHAR", body,
             "JSON_TRANSFORM");
 
-        dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleJsonSqlFunctionMinVersion, "VARCHAR", body,
+        dialect.AddScalarFunctionsIf(
+            version >= OracleDialect.OracleJsonSqlFunctionMinVersion,
+            "VARCHAR",
+            AstQueryExecutorBase.TryEvalJsonExtractionFunction,
             "JSON_QUERY",
             "JSON_VALUE");
     }
@@ -223,10 +281,15 @@ internal static class OracleScalarFunctionRegistry
 
     private static void RegisterTimeFunctions(ISqlDialect dialect, int version, Func<SqlExpr, object> body)
     {
+        dialect.AddScalarFunctionsIf(
+            version >= OracleDialect.OracleTemporalFunctionMinVersion,
+            "DATETIME",
+            AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate,
+            "SESSIONTIMEZONE",
+            "TZ_OFFSET");
+
         dialect.AddScalarFunctionsIf(version >= OracleDialect.OracleTemporalFunctionMinVersion, "DATETIME", body,
             "FROM_TZ",
-            "SESSIONTIMEZONE",
-            "TZ_OFFSET",
             "NEW_TIME",
             "NEXT_DAY");
 
@@ -241,7 +304,9 @@ internal static class OracleScalarFunctionRegistry
 
     private static void RegisterSequenceFunctions(ISqlDialect dialect, Func<SqlExpr, object> body)
     {
-        dialect.AddScalarFunctions("BIGINT", body,
+        dialect.AddScalarFunctions(
+            "BIGINT",
+            body,
             SqlScalarFunctionUsageKind.Call,
             null,
             SqlConst.NEXTVAL,

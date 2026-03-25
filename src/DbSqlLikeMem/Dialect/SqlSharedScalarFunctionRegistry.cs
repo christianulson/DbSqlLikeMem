@@ -58,17 +58,21 @@ internal static class SqlSharedScalarFunctionRegistry
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
 
-        var body = SqlFunctionBodyFactory.Identity();
-
         foreach (var name in NumericFunctions)
-            dialect.AddScalarFunction(name, "DOUBLE", body);
+            dialect.AddScalarFunction(name, "DOUBLE", AstQueryGeneralScalarFunctionEvaluator.TryEvaluate);
 
-        dialect.AddScalarFunction("CONCAT", "VARCHAR", TryEvalConcatFunction);
-        dialect.AddScalarFunction("CONCAT_WS", "VARCHAR", TryEvalConcatFunction);
+        dialect.AddScalarFunctions(
+            new DbScalarFunctionDef("CONCAT", "VARCHAR", [], SqlFunctionBodyFactory.Identity())
+            {
+                AstExecutor = TryEvalConcatFunction
+            },
+            "CONCAT",
+            "CONCAT_WS");
 
         foreach (var name in StringFunctions)
         {
             var returnTypeSql = name.Equals("LENGTH", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("ASCII", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("INSTR", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("STRCMP", StringComparison.OrdinalIgnoreCase)
                 ? "INT"
@@ -76,11 +80,16 @@ internal static class SqlSharedScalarFunctionRegistry
                     ? "VARBINARY"
                     : "VARCHAR";
 
-            dialect.AddScalarFunction(name, returnTypeSql, body);
+            dialect.AddScalarFunction(name, returnTypeSql, AstQueryGeneralScalarFunctionEvaluator.TryEvaluate);
         }
 
-        dialect.AddScalarFunction("COALESCE", "VARCHAR", QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions);
-        dialect.AddScalarFunction("NULLIF", "VARCHAR", QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions);
+        dialect.AddScalarFunctions(
+            new DbScalarFunctionDef("COALESCE", "VARCHAR", [], SqlFunctionBodyFactory.Identity())
+            {
+                AstExecutor = QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions
+            },
+            "COALESCE",
+            "NULLIF");
     }
 
     private static bool TryEvalConcatFunction(

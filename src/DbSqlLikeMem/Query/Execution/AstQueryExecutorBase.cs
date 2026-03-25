@@ -2105,22 +2105,23 @@ internal abstract class AstQueryExecutorBase(
     /// PT: Identifica identificadores reservados que precisam manter o caminho generico de avaliacao de valor de janela.
     /// </summary>
     private bool IsReservedWindowValueIdentifier(string name)
-        => name.Equals("_ROWID", StringComparison.OrdinalIgnoreCase)
-           || name.Equals("CURRENT_USER", StringComparison.OrdinalIgnoreCase)
-           || name.Equals("SESSION_USER", StringComparison.OrdinalIgnoreCase)
-           || name.Equals("SYSTEM_USER", StringComparison.OrdinalIgnoreCase)
+    {
+        if (Dialect!.TryGetScalarFunctionDefinition(name, out var definition)
+            && definition is not null
+            && definition.AllowsIdentifier)
+        {
+            return true;
+        }
+
+        return name.Equals("_ROWID", StringComparison.OrdinalIgnoreCase)
            || name.Equals("USER", StringComparison.OrdinalIgnoreCase)
            || name.Equals("ORA_INVOKING_USER", StringComparison.OrdinalIgnoreCase)
            || name.Equals("ORA_INVOKING_USERID", StringComparison.OrdinalIgnoreCase)
            || name.Equals("CURRENT_SCHEMA", StringComparison.OrdinalIgnoreCase)
            || name.Equals("CURRENT_DATABASE", StringComparison.OrdinalIgnoreCase)
            || name.Equals("CURRENT_CATALOG", StringComparison.OrdinalIgnoreCase)
-           || name.Equals("CURRENT_ROLE", StringComparison.OrdinalIgnoreCase)
-           || name.Equals("@@DATEFIRST", StringComparison.OrdinalIgnoreCase)
-           || name.Equals("@@IDENTITY", StringComparison.OrdinalIgnoreCase)
-           || name.Equals("@@MAX_PRECISION", StringComparison.OrdinalIgnoreCase)
-           || name.Equals("@@TEXTSIZE", StringComparison.OrdinalIgnoreCase)
            || IsSqlServerRowCountIdentifier(name, Dialect);
+    }
 
     /// <summary>
     /// EN: Resolves LAG/LEAD offset from literal or evaluated expression with safe fallback.
@@ -2650,24 +2651,35 @@ internal abstract class AstQueryExecutorBase(
     private object? EvalIdentifier(IdentifierExpr identifier, EvalRow row)
     {
         var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para avaliação de função temporal.");
-        if (SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(
-            dialect,
-            identifier.Name,
-            _evaluationLocalNow,
-            _evaluationUtcNow,
-            out var temporalIdentifierValue))
-            return temporalIdentifierValue;
+        if (dialect.TryGetScalarFunctionDefinition(identifier.Name, out var metadataDefinition)
+            && metadataDefinition is not null
+            && metadataDefinition.AllowsIdentifier)
+        {
+            if (metadataDefinition.AstExecutor is not null
+                && metadataDefinition.AstExecutor(
+                    new FunctionCallExpr(identifier.Name, Array.Empty<SqlExpr>()),
+                    dialect,
+                    static _ => null,
+                    out var boundIdentifierValue))
+            {
+                return boundIdentifierValue;
+            }
 
-        if ((identifier.Name.Equals("CURRENT_USER", StringComparison.OrdinalIgnoreCase)
-                || identifier.Name.Equals("@@DATEFIRST", StringComparison.OrdinalIgnoreCase)
-                || identifier.Name.Equals("@@IDENTITY", StringComparison.OrdinalIgnoreCase)
-                || identifier.Name.Equals("@@MAX_PRECISION", StringComparison.OrdinalIgnoreCase)
-                || identifier.Name.Equals("@@TEXTSIZE", StringComparison.OrdinalIgnoreCase)
-                || identifier.Name.Equals("SESSION_USER", StringComparison.OrdinalIgnoreCase)
-                || identifier.Name.Equals("SYSTEM_USER", StringComparison.OrdinalIgnoreCase))
-            && (!dialect.TryGetScalarFunctionDefinition(identifier.Name, out var metadataDefinition)
-                || metadataDefinition is null
-                || !metadataDefinition.AllowsIdentifier))
+            if (metadataDefinition.TemporalKind is not null
+                && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(
+                    dialect,
+                    identifier.Name,
+                    _evaluationLocalNow,
+                    _evaluationUtcNow,
+                    out var temporalIdentifierValue))
+            {
+                return temporalIdentifierValue;
+            }
+        }
+
+        if (dialect.TryGetScalarFunctionDefinition(identifier.Name, out metadataDefinition)
+            && metadataDefinition is not null
+            && !metadataDefinition.AllowsIdentifier)
         {
             throw SqlUnsupported.ForDialect(dialect, identifier.Name.ToUpperInvariant());
         }
@@ -5728,7 +5740,7 @@ internal abstract class AstQueryExecutorBase(
         return false;
     }
 
-    private static bool TryEvalCharFunction(
+    internal static bool TryEvalCharFunction(
         FunctionCallExpr fn,
         ISqlDialect dialect,
         Func<int, object?> evalArg,
@@ -5768,7 +5780,7 @@ internal abstract class AstQueryExecutorBase(
         return true;
     }
 
-    private static bool TryEvalConvertFunction(
+    internal static bool TryEvalConvertFunction(
         FunctionCallExpr fn,
         ISqlDialect dialect,
         Func<int, object?> evalArg,
@@ -7646,7 +7658,7 @@ internal abstract class AstQueryExecutorBase(
         return true;
     }
 
-    private static bool TryEvalNumericFunction(
+    internal static bool TryEvalNumericFunction(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
@@ -7939,7 +7951,7 @@ internal abstract class AstQueryExecutorBase(
             return _sharedRandom.NextDouble();
     }
 
-    private static bool TryEvalAppNameFunction(
+    internal static bool TryEvalAppNameFunction(
         FunctionCallExpr fn,
         out object? result)
     {
@@ -7953,7 +7965,7 @@ internal abstract class AstQueryExecutorBase(
         return true;
     }
 
-    private static bool TryEvalCharIndexFunction(
+    internal static bool TryEvalCharIndexFunction(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
@@ -7990,7 +8002,7 @@ internal abstract class AstQueryExecutorBase(
         return true;
     }
 
-    private static bool TryEvalCurrentUserFunction(
+    internal static bool TryEvalCurrentUserFunction(
         FunctionCallExpr fn,
         ISqlDialect dialect,
         out object? result)
@@ -8337,7 +8349,7 @@ internal abstract class AstQueryExecutorBase(
         };
     }
 
-    private static bool TryEvalDataLengthFunction(
+    internal static bool TryEvalDataLengthFunction(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
@@ -8455,7 +8467,7 @@ internal abstract class AstQueryExecutorBase(
         return true;
     }
 
-    private static bool TryEvalErrorFunctions(
+    internal static bool TryEvalErrorFunctions(
         FunctionCallExpr fn,
         out object? result)
     {
@@ -8545,7 +8557,7 @@ internal abstract class AstQueryExecutorBase(
         }
     }
 
-    private static bool TryEvalSqlServerFormatFunction(
+    internal static bool TryEvalSqlServerFormatFunction(
         FunctionCallExpr fn,
         ISqlDialect dialect,
         Func<int, object?> evalArg,
@@ -8586,7 +8598,7 @@ internal abstract class AstQueryExecutorBase(
         return true;
     }
 
-    private static bool TryEvalSqlServerFormatMessageFunction(
+    internal static bool TryEvalSqlServerFormatMessageFunction(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
@@ -8606,7 +8618,7 @@ internal abstract class AstQueryExecutorBase(
         return true;
     }
 
-    private static bool TryEvalSqlServerCompressFunction(
+    internal static bool TryEvalSqlServerCompressFunction(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
@@ -8638,7 +8650,7 @@ internal abstract class AstQueryExecutorBase(
         return true;
     }
 
-    private static bool TryEvalSqlServerDecompressFunction(
+    internal static bool TryEvalSqlServerDecompressFunction(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
@@ -8670,7 +8682,7 @@ internal abstract class AstQueryExecutorBase(
         return true;
     }
 
-    private static bool TryEvalSqlServerChecksumFunction(
+    internal static bool TryEvalSqlServerChecksumFunction(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
@@ -8715,7 +8727,7 @@ internal abstract class AstQueryExecutorBase(
         return true;
     }
 
-    private static bool TryEvalGetUtcDateFunction(
+    internal static bool TryEvalGetUtcDateFunction(
         FunctionCallExpr fn,
         out object? result)
     {
@@ -8743,7 +8755,7 @@ internal abstract class AstQueryExecutorBase(
         return true;
     }
 
-    private static bool TryEvalGroupingFunctions(
+    internal static bool TryEvalGroupingFunctions(
         FunctionCallExpr fn,
         ISqlDialect dialect,
         Func<int, object?> evalArg,
@@ -8808,7 +8820,7 @@ internal abstract class AstQueryExecutorBase(
         return true;
     }
 
-    private static bool TryEvalIsDateFunction(
+    internal static bool TryEvalIsDateFunction(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
@@ -8832,7 +8844,7 @@ internal abstract class AstQueryExecutorBase(
         return true;
     }
 
-    private static bool TryEvalIsJsonFunction(
+    internal static bool TryEvalIsJsonFunction(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
@@ -8863,7 +8875,7 @@ internal abstract class AstQueryExecutorBase(
         return true;
     }
 
-    private static bool TryEvalIsNumericFunction(
+    internal static bool TryEvalIsNumericFunction(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
@@ -10219,7 +10231,7 @@ internal abstract class AstQueryExecutorBase(
         return true;
     }
 
-    private static bool TryEvalToNumberFunction(
+    internal static bool TryEvalToNumberFunction(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)

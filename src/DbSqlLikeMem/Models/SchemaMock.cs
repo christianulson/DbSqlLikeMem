@@ -75,6 +75,47 @@ public abstract class SchemaMock
     public IDictionary<string, ProcedureDef> Procedures { get; } =
         new Dictionary<string, ProcedureDef>(StringComparer.OrdinalIgnoreCase);
 
+    internal bool TryGetProcedure(
+        string procedureName,
+        out ProcedureDef? procedure)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(procedureName, nameof(procedureName));
+        return Procedures.TryGetValue(procedureName.NormalizeName(), out procedure)
+            && procedure != null;
+    }
+
+    internal void CreateProcedure(
+        string procedureName,
+        ProcedureDef procedure,
+        bool orReplace = false)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(procedureName, nameof(procedureName));
+        ArgumentNullExceptionCompatible.ThrowIfNull(procedure, nameof(procedure));
+
+        var normalized = procedureName.NormalizeName();
+        if (Procedures.ContainsKey(normalized) && !orReplace)
+            throw new InvalidOperationException($"Procedure '{normalized}' already exists.");
+
+        Procedures[normalized] = procedure;
+    }
+
+    internal void RestoreProcedure(
+        string procedureName,
+        ProcedureDef procedure)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(procedureName, nameof(procedureName));
+        ArgumentNullExceptionCompatible.ThrowIfNull(procedure, nameof(procedure));
+
+        Procedures[procedureName.NormalizeName()] = procedure;
+    }
+
+    internal void RemoveProcedure(
+        string procedureName)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(procedureName, nameof(procedureName));
+        Procedures.Remove(procedureName.NormalizeName());
+    }
+
     internal IDictionary<string, ScalarFunctionDef> ScalarFunctions { get; } =
         new Dictionary<string, ScalarFunctionDef>(StringComparer.OrdinalIgnoreCase);
 

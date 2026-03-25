@@ -4,6 +4,28 @@ internal delegate bool TryCoerceDateTimeDelegate(object? value, out DateTime res
 
 internal static class QueryOracleDb2ScalarFunctionHelper
 {
+    private delegate bool OracleDb2CoreFunctionHandler(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        TryCoerceDateTimeDelegate tryCoerceDateTime,
+        out object? result);
+
+    private static readonly IReadOnlyDictionary<string, OracleDb2CoreFunctionHandler> _handlers =
+        CreateHandlers();
+
+    public static bool TryEvalCoreFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalCoreFunctions(
+            fn,
+            dialect,
+            evalArg,
+            AstQueryExecutorBase.TryCoerceDateTime,
+            out result);
+
     public static bool TryEvalCoreFunctions(
         FunctionCallExpr fn,
         ISqlDialect dialect,
@@ -11,14 +33,34 @@ internal static class QueryOracleDb2ScalarFunctionHelper
         TryCoerceDateTimeDelegate tryCoerceDateTime,
         out object? result)
     {
-        return TryEvalAddMonthsFunction(fn, dialect, evalArg, tryCoerceDateTime, out result)
-            || TryEvalAsciiStrFunction(fn, dialect, evalArg, out result)
-            || TryEvalBinToNumFunction(fn, dialect, evalArg, out result)
-            || TryEvalBitAndFunction(fn, dialect, evalArg, out result)
-            || TryEvalBitOrFunction(fn, dialect, evalArg, out result)
-            || TryEvalBitXorFunction(fn, dialect, evalArg, out result)
-            || TryEvalBitNotFunction(fn, dialect, evalArg, out result)
-            || TryEvalBitAndNotFunction(fn, dialect, evalArg, out result);
+        if (_handlers.TryGetValue(fn.Name, out var handler))
+            return handler(fn, dialect, evalArg, tryCoerceDateTime, out result);
+
+        result = null;
+        return false;
+    }
+
+    private static Dictionary<string, OracleDb2CoreFunctionHandler> CreateHandlers()
+    {
+        var handlers = new Dictionary<string, OracleDb2CoreFunctionHandler>(StringComparer.OrdinalIgnoreCase);
+        Register(handlers, TryEvalAddMonthsFunction, "ADD_MONTHS");
+        Register(handlers, TryEvalAsciiStrFunction, "ASCIISTR");
+        Register(handlers, TryEvalBinToNumFunction, "BIN_TO_NUM");
+        Register(handlers, TryEvalBitAndFunction, "BITAND");
+        Register(handlers, TryEvalBitOrFunction, "BITOR");
+        Register(handlers, TryEvalBitXorFunction, "BITXOR");
+        Register(handlers, TryEvalBitNotFunction, "BITNOT");
+        Register(handlers, TryEvalBitAndNotFunction, "BITANDNOT");
+        return handlers;
+    }
+
+    private static void Register(
+        IDictionary<string, OracleDb2CoreFunctionHandler> handlers,
+        OracleDb2CoreFunctionHandler handler,
+        params string[] names)
+    {
+        foreach (var name in names)
+            handlers[name] = handler;
     }
 
     private static bool TryEvalAddMonthsFunction(
@@ -75,8 +117,10 @@ internal static class QueryOracleDb2ScalarFunctionHelper
         FunctionCallExpr fn,
         ISqlDialect dialect,
         Func<int, object?> evalArg,
+        TryCoerceDateTimeDelegate? tryCoerceDateTime,
         out object? result)
     {
+        _ = tryCoerceDateTime;
         if (!fn.Name.Equals("ASCIISTR", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -119,8 +163,10 @@ internal static class QueryOracleDb2ScalarFunctionHelper
         FunctionCallExpr fn,
         ISqlDialect dialect,
         Func<int, object?> evalArg,
+        TryCoerceDateTimeDelegate? tryCoerceDateTime,
         out object? result)
     {
+        _ = tryCoerceDateTime;
         if (!fn.Name.Equals("BIN_TO_NUM", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -170,8 +216,10 @@ internal static class QueryOracleDb2ScalarFunctionHelper
         FunctionCallExpr fn,
         ISqlDialect dialect,
         Func<int, object?> evalArg,
+        TryCoerceDateTimeDelegate? tryCoerceDateTime,
         out object? result)
     {
+        _ = tryCoerceDateTime;
         if (!fn.Name.Equals("BITAND", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -214,8 +262,10 @@ internal static class QueryOracleDb2ScalarFunctionHelper
         FunctionCallExpr fn,
         ISqlDialect dialect,
         Func<int, object?> evalArg,
+        TryCoerceDateTimeDelegate? tryCoerceDateTime,
         out object? result)
     {
+        _ = tryCoerceDateTime;
         if (!fn.Name.Equals("BITOR", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -257,8 +307,10 @@ internal static class QueryOracleDb2ScalarFunctionHelper
         FunctionCallExpr fn,
         ISqlDialect dialect,
         Func<int, object?> evalArg,
+        TryCoerceDateTimeDelegate? tryCoerceDateTime,
         out object? result)
     {
+        _ = tryCoerceDateTime;
         if (!fn.Name.Equals("BITXOR", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -300,8 +352,10 @@ internal static class QueryOracleDb2ScalarFunctionHelper
         FunctionCallExpr fn,
         ISqlDialect dialect,
         Func<int, object?> evalArg,
+        TryCoerceDateTimeDelegate? tryCoerceDateTime,
         out object? result)
     {
+        _ = tryCoerceDateTime;
         if (!fn.Name.Equals("BITNOT", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -341,8 +395,10 @@ internal static class QueryOracleDb2ScalarFunctionHelper
         FunctionCallExpr fn,
         ISqlDialect dialect,
         Func<int, object?> evalArg,
+        TryCoerceDateTimeDelegate? tryCoerceDateTime,
         out object? result)
     {
+        _ = tryCoerceDateTime;
         if (!fn.Name.Equals("BITANDNOT", StringComparison.OrdinalIgnoreCase))
         {
             result = null;

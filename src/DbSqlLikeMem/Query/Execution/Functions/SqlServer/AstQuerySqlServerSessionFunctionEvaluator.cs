@@ -1,33 +1,69 @@
 namespace DbSqlLikeMem;
 
-internal sealed class AstQuerySqlServerSessionFunctionEvaluator(
-    Func<ISqlDialect?> getDialect,
-    Func<object?> getContextInfo,
-    Func<bool> hasActiveTransaction,
-    Func<string?, int?> tryResolveSqlServerRoleMembership,
-    Func<string?, int?> tryResolveSqlServerServerRoleMembership)
+internal delegate bool AstQueryTryEvalSqlServerSessionFunction(
+    FunctionCallExpr fn,
+    Func<int, object?> evalArg,
+    out object? result);
+
+internal sealed class AstQuerySqlServerSessionFunctionEvaluator
 {
-    private readonly Func<ISqlDialect?> _getDialect = getDialect ?? throw new ArgumentNullException(nameof(getDialect));
-    private readonly Func<object?> _getContextInfo = getContextInfo ?? throw new ArgumentNullException(nameof(getContextInfo));
-    private readonly Func<bool> _hasActiveTransaction = hasActiveTransaction ?? throw new ArgumentNullException(nameof(hasActiveTransaction));
-    private readonly Func<string?, int?> _tryResolveSqlServerRoleMembership = tryResolveSqlServerRoleMembership ?? throw new ArgumentNullException(nameof(tryResolveSqlServerRoleMembership));
-    private readonly Func<string?, int?> _tryResolveSqlServerServerRoleMembership = tryResolveSqlServerServerRoleMembership ?? throw new ArgumentNullException(nameof(tryResolveSqlServerServerRoleMembership));
+    private readonly Func<ISqlDialect?> _getDialect;
+    private readonly Func<object?> _getContextInfo;
+    private readonly Func<bool> _hasActiveTransaction;
+    private readonly Func<string?, int?> _tryResolveSqlServerRoleMembership;
+    private readonly Func<string?, int?> _tryResolveSqlServerServerRoleMembership;
+    private readonly IReadOnlyDictionary<string, AstQueryTryEvalSqlServerSessionFunction> _handlers;
+
+    internal AstQuerySqlServerSessionFunctionEvaluator(
+        Func<ISqlDialect?> getDialect,
+        Func<object?> getContextInfo,
+        Func<bool> hasActiveTransaction,
+        Func<string?, int?> tryResolveSqlServerRoleMembership,
+        Func<string?, int?> tryResolveSqlServerServerRoleMembership)
+    {
+        _getDialect = getDialect ?? throw new ArgumentNullException(nameof(getDialect));
+        _getContextInfo = getContextInfo ?? throw new ArgumentNullException(nameof(getContextInfo));
+        _hasActiveTransaction = hasActiveTransaction ?? throw new ArgumentNullException(nameof(hasActiveTransaction));
+        _tryResolveSqlServerRoleMembership = tryResolveSqlServerRoleMembership ?? throw new ArgumentNullException(nameof(tryResolveSqlServerRoleMembership));
+        _tryResolveSqlServerServerRoleMembership = tryResolveSqlServerServerRoleMembership ?? throw new ArgumentNullException(nameof(tryResolveSqlServerServerRoleMembership));
+        _handlers = CreateHandlers();
+    }
+
+    private Dictionary<string, AstQueryTryEvalSqlServerSessionFunction> CreateHandlers()
+    {
+        var handlers = new Dictionary<string, AstQueryTryEvalSqlServerSessionFunction>(StringComparer.OrdinalIgnoreCase);
+        Register(handlers, TryEvalSqlServerServerPropertyFunction, "SERVERPROPERTY");
+        Register(handlers, TryEvalSqlServerConnectionPropertyFunction, "CONNECTIONPROPERTY");
+        Register(handlers, TryEvalSqlServerContextInfoFunction, "CONTEXT_INFO");
+        Register(handlers, TryEvalSqlServerCurrentRequestIdFunction, "CURRENT_REQUEST_ID");
+        Register(handlers, TryEvalSqlServerCurrentTransactionIdFunction, "CURRENT_TRANSACTION_ID");
+        Register(handlers, TryEvalSqlServerIsMemberFunction, "IS_MEMBER");
+        Register(handlers, TryEvalSqlServerIsRoleMemberFunction, "IS_ROLEMEMBER");
+        Register(handlers, TryEvalSqlServerIsSrvRoleMemberFunction, "IS_SRVROLEMEMBER");
+        Register(handlers, TryEvalSqlServerOriginalLoginFunction, "ORIGINAL_LOGIN");
+        Register(handlers, TryEvalSqlServerSessionIdFunction, "SESSION_ID");
+        Register(handlers, TryEvalSqlServerXactStateFunction, "XACT_STATE");
+        return handlers;
+    }
+
+    private static void Register(
+        IDictionary<string, AstQueryTryEvalSqlServerSessionFunction> handlers,
+        AstQueryTryEvalSqlServerSessionFunction handler,
+        params string[] names)
+    {
+        foreach (var name in names)
+            handlers[name] = handler;
+    }
 
     internal bool TryEvaluate(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
+        if (_handlers.TryGetValue(fn.Name, out var handler))
+            return handler(fn, evalArg, out result);
+
         result = null;
-
-        if (TryEvalSqlServerServerPropertyFunction(fn, evalArg, out result)
-            || TryEvalSqlServerConnectionPropertyFunction(fn, evalArg, out result)
-            || TryEvalSqlServerContextInfoFunction(fn, out result)
-            || TryEvalSqlServerSessionFunctions(fn, evalArg, out result))
-        {
-            return true;
-        }
-
         return false;
     }
 
@@ -40,8 +76,7 @@ internal sealed class AstQuerySqlServerSessionFunctionEvaluator(
 
         var dialect = _getDialect() ?? throw new InvalidOperationException("Dialeto SQL não disponível para SERVERPROPERTY.");
         if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("sqlazure", StringComparison.OrdinalIgnoreCase)
-            || !fn.Name.Equals("SERVERPROPERTY", StringComparison.OrdinalIgnoreCase))
+            && !dialect.Name.Equals("sqlazure", StringComparison.OrdinalIgnoreCase))
             return false;
 
         var propertyName = evalArg(0)?.ToString();
@@ -88,9 +123,6 @@ internal sealed class AstQuerySqlServerSessionFunctionEvaluator(
     {
         result = null;
 
-        if (!fn.Name.Equals("CONNECTIONPROPERTY", StringComparison.OrdinalIgnoreCase))
-            return false;
-
         var propertyName = evalArg(0)?.ToString();
         if (string.IsNullOrWhiteSpace(propertyName))
             return true;
@@ -108,41 +140,138 @@ internal sealed class AstQuerySqlServerSessionFunctionEvaluator(
 
     private bool TryEvalSqlServerContextInfoFunction(
         FunctionCallExpr fn,
+        Func<int, object?> evalArg,
         out object? result)
     {
+        _ = evalArg;
         result = null;
-
-        if (!fn.Name.Equals("CONTEXT_INFO", StringComparison.OrdinalIgnoreCase))
-            return false;
 
         result = _getContextInfo();
         return true;
     }
 
-    private bool TryEvalSqlServerSessionFunctions(
+    private bool TryEvalSqlServerCurrentRequestIdFunction(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
         result = null;
-
         var dialect = _getDialect() ?? throw new InvalidOperationException("Dialeto SQL não disponível para funções de sessão.");
         if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
             return false;
 
-        result = fn.Name.ToUpperInvariant() switch
-        {
-            "CURRENT_REQUEST_ID" => 1,
-            "CURRENT_TRANSACTION_ID" => _hasActiveTransaction() ? 1L : null,
-            "IS_MEMBER" => _tryResolveSqlServerRoleMembership(evalArg(0)?.ToString()),
-            "IS_ROLEMEMBER" => _tryResolveSqlServerRoleMembership(evalArg(0)?.ToString()),
-            "IS_SRVROLEMEMBER" => _tryResolveSqlServerServerRoleMembership(evalArg(0)?.ToString()),
-            "ORIGINAL_LOGIN" => "sa",
-            "SESSION_ID" => 1,
-            "XACT_STATE" => _hasActiveTransaction() ? 1 : 0,
-            _ => null
-        };
+        _ = fn;
+        _ = evalArg;
+        result = 1;
+        return true;
+    }
 
-        return result is not null;
+    private bool TryEvalSqlServerCurrentTransactionIdFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        result = null;
+        var dialect = _getDialect() ?? throw new InvalidOperationException("Dialeto SQL não disponível para funções de sessão.");
+        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        _ = fn;
+        _ = evalArg;
+        result = _hasActiveTransaction() ? 1L : null;
+        return true;
+    }
+
+    private bool TryEvalSqlServerIsMemberFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        result = null;
+        var dialect = _getDialect() ?? throw new InvalidOperationException("Dialeto SQL não disponível para funções de sessão.");
+        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        _ = fn;
+        result = _tryResolveSqlServerRoleMembership(evalArg(0)?.ToString());
+        return true;
+    }
+
+    private bool TryEvalSqlServerIsRoleMemberFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        result = null;
+        var dialect = _getDialect() ?? throw new InvalidOperationException("Dialeto SQL não disponível para funções de sessão.");
+        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        _ = fn;
+        result = _tryResolveSqlServerRoleMembership(evalArg(0)?.ToString());
+        return true;
+    }
+
+    private bool TryEvalSqlServerIsSrvRoleMemberFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        result = null;
+        var dialect = _getDialect() ?? throw new InvalidOperationException("Dialeto SQL não disponível para funções de sessão.");
+        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        _ = fn;
+        result = _tryResolveSqlServerServerRoleMembership(evalArg(0)?.ToString());
+        return true;
+    }
+
+    private bool TryEvalSqlServerOriginalLoginFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        result = null;
+        var dialect = _getDialect() ?? throw new InvalidOperationException("Dialeto SQL não disponível para funções de sessão.");
+        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        _ = fn;
+        _ = evalArg;
+        result = "sa";
+        return true;
+    }
+
+    private bool TryEvalSqlServerSessionIdFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        result = null;
+        var dialect = _getDialect() ?? throw new InvalidOperationException("Dialeto SQL não disponível para funções de sessão.");
+        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        _ = fn;
+        _ = evalArg;
+        result = 1;
+        return true;
+    }
+
+    private bool TryEvalSqlServerXactStateFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        result = null;
+        var dialect = _getDialect() ?? throw new InvalidOperationException("Dialeto SQL não disponível para funções de sessão.");
+        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        _ = fn;
+        _ = evalArg;
+        result = _hasActiveTransaction() ? 1 : 0;
+        return true;
     }
 }

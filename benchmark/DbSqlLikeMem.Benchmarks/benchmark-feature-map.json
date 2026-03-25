@@ -21,7 +21,11 @@
       "supportsMockFeatures": [
         "ConnectionOpen",
         "CreateSchema",
+        "CreateTableWithFK",
+        "CreateTableWithFKInsert",
+        "DropTable",
         "InsertSingle",
+        "InsertCustomStartId",
         "InsertBatch10",
         "InsertBatch100",
         "InsertBatch100Parallel",
@@ -88,15 +92,21 @@
         "WindowPercentRankCumeDist",
         "WindowNthValue",
         "SelectNotExistsPredicate",
+        "SelectLeftJoinAntiJoin",
         "SelectScalarCaseMatrix",
         "UnionDistinctProjection",
         "SelectNotInSubquery",
+        "SelectBetweenLikeOrderByMatrix",
         "PagedNameProjection"
       ],
       "supportsExternalFeatures": [
         "ConnectionOpen",
         "CreateSchema",
+        "CreateTableWithFK",
+        "CreateTableWithFKInsert",
+        "DropTable",
         "InsertSingle",
+        "InsertCustomStartId",
         "InsertBatch10",
         "InsertBatch100",
         "InsertBatch100Parallel",
@@ -154,9 +164,11 @@
         "WindowPercentRankCumeDist",
         "WindowNthValue",
         "SelectNotExistsPredicate",
+        "SelectLeftJoinAntiJoin",
         "SelectScalarCaseMatrix",
         "UnionDistinctProjection",
         "SelectNotInSubquery",
+        "SelectBetweenLikeOrderByMatrix",
         "PagedNameProjection"
       ]
     },
@@ -169,7 +181,11 @@
       "supportsMockFeatures": [
         "ConnectionOpen",
         "CreateSchema",
+        "CreateTableWithFK",
+        "CreateTableWithFKInsert",
+        "DropTable",
         "InsertSingle",
+        "InsertCustomStartId",
         "InsertBatch10",
         "InsertBatch100",
         "InsertBatch100Parallel",
@@ -233,15 +249,21 @@
         "WindowPercentRankCumeDist",
         "WindowNthValue",
         "SelectNotExistsPredicate",
+        "SelectLeftJoinAntiJoin",
         "SelectScalarCaseMatrix",
         "UnionDistinctProjection",
         "SelectNotInSubquery",
+        "SelectBetweenLikeOrderByMatrix",
         "PagedNameProjection"
       ],
       "supportsExternalFeatures": [
         "ConnectionOpen",
         "CreateSchema",
+        "CreateTableWithFK",
+        "CreateTableWithFKInsert",
+        "DropTable",
         "InsertSingle",
+        "InsertCustomStartId",
         "InsertBatch10",
         "InsertBatch100",
         "InsertBatch100Parallel",
@@ -304,9 +326,11 @@
         "WindowPercentRankCumeDist",
         "WindowNthValue",
         "SelectNotExistsPredicate",
+        "SelectLeftJoinAntiJoin",
         "SelectScalarCaseMatrix",
         "UnionDistinctProjection",
         "SelectNotInSubquery",
+        "SelectBetweenLikeOrderByMatrix",
         "PagedNameProjection"
       ]
     },
@@ -319,7 +343,11 @@
       "supportsMockFeatures": [
         "ConnectionOpen",
         "CreateSchema",
+        "CreateTableWithFK",
+        "CreateTableWithFKInsert",
+        "DropTable",
         "InsertSingle",
+        "InsertCustomStartId",
         "InsertBatch10",
         "InsertBatch100",
         "InsertBatch100Parallel",
@@ -395,15 +423,21 @@
         "WindowPercentRankCumeDist",
         "WindowNthValue",
         "SelectNotExistsPredicate",
+        "SelectLeftJoinAntiJoin",
         "SelectScalarCaseMatrix",
         "UnionDistinctProjection",
         "SelectNotInSubquery",
+        "SelectBetweenLikeOrderByMatrix",
         "PagedNameProjection"
       ],
       "supportsExternalFeatures": [
         "ConnectionOpen",
         "CreateSchema",
+        "CreateTableWithFK",
+        "CreateTableWithFKInsert",
+        "DropTable",
         "InsertSingle",
+        "InsertCustomStartId",
         "InsertBatch10",
         "InsertBatch100",
         "InsertBatch100Parallel",
@@ -469,9 +503,11 @@
         "WindowPercentRankCumeDist",
         "WindowNthValue",
         "SelectNotExistsPredicate",
+        "SelectLeftJoinAntiJoin",
         "SelectScalarCaseMatrix",
         "UnionDistinctProjection",
         "SelectNotInSubquery",
+        "SelectBetweenLikeOrderByMatrix",
         "PagedNameProjection"
       ]
     },
@@ -484,7 +520,11 @@
       "supportsMockFeatures": [
         "ConnectionOpen",
         "CreateSchema",
+        "CreateTableWithFK",
+        "CreateTableWithFKInsert",
+        "DropTable",
         "InsertSingle",
+        "InsertCustomStartId",
         "InsertBatch10",
         "InsertBatch100",
         "InsertBatch100Parallel",
@@ -560,9 +600,11 @@
         "WindowPercentRankCumeDist",
         "WindowNthValue",
         "SelectNotExistsPredicate",
+        "SelectLeftJoinAntiJoin",
         "SelectScalarCaseMatrix",
         "UnionDistinctProjection",
         "SelectNotInSubquery",
+        "SelectBetweenLikeOrderByMatrix",
         "PagedNameProjection"
       ],
       "supportsExternalFeatures": [
@@ -575,9 +617,11 @@
         "WindowPercentRankCumeDist",
         "WindowNthValue",
         "SelectNotExistsPredicate",
+        "SelectLeftJoinAntiJoin",
         "SelectScalarCaseMatrix",
         "UnionDistinctProjection",
         "SelectNotInSubquery",
+        "SelectBetweenLikeOrderByMatrix",
         "PagedNameProjection"
       ],
       "notes": "Use SQL Server as the nearest real-engine proxy in local benchmarks."
@@ -591,7 +635,11 @@
       "supportsMockFeatures": [
         "ConnectionOpen",
         "CreateSchema",
+        "CreateTableWithFK",
+        "CreateTableWithFKInsert",
+        "DropTable",
         "InsertSingle",
+        "InsertCustomStartId",
         "InsertBatch10",
         "InsertBatch100",
         "InsertBatch100Parallel",
@@ -665,15 +713,21 @@
         "WindowPercentRankCumeDist",
         "WindowNthValue",
         "SelectNotExistsPredicate",
+        "SelectLeftJoinAntiJoin",
         "SelectScalarCaseMatrix",
         "UnionDistinctProjection",
         "SelectNotInSubquery",
+        "SelectBetweenLikeOrderByMatrix",
         "PagedNameProjection"
       ],
       "supportsExternalFeatures": [
         "ConnectionOpen",
         "CreateSchema",
+        "CreateTableWithFK",
+        "CreateTableWithFKInsert",
+        "DropTable",
         "InsertSingle",
+        "InsertCustomStartId",
         "InsertBatch10",
         "InsertBatch100",
         "InsertBatch100Parallel",
@@ -737,9 +791,11 @@
         "WindowPercentRankCumeDist",
         "WindowNthValue",
         "SelectNotExistsPredicate",
+        "SelectLeftJoinAntiJoin",
         "SelectScalarCaseMatrix",
         "UnionDistinctProjection",
         "SelectNotInSubquery",
+        "SelectBetweenLikeOrderByMatrix",
         "PagedNameProjection"
       ]
     },
@@ -752,7 +808,11 @@
       "supportsMockFeatures": [
         "ConnectionOpen",
         "CreateSchema",
+        "CreateTableWithFK",
+        "CreateTableWithFKInsert",
+        "DropTable",
         "InsertSingle",
+        "InsertCustomStartId",
         "InsertBatch10",
         "InsertBatch100",
         "InsertBatch100Parallel",
@@ -827,15 +887,21 @@
         "WindowPercentRankCumeDist",
         "WindowNthValue",
         "SelectNotExistsPredicate",
+        "SelectLeftJoinAntiJoin",
         "SelectScalarCaseMatrix",
         "UnionDistinctProjection",
         "SelectNotInSubquery",
+        "SelectBetweenLikeOrderByMatrix",
         "PagedNameProjection"
       ],
       "supportsExternalFeatures": [
         "ConnectionOpen",
         "CreateSchema",
+        "CreateTableWithFK",
+        "CreateTableWithFKInsert",
+        "DropTable",
         "InsertSingle",
+        "InsertCustomStartId",
         "InsertBatch10",
         "InsertBatch100",
         "InsertBatch100Parallel",
@@ -900,9 +966,11 @@
         "WindowPercentRankCumeDist",
         "WindowNthValue",
         "SelectNotExistsPredicate",
+        "SelectLeftJoinAntiJoin",
         "SelectScalarCaseMatrix",
         "UnionDistinctProjection",
         "SelectNotInSubquery",
+        "SelectBetweenLikeOrderByMatrix",
         "PagedNameProjection"
       ]
     },
@@ -915,7 +983,11 @@
       "supportsMockFeatures": [
         "ConnectionOpen",
         "CreateSchema",
+        "CreateTableWithFK",
+        "CreateTableWithFKInsert",
+        "DropTable",
         "InsertSingle",
+        "InsertCustomStartId",
         "InsertBatch10",
         "InsertBatch100",
         "InsertBatch100Parallel",
@@ -986,15 +1058,21 @@
         "WindowPercentRankCumeDist",
         "WindowNthValue",
         "SelectNotExistsPredicate",
+        "SelectLeftJoinAntiJoin",
         "SelectScalarCaseMatrix",
         "UnionDistinctProjection",
         "SelectNotInSubquery",
+        "SelectBetweenLikeOrderByMatrix",
         "PagedNameProjection"
       ],
       "supportsExternalFeatures": [
         "ConnectionOpen",
         "CreateSchema",
+        "CreateTableWithFK",
+        "CreateTableWithFKInsert",
+        "DropTable",
         "InsertSingle",
+        "InsertCustomStartId",
         "InsertBatch10",
         "InsertBatch100",
         "InsertBatch100Parallel",
@@ -1055,9 +1133,11 @@
         "WindowPercentRankCumeDist",
         "WindowNthValue",
         "SelectNotExistsPredicate",
+        "SelectLeftJoinAntiJoin",
         "SelectScalarCaseMatrix",
         "UnionDistinctProjection",
         "SelectNotInSubquery",
+        "SelectBetweenLikeOrderByMatrix",
         "PagedNameProjection"
       ]
     },
@@ -1070,7 +1150,11 @@
       "supportsMockFeatures": [
         "ConnectionOpen",
         "CreateSchema",
+        "CreateTableWithFK",
+        "CreateTableWithFKInsert",
+        "DropTable",
         "InsertSingle",
+        "InsertCustomStartId",
         "InsertBatch10",
         "InsertBatch100",
         "InsertBatch100Parallel",
@@ -1145,15 +1229,21 @@
         "WindowPercentRankCumeDist",
         "WindowNthValue",
         "SelectNotExistsPredicate",
+        "SelectLeftJoinAntiJoin",
         "SelectScalarCaseMatrix",
         "UnionDistinctProjection",
         "SelectNotInSubquery",
+        "SelectBetweenLikeOrderByMatrix",
         "PagedNameProjection"
       ],
       "supportsExternalFeatures": [
         "ConnectionOpen",
         "CreateSchema",
+        "CreateTableWithFK",
+        "CreateTableWithFKInsert",
+        "DropTable",
         "InsertSingle",
+        "InsertCustomStartId",
         "InsertBatch10",
         "InsertBatch100",
         "InsertBatch100Parallel",
@@ -1218,9 +1308,11 @@
         "WindowPercentRankCumeDist",
         "WindowNthValue",
         "SelectNotExistsPredicate",
+        "SelectLeftJoinAntiJoin",
         "SelectScalarCaseMatrix",
         "UnionDistinctProjection",
         "SelectNotInSubquery",
+        "SelectBetweenLikeOrderByMatrix",
         "PagedNameProjection"
       ],
       "notes": "Change the image tag here if you prefer to stay strictly inside the Db2 11 family."
@@ -1242,11 +1334,39 @@
       "notes": "Measures the cost to create the base benchmark schema and required objects."
     },
     {
+      "id": "CreateTableWithFK",
+      "displayName": "Create table with FK",
+      "category": "Setup",
+      "comparable": true,
+      "notes": "Measures the cost to create the benchmark users and orders tables with a foreign-key relationship."
+    },
+    {
+      "id": "CreateTableWithFKInsert",
+      "displayName": "Create table with FK insert",
+      "category": "Setup",
+      "comparable": true,
+      "notes": "Measures the cost to create the foreign-key tables and insert a referenced row."
+    },
+    {
+      "id": "DropTable",
+      "displayName": "Drop table",
+      "category": "Setup",
+      "comparable": true,
+      "notes": "Measures the cost to drop the benchmark users table created by the DDL workflow."
+    },
+    {
       "id": "InsertSingle",
       "displayName": "Insert single row",
       "category": "Core",
       "comparable": true,
       "notes": "Measures a single-row insert path end-to-end."
+    },
+    {
+      "id": "InsertCustomStartId",
+      "displayName": "Insert custom start id",
+      "category": "Core",
+      "comparable": true,
+      "notes": "Measures inserting rows starting from a custom id."
     },
     {
       "id": "InsertBatch10",
@@ -1781,6 +1901,14 @@
       "notes": "Complex query benchmark using NOT EXISTS with a correlated subquery."
     },
     {
+      "id": "SelectLeftJoinAntiJoin",
+      "displayName": "Select LEFT JOIN anti-join",
+      "category": "AdvancedQuery",
+      "comparable": true,
+      "indexRefs": [],
+      "notes": "Complex query benchmark using LEFT JOIN ... IS NULL anti-join semantics."
+    },
+    {
       "id": "SelectScalarCaseMatrix",
       "displayName": "Select scalar CASE matrix",
       "category": "AdvancedQuery",
@@ -1805,6 +1933,14 @@
       "notes": "Complex query benchmark using a NOT IN sub-select predicate."
     },
     {
+      "id": "SelectBetweenLikeOrderByMatrix",
+      "displayName": "Select BETWEEN LIKE ORDER BY",
+      "category": "AdvancedQuery",
+      "comparable": true,
+      "indexRefs": [],
+      "notes": "Combined predicate and ordering benchmark using BETWEEN, LIKE, and ORDER BY."
+    },
+    {
       "id": "PagedNameProjection",
       "displayName": "Paged name projection",
       "category": "AdvancedQuery",
@@ -1814,3 +1950,5 @@
     }
   ]
 }
+
+

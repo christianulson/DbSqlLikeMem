@@ -53,6 +53,9 @@ internal sealed class AstQueryFunctionEvaluator(
         if (_tryEvalUserDefinedScalarFunction(fn, row, group, ctes, out var userDefinedResult))
             return userDefinedResult;
 
+        if (_tryEvalBoundScalarFunction(fn, dialect, evalArg, out var boundScalarResult))
+            return boundScalarResult;
+
         if (fn.Args.Count == 0
             && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(
                 dialect,
@@ -63,9 +66,6 @@ internal sealed class AstQueryFunctionEvaluator(
         {
             return temporalValue;
         }
-
-        if (_tryEvalBoundScalarFunction(fn, dialect, evalArg, out var boundScalarResult))
-            return boundScalarResult;
 
         if (_tryEvalNonSqlServerScalarFunctionFamily(fn, row, group, ctes, dialect, evalArg, out var nonSqlServerResult))
             return nonSqlServerResult;

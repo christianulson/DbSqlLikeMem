@@ -79,6 +79,36 @@ WHERE u.tenantid = 10";
     }
 
     /// <summary>
+    /// EN: Verifies CREATE TABLE AS SELECT DISTINCT creates a new table populated with unique rows.
+    /// PT: Verifica se CREATE TABLE AS SELECT DISTINCT cria uma nova tabela populada com linhas unicas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
+    public void CreateTableAsSelectDistinct_ShouldCreateNewTableWithUniqueRows()
+    {
+        var db = CreateDb();
+        var users = db.AddTable("users");
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("name", DbType.String, false);
+        users.AddColumn("tenantid", DbType.Int32, false);
+        users.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "A" }, { 2, 10 } });
+        users.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, "A" }, { 2, 20 } });
+        users.Add(new Dictionary<int, object?> { { 0, 3 }, { 1, "B" }, { 2, 10 } });
+
+        const string sql = "CREATE TABLE active_users AS SELECT DISTINCT name FROM users ORDER BY name";
+
+        var affected = ExecuteNonQuery(db, sql);
+
+        Assert.Equal(0, affected);
+        Assert.True(db.TryGetTable("active_users", out var active));
+        Assert.NotNull(active);
+        Assert.Equal(2, active!.Count);
+        Assert.True(active.Columns.ContainsKey("name"));
+        Assert.Equal("A", (string)active[0][0]!);
+        Assert.Equal("B", (string)active[1][0]!);
+    }
+
+    /// <summary>
     /// EN: Verifies INSERT INTO ... SELECT inserts the rows returned by the query.
     /// PT: Verifica se INSERT INTO ... SELECT insere as linhas retornadas pela consulta.
     /// </summary>
@@ -106,6 +136,69 @@ WHERE u.tenantid = 10";
         Assert.Single(audit);
         Assert.Equal(1, (int)audit[0][0]!);
         Assert.Equal("A", audit[0][1]);
+    }
+
+    /// <summary>
+    /// EN: Verifies INSERT INTO ... SELECT DISTINCT inserts the unique rows returned by the query.
+    /// PT: Verifica se INSERT INTO ... SELECT DISTINCT insere as linhas unicas retornadas pela consulta.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
+    public void InsertIntoSelectDistinct_ShouldInsertUniqueRows()
+    {
+        var db = CreateDb();
+        var users = db.AddTable("users");
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("name", DbType.String, false);
+        users.AddColumn("tenantid", DbType.Int32, false);
+        users.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "A" }, { 2, 10 } });
+        users.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, "A" }, { 2, 20 } });
+        users.Add(new Dictionary<int, object?> { { 0, 3 }, { 1, "B" }, { 2, 10 } });
+
+        var audit = db.AddTable("audit_users");
+        audit.AddColumn("username", DbType.String, false);
+
+        const string sql = "INSERT INTO audit_users (username) SELECT DISTINCT name FROM users ORDER BY name";
+
+        var inserted = ExecuteNonQuery(db, sql);
+
+        Assert.Equal(2, inserted);
+        Assert.Equal(2, audit.Count);
+        Assert.Equal("A", (string)audit[0][0]!);
+        Assert.Equal("B", (string)audit[1][0]!);
+    }
+
+    /// <summary>
+    /// EN: Verifies INSERT INTO ... SELECT with GROUP BY inserts the aggregated rows returned by the query.
+    /// PT: Verifica se INSERT INTO ... SELECT com GROUP BY insere as linhas agregadas retornadas pela consulta.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
+    public void InsertIntoSelectGroupBy_ShouldInsertAggregatedRows()
+    {
+        var db = CreateDb();
+        var users = db.AddTable("users");
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("name", DbType.String, false);
+        users.AddColumn("tenantid", DbType.Int32, false);
+        users.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "A" }, { 2, 10 } });
+        users.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, "B" }, { 2, 10 } });
+        users.Add(new Dictionary<int, object?> { { 0, 3 }, { 1, "C" }, { 2, 20 } });
+
+        var summary = db.AddTable("tenant_summary");
+        summary.AddColumn("tenantid", DbType.Int32, false);
+        summary.AddColumn("rowcount", DbType.Int32, false);
+
+        const string sql = "INSERT INTO tenant_summary (tenantid, rowcount) SELECT tenantid, COUNT(*) FROM users GROUP BY tenantid ORDER BY tenantid";
+
+        var inserted = ExecuteNonQuery(db, sql);
+
+        Assert.Equal(2, inserted);
+        Assert.Equal(2, summary.Count);
+        Assert.Equal(10, (int)summary[0][0]!);
+        Assert.Equal(2, (int)summary[0][1]!);
+        Assert.Equal(20, (int)summary[1][0]!);
+        Assert.Equal(1, (int)summary[1][1]!);
     }
 
     /// <summary>

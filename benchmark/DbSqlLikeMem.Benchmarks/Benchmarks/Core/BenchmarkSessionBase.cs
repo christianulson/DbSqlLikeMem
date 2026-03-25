@@ -114,8 +114,20 @@ public abstract partial class BenchmarkSessionBase(
             case BenchmarkFeatureId.CreateSchema:
                 RunCreateSchema();
                 break;
+            case BenchmarkFeatureId.CreateTableWithFK:
+                RunCreateTableWithFK();
+                break;
+            case BenchmarkFeatureId.CreateTableWithFKInsert:
+                RunCreateTableWithFKInsert();
+                break;
+            case BenchmarkFeatureId.DropTable:
+                RunDropTable();
+                break;
             case BenchmarkFeatureId.InsertSingle:
                 RunInsertSingle();
+                break;
+            case BenchmarkFeatureId.InsertCustomStartId:
+                RunInsertCustomStartId();
                 break;
             case BenchmarkFeatureId.InsertBatch10:
                 RunInsertBatch10();
@@ -399,6 +411,9 @@ public abstract partial class BenchmarkSessionBase(
             case BenchmarkFeatureId.SelectNotExistsPredicate:
                 RunSelectNotExistsPredicate();
                 break;
+            case BenchmarkFeatureId.SelectLeftJoinAntiJoin:
+                RunSelectLeftJoinAntiJoin();
+                break;
             case BenchmarkFeatureId.SelectScalarSubquery:
                 RunSelectScalarSubquery();
                 break;
@@ -416,6 +431,9 @@ public abstract partial class BenchmarkSessionBase(
                 break;
             case BenchmarkFeatureId.SelectNotInSubquery:
                 RunSelectNotInSubquery();
+                break;
+            case BenchmarkFeatureId.SelectBetweenLikeOrderByMatrix:
+                RunSelectBetweenLikeOrderByMatrix();
                 break;
             case BenchmarkFeatureId.OuterApplyProjection:
                 RunOuterApplyProjection();
@@ -486,6 +504,37 @@ public abstract partial class BenchmarkSessionBase(
     }
 
     /// <summary>
+    /// EN: Creates the benchmark users and orders tables with a foreign key and removes them after the run.
+    /// PT-br: Cria as tabelas de usuarios e pedidos do benchmark com chave estrangeira e as remove apos a execucao.
+    /// </summary>
+    protected virtual void RunCreateTableWithFK()
+    {
+        var state = GetPreparedCreateTableWithFkState();
+        state.RunCreateTableWithFk();
+    }
+
+    /// <summary>
+    /// EN: Creates the benchmark foreign-key tables and inserts a referenced row.
+    /// PT-br: Cria as tabelas com chave estrangeira do benchmark e insere uma linha referenciada.
+    /// </summary>
+    protected virtual void RunCreateTableWithFKInsert()
+    {
+        var state = GetPreparedCreateTableWithFkState();
+        var count = state.RunCreateTableWithFkInsert();
+        GC.KeepAlive(count);
+    }
+
+    /// <summary>
+    /// EN: Creates and drops the benchmark users table through the shared DDL drop workflow.
+    /// PT-br: Cria e remove a tabela de usuarios do benchmark pelo fluxo compartilhado de remocao DDL.
+    /// </summary>
+    protected virtual void RunDropTable()
+    {
+        var state = GetPreparedDropTableState();
+        state.RunDropTable();
+    }
+
+    /// <summary>
     /// EN: Inserts a single user row and validates that the row was persisted.
     /// PT-br: Insere uma única linha de usuário e valida que a linha foi persistida.
     /// </summary>
@@ -495,6 +544,17 @@ public abstract partial class BenchmarkSessionBase(
         var state = GetPreparedInsertUsersState("InsertSingle");
         var count = state.RunSequentialInsert(1);
         GC.KeepAlive(count);
+    }
+
+    /// <summary>
+    /// EN: Inserts three rows starting from a custom id and validates the persisted names.
+    /// PT-br: Insere tres linhas iniciando em um id customizado e valida os nomes persistidos.
+    /// </summary>
+    protected virtual void RunInsertCustomStartId()
+    {
+        var state = GetPreparedInsertUsersState("InsertCustomStartId");
+        var result = state.RunInsertCustomStartId();
+        GC.KeepAlive(result);
     }
 
     protected virtual void RunInsertBatch10()
@@ -1131,6 +1191,20 @@ public abstract partial class BenchmarkSessionBase(
         GC.KeepAlive(value);
     }
 
+    /// <summary>
+    /// EN: Executes a LEFT JOIN anti-join benchmark and validates the orphan row count.
+    /// PT-br: Executa um benchmark de anti-join com LEFT JOIN e valida a contagem de linhas sem correspondencia.
+    /// </summary>
+    protected virtual void RunSelectLeftJoinAntiJoin()
+    {
+        var state = GetPreparedUsersOrdersQueryState(
+            "UsersOrdersThreeRows",
+            [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
+            [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]);
+        var value = state.RunSelectLeftJoinAntiJoin();
+        GC.KeepAlive(value);
+    }
+
     protected virtual void RunSelectCorrelatedCount()
     {
         var state = GetPreparedUsersOrdersQueryState(
@@ -1221,6 +1295,19 @@ public abstract partial class BenchmarkSessionBase(
             [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
             [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]);
         var value = state.Service.RunSelectNotInSubquery(state.UsersTable, state.OrdersTable);
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunSelectBetweenLikeOrderByMatrix()
+    {
+        var state = GetPreparedUsersQueryState(
+            "BetweenLikeOrderByMatrix",
+            (1, "Aaron"),
+            (2, "Alice"),
+            (3, "Bob"),
+            (4, "Charlie"),
+            (5, "Delta"));
+        var value = state.RunBetweenLikeOrderByMatrix();
         GC.KeepAlive(value);
     }
 

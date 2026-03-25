@@ -507,6 +507,36 @@ WHERE Name LIKE 'A%'
     }
 
     /// <summary>
+    /// EN: Executes a combined BETWEEN, LIKE, and ORDER BY query over the configured users table and returns the matching row count.
+    /// PT: Executa uma consulta combinada com BETWEEN, LIKE e ORDER BY na tabela de usuarios configurada e retorna a contagem de linhas correspondentes.
+    /// </summary>
+    public int RunBetweenLikeOrderByMatrix(params object[] pars)
+    {
+        var users = (string)pars[0];
+
+        using var command = Connection.CreateCommand();
+        command.CommandText = $"""
+SELECT Name
+FROM {users}
+WHERE Id BETWEEN 1 AND 4
+  AND Name LIKE 'A%'
+ORDER BY Name
+""";
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal("Aaron", Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
+
+        Assert.True(reader.Read());
+        Assert.Equal("Alice", Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
+
+        Assert.False(reader.Read());
+        GC.KeepAlive(users);
+        return 2;
+    }
+
+    /// <summary>
     /// EN: Executes a NOT LIKE predicate over the configured users table and returns the matching row count.
     /// PT: Executa um predicado NOT LIKE na tabela de usuarios configurada e retorna a contagem de linhas correspondentes.
     /// </summary>

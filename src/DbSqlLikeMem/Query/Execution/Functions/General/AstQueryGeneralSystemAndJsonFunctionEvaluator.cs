@@ -11,26 +11,35 @@ internal delegate bool AstQueryTryEvalGeneralJsonFunction(
     Func<int, object?> evalArg,
     out object? result);
 
-internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator(
-    AstQueryTryEvalSessionContextFunction tryEvalSessionContextFunction,
-    AstQueryTryEvalGeneralJsonFunction tryEvalJsonUtilityFunctions,
-    AstQueryTryEvalGeneralJsonFunction tryEvalSqliteSystemFunctions,
-    AstQueryTryEvalGeneralJsonFunction tryEvalSqliteJsonFunctions)
+internal delegate bool AstQueryTryEvalGeneralSystemAndJsonFunction(
+    FunctionCallExpr fn,
+    ISqlDialect dialect,
+    Func<int, object?> evalArg,
+    out object? result);
+
+internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
 {
-    private readonly AstQueryTryEvalSessionContextFunction _tryEvalSessionContextFunction =
-        tryEvalSessionContextFunction ?? throw new ArgumentNullException(nameof(tryEvalSessionContextFunction));
-
-    private readonly AstQueryTryEvalGeneralJsonFunction _tryEvalJsonUtilityFunctions =
-        tryEvalJsonUtilityFunctions ?? throw new ArgumentNullException(nameof(tryEvalJsonUtilityFunctions));
-
-    private readonly AstQueryTryEvalGeneralJsonFunction _tryEvalSqliteSystemFunctions =
-        tryEvalSqliteSystemFunctions ?? throw new ArgumentNullException(nameof(tryEvalSqliteSystemFunctions));
-
-    private readonly AstQueryTryEvalGeneralJsonFunction _tryEvalSqliteJsonFunctions =
-        tryEvalSqliteJsonFunctions ?? throw new ArgumentNullException(nameof(tryEvalSqliteJsonFunctions));
+    private readonly AstQueryTryEvalSessionContextFunction _tryEvalSessionContextFunction;
+    private readonly AstQueryTryEvalGeneralJsonFunction _tryEvalJsonUtilityFunctions;
+    private readonly AstQueryTryEvalGeneralJsonFunction _tryEvalSqliteSystemFunctions;
+    private readonly AstQueryTryEvalGeneralJsonFunction _tryEvalSqliteJsonFunctions;
+    private readonly IReadOnlyDictionary<string, AstQueryTryEvalGeneralSystemAndJsonFunction> _handlers;
 
     private static readonly object _uuidShortCounterLock = new();
     private static long _uuidShortCounter;
+
+    internal AstQueryGeneralSystemAndJsonFunctionEvaluator(
+        AstQueryTryEvalSessionContextFunction tryEvalSessionContextFunction,
+        AstQueryTryEvalGeneralJsonFunction tryEvalJsonUtilityFunctions,
+        AstQueryTryEvalGeneralJsonFunction tryEvalSqliteSystemFunctions,
+        AstQueryTryEvalGeneralJsonFunction tryEvalSqliteJsonFunctions)
+    {
+        _tryEvalSessionContextFunction = tryEvalSessionContextFunction ?? throw new ArgumentNullException(nameof(tryEvalSessionContextFunction));
+        _tryEvalJsonUtilityFunctions = tryEvalJsonUtilityFunctions ?? throw new ArgumentNullException(nameof(tryEvalJsonUtilityFunctions));
+        _tryEvalSqliteSystemFunctions = tryEvalSqliteSystemFunctions ?? throw new ArgumentNullException(nameof(tryEvalSqliteSystemFunctions));
+        _tryEvalSqliteJsonFunctions = tryEvalSqliteJsonFunctions ?? throw new ArgumentNullException(nameof(tryEvalSqliteJsonFunctions));
+        _handlers = CreateHandlers();
+    }
 
     internal bool TryEvaluate(
         FunctionCallExpr fn,
@@ -38,27 +47,15 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator(
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (TryEvalGetAnsiNullFunction(fn, out result)
-            || TryEvalGroupingFunctions(fn, dialect, evalArg, out result)
-            || TryEvalHostFunctions(fn, out result)
-            || _tryEvalSessionContextFunction(fn, evalArg, out result)
-            || TryEvalIsDateFunction(fn, evalArg, out result)
-            || TryEvalIsJsonFunction(fn, evalArg, out result)
-            || TryEvalIsNumericFunction(fn, evalArg, out result)
-            || TryEvalIpFunctions(fn, evalArg, out result)
-            || TryEvalIsUuidFunction(fn, evalArg, out result)
-            || TryEvalJsonArrayFunction(fn, evalArg, out result)
-            || TryEvalJsonDepthFunction(fn, evalArg, out result)
-            || _tryEvalJsonUtilityFunctions(fn, dialect, evalArg, out result)
+        if (_handlers.TryGetValue(fn.Name, out var handler)
+            && handler(fn, dialect, evalArg, out result))
+        {
+            return true;
+        }
+
+        if (_tryEvalJsonUtilityFunctions(fn, dialect, evalArg, out result)
             || _tryEvalSqliteSystemFunctions(fn, dialect, evalArg, out result)
-            || _tryEvalSqliteJsonFunctions(fn, dialect, evalArg, out result)
-            || TryEvalSessionUserFunction(fn, dialect, out result)
-            || TryEvalSystemUserFunction(fn, out result)
-            || TryEvalUserFunction(fn, out result)
-            || TryEvalUtcDateFunction(fn, out result)
-            || TryEvalUtcTimeFunction(fn, out result)
-            || TryEvalUtcTimestampFunction(fn, out result)
-            || TryEvalUuidShortFunction(fn, out result))
+            || _tryEvalSqliteJsonFunctions(fn, dialect, evalArg, out result))
         {
             return true;
         }
@@ -67,33 +64,61 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator(
         return false;
     }
 
-    private static bool TryEvalGetAnsiNullFunction(
-        FunctionCallExpr fn,
-        out object? result)
+    private Dictionary<string, AstQueryTryEvalGeneralSystemAndJsonFunction> CreateHandlers()
     {
-        if (!fn.Name.Equals("GETANSINULL", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        result = 1;
-        return true;
+        var handlers = new Dictionary<string, AstQueryTryEvalGeneralSystemAndJsonFunction>(StringComparer.OrdinalIgnoreCase);
+        Register(handlers, TryEvalGetAnsiNullFunction, "GETANSINULL");
+        Register(handlers, TryEvalGroupingFunction, "GROUPING");
+        Register(handlers, TryEvalGroupingIdFunction, "GROUPING_ID");
+        Register(handlers, TryEvalHostIdFunction, "HOST_ID");
+        Register(handlers, TryEvalHostNameFunction, "HOST_NAME");
+        Register(handlers, TryEvalSessionContextFunction, "SESSION_CONTEXT");
+        Register(handlers, TryEvalIsDateFunction, "ISDATE");
+        Register(handlers, TryEvalIsJsonFunction, "ISJSON");
+        Register(handlers, TryEvalIsNumericFunction, "ISNUMERIC");
+        Register(handlers, TryEvalIpFunctions, "IS_IPV4", "IS_IPV4_COMPAT", "IS_IPV4_MAPPED", "IS_IPV6");
+        Register(handlers, TryEvalIsUuidFunction, "IS_UUID");
+        Register(handlers, TryEvalJsonArrayFunction, "JSON_ARRAY");
+        Register(handlers, TryEvalJsonDepthFunction, "JSON_DEPTH");
+        Register(handlers, TryEvalSessionUserFunction, "SESSION_USER");
+        Register(handlers, TryEvalSystemUserFunction, "SYSTEM_USER");
+        Register(handlers, TryEvalUserFunction, "USER");
+        Register(handlers, TryEvalUtcDateFunction, "UTC_DATE");
+        Register(handlers, TryEvalUtcTimeFunction, "UTC_TIME");
+        Register(handlers, TryEvalUtcTimestampFunction, "UTC_TIMESTAMP");
+        Register(handlers, TryEvalUuidShortFunction, "UUID_SHORT");
+        return handlers;
     }
 
-    private static bool TryEvalGroupingFunctions(
+    private static void Register(
+        IDictionary<string, AstQueryTryEvalGeneralSystemAndJsonFunction> handlers,
+        AstQueryTryEvalGeneralSystemAndJsonFunction handler,
+        params string[] names)
+    {
+        foreach (var name in names)
+            handlers[name] = handler;
+    }
+
+    internal static bool TryEvalGetAnsiNullFunction(
         FunctionCallExpr fn,
         ISqlDialect dialect,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!(fn.Name.Equals("GROUPING", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("GROUPING_ID", StringComparison.OrdinalIgnoreCase)))
-        {
-            result = null;
-            return false;
-        }
+        _ = dialect;
+        _ = evalArg;
 
+        result = 1;
+        return true;
+    }
+
+    internal static bool TryEvalGroupingFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = evalArg;
         if (MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect)
             && dialect.Version < 80)
         {
@@ -104,33 +129,67 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator(
         return true;
     }
 
-    private static bool TryEvalHostFunctions(
+    internal static bool TryEvalGroupingIdFunction(
         FunctionCallExpr fn,
-        out object? result)
-    {
-        if (!(fn.Name.Equals("HOST_ID", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("HOST_NAME", StringComparison.OrdinalIgnoreCase)))
-        {
-            result = null;
-            return false;
-        }
-
-        result = fn.Name.Equals("HOST_ID", StringComparison.OrdinalIgnoreCase)
-            ? 1
-            : "localhost";
-        return true;
-    }
-
-    private static bool TryEvalIsDateFunction(
-        FunctionCallExpr fn,
+        ISqlDialect dialect,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("ISDATE", StringComparison.OrdinalIgnoreCase))
+        _ = dialect;
+        _ = evalArg;
+        if (MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect)
+            && dialect.Version < 80)
         {
-            result = null;
-            return false;
+            throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
         }
+
+        result = 0;
+        return true;
+    }
+
+    internal static bool TryEvalHostIdFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = dialect;
+        _ = evalArg;
+        result = 1;
+        return true;
+    }
+
+    internal static bool TryEvalHostNameFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = dialect;
+        _ = evalArg;
+        result = "localhost";
+        return true;
+    }
+
+    private bool TryEvalSessionContextFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = dialect;
+        return _tryEvalSessionContextFunction(fn, evalArg, out result);
+    }
+
+    internal static bool TryEvalIsDateFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = dialect;
 
         var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value))
@@ -145,16 +204,13 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator(
         return true;
     }
 
-    private static bool TryEvalIsJsonFunction(
+    internal static bool TryEvalIsJsonFunction(
         FunctionCallExpr fn,
+        ISqlDialect dialect,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("ISJSON", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
+        _ = dialect;
 
         var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value))
@@ -176,16 +232,13 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator(
         return true;
     }
 
-    private static bool TryEvalIsNumericFunction(
+    internal static bool TryEvalIsNumericFunction(
         FunctionCallExpr fn,
+        ISqlDialect dialect,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("ISNUMERIC", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
+        _ = dialect;
 
         var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value))
@@ -202,9 +255,11 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator(
 
     private static bool TryEvalIpFunctions(
         FunctionCallExpr fn,
+        ISqlDialect dialect,
         Func<int, object?> evalArg,
         out object? result)
     {
+        _ = dialect;
         var name = fn.Name;
         if (!(name.Equals("IS_IPV4", StringComparison.OrdinalIgnoreCase)
             || name.Equals("IS_IPV4_COMPAT", StringComparison.OrdinalIgnoreCase)
@@ -263,14 +318,12 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator(
 
     private static bool TryEvalIsUuidFunction(
         FunctionCallExpr fn,
+        ISqlDialect dialect,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("IS_UUID", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
+        _ = dialect;
+        _ = evalArg;
 
         var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value))
@@ -287,14 +340,11 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator(
 
     private static bool TryEvalJsonArrayFunction(
         FunctionCallExpr fn,
+        ISqlDialect dialect,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("JSON_ARRAY", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
+        _ = dialect;
 
         var values = new object?[fn.Args.Count];
         for (var i = 0; i < fn.Args.Count; i++)
@@ -306,14 +356,11 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator(
 
     private static bool TryEvalJsonDepthFunction(
         FunctionCallExpr fn,
+        ISqlDialect dialect,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("JSON_DEPTH", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
+        _ = dialect;
 
         var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value))
@@ -363,44 +410,39 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator(
         return 1;
     }
 
-    private static bool TryEvalSessionUserFunction(
+    internal static bool TryEvalSessionUserFunction(
         FunctionCallExpr fn,
         ISqlDialect dialect,
+        Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("SESSION_USER", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
+        _ = evalArg;
 
         result = MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect) ? "root@localhost" : "dbo";
         return true;
     }
 
-    private static bool TryEvalSystemUserFunction(
+    internal static bool TryEvalSystemUserFunction(
         FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("SYSTEM_USER", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
+        _ = dialect;
+        _ = evalArg;
 
         result = "dbo";
         return true;
     }
 
-    private static bool TryEvalUserFunction(
+    internal static bool TryEvalUserFunction(
         FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("USER", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
+        _ = dialect;
+        _ = evalArg;
 
         result = "dbo";
         return true;
@@ -408,13 +450,12 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator(
 
     private static bool TryEvalUtcDateFunction(
         FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("UTC_DATE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
+        _ = dialect;
+        _ = evalArg;
 
         result = DateTime.UtcNow.Date;
         return true;
@@ -422,13 +463,12 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator(
 
     private static bool TryEvalUtcTimeFunction(
         FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("UTC_TIME", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
+        _ = dialect;
+        _ = evalArg;
 
         result = DateTime.UtcNow.TimeOfDay;
         return true;
@@ -436,13 +476,12 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator(
 
     private static bool TryEvalUtcTimestampFunction(
         FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("UTC_TIMESTAMP", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
+        _ = dialect;
+        _ = evalArg;
 
         result = DateTime.UtcNow;
         return true;
@@ -450,13 +489,12 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator(
 
     private static bool TryEvalUuidShortFunction(
         FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("UUID_SHORT", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
+        _ = dialect;
+        _ = evalArg;
 
         if (fn.Args.Count > 0)
             throw new InvalidOperationException("UUID_SHORT() não aceita argumentos.");
@@ -470,6 +508,7 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator(
             _uuidShortCounter++;
             result = _uuidShortCounter;
         }
+
         return true;
     }
 }

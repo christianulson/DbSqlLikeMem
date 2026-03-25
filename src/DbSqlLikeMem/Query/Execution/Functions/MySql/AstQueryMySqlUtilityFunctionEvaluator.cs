@@ -51,6 +51,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         Register(handlers, TryEvalCryptoFunctions, "AES_ENCRYPT", "AES_DECRYPT", "DES_ENCRYPT", "DES_DECRYPT", "ENCODE", "DECODE", "ENCRYPT");
         Register(handlers, TryEvalDefaultFunction, SqlConst.DEFAULT);
         Register(handlers, TryEvalMemberOfFunction, "MEMBER_OF");
+        Register(handlers, TryEvalIpValidationFunctions, "IS_IPV4", "IS_IPV4_COMPAT", "IS_IPV4_MAPPED", "IS_IPV6");
         Register(handlers, TryEvalRegexFunctions, "REGEXP_INSTR", "REGEXP_REPLACE", "REGEXP_SUBSTR", "REGEXP_LIKE");
 
         return handlers;
@@ -967,6 +968,68 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         }
 
         result = 0;
+        return true;
+    }
+
+    private static bool TryEvalIpValidationFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        EvalRow row,
+        Func<int, object?> evalArg,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        out object? result)
+    {
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not ("IS_IPV4" or "IS_IPV4_COMPAT" or "IS_IPV4_MAPPED" or "IS_IPV6"))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        if (!IPAddress.TryParse(text, out var ip))
+        {
+            result = 0;
+            return true;
+        }
+
+        if (name is "IS_IPV4")
+        {
+            result = ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? 1 : 0;
+            return true;
+        }
+
+        if (name is "IS_IPV6")
+        {
+            result = ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6 ? 1 : 0;
+            return true;
+        }
+
+        if (ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetworkV6)
+        {
+            result = 0;
+            return true;
+        }
+
+        var bytes = ip.GetAddressBytes();
+        if (bytes.Length != 16)
+        {
+            result = 0;
+            return true;
+        }
+
+        var isV4Mapped = bytes.Take(10).All(static b => b == 0) && bytes[10] == 0xff && bytes[11] == 0xff;
+        result = name.Equals("IS_IPV4_MAPPED", StringComparison.OrdinalIgnoreCase)
+            ? (isV4Mapped ? 1 : 0)
+            : (name.Equals("IS_IPV4_COMPAT", StringComparison.OrdinalIgnoreCase) ? (!isV4Mapped && bytes.Take(12).All(static b => b == 0) ? 1 : 0) : 0);
         return true;
     }
 

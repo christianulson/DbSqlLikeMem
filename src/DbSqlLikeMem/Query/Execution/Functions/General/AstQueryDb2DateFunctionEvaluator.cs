@@ -4,6 +4,16 @@ namespace DbSqlLikeMem;
 
 internal static class AstQueryDb2DateFunctionEvaluator
 {
+    private delegate bool AstQueryTryEvalDb2DateFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        Func<string, TemporalUnit> resolveTemporalUnit,
+        out object? result);
+
+    private static readonly IReadOnlyDictionary<string, AstQueryTryEvalDb2DateFunction> _handlers =
+        CreateHandlers();
+
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
         ISqlDialect dialect,
@@ -11,19 +21,60 @@ internal static class AstQueryDb2DateFunctionEvaluator
         Func<string, TemporalUnit> resolveTemporalUnit,
         out object? result)
     {
-        result = null;
-
         if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
             return false;
+        }
 
-        var name = fn.Name.ToUpperInvariant();
-        if (name is "DAYNAME" or "DAYOFMONTH" or "DAYOFWEEK" or "DAYOFWEEK_ISO" or "DAYOFYEAR" or "WEEK_ISO")
-            return TryEvalDb2DateAliasFunction(name, evalArg, out result);
+        if (_handlers.TryGetValue(fn.Name, out var handler)
+            && handler(fn, dialect, evalArg, resolveTemporalUnit, out result))
+        {
+            return true;
+        }
 
-        if (name is "ADD_DAYS" or "ADD_HOURS" or "ADD_MINUTES" or "ADD_SECONDS" or "ADD_MONTHS" or "ADD_YEARS")
-            return TryEvalDb2DateAddAliasFunction(fn, name, evalArg, resolveTemporalUnit, out result);
-
+        result = null;
         return false;
+    }
+
+    private static Dictionary<string, AstQueryTryEvalDb2DateFunction> CreateHandlers()
+    {
+        var handlers = new Dictionary<string, AstQueryTryEvalDb2DateFunction>(StringComparer.OrdinalIgnoreCase);
+        Register(handlers, TryEvalDb2DateAliasFunctionHandler, "DAYNAME", "DAYOFMONTH", "DAYOFWEEK", "DAYOFWEEK_ISO", "DAYOFYEAR", "WEEK_ISO");
+        Register(handlers, TryEvalDb2DateAddAliasFunctionHandler, "ADD_DAYS", "ADD_HOURS", "ADD_MINUTES", "ADD_SECONDS", "ADD_MONTHS", "ADD_YEARS");
+        return handlers;
+    }
+
+    private static void Register(
+        IDictionary<string, AstQueryTryEvalDb2DateFunction> handlers,
+        AstQueryTryEvalDb2DateFunction handler,
+        params string[] names)
+    {
+        foreach (var name in names)
+            handlers[name] = handler;
+    }
+
+    private static bool TryEvalDb2DateAliasFunctionHandler(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        Func<string, TemporalUnit> resolveTemporalUnit,
+        out object? result)
+    {
+        _ = dialect;
+        _ = resolveTemporalUnit;
+        return TryEvalDb2DateAliasFunction(fn.Name.ToUpperInvariant(), evalArg, out result);
+    }
+
+    private static bool TryEvalDb2DateAddAliasFunctionHandler(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        Func<string, TemporalUnit> resolveTemporalUnit,
+        out object? result)
+    {
+        _ = dialect;
+        return TryEvalDb2DateAddAliasFunction(fn, fn.Name.ToUpperInvariant(), evalArg, resolveTemporalUnit, out result);
     }
 
     private static bool TryEvalDb2DateAliasFunction(

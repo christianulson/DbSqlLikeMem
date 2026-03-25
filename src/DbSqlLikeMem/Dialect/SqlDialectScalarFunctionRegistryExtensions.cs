@@ -105,6 +105,24 @@ internal static class SqlDialectScalarFunctionRegistryExtensions
             : call with { ResolvedTableFunction = definition };
     }
 
+    internal static bool TryEvalZeroArgTemporalFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(fn, nameof(fn));
+        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
+        _ = evalArg;
+
+        result = null;
+        if (fn.Args.Count != 0)
+            return false;
+
+        return SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, fn.Name, out result)
+            || SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, fn.Name, out result);
+    }
+
     internal static bool AllowsTemporalIdentifier(
         this ISqlDialect dialect,
         string name)
@@ -152,6 +170,16 @@ internal static class SqlDialectScalarFunctionRegistryExtensions
         string returnTypeSql,
         params DbScalarFunctionParameterDef[] parameters)
         => dialect.AddScalarFunction(name, returnTypeSql, SqlFunctionBodyFactory.Identity(), parameters);
+
+    internal static void AddScalarFunction(
+        this ISqlDialect dialect,
+        DbScalarFunctionDef definition)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
+        ArgumentNullExceptionCompatible.ThrowIfNull(definition, nameof(definition));
+
+        dialect.ScalarFunctions[definition.Name] = definition;
+    }
 
     internal static void AddScalarFunction(
         this ISqlDialect dialect,
@@ -227,6 +255,15 @@ internal static class SqlDialectScalarFunctionRegistryExtensions
     {
         if (supported)
             dialect.AddScalarFunction(name, returnTypeSql, parameters);
+    }
+
+    internal static void AddScalarFunctionIf(
+        this ISqlDialect dialect,
+        bool supported,
+        DbScalarFunctionDef definition)
+    {
+        if (supported)
+            dialect.AddScalarFunction(definition);
     }
 
     internal static void AddScalarFunctionIf(
@@ -343,6 +380,24 @@ internal static class SqlDialectScalarFunctionRegistryExtensions
         params string[] names)
         => dialect.AddScalarFunctions(returnTypeSql, (Func<SqlExpr, object>?)null, names);
 
+    internal static void AddScalarFunctions(
+        this ISqlDialect dialect,
+        DbScalarFunctionDef definition,
+        params string[] names)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
+        ArgumentNullExceptionCompatible.ThrowIfNull(definition, nameof(definition));
+        ArgumentNullExceptionCompatible.ThrowIfNull(names, nameof(names));
+
+        foreach (var name in names)
+        {
+            dialect.AddScalarFunction(
+                name.Equals(definition.Name, StringComparison.OrdinalIgnoreCase)
+                    ? definition
+                    : definition with { Name = name });
+        }
+    }
+
     internal static void AddScalarFunctionsIf(
         this ISqlDialect dialect,
         bool supported,
@@ -399,5 +454,15 @@ internal static class SqlDialectScalarFunctionRegistryExtensions
     {
         if (supported)
             dialect.AddScalarFunctions(returnTypeSql, names);
+    }
+
+    internal static void AddScalarFunctionsIf(
+        this ISqlDialect dialect,
+        bool supported,
+        DbScalarFunctionDef definition,
+        params string[] names)
+    {
+        if (supported)
+            dialect.AddScalarFunctions(definition, names);
     }
 }
