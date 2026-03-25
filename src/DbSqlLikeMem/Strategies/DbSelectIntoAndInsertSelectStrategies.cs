@@ -9,53 +9,35 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     public static DmlExecutionResult ExecuteParsedNonQuery(
         this DbConnectionMockBase connection,
         SqlQueryBase query,
-        DbParameterCollection pars,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         bool allowMerge,
         bool unionUsesSelectMessage)
     {
         using var _ = connection.Metrics.BeginAmbientScope();
         return query switch
         {
-            SqlInsertQuery insertQ => connection.ExecuteInsert(insertQ, pars, dialect),
-            SqlUpdateQuery updateQ => connection.ExecuteUpdateSmart(updateQ, pars, dialect),
-            SqlDeleteQuery deleteQ => connection.ExecuteDeleteSmart(deleteQ, pars, dialect),
-            SqlCreateTemporaryTableQuery tempQ => connection.ExecuteCreateTemporaryTableAsSelect(tempQ, pars, dialect),
-            SqlCreateViewQuery viewQ => connection.ExecuteCreateView(viewQ, pars, dialect),
-            SqlAlterTableAddColumnQuery alterAddColumnQ => connection.ExecuteAlterTableAddColumn(alterAddColumnQ, pars, dialect),
-            SqlCreateIndexQuery createIndexQ => connection.ExecuteCreateIndex(createIndexQ, pars, dialect),
-            SqlCreateSequenceQuery createSequenceQ => connection.ExecuteCreateSequence(createSequenceQ, pars, dialect),
-            SqlCreateFunctionQuery createFunctionQ => connection.ExecuteCreateFunction(createFunctionQ, pars, dialect),
-            SqlCreateProcedureQuery createProcedureQ => connection.ExecuteCreateProcedure(createProcedureQ, pars, dialect),
+            SqlInsertQuery insertQ => connection.ExecuteInsert(insertQ, context),
+            SqlUpdateQuery updateQ => connection.ExecuteUpdateSmart(updateQ, context),
+            SqlDeleteQuery deleteQ => connection.ExecuteDeleteSmart(deleteQ, context),
+            SqlCreateTemporaryTableQuery tempQ => connection.ExecuteCreateTemporaryTableAsSelect(tempQ, context),
+            SqlCreateViewQuery viewQ => connection.ExecuteCreateView(viewQ, context.DbParameters, context.Dialect),
+            SqlAlterTableAddColumnQuery alterAddColumnQ => connection.ExecuteAlterTableAddColumn(alterAddColumnQ, context.DbParameters, context.Dialect),
+            SqlCreateIndexQuery createIndexQ => connection.ExecuteCreateIndex(createIndexQ, context.DbParameters, context.Dialect),
+            SqlCreateSequenceQuery createSequenceQ => connection.ExecuteCreateSequence(createSequenceQ, context.DbParameters, context.Dialect),
+            SqlCreateFunctionQuery createFunctionQ => connection.ExecuteCreateFunction(createFunctionQ, context.DbParameters, context.Dialect),
+            SqlCreateProcedureQuery createProcedureQ => connection.ExecuteCreateProcedure(createProcedureQ, context.DbParameters, context.Dialect),
             SqlCreateTriggerQuery createTriggerQ => connection.CreateTrigger(createTriggerQ),
-            SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, pars, dialect),
-            SqlDropTableQuery dropTableQ => connection.ExecuteDropTable(dropTableQ, pars, dialect),
-            SqlDropIndexQuery dropIndexQ => connection.ExecuteDropIndex(dropIndexQ, pars, dialect),
-            SqlDropSequenceQuery dropSequenceQ => connection.ExecuteDropSequence(dropSequenceQ, pars, dialect),
-            SqlDropFunctionQuery dropFunctionQ => connection.ExecuteDropFunction(dropFunctionQ, pars, dialect),
-            SqlMergeQuery mergeQ when allowMerge => connection.ExecuteMerge(mergeQ, pars, dialect),
+            SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, context.DbParameters, context.Dialect),
+            SqlDropTableQuery dropTableQ => connection.ExecuteDropTable(dropTableQ, context.DbParameters, context.Dialect),
+            SqlDropIndexQuery dropIndexQ => connection.ExecuteDropIndex(dropIndexQ, context.DbParameters, context.Dialect),
+            SqlDropSequenceQuery dropSequenceQ => connection.ExecuteDropSequence(dropSequenceQ, context.DbParameters, context.Dialect),
+            SqlDropFunctionQuery dropFunctionQ => connection.ExecuteDropFunction(dropFunctionQ, context.DbParameters, context.Dialect),
+            SqlMergeQuery mergeQ when allowMerge => connection.ExecuteMerge(mergeQ, context),
             SqlSelectQuery _ => throw new InvalidOperationException(SqlExceptionMessages.UseExecuteReaderForSelect()),
             SqlUnionQuery _ when unionUsesSelectMessage => throw new InvalidOperationException(SqlExceptionMessages.UseExecuteReaderForSelectUnion()),
-            _ => throw SqlUnsupported.ForCommandType(dialect, "ExecuteNonQuery", query.GetType())
+            _ => throw SqlUnsupported.ForCommandType(context.Dialect, "ExecuteNonQuery", query.GetType())
         };
     }
-
-    /// <summary>
-    /// EN: Dispatches parsed AST commands to ExecuteNonQuery handlers using a pre-built execution context.
-    /// PT: Despacha comandos AST parseados para handlers de ExecuteNonQuery usando um contexto de execução pré-construído.
-    /// </summary>
-    public static DmlExecutionResult ExecuteParsedNonQuery(
-        this DbConnectionMockBase connection,
-        SqlQueryBase query,
-        QueryExecutionContext context,
-        bool allowMerge,
-        bool unionUsesSelectMessage)
-        => connection.ExecuteParsedNonQuery(
-            query,
-            context.DbParameters,
-            context.Dialect,
-            allowMerge,
-            unionUsesSelectMessage);
 
     /// <summary>
     /// EN: Implements ExecuteCreateView.
@@ -462,16 +444,15 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     public static DmlExecutionResult ExecuteCreateTableAsSelect(
         this DbConnectionMockBase connection,
         string sql,
-        DbParameterCollection pars,
-        ISqlDialect dialect)
+        QueryExecutionContext context)
     {
         DmlExecutionResult affected;
         if (!connection.Db.ThreadSafe)
-            affected = ExecuteCreateTableAsSelectImpl(connection, sql, pars, dialect);
+            affected = ExecuteCreateTableAsSelectImpl(connection, sql, context);
         else
         {
             lock (connection.Db.SyncRoot)
-                affected = ExecuteCreateTableAsSelectImpl(connection, sql, pars, dialect);
+                affected = ExecuteCreateTableAsSelectImpl(connection, sql, context);
         }
 
         connection.SetLastFoundRows(affected.AffectedRows);
@@ -481,8 +462,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     private static DmlExecutionResult ExecuteCreateTableAsSelectImpl(
         this DbConnectionMockBase connection,
         string sql,
-        DbParameterCollection pars,
-        ISqlDialect dialect)
+        QueryExecutionContext context)
     {
         // CREATE TABLE name AS SELECT ...
         var m = Regex.Match(sql, @"^CREATE\s+TABLE\s+`?(?<name>[A-Za-z0-9_]+)`?\s+AS\s+(?<select>(SELECT|WITH)\s+.*)$",
@@ -492,12 +472,12 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             var tableName = m.Groups["name"].Value.NormalizeName();
             var selectSql = m.Groups["select"].Value;
 
-            var executor = new QueryExecutionContext(connection, dialect, pars).CreateExecutor();
+            var executor = context.CreateExecutor();
             var q = SqlQueryParser.Parse(
                 selectSql,
-                dialect,
+                context.Dialect,
                 null,
-                SqlCustomFunctionResolverFactory.Create(connection));
+                SqlCustomFunctionResolverFactory.Create(context));
             var res = executor.ExecuteSelect((SqlSelectQuery)q);
 
             var newTable = connection.AddTable(tableName);
@@ -745,14 +725,24 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         SqlCreateTemporaryTableQuery query,
         DbParameterCollection pars,
         ISqlDialect dialect)
+        => connection.ExecuteCreateTemporaryTableAsSelect(query, new QueryExecutionContext(connection, dialect, pars));
+
+    /// <summary>
+    /// EN: Implements ExecuteCreateTemporaryTableAsSelect using a pre-built execution context.
+    /// PT: Implementa ExecuteCreateTemporaryTableAsSelect usando um contexto de execucao pre-construido.
+    /// </summary>
+    public static DmlExecutionResult ExecuteCreateTemporaryTableAsSelect(
+        this DbConnectionMockBase connection,
+        SqlCreateTemporaryTableQuery query,
+        QueryExecutionContext context)
     {
         DmlExecutionResult affected;
         if (!connection.Db.ThreadSafe)
-            affected = ExecuteCreateTemporaryTableAsSelectImpl(connection, query, pars, dialect);
+            affected = ExecuteCreateTemporaryTableAsSelectImpl(connection, query, context);
         else
         {
             lock (connection.Db.SyncRoot)
-                affected = ExecuteCreateTemporaryTableAsSelectImpl(connection, query, pars, dialect);
+                affected = ExecuteCreateTemporaryTableAsSelectImpl(connection, query, context);
         }
 
         connection.SetLastFoundRows(affected.AffectedRows);
@@ -762,8 +752,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     private static DmlExecutionResult ExecuteCreateTemporaryTableAsSelectImpl(
         this DbConnectionMockBase connection,
         SqlCreateTemporaryTableQuery query,
-        DbParameterCollection pars,
-        ISqlDialect dialect)
+        QueryExecutionContext context)
     {
         var tableName = query.Table?.Name?.NormalizeName();
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(tableName, nameof(tableName));
@@ -784,7 +773,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             throw new InvalidOperationException(SqlExceptionMessages.TableAlreadyExists(tableName!));
         }
 
-        var executor = new QueryExecutionContext(connection, dialect, pars).CreateExecutor();
+        var executor = context.CreateExecutor();
         var res = executor.ExecuteSelect(query.AsSelect);
 
         var newTable = tempScope == TemporaryTableScope.Global
@@ -821,16 +810,15 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     public static DmlExecutionResult ExecuteInsertSmart(
             this DbConnectionMockBase connection,
             SqlInsertQuery query,
-            DbParameterCollection pars,
-            ISqlDialect dialect)
+            QueryExecutionContext context)
     {
         // Preserve existing behavior for VALUES inserts.
         // If it is INSERT ... SELECT ..., execute select and insert rows.
         if (query.InsertSelect != null)
-            return connection.ExecuteInsertSelect(query, pars, dialect);
+            return connection.ExecuteInsertSelect(query, context);
 
         // fall back to original extension in MySqlInsertStrategy
-        return connection.ExecuteInsert(query, pars, dialect);
+        return connection.ExecuteInsert(query, context);
     }
 
     /// <summary>
@@ -840,30 +828,28 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     public static DmlExecutionResult ExecuteInsertSelect(
         this DbConnectionMockBase connection,
         SqlInsertQuery query,
-        DbParameterCollection pars,
-        ISqlDialect dialect)
+        QueryExecutionContext context)
     {
         if (!connection.Db.ThreadSafe)
-            return ExecuteInsertSelectImpl(connection, query, pars, dialect);
+            return ExecuteInsertSelectImpl(connection, query, context);
         lock (connection.Db.SyncRoot)
         {
-            return ExecuteInsertSelectImpl(connection, query, pars, dialect);
+            return ExecuteInsertSelectImpl(connection, query, context);
         }
     }
 
     private static DmlExecutionResult ExecuteInsertSelectImpl(
         DbConnectionMockBase connection,
         SqlInsertQuery query,
-        DbParameterCollection pars,
-        ISqlDialect dialect)
+        QueryExecutionContext context)
     {
         var plan = BuildInsertSelectPlan(connection, query);
-        var executor = new QueryExecutionContext(connection, dialect, pars).CreateExecutor();
+        var executor = context.CreateExecutor();
         var q = SqlQueryParser.Parse(
             plan.SelectSql,
-            dialect,
+            context.Dialect,
             null,
-            SqlCustomFunctionResolverFactory.Create(connection));
+            SqlCustomFunctionResolverFactory.Create(context));
         var res = executor.ExecuteSelect((SqlSelectQuery)q);
 
         if (plan.Columns.Count != res.Columns.Count)

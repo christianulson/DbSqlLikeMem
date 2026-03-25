@@ -12,12 +12,7 @@ internal static class DbUpdateStrategy
         this DbConnectionMockBase connection,
         SqlUpdateQuery query,
         DbParameterCollection? pars = null)
-    {
-        if (!connection.Db.ThreadSafe)
-            return Execute(connection, query, pars);
-        lock (connection.Db.SyncRoot)
-            return Execute(connection, query, pars);
-    }
+        => connection.ExecuteUpdate(query, QueryExecutionContext.FromConnection(connection, pars!));
 
     /// <summary>
     /// EN: Implements ExecuteUpdate using a pre-built execution context.
@@ -27,21 +22,27 @@ internal static class DbUpdateStrategy
         this DbConnectionMockBase connection,
         SqlUpdateQuery query,
         QueryExecutionContext context)
-        => connection.ExecuteUpdate(query, context.DbParameters);
+    {
+        if (!connection.Db.ThreadSafe)
+            return Execute(context, query);
+        lock (connection.Db.SyncRoot)
+            return Execute(context, query);
+    }
 
     private static DmlExecutionResult Execute(
-        DbConnectionMockBase connection,
-        SqlUpdateQuery query,
-        DbParameterCollection? pars)
+        QueryExecutionContext context,
+        SqlUpdateQuery query)
     {
-        var capturePlans = connection.Db.CaptureExecutionPlans;
+        var connection = context.Connection;
+        var pars = context.DbParameters;
+        var capturePlans = context.CaptureExecutionPlans;
         var sw = capturePlans ? Stopwatch.StartNew() : null;
-        var metricsEnabled = connection.Metrics.Enabled;
+        var metricsEnabled = context.MetricsEnabled;
         ArgumentNullExceptionCompatible.ThrowIfNull(query.Table, nameof(query.Table));
         var queryTable = query.Table;
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(queryTable!.Name, nameof(query.Table.Name));
         var tableName = queryTable.Name!;
-        var dialect = connection.ExecutionDialect;
+        var dialect = context.Dialect;
         if (!connection.TryGetTable(tableName, out var table, queryTable.DbName) || table == null)
             throw SqlUnsupported.ForTableDoesNotExist(tableName);
         var rowCountBefore = table.Count;
@@ -77,7 +78,7 @@ internal static class DbUpdateStrategy
 
             // Simula Update (reaproveitado por validacoes/trigger)
             var simulated = TableMock.CloneRow(row);
-            UpdateRowValuesInMemory(table, pars, setPairs, simulated, dialect);
+            UpdateRowValuesInMemory(table, pars, setPairs, simulated, context);
 
             // Valida Unique Constraints antes de aplicar (somente quando necessario)
             if (requiresUniqueValidation)
@@ -88,7 +89,7 @@ internal static class DbUpdateStrategy
             if (hasBeforeUpdateTrigger)
                 TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, simulated);
 
-            UpdateRowValues(table, pars, setPairs, rowIdx, row, dialect);
+            UpdateRowValues(table, pars, setPairs, rowIdx, row, context);
 
             if (hasAfterUpdateTrigger)
                 TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, TableMock.SnapshotRow(table[rowIdx]));
@@ -219,14 +220,14 @@ internal static class DbUpdateStrategy
         (string Col, string Val)[] setPairs,
         int rowIdx,
         IReadOnlyDictionary<int, object?> row,
-        ISqlDialect dialect)
+        QueryExecutionContext context)
     {
         foreach (var (Col, Val) in setPairs)
         {
             var info = table.GetColumn(Col);
             if (info.GetGenValue != null) continue; 
 
-            var raw = ResolveSetValue(table, pars, row, info, Col, Val, dialect);
+            var raw = ResolveSetValue(table, pars, row, info, Col, Val, context);
             table.UpdateRowColumn(rowIdx, info.Index, raw);
         }
     }
@@ -236,14 +237,14 @@ internal static class DbUpdateStrategy
         DbParameterCollection? pars,
         (string Col, string Val)[] setPairs,
         IDictionary<int, object?> row,
-        ISqlDialect dialect)
+        QueryExecutionContext context)
     {
         var readOnlyRow = row as IReadOnlyDictionary<int, object?> ?? new ReadOnlyDictionary<int, object?>(row);
         foreach (var (Col, Val) in setPairs)
         {
             var info = table.GetColumn(Col);
             if (info.GetGenValue != null) continue; 
-            var raw = ResolveSetValue(table, pars, readOnlyRow, info, Col, Val, dialect);
+            var raw = ResolveSetValue(table, pars, readOnlyRow, info, Col, Val, context);
             row[info.Index] = raw;
         }
     }
@@ -255,7 +256,7 @@ internal static class DbUpdateStrategy
         ColumnDef info,
         string colName,
         string exprRaw,
-        ISqlDialect dialect)
+        QueryExecutionContext context)
     {
         table.CurrentColumn = colName;
         try
@@ -263,7 +264,7 @@ internal static class DbUpdateStrategy
             if (TryEvalArithmeticSetValue(exprRaw, table, row, pars, info.DbType, info.Nullable, out var arith))
                 return arith;
 
-            if (TryResolveTemporalSetValue(exprRaw, dialect, out var temporalValue))
+            if (TryResolveTemporalSetValue(exprRaw, context, out var temporalValue))
                 return temporalValue;
 
             var raw = table.Resolve(exprRaw, info.DbType, info.Nullable, pars, table.Columns);
@@ -275,10 +276,10 @@ internal static class DbUpdateStrategy
         }
     }
 
-    private static bool TryResolveTemporalSetValue(string exprRaw, ISqlDialect dialect, out object? value)
+    private static bool TryResolveTemporalSetValue(string exprRaw, QueryExecutionContext context, out object? value)
     {
         var trimmed = exprRaw.Trim();
-        if (SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, trimmed, out value))
+        if (SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(context, trimmed, out value))
             return true;
 
         var openParen = trimmed.IndexOf('(');
@@ -291,7 +292,7 @@ internal static class DbUpdateStrategy
         if (argsRaw.Length > 0)
             return false;
 
-        return SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, functionName, out value);
+        return SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(context, functionName, out value);
     }
 
     private static bool TryEvalArithmeticSetValue(

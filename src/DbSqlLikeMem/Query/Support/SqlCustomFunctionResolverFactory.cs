@@ -2,10 +2,10 @@ namespace DbSqlLikeMem;
 
 internal static class SqlCustomFunctionResolverFactory
 {
-    internal static Func<string, bool>? Create(DbConnectionMockBase connection)
+    internal static Func<string, bool>? Create(QueryExecutionContext context)
     {
-        ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
-        return Create(connection.Db, connection.Database);
+        ArgumentNullExceptionCompatible.ThrowIfNull(context, nameof(context));
+        return Create(context.Connection.Db, context.Connection.Database);
     }
 
     internal static Func<string, bool>? Create(DbMock db, string schemaName)

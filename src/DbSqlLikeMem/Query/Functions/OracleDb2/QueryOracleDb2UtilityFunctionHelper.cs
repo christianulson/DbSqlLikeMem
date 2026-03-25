@@ -4,7 +4,7 @@ internal static class QueryOracleDb2UtilityFunctionHelper
 {
     private delegate bool OracleDb2UtilityFunctionHandler(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result);
 
@@ -13,12 +13,12 @@ internal static class QueryOracleDb2UtilityFunctionHelper
 
     public static bool TryEvalUtilityFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler(fn, dialect, evalArg, out result);
+            return handler(fn, context, evalArg, out result);
 
         result = null;
         return false;
@@ -50,7 +50,7 @@ internal static class QueryOracleDb2UtilityFunctionHelper
 
     private static bool TryEvalCardinalityFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -60,14 +60,14 @@ internal static class QueryOracleDb2UtilityFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
         }
 
-        EnsureOracleDb2FunctionSupported(dialect, fn);
+        EnsureOracleDb2FunctionSupported(context, fn);
 
         var value = evalArg(0);
         if (IsNullish(value))
@@ -116,7 +116,7 @@ internal static class QueryOracleDb2UtilityFunctionHelper
 
     private static bool TryEvalChrFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -126,14 +126,14 @@ internal static class QueryOracleDb2UtilityFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
         }
 
-        EnsureOracleDb2FunctionSupported(dialect, fn);
+        EnsureOracleDb2FunctionSupported(context, fn);
 
         var value = evalArg(0);
         if (IsNullish(value))
@@ -163,7 +163,7 @@ internal static class QueryOracleDb2UtilityFunctionHelper
 
     private static bool TryEvalComposeFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -173,14 +173,14 @@ internal static class QueryOracleDb2UtilityFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
         }
 
-        EnsureOracleDb2FunctionSupported(dialect, fn);
+        EnsureOracleDb2FunctionSupported(context, fn);
 
         var value = evalArg(0);
         if (IsNullish(value))
@@ -195,7 +195,7 @@ internal static class QueryOracleDb2UtilityFunctionHelper
 
     private static bool TryEvalDbTimeZoneFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -206,14 +206,14 @@ internal static class QueryOracleDb2UtilityFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
         }
 
-        EnsureOracleDb2FunctionSupported(dialect, fn);
+        EnsureOracleDb2FunctionSupported(context, fn);
 
         result = "+00:00";
         return true;
@@ -221,7 +221,7 @@ internal static class QueryOracleDb2UtilityFunctionHelper
 
     private static bool TryEvalDecomposeFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -231,14 +231,14 @@ internal static class QueryOracleDb2UtilityFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
         }
 
-        EnsureOracleDb2FunctionSupported(dialect, fn);
+        EnsureOracleDb2FunctionSupported(context, fn);
 
         var value = evalArg(0);
         if (IsNullish(value))
@@ -253,7 +253,7 @@ internal static class QueryOracleDb2UtilityFunctionHelper
 
     private static bool TryEvalEmptyLobFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -267,14 +267,14 @@ internal static class QueryOracleDb2UtilityFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
         }
 
-        EnsureOracleDb2FunctionSupported(dialect, fn);
+        EnsureOracleDb2FunctionSupported(context, fn);
 
         result = fn.Name.Equals("EMPTY_BLOB", StringComparison.OrdinalIgnoreCase)
             ? Array.Empty<byte>()
@@ -284,7 +284,7 @@ internal static class QueryOracleDb2UtilityFunctionHelper
 
     private static bool TryEvalInitCapFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -294,14 +294,14 @@ internal static class QueryOracleDb2UtilityFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
         }
 
-        EnsureOracleDb2FunctionSupported(dialect, fn);
+        EnsureOracleDb2FunctionSupported(context, fn);
 
         var value = evalArg(0);
         if (IsNullish(value))
@@ -341,7 +341,7 @@ internal static class QueryOracleDb2UtilityFunctionHelper
 
     private static bool TryEvalChartoRowidFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -351,14 +351,14 @@ internal static class QueryOracleDb2UtilityFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
         }
 
-        EnsureOracleDb2FunctionSupported(dialect, fn);
+        EnsureOracleDb2FunctionSupported(context, fn);
 
         var value = evalArg(0);
         if (IsNullish(value))
@@ -373,7 +373,7 @@ internal static class QueryOracleDb2UtilityFunctionHelper
 
     private static bool TryEvalClusterFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -384,21 +384,21 @@ internal static class QueryOracleDb2UtilityFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
         }
 
-        EnsureOracleDb2FunctionSupported(dialect, fn);
+        EnsureOracleDb2FunctionSupported(context, fn);
         result = null;
         return true;
 
     }
 
     internal static void EnsureOracleDb2FunctionSupported(
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         FunctionCallExpr fn)
     {
         if (fn.ResolvedScalarFunction is { AllowsCall: true })
@@ -406,20 +406,20 @@ internal static class QueryOracleDb2UtilityFunctionHelper
             return;
         }
 
-        EnsureOracleDb2FunctionSupported(dialect, fn.Name);
+        EnsureOracleDb2FunctionSupported(context, fn.Name);
     }
 
     internal static void EnsureOracleDb2FunctionSupported(
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         string name)
     {
-        if (dialect.TryGetScalarFunctionDefinition(name, out var definition)
+        if (context.Dialect.TryGetScalarFunctionDefinition(name, out var definition)
             && (definition is null || definition.AllowsCall))
         {
             return;
         }
 
-        throw SqlUnsupported.ForDialect(dialect, name);
+        throw SqlUnsupported.ForDialect(context.Dialect, name);
     }
 
     private static bool IsNullish(object? value) => value is null or DBNull;

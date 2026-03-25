@@ -4,25 +4,25 @@ internal static class QueryConditionalNullFunctionHelper
 {
     private delegate bool ConditionalNullFunctionHandler(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result);
 
     private static readonly Dictionary<string, ConditionalNullFunctionHandler> _handlers = CreateHandlers();
 
     public static bool TryEvalConditionalAndNullFunctions(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
+        FunctionCallExpr fn, 
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler)
-            && handler(fn, dialect, evalArg, out result))
+            && handler(fn, context, evalArg, out result))
         {
             return true;
         }
 
-        return TryEvalNullSubstituteFunction(fn, dialect, evalArg, out result);
+        return TryEvalNullSubstituteFunction(fn, context, evalArg, out result);
     }
 
     private static Dictionary<string, ConditionalNullFunctionHandler> CreateHandlers()
@@ -47,13 +47,13 @@ internal static class QueryConditionalNullFunctionHelper
 
     private static bool TryEvalConditionalFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         var isIf = fn.Name.Equals(SqlConst.IF, StringComparison.OrdinalIgnoreCase);
         var isIif = fn.Name.Equals("IIF", StringComparison.OrdinalIgnoreCase);
-        if (!((isIf && dialect.SupportsIfFunction) || (isIif && dialect.SupportsIifFunction)))
+        if (!((isIf && context.Dialect.SupportsIfFunction) || (isIif && context.Dialect.SupportsIifFunction)))
         {
             result = null;
             return false;
@@ -66,7 +66,7 @@ internal static class QueryConditionalNullFunctionHelper
 
     private static bool TryEvalNullSubstituteFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -77,7 +77,7 @@ internal static class QueryConditionalNullFunctionHelper
         }
 
         var supportsNullSubstitute = false;
-        foreach (var functionName in dialect.NullSubstituteFunctionNames)
+        foreach (var functionName in context.Dialect.NullSubstituteFunctionNames)
         {
             if (functionName.Equals(fn.Name, StringComparison.OrdinalIgnoreCase))
             {
@@ -99,12 +99,10 @@ internal static class QueryConditionalNullFunctionHelper
 
     private static bool TryEvalNvl2Function(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = dialect;
-
         if (!fn.Name.Equals("NVL2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -121,7 +119,7 @@ internal static class QueryConditionalNullFunctionHelper
 
     private static bool TryEvalDecodeFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -131,13 +129,13 @@ internal static class QueryConditionalNullFunctionHelper
             return false;
         }
 
-        if (dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (context.Dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
         }
 
-        if (dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        if (context.Dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
         {
             if (fn.Args.Count != 2)
                 throw new InvalidOperationException("DECODE() no PostgreSQL espera payload e formato.");
@@ -180,7 +178,7 @@ internal static class QueryConditionalNullFunctionHelper
             var search = evalArg(1 + i * 2);
             var resultValue = evalArg(2 + i * 2);
 
-            if (DecodeEquals(expr, search, dialect))
+            if (DecodeEquals(expr, search, context))
             {
                 result = resultValue;
                 return true;
@@ -193,12 +191,10 @@ internal static class QueryConditionalNullFunctionHelper
 
     private static bool TryEvalCoalesceFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = dialect;
-
         if (!fn.Name.Equals("COALESCE", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -221,7 +217,7 @@ internal static class QueryConditionalNullFunctionHelper
 
     private static bool TryEvalNullIfFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -239,11 +235,14 @@ internal static class QueryConditionalNullFunctionHelper
             return true;
         }
 
-        result = left!.Compare(right!, dialect) == 0 ? null : left;
+        result = left!.Compare(right!, context) == 0 ? null : left;
         return true;
     }
 
-    private static bool DecodeEquals(object? left, object? right, ISqlDialect dialect)
+    private static bool DecodeEquals(
+        object? left,
+        object? right,
+        QueryExecutionContext context)
     {
         if (IsNullish(left) && IsNullish(right))
             return true;
@@ -251,7 +250,7 @@ internal static class QueryConditionalNullFunctionHelper
         if (IsNullish(left) || IsNullish(right))
             return false;
 
-        return left!.EqualsSql(right!, dialect);
+        return left!.EqualsSql(right!, context);
     }
 
     private static byte[] ParseHexBinaryPayload(string hex)

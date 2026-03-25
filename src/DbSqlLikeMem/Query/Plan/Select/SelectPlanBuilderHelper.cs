@@ -6,7 +6,7 @@ internal static class SelectPlanBuilderHelper
         SqlSelectQuery query,
         List<AstQueryExecutorBase.EvalRow> sampleRows,
         IDictionary<string, AstQueryExecutorBase.Source> ctes,
-        ISqlDialect? dialect,
+        QueryExecutionContext context,
         Func<string, SqlExpr> parseExpression,
         Func<SqlExpr, AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, IDictionary<string, AstQueryExecutorBase.Source>, object?> evalExpression,
         Func<string?, string, AstQueryExecutorBase.EvalRow, object?> resolveColumn)
@@ -45,7 +45,7 @@ internal static class SelectPlanBuilderHelper
                 sampleFirst,
                 sampleSingleSource,
                 ctes,
-                dialect,
+                context,
                 tableAlias,
                 columns,
                 evaluators,
@@ -104,7 +104,7 @@ internal static class SelectPlanBuilderHelper
         AstQueryExecutorBase.EvalRow? sampleFirst,
         AstQueryExecutorBase.Source? sampleSingleSource,
         IDictionary<string, AstQueryExecutorBase.Source> ctes,
-        ISqlDialect? dialect,
+        QueryExecutionContext context,
         string tableAlias,
         List<TableResultColMock> columns,
         List<Func<AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, object?>> evaluators,
@@ -119,12 +119,12 @@ internal static class SelectPlanBuilderHelper
     {
         var preferredAlias = selectItemAlias ?? extractedAlias ?? SelectPlanProjectionHelper.InferColumnAlias(rawExpression);
         var columnAlias = SelectPlanProjectionHelper.MakeUniqueAlias(usedAliases, preferredAlias, tableAlias);
-        var inferredDbType = InferDbTypeFromExpression(expression, sampleRows, sampleFirst, sampleSingleSource, ctes, dialect, evalExpression);
+        var inferredDbType = InferDbTypeFromExpression(expression, sampleRows, sampleFirst, sampleSingleSource, ctes, context, evalExpression);
         var isNullable = InferNullabilityFromExpression(expression, sampleFirst, sampleSingleSource);
         var isJsonFragment = TryInferProjectedJsonFragment(expression, sampleFirst, sampleSingleSource);
 
         columns.Add(SelectPlanProjectionHelper.CreateSelectPlanColumn(tableAlias, columnAlias, columns.Count, inferredDbType, isNullable, isJsonFragment));
-        evaluators.Add(CreateSelectPlanEvaluator(expression, ctes, dialect, windowSlotIndexes, windowSlots, evalExpression));
+        evaluators.Add(CreateSelectPlanEvaluator(expression, ctes, context, windowSlotIndexes, windowSlots, evalExpression));
     }
 
     private static bool TryInferProjectedJsonFragment(
@@ -188,7 +188,7 @@ internal static class SelectPlanBuilderHelper
     private static Func<AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, object?> CreateSelectPlanEvaluator(
         SqlExpr expression,
         IDictionary<string, AstQueryExecutorBase.Source> ctes,
-        ISqlDialect? dialect,
+        QueryExecutionContext context,
         List<int> windowSlotIndexes,
         List<WindowSlot> windowSlots,
         Func<SqlExpr, AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, IDictionary<string, AstQueryExecutorBase.Source>, object?> evalExpression)
@@ -199,7 +199,7 @@ internal static class SelectPlanBuilderHelper
             return (row, group) => evalExpression(expression, row, group, ctes);
         }
 
-        WindowFunctionSupportValidator.EnsureSupported(dialect, windowFunction);
+        WindowFunctionSupportValidator.EnsureSupported(context.Dialect, windowFunction);
 
         var slot = new WindowSlot
         {
@@ -217,7 +217,7 @@ internal static class SelectPlanBuilderHelper
         AstQueryExecutorBase.EvalRow? sampleFirst,
         AstQueryExecutorBase.Source? sampleSingleSource,
         IDictionary<string, AstQueryExecutorBase.Source> ctes,
-        ISqlDialect? dialect,
+        QueryExecutionContext context,
         Func<SqlExpr, AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, IDictionary<string, AstQueryExecutorBase.Source>, object?> evalExpression)
     {
         if (IsSequenceExpression(expression))
@@ -228,9 +228,9 @@ internal static class SelectPlanBuilderHelper
 
         if (expression is WindowFunctionExpr windowFunction)
         {
-            return dialect?.InferWindowFunctionDbType(
+            return context.Dialect?.InferWindowFunctionDbType(
                     windowFunction,
-                    arg => InferDbTypeFromExpression(arg, sampleRows, sampleFirst, sampleSingleSource, ctes, dialect, evalExpression))
+                    arg => InferDbTypeFromExpression(arg, sampleRows, sampleFirst, sampleSingleSource, ctes, context, evalExpression))
                 ?? DbType.Object;
         }
 

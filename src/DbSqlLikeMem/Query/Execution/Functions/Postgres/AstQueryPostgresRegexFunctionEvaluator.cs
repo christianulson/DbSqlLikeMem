@@ -9,11 +9,11 @@ internal static class AstQueryPostgresRegexFunctionEvaluator
 {
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -26,14 +26,11 @@ internal static class AstQueryPostgresRegexFunctionEvaluator
             return false;
         }
 
-        var minVersion = name switch
+        if (!context.Dialect.TryGetScalarFunctionDefinition(name, out _))
         {
-            "REGEXP_MATCH" => 10,
-            "REGEXP_REPLACE" or "REGEXP_SPLIT_TO_ARRAY" => 9,
-            _ => 15
-        };
-        if (dialect.Version < minVersion)
-            throw SqlUnsupported.ForDialect(dialect, name);
+            result = null;
+            return false;
+        }
 
         if (fn.Args.Count < 2)
         {

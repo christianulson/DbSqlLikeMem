@@ -50,7 +50,7 @@ internal sealed class CommandExecutionPipelineContext(
             sqlRaw,
             Connection.ExecutionDialect,
             null,
-            SqlCustomFunctionResolverFactory.Create(Connection));
+            SqlCustomFunctionResolverFactory.Create(ExecutionContext));
         return parsedQuery;
     }
 }

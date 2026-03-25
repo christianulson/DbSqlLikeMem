@@ -14,12 +14,12 @@ internal static class SqlServerScalarFunctionRegistry
             getDialect: () => dialect,
             tryConvertNumericToDecimal: AstQueryExecutorBase.TryConvertNumericToDecimal,
             tryCoerceDateTime: AstQueryExecutorBase.TryCoerceDateTime,
-            tryParseOffset: AstQueryExecutorBase.TryParseOffset,
+            tryParseOffset: SqlTemporalFunctionEvaluator.TryParseOffset,
             tryParseCachedDateTimeOffset: AstQueryExecutorBase.TryParseCachedDateTimeOffset);
 
         bool TryEvalSqlServerUtilityFunction(
             FunctionCallExpr fn,
-            ISqlDialect currentDialect,
+            QueryExecutionContext context,
             Func<int, object?> evalArg,
             out object? result)
             => utilityEvaluator.TryEvaluate(fn, evalArg, out result);
@@ -44,91 +44,91 @@ internal static class SqlServerScalarFunctionRegistry
 
     private static bool TryEvalSqlServerAppNameFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
         => AstQueryExecutorBase.TryEvalAppNameFunction(fn, out result);
 
     private static bool TryEvalSqlServerCurrentUserFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
-        => AstQueryExecutorBase.TryEvalCurrentUserFunction(fn, dialect, out result);
+        => AstQueryExecutorBase.TryEvalCurrentUserFunction(fn, context, out result);
 
     private static bool TryEvalSqlServerErrorFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
         => AstQueryExecutorBase.TryEvalErrorFunctions(fn, out result);
 
     private static bool TryEvalSqlServerNumericFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
         => AstQueryExecutorBase.TryEvalNumericFunction(fn, evalArg, out result);
 
     private static bool TryEvalSqlServerCharIndexFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
         => AstQueryExecutorBase.TryEvalCharIndexFunction(fn, evalArg, out result);
 
     private static bool TryEvalSqlServerChecksumFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
         => AstQueryExecutorBase.TryEvalSqlServerChecksumFunction(fn, evalArg, out result);
 
     private static bool TryEvalSqlServerDataLengthFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
         => AstQueryExecutorBase.TryEvalDataLengthFunction(fn, evalArg, out result);
 
     private static bool TryEvalSqlServerFormatMessageFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
         => AstQueryExecutorBase.TryEvalSqlServerFormatMessageFunction(fn, evalArg, out result);
 
     private static bool TryEvalSqlServerCompressFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
         => AstQueryExecutorBase.TryEvalSqlServerCompressFunction(fn, evalArg, out result);
 
     private static bool TryEvalSqlServerDecompressFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
         => AstQueryExecutorBase.TryEvalSqlServerDecompressFunction(fn, evalArg, out result);
 
     private static bool TryEvalSqlServerIsDateFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
         => AstQueryExecutorBase.TryEvalIsDateFunction(fn, evalArg, out result);
 
     private static bool TryEvalSqlServerIsJsonFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
         => AstQueryExecutorBase.TryEvalIsJsonFunction(fn, evalArg, out result);
 
     private static bool TryEvalSqlServerIsNumericFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
         => AstQueryExecutorBase.TryEvalIsNumericFunction(fn, evalArg, out result);

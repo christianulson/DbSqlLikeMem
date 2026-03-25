@@ -120,6 +120,10 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// PT: Obtém se CREATE OR REPLACE FUNCTION é suportado.
     /// </summary>
     public override bool SupportsCreateOrReplaceFunctionDdl => true;
+    /// <inheritdoc />
+    public override bool SupportsOracleSpecificConversionFunction(string functionName)
+        => functionName.Equals("CONVERT", StringComparison.OrdinalIgnoreCase);
+
     public override bool SupportsSequenceDdl => true;
     public override bool SupportsNextValueForSequenceExpression => true;
     public override bool SupportsPreviousValueForSequenceExpression => true;
@@ -127,7 +131,7 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// EN: Gets the null substitute function names supported by DB2 compatibility behavior.
     /// PT: Obtém os nomes de funções de substituição de nulos suportados pelo comportamento de compatibilidade do DB2.
     /// </summary>
-    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["COALESCE", SqlConst.VALUE, "IFNULL", "NVL"];
+    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["COALESCE", Db2Const.VALUE, "IFNULL", "NVL"];
     /// <summary>
     /// EN: Gets or sets allows parser limit offset compatibility.
     /// PT: Obtém ou define allows parser limit offset compatibility.

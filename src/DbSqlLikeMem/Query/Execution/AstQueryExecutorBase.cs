@@ -91,15 +91,14 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             evalJoinPredicate: (expr, row, ctes) => Eval(expr, row, group: null, ctes).ToBool());
     private AstQuerySourceResolver SourceResolver
         => _sourceResolver ??= new AstQuerySourceResolver(
-            _cnn,
-            () => Dialect,
+            _context,
             evalExpression: Eval,
             executeSelect: (select, ctes, outerRow) => ExecuteSelect(select, ctes, outerRow),
             executeUnion: ExecuteUnion);
 
     private AstQueryPivotHelper PivotHelper
         => _pivotHelper ??= new AstQueryPivotHelper(
-            () => Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para transformação de tabelas."),
+            _context,
             ParseExpr,
             Eval,
             CreateSourceEvalRow);
@@ -212,7 +211,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             getDialect: () => Dialect,
             tryConvertNumericToDecimal: TryConvertNumericToDecimal,
             tryCoerceDateTime: TryCoerceDateTime,
-            tryParseOffset: TryParseOffset,
+            tryParseOffset: SqlTemporalFunctionEvaluator.TryParseOffset,
             tryParseCachedDateTimeOffset: TryParseCachedDateTimeOffset);
 
     private AstQuerySqlServerSessionFunctionEvaluator SqlServerSessionFunctionEvaluator
@@ -428,7 +427,6 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         SqlRowLimit? rowLimit = null,
         string? sqlContextForErrors = null)
     {
-        var dialect2 = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para UNION.");
         ClearSubqueryEvaluationCaches();
         return UnionExecutionHelper.Execute(
             parts,
@@ -436,13 +434,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             orderBy,
             rowLimit,
             sqlContextForErrors,
-            _cnn,
-            dialect2,
+            _context,
             parts1 => ExecuteSelect(parts1, null, null),
             ApplyOrderAndLimit,
-            () => AstQueryPlanMetricsHelper.BuildPlanMockRuntimeContext(_cnn),
             AstQueryPlanMetricsHelper.CountKnownInputTables,
-            query => AstQueryPlanMetricsHelper.EstimateRowsRead(_cnn, query));
+            query => AstQueryPlanMetricsHelper.EstimateRowsRead(_context, query));
     }
 
     /// <summary>
@@ -462,10 +458,10 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         if (!HasSqlCalcFoundRows(q) && !IsRowCountHelperSelect(q))
             _cnn.SetLastFoundRows(result.Count);
 
-        var metrics = AstQueryPlanMetricsHelper.BuildPlanRuntimeMetrics(_cnn, q, result.Count, sw.ElapsedMilliseconds);
-        var indexRecommendations = BuildIndexRecommendations(q, metrics);
+        var metrics = AstQueryPlanMetricsHelper.BuildPlanRuntimeMetrics(_context, q, result.Count, sw.ElapsedMilliseconds);
+        var indexRecommendations = BuildIndexRecommendations(_context, q, metrics);
         var planWarnings = QueryPlanWarningHelper.BuildPlanWarnings(q, metrics);
-        var runtimeContext = AstQueryPlanMetricsHelper.BuildPlanMockRuntimeContext(_cnn);
+        var runtimeContext = _context.BuildPlanRuntimeContext();
         if (_cnn.Db.CaptureExecutionPlans)
         {
             var plan = SqlExecutionPlanFormatter.FormatSelect(
@@ -483,9 +479,10 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
     }
 
     private IReadOnlyList<SqlIndexRecommendation> BuildIndexRecommendations(
+            QueryExecutionContext context,
         SqlSelectQuery query,
         SqlPlanRuntimeMetrics metrics)
-        => SelectPlanIndexRecommendationHelper.Build(_cnn, query, metrics);
+        => SelectPlanIndexRecommendationHelper.Build(context, query, metrics);
 
     private TableResultMock ExecuteSelect(
         SqlSelectQuery selectQuery,
@@ -539,7 +536,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             var fromRows = rows as List<EvalRow> ?? [.. rows];
             debugTrace.AddStep(
                 "TableScan",
-                (int)Math.Min(int.MaxValue, AstQueryPlanMetricsHelper.GetKnownSourceRows(_cnn, selectQuery.Table)),
+                (int)Math.Min(int.MaxValue, AstQueryPlanMetricsHelper.GetKnownSourceRows(_context, selectQuery.Table)),
                 fromRows.Count,
                 TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(fromStart)),
                 SqlSourceFormattingHelper.FormatSource(selectQuery.Table));
@@ -625,7 +622,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         {
             var distinctStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
             var inputRows = projected.Count;
-            projected = ApplyDistinct(projected, Dialect);
+            projected = ApplyDistinct(projected, _context);
             debugTrace?.AddStep(
                 "Distinct",
                 inputRows,
@@ -777,7 +774,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             _cnn.SetLastFoundRows(result.Count);
 
         if (query.Distinct)
-            result = ApplyDistinct(result, Dialect);
+            result = ApplyDistinct(result, _context);
 
         result = ApplyOrderAndLimit(result, query, ctes);
         result = AstQueryExecutorForJsonHelper.ApplyForJsonIfNeeded(result, query);
@@ -840,7 +837,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
             if (AstQueryPlanMetricsHelper.HasKnownPhysicalTable(query.Table))
             {
-                count = AstQueryPlanMetricsHelper.GetKnownSourceRows(_cnn, query.Table);
+                count = AstQueryPlanMetricsHelper.GetKnownSourceRows(_context, query.Table);
                 return true;
             }
         }
@@ -952,7 +949,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         var groupStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
         var grouped = MaterializeGroups(sourceRows.GroupBy(
             BuildGroupKey,
-            GroupKey.Comparer));
+            new GroupKey.GroupKeyComparer(context)));
         debugTrace?.AddStep(
             "Group",
             sourceRows.Count,
@@ -1601,7 +1598,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         {
             var distinctStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
             var inputRows = res.Count;
-            res = ApplyDistinct(res, Dialect);
+            res = ApplyDistinct(res, _context);
             debugTrace?.AddStep(
                 "Distinct",
                 inputRows,
@@ -1640,7 +1637,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
                 slotGroup[0].Expr,
                 rows,
                 (expr, row) => Eval(expr, row, null, ctes),
-                value => NormalizeDistinctKey(value));
+                value => QueryRowValueHelper.NormalizeDistinctKey(value, _context));
 
             foreach (var part in partitions.Values)
             {
@@ -2112,9 +2109,9 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
            || name.Equals("ORA_INVOKING_USER", StringComparison.OrdinalIgnoreCase)
            || name.Equals("ORA_INVOKING_USERID", StringComparison.OrdinalIgnoreCase)
            || name.Equals("CURRENT_SCHEMA", StringComparison.OrdinalIgnoreCase)
-           || name.Equals("CURRENT_DATABASE", StringComparison.OrdinalIgnoreCase)
-           || name.Equals("CURRENT_CATALOG", StringComparison.OrdinalIgnoreCase)
-           || IsSqlServerRowCountIdentifier(name, Dialect);
+            || name.Equals("CURRENT_DATABASE", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("CURRENT_CATALOG", StringComparison.OrdinalIgnoreCase)
+            || IsSqlServerRowCountIdentifier(name, Dialect);
     }
 
     /// <summary>
@@ -2372,7 +2369,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         if (IsNullish(a)) return -1;
         if (IsNullish(b)) return 1;
 
-        return a!.Compare(b!, Dialect);
+        return a!.Compare(b!, _context);
     }
 
     private SelectPlan BuildSelectPlan(
@@ -2393,8 +2390,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         var plan = SelectPlanBuilderHelper.Build(
             q,
             sampleRows,
-            ctes,
-            Dialect,
+            ctes, 
+            _context,
             ParseScalarExpr,
             Eval,
             ResolveColumn);
@@ -2651,8 +2648,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         {
             if (metadataDefinition.AstExecutor is not null
                 && metadataDefinition.AstExecutor(
-                    new FunctionCallExpr(identifier.Name, Array.Empty<SqlExpr>()),
-                    dialect,
+                    new FunctionCallExpr(identifier.Name, []), _context,
                     static _ => null,
                     out var boundIdentifierValue))
             {
@@ -2661,7 +2657,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
             if (metadataDefinition.TemporalKind is not null
                 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(
-                    dialect,
+                    _context,
                     identifier.Name,
                     _evaluationLocalNow,
                     _evaluationUtcNow,
@@ -2678,33 +2674,32 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             throw SqlUnsupported.ForDialect(dialect, identifier.Name.ToUpperInvariant());
         }
 
-        if (identifier.Name.Equals("@@DATEFIRST", StringComparison.OrdinalIgnoreCase)
-            && dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
-            return 7;
+        if (dialect.SupportsSqlServerMetadataIdentifier(identifier.Name))
+        {
+            if (identifier.Name.Equals("@@DATEFIRST", StringComparison.OrdinalIgnoreCase))
+                return 7;
 
-        if (identifier.Name.Equals("@@IDENTITY", StringComparison.OrdinalIgnoreCase)
-            && dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
-            return _cnn.GetLastInsertId();
+            if (identifier.Name.Equals("@@IDENTITY", StringComparison.OrdinalIgnoreCase))
+                return _cnn.GetLastInsertId();
 
-        if (identifier.Name.Equals("@@MAX_PRECISION", StringComparison.OrdinalIgnoreCase)
-            && dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
-            return 38;
+            if (identifier.Name.Equals("@@MAX_PRECISION", StringComparison.OrdinalIgnoreCase))
+                return 38;
 
-        if (identifier.Name.Equals("@@TEXTSIZE", StringComparison.OrdinalIgnoreCase)
-            && dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
-            return 4096;
+            if (identifier.Name.Equals("@@TEXTSIZE", StringComparison.OrdinalIgnoreCase))
+                return 4096;
 
-        if (identifier.Name.Equals("CURRENT_USER", StringComparison.OrdinalIgnoreCase)
-            && dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
-            return "dbo";
+            if (identifier.Name.Equals("@@ROWCOUNT", StringComparison.OrdinalIgnoreCase))
+                return _cnn.GetLastFoundRows();
 
-        if (identifier.Name.Equals("SESSION_USER", StringComparison.OrdinalIgnoreCase)
-            && dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
-            return "dbo";
+            if (identifier.Name.Equals("CURRENT_USER", StringComparison.OrdinalIgnoreCase))
+                return "dbo";
 
-        if (identifier.Name.Equals("SYSTEM_USER", StringComparison.OrdinalIgnoreCase)
-            && dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
-            return "sa";
+            if (identifier.Name.Equals("SESSION_USER", StringComparison.OrdinalIgnoreCase))
+                return "dbo";
+
+            if (identifier.Name.Equals("SYSTEM_USER", StringComparison.OrdinalIgnoreCase))
+                return "sa";
+        }
 
         if (dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
         {
@@ -2729,9 +2724,6 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             if (identifier.Name.Equals("CURRENT_ROLE", StringComparison.OrdinalIgnoreCase))
                 return "postgres";
         }
-
-        if (IsSqlServerRowCountIdentifier(identifier.Name, Dialect))
-            return _cnn.GetLastFoundRows();
 
         return ResolveIdentifier(identifier.Name, row);
     }
@@ -2758,7 +2750,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         var escape = expression.Escape is null
             ? null
             : Eval(expression.Escape, row, group, ctes)?.ToString();
-        return left.Like(pattern, Dialect, escape, expression.CaseInsensitive ? true : null);
+        return left.Like(pattern, context, escape, expression.CaseInsensitive ? true : null);
     }
 
     private object? EvalNot(
@@ -3687,13 +3679,13 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return true;
         }
 
-        result = left.Compare(right, Dialect) == 0;
+        result = left.Compare(right, _context) == 0;
         return true;
     }
 
     private bool EvalComparisonBinary(SqlBinaryOp op, object left, object right)
     {
-        var comparison = left.Compare(right, Dialect);
+        var comparison = left.Compare(right, _context);
 
         return op switch
         {
@@ -3916,7 +3908,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         if (TryEvaluateRowCandidateMembership(leftVal, candidateValue, ref hasNullCandidate, out state))
             return state.Matched;
 
-        if (leftVal.EqualsSql(candidateValue, Dialect))
+        if (leftVal.EqualsSql(candidateValue, _context))
         {
             state = CreateMembershipState(matched: true, hasNullCandidate);
             return true;
@@ -3962,7 +3954,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
         for (var i = 0; i < left.Length; i++)
         {
-            if (!left[i].EqualsSql(right[i], Dialect))
+            if (!left[i].EqualsSql(right[i], _context))
                 return false;
         }
 
@@ -4565,7 +4557,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             foreach (var rawRow in src.Rows())
             {
                 if (rawRow.TryGetValue(qualifiedName, out var actualValue)
-                    && actualValue.EqualsSql(kv.Value, Dialect))
+                    && actualValue.EqualsSql(kv.Value, _context))
                 {
                     exists = true;
                     return true;
@@ -4595,7 +4587,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             {
                 var equality = resolvedEqualities[i];
                 if (!rawRow.TryGetValue(equality.QualifiedColumnName, out var actualValue)
-                    || !actualValue.EqualsSql(equality.Value, Dialect))
+                    || !actualValue.EqualsSql(equality.Value, _context))
                 {
                     matches = false;
                     break;
@@ -4737,7 +4729,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
                 foreach (var rawRow in src.Rows())
                 {
                     if (rawRow.TryGetValue(qualifiedColumnName!, out var actualValue)
-                        && actualValue.EqualsSql(kv.Value, Dialect))
+                        && actualValue.EqualsSql(kv.Value, _context))
                     {
                         count++;
                     }
@@ -4767,7 +4759,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             {
                 var equality = resolvedEqualities[i];
                 if (!rawRow.TryGetValue(equality.QualifiedColumnName, out var actualValue)
-                    || !actualValue.EqualsSql(equality.Value, Dialect))
+                    || !actualValue.EqualsSql(equality.Value, _context))
                 {
                     matches = false;
                     break;
@@ -4916,7 +4908,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         if (left is null || left is DBNull || right is null || right is DBNull)
             return SqlTruthValue.Unknown;
 
-        var cmp = left.Compare(right, Dialect);
+        var cmp = left.Compare(right, _context);
         return op switch
         {
             SqlBinaryOp.Eq => cmp == 0 ? SqlTruthValue.True : SqlTruthValue.False,
@@ -5289,7 +5281,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             if (ShouldSkipSimpleCaseMatch(baseValue, whenValue))
                 continue;
 
-            if (baseValue!.Compare(whenValue!, Dialect) == 0)
+            if (baseValue!.Compare(whenValue!, _context) == 0)
                 return Eval(whenThen.Then, row, group, ctes);
         }
 
@@ -5318,21 +5310,21 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             row,
             group,
             ctes,
-            Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para avaliação de função."),
+            _context,
             _evaluationLocalNow,
             _evaluationUtcNow,
             i => i < fn.Args.Count ? Eval(fn.Args[i], row, group, ctes) : null);
 
     private static bool TryEvalBoundScalarFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         // Prefer the executor hook stored in the registered function definition.
         var definition = fn.ResolvedScalarFunction;
         if (definition is null
-            && !dialect.TryGetScalarFunctionDefinition(fn, out definition))
+            && !context.Dialect.TryGetScalarFunctionDefinition(fn, out definition))
         {
             result = null;
             return false;
@@ -5346,7 +5338,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return false;
         }
 
-        return definition.AstExecutor(fn, dialect, evalArg, out result);
+        return definition.AstExecutor(fn, context, evalArg, out result);
     }
 
     private bool TryEvalNonSqlServerScalarFunctionFamily(
@@ -5354,18 +5346,18 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (QueryTextSearchFunctionHelper.TryEvalFindInSetFunction(fn, evalArg, out result)
-            || QueryTextSearchFunctionHelper.TryEvalMatchAgainstFunction(fn, dialect, evalArg, out result)
-            || QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions(fn, dialect, evalArg, out result))
+            || QueryTextSearchFunctionHelper.TryEvalMatchAgainstFunction(fn, _context, evalArg, out result)
+            || QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions(fn, _context, evalArg, out result))
         {
             return true;
         }
 
-        if (IsFoundRowsEquivalentFunction(fn.Name, dialect))
+        if (IsFoundRowsEquivalentFunction(fn.Name, _context.Dialect))
         {
             if (fn.Args.Count != 0)
                 throw new InvalidOperationException($"{fn.Name.ToUpperInvariant()}() não aceita argumentos.");
@@ -5374,74 +5366,84 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return true;
         }
 
-        if (QueryMySqlUtilityFunctionHelper.TryEvalUtilityFunctions(fn, dialect, evalArg, TryConvertNumericToInt64, out result)
-            || QueryMySqlDateTimeFunctionHelper.TryEvalFunctions(fn, dialect, evalArg, TryConvertNumericToDouble, TryConvertNumericToInt64, TryCoerceDateTime, TryParseExactCachedDateTime, out result))
+        if (QueryMySqlUtilityFunctionHelper.TryEvalUtilityFunctions(fn, _context, evalArg, TryConvertNumericToInt64, out result)
+            || QueryMySqlDateTimeFunctionHelper.TryEvalFunctions(fn, _context, evalArg, TryConvertNumericToDouble, TryConvertNumericToInt64, TryCoerceDateTime, TryParseExactCachedDateTime, out result))
         {
             return true;
         }
 
-        if (QueryMariaDbFunctionHelper.TryEvalFunctions(fn, dialect, evalArg, out result))
+        if (QueryMariaDbFunctionHelper.TryEvalFunctions(fn, _context, evalArg, out result))
             return true;
 
-        if (QueryMariaDbSpecialFunctionHelper.TryEvalFunctions(fn, dialect, evalArg, out result))
+        if (QueryMariaDbSpecialFunctionHelper.TryEvalFunctions(fn, _context, evalArg, out result))
             return true;
 
-        if (AstQueryTemporalArithmeticFunctionEvaluator.TryEvaluate(fn, dialect, row, group, ctes, evalArg, Eval, GetTemporalUnit, out result)
-            || AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate(fn, dialect, evalArg, out result)
-            || AstQueryMySqlUtilityFunctionEvaluator.TryEvaluate(fn, dialect, row, evalArg, TryConvertNumericToInt64, TryConvertNumericToDouble, out result))
+        if (AstQueryTemporalArithmeticFunctionEvaluator.TryEvaluate(fn, _context, row, group, ctes, evalArg, Eval, GetTemporalUnit, out result)
+            || AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate(fn, _context, evalArg, out result)
+            || AstQueryMySqlUtilityFunctionEvaluator.TryEvaluate(fn, _context, row, evalArg, TryConvertNumericToInt64, TryConvertNumericToDouble, out result))
         {
             return true;
         }
 
-        if (QueryOracleDb2ScalarFunctionHelper.TryEvalCoreFunctions(fn, dialect, evalArg, TryCoerceDateTime, out result)
-            || QueryOracleDb2UtilityFunctionHelper.TryEvalUtilityFunctions(fn, dialect, evalArg, out result)
-            || TryEvalConvertFunction(fn, dialect, evalArg, out result)
-            || TryEvalCollationFunction(fn, dialect, evalArg, out result)
-            || TryEvalConIdFunctions(fn, dialect, evalArg, out result)
-            || TryEvalCubeTableFunction(fn, dialect, evalArg, out result)
-            || TryEvalCvFunction(fn, dialect, evalArg, out result)
-            || TryEvalDataObjToPartitionFunctions(fn, dialect, evalArg, out result)
-            || TryEvalDepthFunction(fn, dialect, evalArg, out result)
-            || TryEvalDerefFunction(fn, dialect, evalArg, out result)
-            || TryEvalDumpFunction(fn, dialect, evalArg, out result)
-            || TryEvalExistsNodeFunction(fn, dialect, evalArg, out result)
-            || TryEvalFromTzFunction(fn, dialect, evalArg, out result)
-            || TryEvalGroupIdFunction(fn, dialect, out result)
-            || TryEvalHexToRawFunction(fn, dialect, evalArg, out result)
-            || TryEvalIterationNumberFunction(fn, dialect, out result)
-            || TryEvalJsonDataGuideFunction(fn, dialect, evalArg, out result)
-            || TryEvalJsonTransformFunction(fn, dialect, evalArg, out result)
-            || TryEvalLnnvlFunction(fn, dialect, evalArg, out result)
-            || TryEvalLocalTimeFunction(fn, dialect, out result)
-            || TryEvalLocalTimestampFunction(fn, dialect, out result)
-            || TryEvalLowerFunction(fn, dialect, evalArg, out result)
-            || TryEvalLtrimFunction(fn, dialect, evalArg, out result)
-            || TryEvalDivFunction(fn, dialect, evalArg, out result)
-            || TryEvalModFunction(fn, dialect, evalArg, out result)
-            || TryEvalMonthsBetweenFunction(fn, dialect, evalArg, out result)
-            || TryEvalMidnightSecondsFunction(fn, dialect, evalArg, out result)
-            || TryEvalNanvlFunction(fn, dialect, evalArg, out result)
-            || TryEvalNewTimeFunction(fn, dialect, evalArg, out result)
-            || TryEvalNextDayFunction(fn, dialect, evalArg, out result)
-            || TryEvalNlsFunctions(fn, dialect, evalArg, out result)
-            || TryEvalNumIntervalFunctions(fn, dialect, evalArg, out result)
-            || TryEvalMakeRefFunction(fn, dialect, evalArg, out result)
-            || AstQueryOracleDb2BinaryTextFunctionEvaluator.TryEvaluate(fn, dialect, evalArg, out result)
-            || AstQueryOracleDb2SysFunctionEvaluator.TryEvaluate(fn, dialect, evalArg, out result)
-            || AstQueryOracleDb2ConversionFunctionEvaluator.TryEvaluate(fn, dialect, evalArg, out result)
-            || TryEvalTranslateFunctions(fn, dialect, evalArg, out result)
-            || AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate(fn, dialect, evalArg, out result)
-            || AstQueryPostgresSystemFunctionEvaluator.TryEvaluate(fn, dialect, evalArg, _cnn.GetCurrentQueryText, out result)
-            || AstQueryPostgresDateFunctionEvaluator.TryEvaluate(fn, dialect, evalArg, out result)
-            || TryEvalDb2DateTruncFunction(fn, dialect, evalArg, out result)
-            || AstQueryPostgresScalarUtilityFunctionEvaluator.TryEvaluate(fn, dialect, evalArg, out result)
-            || AstQueryPostgresTextFunctionEvaluator.TryEvaluate(fn, dialect, evalArg, out result)
-            || AstQueryPostgresNetworkFunctionEvaluator.TryEvaluate(fn, dialect, evalArg, out result)
-            || AstQueryPostgresUnicodeFunctionEvaluator.TryEvaluate(fn, dialect, evalArg, out result)
-            || AstQueryPostgresRegexFunctionEvaluator.TryEvaluate(fn, dialect, evalArg, out result)
-            || AstQueryPostgresArrayFunctionEvaluator.TryEvaluate(fn, dialect, evalArg, out result)
-            || AstQueryPostgresJsonFunctionEvaluator.TryEvaluate(fn, dialect, evalArg, out result)
-            || AstQueryPostgresUuidFunctionEvaluator.TryEvaluate(fn, dialect, out result))
+        if (TryEvalOracleDb2ScalarFunctionFamily(fn, evalArg, out result)
+            || TryEvalPostgresScalarFunctionFamily(fn, _context, evalArg, out result))
+        {
+            return true;
+        }
+
+        result = null;
+        return false;
+    }
+
+    private bool TryEvalOracleDb2ScalarFunctionFamily(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (TryEvalOracleDb2RegisteredFunctions(fn, evalArg, out result)
+            || TryEvalOracleDb2LegacyFunctions(fn, evalArg, out result))
+        {
+            return true;
+        }
+
+        result = null;
+        return false;
+    }
+
+    private bool TryEvalOracleDb2RegisteredFunctions(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => QueryOracleDb2ScalarFunctionHelper.TryEvalCoreFunctions(fn, _context, evalArg, TryCoerceDateTime, out result)
+            || QueryOracleDb2UtilityFunctionHelper.TryEvalUtilityFunctions(fn, _context, evalArg, out result)
+            || AstQueryOracleDb2BinaryTextFunctionEvaluator.TryEvaluate(fn, _context, evalArg, out result)
+            || AstQueryOracleDb2SysFunctionEvaluator.TryEvaluate(fn, _context, evalArg, out result)
+            || AstQueryOracleDb2ConversionFunctionEvaluator.TryEvaluate(fn, _context, evalArg, out result)
+            || AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate(fn, _context, evalArg, out result)
+            || AstQueryOracleDb2LegacyFunctionEvaluator.TryEvaluate(fn, _context, evalArg, out result);
+
+    private bool TryEvalOracleDb2LegacyFunctions(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalConvertFunction(fn, _context, evalArg, out result);
+
+    private bool TryEvalPostgresScalarFunctionFamily(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (AstQueryPostgresSystemFunctionEvaluator.TryEvaluate(fn, context, evalArg, _cnn.GetCurrentQueryText, out result)
+            || AstQueryPostgresDateFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)
+            || AstQueryPostgresScalarUtilityFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)
+            || AstQueryPostgresTextFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)
+            || AstQueryPostgresNetworkFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)
+            || AstQueryPostgresUnicodeFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)
+            || AstQueryPostgresRegexFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)
+            || AstQueryPostgresArrayFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)
+            || AstQueryPostgresJsonFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)
+            || AstQueryPostgresUuidFunctionEvaluator.TryEvaluate(fn, context, out result))
         {
             return true;
         }
@@ -5455,19 +5457,19 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (TryEvalNumericFunction(fn, evalArg, out result)
             || TryEvalAppNameFunction(fn, out result)
             || TryEvalCharIndexFunction(fn, evalArg, out result)
-            || TryEvalCurrentUserFunction(fn, dialect, out result))
+            || TryEvalCurrentUserFunction(fn, context, out result))
         {
             return true;
         }
 
-        SqlServerFunctionSupportHelper.EnsureSupport(fn, dialect);
+        SqlServerFunctionSupportHelper.EnsureSupport(fn, context);
 
         if (SqlServerSessionFunctionEvaluator.TryEvaluate(fn, evalArg, out result))
             return true;
@@ -5475,23 +5477,23 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         if (SqlServerDatabaseFunctionEvaluator.TryEvaluate(fn, evalArg, out result)
             || SqlServerIdentityFunctionEvaluator.TryEvaluate(fn, evalArg, out result)
             || SqlServerUtilityFunctionEvaluator.TryEvaluate(fn, evalArg, out result)
-            || AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluate(fn, dialect, evalArg, out result)
+            || AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)
             || TryEvalDataLengthFunction(fn, evalArg, out result)
             || AstQueryTemporalAccessorFunctionEvaluator.TryEvaluate(fn, row, group, ctes, evalArg, GetTemporalUnit, ResolveTemporalUnit, out result)
-            || AstQueryDb2DateFunctionEvaluator.TryEvaluate(fn, dialect, evalArg, ResolveTemporalUnit, out result)
+            || AstQueryDb2DateFunctionEvaluator.TryEvaluate(fn, context, evalArg, ResolveTemporalUnit, out result)
             || TryEvalDegreesFunction(fn, evalArg, out result)
-            || AstQueryTemporalArithmeticFunctionEvaluator.TryEvaluate(fn, dialect, row, group, ctes, evalArg, Eval, GetTemporalUnit, out result))
+            || AstQueryTemporalArithmeticFunctionEvaluator.TryEvaluate(fn, context, row, group, ctes, evalArg, Eval, GetTemporalUnit, out result))
         {
             return true;
         }
 
         if (fn.Name.Equals("EOMONTH", StringComparison.OrdinalIgnoreCase)
             && !(fn.ResolvedScalarFunction?.AllowsCall
-                ?? (dialect.TryGetScalarFunctionDefinition(fn, out var eomonthDefinition)
+                ?? (_context.Dialect.TryGetScalarFunctionDefinition(fn, out var eomonthDefinition)
                     && eomonthDefinition is not null
                     && eomonthDefinition.AllowsCall)))
         {
-            throw SqlUnsupported.ForDialect(dialect, "EOMONTH");
+            throw SqlUnsupported.ForDialect(_context.Dialect, "EOMONTH");
         }
 
         if (TryEvalEomonthFunction(fn, evalArg, out result)
@@ -5499,7 +5501,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             || TryEvalErrorFunctions(fn, out result)
             || TryEvalExpFunction(fn, evalArg, out result)
             || TryEvalFloorFunction(fn, evalArg, out result)
-            || TryEvalSqlServerFormatFunction(fn, dialect, evalArg, out result)
+            || TryEvalSqlServerFormatFunction(fn, context, evalArg, out result)
             || TryEvalSqlServerFormatMessageFunction(fn, evalArg, out result)
             || TryEvalSqlServerCompressFunction(fn, evalArg, out result)
             || TryEvalSqlServerDecompressFunction(fn, evalArg, out result)
@@ -5510,11 +5512,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
         if (fn.Name.Equals("GETUTCDATE", StringComparison.OrdinalIgnoreCase)
             && !(fn.ResolvedScalarFunction?.AllowsCall
-                ?? (dialect.TryGetScalarFunctionDefinition(fn, out var getUtcDateDefinition)
+                ?? (_context.Dialect.TryGetScalarFunctionDefinition(fn, out var getUtcDateDefinition)
                     && getUtcDateDefinition is not null
                     && getUtcDateDefinition.AllowsCall)))
         {
-            throw SqlUnsupported.ForDialect(dialect, "GETUTCDATE");
+            throw SqlUnsupported.ForDialect(context.Dialect, "GETUTCDATE");
         }
 
         if (TryEvalGetUtcDateFunction(fn, out result))
@@ -5529,13 +5531,13 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (TryEvalGeneralSystemAndJsonFunctions(fn, dialect, evalArg, out result)
-            || TryEvalGeneralTextAndMathFunctions(fn, dialect, evalArg, out result)
-            || TryEvalGeneralDateAndTimeFunctions(fn, row, group, ctes, dialect, evalArg, out result))
+        if (TryEvalGeneralSystemAndJsonFunctions(fn, context, evalArg, out result)
+            || TryEvalGeneralTextAndMathFunctions(fn, context, evalArg, out result)
+            || TryEvalGeneralDateAndTimeFunctions(fn, row, group, ctes, context, evalArg, out result))
         {
             return true;
         }
@@ -5553,24 +5555,24 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private bool TryEvalGeneralSystemAndJsonFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
-        => GeneralSystemAndJsonFunctionEvaluator.TryEvaluate(fn, dialect, evalArg, out result);
+        => GeneralSystemAndJsonFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result);
 
     private bool TryEvalGeneralTextAndMathFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
-        => AstQueryGeneralScalarFunctionEvaluator.TryEvaluate(fn, dialect, evalArg, out result);
+        => AstQueryGeneralScalarFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result);
 
     private bool TryEvalGeneralDateAndTimeFunctions(
         FunctionCallExpr fn,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -5579,7 +5581,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return true;
         }
 
-        if (AstQueryGeneralDateArithmeticFunctionEvaluator.TryEvaluate(fn, dialect, evalArg, out result))
+        if (AstQueryGeneralDateArithmeticFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result))
         {
             return true;
         }
@@ -5589,7 +5591,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return true;
         }
 
-        return AstQueryGeneralDateTimeFunctionEvaluator.TryEvaluate(fn, dialect, evalArg, out result);
+        return AstQueryGeneralDateTimeFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result);
     }
 
     private bool TryEvalLastInsertIdFunction(
@@ -5621,27 +5623,27 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
-        => CastStringAndDateTailEvaluator.TryEvaluate(fn, row, group, ctes, dialect, evalArg, out result);
+        => CastStringAndDateTailEvaluator.TryEvaluate(fn, row, group, ctes, context, evalArg, out result);
 
     private bool TryEvalCastConversionFamily(
         FunctionCallExpr fn,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
-        => CastConversionFamilyEvaluator.TryEvaluate(fn, dialect, evalArg, out result);
+        => CastConversionFamilyEvaluator.TryEvaluate(fn, context, evalArg, out result);
 
     private bool TryEvalCastConcatAndStringTail(
         FunctionCallExpr fn,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -5649,8 +5651,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         if (handledConcat)
             return true;
 
-        if (TryEvalCharFunction(fn, dialect, evalArg, out result)
-            || TryEvalDialectSpecificCastFunction(fn, dialect, evalArg, out result)
+        if (TryEvalCharFunction(fn, context, evalArg, out result)
+            || AstQueryOracleDb2LegacyFunctionEvaluator.TryEvalDialectSpecificCastFunction(fn, context, evalArg, out result)
             || TryEvalBasicStringFunction(fn, evalArg, out result)
             || TryEvalSubstringFunction(fn, evalArg, out result)
             || TryEvalReplaceFunction(fn, evalArg, out result))
@@ -5667,18 +5669,18 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (AstQueryTemporalArithmeticFunctionEvaluator.TryEvaluate(fn, dialect, row, group, ctes, evalArg, Eval, GetTemporalUnit, out result))
+        if (AstQueryTemporalArithmeticFunctionEvaluator.TryEvaluate(fn, context, row, group, ctes, evalArg, Eval, GetTemporalUnit, out result))
         {
             return true;
         }
 
-        if (AstQueryGeneralDateFunctionEvaluator.TryEvaluate(fn, dialect, evalArg, out result)
+        if (AstQueryGeneralDateFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)
             || AstQueryTemporalAccessorFunctionEvaluator.TryEvaluate(fn, row, group, ctes, evalArg, GetTemporalUnit, ResolveTemporalUnit, out result)
-            || TryEvalFieldFunction(fn, dialect, evalArg, out result))
+            || TryEvalFieldFunction(fn, context, evalArg, out result))
         {
             return true;
         }
@@ -5736,7 +5738,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     internal static bool TryEvalCharFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -5755,8 +5757,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         }
 
         // SQL Server/MySQL CHAR(n) and SQL Server NCHAR(n) return the character represented by the numeric code.
-        if (dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
-            || MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (context.Dialect.SupportsSqlServerScalarFunction(fn.Name)
+            || MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             try
             {
@@ -5776,7 +5778,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     internal static bool TryEvalConvertFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -5786,7 +5788,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return false;
         }
 
-        if (MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             if (fn.Args.Count == 0)
                 throw new InvalidOperationException("CONVERT() espera ao menos um argumento.");
@@ -5802,8 +5804,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return true;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.SupportsOracleSpecificConversionFunction("CONVERT"))
         {
             result = null;
             return false;
@@ -5855,10 +5856,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalCollationFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
+        var dialect = context.Dialect;
         var name = fn.Name.ToUpperInvariant();
         if (name is not "COLLATION")
         {
@@ -5873,7 +5875,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return false;
         }
 
-        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(dialect, name);
+        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, name);
 
         var value = evalArg(0);
         if (IsNullish(value))
@@ -5888,10 +5890,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalConIdFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
+        var dialect = context.Dialect;
         var name = fn.Name.ToUpperInvariant();
         if (name is not ("CON_DBID_TO_ID" or "CON_GUID_TO_ID" or "CON_NAME_TO_ID" or "CON_UID_TO_ID"))
         {
@@ -5906,7 +5909,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return true;
         }
 
-        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(dialect, name);
+        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, name);
 
         var value = evalArg(0);
         if (IsNullish(value))
@@ -5927,167 +5930,13 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         return true;
     }
 
-    private static bool TryEvalDialectSpecificCastFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        result = null;
-
-        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        var normalizedName = fn.Name.ToUpperInvariant();
-        if (normalizedName is not ("BIGINT" or "BPCHAR" or "DBCLOB" or "DEC" or "DECIMAL" or "DOUBLE" or "DOUBLE_PRECISION" or "FLOAT" or "FLOAT4" or "FLOAT8" or "GRAPHIC" or "INT" or "INTEGER" or "REAL" or "SMALLINT" or "VARGRAPHIC" or "VARCHAR"))
-            return false;
-
-        if (fn.Args.Count == 0)
-            return false;
-
-        var value = evalArg(0);
-        if (IsNullish(value))
-            return true;
-
-        try
-        {
-            result = normalizedName switch
-            {
-                "BIGINT" => CoerceToInt64(value!),
-                "SMALLINT" => CoerceToInt16(value!),
-                "INT" or "INTEGER" => CoerceToInt32(value!),
-                "DEC" or "DECIMAL" => CoerceToDecimal(value!),
-                "DOUBLE" or "DOUBLE_PRECISION" or "FLOAT" or "FLOAT4" or "FLOAT8" or "REAL" => CoerceToDouble(value!),
-                "BPCHAR" or "DBCLOB" or "GRAPHIC" or "VARGRAPHIC" => value?.ToString(),
-                "VARCHAR" => value?.ToString(),
-                _ => null
-            };
-        }
-#pragma warning disable CA1031
-        catch (Exception e)
-        {
-            LogFunctionEvaluationFailure(e);
-            result = null;
-        }
-#pragma warning restore CA1031
-
-        return true;
-    }
-
-    private static long CoerceToInt64(object value)
-    {
-        if (value is long longValue)
-            return longValue;
-
-        if (value is int intValue)
-            return intValue;
-
-        if (value is short shortValue)
-            return shortValue;
-
-        if (value is decimal decimalValue)
-            return (long)decimalValue;
-
-        var text = value.ToString()?.Trim() ?? string.Empty;
-        if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedLong))
-            return parsedLong;
-
-        if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedDecimal))
-            return (long)parsedDecimal;
-
-        return 0L;
-    }
-
-    private static int CoerceToInt32(object value)
-    {
-        if (value is int intValue)
-            return intValue;
-
-        if (value is long longValue)
-            return (int)longValue;
-
-        if (value is short shortValue)
-            return shortValue;
-
-        if (value is decimal decimalValue)
-            return (int)decimalValue;
-
-        var text = value.ToString()?.Trim() ?? string.Empty;
-        if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedInt))
-            return parsedInt;
-
-        if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedLong))
-            return (int)parsedLong;
-
-        if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedDecimal))
-            return (int)parsedDecimal;
-
-        return 0;
-    }
-
-    private static short CoerceToInt16(object value)
-    {
-        if (value is short shortValue)
-            return shortValue;
-
-        if (value is int intValue)
-            return (short)intValue;
-
-        if (value is long longValue)
-            return (short)longValue;
-
-        if (value is decimal decimalValue)
-            return (short)decimalValue;
-
-        var text = value.ToString()?.Trim() ?? string.Empty;
-        if (short.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedShort))
-            return parsedShort;
-
-        if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedInt))
-            return (short)parsedInt;
-
-        if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedDecimal))
-            return (short)parsedDecimal;
-
-        return 0;
-    }
-
-    private static decimal CoerceToDecimal(object value)
-    {
-        if (value is decimal decimalValue)
-            return decimalValue;
-
-        var text = value.ToString()?.Trim() ?? string.Empty;
-        if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedDecimal))
-            return parsedDecimal;
-
-        return 0m;
-    }
-
-    private static double CoerceToDouble(object value)
-    {
-        if (value is double doubleValue)
-            return doubleValue;
-
-        if (value is float floatValue)
-            return floatValue;
-
-        if (value is decimal decimalValue)
-            return (double)decimalValue;
-
-        var text = value.ToString()?.Trim() ?? string.Empty;
-        if (double.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedDouble))
-            return parsedDouble;
-
-        return 0d;
-    }
-
     private static bool TryEvalCubeTableFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
+        var dialect = context.Dialect;
         if (!fn.Name.Equals("CUBE_TABLE", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -6107,10 +5956,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalCvFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
+        var dialect = context.Dialect;
         if (!fn.Name.Equals("CV", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -6130,10 +5980,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalDataObjToPartitionFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
+        var dialect = context.Dialect;
         if (!(fn.Name.Equals("DATAOBJ_TO_MAT_PARTITION", StringComparison.OrdinalIgnoreCase)
             || fn.Name.Equals("DATAOBJ_TO_PARTITION", StringComparison.OrdinalIgnoreCase)))
         {
@@ -6154,10 +6005,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalDepthFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
+        var dialect = context.Dialect;
         if (!fn.Name.Equals("DEPTH", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -6184,10 +6036,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalDerefFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
+        var dialect = context.Dialect;
         if (!fn.Name.Equals("DEREF", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -6207,10 +6060,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalDumpFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
+        var dialect = context.Dialect;
         if (!fn.Name.Equals("DUMP", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -6238,10 +6092,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalExistsNodeFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
+        var dialect = context.Dialect;
         if (!fn.Name.Equals("EXISTSNODE", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -6268,10 +6123,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalFromTzFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
+        var dialect = context.Dialect;
         if (!fn.Name.Equals("FROM_TZ", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -6302,7 +6158,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return true;
         }
 
-        if (!TryParseOffset(tzValue!, out var offset))
+        if (!SqlTemporalFunctionEvaluator.TryParseOffset(tzValue!, out var offset))
         {
             result = null;
             return true;
@@ -6314,7 +6170,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalGroupIdFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         out object? result)
     {
         if (!fn.Name.Equals("GROUP_ID", StringComparison.OrdinalIgnoreCase))
@@ -6323,8 +6179,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -6336,7 +6192,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalHexToRawFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -6346,8 +6202,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -6384,7 +6240,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalIterationNumberFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         out object? result)
     {
         if (!fn.Name.Equals("ITERATION_NUMBER", StringComparison.OrdinalIgnoreCase))
@@ -6393,8 +6249,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -6406,7 +6262,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalJsonDataGuideFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -6416,8 +6272,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -6436,7 +6292,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalJsonTransformFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -6447,14 +6303,14 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
         }
 
-        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(dialect, name);
+        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, name);
 
         var value = evalArg(0);
         if (IsNullish(value))
@@ -6469,7 +6325,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalLnnvlFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -6479,8 +6335,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -6499,9 +6355,10 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalLocalTimestampFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         out object? result)
     {
+        var dialect = context.Dialect;
         if (!fn.Name.Equals("LOCALTIMESTAMP", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -6521,9 +6378,10 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalLocalTimeFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         out object? result)
     {
+        var dialect = context.Dialect;
         if (!fn.Name.Equals("LOCALTIME", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -6543,7 +6401,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalLowerFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -6566,7 +6424,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalLtrimFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -6589,7 +6447,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalModFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -6626,7 +6484,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalDivFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -6636,7 +6494,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return false;
         }
 
-        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -6669,7 +6527,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalMonthsBetweenFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -6679,8 +6537,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -6713,7 +6571,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalMidnightSecondsFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -6723,7 +6581,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return false;
         }
 
-        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -6778,7 +6636,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalNanvlFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -6788,8 +6646,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -6813,7 +6671,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalNewTimeFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -6823,8 +6681,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -6848,7 +6706,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
         var fromTz = evalArg(1)?.ToString() ?? string.Empty;
         var toTz = evalArg(2)?.ToString() ?? string.Empty;
-        if (!TryParseOffset(fromTz, out var fromOffset) || !TryParseOffset(toTz, out var toOffset))
+        if (!SqlTemporalFunctionEvaluator.TryParseOffset(fromTz, out var fromOffset) || !SqlTemporalFunctionEvaluator.TryParseOffset(toTz, out var toOffset))
         {
             result = null;
             return true;
@@ -6861,7 +6719,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalNextDayFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -6871,8 +6729,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -6912,7 +6770,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalNlsFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -6924,14 +6782,14 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
         }
 
-        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(dialect, name);
+        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, name);
 
         if (name is "NLS_CHARSET_DECL_LEN" or "NLS_CHARSET_ID")
         {
@@ -6989,7 +6847,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalNumIntervalFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -7000,8 +6858,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -7045,7 +6903,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalMakeRefFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -7055,8 +6913,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -7068,7 +6926,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalDb2DateTruncFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -7078,7 +6936,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return false;
         }
 
-        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -7102,10 +6960,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalPostgresJsonFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
+        var dialect = context.Dialect;
         if (!dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -7122,8 +6981,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
         if (name is "JSON_SCALAR" or "JSON_SERIALIZE")
         {
-            if (dialect.Version < 17)
-                throw SqlUnsupported.ForDialect(dialect, name);
+            if (!dialect.TryGetScalarFunctionDefinition(name, out _))
+            {
+                result = null;
+                return false;
+            }
 
             if (fn.Args.Count == 0)
             {
@@ -7150,8 +7012,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
         if (name is "JSONB_PATH_EXISTS" or "JSONB_PATH_QUERY_ARRAY")
         {
-            if (dialect.Version < 12)
-                throw SqlUnsupported.ForDialect(dialect, name);
+            if (!dialect.TryGetScalarFunctionDefinition(name, out _))
+            {
+                result = null;
+                return false;
+            }
 
             if (fn.Args.Count < 2)
                 throw new InvalidOperationException($"{name}() espera JSONB e jsonpath.");
@@ -7504,10 +7369,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalTranslateFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
+        var dialect = context.Dialect;
         if (!fn.Name.Equals("TRANSLATE", StringComparison.OrdinalIgnoreCase)
             && !fn.Name.Equals("TRANSLATE...USING", StringComparison.OrdinalIgnoreCase))
         {
@@ -7516,7 +7382,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         }
 
         if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
+            && !dialect.SupportsSqlServerScalarFunction("TRANSLATE")
             && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -7549,48 +7415,6 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
         result = builder.ToString();
         return true;
-    }
-
-    internal static bool TryParseOffset(string value, out TimeSpan offset)
-    {
-        offset = default;
-        var trimmed = value.Trim();
-        if (string.Equals(trimmed, "UTC", StringComparison.OrdinalIgnoreCase))
-        {
-            offset = TimeSpan.Zero;
-            return true;
-        }
-
-        if (TryParseCachedTimeSpan(trimmed, out offset))
-            return true;
-
-        if (trimmed.Length == 6
-            && (trimmed[0] == '+' || trimmed[0] == '-')
-            && trimmed[3] == ':')
-        {
-            if (int.TryParse(trimmed[1..3], out var hours)
-                && int.TryParse(trimmed[4..6], out var minutes))
-            {
-                offset = new TimeSpan(hours, minutes, 0);
-                if (trimmed[0] == '-')
-                    offset = -offset;
-                return true;
-            }
-        }
-
-        if (trimmed.Length == 5 && (trimmed[0] == '+' || trimmed[0] == '-'))
-        {
-            if (int.TryParse(trimmed[1..3], out var hours)
-                && int.TryParse(trimmed[3..5], out var minutes))
-            {
-                offset = new TimeSpan(hours, minutes, 0);
-                if (trimmed[0] == '-')
-                    offset = -offset;
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private static bool TryParseOracleDayOfWeek(string value, out DayOfWeek day)
@@ -7998,7 +7822,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     internal static bool TryEvalCurrentUserFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         out object? result)
     {
         if (!fn.Name.Equals("CURRENT_USER", StringComparison.OrdinalIgnoreCase))
@@ -8007,7 +7831,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return false;
         }
 
-        result = MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect)
+        result = MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect)
             ? "root@localhost"
             : "dbo";
         return true;
@@ -8553,18 +8377,18 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     internal static bool TryEvalSqlServerFormatFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
+        var dialect = context.Dialect;
         if (!fn.Name.Equals("FORMAT", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
         }
 
-        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("sqlazure", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.SupportsSqlServerScalarFunction("FORMAT"))
         {
             result = null;
             return false;
@@ -8751,7 +8575,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     internal static bool TryEvalGroupingFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -8762,10 +8586,10 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return false;
         }
 
-        if (MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect)
-            && dialect.Version < 80)
+        if (!context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
         {
-            throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
+            result = null;
+            return false;
         }
 
         result = 0;
@@ -9120,10 +8944,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     internal static bool TryEvalJsonUtilityFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
+        var dialect = context.Dialect;
         if (fn.Name.Equals("JSON_VALID", StringComparison.OrdinalIgnoreCase))
         {
             var value = evalArg(0);
@@ -9231,8 +9056,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
                 return false;
             }
 
-            if (dialect.Version < 80)
-                throw SqlUnsupported.ForDialect(dialect, "JSON_STORAGE_SIZE");
+            if (!dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
+            {
+                result = null;
+                return false;
+            }
 
             if (fn.Args.Count == 0)
                 throw new InvalidOperationException("JSON_STORAGE_SIZE() espera um JSON.");
@@ -9263,8 +9091,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
                 return false;
             }
 
-            if (dialect.Version < 80)
-                throw SqlUnsupported.ForDialect(dialect, "JSON_OVERLAPS");
+            if (!dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
+            {
+                result = null;
+                return false;
+            }
 
             if (fn.Args.Count < 2)
                 throw new InvalidOperationException("JSON_OVERLAPS() espera dois JSONs.");
@@ -9924,7 +9755,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private object? TryEvalJsonAndNumberFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out bool handled)
     {
@@ -9933,13 +9764,13 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         if (TryEvalJsonAccessShimFunction(fn, evalArg, out var jsonAccessResult))
             return jsonAccessResult;
 
-        if (TryEvalJsonExtractionFunction(fn, dialect, evalArg, out var jsonExtractionResult))
+        if (TryEvalJsonExtractionFunction(fn, context, evalArg, out var jsonExtractionResult))
             return jsonExtractionResult;
 
-        if (TryEvalSqlServerJsonModifyFunction(fn, dialect, evalArg, out var jsonModifyResult))
+        if (TryEvalSqlServerJsonModifyFunction(fn, context, evalArg, out var jsonModifyResult))
             return jsonModifyResult;
 
-        if (TryEvalOpenJsonFunction(fn, dialect, evalArg, out var openJsonResult))
+        if (TryEvalOpenJsonFunction(fn, context, evalArg, out var openJsonResult))
             return openJsonResult;
 
         if (TryEvalJsonUnquoteFunction(fn, evalArg, out var jsonUnquoteResult))
@@ -9954,10 +9785,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalSqlServerJsonModifyFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
+        var dialect = context.Dialect;
         if (!fn.Name.Equals("JSON_MODIFY", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -10074,10 +9906,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     internal static bool TryEvalJsonExtractionFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
+        var dialect = context.Dialect;
         if (!(fn.Name.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
             || fn.Name.Equals("JSON_QUERY", StringComparison.OrdinalIgnoreCase)
             || fn.Name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)))
@@ -10181,10 +10014,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool TryEvalOpenJsonFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
+        var dialect = context.Dialect;
         if (!fn.Name.Equals(SqlConst.OPENJSON, StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -10773,8 +10607,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         {
             var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação.");
             if (MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect)
-                && dialect.Version < 56
-                && name == "JSON_OBJECTAGG")
+                && name == "JSON_OBJECTAGG"
+                && !dialect.TryGetScalarFunctionDefinition(name, out _))
             {
                 throw SqlUnsupported.ForDialect(dialect, name);
             }
@@ -10832,9 +10666,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         if (name is "MEDIAN" or "PERCENTILE" or "PERCENTILE_CONT" or "PERCENTILE_DISC")
         {
             var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação.");
-            if (dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
-                && (name is "PERCENTILE_CONT" or "PERCENTILE_DISC")
-                && dialect.Version < 2012)
+            if (!dialect.SupportsSqlServerAggregateFunction(name))
             {
                 throw SqlUnsupported.ForDialect(dialect, name);
             }
@@ -11593,9 +11425,6 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         return new HashSet<string>(comparer);
     }
 
-    private static string NormalizeDistinctKey(object? v, ISqlDialect? dialect = null)
-        => QueryRowValueHelper.NormalizeDistinctKey(v, dialect);
-
     private static bool TryGetStringAggregateText(object? value, out string text)
     {
         text = string.Empty;
@@ -12220,7 +12049,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         if (TryResolveLocalFunctionValue(name, out var localValue))
             return localValue;
 
-        return QueryRowValueHelper.ResolveParam(_pars, name);
+        return QueryRowValueHelper.ResolveParam(_context, name);
     }
 
     private static object? ResolveIdentifier(
@@ -12236,8 +12065,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static TableResultMock ApplyDistinct(
         TableResultMock res,
-        ISqlDialect? dialect)
-        => QueryRowValueHelper.ApplyDistinct(res, dialect);
+        QueryExecutionContext context)
+        => QueryRowValueHelper.ApplyDistinct(res, context);
 
     private static SqlSelectQuery GetSingleSubqueryOrThrow(
         SubqueryExpr sq,
@@ -13268,13 +13097,15 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private readonly record struct GroupKey(object?[] Values)
     {
-        /// <summary>
-        /// EN: Implements GroupKeyComparer.
-        /// PT: Implementa GroupKeyComparer.
-        /// </summary>
-        public static readonly IEqualityComparer<GroupKey> Comparer = new GroupKeyComparer();
+        ///// <summary>
+        ///// EN: Implements GroupKeyComparer.
+        ///// PT: Implementa GroupKeyComparer.
+        ///// </summary>
+        //public static readonly IEqualityComparer<GroupKey> Comparer = new GroupKeyComparer(_context);
 
-        private sealed class GroupKeyComparer : IEqualityComparer<GroupKey>
+        internal sealed class GroupKeyComparer(
+            QueryExecutionContext context
+            ) : IEqualityComparer<GroupKey>
         {
             /// <summary>
             /// EN: Implements Equals.
@@ -13284,7 +13115,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             {
                 if (x.Values.Length != y.Values.Length) return false;
                 for (int i = 0; i < x.Values.Length; i++)
-                    if (!x.Values[i].EqualsSql(y.Values[i])) return false;
+                    if (!x.Values[i].EqualsSql(y.Values[i], context)) return false;
                 return true;
             }
 
@@ -13356,9 +13187,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private static bool IsSqlServerRowCountIdentifier(string identifier, ISqlDialect? dialect)
         => dialect is not null
-           && dialect.TryGetScalarFunctionDefinition(identifier, out var definition)
-           && definition is not null
-           && definition.AllowsIdentifier;
+           && dialect.SupportsSqlServerMetadataIdentifier(identifier)
+           && identifier.Equals("@@ROWCOUNT", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsFoundRowsEquivalentFunction(string functionName, ISqlDialect dialect)
     {
@@ -13375,6 +13205,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
            && !string.IsNullOrWhiteSpace(query.RawSql)
            && _sqlCalcFoundRowsRegex.IsMatch(query.RawSql);
 }
+
+
 
 
 

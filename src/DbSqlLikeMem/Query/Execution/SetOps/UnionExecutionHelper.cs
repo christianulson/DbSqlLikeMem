@@ -10,16 +10,14 @@ internal static class UnionExecutionHelper
         IReadOnlyList<SqlOrderByItem>? orderBy,
         SqlRowLimit? rowLimit,
         string? sqlContextForErrors,
-        DbConnectionMockBase cnn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<SqlSelectQuery, TableResultMock> executeSelect,
         Func<TableResultMock, SqlSelectQuery, IDictionary<string, Source>, QueryDebugTraceBuilder?, TableResultMock> applyOrderAndLimit,
-        Func<SqlPlanMockRuntimeContext> buildRuntimeContext,
         Func<SqlSelectQuery, int> countKnownInputTables,
         Func<SqlSelectQuery, long> estimateRowsRead)
     {
         var sw = Stopwatch.StartNew();
-        QueryDebugTraceBuilder? debugTrace = cnn.IsDebugTraceCaptureEnabled
+        QueryDebugTraceBuilder? debugTrace = context.Connection.IsDebugTraceCaptureEnabled
             ? new QueryDebugTraceBuilder(SqlConst.UNION)
             : null;
 
@@ -57,7 +55,7 @@ internal static class UnionExecutionHelper
             JoinFields = new List<Dictionary<string, object?>>(totalRows)
         };
 
-        if (TryUseSimpleUnionAllProjectionPath(tables, allFlags, dialect, out var fastUnionResult))
+        if (TryUseSimpleUnionAllProjectionPath(tables, allFlags, context.Dialect, out var fastUnionResult))
         {
             result = fastUnionResult;
             return FinalizeUnionResult(
@@ -65,8 +63,7 @@ internal static class UnionExecutionHelper
                 allFlags,
                 orderBy,
                 rowLimit,
-                cnn,
-                buildRuntimeContext,
+                context,
                 countKnownInputTables,
                 estimateRowsRead,
                 result,
@@ -75,7 +72,7 @@ internal static class UnionExecutionHelper
                 applyOrderAndLimit);
         }
 
-        ValidateUnionTables(tables, sqlContextForErrors, dialect);
+        ValidateUnionTables(tables, sqlContextForErrors, context);
 
         result.Columns = AreUnionColumnMetadataIdentical(tables)
             ? tables[0].Columns
@@ -83,7 +80,7 @@ internal static class UnionExecutionHelper
         result.Capacity = totalRows;
 
         var needsDistinct = allFlags.Any(flag => !flag);
-        var seenRows = needsDistinct ? new HashSet<Dictionary<int, object?>>(new SqlRowDictionaryComparer(dialect)) : null;
+        var seenRows = needsDistinct ? new HashSet<Dictionary<int, object?>>(new SqlRowDictionaryComparer(context)) : null;
 
         AppendUnionRows(tables[0], result, seenRows);
         for (var i = 1; i < tables.Length; i++)
@@ -109,8 +106,7 @@ internal static class UnionExecutionHelper
             allFlags,
             orderBy,
             rowLimit,
-            cnn,
-            buildRuntimeContext,
+            context,
             countKnownInputTables,
             estimateRowsRead,
             result,
@@ -122,7 +118,7 @@ internal static class UnionExecutionHelper
     private static void ValidateUnionTables(
         IReadOnlyList<TableResultMock> tables,
         string? sqlContextForErrors,
-        ISqlDialect dialect)
+        QueryExecutionContext context)
     {
         var resultColumns = tables[0].Columns;
         for (var i = 0; i < tables.Count; i++)
@@ -138,7 +134,7 @@ internal static class UnionExecutionHelper
                 throw new InvalidOperationException(msg);
             }
 
-            UnionQueryValidationHelper.ValidateUnionColumnTypes(resultColumns, tables[i].Columns, i, sqlContextForErrors, dialect);
+            UnionQueryValidationHelper.ValidateUnionColumnTypes(resultColumns, tables[i].Columns, i, sqlContextForErrors, context);
         }
     }
 
@@ -169,8 +165,7 @@ internal static class UnionExecutionHelper
         IReadOnlyList<bool> allFlags,
         IReadOnlyList<SqlOrderByItem>? orderBy,
         SqlRowLimit? rowLimit,
-        DbConnectionMockBase cnn,
-        Func<SqlPlanMockRuntimeContext> buildRuntimeContext,
+        QueryExecutionContext context,
         Func<SqlSelectQuery, int> countKnownInputTables,
         Func<SqlSelectQuery, long> estimateRowsRead,
         TableResultMock result,
@@ -202,9 +197,9 @@ internal static class UnionExecutionHelper
             EstimatedRowsRead: parts.Sum(estimateRowsRead),
             ActualRows: result.Count,
             ElapsedMs: sw.ElapsedMilliseconds);
-        var runtimeContext = buildRuntimeContext();
+        var runtimeContext = context.BuildPlanRuntimeContext();
 
-        if (cnn.Db.CaptureExecutionPlans)
+        if (context.CaptureExecutionPlans)
         {
             var plan = SqlExecutionPlanFormatter.FormatUnion(
                 parts,
@@ -214,12 +209,12 @@ internal static class UnionExecutionHelper
                 unionMetrics,
                 runtimeContext);
             result.ExecutionPlan = plan;
-            cnn.RegisterExecutionPlan(plan);
+            context.Connection.RegisterExecutionPlan(plan);
         }
 
-        cnn.SetLastFoundRows(result.Count);
+        context.Connection.SetLastFoundRows(result.Count);
         if (debugTrace is not null)
-            cnn.RegisterDebugTrace(debugTrace.Build());
+            context.Connection.RegisterDebugTrace(debugTrace.Build());
 
         return result;
     }

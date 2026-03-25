@@ -7,12 +7,12 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
 
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler)
-            && handler(fn, dialect, evalArg, out result))
+            && handler(fn, context, evalArg, out result))
         {
             return true;
         }
@@ -49,7 +49,7 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
 
     private static bool TryEvalMySqlConvFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -59,7 +59,7 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
             return false;
         }
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -115,7 +115,7 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
 
     private static bool TryEvalMySqlDayFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -126,7 +126,7 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
             return false;
         }
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -158,32 +158,32 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
 
     private static bool TryEvalMySqlVersionFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = fn;
         _ = evalArg;
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;
         }
 
-        result = $"MySQL {FormatMySqlServerVersion(dialect.Version)}";
+        result = $"MySQL {FormatMySqlServerVersion(context.Dialect.Version)}";
         return true;
     }
 
     private static bool TryEvalMySqlCurrentDateFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = fn;
         _ = evalArg;
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -195,13 +195,13 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
 
     private static bool TryEvalMySqlUtcDateFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = fn;
         _ = evalArg;
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -213,13 +213,13 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
 
     private static bool TryEvalMySqlCurrentTimeFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = fn;
         _ = evalArg;
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -231,13 +231,13 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
 
     private static bool TryEvalMySqlUtcTimeFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = fn;
         _ = evalArg;
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -249,13 +249,13 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
 
     private static bool TryEvalMySqlLocalTimestampFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = fn;
         _ = evalArg;
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -267,13 +267,13 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
 
     private static bool TryEvalMySqlUtcTimestampFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = fn;
         _ = evalArg;
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -285,7 +285,7 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
 
     private static bool TryEvalMySqlDatabaseFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -296,7 +296,7 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
             return false;
         }
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -320,7 +320,7 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
 
     private static bool TryEvalMySqlStringMetadataFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -331,7 +331,7 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
             return false;
         }
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;

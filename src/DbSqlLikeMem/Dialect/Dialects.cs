@@ -829,6 +829,31 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// PT: Obtém ou define SupportsMySqlIndexHints.
     /// </summary>
     public virtual bool SupportsMySqlIndexHints => false;
+    /// <summary>
+    /// EN: Checks whether a SQL Server metadata function is supported by this dialect.
+    /// PT: Verifica se uma funcao de metadados do SQL Server e suportada por este dialeto.
+    /// </summary>
+    public virtual bool SupportsSqlServerMetadataFunction(string functionName) => false;
+    /// <summary>
+    /// EN: Checks whether a SQL Server metadata identifier is supported by this dialect.
+    /// PT: Verifica se um identificador de metadados do SQL Server e suportado por este dialeto.
+    /// </summary>
+    public virtual bool SupportsSqlServerMetadataIdentifier(string identifier) => false;
+    /// <summary>
+    /// EN: Checks whether a SQL Server scalar function is supported by this dialect.
+    /// PT: Verifica se uma funcao escalar do SQL Server e suportada por este dialeto.
+    /// </summary>
+    public virtual bool SupportsSqlServerScalarFunction(string functionName) => false;
+    /// <summary>
+    /// EN: Checks whether a SQL Server date function is supported by this dialect.
+    /// PT: Verifica se uma funcao de data do SQL Server e suportada por este dialeto.
+    /// </summary>
+    public virtual bool SupportsSqlServerDateFunction(string functionName) => false;
+    /// <summary>
+    /// EN: Checks whether a SQL Server aggregate function is supported by this dialect.
+    /// PT: Verifica se uma funcao de agregacao do SQL Server e suportada por este dialeto.
+    /// </summary>
+    public virtual bool SupportsSqlServerAggregateFunction(string functionName) => false;
 
     /// <summary>
     /// EN: Gets or sets AllowsHashIdentifiers.

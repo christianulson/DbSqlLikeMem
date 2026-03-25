@@ -1,8 +1,10 @@
 namespace DbSqlLikeMem;
 
-internal sealed class SqlRowDictionaryComparer(ISqlDialect dialect)
+internal sealed class SqlRowDictionaryComparer(QueryExecutionContext context)
     : IEqualityComparer<Dictionary<int, object?>>
 {
+    private readonly ISqlDialect dialect = context.Dialect;
+
     public bool Equals(Dictionary<int, object?>? x, Dictionary<int, object?>? y)
     {
         if (ReferenceEquals(x, y))
@@ -15,7 +17,7 @@ internal sealed class SqlRowDictionaryComparer(ISqlDialect dialect)
             if (!y.TryGetValue(item.Key, out var rightValue))
                 return false;
 
-            if (!item.Value.EqualsSql(rightValue, dialect))
+            if (!item.Value.EqualsSql(rightValue, context))
                 return false;
         }
 

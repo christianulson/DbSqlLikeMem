@@ -4,7 +4,7 @@ using System.Globalization;
 
 internal delegate bool AstQueryTryEvalOracleDb2ConversionFunction(
     FunctionCallExpr fn,
-    ISqlDialect dialect,
+    QueryExecutionContext context,
     Func<int, object?> evalArg,
     out object? result);
 
@@ -31,11 +31,11 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
 
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!IsOracleDb2Dialect(dialect))
+        if (!IsOracleDb2Dialect(context))
         {
             result = null;
             return false;
@@ -48,7 +48,7 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
         }
 
         if (_requiresSupportCheck.Contains(fn.Name))
-            QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(dialect, fn.Name);
+            QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, fn.Name);
 
         if (fn.Args.Count == 0)
         {
@@ -63,7 +63,7 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
             return true;
         }
 
-        return handler(fn, dialect, evalArg, out result);
+        return handler(fn, context, evalArg, out result);
     }
 
     private static Dictionary<string, AstQueryTryEvalOracleDb2ConversionFunction> CreateHandlers()
@@ -92,17 +92,17 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
             handlers[name] = handler;
     }
 
-    private static bool IsOracleDb2Dialect(ISqlDialect dialect)
-        => dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            || dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase);
+    private static bool IsOracleDb2Dialect(QueryExecutionContext context)
+        => context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            || context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryEvalConvertFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = dialect;
+        _ = context;
         var value = evalArg(0);
         result = value is string textValue ? textValue : value!.ToString();
         return true;
@@ -110,35 +110,35 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
 
     private static bool TryEvalToBinaryDoubleFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = fn;
-        _ = dialect;
+        _ = context;
         result = Convert.ToDouble(evalArg(0), CultureInfo.InvariantCulture);
         return true;
     }
 
     private static bool TryEvalToBinaryFloatFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = fn;
-        _ = dialect;
+        _ = context;
         result = Convert.ToSingle(evalArg(0), CultureInfo.InvariantCulture);
         return true;
     }
 
     private static bool TryEvalToNumberFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = dialect;
+        _ = context;
         var value = evalArg(0);
         if (value is string numberText)
         {
@@ -156,11 +156,11 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
 
     private static bool TryEvalToCharFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = dialect;
+        _ = context;
         var value = evalArg(0);
 
         if (value is DateTime dateValue)
@@ -209,31 +209,31 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
 
     private static bool TryEvalToDateFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = dialect;
+        _ = context;
         return TryEvalOracleDateTimeFunction(fn, evalArg, allowOffset: false, out result);
     }
 
     private static bool TryEvalToTimestampFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = dialect;
+        _ = context;
         return TryEvalOracleDateTimeFunction(fn, evalArg, allowOffset: false, out result);
     }
 
     private static bool TryEvalToTimestampTzFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = dialect;
+        _ = context;
         return TryEvalOracleDateTimeFunction(fn, evalArg, allowOffset: true, out result);
     }
 
@@ -276,12 +276,12 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
 
     private static bool TryEvalToDsIntervalFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = fn;
-        _ = dialect;
+        _ = context;
         if (AstQueryExecutorBase.TryCoerceTimeSpan(evalArg(0), out var parsedSpan))
         {
             result = parsedSpan;
@@ -294,12 +294,12 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
 
     private static bool TryEvalToYmIntervalFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = fn;
-        _ = dialect;
+        _ = context;
         if (AstQueryExecutorBase.TryCoerceTimeSpan(evalArg(0), out var parsedSpan))
         {
             result = parsedSpan;
@@ -312,13 +312,14 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
 
     private static bool TryEvalToTextFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = fn;
-        _ = dialect;
+        _ = context;
         result = evalArg(0)?.ToString();
         return true;
     }
 }
+

@@ -6,10 +6,10 @@ internal static class AstQueryPostgresUuidFunctionEvaluator
 {
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         out object? result)
     {
-        if (!dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;

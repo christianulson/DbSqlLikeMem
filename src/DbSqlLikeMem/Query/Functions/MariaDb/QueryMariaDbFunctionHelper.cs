@@ -3,24 +3,103 @@ namespace DbSqlLikeMem;
 internal static class QueryMariaDbFunctionHelper
 {
     private static readonly Lazy<uint[]> _crc32cTable = new(CreateCrc32cTable);
+    private static readonly IReadOnlyDictionary<string, MariaDbFunctionHandler> _handlers = CreateHandlers();
+    private static readonly IReadOnlyDictionary<string, MariaDbJsonFunctionHandler> _jsonHandlers = CreateJsonHandlers();
+
+    private delegate bool MariaDbFunctionHandler(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result);
+
+    private delegate bool MariaDbJsonFunctionHandler(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result);
 
     public static bool TryEvalFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        return TryEvalBenchmarkFunction(fn, evalArg, out result)
-            || TryEvalFieldFunction(fn, evalArg, out result)
-            || TryEvalLengthBFunction(fn, dialect, evalArg, out result)
-            || TryEvalDecodeOracleFunction(fn, dialect, evalArg, out result)
-            || TryEvalCrc32cFunction(fn, dialect, evalArg, out result)
-            || TryEvalNaturalSortKeyFunction(fn, dialect, evalArg, out result)
-            || TryEvalSFormatFunction(fn, dialect, evalArg, out result)
-            || TryEvalKdfFunction(fn, dialect, evalArg, out result)
-            || TryEvalTrimOracleFunction(fn, dialect, evalArg, out result)
-            || TryEvalWeightStringFunction(fn, dialect, evalArg, out result)
-            || TryEvalJsonFunctions(fn, dialect, evalArg, out result);
+        if (!context.Dialect.Name.Equals("mariadb", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (_handlers.TryGetValue(fn.Name, out var handler))
+            return handler(fn, context, evalArg, out result);
+
+        result = null;
+        return false;
+    }
+
+    private static Dictionary<string, MariaDbFunctionHandler> CreateHandlers()
+    {
+        var handlers = new Dictionary<string, MariaDbFunctionHandler>(StringComparer.OrdinalIgnoreCase);
+        Register(handlers, TryEvalBenchmarkFunction, "BENCHMARK");
+        Register(handlers, TryEvalFieldFunction, "FIELD");
+        Register(handlers, TryEvalLengthBFunction, "LENGTHB");
+        Register(handlers, TryEvalDecodeOracleFunction, "DECODE_ORACLE");
+        Register(handlers, TryEvalCrc32cFunction, "CRC32C");
+        Register(handlers, TryEvalNaturalSortKeyFunction, "NATURAL_SORT_KEY");
+        Register(handlers, TryEvalSFormatFunction, "SFORMAT");
+        Register(handlers, TryEvalKdfFunction, "KDF");
+        Register(handlers, TryEvalTrimOracleFunction, "TRIM_ORACLE");
+        Register(handlers, TryEvalWeightStringFunction, "WEIGHT_STRING");
+        Register(
+            handlers,
+            TryEvalJsonFunctions,
+            "JSON_COMPACT",
+            "JSON_PRETTY",
+            "JSON_DETAILED",
+            "JSON_LOOSE",
+            "JSON_NORMALIZE",
+            "JSON_EQUALS",
+            "JSON_EXISTS",
+            "JSON_SCHEMA_VALID",
+            "JSON_ARRAY_INTERSECT",
+            "JSON_OBJECT_FILTER_KEYS",
+            "JSON_OBJECT_TO_ARRAY",
+            "JSON_KEY_VALUE");
+        return handlers;
+    }
+
+    private static Dictionary<string, MariaDbJsonFunctionHandler> CreateJsonHandlers()
+    {
+        var handlers = new Dictionary<string, MariaDbJsonFunctionHandler>(StringComparer.OrdinalIgnoreCase);
+        Register(handlers, TryEvalJsonCompactFunction, "JSON_COMPACT");
+        Register(handlers, TryEvalJsonPrettyFunction, "JSON_PRETTY", "JSON_DETAILED");
+        Register(handlers, TryEvalJsonLooseFunction, "JSON_LOOSE");
+        Register(handlers, TryEvalJsonNormalizeFunction, "JSON_NORMALIZE");
+        Register(handlers, TryEvalJsonEqualsFunction, "JSON_EQUALS");
+        Register(handlers, TryEvalJsonExistsFunction, "JSON_EXISTS");
+        Register(handlers, TryEvalJsonSchemaValidFunction, "JSON_SCHEMA_VALID");
+        Register(handlers, TryEvalJsonArrayIntersectFunction, "JSON_ARRAY_INTERSECT");
+        Register(handlers, TryEvalJsonObjectFilterKeysFunction, "JSON_OBJECT_FILTER_KEYS");
+        Register(handlers, TryEvalJsonObjectToArrayFunction, "JSON_OBJECT_TO_ARRAY");
+        Register(handlers, TryEvalJsonKeyValueFunction, "JSON_KEY_VALUE");
+        return handlers;
+    }
+
+    private static void Register(
+        Dictionary<string, MariaDbFunctionHandler> handlers,
+        MariaDbFunctionHandler handler,
+        params string[] names)
+    {
+        foreach (var name in names)
+            handlers[name] = handler;
+    }
+
+    private static void Register(
+        Dictionary<string, MariaDbJsonFunctionHandler> handlers,
+        MariaDbJsonFunctionHandler handler,
+        params string[] names)
+    {
+        foreach (var name in names)
+            handlers[name] = handler;
     }
 
     private static bool IsMariaDbDialect(ISqlDialect dialect)
@@ -28,9 +107,11 @@ internal static class QueryMariaDbFunctionHelper
 
     private static bool TryEvalBenchmarkFunction(
         FunctionCallExpr fn,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
+        _ = context;
         if (!fn.Name.Equals("BENCHMARK", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -62,9 +143,11 @@ internal static class QueryMariaDbFunctionHelper
 
     private static bool TryEvalFieldFunction(
         FunctionCallExpr fn,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
+        _ = context;
         if (!fn.Name.Equals("FIELD", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -100,7 +183,7 @@ internal static class QueryMariaDbFunctionHelper
 
     private static bool TryEvalLengthBFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -110,7 +193,7 @@ internal static class QueryMariaDbFunctionHelper
             return false;
         }
 
-        if (!IsMariaDbDialect(dialect))
+        if (!IsMariaDbDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -135,7 +218,7 @@ internal static class QueryMariaDbFunctionHelper
 
     private static bool TryEvalDecodeOracleFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -145,7 +228,7 @@ internal static class QueryMariaDbFunctionHelper
             return false;
         }
 
-        if (!IsMariaDbDialect(dialect))
+        if (!IsMariaDbDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -162,7 +245,7 @@ internal static class QueryMariaDbFunctionHelper
         {
             var search = evalArg(1 + i * 2);
             var current = evalArg(2 + i * 2);
-            if (ValuesAreEqual(expr, search, dialect))
+            if (ValuesAreEqual(expr, search, context))
             {
                 result = current;
                 return true;
@@ -175,7 +258,7 @@ internal static class QueryMariaDbFunctionHelper
 
     private static bool TryEvalCrc32cFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -185,7 +268,7 @@ internal static class QueryMariaDbFunctionHelper
             return false;
         }
 
-        if (!IsMariaDbDialect(dialect))
+        if (!IsMariaDbDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -194,8 +277,8 @@ internal static class QueryMariaDbFunctionHelper
         if (fn.Args.Count is 0 or > 2)
             throw new InvalidOperationException("CRC32C() espera um ou dois argumentos.");
 
-        if (dialect.Version < 108)
-            throw SqlUnsupported.ForDialect(dialect, "CRC32C");
+        if (context.Dialect.Version < 108)
+            throw SqlUnsupported.ForDialect(context.Dialect, "CRC32C");
 
         uint seed = uint.MaxValue;
         if (fn.Args.Count == 2)
@@ -229,7 +312,7 @@ internal static class QueryMariaDbFunctionHelper
 
     private static bool TryEvalNaturalSortKeyFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -239,7 +322,7 @@ internal static class QueryMariaDbFunctionHelper
             return false;
         }
 
-        if (!IsMariaDbDialect(dialect))
+        if (!IsMariaDbDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -288,7 +371,7 @@ internal static class QueryMariaDbFunctionHelper
 
     private static bool TryEvalSFormatFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -298,7 +381,7 @@ internal static class QueryMariaDbFunctionHelper
             return false;
         }
 
-        if (!IsMariaDbDialect(dialect))
+        if (!IsMariaDbDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -327,7 +410,7 @@ internal static class QueryMariaDbFunctionHelper
 
     private static bool TryEvalKdfFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -337,7 +420,7 @@ internal static class QueryMariaDbFunctionHelper
             return false;
         }
 
-        if (!IsMariaDbDialect(dialect))
+        if (!IsMariaDbDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -372,7 +455,7 @@ internal static class QueryMariaDbFunctionHelper
         }
 
         if (!algorithm.Equals("pbkdf2_hmac", StringComparison.OrdinalIgnoreCase))
-            throw SqlUnsupported.ForDialect(dialect, "KDF");
+            throw SqlUnsupported.ForDialect(context.Dialect, "KDF");
 
         var iterations = 1000;
         if (fn.Args.Count > 2 && TryConvertToInt32(evalArg(2), out var parsedIterations))
@@ -432,7 +515,7 @@ internal static class QueryMariaDbFunctionHelper
 
     private static bool TryEvalTrimOracleFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -442,7 +525,7 @@ internal static class QueryMariaDbFunctionHelper
             return false;
         }
 
-        if (!IsMariaDbDialect(dialect))
+        if (!IsMariaDbDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -477,7 +560,7 @@ internal static class QueryMariaDbFunctionHelper
 
     private static bool TryEvalWeightStringFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -487,7 +570,7 @@ internal static class QueryMariaDbFunctionHelper
             return false;
         }
 
-        if (!IsMariaDbDialect(dialect))
+        if (!IsMariaDbDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -512,27 +595,21 @@ internal static class QueryMariaDbFunctionHelper
 
     private static bool TryEvalJsonFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!IsMariaDbDialect(dialect))
+        if (!IsMariaDbDialect(context.Dialect))
         {
             result = null;
             return false;
         }
 
-        return TryEvalJsonCompactFunction(fn, evalArg, out result)
-            || TryEvalJsonPrettyFunction(fn, evalArg, out result)
-            || TryEvalJsonLooseFunction(fn, evalArg, out result)
-            || TryEvalJsonNormalizeFunction(fn, evalArg, out result)
-            || TryEvalJsonEqualsFunction(fn, evalArg, out result)
-            || TryEvalJsonExistsFunction(fn, evalArg, out result)
-            || TryEvalJsonSchemaValidFunction(fn, evalArg, out result)
-            || TryEvalJsonArrayIntersectFunction(fn, evalArg, out result)
-            || TryEvalJsonObjectFilterKeysFunction(fn, evalArg, out result)
-            || TryEvalJsonObjectToArrayFunction(fn, evalArg, out result)
-            || TryEvalJsonKeyValueFunction(fn, evalArg, out result);
+        if (_jsonHandlers.TryGetValue(fn.Name, out var handler))
+            return handler(fn, evalArg, out result);
+
+        result = null;
+        return false;
     }
 
     private static bool TryEvalJsonCompactFunction(
@@ -1151,7 +1228,8 @@ internal static class QueryMariaDbFunctionHelper
         return string.Equals(Convert.ToString(left, CultureInfo.InvariantCulture), Convert.ToString(right, CultureInfo.InvariantCulture), StringComparison.Ordinal);
     }
 
-    private static bool ValuesAreEqual(object? left, object? right, ISqlDialect dialect)
+    private static bool ValuesAreEqual(object? left, object? right,
+        QueryExecutionContext context)
     {
         if (IsNullish(left) && IsNullish(right))
             return true;
@@ -1162,7 +1240,7 @@ internal static class QueryMariaDbFunctionHelper
         if (TryConvertToDecimal(left!, out var leftDecimal) && TryConvertToDecimal(right!, out var rightDecimal))
             return leftDecimal == rightDecimal;
 
-        return left!.EqualsSql(right!, dialect);
+        return left!.EqualsSql(right!, context);
     }
 
     private static bool TryConvertToDecimal(object value, out decimal numeric)

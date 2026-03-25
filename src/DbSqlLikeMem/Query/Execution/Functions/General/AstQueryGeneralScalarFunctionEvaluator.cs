@@ -4,7 +4,7 @@ namespace DbSqlLikeMem;
 
 internal delegate bool AstQueryGeneralScalarFunctionHandler(
     FunctionCallExpr fn,
-    ISqlDialect dialect,
+    QueryExecutionContext context,
     Func<int, object?> evalArg,
     out object? result);
 
@@ -20,12 +20,12 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler(fn, dialect, evalArg, out result);
+            return handler(fn, context, evalArg, out result);
 
         result = null;
         return false;
@@ -111,7 +111,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalMinMaxFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -145,7 +145,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
                 continue;
             }
 
-            var comparison = current.Compare(value!, dialect);
+            var comparison = current.Compare(value!, context);
             if (isGreatest && comparison < 0)
                 current = value;
             else if (isLeast && comparison > 0)
@@ -158,7 +158,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalAsciiFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -182,7 +182,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalCharFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -199,8 +199,8 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        if (dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
-            || MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (context.Dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
+            || MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             try
             {
@@ -220,14 +220,14 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalBasicStringFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
         => TryEvalBasicStringFunction(fn, evalArg, out result);
 
     private static bool TryEvalLocateFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -258,14 +258,14 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        var index = haystack.IndexOf(needle, startIndex, dialect.TextComparison);
+        var index = haystack.IndexOf(needle, startIndex, context.Dialect.TextComparison);
         result = index < 0 ? 0 : index + 1;
         return true;
     }
 
     private static bool TryEvalLogFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -345,7 +345,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        var isPostgreSql = dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase);
+        var isPostgreSql = context.Dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase);
         result = isLog && isPostgreSql
             ? Math.Log10(number)
             : Math.Log(number);
@@ -354,7 +354,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalInstrFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -387,7 +387,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalGlobFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -414,7 +414,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalLikeFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -434,14 +434,14 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
         var escape = fn.Args.Count > 2 ? evalArg(2)?.ToString() : null;
         var escapeText = string.IsNullOrEmpty(escape) ? null : escape![0].ToString();
-        var matches = value!.ToString()!.Like(pattern!.ToString()!, dialect, escapeText);
+        var matches = value!.ToString()!.Like(pattern!.ToString()!, context, escapeText);
         result = matches ? 1 : 0;
         return true;
     }
 
     private static bool TryEvalPatIndexFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -459,13 +459,13 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        result = value!.ToString()!.PatIndex(pattern!.ToString()!, dialect);
+        result = value!.ToString()!.PatIndex(pattern!.ToString()!, context);
         return true;
     }
 
     private static bool TryEvalDegreesFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -497,7 +497,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalDifferenceFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -524,7 +524,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalExpFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -556,7 +556,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalFloorFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -593,7 +593,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalCeilingFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -631,7 +631,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalAcosFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -662,7 +662,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalAsinFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -693,7 +693,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalAtanFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -724,7 +724,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalAtan2Function(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -761,7 +761,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalCosFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -792,7 +792,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalCotFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -824,7 +824,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalSignFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -856,7 +856,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalReplaceFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -882,7 +882,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalTranslateFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -893,9 +893,9 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -968,7 +968,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalPrintfFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -986,7 +986,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             args[i - 1] = evalArg(i);
 
         if (fn.Name.Equals("FORMAT", StringComparison.OrdinalIgnoreCase)
-            && dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+            && context.Dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
         {
             result = FormatPostgreSql(format, args);
             return true;
@@ -1083,13 +1083,13 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalRandomFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (fn.Name.Equals("RANDOM", StringComparison.OrdinalIgnoreCase))
         {
-            result = dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase)
+            result = context.Dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase)
                 ? NextRandomDouble()
                 : NextRandomInt64();
             return true;
@@ -1130,7 +1130,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalTypeofFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -1159,7 +1159,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalUnicodeFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -1219,7 +1219,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalLikelihoodFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -1452,14 +1452,14 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     internal bool TryEvalSqliteSystemFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         var name = fn.Name.ToUpperInvariant();
         if (name is "SQLITE_VERSION" or "SQLITE3_LIBVERSION")
         {
-            var version = dialect?.Version ?? 3;
+            var version = context.Dialect?.Version ?? 3;
             result = $"{version}.0.0";
             return true;
         }
@@ -1546,7 +1546,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     internal bool TryEvalSqliteJsonFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -1642,14 +1642,17 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
         if (fn.Name.Equals("JSON_MERGE_PATCH", StringComparison.OrdinalIgnoreCase))
         {
-            if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+            if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
             {
                 result = null;
                 return false;
             }
 
-            if (dialect.Version < 56)
-                throw SqlUnsupported.ForDialect(dialect, "JSON_MERGE_PATCH");
+            if (!context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
+            {
+                result = null;
+                return false;
+            }
 
             if (fn.Args.Count < 2)
                 throw new InvalidOperationException("JSON_MERGE_PATCH() espera dois JSONs.");
@@ -1692,14 +1695,17 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         if (fn.Name.Equals("JSON_MERGE", StringComparison.OrdinalIgnoreCase)
             || fn.Name.Equals("JSON_MERGE_PRESERVE", StringComparison.OrdinalIgnoreCase))
         {
-            if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+            if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
             {
                 result = null;
                 return false;
             }
 
-            if (dialect.Version < 56)
-                throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
+            if (!context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
+            {
+                result = null;
+                return false;
+            }
 
             if (fn.Args.Count < 2)
                 throw new InvalidOperationException($"{fn.Name.ToUpperInvariant()}() espera dois JSONs.");
@@ -1742,20 +1748,16 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         if (fn.Name.Equals("JSON_APPEND", StringComparison.OrdinalIgnoreCase)
             || fn.Name.Equals("JSON_ARRAY_APPEND", StringComparison.OrdinalIgnoreCase))
         {
-            if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+            if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
             {
                 result = null;
                 return false;
             }
 
-            if (fn.Name.Equals("JSON_APPEND", StringComparison.OrdinalIgnoreCase))
+            if (!context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
             {
-                if (dialect.Version < 56 || dialect.Version >= 80)
-                    throw SqlUnsupported.ForDialect(dialect, "JSON_APPEND");
-            }
-            else if (dialect.Version < 56)
-            {
-                throw SqlUnsupported.ForDialect(dialect, "JSON_ARRAY_APPEND");
+                result = null;
+                return false;
             }
 
             if (fn.Args.Count < 3 || fn.Args.Count % 2 == 0)
@@ -1791,11 +1793,14 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
         if (fn.Name.Equals("JSON_ARRAY_INSERT", StringComparison.OrdinalIgnoreCase))
         {
-            if (MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect) && dialect.Version < 56)
-                throw SqlUnsupported.ForDialect(dialect, "JSON_ARRAY_INSERT");
-
-            if (MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+            if (MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
             {
+                if (!context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
+                {
+                    result = null;
+                    return false;
+                }
+
                 if (fn.Args.Count < 3 || fn.Args.Count % 2 == 0)
                     throw new InvalidOperationException("JSON_ARRAY_INSERT() espera um JSON seguido de pares path/valor.");
 
@@ -1828,8 +1833,8 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             }
 
             var shim = new FunctionCallExpr("JSON_INSERT", fn.Args)
-                .BindScalarFunctionDefinition(dialect);
-            result = TryEvalJsonUtilityFunctions(shim, dialect, evalArg, out var jsonInsertResult)
+                .BindScalarFunctionDefinition(context.Dialect);
+            result = TryEvalJsonUtilityFunctions(shim, context, evalArg, out var jsonInsertResult)
                 ? jsonInsertResult
                 : null;
             return true;
@@ -1860,8 +1865,8 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         if (fn.Name.Equals("JSONB_EXTRACT", StringComparison.OrdinalIgnoreCase))
         {
             var shim = new FunctionCallExpr("JSON_EXTRACT", fn.Args)
-                .BindScalarFunctionDefinition(dialect);
-            result = TryEvalJsonExtractionFunction(shim, dialect, evalArg, out var jsonExtractResult)
+                .BindScalarFunctionDefinition(context.Dialect);
+            result = TryEvalJsonExtractionFunction(shim, context, evalArg, out var jsonExtractResult)
                 ? jsonExtractResult
                 : null;
             return true;
@@ -1937,7 +1942,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalPadFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -1991,7 +1996,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalMd5Function(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -2997,7 +3002,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     internal static bool TryEvalFieldFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -3017,7 +3022,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         for (int argIndex = 1; argIndex < fn.Args.Count; argIndex++)
         {
             var candidate = evalArg(argIndex);
-            if (!IsNullish(candidate) && target.EqualsSql(candidate, dialect))
+            if (!IsNullish(candidate) && target.EqualsSql(candidate, context))
             {
                 result = argIndex;
                 return true;
@@ -3149,7 +3154,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalModFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -3192,7 +3197,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalOctFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -3224,7 +3229,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalBitCountFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -3264,7 +3269,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalBitLengthFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -3294,7 +3299,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalHexFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -3324,7 +3329,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalUnhexFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -3365,7 +3370,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalOctetLengthFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -3395,7 +3400,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalNameConstFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -3419,7 +3424,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalOrdFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -3450,7 +3455,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalPositionFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -3475,7 +3480,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalPiFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -3491,7 +3496,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalPowerFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -3530,7 +3535,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalQuoteFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -3555,7 +3560,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalRadiansFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -3587,7 +3592,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalRandFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -3616,7 +3621,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalRepeatFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -3651,7 +3656,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalReverseFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -3677,7 +3682,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalLeftFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -3715,7 +3720,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalRightFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -3753,7 +3758,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalRoundFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -3793,7 +3798,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalPadRightFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -3847,7 +3852,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalShaFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -3895,7 +3900,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalSinFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -3927,7 +3932,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalSoundexFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -4041,7 +4046,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalSpaceFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -4071,7 +4076,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalSqrtFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -4165,7 +4170,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalSubstringIndexFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -4213,7 +4218,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     private static bool TryEvalTanFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {

@@ -2,9 +2,9 @@ namespace DbSqlLikeMem;
 
 internal static class SqlServerFunctionSupportHelper
 {
-    public static void EnsureSupport(FunctionCallExpr fn, ISqlDialect dialect)
+    public static void EnsureSupport(FunctionCallExpr fn, QueryExecutionContext context)
     {
-        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
             return;
 
         var definition = fn.ResolvedScalarFunction;
@@ -15,13 +15,13 @@ internal static class SqlServerFunctionSupportHelper
         }
 
         if (definition is null
-            && dialect.TryGetScalarFunctionDefinition(fn, out definition)
+            && context.Dialect.TryGetScalarFunctionDefinition(fn, out definition)
             && definition is not null
             && definition.AllowsCall)
         {
             return;
         }
 
-        throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
+        throw SqlUnsupported.ForDialect(context.Dialect, fn.Name.ToUpperInvariant());
     }
 }

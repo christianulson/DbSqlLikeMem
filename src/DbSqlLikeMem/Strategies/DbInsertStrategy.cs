@@ -12,10 +12,11 @@ internal static class DbInsertStrategy
         DbParameterCollection pars,
         ISqlDialect dialect)
     {
-        if (!connection.Db.ThreadSafe)
-            return Execute(connection, query, pars, dialect);
+        var context = QueryExecutionContext.FromConnection(connection, pars);
+        if (!context.ThreadSafe)
+            return Execute(context, query);
         lock (connection.Db.SyncRoot)
-            return Execute(connection, query, pars, dialect);
+            return Execute(context, query);
     }
 
     /// <summary>
@@ -26,7 +27,12 @@ internal static class DbInsertStrategy
         this DbConnectionMockBase connection,
         SqlInsertQuery query,
         QueryExecutionContext context)
-        => connection.ExecuteInsert(query, context.DbParameters, context.Dialect);
+    {
+        if (!context.ThreadSafe)
+            return Execute(context, query);
+        lock (connection.Db.SyncRoot)
+            return Execute(context, query);
+    }
 
     /// <summary>
     /// EN: Implements ExecuteReplace.
@@ -38,10 +44,11 @@ internal static class DbInsertStrategy
         DbParameterCollection pars,
         ISqlDialect dialect)
     {
-        if (!connection.Db.ThreadSafe)
-            return Execute(connection, query with { IsReplace = true }, pars, dialect);
+        var context = QueryExecutionContext.FromConnection(connection, pars);
+        if (!context.ThreadSafe)
+            return Execute(context, query with { IsReplace = true });
         lock (connection.Db.SyncRoot)
-            return Execute(connection, query with { IsReplace = true }, pars, dialect);
+            return Execute(context, query with { IsReplace = true });
     }
 
     /// <summary>
@@ -52,17 +59,23 @@ internal static class DbInsertStrategy
         this DbConnectionMockBase connection,
         SqlInsertQuery query,
         QueryExecutionContext context)
-        => connection.ExecuteReplace(query, context.DbParameters, context.Dialect);
+    {
+        if (!context.ThreadSafe)
+            return Execute(context, query with { IsReplace = true });
+        lock (connection.Db.SyncRoot)
+            return Execute(context, query with { IsReplace = true });
+    }
 
     private static DmlExecutionResult Execute(
-        DbConnectionMockBase connection,
-        SqlInsertQuery query,
-        DbParameterCollection? pars,
-        ISqlDialect dialect)
+        QueryExecutionContext context,
+        SqlInsertQuery query)
     {
-        var capturePlans = connection.Db.CaptureExecutionPlans;
+        var connection = context.Connection;
+        var dialect = context.Dialect;
+        var pars = context.DbParameters;
+        var capturePlans = context.CaptureExecutionPlans;
         var sw = capturePlans ? Stopwatch.StartNew() : null;
-        var metricsEnabled = connection.Metrics.Enabled;
+        var metricsEnabled = context.MetricsEnabled;
         ArgumentNullExceptionCompatible.ThrowIfNull(query.Table, nameof(query.Table));
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(query.Table!.Name, nameof(query.Table.Name));
 
@@ -77,12 +90,12 @@ internal static class DbInsertStrategy
         if (query.InsertSelect != null)
         {
             // Caso: INSERT INTO ... SELECT ...
-            newRows = CreateRowsFromSelect(query, table, connection, pars, dialect);
+            newRows = CreateRowsFromSelect(context, query, table);
         }
         else
         {
             // Caso: INSERT INTO ... VALUES ...
-            newRows = CreateRowsFromValues(query, table, connection, pars, dialect);
+            newRows = CreateRowsFromValues(context, query, table);
         }
 
         int insertedCount = 0;
@@ -99,11 +112,11 @@ internal static class DbInsertStrategy
         var requiresOldSnapshotForIndex = HasIndexedKeyChanges(tableMock, onDupChangedColumns);
         ValidateInsertPartitions(query, tableMock);
         ValidatePartitionedInsertRows(query, tableMock, newRows);
-        var canUseBatchInsert = CanUseBatchInsert(connection, dialect, table, tableName, query.Table.DbName, tableMock);
+        var canUseBatchInsert = CanUseBatchInsert(context, table, tableName, query.Table.DbName, tableMock);
         var affectedIndexes = new List<int>();
 
         if (query.IsReplace)
-            return ExecuteReplaceCore(connection, query, pars, dialect, table, tableMock, newRows, targetRowCountBefore);
+            return ExecuteReplaceCore(context, query, table, tableMock, newRows, targetRowCountBefore);
 
         if (!query.HasOnDuplicateKeyUpdate
             && !query.IsOnConflictDoNothing
@@ -115,7 +128,7 @@ internal static class DbInsertStrategy
             insertedCount = newRows.Count;
             for (int i = beforeCount; i < table.Count; i++)
                 affectedIndexes.Add(i);
-            TrySetLastInsertId(connection, table, table[table.Count - 1]);
+            TrySetLastInsertId(context, table, table[table.Count - 1]);
         }
         else if (query.HasOnDuplicateKeyUpdate
             && newRows.Count > 1
@@ -138,7 +151,7 @@ internal static class DbInsertStrategy
                     && HasPendingBatchConflict(tableMock, pendingPrimaryKeys, pendingUniqueKeys, newRow))
                 {
                     var before = table.Count;
-                    FlushPendingInsertBatch(connection, table, tableMock, pendingInsertRows, pendingPrimaryKeys, pendingUniqueKeys, ref insertedCount);
+                    FlushPendingInsertBatch(context, table, tableMock, pendingInsertRows, pendingPrimaryKeys, pendingUniqueKeys, ref insertedCount);
                     for (int i = before; i < table.Count; i++) affectedIndexes.Add(i);
                 }
 
@@ -150,12 +163,12 @@ internal static class DbInsertStrategy
                     continue;
                 }
                 var beforeFlush = table.Count;
-                FlushPendingInsertBatch(connection, table, tableMock, pendingInsertRows, pendingPrimaryKeys, pendingUniqueKeys, ref insertedCount);
+                FlushPendingInsertBatch(context, table, tableMock, pendingInsertRows, pendingPrimaryKeys, pendingUniqueKeys, ref insertedCount);
                 for (int i = beforeFlush; i < table.Count; i++) affectedIndexes.Add(i);
 
                 if (query.IsOnConflictDoNothing)
                     continue;
-                if (!ShouldApplyOnConflictUpdateWhere(query, table, conflictIdx.Value, newRow, pars, dialect))
+                if (!ShouldApplyOnConflictUpdateWhere(query, table, conflictIdx.Value, newRow, context))
                     continue;
 
                 var oldSnapshot = requiresOldSnapshotForIndex || hasBeforeUpdateTrigger || hasAfterUpdateTrigger
@@ -167,24 +180,22 @@ internal static class DbInsertStrategy
                     conflictIdx.Value,
                     newRow,
                     query.OnDupAssignsParsed,
-                    pars,
-                    dialect,
+                    context,
                     simulatedUpdated);
                 tableMock.ValidateForeignKeysOnRow(simulatedUpdated);
 
                 if (hasBeforeUpdateTrigger)
-                    TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, TableMock.SnapshotRow(newRow));
+                    TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, TableMock.SnapshotRow(newRow));
 
                 ApplyOnDuplicateUpdateAst(
                     table,
                     conflictIdx.Value,
                     newRow,
                     query.OnDupAssignsParsed,
-                    pars,
-                    dialect);
+                    context);
 
                 if (hasAfterUpdateTrigger)
-                    TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, TableMock.SnapshotRow(table[conflictIdx.Value]));
+                    TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, TableMock.SnapshotRow(table[conflictIdx.Value]));
 
                 if (requiresOldSnapshotForIndex)
                     tableMock.UpdateIndexesWithRow(conflictIdx.Value, oldSnapshot, table[conflictIdx.Value]);
@@ -194,7 +205,7 @@ internal static class DbInsertStrategy
                 affectedIndexes.Add(conflictIdx.Value);
             }
             var beforeFinalFlush = table.Count;
-            FlushPendingInsertBatch(connection, table, tableMock, pendingInsertRows, pendingPrimaryKeys, pendingUniqueKeys, ref insertedCount);
+            FlushPendingInsertBatch(context, table, tableMock, pendingInsertRows, pendingPrimaryKeys, pendingUniqueKeys, ref insertedCount);
             for (int i = beforeFinalFlush; i < table.Count; i++) affectedIndexes.Add(i);
         }
         else
@@ -213,14 +224,14 @@ internal static class DbInsertStrategy
 
                     tableMock.ValidateForeignKeysOnRow(newRow);
                     if (hasBeforeInsertTrigger)
-                        TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, TableMock.SnapshotRow(newRow));
+                        TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, TableMock.SnapshotRow(newRow));
 
                     table.Add(newRow);
                     var insertedRow = table[table.Count - 1];
 
                     if (hasAfterInsertTrigger)
-                        TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterInsert, null, TableMock.SnapshotRow(insertedRow));
-                    TrySetLastInsertId(connection, table, insertedRow);
+                        TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.AfterInsert, null, TableMock.SnapshotRow(insertedRow));
+                    TrySetLastInsertId(context, table, insertedRow);
                     insertedCount++;
                     affectedIndexes.Add(table.Count - 1);
                     continue;
@@ -233,14 +244,14 @@ internal static class DbInsertStrategy
                     // Sem conflito -> Insere
                     tableMock.ValidateForeignKeysOnRow(newRow);
                     if (hasBeforeInsertTrigger)
-                        TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, TableMock.SnapshotRow(newRow));
+                        TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, TableMock.SnapshotRow(newRow));
 
                     table.Add(newRow);
                     var insertedRow = table[table.Count - 1];
 
                     if (hasAfterInsertTrigger)
-                        TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterInsert, null, TableMock.SnapshotRow(insertedRow));
-                    TrySetLastInsertId(connection, table, insertedRow);
+                        TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.AfterInsert, null, TableMock.SnapshotRow(insertedRow));
+                    TrySetLastInsertId(context, table, insertedRow);
                     insertedCount++;
                     affectedIndexes.Add(table.Count - 1);
                 }
@@ -248,7 +259,7 @@ internal static class DbInsertStrategy
                 {
                     if (query.IsOnConflictDoNothing)
                         continue;
-                    if (!ShouldApplyOnConflictUpdateWhere(query, table, conflictIdx.Value, newRow, pars, dialect))
+                    if (!ShouldApplyOnConflictUpdateWhere(query, table, conflictIdx.Value, newRow, context))
                         continue;
 
                     // Conflito -> Update
@@ -261,24 +272,22 @@ internal static class DbInsertStrategy
                         conflictIdx.Value,
                         newRow,
                         query.OnDupAssignsParsed,
-                        pars,
-                        dialect,
+                        context,
                         simulatedUpdated);
                     tableMock.ValidateForeignKeysOnRow(simulatedUpdated);
 
                     if (hasBeforeUpdateTrigger)
-                        TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, TableMock.SnapshotRow(newRow));
+                        TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, TableMock.SnapshotRow(newRow));
 
                     ApplyOnDuplicateUpdateAst(
                         table,
                         conflictIdx.Value,
                         newRow,
                         query.OnDupAssignsParsed,
-                        pars,
-                        dialect);
+                        context);
 
                     if (hasAfterUpdateTrigger)
-                        TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, TableMock.SnapshotRow(table[conflictIdx.Value]));
+                        TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, TableMock.SnapshotRow(table[conflictIdx.Value]));
 
                     if (requiresOldSnapshotForIndex)
                         tableMock.UpdateIndexesWithRow(conflictIdx.Value, oldSnapshot, table[conflictIdx.Value]);
@@ -292,8 +301,8 @@ internal static class DbInsertStrategy
 
         if (metricsEnabled)
         {
-            connection.Metrics.Inserts += insertedCount;
-            connection.Metrics.Updates += updatedCount;
+            (context.Connection.Metrics).Inserts += insertedCount;
+            (context.Connection.Metrics).Updates += updatedCount;
         }
 
         var affected = dialect.GetInsertUpsertAffectedRowCount(insertedCount, updatedCount);
@@ -327,19 +336,17 @@ internal static class DbInsertStrategy
     }
 
     private static DmlExecutionResult ExecuteReplaceCore(
-        DbConnectionMockBase connection,
+        QueryExecutionContext context,
         SqlInsertQuery query,
-        DbParameterCollection? pars,
-        ISqlDialect dialect,
         ITableMock table,
         TableMock tableMock,
         List<Dictionary<int, object?>> newRows,
         int targetRowCountBefore)
     {
-        var capturePlans = connection.Db.CaptureExecutionPlans;
+        var capturePlans = context.CaptureExecutionPlans;
         var sw = capturePlans ? Stopwatch.StartNew() : null;
-        var metricsEnabled = connection.Metrics.Enabled;
-        var supportsTriggers = dialect.SupportsTriggers;
+        var metricsEnabled = (context.Connection.Metrics).Enabled;
+        var supportsTriggers = context.Dialect.SupportsTriggers;
         var hasBeforeInsertTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeInsert);
         var hasAfterInsertTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.AfterInsert);
         var hasBeforeDeleteTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeDelete);
@@ -368,12 +375,12 @@ internal static class DbInsertStrategy
                         oldRow = TableMock.SnapshotRow(table[idx]);
 
                     if (hasBeforeDeleteTrigger)
-                        TryExecuteTableTrigger(connection, dialect, table, query.Table!.Name!, query.Table.DbName, TableTriggerEvent.BeforeDelete, oldRow, null);
+                        TryExecuteTableTrigger(context, table, query.Table!.Name!, query.Table.DbName, TableTriggerEvent.BeforeDelete, oldRow, null);
 
                     table.RemoveAt(idx);
 
                     if (hasAfterDeleteTrigger)
-                        TryExecuteTableTrigger(connection, dialect, table, query.Table!.Name!, query.Table.DbName, TableTriggerEvent.AfterDelete, oldRow, null);
+                        TryExecuteTableTrigger(context, table, query.Table!.Name!, query.Table.DbName, TableTriggerEvent.AfterDelete, oldRow, null);
 
                     deletedCount++;
                 }
@@ -381,30 +388,30 @@ internal static class DbInsertStrategy
 
             tableMock.ValidateForeignKeysOnRow(newRow);
             if (hasBeforeInsertTrigger)
-                TryExecuteTableTrigger(connection, dialect, table, query.Table!.Name!, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, TableMock.SnapshotRow(newRow));
+                TryExecuteTableTrigger(context, table, query.Table!.Name!, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, TableMock.SnapshotRow(newRow));
 
             var beforeInsert = table.Count;
             table.Add(newRow);
             var insertedRow = table[table.Count - 1];
 
             if (hasAfterInsertTrigger)
-                TryExecuteTableTrigger(connection, dialect, table, query.Table!.Name!, query.Table.DbName, TableTriggerEvent.AfterInsert, null, TableMock.SnapshotRow(insertedRow));
+                TryExecuteTableTrigger(context, table, query.Table!.Name!, query.Table.DbName, TableTriggerEvent.AfterInsert, null, TableMock.SnapshotRow(insertedRow));
 
-            TrySetLastInsertId(connection, table, insertedRow);
+            TrySetLastInsertId(context, table, insertedRow);
             insertedCount++;
             affectedIndexes.Add(beforeInsert);
-            if (connection.CaptureAffectedRowSnapshots)
+            if (context.CaptureAffectedRowSnapshots)
                 affectedRowsData.Add(TableMock.SnapshotRow(insertedRow));
         }
 
         if (metricsEnabled)
         {
-            connection.Metrics.Inserts += insertedCount;
-            connection.Metrics.Deletes += deletedCount;
+            (context.Connection.Metrics).Inserts += insertedCount;
+            (context.Connection.Metrics).Deletes += deletedCount;
         }
 
         var affected = deletedCount + insertedCount;
-        connection.SetLastFoundRows(affected);
+        context.Connection.SetLastFoundRows(affected);
 
         if (capturePlans)
         {
@@ -417,8 +424,8 @@ internal static class DbInsertStrategy
             var plan = SqlExecutionPlanFormatter.FormatInsert(
                 query,
                 metrics,
-                new SqlPlanMockRuntimeContext(connection.SimulatedLatencyMs, connection.DropProbability, connection.Db.ThreadSafe));
-            connection.RegisterExecutionPlan(plan);
+                new SqlPlanMockRuntimeContext(context.Connection.SimulatedLatencyMs, context.Connection.DropProbability, context.ThreadSafe));
+            context.Connection.RegisterExecutionPlan(plan);
         }
 
         return new DmlExecutionResult
@@ -513,7 +520,7 @@ internal static class DbInsertStrategy
     }
 
     private static void FlushPendingInsertBatch(
-        DbConnectionMockBase connection,
+        QueryExecutionContext context,
         ITableMock table,
         TableMock tableMock,
         List<Dictionary<int, object?>> pendingInsertRows,
@@ -526,7 +533,7 @@ internal static class DbInsertStrategy
 
         tableMock.AddBatch(pendingInsertRows);
         insertedCount += pendingInsertRows.Count;
-        TrySetLastInsertId(connection, table, pendingInsertRows[^1]);
+        TrySetLastInsertId(context, table, pendingInsertRows[^1]);
         pendingInsertRows.Clear();
         pendingPrimaryKeys?.Clear();
         foreach (var keys in pendingUniqueKeys.Values)
@@ -633,8 +640,7 @@ internal static class DbInsertStrategy
     }
 
     private static bool CanUseBatchInsert(
-        DbConnectionMockBase connection,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         ITableMock table,
         string tableName,
         string? schemaName,
@@ -643,16 +649,16 @@ internal static class DbInsertStrategy
         if (tableMock.ForeignKeys.Count > 0)
             return false;
 
-        if (!dialect.SupportsTriggers)
+        if (!context.Dialect.SupportsTriggers)
             return true;
 
-        if (connection.IsTemporaryTable(table, tableName, schemaName))
+        if (context.Connection.IsTemporaryTable(table, tableName, schemaName))
             return true;
 
         return !tableMock.HasRegisteredTriggers();
     }
 
-    private static void TrySetLastInsertId(DbConnectionMockBase connection, ITableMock table, IReadOnlyDictionary<int, object?> insertedRow)
+    private static void TrySetLastInsertId(QueryExecutionContext context, ITableMock table, IReadOnlyDictionary<int, object?> insertedRow)
     {
         var identityColumn = table.Columns.Values.FirstOrDefault(c => c.Identity);
         if (identityColumn is null)
@@ -661,7 +667,7 @@ internal static class DbInsertStrategy
         if (!insertedRow.TryGetValue(identityColumn.Index, out var value))
             return;
 
-        connection.SetLastInsertId(value);
+        context.Connection.SetLastInsertId(value);
     }
 
     private static int CountInputTables(SqlSelectQuery query)
@@ -674,12 +680,13 @@ internal static class DbInsertStrategy
     // --- Helpers de Criação de Linhas ---
 
     private static List<Dictionary<int, object?>> CreateRowsFromValues(
+        QueryExecutionContext context,
         SqlInsertQuery query,
-        ITableMock table,
-        DbConnectionMockBase connection,
-        DbParameterCollection? pars,
-        ISqlDialect dialect)
+        ITableMock table)
     {
+        var connection = context.Connection;
+        var dialect = context.Dialect;
+        var pars = context.DbParameters;
         var rows = new List<Dictionary<int, object?>>(query.ValuesRaw.Count);
         var colNames = query.Columns; // Lista de colunas do Insert
         ColumnDef[]? explicitTargetColumns = null;
@@ -719,7 +726,7 @@ internal static class DbInsertStrategy
                     var parsedExpr = parsedExprBlock is not null && i < parsedExprBlock.Count
                         ? parsedExprBlock[i]
                         : null;
-                    SetColValue(table, connection, pars, targetCols[i], valueBlock[i], parsedExpr, newRow, dialect);
+                    SetColValue(context, table, targetCols[i], valueBlock[i], parsedExpr, newRow);
                 }
             }
             else if (colNames.Count > 0)
@@ -729,7 +736,7 @@ internal static class DbInsertStrategy
                     var parsedExpr = parsedExprBlock is not null && i < parsedExprBlock.Count
                         ? parsedExprBlock[i]
                         : null;
-                    SetColValue(table, connection, pars, explicitTargetColumns[i], valueBlock[i], parsedExpr, newRow, dialect);
+                    SetColValue(context, table, explicitTargetColumns[i], valueBlock[i], parsedExpr, newRow);
                 }
             }
 
@@ -818,13 +825,14 @@ internal static class DbInsertStrategy
     }
 
     private static List<Dictionary<int, object?>> CreateRowsFromSelect(
+        QueryExecutionContext context,
         SqlInsertQuery query,
-        ITableMock targetTable,
-        DbConnectionMockBase connection,
-        DbParameterCollection? pars,
-        ISqlDialect dialect)
+        ITableMock targetTable)
     {
-        var executor = new QueryExecutionContext(connection, dialect, pars ?? (DbParameterCollection)connection.CreateCommand().Parameters).CreateExecutor();
+        var connection = context.Connection;
+        var dialect = context.Dialect;
+        var pars = context.DbParameters;
+        var executor = context.CreateExecutor();
         var res = executor.ExecuteSelect(query.InsertSelect!);
 
         var rows = new List<Dictionary<int, object?>>();
@@ -868,30 +876,29 @@ internal static class DbInsertStrategy
     }
 
     private static void SetColValue(
+        QueryExecutionContext context,
         ITableMock table,
-        DbConnectionMockBase connection,
-        DbParameterCollection? pars,
         ColumnDef colDef,
         string rawValue,
         SqlExpr? parsedExpr,
-        Dictionary<int, object?> row,
-        ISqlDialect dialect)
+        Dictionary<int, object?> row)
     {
+        var pars = context.DbParameters;
         table.CurrentColumn = colDef.Name;
         object? resolved;
-        if (TryResolveCastAsJsonValue(parsedExpr, pars, out var castJsonValue))
+        if (TryResolveCastAsJsonValue(parsedExpr, context.DbParameters, out var castJsonValue))
         {
             resolved = castJsonValue;
         }
-        else if (TryResolveParsedSpecialValue(table, connection, parsedExpr, pars, dialect, out var parsedValue))
+        else if (TryResolveParsedSpecialValue(context, table, parsedExpr, out var parsedValue))
         {
             resolved = parsedValue;
         }
         else
         {
-            resolved = TryResolveTemporalValue(rawValue, dialect, out var temporalValue)
+            resolved = TryResolveTemporalValue(rawValue, context, out var temporalValue)
                 ? temporalValue
-                : table.Resolve(rawValue, colDef.DbType, colDef.Nullable, pars, table.Columns);
+                : table.Resolve(rawValue, colDef.DbType, colDef.Nullable, context.DbParameters, table.Columns);
         }
         table.CurrentColumn = null;
 
@@ -903,13 +910,14 @@ internal static class DbInsertStrategy
     }
 
     private static bool TryResolveParsedSpecialValue(
+        QueryExecutionContext context,
         ITableMock table,
-        DbConnectionMockBase connection,
         SqlExpr? parsedExpr,
-        DbParameterCollection? pars,
-        ISqlDialect dialect,
         out object? value)
     {
+        var connection = context.Connection;
+        var dialect = context.Dialect;
+        var pars = context.DbParameters;
         value = null;
         if (parsedExpr is null)
             return false;
@@ -919,9 +927,9 @@ internal static class DbInsertStrategy
             return expr switch
             {
                 LiteralExpr lit => lit.Value,
-                ParameterExpr p when TryResolveParameterValue(pars, p.Name, out var parameterValue) => parameterValue,
-                IdentifierExpr id when SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, id.Name, out var temporalIdentifierValue) => temporalIdentifierValue,
-                ColumnExpr c when SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, c.Name, out var temporalColumnValue) => temporalColumnValue,
+                ParameterExpr p when TryResolveParameterValue(context.DbParameters, p.Name, out var parameterValue) => parameterValue,
+                IdentifierExpr id when SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(context, id.Name, out var temporalIdentifierValue) => temporalIdentifierValue,
+                ColumnExpr c when SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(context, c.Name, out var temporalColumnValue) => temporalColumnValue,
                 _ => null
             };
         }
@@ -1043,10 +1051,13 @@ internal static class DbInsertStrategy
         return JsonSerializer.Serialize(operand);
     }
 
-    private static bool TryResolveTemporalValue(string rawValue, ISqlDialect dialect, out object? value)
+    private static bool TryResolveTemporalValue(
+        string rawValue,
+        QueryExecutionContext context,
+        out object? value)
     {
         var trimmed = rawValue.Trim();
-        if (SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, trimmed, out value))
+        if (SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(context, trimmed, out value))
             return true;
 
         var openParen = trimmed.IndexOf('(');
@@ -1059,7 +1070,7 @@ internal static class DbInsertStrategy
         if (argsRaw.Length > 0)
             return false;
 
-        return SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, functionName, out value);
+        return SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(context, functionName, out value);
     }
 
     private static void ApplyOnDuplicateUpdateAstInMemory(
@@ -1067,17 +1078,16 @@ internal static class DbInsertStrategy
         int existinIndex,
         IReadOnlyDictionary<int, object?> insertedRow,
         IReadOnlyList<SqlAssignment> assigns,
-        DbParameterCollection? pars,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         IDictionary<int, object?> targetRow)
     {
         object? GetParamValue(string rawName)
         {
-            if (pars is null) return null;
+            if (context.DbParameters is null) return null;
             var n = rawName.Trim();
             if (n.Length > 0 && (n[0] == '@' || n[0] == ':' || n[0] == '?')) n = n[1..];
 
-            foreach (DbParameter p in pars)
+            foreach (DbParameter p in context.DbParameters)
             {
                 var pn = p.ParameterName?.TrimStart('@', ':', '?') ?? "";
                 if (string.Equals(pn, n, StringComparison.OrdinalIgnoreCase))
@@ -1129,7 +1139,7 @@ internal static class DbInsertStrategy
                 ParameterExpr p => GetParamValue(p.Name),
                 IdentifierExpr id => TryGetExcludedValueFromName(id.Name, out var excluded)
                     ? excluded
-                    : SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, id.Name, out var temporalIdentifierValue)
+                    : SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(context, id.Name, out var temporalIdentifierValue)
                         ? temporalIdentifierValue
                         : GetExistingColumnValue(id.Name.Contains('.') ? id.Name.Split('.').Last() : id.Name),
                 ColumnExpr c => string.Equals(c.Qualifier, "excluded", StringComparison.OrdinalIgnoreCase)
@@ -1158,7 +1168,7 @@ internal static class DbInsertStrategy
 
         object? EvalConcat(object? left, object? right)
         {
-            var nullInputReturnsNull = dialect.ConcatReturnsNullOnNullInput;
+            var nullInputReturnsNull = context.Dialect.ConcatReturnsNullOnNullInput;
             if (left is null or DBNull || right is null or DBNull)
             {
                 if (nullInputReturnsNull)
@@ -1172,7 +1182,7 @@ internal static class DbInsertStrategy
 
         object? EvalFunction(FunctionCallExpr fn)
         {
-            EnsureDialectSupportsSequenceFunction(dialect, fn.Name);
+            EnsureDialectSupportsSequenceFunction(context.Dialect, fn.Name);
             if (SqlSequenceEvaluator.TryEvaluateCall(table, fn.Name, fn.Args, Eval, out var sequenceValue))
                 return sequenceValue;
 
@@ -1195,7 +1205,7 @@ internal static class DbInsertStrategy
 
         object? EvalCall(CallExpr call)
         {
-            EnsureDialectSupportsSequenceFunction(dialect, call.Name);
+            EnsureDialectSupportsSequenceFunction(context.Dialect, call.Name);
             if (SqlSequenceEvaluator.TryEvaluateCall(table, call.Name, call.Args, Eval, out var sequenceValue))
                 return sequenceValue;
 
@@ -1242,7 +1252,7 @@ internal static class DbInsertStrategy
             if (colInfo.GetGenValue != null) continue;
             var expr = assignment.ValueExpr ?? SqlExpressionParser.ParseScalar(
                 assignment.ValueRaw,
-                dialect,
+                context.Dialect,
                 null,
                 SqlCustomFunctionResolverFactory.Create(table.Schema.Db, table.Schema.SchemaName));
             var resolved = Eval(expr);
@@ -1256,16 +1266,15 @@ internal static class DbInsertStrategy
         int existinIndex,
         IReadOnlyDictionary<int, object?> insertedRow,
         IReadOnlyList<SqlAssignment> assigns,
-        DbParameterCollection? pars,
-        ISqlDialect dialect)
+        QueryExecutionContext context)
     {
         object? GetParamValue(string rawName)
         {
-            if (pars is null) return null;
+            if (context.DbParameters is null) return null;
             var n = rawName.Trim();
             if (n.Length > 0 && (n[0] == '@' || n[0] == ':' || n[0] == '?')) n = n[1..];
 
-            foreach (DbParameter p in pars)
+            foreach (DbParameter p in context.DbParameters)
             {
                 var pn = p.ParameterName?.TrimStart('@', ':', '?') ?? "";
                 if (string.Equals(pn, n, StringComparison.OrdinalIgnoreCase))
@@ -1349,7 +1358,7 @@ internal static class DbInsertStrategy
 
         object? EvalConcat(object? left, object? right)
         {
-            var nullInputReturnsNull = dialect.ConcatReturnsNullOnNullInput;
+            var nullInputReturnsNull = context.Dialect.ConcatReturnsNullOnNullInput;
             if (left is null or DBNull || right is null or DBNull)
             {
                 if (nullInputReturnsNull)
@@ -1380,11 +1389,11 @@ internal static class DbInsertStrategy
         object? EvalFunction(FunctionCallExpr fn)
         {
             var name = fn.Name;
-            EnsureDialectSupportsSequenceFunction(dialect, name);
+            EnsureDialectSupportsSequenceFunction(context.Dialect, name);
             if (SqlSequenceEvaluator.TryEvaluateCall(table, name, fn.Args, Eval, out var sequenceValue))
                 return sequenceValue;
 
-            if (fn.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, name, out var temporalValue))
+            if (fn.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(context, name, out var temporalValue))
                 return temporalValue;
 
             if (name.Equals(SqlConst.VALUES, StringComparison.OrdinalIgnoreCase)
@@ -1406,7 +1415,7 @@ internal static class DbInsertStrategy
         object? EvalCall(CallExpr call)
         {
             var name = call.Name;
-            EnsureDialectSupportsSequenceFunction(dialect, name);
+            EnsureDialectSupportsSequenceFunction(context.Dialect, name);
             if (SqlSequenceEvaluator.TryEvaluateCall(table, name, call.Args, Eval, out var sequenceValue))
                 return sequenceValue;
 
@@ -1425,7 +1434,7 @@ internal static class DbInsertStrategy
                 return GetInsertedColumnValue(col!);
             }
 
-            if (call.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, name, out var temporalValue))
+            if (call.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(context, name, out var temporalValue))
                 return temporalValue;
 
             throw new InvalidOperationException($"CALL não suportado no ON DUPLICATE: {call.Name}");
@@ -1438,7 +1447,7 @@ internal static class DbInsertStrategy
 
             var ast = assignment.ValueExpr ?? SqlExpressionParser.ParseScalar(
                 assignment.ValueRaw,
-                dialect,
+                context.Dialect,
                 null,
                 SqlCustomFunctionResolverFactory.Create(table.Schema.Db, table.Schema.SchemaName));
             var value = Eval(ast);
@@ -1455,8 +1464,7 @@ internal static class DbInsertStrategy
         ITableMock table,
         int existingIndex,
         IReadOnlyDictionary<int, object?> insertedRow,
-        DbParameterCollection? pars,
-        ISqlDialect dialect)
+        QueryExecutionContext context)
     {
         var where = query.OnConflictUpdateWhereExpr;
         if (where is null)
@@ -1464,10 +1472,10 @@ internal static class DbInsertStrategy
 
         object? GetParamValue(string rawName)
         {
-            if (pars is null) return null;
+            if (context.DbParameters is null) return null;
             var n = rawName.Trim();
             if (n.Length > 0 && (n[0] == '@' || n[0] == ':' || n[0] == '?')) n = n[1..];
-            foreach (DbParameter p in pars)
+            foreach (DbParameter p in context.DbParameters)
             {
                 var pn = p.ParameterName?.TrimStart('@', ':', '?') ?? "";
                 if (string.Equals(pn, n, StringComparison.OrdinalIgnoreCase))
@@ -1505,7 +1513,7 @@ internal static class DbInsertStrategy
 
         object? EvalFunction(FunctionCallExpr fn)
         {
-            EnsureDialectSupportsSequenceFunction(dialect, fn.Name);
+            EnsureDialectSupportsSequenceFunction(context.Dialect, fn.Name);
             if (SqlSequenceEvaluator.TryEvaluateCall(table, fn.Name, fn.Args, Eval, out var sequenceValue))
                 return sequenceValue;
 
@@ -1514,14 +1522,14 @@ internal static class DbInsertStrategy
                 var col = fn.Args[0] switch { IdentifierExpr id => id.Name, ColumnExpr c => c.Name, _ => null };
                 if (!string.IsNullOrWhiteSpace(col)) return GetInsertedColumnValue(col!);
             }
-            if (fn.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, fn.Name, out var temporal))
+            if (fn.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(context, fn.Name, out var temporal))
                 return temporal;
             throw new InvalidOperationException($"Função não suportada no ON CONFLICT WHERE: {fn.Name}()");
         }
 
         object? EvalCall(CallExpr call)
         {
-            EnsureDialectSupportsSequenceFunction(dialect, call.Name);
+            EnsureDialectSupportsSequenceFunction(context.Dialect, call.Name);
             if (SqlSequenceEvaluator.TryEvaluateCall(table, call.Name, call.Args, Eval, out var sequenceValue))
                 return sequenceValue;
             if (call.Name.Equals(SqlConst.VALUES, StringComparison.OrdinalIgnoreCase) && call.Args.Count == 1)
@@ -1530,7 +1538,7 @@ internal static class DbInsertStrategy
                 if (string.IsNullOrWhiteSpace(col)) throw new InvalidOperationException("VALUES() espera 1 coluna");
                 return GetInsertedColumnValue(col!);
             }
-            if (call.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, call.Name, out var temporal))
+            if (call.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(context, call.Name, out var temporal))
                 return temporal;
             throw new InvalidOperationException($"CALL não suportado no ON CONFLICT WHERE: {call.Name}");
         }
@@ -1539,12 +1547,12 @@ internal static class DbInsertStrategy
         {
             return op switch
             {
-                SqlBinaryOp.Eq => left.EqualsSql(right, dialect),
-                SqlBinaryOp.Neq => !left.EqualsSql(right, dialect),
-                SqlBinaryOp.Greater => left is not null && right is not null && left.Compare(right, dialect) > 0,
-                SqlBinaryOp.GreaterOrEqual => left is not null && right is not null && left.Compare(right, dialect) >= 0,
-                SqlBinaryOp.Less => left is not null && right is not null && left.Compare(right, dialect) < 0,
-                SqlBinaryOp.LessOrEqual => left is not null && right is not null && left.Compare(right, dialect) <= 0,
+                SqlBinaryOp.Eq => left.EqualsSql(right, context),
+                SqlBinaryOp.Neq => !left.EqualsSql(right, context),
+                SqlBinaryOp.Greater => left is not null && right is not null && left.Compare(right, context) > 0,
+                SqlBinaryOp.GreaterOrEqual => left is not null && right is not null && left.Compare(right, context) >= 0,
+                SqlBinaryOp.Less => left is not null && right is not null && left.Compare(right, context) < 0,
+                SqlBinaryOp.LessOrEqual => left is not null && right is not null && left.Compare(right, context) <= 0,
                 _ => throw new InvalidOperationException($"Operador não suportado no ON CONFLICT WHERE: {op}")
             };
         }
@@ -1557,7 +1565,7 @@ internal static class DbInsertStrategy
                 ParameterExpr p => GetParamValue(p.Name),
                 IdentifierExpr id => TryGetExcludedValueFromName(id.Name, out var excluded)
                     ? excluded
-                    : SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, id.Name, out var temporalIdentifierValue)
+                    : SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(context, id.Name, out var temporalIdentifierValue)
                         ? temporalIdentifierValue
                         : GetExistingColumnValue(id.Name.Contains('.') ? id.Name.Split('.').Last() : id.Name),
                 ColumnExpr c => string.Equals(c.Qualifier, "excluded", StringComparison.OrdinalIgnoreCase)
@@ -1586,8 +1594,7 @@ internal static class DbInsertStrategy
         => SequenceFunctionSupportHelper.EnsureSupported(dialect, functionName);
 
     private static void TryExecuteTableTrigger(
-        DbConnectionMockBase connection,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         ITableMock table,
         string tableName,
         string? schemaName,
@@ -1595,6 +1602,8 @@ internal static class DbInsertStrategy
         IReadOnlyDictionary<int, object?>? oldRow,
         IReadOnlyDictionary<int, object?>? newRow)
     {
+        var connection = context.Connection;
+        var dialect = context.Dialect;
         if (!dialect.SupportsTriggers) return;
         if (connection.IsTemporaryTable(table, tableName, schemaName)) return;
         if (table is TableMock tableMock)

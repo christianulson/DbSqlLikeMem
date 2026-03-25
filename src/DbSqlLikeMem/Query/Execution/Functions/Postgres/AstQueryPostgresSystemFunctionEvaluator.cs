@@ -7,12 +7,12 @@ internal static class AstQueryPostgresSystemFunctionEvaluator
 {
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         Func<string?> getCurrentQueryText,
         out object? result)
     {
-        if (!dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -39,7 +39,7 @@ internal static class AstQueryPostgresSystemFunctionEvaluator
 
         if (name is "VERSION")
         {
-            result = $"PostgreSQL {dialect.Version}";
+            result = $"PostgreSQL {context.Dialect.Version}";
             return true;
         }
 
@@ -68,8 +68,8 @@ internal static class AstQueryPostgresSystemFunctionEvaluator
             {
                 "application_name" => "DbSqlLikeMem",
                 "search_path" => "\"$user\", public",
-                "server_version" => dialect.Version.ToString(CultureInfo.InvariantCulture),
-                "server_version_num" => (dialect.Version * 10000).ToString(CultureInfo.InvariantCulture),
+                "server_version" => context.Dialect.Version.ToString(CultureInfo.InvariantCulture),
+                "server_version_num" => (context.Dialect.Version * 10000).ToString(CultureInfo.InvariantCulture),
                 _ => null
             };
             return true;

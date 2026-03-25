@@ -6,7 +6,7 @@ internal static class QueryMySqlUtilityFunctionHelper
 {
     private delegate bool MySqlUtilityFunctionHandler(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
         out object? result);
@@ -16,13 +16,13 @@ internal static class QueryMySqlUtilityFunctionHelper
 
     public static bool TryEvalUtilityFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler(fn, dialect, evalArg, tryConvertNumericToInt64, out result);
+            return handler(fn, context, evalArg, tryConvertNumericToInt64, out result);
 
         result = null;
         return false;
@@ -51,7 +51,7 @@ internal static class QueryMySqlUtilityFunctionHelper
 
     private static bool TryEvalMySqlBase64Functions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
         out object? result)
@@ -64,14 +64,14 @@ internal static class QueryMySqlUtilityFunctionHelper
             return false;
         }
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;
         }
 
-        if (dialect.Version < 56)
-            throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
+        if (context.Dialect.Version < 56)
+            throw SqlUnsupported.ForDialect(context.Dialect, fn.Name.ToUpperInvariant());
 
         if (fn.Args.Count == 0)
             throw new InvalidOperationException($"{fn.Name.ToUpperInvariant()}() espera ao menos um argumento.");
@@ -112,7 +112,7 @@ internal static class QueryMySqlUtilityFunctionHelper
 
     private static bool TryEvalMySqlStringCompareFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
         out object? result)
@@ -124,7 +124,7 @@ internal static class QueryMySqlUtilityFunctionHelper
             return false;
         }
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -152,7 +152,7 @@ internal static class QueryMySqlUtilityFunctionHelper
 
     private static bool TryEvalMySqlChecksumFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
         out object? result)
@@ -164,7 +164,7 @@ internal static class QueryMySqlUtilityFunctionHelper
             return false;
         }
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -188,7 +188,7 @@ internal static class QueryMySqlUtilityFunctionHelper
 
     private static bool TryEvalMySqlNetworkFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
         out object? result)
@@ -201,7 +201,7 @@ internal static class QueryMySqlUtilityFunctionHelper
             return false;
         }
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -263,8 +263,8 @@ internal static class QueryMySqlUtilityFunctionHelper
 
         if (name is "INET6_ATON")
         {
-            if (dialect.Version < 56 || dialect.Version >= 84)
-                throw SqlUnsupported.ForDialect(dialect, "INET6_ATON");
+            if (context.Dialect.Version < 56 || context.Dialect.Version >= 84)
+                throw SqlUnsupported.ForDialect(context.Dialect, "INET6_ATON");
 
             var textValue = evalArg(0);
             if (IsNullish(textValue))
@@ -284,8 +284,8 @@ internal static class QueryMySqlUtilityFunctionHelper
             return true;
         }
 
-        if (dialect.Version < 56 || dialect.Version >= 84)
-            throw SqlUnsupported.ForDialect(dialect, "INET6_NTOA");
+        if (context.Dialect.Version < 56 || context.Dialect.Version >= 84)
+            throw SqlUnsupported.ForDialect(context.Dialect, "INET6_NTOA");
 
         var value6 = evalArg(0);
         if (IsNullish(value6))
@@ -306,7 +306,7 @@ internal static class QueryMySqlUtilityFunctionHelper
 
     private static bool TryEvalMySqlIpValidationFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
         out object? result)
@@ -319,7 +319,7 @@ internal static class QueryMySqlUtilityFunctionHelper
             return false;
         }
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -373,7 +373,7 @@ internal static class QueryMySqlUtilityFunctionHelper
 
     private static bool TryEvalMySqlUuidFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
         out object? result)
@@ -385,7 +385,7 @@ internal static class QueryMySqlUtilityFunctionHelper
             return false;
         }
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -404,8 +404,8 @@ internal static class QueryMySqlUtilityFunctionHelper
 
         if (name == "UUID_TO_BIN")
         {
-            if (dialect.Version < 80)
-                throw SqlUnsupported.ForDialect(dialect, "UUID_TO_BIN");
+            if (context.Dialect.Version < 80)
+                throw SqlUnsupported.ForDialect(context.Dialect, "UUID_TO_BIN");
 
             var value = evalArg(0);
             if (IsNullish(value))
@@ -437,8 +437,8 @@ internal static class QueryMySqlUtilityFunctionHelper
             return true;
         }
 
-        if (dialect.Version < 80)
-            throw SqlUnsupported.ForDialect(dialect, "BIN_TO_UUID");
+        if (context.Dialect.Version < 80)
+            throw SqlUnsupported.ForDialect(context.Dialect, "BIN_TO_UUID");
 
         var binValue = evalArg(0);
         if (IsNullish(binValue))

@@ -3,7 +3,7 @@ namespace DbSqlLikeMem;
 internal static class SelectPlanIndexRecommendationHelper
 {
     internal static IReadOnlyList<SqlIndexRecommendation> Build(
-        DbConnectionMockBase cnn,
+        QueryExecutionContext context,
         SqlSelectQuery query,
         SqlPlanRuntimeMetrics metrics)
     {
@@ -28,7 +28,7 @@ internal static class SelectPlanIndexRecommendationHelper
 
         foreach (var tableName in tableNames)
         {
-            if (!cnn.TryGetTable(tableName, out var table) || table is null)
+            if (!context.Connection.TryGetTable(tableName, out var table) || table is null)
                 continue;
 
             filterColumnsByTable.TryGetValue(tableName, out var filterCols);

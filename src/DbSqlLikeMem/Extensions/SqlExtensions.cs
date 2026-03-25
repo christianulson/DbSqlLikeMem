@@ -2,6 +2,8 @@ namespace DbSqlLikeMem;
 
 internal static class SqlExtensions
 {
+    private static readonly SqlExtensionsDefaultDialect _defaultDialect = new();
+
     internal static decimal ToDec(this object? v)
     {
         if (v is null || v is DBNull) return 0m;
@@ -61,7 +63,20 @@ internal static class SqlExtensions
         return true;
     }
 
-    internal static bool Like(this string input, string pattern, ISqlDialect? dialect = null, string? escape = null, bool? forceCaseInsensitive = null)
+    internal static bool Like(
+        this string input,
+        string pattern,
+        QueryExecutionContext context,
+        string? escape = null,
+        bool? forceCaseInsensitive = null)
+        => Like(input, pattern, context.Dialect, escape, forceCaseInsensitive);
+
+    internal static bool Like(
+        this string input,
+        string pattern,
+        ISqlDialect dialect,
+        string? escape = null,
+        bool? forceCaseInsensitive = null)
     {
         input ??= "";
         pattern ??= "";
@@ -96,13 +111,24 @@ internal static class SqlExtensions
         sb.Append('$');
 
         var options = RegexOptions.CultureInvariant;
-        if (forceCaseInsensitive ?? (dialect?.LikeIsCaseInsensitive ?? true))
+        if (forceCaseInsensitive ?? dialect.LikeIsCaseInsensitive)
             options |= RegexOptions.IgnoreCase;
 
         return Regex.IsMatch(input, sb.ToString(), options);
     }
 
-    internal static int PatIndex(this string input, string pattern, ISqlDialect? dialect = null, string? escape = null)
+    internal static int PatIndex(
+        this string input,
+        string pattern,
+        QueryExecutionContext context,
+        string? escape = null)
+        => PatIndex(input, pattern, context.Dialect, escape);
+
+    internal static int PatIndex(
+        this string input,
+        string pattern,
+        ISqlDialect dialect,
+        string? escape = null)
     {
         input ??= "";
         pattern ??= "";
@@ -123,22 +149,20 @@ internal static class SqlExtensions
         return 0;
     }
 
-    private static char? ResolveLikeEscapeCharacter(ISqlDialect? dialect, string? explicitEscape)
+    private static char? ResolveLikeEscapeCharacter(
+        ISqlDialect dialect,
+        string? explicitEscape)
     {
         if (explicitEscape is not null)
         {
-            if (dialect?.LikeEscapeExpressionMustBeSingleCharacter ?? true)
-            {
-                if (explicitEscape.Length != 1)
-                    throw new InvalidOperationException("LIKE ESCAPE expression must evaluate to a single character.");
-            }
+            if (dialect.LikeEscapeExpressionMustBeSingleCharacter
+                && explicitEscape.Length != 1)
+                throw new InvalidOperationException("LIKE ESCAPE expression must evaluate to a single character.");
 
             return explicitEscape.Length == 0 ? null : explicitEscape[0];
         }
 
-        return dialect is null
-            ? '\\'
-            : dialect.LikeDefaultEscapeCharacter;
+        return dialect.LikeDefaultEscapeCharacter;
     }
 
     private static void AppendRegexLiteral(System.Text.StringBuilder sb, char ch)
@@ -167,19 +191,25 @@ internal static class SqlExtensions
         return pattern[index..];
     }
 
-    internal static int Compare(this object a, object b, ISqlDialect? dialect = null)
+    internal static int Compare(this object a, object b, QueryExecutionContext context)
+        => Compare(a, b, context.Dialect);
+
+    internal static int Compare(this object a, object b)
+        => Compare(a, b, new SqlExtensionsDefaultDialect());
+
+    internal static int Compare(this object a, object b, ISqlDialect dialect)
     {
         if (a is byte[] ba && b is byte[] bb)
             return CompareBinary(ba, bb);
 
         if (a is string sa && b is string sb)
-            return string.Compare(sa, sb, dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase);
+            return string.Compare(sa, sb, dialect.TextComparison);
 
         if (a.GetType() == b.GetType() && a is IComparable comparable)
             return comparable.CompareTo(b);
 
         // numeric compare if possible
-        if ((dialect?.SupportsImplicitNumericStringComparison ?? true)
+        if (dialect.SupportsImplicitNumericStringComparison
             && TryConvertToDecimal(a, out var da) && TryConvertToDecimal(b, out var db))
             return da.CompareTo(db);
 
@@ -187,10 +217,16 @@ internal static class SqlExtensions
             && TryConvertToDateTimeLike(b, out var dateTimeB))
             return dateTimeA.CompareTo(dateTimeB);
 
-        return string.Compare(a.ToString(), b.ToString(), dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase);
+        return string.Compare(a.ToString(), b.ToString(), dialect.TextComparison);
     }
 
-    internal static bool EqualsSql(this object? a, object? b, ISqlDialect? dialect = null)
+    internal static bool EqualsSql(this object? a, object? b,QueryExecutionContext context)
+        => EqualsSql(a, b, context.Dialect);
+
+    internal static bool EqualsSql(this object? a, object? b)
+        => EqualsSql(a, b, _defaultDialect);
+
+    internal static bool EqualsSql(this object? a, object? b, ISqlDialect dialect)
     {
         if (a is null || a is DBNull) return b is null || b is DBNull;
         if (b is null || b is DBNull) return false;
@@ -199,23 +235,36 @@ internal static class SqlExtensions
             return ba.AsSpan().SequenceEqual(bb);
 
         if (a is string sa && b is string sb)
-            return string.Equals(sa, sb, dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase);
+            return string.Equals(sa, sb, dialect.TextComparison);
 
         if (a.GetType() == b.GetType())
             return a.Equals(b);
 
-        if ((dialect?.SupportsImplicitNumericStringComparison ?? true)
+        if (dialect.SupportsImplicitNumericStringComparison
             && TryConvertToDecimal(a, out var da) && TryConvertToDecimal(b, out var db))
             return da == db;
 
-        if (!(dialect?.SupportsImplicitNumericStringComparison ?? true))
+        if (!dialect.SupportsImplicitNumericStringComparison)
             return false;
 
         if (TryConvertToDateTimeLike(a, out var dateTimeA)
             && TryConvertToDateTimeLike(b, out var dateTimeB))
             return dateTimeA == dateTimeB;
 
-        return string.Equals(a.ToString(), b.ToString(), dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase);
+        return string.Equals(a.ToString(), b.ToString(), dialect.TextComparison);
+    }
+
+    private sealed class SqlExtensionsDefaultDialect : SqlDialectBase
+    {
+        public SqlExtensionsDefaultDialect()
+            : base(
+                name: "default",
+                version: 1,
+                keywords: [],
+                binOps: [],
+                operators: [])
+        {
+        }
     }
 
     /// <summary>

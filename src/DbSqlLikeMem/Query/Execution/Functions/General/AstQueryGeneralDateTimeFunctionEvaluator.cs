@@ -8,12 +8,12 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
 
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler(fn, dialect, evalArg, out result);
+            return handler(fn, context, evalArg, out result);
 
         result = null;
         return false;
@@ -46,7 +46,7 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
 
     private static bool TryEvalTimeFormatFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -121,7 +121,7 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
 
     private static bool TryEvalTimeToSecFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -156,7 +156,7 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
 
     private static bool TryEvalTimeDiffFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -194,7 +194,7 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
 
     private static bool TryEvalToDaysFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -218,7 +218,7 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
 
     private static bool TryEvalToSecondsFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -242,7 +242,7 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
 
     private static bool TryEvalTruncateFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -277,7 +277,7 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
 
     private static bool TryEvalUnixTimestampFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -322,7 +322,7 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
 
     private static bool TryEvalWeekFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -365,7 +365,7 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
             return true;
         }
 
-        if (dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = GetIsoWeekOfYear(dateTime);
             return true;

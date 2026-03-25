@@ -2,20 +2,20 @@ namespace DbSqlLikeMem;
 
 internal static class AstQueryPlanMetricsHelper
 {
-    internal static SqlPlanMockRuntimeContext BuildPlanMockRuntimeContext(DbConnectionMockBase cnn)
+    internal static SqlPlanMockRuntimeContext BuildPlanMockRuntimeContext(QueryExecutionContext context)
         => new(
-            cnn.SimulatedLatencyMs,
-            cnn.DropProbability,
-            cnn.Db.ThreadSafe);
+            context.SimulatedLatencyMs,
+            context.DropProbability,
+            context.ThreadSafe);
 
     internal static SqlPlanRuntimeMetrics BuildPlanRuntimeMetrics(
-        DbConnectionMockBase cnn,
+        QueryExecutionContext context,
         SqlSelectQuery query,
         int actualRows,
         long elapsedMs)
         => new(
             InputTables: CountKnownInputTables(query),
-            EstimatedRowsRead: EstimateRowsRead(cnn, query),
+            EstimatedRowsRead: EstimateRowsRead(context, query),
             ActualRows: actualRows,
             ElapsedMs: elapsedMs);
 
@@ -34,13 +34,13 @@ internal static class AstQueryPlanMetricsHelper
         return count;
     }
 
-    internal static long EstimateRowsRead(DbConnectionMockBase cnn, SqlSelectQuery query)
+    internal static long EstimateRowsRead(QueryExecutionContext context, SqlSelectQuery query)
     {
         long total = 0;
 
-        total += GetKnownSourceRows(cnn, query.Table);
+        total += GetKnownSourceRows(context, query.Table);
         foreach (var join in query.Joins)
-            total += GetKnownSourceRows(cnn, join.Table);
+            total += GetKnownSourceRows(context, join.Table);
 
         return total;
     }
@@ -48,12 +48,12 @@ internal static class AstQueryPlanMetricsHelper
     internal static bool HasKnownPhysicalTable(SqlTableSource source)
         => source.Name is not null && source.Derived is null && source.DerivedUnion is null && source.TableFunction is null;
 
-    internal static long GetKnownSourceRows(DbConnectionMockBase cnn, SqlTableSource? source)
+    internal static long GetKnownSourceRows(QueryExecutionContext context, SqlTableSource? source)
     {
         if (source is null || !HasKnownPhysicalTable(source) || string.IsNullOrWhiteSpace(source.Name))
             return 0;
 
-        if (cnn.TryGetTable(source.Name!, out var table) && table is not null)
+        if (context.Connection.TryGetTable(source.Name!, out var table) && table is not null)
             return table.Count;
 
         return 0;

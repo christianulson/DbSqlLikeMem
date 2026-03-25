@@ -49,6 +49,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
     internal const int DateTimeOffsetFunctionsMinVersion = 2008;
     internal const int EomonthMinVersion = 2012;
     internal const int FormatMinVersion = 2012;
+    internal const int PercentileMinVersion = 2012;
     internal const int FromPartsMinVersion = 2012;
     internal const int ParseMinVersion = 2012;
     internal const int TryCastMinVersion = 2012;
@@ -298,7 +299,11 @@ internal sealed class SqlServerDialect : SqlDialectBase
     [
         "CHECKSUM_AGG",
         "STRING_AGG",
-        "APPROX_COUNT_DISTINCT"
+        "APPROX_COUNT_DISTINCT",
+        "MEDIAN",
+        "PERCENTILE",
+        "PERCENTILE_CONT",
+        "PERCENTILE_DISC"
     ];
 
     private static readonly string[] SqlServerFromPartsFunctionNames =
@@ -328,7 +333,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
     /// EN: Checks whether a SQL Server metadata function is supported by this dialect.
     /// PT: Verifica se uma funcao de metadados do SQL Server e suportada por este dialeto.
     /// </summary>
-    public bool SupportsSqlServerMetadataFunction(string functionName)
+    public override bool SupportsSqlServerMetadataFunction(string functionName)
         => IsRegisteredSqlServerCall(functionName)
             && !SqlServerScalarFunctionNames.Contains(functionName, StringComparer.OrdinalIgnoreCase)
             && !SqlServerMetadataIdentifierNames.Contains(functionName, StringComparer.OrdinalIgnoreCase)
@@ -342,7 +347,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
     /// EN: Checks whether a SQL Server metadata identifier is supported by this dialect.
     /// PT: Verifica se um identificador de metadados do SQL Server e suportado por este dialeto.
     /// </summary>
-    public bool SupportsSqlServerMetadataIdentifier(string identifier)
+    public override bool SupportsSqlServerMetadataIdentifier(string identifier)
         => !string.IsNullOrWhiteSpace(identifier)
             && SqlServerMetadataIdentifierNames.Contains(identifier, StringComparer.OrdinalIgnoreCase)
             && this.TryGetScalarFunctionDefinition(identifier, out var definition)
@@ -353,7 +358,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
     /// EN: Checks whether a SQL Server scalar function is supported by this dialect.
     /// PT: Verifica se uma funcao escalar do SQL Server e suportada por este dialeto.
     /// </summary>
-    public bool SupportsSqlServerScalarFunction(string functionName)
+    public override bool SupportsSqlServerScalarFunction(string functionName)
         => IsRegisteredSqlServerCall(functionName)
             && SqlServerScalarFunctionNames.Contains(functionName, StringComparer.OrdinalIgnoreCase)
             && (!functionName.Equals("ISJSON", StringComparison.OrdinalIgnoreCase)
@@ -363,7 +368,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
     /// EN: Checks whether a SQL Server date function is supported by this dialect.
     /// PT: Verifica se uma funcao de data do SQL Server e suportada por este dialeto.
     /// </summary>
-    public bool SupportsSqlServerDateFunction(string functionName)
+    public override bool SupportsSqlServerDateFunction(string functionName)
         => !string.IsNullOrWhiteSpace(functionName)
             && SqlServerDateFunctionNames.Contains(functionName, StringComparer.OrdinalIgnoreCase)
             && this.TryGetScalarFunctionDefinition(functionName, out var definition)
@@ -374,9 +379,18 @@ internal sealed class SqlServerDialect : SqlDialectBase
     /// EN: Checks whether a SQL Server aggregate function is supported by this dialect.
     /// PT: Verifica se uma funcao de agregacao do SQL Server e suportada por este dialeto.
     /// </summary>
-    public bool SupportsSqlServerAggregateFunction(string functionName)
-        => IsRegisteredSqlServerCall(functionName)
-            && functionName.Equals("CHECKSUM_AGG", StringComparison.OrdinalIgnoreCase);
+    public override bool SupportsSqlServerAggregateFunction(string functionName)
+        => !string.IsNullOrWhiteSpace(functionName)
+            && (
+                (functionName.Equals("MEDIAN", StringComparison.OrdinalIgnoreCase)
+                    || functionName.Equals("PERCENTILE", StringComparison.OrdinalIgnoreCase)
+                    || functionName.Equals("PERCENTILE_CONT", StringComparison.OrdinalIgnoreCase)
+                    || functionName.Equals("PERCENTILE_DISC", StringComparison.OrdinalIgnoreCase))
+                ? Version >= PercentileMinVersion
+                : IsRegisteredSqlServerCall(functionName)
+                    && SqlServerAggregateFunctionNames.Contains(functionName, StringComparer.OrdinalIgnoreCase)
+                    && (!functionName.Equals("APPROX_COUNT_DISTINCT", StringComparison.OrdinalIgnoreCase)
+                        || Version >= ApproxCountDistinctMinVersion));
 
     /// <summary>
     /// EN: Checks whether a SQL Server FROM PARTS-style function is supported by this dialect.

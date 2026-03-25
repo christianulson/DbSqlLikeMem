@@ -21,21 +21,21 @@ internal sealed class AstQueryCastStringAndDateTailEvaluator(
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (_tryEvalCastConversionFamily(fn, row, group, ctes, dialect, evalArg, out result)
-            || _tryEvalCastConcatAndStringTail(fn, row, group, ctes, dialect, evalArg, out result)
-            || _tryEvalCastDateTail(fn, row, group, ctes, dialect, evalArg, out result))
+        if (_tryEvalCastConversionFamily(fn, row, group, ctes, context, evalArg, out result)
+            || _tryEvalCastConcatAndStringTail(fn, row, group, ctes, context, evalArg, out result)
+            || _tryEvalCastDateTail(fn, row, group, ctes, context, evalArg, out result))
         {
             return true;
         }
 
         if (fn.Args.Count == 0
-            && SqlTemporalFunctionEvaluator.IsKnownTemporalFunctionName(dialect, fn.Name))
+            && SqlTemporalFunctionEvaluator.IsKnownTemporalFunctionName(context, fn.Name))
         {
-            throw new InvalidOperationException($"Temporal function '{fn.Name}' is not supported for dialect '{dialect.Name}'.");
+            throw new InvalidOperationException($"Temporal function '{fn.Name}' is not supported for context.Dialect '{context.Dialect.Name}'.");
         }
 
         result = null;

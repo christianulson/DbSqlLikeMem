@@ -9,7 +9,7 @@ internal sealed class NpgsqlDialect : SqlDialectBase
         ) : base(
         name: DialectName,
         version: version,
-        keywords: [SqlConst.ILIKE],
+        keywords: [NpgsqlConst.ILIKE],
         binOps:
         [
             new KeyValuePair<string, SqlBinaryOp>(SqlConst.AND, SqlBinaryOp.And),

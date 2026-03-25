@@ -94,14 +94,14 @@ internal static class SqlSharedScalarFunctionRegistry
 
     private static bool TryEvalConcatFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         result = QueryConcatFunctionHelper.TryEvalConcatFunctions(
             fn,
             evalArg,
-            dialect.ConcatReturnsNullOnNullInput,
+            context.Dialect.ConcatReturnsNullOnNullInput,
             out var handled);
 
         return handled;

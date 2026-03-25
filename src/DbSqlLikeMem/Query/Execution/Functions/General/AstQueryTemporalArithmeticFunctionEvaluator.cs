@@ -6,7 +6,7 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
 {
     private delegate bool AstQueryTryEvalTemporalArithmeticFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
@@ -20,7 +20,7 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
 
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
@@ -30,7 +30,7 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler)
-            && handler(fn, dialect, row, group, ctes, evalArg, evalExpr, getTemporalUnit, out result))
+            && handler(fn, context, row, group, ctes, evalArg, evalExpr, getTemporalUnit, out result))
         {
             return true;
         }
@@ -61,7 +61,7 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
 
     private static bool TryEvalMySqlDateAddSubFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
@@ -78,7 +78,7 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
             return false;
         }
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -115,7 +115,7 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
 
     private static bool TryEvalTimestampAddStyleFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
@@ -140,7 +140,7 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
             return true;
         }
 
-        if (!dialect.TryGetScalarFunctionDefinition(fn, out var dateAddDefinition)
+        if (!context.Dialect.TryGetScalarFunctionDefinition(fn, out var dateAddDefinition)
             || dateAddDefinition is null
             || !dateAddDefinition.AllowsCall)
         {
@@ -169,7 +169,7 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
 
     private static bool TryEvalDateDiffBigFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
@@ -178,7 +178,7 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, TemporalUnit> getTemporalUnit,
         out object? result)
     {
-        _ = dialect;
+        _ = context.Dialect;
         _ = evalExpr;
         if (!fn.Name.Equals("DATEDIFF_BIG", StringComparison.OrdinalIgnoreCase))
         {
@@ -206,7 +206,7 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
 
     private static bool TryEvalTimestampDiffFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
@@ -215,7 +215,7 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, TemporalUnit> getTemporalUnit,
         out object? result)
     {
-        _ = dialect;
+        _ = context.Dialect;
         _ = evalExpr;
         if (!fn.Name.Equals("TIMESTAMPDIFF", StringComparison.OrdinalIgnoreCase))
         {
@@ -243,7 +243,7 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
 
     private static bool TryEvalDateDiffFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
@@ -259,7 +259,7 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
             return false;
         }
 
-        if (MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             if (fn.Args.Count != 2)
                 throw new InvalidOperationException("DATEDIFF() no MySQL espera 2 argumentos.");

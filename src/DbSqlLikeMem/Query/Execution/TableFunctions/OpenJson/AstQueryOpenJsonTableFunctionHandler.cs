@@ -1,10 +1,10 @@
 namespace DbSqlLikeMem;
 
 internal sealed class AstQueryOpenJsonTableFunctionHandler(
-    Func<ISqlDialect?> dialectAccessor,
+    QueryExecutionContext context,
     Func<SqlExpr, AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, IDictionary<string, AstQueryExecutorBase.Source>, object?> evalExpression)
 {
-    private readonly Func<ISqlDialect?> _dialectAccessor = dialectAccessor ?? throw new ArgumentNullException(nameof(dialectAccessor));
+    private readonly QueryExecutionContext _context = context ?? throw new ArgumentNullException(nameof(context));
     private readonly Func<SqlExpr, AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, IDictionary<string, AstQueryExecutorBase.Source>, object?> _evalExpression = evalExpression ?? throw new ArgumentNullException(nameof(evalExpression));
 
     internal TableResultMock Execute(
@@ -15,7 +15,7 @@ internal sealed class AstQueryOpenJsonTableFunctionHandler(
         var function = tableSource.TableFunction ?? throw new InvalidOperationException("OPENJSON source is missing function metadata.");
         var alias = tableSource.Alias ?? function.Name;
         var openJsonWithClause = tableSource.OpenJsonWithClause;
-        var dialect = _dialectAccessor() ?? throw new InvalidOperationException("Dialeto SQL não disponível para OPENJSON.");
+        var dialect = _context.Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para OPENJSON.");
         if (!dialect.TryGetTableFunctionDefinition(SqlConst.OPENJSON, out var openJsonDefinition)
             || openJsonDefinition is null)
             throw SqlUnsupported.ForDialect(dialect, SqlConst.OPENJSON);

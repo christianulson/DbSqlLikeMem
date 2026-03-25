@@ -14,7 +14,7 @@ internal delegate bool AstQueryTryEvalFunctionFamily(
     EvalRow row,
     EvalGroup? group,
     IDictionary<string, Source> ctes,
-    ISqlDialect dialect,
+    QueryExecutionContext context,
     Func<int, object?> evalArg,
     out object? result);
 
@@ -32,17 +32,20 @@ internal sealed class AstQueryFunctionEvaluator(
     private readonly Func<FunctionCallExpr, EvalGroup, IDictionary<string, Source>, object?> _evalAggregate = evalAggregate ?? throw new ArgumentNullException(nameof(evalAggregate));
     private readonly AstQueryTryEvalUserDefinedScalarFunction _tryEvalUserDefinedScalarFunction = tryEvalUserDefinedScalarFunction ?? throw new ArgumentNullException(nameof(tryEvalUserDefinedScalarFunction));
     private readonly AstQueryGeneralScalarFunctionHandler _tryEvalBoundScalarFunction = tryEvalBoundScalarFunction ?? throw new ArgumentNullException(nameof(tryEvalBoundScalarFunction));
-    private readonly AstQueryTryEvalFunctionFamily _tryEvalNonSqlServerScalarFunctionFamily = tryEvalNonSqlServerScalarFunctionFamily ?? throw new ArgumentNullException(nameof(tryEvalNonSqlServerScalarFunctionFamily));
-    private readonly AstQueryTryEvalFunctionFamily _tryEvalSqlServerAndCompatibilityFunctionFamily = tryEvalSqlServerAndCompatibilityFunctionFamily ?? throw new ArgumentNullException(nameof(tryEvalSqlServerAndCompatibilityFunctionFamily));
-    private readonly AstQueryTryEvalFunctionFamily _tryEvalGeneralScalarFunctionFamily = tryEvalGeneralScalarFunctionFamily ?? throw new ArgumentNullException(nameof(tryEvalGeneralScalarFunctionFamily));
-    private readonly AstQueryTryEvalFunctionFamily _tryEvalCastStringAndDateTail = tryEvalCastStringAndDateTail ?? throw new ArgumentNullException(nameof(tryEvalCastStringAndDateTail));
+    private readonly AstQueryTryEvalFunctionFamily[] _tryEvalScalarFunctionFamilies =
+    [
+        tryEvalNonSqlServerScalarFunctionFamily ?? throw new ArgumentNullException(nameof(tryEvalNonSqlServerScalarFunctionFamily)),
+        tryEvalSqlServerAndCompatibilityFunctionFamily ?? throw new ArgumentNullException(nameof(tryEvalSqlServerAndCompatibilityFunctionFamily)),
+        tryEvalGeneralScalarFunctionFamily ?? throw new ArgumentNullException(nameof(tryEvalGeneralScalarFunctionFamily)),
+        tryEvalCastStringAndDateTail ?? throw new ArgumentNullException(nameof(tryEvalCastStringAndDateTail))
+    ];
 
     internal object? Evaluate(
         FunctionCallExpr fn,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         DateTime localNow,
         DateTime utcNow,
         Func<int, object?> evalArg)
@@ -53,12 +56,12 @@ internal sealed class AstQueryFunctionEvaluator(
         if (_tryEvalUserDefinedScalarFunction(fn, row, group, ctes, out var userDefinedResult))
             return userDefinedResult;
 
-        if (_tryEvalBoundScalarFunction(fn, dialect, evalArg, out var boundScalarResult))
+        if (_tryEvalBoundScalarFunction(fn, context, evalArg, out var boundScalarResult))
             return boundScalarResult;
-
+ 
         if (fn.Args.Count == 0
             && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(
-                dialect,
+                context,
                 fn.Name,
                 localNow,
                 utcNow,
@@ -66,22 +69,16 @@ internal sealed class AstQueryFunctionEvaluator(
         {
             return temporalValue;
         }
-
-        if (_tryEvalNonSqlServerScalarFunctionFamily(fn, row, group, ctes, dialect, evalArg, out var nonSqlServerResult))
-            return nonSqlServerResult;
-
-        if (_tryEvalSqlServerAndCompatibilityFunctionFamily(fn, row, group, ctes, dialect, evalArg, out var sqlServerCompatibilityResult))
-            return sqlServerCompatibilityResult;
-
-        if (_tryEvalGeneralScalarFunctionFamily(fn, row, group, ctes, dialect, evalArg, out var generalScalarResult))
-            return generalScalarResult;
-
-        if (_tryEvalCastStringAndDateTail(fn, row, group, ctes, dialect, evalArg, out var castStringAndDateTailResult))
-            return castStringAndDateTailResult;
-
+ 
+        foreach (var tryEvalScalarFunctionFamily in _tryEvalScalarFunctionFamilies)
+        {
+            if (tryEvalScalarFunctionFamily(fn, row, group, ctes, context, evalArg, out var scalarResult))
+                return scalarResult;
+        }
+ 
         if (fn.Args.Count == 0
-            && SqlTemporalFunctionEvaluator.IsKnownTemporalFunctionName(dialect, fn.Name))
-            throw new InvalidOperationException($"Temporal function '{fn.Name}' is not supported for dialect '{dialect.Name}'.");
+            && SqlTemporalFunctionEvaluator.IsKnownTemporalFunctionName(context, fn.Name))
+            throw new InvalidOperationException($"Temporal function '{fn.Name}' is not supported for context.Dialect '{context.Dialect.Name}'.");
 
         return null;
     }

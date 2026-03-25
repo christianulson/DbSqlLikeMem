@@ -8,7 +8,7 @@ internal delegate object? AstQueryEvalCast(FunctionCallExpr fn, Func<int, object
 
 internal delegate object? AstQueryTryEvalJsonAndNumberFunctions(
     FunctionCallExpr fn,
-    ISqlDialect dialect,
+    QueryExecutionContext context,
     Func<int, object?> evalArg,
     out bool handled);
 
@@ -32,18 +32,18 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
 
     internal bool TryEvaluate(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        result = _tryEvalJsonAndNumberFunctions(fn, dialect, evalArg, out var handledJsonNumber);
+        result = _tryEvalJsonAndNumberFunctions(fn, context, evalArg, out var handledJsonNumber);
         if (handledJsonNumber)
             return true;
 
         if (fn.Name.Equals("TRY_CAST", StringComparison.OrdinalIgnoreCase))
         {
-            if (!dialect.SupportsTryCastFunction)
-                throw SqlUnsupported.ForDialect(dialect, "TRY_CAST");
+            if (!context.Dialect.SupportsTryCastFunction)
+                throw SqlUnsupported.ForDialect(context.Dialect, "TRY_CAST");
 
             result = _evalTryCast(fn, evalArg);
             return true;
@@ -51,8 +51,8 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
 
         if (fn.Name.Equals("TRY_CONVERT", StringComparison.OrdinalIgnoreCase))
         {
-            if (!dialect.SupportsTryConvertFunction)
-                throw SqlUnsupported.ForDialect(dialect, "TRY_CONVERT");
+            if (!context.Dialect.SupportsTryConvertFunction)
+                throw SqlUnsupported.ForDialect(context.Dialect, "TRY_CONVERT");
 
             result = _evalTryCast(fn, evalArg);
             return true;
@@ -60,8 +60,8 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
 
         if (fn.Name.Equals("PARSE", StringComparison.OrdinalIgnoreCase))
         {
-            if (!dialect.SupportsParseFunction)
-                throw SqlUnsupported.ForDialect(dialect, "PARSE");
+            if (!context.Dialect.SupportsParseFunction)
+                throw SqlUnsupported.ForDialect(context.Dialect, "PARSE");
 
             result = _evalParseFunction(fn, evalArg, false);
             return true;
@@ -69,8 +69,8 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
 
         if (fn.Name.Equals("TRY_PARSE", StringComparison.OrdinalIgnoreCase))
         {
-            if (!dialect.SupportsTryParseFunction)
-                throw SqlUnsupported.ForDialect(dialect, "TRY_PARSE");
+            if (!context.Dialect.SupportsTryParseFunction)
+                throw SqlUnsupported.ForDialect(context.Dialect, "TRY_PARSE");
 
             result = _evalParseFunction(fn, evalArg, true);
             return true;

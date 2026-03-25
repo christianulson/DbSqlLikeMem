@@ -309,8 +309,8 @@ internal static class OracleScalarFunctionRegistry
             body,
             SqlScalarFunctionUsageKind.Call,
             null,
-            SqlConst.NEXTVAL,
-            SqlConst.CURRVAL);
+            OracleConst.NEXTVAL,
+            OracleConst.CURRVAL);
     }
 
     private static void RegisterStringAggregateFunctions(ISqlDialect dialect, int version, Func<SqlExpr, object> body)

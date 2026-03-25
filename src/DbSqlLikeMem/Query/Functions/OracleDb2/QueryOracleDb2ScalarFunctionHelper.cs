@@ -6,7 +6,7 @@ internal static class QueryOracleDb2ScalarFunctionHelper
 {
     private delegate bool OracleDb2CoreFunctionHandler(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryCoerceDateTimeDelegate tryCoerceDateTime,
         out object? result);
@@ -16,25 +16,25 @@ internal static class QueryOracleDb2ScalarFunctionHelper
 
     public static bool TryEvalCoreFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
         => TryEvalCoreFunctions(
             fn,
-            dialect,
+            context,
             evalArg,
             AstQueryExecutorBase.TryCoerceDateTime,
             out result);
 
     public static bool TryEvalCoreFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryCoerceDateTimeDelegate tryCoerceDateTime,
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler(fn, dialect, evalArg, tryCoerceDateTime, out result);
+            return handler(fn, context, evalArg, tryCoerceDateTime, out result);
 
         result = null;
         return false;
@@ -65,7 +65,7 @@ internal static class QueryOracleDb2ScalarFunctionHelper
 
     private static bool TryEvalAddMonthsFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryCoerceDateTimeDelegate tryCoerceDateTime,
         out object? result)
@@ -76,8 +76,8 @@ internal static class QueryOracleDb2ScalarFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -115,7 +115,7 @@ internal static class QueryOracleDb2ScalarFunctionHelper
 
     private static bool TryEvalAsciiStrFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryCoerceDateTimeDelegate? tryCoerceDateTime,
         out object? result)
@@ -127,8 +127,8 @@ internal static class QueryOracleDb2ScalarFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -161,7 +161,7 @@ internal static class QueryOracleDb2ScalarFunctionHelper
 
     private static bool TryEvalBinToNumFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryCoerceDateTimeDelegate? tryCoerceDateTime,
         out object? result)
@@ -173,8 +173,8 @@ internal static class QueryOracleDb2ScalarFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -214,7 +214,7 @@ internal static class QueryOracleDb2ScalarFunctionHelper
 
     private static bool TryEvalBitAndFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryCoerceDateTimeDelegate? tryCoerceDateTime,
         out object? result)
@@ -226,8 +226,8 @@ internal static class QueryOracleDb2ScalarFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -260,7 +260,7 @@ internal static class QueryOracleDb2ScalarFunctionHelper
 
     private static bool TryEvalBitOrFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryCoerceDateTimeDelegate? tryCoerceDateTime,
         out object? result)
@@ -272,7 +272,7 @@ internal static class QueryOracleDb2ScalarFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -305,7 +305,7 @@ internal static class QueryOracleDb2ScalarFunctionHelper
 
     private static bool TryEvalBitXorFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryCoerceDateTimeDelegate? tryCoerceDateTime,
         out object? result)
@@ -317,7 +317,7 @@ internal static class QueryOracleDb2ScalarFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -350,7 +350,7 @@ internal static class QueryOracleDb2ScalarFunctionHelper
 
     private static bool TryEvalBitNotFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryCoerceDateTimeDelegate? tryCoerceDateTime,
         out object? result)
@@ -362,7 +362,7 @@ internal static class QueryOracleDb2ScalarFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -393,7 +393,7 @@ internal static class QueryOracleDb2ScalarFunctionHelper
 
     private static bool TryEvalBitAndNotFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryCoerceDateTimeDelegate? tryCoerceDateTime,
         out object? result)
@@ -405,7 +405,7 @@ internal static class QueryOracleDb2ScalarFunctionHelper
             return false;
         }
 
-        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;

@@ -30,12 +30,12 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
 
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler(fn, dialect, evalArg, out result);
+            return handler(fn, context, evalArg, out result);
 
         result = null;
         return false;
@@ -43,7 +43,7 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
 
     private static bool TryEvalOracleBfilenameFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -53,14 +53,14 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
         }
 
-        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(dialect, fn);
+        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, fn);
 
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("BFILENAME() espera diretorio e nome do arquivo.");
@@ -79,7 +79,7 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
 
     private static bool TryEvalOracleHashFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -90,14 +90,14 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
         }
 
-        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(dialect, name);
+        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, name);
 
         if (fn.Args.Count == 0)
         {
@@ -148,7 +148,7 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
 
     private static bool TryEvalOracleRawFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -159,8 +159,8 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -198,7 +198,7 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
 
     private static bool TryEvalOracleRegexFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -209,8 +209,8 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -285,7 +285,7 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
 
     private static bool TryEvalOracleRemainderFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -295,8 +295,8 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -327,7 +327,7 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
 
     private static bool TryEvalOracleRowIdFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -338,14 +338,14 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
         }
 
-        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(dialect, name);
+        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, name);
 
         if (fn.Args.Count == 0)
         {
@@ -360,7 +360,7 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
 
     private static bool TryEvalOracleHexToRawFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -370,8 +370,8 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -456,3 +456,4 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
         return sb.ToString();
     }
 }
+

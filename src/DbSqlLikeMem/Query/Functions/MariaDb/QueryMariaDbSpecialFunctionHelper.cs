@@ -4,21 +4,65 @@ namespace DbSqlLikeMem;
 
 internal static class QueryMariaDbSpecialFunctionHelper
 {
+    private delegate bool MariaDbSpecialFunctionHandler(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result);
+
+    private static readonly IReadOnlyDictionary<string, MariaDbSpecialFunctionHandler> _handlers = CreateHandlers();
+
     public static bool TryEvalFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!dialect.Name.Equals("mariadb", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("mariadb", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
         }
 
-        return TryEvalDynamicColumnFunctions(fn, evalArg, out result)
-            || TryEvalVectorFunctions(fn, evalArg, out result)
-            || TryEvalWsrepFunctions(fn, evalArg, out result);
+        if (_handlers.TryGetValue(fn.Name, out var handler))
+            return handler(fn, evalArg, out result);
+
+        result = null;
+        return false;
+    }
+
+    private static Dictionary<string, MariaDbSpecialFunctionHandler> CreateHandlers()
+    {
+        var handlers = new Dictionary<string, MariaDbSpecialFunctionHandler>(StringComparer.OrdinalIgnoreCase);
+        Register(handlers, TryEvalDynamicColumnFunctions,
+            "COLUMN_CREATE",
+            "COLUMN_ADD",
+            "COLUMN_DELETE",
+            "COLUMN_EXISTS",
+            "COLUMN_CHECK",
+            "COLUMN_JSON",
+            "COLUMN_LIST",
+            "COLUMN_GET");
+        Register(handlers, TryEvalVectorFunctions,
+            "VECTOR",
+            "VEC_FROMTEXT",
+            "VEC_TOTEXT",
+            "VEC_DISTANCE",
+            "VEC_DISTANCE_EUCLIDEAN",
+            "VEC_DISTANCE_COSINE");
+        Register(handlers, TryEvalWsrepFunctions,
+            "WSREP_LAST_SEEN_GTID",
+            "WSREP_LAST_WRITTEN_GTID",
+            "WSREP_SYNC_WAIT_UPTO_GTID");
+        return handlers;
+    }
+
+    private static void Register(
+        Dictionary<string, MariaDbSpecialFunctionHandler> handlers,
+        MariaDbSpecialFunctionHandler handler,
+        params string[] names)
+    {
+        foreach (var name in names)
+            handlers[name] = handler;
     }
 
     private static bool TryEvalDynamicColumnFunctions(

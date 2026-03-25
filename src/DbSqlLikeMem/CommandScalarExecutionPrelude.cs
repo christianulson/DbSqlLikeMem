@@ -15,7 +15,7 @@ internal static class CommandScalarExecutionPrelude
         out object? scalar)
     {
         scalar = DBNull.Value;
-
+        var context = QueryExecutionContext.FromConnection(connection, pars);
         if (connection.TryHandleExecuteReaderPrelude(
             commandType,
             commandText,
@@ -72,8 +72,8 @@ internal static class CommandScalarExecutionPrelude
             return true;
         }
 
-        var customFunctionSupported = SqlCustomFunctionResolverFactory.Create(connection);
-        var q = SqlQueryParser.Parse(sqlRaw, connection.ExecutionDialect, pars, customFunctionSupported);
+        var customFunctionSupported = SqlCustomFunctionResolverFactory.Create(context);
+        var q = SqlQueryParser.Parse(sqlRaw, context.Dialect, pars, customFunctionSupported);
         if (q is SqlSelectQuery rowCountQuery && IsRowCountHelperSelect(rowCountQuery))
         {
             scalar = connection.GetLastFoundRows();
@@ -83,13 +83,13 @@ internal static class CommandScalarExecutionPrelude
         if (q is not SqlSelectQuery selectQuery || selectQuery.SelectItems.Count != 1)
             return false;
 
-        if (TryEvaluateSimpleCountStarScalar(connection, selectQuery, pars, out scalar))
+        if (TryEvaluateSimpleCountStarScalar(selectQuery, context, out scalar))
             return true;
 
-        if (TryEvaluateSimpleSelectScalar(selectQuery, connection.ExecutionDialect, pars, out scalar))
+        if (TryEvaluateSimpleSelectScalar(selectQuery, context, out scalar))
             return true;
 
-        var executor = QueryExecutionContext.FromConnection(connection, pars).CreateExecutor();
+        var executor = context.CreateExecutor();
         var table = executor.ExecuteSelect(selectQuery);
         if (table.Count <= 0)
         {
@@ -123,8 +123,7 @@ internal static class CommandScalarExecutionPrelude
 
     private static bool TryEvaluateSimpleSelectScalar(
         SqlSelectQuery query,
-        ISqlDialect dialect,
-        DbParameterCollection pars,
+        QueryExecutionContext context,
         out object? scalar)
     {
         scalar = DBNull.Value;
@@ -145,14 +144,14 @@ internal static class CommandScalarExecutionPrelude
         SqlExpr expr;
         try
         {
-            expr = SqlExpressionParser.ParseScalar(query.SelectItems[0].Raw, dialect, pars);
+            expr = SqlExpressionParser.ParseScalar(query.SelectItems[0].Raw, context.Dialect);
         }
         catch
         {
             return false;
         }
 
-        if (TryEvaluateConstantScalarExpression(expr, dialect, pars, out scalar))
+        if (TryEvaluateConstantScalarExpression(expr, context, out scalar))
             return true;
 
         switch (expr)
@@ -161,17 +160,17 @@ internal static class CommandScalarExecutionPrelude
                 scalar = literal.Value ?? DBNull.Value;
                 return true;
             case ParameterExpr parameter:
-                scalar = QueryRowValueHelper.ResolveParam(pars, parameter.Name) ?? DBNull.Value;
+                scalar = QueryRowValueHelper.ResolveParam(context, parameter.Name) ?? DBNull.Value;
                 return true;
-            case IdentifierExpr identifier when SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, identifier.Name, out var temporalIdentifierValue):
+            case IdentifierExpr identifier when SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(context, identifier.Name, out var temporalIdentifierValue):
                 scalar = temporalIdentifierValue ?? DBNull.Value;
                 return true;
             case FunctionCallExpr functionCall when functionCall.Args.Count == 0
-                && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, functionCall.Name, out var temporalCallValue):
+                && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(context, functionCall.Name, out var temporalCallValue):
                 scalar = temporalCallValue ?? DBNull.Value;
                 return true;
             case CallExpr call when call.Args.Count == 0
-                && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, call.Name, out var temporalCallValue):
+                && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(context, call.Name, out var temporalCallValue):
                 scalar = temporalCallValue ?? DBNull.Value;
                 return true;
             default:
@@ -180,9 +179,8 @@ internal static class CommandScalarExecutionPrelude
     }
 
     private static bool TryEvaluateSimpleCountStarScalar(
-        DbConnectionMockBase connection,
         SqlSelectQuery query,
-        DbParameterCollection pars,
+        QueryExecutionContext context,
         out object? scalar)
     {
         scalar = DBNull.Value;
@@ -201,7 +199,7 @@ internal static class CommandScalarExecutionPrelude
         if (query.Table is null)
             return false;
 
-        if (!connection.TryGetTable(query.Table.Name ?? string.Empty, out var table, query.Table.DbName)
+        if (!context.Connection.TryGetTable(query.Table.Name ?? string.Empty, out var table, query.Table.DbName)
             || table is null)
         {
             return false;
@@ -209,7 +207,7 @@ internal static class CommandScalarExecutionPrelude
 
         if (query.Where is not null)
         {
-            if (!TryEvaluateConstantBooleanExpression(query.Where, connection.ExecutionDialect, pars, out var whereResult))
+            if (!TryEvaluateConstantBooleanExpression(query.Where, context, out var whereResult))
                 return false;
 
             if (!whereResult)
@@ -264,13 +262,12 @@ internal static class CommandScalarExecutionPrelude
 
     private static bool TryEvaluateConstantBooleanExpression(
         SqlExpr expr,
-        ISqlDialect dialect,
-        DbParameterCollection pars,
+        QueryExecutionContext context,
         out bool value)
     {
         value = false;
 
-        if (!TryEvaluateConstantScalarExpression(expr, dialect, pars, out var scalarValue))
+        if (!TryEvaluateConstantScalarExpression(expr, context, out var scalarValue))
             return false;
 
         return TryCoerceBooleanValue(scalarValue, out value);
@@ -278,8 +275,7 @@ internal static class CommandScalarExecutionPrelude
 
     private static bool TryEvaluateConstantScalarExpression(
         SqlExpr expr,
-        ISqlDialect dialect,
-        DbParameterCollection pars,
+        QueryExecutionContext context,
         out object? value)
     {
         switch (expr)
@@ -288,40 +284,40 @@ internal static class CommandScalarExecutionPrelude
                 value = literal.Value;
                 return true;
             case ParameterExpr parameter:
-                value = QueryRowValueHelper.ResolveParam(pars, parameter.Name);
+                value = QueryRowValueHelper.ResolveParam(context, parameter.Name);
                 return true;
-            case IdentifierExpr identifier when SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, identifier.Name, out var temporalIdentifierValue):
+            case IdentifierExpr identifier when SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(context, identifier.Name, out var temporalIdentifierValue):
                 value = temporalIdentifierValue;
                 return true;
             case FunctionCallExpr functionCall when functionCall.Args.Count == 0
-                && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, functionCall.Name, out var temporalCallValue):
+                && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(context, functionCall.Name, out var temporalCallValue):
                 value = temporalCallValue;
                 return true;
             case CallExpr call when call.Args.Count == 0
-                && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, call.Name, out var temporalCallValue):
+                && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(context, call.Name, out var temporalCallValue):
                 value = temporalCallValue;
                 return true;
-            case FunctionCallExpr functionCall when TryEvaluateConstantTemporalOrJsonFunction(functionCall.Name, functionCall.Args, dialect, pars, out var specialValue):
+            case FunctionCallExpr functionCall when TryEvaluateConstantTemporalOrJsonFunction(functionCall.Name, functionCall.Args, context, out var specialValue):
                 value = specialValue;
                 return true;
-            case CallExpr call when TryEvaluateConstantTemporalOrJsonFunction(call.Name, call.Args, dialect, pars, out var specialValue):
+            case CallExpr call when TryEvaluateConstantTemporalOrJsonFunction(call.Name, call.Args, context, out var specialValue):
                 value = specialValue;
                 return true;
             case UnaryExpr unary when unary.Op == SqlUnaryOp.Not
-                && TryEvaluateConstantScalarExpression(unary.Expr, dialect, pars, out var unaryValue)
+                && TryEvaluateConstantScalarExpression(unary.Expr, context, out var unaryValue)
                 && TryCoerceBooleanValue(unaryValue, out var unaryBool):
                 value = !unaryBool;
                 return true;
-            case IsNullExpr isNull when TryEvaluateConstantScalarExpression(isNull.Expr, dialect, pars, out var isNullValue):
+            case IsNullExpr isNull when TryEvaluateConstantScalarExpression(isNull.Expr, context, out var isNullValue):
                 value = isNull.Negated ? !IsNullish(isNullValue) : IsNullish(isNullValue);
                 return true;
-            case BinaryExpr binary when TryEvaluateConstantScalarExpression(binary.Left, dialect, pars, out var leftValue)
-                && TryEvaluateConstantScalarExpression(binary.Right, dialect, pars, out var rightValue)
-                && TryEvaluateConstantBinaryExpression(binary.Op, leftValue, rightValue, dialect, out var binaryValue):
+            case BinaryExpr binary when TryEvaluateConstantScalarExpression(binary.Left, context, out var leftValue)
+                && TryEvaluateConstantScalarExpression(binary.Right, context, out var rightValue)
+                && TryEvaluateConstantBinaryExpression(binary.Op, leftValue, rightValue, context, out var binaryValue):
                 value = binaryValue;
                 return true;
             case CaseExpr caseExpr:
-                return TryEvaluateConstantCaseExpression(caseExpr, dialect, pars, out value);
+                return TryEvaluateConstantCaseExpression(caseExpr, context, out value);
             default:
                 value = null;
                 return false;
@@ -330,22 +326,21 @@ internal static class CommandScalarExecutionPrelude
 
     private static bool TryEvaluateConstantCaseExpression(
         CaseExpr expr,
-        ISqlDialect dialect,
-        DbParameterCollection pars,
+        QueryExecutionContext context,
         out object? value)
     {
         value = null;
 
         object? baseValue = null;
         if (expr.BaseExpr is not null
-            && !TryEvaluateConstantScalarExpression(expr.BaseExpr, dialect, pars, out baseValue))
+            && !TryEvaluateConstantScalarExpression(expr.BaseExpr, context, out baseValue))
         {
             return false;
         }
 
         foreach (var when in expr.Whens)
         {
-            if (!TryEvaluateConstantScalarExpression(when.When, dialect, pars, out var whenValue))
+            if (!TryEvaluateConstantScalarExpression(when.When, context, out var whenValue))
                 return false;
 
             var matches = expr.BaseExpr is null
@@ -355,7 +350,7 @@ internal static class CommandScalarExecutionPrelude
             if (!matches)
                 continue;
 
-            if (!TryEvaluateConstantScalarExpression(when.Then, dialect, pars, out value))
+            if (!TryEvaluateConstantScalarExpression(when.Then, context, out value))
                 return false;
 
             return true;
@@ -364,23 +359,22 @@ internal static class CommandScalarExecutionPrelude
         if (expr.ElseExpr is null)
             return false;
 
-        return TryEvaluateConstantScalarExpression(expr.ElseExpr, dialect, pars, out value);
+        return TryEvaluateConstantScalarExpression(expr.ElseExpr, context, out value);
     }
 
     private static bool TryEvaluateConstantTemporalOrJsonFunction(
         string functionName,
         IReadOnlyList<SqlExpr> args,
-        ISqlDialect dialect,
-        DbParameterCollection pars,
+        QueryExecutionContext context,
         out object? value)
     {
-        if (TryEvaluateConstantDateConstructionFunction(functionName, args, dialect, pars, out value))
+        if (TryEvaluateConstantDateConstructionFunction(functionName, args, context, out value))
             return true;
 
-        if (TryEvaluateConstantDateAddFunction(functionName, args, dialect, pars, out value))
+        if (TryEvaluateConstantDateAddFunction(functionName, args, context, out value))
             return true;
 
-        if (TryEvaluateConstantJsonFunction(functionName, args, dialect, pars, out value))
+        if (TryEvaluateConstantJsonFunction(functionName, args, context, out value))
             return true;
 
         value = null;
@@ -390,11 +384,10 @@ internal static class CommandScalarExecutionPrelude
     private static bool TryEvaluateConstantDateConstructionFunction(
         string functionName,
         IReadOnlyList<SqlExpr> args,
-        ISqlDialect dialect,
-        DbParameterCollection pars,
+        QueryExecutionContext context,
         out object? value)
     {
-            value = null;
+        value = null;
         if (!(functionName.Equals("DATE", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("TIMESTAMP", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("DATETIME", StringComparison.OrdinalIgnoreCase)
@@ -404,7 +397,7 @@ internal static class CommandScalarExecutionPrelude
         if (args.Count < 1)
             return false;
 
-        if (!TryEvaluateConstantScalarExpression(args[0], dialect, pars, out var baseValue))
+        if (!TryEvaluateConstantScalarExpression(args[0], context, out var baseValue))
             return false;
 
         if (IsNullish(baseValue) || !TryCoerceDateTime(baseValue, out var dateTime))
@@ -412,7 +405,7 @@ internal static class CommandScalarExecutionPrelude
 
         for (var i = 1; i < args.Count; i++)
         {
-            if (!TryEvaluateConstantScalarExpression(args[i], dialect, pars, out var modifierValue))
+            if (!TryEvaluateConstantScalarExpression(args[i], context, out var modifierValue))
                 return false;
 
             var modifier = modifierValue?.ToString();
@@ -436,11 +429,10 @@ internal static class CommandScalarExecutionPrelude
     private static bool TryEvaluateConstantDateAddFunction(
         string functionName,
         IReadOnlyList<SqlExpr> args,
-        ISqlDialect dialect,
-        DbParameterCollection pars,
+        QueryExecutionContext context,
         out object? value)
     {
-            value = null;
+        value = null;
         if (!(functionName.Equals("ADDDATE", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("ADDTIME", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase)
@@ -450,12 +442,12 @@ internal static class CommandScalarExecutionPrelude
             return false;
         }
 
-        if (!dialect.TryGetScalarFunctionDefinition(functionName, out var addDefinition)
+        if (!context.Dialect.TryGetScalarFunctionDefinition(functionName, out var addDefinition)
             || addDefinition is null
             || !addDefinition.AllowsCall)
         {
             if (addDefinition is not null)
-                throw SqlUnsupported.ForDialect(dialect, functionName.ToUpperInvariant());
+                throw SqlUnsupported.ForDialect(context.Dialect, functionName.ToUpperInvariant());
 
             return false;
         }
@@ -465,7 +457,7 @@ internal static class CommandScalarExecutionPrelude
             if (args.Count < 2)
                 return false;
 
-            if (!TryEvaluateConstantScalarExpression(args[0], dialect, pars, out var baseValue))
+            if (!TryEvaluateConstantScalarExpression(args[0], context, out var baseValue))
                 return false;
 
             if (IsNullish(baseValue) || !TryCoerceDateTime(baseValue, out var dateTime))
@@ -474,13 +466,13 @@ internal static class CommandScalarExecutionPrelude
             }
 
             if (args[1] is CallExpr addDateIntervalCall
-                && TryParseIntervalCall(addDateIntervalCall, dialect, pars, out var addDateIntervalUnit, out var addDateIntervalAmount))
+                && TryParseIntervalCall(addDateIntervalCall, context, out var addDateIntervalUnit, out var addDateIntervalAmount))
             {
                 value = ApplyDateDelta(dateTime, addDateIntervalUnit, Convert.ToInt32(addDateIntervalAmount));
                 return true;
             }
 
-            if (!TryEvaluateConstantScalarExpression(args[1], dialect, pars, out var addValue))
+            if (!TryEvaluateConstantScalarExpression(args[1], context, out var addValue))
                 return false;
 
             if (TryConvertDecimal(addValue, out var dayOffset))
@@ -498,10 +490,10 @@ internal static class CommandScalarExecutionPrelude
             if (args.Count < 2)
                 return false;
 
-            if (!TryEvaluateConstantScalarExpression(args[0], dialect, pars, out var baseValue))
+            if (!TryEvaluateConstantScalarExpression(args[0], context, out var baseValue))
                 return false;
 
-            if (!TryEvaluateConstantScalarExpression(args[1], dialect, pars, out var addValue))
+            if (!TryEvaluateConstantScalarExpression(args[1], context, out var addValue))
                 return false;
 
             if (IsNullish(baseValue) || IsNullish(addValue))
@@ -529,7 +521,7 @@ internal static class CommandScalarExecutionPrelude
         if (args.Count < 3)
             return false;
 
-        if (!TryEvaluateConstantScalarExpression(args[2], dialect, pars, out var baseDateValue))
+        if (!TryEvaluateConstantScalarExpression(args[2], context, out var baseDateValue))
             return false;
 
         if (IsNullish(baseDateValue) || !TryCoerceDateTime(baseDateValue, out var dateTimeValue))
@@ -538,17 +530,17 @@ internal static class CommandScalarExecutionPrelude
             return true;
         }
 
-        if (!TryGetTemporalUnitFromExpression(args[0], dialect, pars, out var unit))
+        if (!TryGetTemporalUnitFromExpression(args[0], context, out var unit))
             unit = TemporalUnit.Unknown;
 
         if (args[1] is CallExpr addTimeIntervalCall
-            && TryParseIntervalCall(addTimeIntervalCall, dialect, pars, out var addTimeIntervalUnit, out var addTimeIntervalAmount))
+            && TryParseIntervalCall(addTimeIntervalCall, context, out var addTimeIntervalUnit, out var addTimeIntervalAmount))
         {
             value = ApplyDateDelta(dateTimeValue, addTimeIntervalUnit, Convert.ToInt32(addTimeIntervalAmount));
             return true;
         }
 
-        if (!TryEvaluateConstantScalarExpression(args[1], dialect, pars, out var amountValue))
+        if (!TryEvaluateConstantScalarExpression(args[1], context, out var amountValue))
             return false;
 
         value = ApplyDateDelta(dateTimeValue, unit, Convert.ToInt32((amountValue ?? 0m).ToDec()));
@@ -558,8 +550,7 @@ internal static class CommandScalarExecutionPrelude
     private static bool TryEvaluateConstantJsonFunction(
         string functionName,
         IReadOnlyList<SqlExpr> args,
-        ISqlDialect dialect,
-        DbParameterCollection pars,
+        QueryExecutionContext context,
         out object? value)
     {
         value = null;
@@ -570,11 +561,11 @@ internal static class CommandScalarExecutionPrelude
             return false;
         }
 
-        EnsureJsonExtractionSupported(functionName, dialect);
+        EnsureJsonExtractionSupported(functionName, context);
         if (args.Count == 0)
             return false;
 
-        if (!TryEvaluateConstantScalarExpression(args[0], dialect, pars, out var json))
+        if (!TryEvaluateConstantScalarExpression(args[0], context, out var json))
             return false;
 
         if (IsNullish(json))
@@ -592,7 +583,7 @@ internal static class CommandScalarExecutionPrelude
         if (args.Count < 2)
             return false;
 
-        if (!TryEvaluateConstantScalarExpression(args[1], dialect, pars, out var pathValue))
+        if (!TryEvaluateConstantScalarExpression(args[1], context, out var pathValue))
             return false;
 
         var path = pathValue?.ToString();
@@ -617,14 +608,17 @@ internal static class CommandScalarExecutionPrelude
         var extracted = QueryJsonFunctionHelper.TryReadJsonPathValue(json!, path!);
         value = functionName.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
             ? QueryJsonFunctionHelper.ApplyJsonValueReturningClause(
-                new FunctionCallExpr(functionName, args).BindScalarFunctionDefinition(dialect),
+                new FunctionCallExpr(functionName, args).BindScalarFunctionDefinition(context.Dialect),
                 extracted)
             : extracted;
         return true;
     }
 
-    private static void EnsureJsonExtractionSupported(string functionName, ISqlDialect dialect)
+    private static void EnsureJsonExtractionSupported(
+        string functionName,
+        QueryExecutionContext context)
     {
+        var dialect = context.Dialect;
         if (dialect.TryGetScalarFunctionDefinition(functionName, out var definition))
         {
             if (definition is null || definition.AllowsCall)
@@ -664,8 +658,7 @@ internal static class CommandScalarExecutionPrelude
 
     private static bool TryParseIntervalCall(
         CallExpr intervalCall,
-        ISqlDialect dialect,
-        DbParameterCollection pars,
+        QueryExecutionContext context,
         out TemporalUnit unit,
         out decimal amount)
     {
@@ -678,19 +671,18 @@ internal static class CommandScalarExecutionPrelude
             return false;
         }
 
-        if (!TryEvaluateConstantScalarExpression(intervalCall.Args[0], dialect, pars, out var amountValue)
+        if (!TryEvaluateConstantScalarExpression(intervalCall.Args[0], context, out var amountValue)
             || !TryConvertDecimal(amountValue, out amount))
         {
             return false;
         }
 
-        return TryGetTemporalUnitFromExpression(intervalCall.Args[1], dialect, pars, out unit);
+        return TryGetTemporalUnitFromExpression(intervalCall.Args[1], context, out unit);
     }
 
     private static bool TryGetTemporalUnitFromExpression(
         SqlExpr expr,
-        ISqlDialect dialect,
-        DbParameterCollection pars,
+        QueryExecutionContext context,
         out TemporalUnit unit)
     {
         unit = TemporalUnit.Unknown;
@@ -705,7 +697,7 @@ internal static class CommandScalarExecutionPrelude
                 return unit != TemporalUnit.Unknown;
         }
 
-        if (!TryEvaluateConstantScalarExpression(expr, dialect, pars, out var value))
+        if (!TryEvaluateConstantScalarExpression(expr, context, out var value))
             return false;
 
         unit = ResolveTemporalUnit(value?.ToString() ?? string.Empty);
@@ -716,7 +708,7 @@ internal static class CommandScalarExecutionPrelude
         SqlBinaryOp op,
         object? left,
         object? right,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         out object? value)
     {
         value = null;
@@ -733,7 +725,7 @@ internal static class CommandScalarExecutionPrelude
             case SqlBinaryOp.Divide:
                 return TryEvaluateConstantArithmeticBinaryExpression(op, left, right, out value);
             case SqlBinaryOp.Concat:
-                return TryEvaluateConstantConcatBinaryExpression(left, right, dialect, out value);
+                return TryEvaluateConstantConcatBinaryExpression(left, right, context, out value);
             case SqlBinaryOp.Eq:
             case SqlBinaryOp.Neq:
             case SqlBinaryOp.Greater:
@@ -741,7 +733,7 @@ internal static class CommandScalarExecutionPrelude
             case SqlBinaryOp.Less:
             case SqlBinaryOp.LessOrEqual:
             case SqlBinaryOp.NullSafeEq:
-                return TryEvaluateConstantComparisonBinaryExpression(op, left, right, dialect, out value);
+                return TryEvaluateConstantComparisonBinaryExpression(op, left, right, out value);
             default:
                 return false;
         }
@@ -786,12 +778,12 @@ internal static class CommandScalarExecutionPrelude
     private static bool TryEvaluateConstantConcatBinaryExpression(
         object? left,
         object? right,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         out object? value)
     {
         if (left is null or DBNull || right is null or DBNull)
         {
-            value = dialect.ConcatReturnsNullOnNullInput ? null : string.Concat(left?.ToString() ?? string.Empty, right?.ToString() ?? string.Empty);
+            value = context.Dialect.ConcatReturnsNullOnNullInput ? null : string.Concat(left?.ToString() ?? string.Empty, right?.ToString() ?? string.Empty);
             return true;
         }
 
@@ -803,7 +795,6 @@ internal static class CommandScalarExecutionPrelude
         SqlBinaryOp op,
         object? left,
         object? right,
-        ISqlDialect dialect,
         out object? value)
     {
         value = null;
@@ -884,7 +875,7 @@ internal static class CommandScalarExecutionPrelude
     }
 
     private static bool TryConstantEquality(object? left, object? right)
-        => IsNullish(left) && IsNullish(right)
+        => (IsNullish(left) && IsNullish(right))
             || (!IsNullish(left) && !IsNullish(right) && Equals(left, right));
 
     private enum TemporalUnit

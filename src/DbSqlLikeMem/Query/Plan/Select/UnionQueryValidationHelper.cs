@@ -7,11 +7,11 @@ internal static class UnionQueryValidationHelper
         IList<TableResultColMock> current,
         int currentIndex,
         string? sqlContextForErrors,
-        ISqlDialect dialect)
+        QueryExecutionContext context)
     {
         for (var i = 0; i < expected.Count; i++)
         {
-            if (dialect.AreUnionColumnTypesCompatible(expected[i].DbType, current[i].DbType))
+            if (context.Dialect.AreUnionColumnTypesCompatible(expected[i].DbType, current[i].DbType))
                 continue;
 
             var message =

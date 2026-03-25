@@ -12,35 +12,44 @@ internal static class DbMergeStrategy
         DbParameterCollection pars,
         ISqlDialect dialect)
     {
-        DmlExecutionResult affected;
-        if (!connection.Db.ThreadSafe)
-            affected = ExecuteMergeImpl(connection, query, pars, dialect);
-        else
-        {
-            lock (connection.Db.SyncRoot)
-                affected = ExecuteMergeImpl(connection, query, pars, dialect);
-        }
-
+        var context = QueryExecutionContext.FromConnection(connection, pars);
+        var affected = connection.Db.ThreadSafe
+            ? ExecuteMergeImpl(context, query)
+            : ExecuteMergeImplNotThreadSafe(connection, context, query);
+        
         connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
     }
 
-    /// <summary>
-    /// EN: Implements ExecuteMerge using a pre-built execution context.
-    /// PT: Implementa ExecuteMerge usando um contexto de execução pré-construído.
-    /// </summary>
+    private static DmlExecutionResult ExecuteMergeImplNotThreadSafe(
+        DbConnectionMockBase connection,
+        QueryExecutionContext context,
+        SqlMergeQuery query)
+    {
+        lock (connection.Db.SyncRoot)
+            return ExecuteMergeImpl(context, query);
+    }
+
     public static DmlExecutionResult ExecuteMerge(
         this DbConnectionMockBase connection,
         SqlMergeQuery query,
         QueryExecutionContext context)
-        => connection.ExecuteMerge(query, context.DbParameters, context.Dialect);
+    {
+        var affected = connection.Db.ThreadSafe
+            ? ExecuteMergeImpl(context, query)
+            : ExecuteMergeImplNotThreadSafe(connection, context, query);
+        
+        connection.SetLastFoundRows(affected.AffectedRows);
+        return affected;
+    }
 
     private static DmlExecutionResult ExecuteMergeImpl(
-        DbConnectionMockBase connection,
-        SqlMergeQuery query,
-        DbParameterCollection pars,
-        ISqlDialect dialect)
+        QueryExecutionContext context,
+        SqlMergeQuery query)
     {
+        var connection = context.Connection;
+        var pars = context.DbParameters;
+        var dialect = context.Dialect;
         var sql = query.RawSql;
         var targetMatch = Regex.Match(
             sql,
@@ -78,11 +87,10 @@ internal static class DbMergeStrategy
                 selectSql,
                 sourceAlias,
                 sourceColumnNames,
-                dialect,
-                pars,
+                context,
                 out sourceTable))
         {
-            sourceTable = ExecuteMergeSourceSelect(selectSql, connection, pars, dialect);
+            sourceTable = ExecuteMergeSourceSelect(selectSql, context);
         }
 
         var onMatch = Regex.Match(
@@ -298,15 +306,11 @@ internal static class DbMergeStrategy
 
     private readonly record struct MergeAssignment(ColumnDef TargetColumn, string ValueToken);
 
-    private static TableResultMock ExecuteMergeSourceSelect(
-        string selectSql,
-        DbConnectionMockBase connection,
-        DbParameterCollection pars,
-        ISqlDialect dialect)
+    private static TableResultMock ExecuteMergeSourceSelect(string selectSql, QueryExecutionContext context)
     {
-        var executor = new QueryExecutionContext(connection, dialect, pars).CreateExecutor();
-        var customFunctionSupported = SqlCustomFunctionResolverFactory.Create(connection);
-        var parsedSource = SqlQueryParser.Parse(selectSql, dialect, null, customFunctionSupported) as SqlSelectQuery
+        var executor = context.CreateExecutor();
+        var customFunctionSupported = SqlCustomFunctionResolverFactory.Create(context);
+        var parsedSource = SqlQueryParser.Parse(selectSql, context.Dialect, null, customFunctionSupported) as SqlSelectQuery
             ?? throw new InvalidOperationException(SqlExceptionMessages.MergeSourceSelectInvalid());
 
         return executor.ExecuteSelect(parsedSource);
@@ -316,8 +320,7 @@ internal static class DbMergeStrategy
         string sourceSql,
         string sourceAlias,
         IReadOnlyList<string> sourceColumnNames,
-        ISqlDialect dialect,
-        DbParameterCollection pars,
+        QueryExecutionContext context,
         out TableResultMock sourceTable)
     {
         sourceTable = new TableResultMock();
@@ -366,8 +369,8 @@ internal static class DbMergeStrategy
             var row = new Dictionary<int, object?>(columnNames.Count);
             for (var columnIndex = 0; columnIndex < items.Count; columnIndex++)
             {
-                var expr = SqlExpressionParser.ParseScalar(items[columnIndex], dialect, pars);
-                row[columnIndex] = EvaluateValuesSourceExpression(expr, pars, dialect);
+                var expr = SqlExpressionParser.ParseScalar(items[columnIndex], context.Dialect, context.Parameters);
+                row[columnIndex] = EvaluateValuesSourceExpression(expr, context);
             }
 
             sourceTable.Add(row);
@@ -378,27 +381,26 @@ internal static class DbMergeStrategy
 
     private static object? EvaluateValuesSourceExpression(
         SqlExpr expr,
-        DbParameterCollection pars,
-        ISqlDialect dialect)
+        QueryExecutionContext context)
     {
         return expr switch
         {
             LiteralExpr lit => lit.Value is DBNull ? null : lit.Value,
-            ParameterExpr p => TryResolveParameterValue(pars, p.Name, out var value) ? value : null,
-            UnaryExpr { Op: SqlUnaryOp.Not, Expr: var inner } => !Convert.ToBoolean(EvaluateValuesSourceExpression(inner, pars, dialect) ?? false),
-            BinaryExpr { Op: SqlBinaryOp.Add } b => Convert.ToDecimal(EvaluateValuesSourceExpression(b.Left, pars, dialect) ?? 0m)
-                + Convert.ToDecimal(EvaluateValuesSourceExpression(b.Right, pars, dialect) ?? 0m),
-            BinaryExpr { Op: SqlBinaryOp.Subtract } b => Convert.ToDecimal(EvaluateValuesSourceExpression(b.Left, pars, dialect) ?? 0m)
-                - Convert.ToDecimal(EvaluateValuesSourceExpression(b.Right, pars, dialect) ?? 0m),
-            BinaryExpr { Op: SqlBinaryOp.Multiply } b => Convert.ToDecimal(EvaluateValuesSourceExpression(b.Left, pars, dialect) ?? 0m)
-                * Convert.ToDecimal(EvaluateValuesSourceExpression(b.Right, pars, dialect) ?? 0m),
-            BinaryExpr { Op: SqlBinaryOp.Divide } b => Convert.ToDecimal(EvaluateValuesSourceExpression(b.Left, pars, dialect) ?? 0m)
-                / Convert.ToDecimal(EvaluateValuesSourceExpression(b.Right, pars, dialect) ?? 0m),
+            ParameterExpr p => TryResolveParameterValue(context.DbParameters, p.Name, out var value) ? value : null,
+            UnaryExpr { Op: SqlUnaryOp.Not, Expr: var inner } => !Convert.ToBoolean(EvaluateValuesSourceExpression(inner, context) ?? false),
+            BinaryExpr { Op: SqlBinaryOp.Add } b => Convert.ToDecimal(EvaluateValuesSourceExpression(b.Left, context) ?? 0m)
+                + Convert.ToDecimal(EvaluateValuesSourceExpression(b.Right, context) ?? 0m),
+            BinaryExpr { Op: SqlBinaryOp.Subtract } b => Convert.ToDecimal(EvaluateValuesSourceExpression(b.Left, context) ?? 0m)
+                - Convert.ToDecimal(EvaluateValuesSourceExpression(b.Right, context) ?? 0m),
+            BinaryExpr { Op: SqlBinaryOp.Multiply } b => Convert.ToDecimal(EvaluateValuesSourceExpression(b.Left, context) ?? 0m)
+                * Convert.ToDecimal(EvaluateValuesSourceExpression(b.Right, context) ?? 0m),
+            BinaryExpr { Op: SqlBinaryOp.Divide } b => Convert.ToDecimal(EvaluateValuesSourceExpression(b.Left, context) ?? 0m)
+                / Convert.ToDecimal(EvaluateValuesSourceExpression(b.Right, context) ?? 0m),
             BinaryExpr { Op: SqlBinaryOp.Concat } b => string.Concat(
-                EvaluateValuesSourceExpression(b.Left, pars, dialect)?.ToString() ?? string.Empty,
-                EvaluateValuesSourceExpression(b.Right, pars, dialect)?.ToString() ?? string.Empty),
-            CallExpr call when call.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, call.Name, out var temporal) => temporal,
-            FunctionCallExpr fn when fn.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, fn.Name, out var temporal) => temporal,
+                EvaluateValuesSourceExpression(b.Left, context)?.ToString() ?? string.Empty,
+                EvaluateValuesSourceExpression(b.Right, context)?.ToString() ?? string.Empty),
+            CallExpr call when call.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(context, call.Name, out var temporal) => temporal,
+            FunctionCallExpr fn when fn.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(context, fn.Name, out var temporal) => temporal,
             IdentifierExpr id when string.Equals(id.Name, SqlConst.NULL, StringComparison.OrdinalIgnoreCase) => null,
             IdentifierExpr id when string.Equals(id.Name, SqlConst.TRUE, StringComparison.OrdinalIgnoreCase) => true,
             IdentifierExpr id when string.Equals(id.Name, SqlConst.FALSE, StringComparison.OrdinalIgnoreCase) => false,

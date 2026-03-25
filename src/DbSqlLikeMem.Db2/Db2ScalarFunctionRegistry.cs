@@ -53,11 +53,11 @@ internal static class Db2ScalarFunctionRegistry
     private static void RegisterStringFunctions(ISqlDialect dialect, int version, Func<SqlExpr, object> body)
     {
         dialect.AddScalarFunctions(
-            new DbScalarFunctionDef(SqlConst.VALUE, "VARCHAR", [], body)
+            new DbScalarFunctionDef(Db2Const.VALUE, "VARCHAR", [], body)
             {
                 AstExecutor = QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions
             },
-            SqlConst.VALUE,
+            Db2Const.VALUE,
             "IFNULL",
             "NVL",
             "NVL2");

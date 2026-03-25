@@ -6,12 +6,12 @@ internal static class AstQuerySqlServerDateConstructionFunctionEvaluator
 
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler(fn, dialect, evalArg, out result);
+            return handler(fn, context, evalArg, out result);
 
         result = null;
         return false;
@@ -42,7 +42,7 @@ internal static class AstQuerySqlServerDateConstructionFunctionEvaluator
 
     private static bool TryEvalDateFromPartsFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -81,7 +81,7 @@ internal static class AstQuerySqlServerDateConstructionFunctionEvaluator
 
     private static bool TryEvalDateTimeFromPartsFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -121,7 +121,7 @@ internal static class AstQuerySqlServerDateConstructionFunctionEvaluator
 
     private static bool TryEvalDateTime2FromPartsFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -163,7 +163,7 @@ internal static class AstQuerySqlServerDateConstructionFunctionEvaluator
 
     private static bool TryEvalDateTimeOffsetFromPartsFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -208,7 +208,7 @@ internal static class AstQuerySqlServerDateConstructionFunctionEvaluator
 
     private static bool TryEvalTimeFromPartsFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -247,7 +247,7 @@ internal static class AstQuerySqlServerDateConstructionFunctionEvaluator
 
     private static bool TryEvalSmallDateTimeFromPartsFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {

@@ -2,22 +2,21 @@ namespace DbSqlLikeMem;
 
 internal sealed class AstQuerySourceResolver
 {
-    private readonly DbConnectionMockBase _cnn;
+    private readonly QueryExecutionContext _context;
     private readonly Func<SqlSelectQuery, IDictionary<string, AstQueryExecutorBase.Source>?, AstQueryExecutorBase.EvalRow?, TableResultMock> _executeSelect;
     private readonly Func<IReadOnlyList<SqlSelectQuery>, IReadOnlyList<bool>, IReadOnlyList<SqlOrderByItem>?, SqlRowLimit?, string?, TableResultMock> _executeUnion;
     private readonly AstQueryTableFunctionExecutor _tableFunctionExecutor;
 
     public AstQuerySourceResolver(
-        DbConnectionMockBase cnn,
-        Func<ISqlDialect?> dialectAccessor,
+        QueryExecutionContext context,
         Func<SqlExpr, AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, IDictionary<string, AstQueryExecutorBase.Source>, object?> evalExpression,
         Func<SqlSelectQuery, IDictionary<string, AstQueryExecutorBase.Source>?, AstQueryExecutorBase.EvalRow?, TableResultMock> executeSelect,
         Func<IReadOnlyList<SqlSelectQuery>, IReadOnlyList<bool>, IReadOnlyList<SqlOrderByItem>?, SqlRowLimit?, string?, TableResultMock> executeUnion)
     {
-        _cnn = cnn;
+        _context = context;
         _executeSelect = executeSelect;
         _executeUnion = executeUnion;
-        _tableFunctionExecutor = new AstQueryTableFunctionExecutor(dialectAccessor, evalExpression);
+        _tableFunctionExecutor = new AstQueryTableFunctionExecutor(context, evalExpression);
     }
 
     public AstQueryExecutorBase.Source ResolveBaseSource(
@@ -66,7 +65,7 @@ internal sealed class AstQuerySourceResolver
             throw new InvalidOperationException("FROM sem nome de tabela/CTE/derived não suportado.");
 
         var tableName = tableSource.Name!.NormalizeName();
-        if (_cnn.TryGetView(tableName, out var viewSelect, tableSource.DbName)
+        if (_context.Connection.TryGetView(tableName, out var viewSelect, tableSource.DbName)
             && viewSelect is not null)
         {
             var viewResult = _executeSelect(viewSelect, ctes, null);
@@ -83,8 +82,8 @@ internal sealed class AstQuerySourceResolver
             return AstQueryExecutorBase.Source.FromResult("DUAL", alias, singleRow);
         }
 
-        _cnn.Metrics.IncrementTableHint(tableName);
-        var table = _cnn.GetTable(tableName, tableSource.DbName);
+        _context.Connection.Metrics.IncrementTableHint(tableName);
+        var table = _context.Connection.GetTable(tableName, tableSource.DbName);
         if (tableSource.PartitionNames is { Count: > 0 } requestedPartitions
             && table is TableMock tableMock)
         {

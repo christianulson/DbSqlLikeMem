@@ -11,13 +11,8 @@ internal static class DbDeleteStrategy
     public static DmlExecutionResult ExecuteDelete(
         this DbConnectionMockBase connection,
         SqlDeleteQuery query,
-        DbParameterCollection? pars = null)
-    {
-        if (!connection.Db.ThreadSafe)
-            return Execute(connection, query, pars);
-        lock (connection.Db.SyncRoot)
-            return Execute(connection, query, pars);
-    }
+        DbParameterCollection pars)
+        => connection.ExecuteDelete(query, QueryExecutionContext.FromConnection(connection, pars));
 
     /// <summary>
     /// EN: Implements ExecuteDelete using a pre-built execution context.
@@ -27,20 +22,26 @@ internal static class DbDeleteStrategy
         this DbConnectionMockBase connection,
         SqlDeleteQuery query,
         QueryExecutionContext context)
-        => connection.ExecuteDelete(query, context.DbParameters);
+    {
+        if (!connection.Db.ThreadSafe)
+            return Execute(context, query);
+        lock (connection.Db.SyncRoot)
+            return Execute(context, query);
+    }
 
     private static DmlExecutionResult Execute(
-        this DbConnectionMockBase connection,
-        SqlDeleteQuery query,
-        DbParameterCollection? pars)
+        QueryExecutionContext context,
+        SqlDeleteQuery query)
     {
-        var capturePlans = connection.Db.CaptureExecutionPlans;
+        var connection = context.Connection;
+        var pars = context.DbParameters;
+        var capturePlans = context.CaptureExecutionPlans;
         var sw = capturePlans ? Stopwatch.StartNew() : null;
-        var metricsEnabled = connection.Metrics.Enabled;
+        var metricsEnabled = context.MetricsEnabled;
         ArgumentNullExceptionCompatible.ThrowIfNull(query.Table, nameof(query.Table));
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(query!.Table!.Name, nameof(query.Table.Name));
         var tableName = query.Table.Name!;
-        var dialect = connection.ExecutionDialect;
+        var dialect = context.Dialect;
         if (!connection.TryGetTable(tableName, out var table, query.Table.DbName)
             || table == null)
             throw SqlUnsupported.ForTableDoesNotExist(tableName);

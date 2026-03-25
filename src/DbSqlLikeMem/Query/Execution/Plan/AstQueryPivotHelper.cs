@@ -3,12 +3,11 @@ using static DbSqlLikeMem.AstQueryExecutorBase;
 namespace DbSqlLikeMem;
 
 internal sealed class AstQueryPivotHelper(
-    Func<ISqlDialect> getDialect,
+    QueryExecutionContext context,
     Func<string, SqlExpr> parseExpr,
     Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
     Func<Source, Dictionary<string, object?>, EvalRow> createSourceEvalRow)
 {
-    private readonly Func<ISqlDialect> _getDialect = getDialect;
     private readonly Func<string, SqlExpr> _parseExpr = parseExpr;
     private readonly Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> _eval = eval;
     private readonly Func<Source, Dictionary<string, object?>, EvalRow> _createSourceEvalRow = createSourceEvalRow;
@@ -29,7 +28,6 @@ internal sealed class AstQueryPivotHelper(
         if (pivot is null)
             return source;
 
-        var dialect = _getDialect() ?? throw new InvalidOperationException("Dialeto SQL não disponível para PIVOT.");
         var inputRows = MaterializeSourceRows(source);
 
         var forExpr = _parseExpr(pivot.ForColumnRaw);
@@ -77,7 +75,7 @@ internal sealed class AstQueryPivotHelper(
             result.Columns.Add(new TableResultColMock(source.Alias, groupColumns[i], groupColumns[i], i, dbType, isNullable));
         }
 
-        var pivotAggregateDbType = GetPivotAggregateResultDbType(pivot.AggregateFunction, aggArgExpr, source, dialect);
+        var pivotAggregateDbType = GetPivotAggregateResultDbType(pivot.AggregateFunction, aggArgExpr, source, context.Dialect);
         for (var i = 0; i < inItems.Count; i++)
             result.Columns.Add(new TableResultColMock(source.Alias, inItems[i].Alias, inItems[i].Alias, groupColumns.Count + i, pivotAggregateDbType, true));
 
@@ -91,8 +89,8 @@ internal sealed class AstQueryPivotHelper(
 
             for (var i = 0; i < inItems.Count; i++)
             {
-                var bucket = group.Where(r => forValues[r].EqualsSql(inItems[i].Value, dialect)).ToList();
-                var aggregated = AggregatePivotBucket(pivot.AggregateFunction, aggArgExpr, bucket, ctes, dialect);
+                var bucket = group.Where(r => forValues[r].EqualsSql(inItems[i].Value, context)).ToList();
+                var aggregated = AggregatePivotBucket(pivot.AggregateFunction, aggArgExpr, bucket, ctes, context.Dialect);
                 outRow[groupColumns.Count + i] = CoercePivotAggregateValue(aggregated, pivot.AggregateFunction, pivotAggregateDbType);
             }
 

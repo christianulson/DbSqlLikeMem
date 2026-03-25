@@ -11,11 +11,9 @@ internal sealed class CreateTableAsSelectNonQueryCommandHandler : INonQueryComma
         if (!sqlRaw.StartsWith("create table", StringComparison.OrdinalIgnoreCase))
             return false;
 
-        var execCtx = context.ExecutionContext;
         affectedRows = context.Connection.ExecuteCreateTableAsSelect(
             sqlRaw,
-            execCtx.DbParameters,
-            execCtx.Dialect);
+            context.ExecutionContext);
         return true;
     }
 }

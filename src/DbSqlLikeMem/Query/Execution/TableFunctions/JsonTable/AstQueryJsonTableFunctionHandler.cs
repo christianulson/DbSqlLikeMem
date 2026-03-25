@@ -1,10 +1,10 @@
 namespace DbSqlLikeMem;
 
 internal sealed class AstQueryJsonTableFunctionHandler(
-    Func<ISqlDialect?> dialectAccessor,
+    QueryExecutionContext context,
     Func<SqlExpr, AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, IDictionary<string, AstQueryExecutorBase.Source>, object?> evalExpression)
 {
-    private readonly Func<ISqlDialect?> _dialectAccessor = dialectAccessor ?? throw new ArgumentNullException(nameof(dialectAccessor));
+    private readonly QueryExecutionContext _context = context ?? throw new ArgumentNullException(nameof(context));
     private readonly Func<SqlExpr, AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, IDictionary<string, AstQueryExecutorBase.Source>, object?> _evalExpression = evalExpression ?? throw new ArgumentNullException(nameof(evalExpression));
 
     internal TableResultMock Execute(
@@ -16,7 +16,7 @@ internal sealed class AstQueryJsonTableFunctionHandler(
         var alias = tableSource.Alias ?? function.Name;
         var jsonTableClause = tableSource.JsonTableClause ?? throw new InvalidOperationException("JSON_TABLE source is missing COLUMNS metadata.");
 
-        var dialect = _dialectAccessor() ?? throw new InvalidOperationException("Dialeto SQL não disponível para JSON_TABLE.");
+        var dialect = _context.Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para JSON_TABLE.");
         if (!dialect.TryGetTableFunctionDefinition(SqlConst.JSON_TABLE, out var jsonTableDefinition)
             || jsonTableDefinition is null)
             throw SqlUnsupported.ForDialect(dialect, SqlConst.JSON_TABLE);

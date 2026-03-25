@@ -6,7 +6,7 @@ internal static class AstQueryDb2DateFunctionEvaluator
 {
     private delegate bool AstQueryTryEvalDb2DateFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         Func<string, TemporalUnit> resolveTemporalUnit,
         out object? result);
@@ -16,19 +16,19 @@ internal static class AstQueryDb2DateFunctionEvaluator
 
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         Func<string, TemporalUnit> resolveTemporalUnit,
         out object? result)
     {
-        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
         }
 
         if (_handlers.TryGetValue(fn.Name, out var handler)
-            && handler(fn, dialect, evalArg, resolveTemporalUnit, out result))
+            && handler(fn, context, evalArg, resolveTemporalUnit, out result))
         {
             return true;
         }
@@ -56,24 +56,24 @@ internal static class AstQueryDb2DateFunctionEvaluator
 
     private static bool TryEvalDb2DateAliasFunctionHandler(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         Func<string, TemporalUnit> resolveTemporalUnit,
         out object? result)
     {
-        _ = dialect;
+        _ = context.Dialect;
         _ = resolveTemporalUnit;
         return TryEvalDb2DateAliasFunction(fn.Name.ToUpperInvariant(), evalArg, out result);
     }
 
     private static bool TryEvalDb2DateAddAliasFunctionHandler(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         Func<string, TemporalUnit> resolveTemporalUnit,
         out object? result)
     {
-        _ = dialect;
+        _ = context.Dialect;
         return TryEvalDb2DateAddAliasFunction(fn, fn.Name.ToUpperInvariant(), evalArg, resolveTemporalUnit, out result);
     }
 

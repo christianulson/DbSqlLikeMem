@@ -8,11 +8,11 @@ internal static class AstQueryPostgresTextFunctionEvaluator
 {
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -185,8 +185,11 @@ internal static class AstQueryPostgresTextFunctionEvaluator
 
         if (name is "STARTS_WITH")
         {
-            if (dialect.Version < 11)
-                throw SqlUnsupported.ForDialect(dialect, "STARTS_WITH");
+            if (!context.Dialect.TryGetScalarFunctionDefinition(name, out _))
+            {
+                result = null;
+                return false;
+            }
 
             if (fn.Args.Count < 2)
                 throw new InvalidOperationException("STARTS_WITH() espera texto e prefixo.");

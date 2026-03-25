@@ -8,24 +8,24 @@ internal static class AutoSqlServerScalarFunctionRegistry
 
         bool TryEvalCurrentUserFunction(
             FunctionCallExpr fn,
-            ISqlDialect currentDialect,
+            QueryExecutionContext context,
             Func<int, object?> evalArg,
             out object? result)
-            => AstQueryExecutorBase.TryEvalCurrentUserFunction(fn, currentDialect, out result);
+            => AstQueryExecutorBase.TryEvalCurrentUserFunction(fn, context, out result);
 
         bool TryEvalSessionUserFunction(
             FunctionCallExpr fn,
-            ISqlDialect currentDialect,
+            QueryExecutionContext context,
             Func<int, object?> evalArg,
             out object? result)
-            => AstQueryGeneralSystemAndJsonFunctionEvaluator.TryEvalSessionUserFunction(fn, currentDialect, evalArg, out result);
+            => AstQueryGeneralSystemAndJsonFunctionEvaluator.TryEvalSessionUserFunction(fn, context, evalArg, out result);
 
         bool TryEvalSystemUserFunction(
             FunctionCallExpr fn,
-            ISqlDialect currentDialect,
+            QueryExecutionContext context,
             Func<int, object?> evalArg,
             out object? result)
-            => AstQueryGeneralSystemAndJsonFunctionEvaluator.TryEvalSystemUserFunction(fn, currentDialect, evalArg, out result);
+            => AstQueryGeneralSystemAndJsonFunctionEvaluator.TryEvalSystemUserFunction(fn, context, evalArg, out result);
 
         dialect.AddScalarFunctions("DOUBLE", AstQueryGeneralScalarFunctionEvaluator.TryEvaluate,
             "COT",

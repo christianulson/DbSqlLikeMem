@@ -17,11 +17,11 @@ internal static class AstQueryPostgresJsonFunctionEvaluator
 
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -43,8 +43,11 @@ internal static class AstQueryPostgresJsonFunctionEvaluator
 
         if (name is "JSON_SCALAR" or "JSON_SERIALIZE")
         {
-            if (dialect.Version < 17)
-                throw SqlUnsupported.ForDialect(dialect, name);
+            if (!context.Dialect.TryGetScalarFunctionDefinition(name, out _))
+            {
+                result = null;
+                return false;
+            }
 
             if (fn.Args.Count == 0)
             {
@@ -71,8 +74,11 @@ internal static class AstQueryPostgresJsonFunctionEvaluator
 
         if (name is "JSONB_PATH_EXISTS" or "JSONB_PATH_QUERY_ARRAY")
         {
-            if (dialect.Version < 12)
-                throw SqlUnsupported.ForDialect(dialect, name);
+            if (!context.Dialect.TryGetScalarFunctionDefinition(name, out _))
+            {
+                result = null;
+                return false;
+            }
 
             if (fn.Args.Count < 2)
                 throw new InvalidOperationException($"{name}() espera JSONB e jsonpath.");

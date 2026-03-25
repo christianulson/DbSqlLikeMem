@@ -11,10 +11,17 @@ internal static class SqlServerTableFunctionRegistry
         if (version < SqlServerDialect.JsonFunctionsMinVersion)
             return;
 
-        dialect.AddTableFunction(new DbTableFunctionDef(SqlConst.OPENJSON, 1, 2));
         dialect.AddTableFunction(new DbTableFunctionDef(
-            SqlConst.STRING_SPLIT,
+            SqlServerConst.OPENJSON,
+            1,
             2,
-            version >= SqlServerDialect.StringSplitOrdinalMinVersion ? 3 : 2));
+            static (executor, tableSource, ctes, outerRow)
+                => executor.ExecuteOpenJsonTableFunction(tableSource, ctes, outerRow)));
+        dialect.AddTableFunction(new DbTableFunctionDef(
+            SqlServerConst.STRING_SPLIT,
+            2,
+            version >= SqlServerDialect.StringSplitOrdinalMinVersion ? 3 : 2,
+            static (executor, tableSource, ctes, outerRow)
+                => executor.ExecuteStringSplitTableFunction(tableSource, ctes, outerRow)));
     }
 }

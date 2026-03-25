@@ -2,7 +2,7 @@ namespace DbSqlLikeMem;
 
 internal delegate bool AstQueryTryEvalOracleDb2SysFunction(
     FunctionCallExpr fn,
-    ISqlDialect dialect,
+    QueryExecutionContext context,
     Func<int, object?> evalArg,
     out object? result);
 
@@ -13,7 +13,7 @@ internal static class AstQueryOracleDb2SysFunctionEvaluator
 
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -23,14 +23,14 @@ internal static class AstQueryOracleDb2SysFunctionEvaluator
             return false;
         }
 
-        if (!IsOracleDb2Dialect(dialect))
+        if (!IsOracleDb2Dialect(context))
         {
             result = null;
             return true;
         }
 
-        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(dialect, fn.Name);
-        return handler(fn, dialect, evalArg, out result);
+        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, fn.Name);
+        return handler(fn, context, evalArg, out result);
     }
 
     private static Dictionary<string, AstQueryTryEvalOracleDb2SysFunction> CreateHandlers()
@@ -58,18 +58,18 @@ internal static class AstQueryOracleDb2SysFunctionEvaluator
             handlers[name] = handler;
     }
 
-    private static bool IsOracleDb2Dialect(ISqlDialect dialect)
-        => dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            || dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase);
+    private static bool IsOracleDb2Dialect(QueryExecutionContext context)
+        => context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            || context.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryEvalSysGuidFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = fn;
-        _ = dialect;
+        _ = context;
         _ = evalArg;
         result = Guid.NewGuid().ToString("D");
         return true;
@@ -77,11 +77,11 @@ internal static class AstQueryOracleDb2SysFunctionEvaluator
 
     private static bool TryEvalSysExtractUtcFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = dialect;
+        _ = context;
         if (fn.Args.Count == 0)
         {
             result = null;
@@ -113,11 +113,11 @@ internal static class AstQueryOracleDb2SysFunctionEvaluator
 
     private static bool TryEvalSysContextFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = dialect;
+        _ = context;
         if (fn.Args.Count < 2)
         {
             result = null;
@@ -139,12 +139,12 @@ internal static class AstQueryOracleDb2SysFunctionEvaluator
 
     private static bool TryEvalUnsupportedSysFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = fn;
-        _ = dialect;
+        _ = context;
         _ = evalArg;
         result = null;
         return true;

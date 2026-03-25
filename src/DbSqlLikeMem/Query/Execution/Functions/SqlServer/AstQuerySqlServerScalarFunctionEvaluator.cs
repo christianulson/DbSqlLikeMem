@@ -6,17 +6,17 @@ internal static class AstQuerySqlServerScalarFunctionEvaluator
 
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         result = null;
 
-        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+        if (!context.Dialect.SupportsSqlServerScalarFunction(fn.Name))
             return false;
 
         if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler(fn, dialect, evalArg, out result);
+            return handler(fn, context, evalArg, out result);
 
         return false;
     }
@@ -45,7 +45,7 @@ internal static class AstQuerySqlServerScalarFunctionEvaluator
 
     private static bool TryEvalQuotenameFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -74,7 +74,7 @@ internal static class AstQuerySqlServerScalarFunctionEvaluator
 
     private static bool TryEvalReplicateFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -104,7 +104,7 @@ internal static class AstQuerySqlServerScalarFunctionEvaluator
 
     private static bool TryEvalSquareFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -130,7 +130,7 @@ internal static class AstQuerySqlServerScalarFunctionEvaluator
 
     private static bool TryEvalStuffFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -168,7 +168,7 @@ internal static class AstQuerySqlServerScalarFunctionEvaluator
 
     private static bool TryEvalParsenameFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {

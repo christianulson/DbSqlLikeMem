@@ -134,8 +134,8 @@ public class MySqlCommandMock(
 
     private static bool IsValuesKeyword(SqlToken token)
         => token.Kind != SqlTokenKind.Symbol
-           && (string.Equals(token.Text, SqlConst.VALUES, StringComparison.OrdinalIgnoreCase)
-               || string.Equals(token.Text, SqlConst.VALUE, StringComparison.OrdinalIgnoreCase));
+           && (string.Equals(token.Text, MySqlConst.VALUES, StringComparison.OrdinalIgnoreCase)
+               || string.Equals(token.Text, MySqlConst.VALUE, StringComparison.OrdinalIgnoreCase));
 
     private static bool TryReadValuesTuple(
         IReadOnlyList<SqlToken> tokens,

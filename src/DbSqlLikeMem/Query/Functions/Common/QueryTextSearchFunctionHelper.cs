@@ -46,7 +46,7 @@ internal static class QueryTextSearchFunctionHelper
 
     public static bool TryEvalMatchAgainstFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -56,8 +56,8 @@ internal static class QueryTextSearchFunctionHelper
             return false;
         }
 
-        if (!dialect.SupportsMatchAgainstPredicate)
-            throw SqlUnsupported.ForDialect(dialect, "MATCH ... AGAINST full-text predicate");
+        if (!context.Dialect.SupportsMatchAgainstPredicate)
+            throw SqlUnsupported.ForDialect(context.Dialect, "MATCH ... AGAINST full-text predicate");
 
         if (fn.Args.Count < 2)
         {
@@ -84,7 +84,7 @@ internal static class QueryTextSearchFunctionHelper
             ? (fn.Args[2] is RawSqlExpr rx ? rx.Sql : evalArg(2)?.ToString() ?? string.Empty)
             : string.Empty;
 
-        result = EvaluateMatchAgainstTerms(haystack, terms, modeSql, dialect.TextComparison);
+        result = EvaluateMatchAgainstTerms(haystack, terms, modeSql, context.Dialect.TextComparison);
         return true;
     }
 

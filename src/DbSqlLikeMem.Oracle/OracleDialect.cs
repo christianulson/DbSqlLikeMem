@@ -153,6 +153,11 @@ internal sealed class OracleDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsApplyClause => Version >= 12;
     public override bool PivotAvgReturnsDecimalForIntegralInputs => true;
+
+    /// <inheritdoc />
+    public override bool SupportsOracleSpecificConversionFunction(string functionName)
+        => functionName.Equals("CONVERT", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>
     /// EN: Gets or sets null substitute function names.
     /// PT: Obtém ou define null substitute function names.

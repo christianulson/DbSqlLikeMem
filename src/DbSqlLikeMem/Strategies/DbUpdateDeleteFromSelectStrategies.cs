@@ -42,6 +42,17 @@ internal static class DbUpdateDeleteFromSelectStrategies
     }
 
     /// <summary>
+    /// EN: Implements ExecuteUpdateFromSelect.
+    /// PT: Implementa ExecuteUpdateFromSelect.
+    /// </summary>
+    public static DmlExecutionResult ExecuteUpdateFromSelect(
+        this DbConnectionMockBase connection,
+        SqlUpdateQuery query,
+        DbParameterCollection pars,
+        ISqlDialect dialect)
+        => connection.ExecuteUpdateFromSelect(query, new QueryExecutionContext(connection, dialect, pars));
+
+    /// <summary>
     /// EN: Implements ExecuteUpdateSmart using a pre-built execution context.
     /// PT: Implementa ExecuteUpdateSmart usando um contexto de execução pré-construído.
     /// </summary>
@@ -87,22 +98,20 @@ internal static class DbUpdateDeleteFromSelectStrategies
     public static DmlExecutionResult ExecuteUpdateFromSelect(
         this DbConnectionMockBase connection,
         SqlUpdateQuery query,
-        DbParameterCollection pars,
-        ISqlDialect dialect)
+        QueryExecutionContext context)
     {
         if (!connection.Db.ThreadSafe)
-            return ExecuteUpdateFromSelectImpl(connection, query, pars, dialect);
+            return ExecuteUpdateFromSelectImpl(connection, query, context);
         lock (connection.Db.SyncRoot)
         {
-            return ExecuteUpdateFromSelectImpl(connection, query, pars, dialect);
+            return ExecuteUpdateFromSelectImpl(connection, query, context);
         }
     }
 
     private static DmlExecutionResult ExecuteUpdateFromSelectImpl(
         DbConnectionMockBase connection,
         SqlUpdateQuery query,
-        DbParameterCollection pars,
-        ISqlDialect dialect)
+        QueryExecutionContext context)
     {
         // Minimal grammar for unit tests:
         // MySQL:                 UPDATE <table> <a> JOIN (<select>) <s> ON ... SET ... [WHERE ...]
@@ -117,7 +126,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
 
         if (!m.Success)
             throw new InvalidOperationException(SqlExceptionMessages.UpdateJoinInvalid());
-
+        var dialect = context.Dialect;
         if (!fromClause && !dialect.SupportsUpdateJoinFromSubquerySyntax)
             throw SqlUnsupported.ForDialect(dialect, "UPDATE ... JOIN (subquery)");
 
@@ -178,12 +187,12 @@ internal static class DbUpdateDeleteFromSelectStrategies
         var subSetCol = setM.Groups["scol"].Value.Trim('`');
 
         // Execute subquery
-        var executor = new QueryExecutionContext(connection, dialect, pars).CreateExecutor();
+        var executor = context.CreateExecutor();
         var q = SqlQueryParser.Parse(
             subSql,
             dialect,
             null,
-            SqlCustomFunctionResolverFactory.Create(connection));
+            SqlCustomFunctionResolverFactory.Create(context));
         var subRes = executor.ExecuteSelect((SqlSelectQuery)q);
 
         // Map join key -> set value (last wins, like typical join)
@@ -208,7 +217,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
         for (int i = 0; i < target.Count; i++)
         {
             var row = target[i];
-            if (whereConds.Count > 0 && !MatchWhereEquals(target, row, whereConds, pars))
+            if (whereConds.Count > 0 && !MatchWhereEquals(target, row, whereConds, context.DbParameters))
                 continue;
 
             var key = joinInfo.GetGenValue != null ? joinInfo.GetGenValue(row, target) : row[joinInfo.Index];
@@ -349,21 +358,22 @@ internal static class DbUpdateDeleteFromSelectStrategies
         DbParameterCollection pars,
         ISqlDialect dialect)
     {
+        var context = new QueryExecutionContext(connection, dialect, pars);
         if (!connection.Db.ThreadSafe)
-            return ExecuteDeleteFromSelectImpl(connection, query, pars, dialect);
+            return ExecuteDeleteFromSelectImpl(connection, query, context);
         lock (connection.Db.SyncRoot)
-            return ExecuteDeleteFromSelectImpl(connection, query, pars, dialect);
+            return ExecuteDeleteFromSelectImpl(connection, query, context);
     }
 
     private static DmlExecutionResult ExecuteDeleteFromSelectImpl(
         DbConnectionMockBase connection,
         SqlDeleteQuery query,
-        DbParameterCollection pars,
-        ISqlDialect dialect)
+        QueryExecutionContext context)
     {
         // Minimal grammar for unit tests:
         // MySQL/SQL Server: DELETE a FROM <table> a JOIN (<select>) s ON s.k = a.k
         // PostgreSQL:       DELETE FROM <table> a USING (<select>) s WHERE s.k = a.k [AND ...]
+        var dialect = context.Dialect;
         var m = _regexDelete.Match(query.RawSql);
         var usingSyntax = false;
         if (!m.Success)
@@ -418,12 +428,12 @@ internal static class DbUpdateDeleteFromSelectStrategies
             throw new InvalidOperationException(SqlExceptionMessages.JoinOnMustReferenceTargetAndSubqueryAliases());
         }
 
-        var executor = new QueryExecutionContext(connection, dialect, pars).CreateExecutor();
+        var executor = context.CreateExecutor();
         var q = SqlQueryParser.Parse(
             subSql,
-            dialect,
+            context.Dialect,
             null,
-            SqlCustomFunctionResolverFactory.Create(connection));
+            SqlCustomFunctionResolverFactory.Create(context));
         var subRes = executor.ExecuteSelect((SqlSelectQuery)q);
 
         int subJoinIdx = subRes.GetColumnIndexOrThrow(subJoinCol);
@@ -443,7 +453,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
             var key = joinInfo.GetGenValue != null ? joinInfo.GetGenValue(row, target) : row[joinInfo.Index];
             if (key is null || key is DBNull) continue;
             if (!keys.Contains(key)) continue;
-            if (!string.IsNullOrWhiteSpace(whereSql) && !MatchWhereEquals(target, row, whereConds, pars)) continue;
+            if (!string.IsNullOrWhiteSpace(whereSql) && !MatchWhereEquals(target, row, whereConds, context.DbParameters)) continue;
             target.RemoveAt(i);
             deleted++;
         }

@@ -7,13 +7,13 @@ internal delegate bool AstQueryTryEvalSessionContextFunction(
 
 internal delegate bool AstQueryTryEvalGeneralJsonFunction(
     FunctionCallExpr fn,
-    ISqlDialect dialect,
+    QueryExecutionContext context,
     Func<int, object?> evalArg,
     out object? result);
 
 internal delegate bool AstQueryTryEvalGeneralSystemAndJsonFunction(
     FunctionCallExpr fn,
-    ISqlDialect dialect,
+    QueryExecutionContext context,
     Func<int, object?> evalArg,
     out object? result);
 
@@ -43,19 +43,19 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
 
     internal bool TryEvaluate(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler)
-            && handler(fn, dialect, evalArg, out result))
+            && handler(fn, context, evalArg, out result))
         {
             return true;
         }
 
-        if (_tryEvalJsonUtilityFunctions(fn, dialect, evalArg, out result)
-            || _tryEvalSqliteSystemFunctions(fn, dialect, evalArg, out result)
-            || _tryEvalSqliteJsonFunctions(fn, dialect, evalArg, out result))
+        if (_tryEvalJsonUtilityFunctions(fn, context, evalArg, out result)
+            || _tryEvalSqliteSystemFunctions(fn, context, evalArg, out result)
+            || _tryEvalSqliteJsonFunctions(fn, context, evalArg, out result))
         {
             return true;
         }
@@ -101,11 +101,11 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
 
     internal static bool TryEvalGetAnsiNullFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = dialect;
+        _ = context.Dialect;
         _ = evalArg;
 
         result = 1;
@@ -114,15 +114,15 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
 
     internal static bool TryEvalGroupingFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = evalArg;
-        if (MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect)
-            && dialect.Version < 80)
+        if (!context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
         {
-            throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
+            result = null;
+            return false;
         }
 
         result = 0;
@@ -131,16 +131,15 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
 
     internal static bool TryEvalGroupingIdFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = dialect;
         _ = evalArg;
-        if (MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect)
-            && dialect.Version < 80)
+        if (!context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
         {
-            throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
+            result = null;
+            return false;
         }
 
         result = 0;
@@ -149,12 +148,12 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
 
     internal static bool TryEvalHostIdFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = fn;
-        _ = dialect;
+        _ = context.Dialect;
         _ = evalArg;
         result = 1;
         return true;
@@ -162,12 +161,12 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
 
     internal static bool TryEvalHostNameFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = fn;
-        _ = dialect;
+        _ = context.Dialect;
         _ = evalArg;
         result = "localhost";
         return true;
@@ -175,21 +174,21 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
 
     private bool TryEvalSessionContextFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = dialect;
+        _ = context.Dialect;
         return _tryEvalSessionContextFunction(fn, evalArg, out result);
     }
 
     internal static bool TryEvalIsDateFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = dialect;
+        _ = context.Dialect;
 
         var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value))
@@ -206,11 +205,11 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
 
     internal static bool TryEvalIsJsonFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = dialect;
+        _ = context.Dialect;
 
         var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value))
@@ -234,11 +233,11 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
 
     internal static bool TryEvalIsNumericFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = dialect;
+        _ = context.Dialect;
 
         var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value))
@@ -255,11 +254,11 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
 
     private static bool TryEvalIpFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = dialect;
+        _ = context.Dialect;
         var name = fn.Name;
         if (!(name.Equals("IS_IPV4", StringComparison.OrdinalIgnoreCase)
             || name.Equals("IS_IPV4_COMPAT", StringComparison.OrdinalIgnoreCase)
@@ -318,11 +317,11 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
 
     private static bool TryEvalIsUuidFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = dialect;
+        _ = context.Dialect;
         _ = evalArg;
 
         var value = evalArg(0);
@@ -340,11 +339,11 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
 
     private static bool TryEvalJsonArrayFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = dialect;
+        _ = context.Dialect;
 
         var values = new object?[fn.Args.Count];
         for (var i = 0; i < fn.Args.Count; i++)
@@ -356,11 +355,11 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
 
     private static bool TryEvalJsonDepthFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = dialect;
+        _ = context.Dialect;
 
         var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value))
@@ -412,23 +411,23 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
 
     internal static bool TryEvalSessionUserFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = evalArg;
 
-        result = MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect) ? "root@localhost" : "dbo";
+        result = MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect) ? "root@localhost" : "dbo";
         return true;
     }
 
     internal static bool TryEvalSystemUserFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = dialect;
+        _ = context.Dialect;
         _ = evalArg;
 
         result = "dbo";
@@ -437,11 +436,11 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
 
     internal static bool TryEvalUserFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = dialect;
+        _ = context.Dialect;
         _ = evalArg;
 
         result = "dbo";
@@ -450,11 +449,11 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
 
     private static bool TryEvalUtcDateFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = dialect;
+        _ = context.Dialect;
         _ = evalArg;
 
         result = DateTime.UtcNow.Date;
@@ -463,11 +462,11 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
 
     private static bool TryEvalUtcTimeFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = dialect;
+        _ = context.Dialect;
         _ = evalArg;
 
         result = DateTime.UtcNow.TimeOfDay;
@@ -476,11 +475,11 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
 
     private static bool TryEvalUtcTimestampFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = dialect;
+        _ = context.Dialect;
         _ = evalArg;
 
         result = DateTime.UtcNow;
@@ -489,11 +488,11 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
 
     private static bool TryEvalUuidShortFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = dialect;
+        _ = context.Dialect;
         _ = evalArg;
 
         if (fn.Args.Count > 0)

@@ -125,6 +125,11 @@ internal interface ISqlDialect
     bool SupportsSqlServerTableHints { get; }
     bool SupportsSqlServerQueryHints { get; }
     bool SupportsMySqlIndexHints { get; }
+    bool SupportsSqlServerMetadataFunction(string functionName);
+    bool SupportsSqlServerMetadataIdentifier(string identifier);
+    bool SupportsSqlServerScalarFunction(string functionName);
+    bool SupportsSqlServerDateFunction(string functionName);
+    bool SupportsSqlServerAggregateFunction(string functionName);
 
     // Temporary table naming
     bool AllowsHashIdentifiers { get; }

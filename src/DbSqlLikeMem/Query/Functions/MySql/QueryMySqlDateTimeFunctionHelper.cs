@@ -11,7 +11,7 @@ internal static class QueryMySqlDateTimeFunctionHelper
 
     private delegate bool MySqlDateTimeFunctionHandler(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -24,7 +24,7 @@ internal static class QueryMySqlDateTimeFunctionHelper
 
     public static bool TryEvalFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -35,7 +35,7 @@ internal static class QueryMySqlDateTimeFunctionHelper
         if (_handlers.TryGetValue(fn.Name, out var handler))
             return handler(
                 fn,
-                dialect,
+                context,
                 evalArg,
                 tryConvertNumericToDouble,
                 tryConvertNumericToInt64,
@@ -70,7 +70,7 @@ internal static class QueryMySqlDateTimeFunctionHelper
 
     private static bool TryEvalMySqlDateFormatFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -87,7 +87,7 @@ internal static class QueryMySqlDateTimeFunctionHelper
             return false;
         }
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -110,7 +110,7 @@ internal static class QueryMySqlDateTimeFunctionHelper
 
     private static bool TryEvalMySqlStrToDateFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -127,7 +127,7 @@ internal static class QueryMySqlDateTimeFunctionHelper
             return false;
         }
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -163,7 +163,7 @@ internal static class QueryMySqlDateTimeFunctionHelper
 
     private static bool TryEvalMySqlFromUnixTimeFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -180,7 +180,7 @@ internal static class QueryMySqlDateTimeFunctionHelper
             return false;
         }
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -216,7 +216,7 @@ internal static class QueryMySqlDateTimeFunctionHelper
 
     private static bool TryEvalMySqlFromDaysFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -233,7 +233,7 @@ internal static class QueryMySqlDateTimeFunctionHelper
             return false;
         }
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -255,7 +255,7 @@ internal static class QueryMySqlDateTimeFunctionHelper
 
     private static bool TryEvalMySqlGetFormatFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -273,7 +273,7 @@ internal static class QueryMySqlDateTimeFunctionHelper
             return false;
         }
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;
@@ -316,7 +316,7 @@ internal static class QueryMySqlDateTimeFunctionHelper
 
     private static bool TryEvalMySqlConvertTzFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -333,7 +333,7 @@ internal static class QueryMySqlDateTimeFunctionHelper
             return false;
         }
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
         {
             result = null;
             return false;

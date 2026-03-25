@@ -2,12 +2,12 @@ namespace DbSqlLikeMem;
 
 internal static class QueryRowValueHelper
 {
-    internal static object? ResolveParam(IDataParameterCollection parameters, string name)
+    internal static object? ResolveParam(QueryExecutionContext context, string name)
     {
         if (name == "?")
-            return ResolvePositionalParam(parameters);
+            return ResolvePositionalParam(context.Parameters);
 
-        return ResolveNamedParam(parameters, name);
+        return ResolveNamedParam(context.Parameters, name);
     }
 
     internal static object? ResolveIdentifier(string name, AstQueryExecutorBase.EvalRow row)
@@ -46,7 +46,7 @@ internal static class QueryRowValueHelper
             : null;
     }
 
-    internal static string NormalizeDistinctKey(object? value, ISqlDialect? dialect = null)
+    internal static string NormalizeDistinctKey(object? value, QueryExecutionContext? context = null)
     {
         if (value is null or DBNull)
             return SqlConst.NULL;
@@ -58,14 +58,14 @@ internal static class QueryRowValueHelper
             float floatValue => floatValue.ToString("R", CultureInfo.InvariantCulture),
             DateTime dateTime => dateTime.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture),
             bool boolValue => boolValue ? "1" : "0",
-            string text => (dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase) == StringComparison.Ordinal
+            string text => (context?.Dialect.TextComparison ?? StringComparison.OrdinalIgnoreCase) == StringComparison.Ordinal
                 ? text
                 : text.ToUpperInvariant(),
             _ => value.ToString() ?? string.Empty
         };
     }
 
-    internal static TableResultMock ApplyDistinct(TableResultMock result, ISqlDialect? dialect)
+    internal static TableResultMock ApplyDistinct(TableResultMock result, QueryExecutionContext context)
     {
         var estimatedCount = result.Count;
         var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -73,7 +73,7 @@ internal static class QueryRowValueHelper
 
         foreach (var row in result)
         {
-            if (seen.Add(BuildDistinctRowKey(row, result.Columns.Count, dialect)))
+            if (seen.Add(BuildDistinctRowKey(row, result.Columns.Count, context)))
                 outputRows.Add(row);
         }
 
@@ -366,13 +366,13 @@ internal static class QueryRowValueHelper
     private static string BuildDistinctRowKey(
         Dictionary<int, object?> row,
         int columnCount,
-        ISqlDialect? dialect)
+        QueryExecutionContext context)
     {
         if (columnCount <= 0)
             return string.Empty;
 
         if (columnCount == 1)
-            return NormalizeDistinctKey(row.TryGetValue(0, out var singleValue) ? singleValue : null, dialect);
+            return NormalizeDistinctKey(row.TryGetValue(0, out var singleValue) ? singleValue : null, context);
 
         var builder = new StringBuilder(Math.Max(16, columnCount * 12));
         for (var i = 0; i < columnCount; i++)
@@ -380,7 +380,7 @@ internal static class QueryRowValueHelper
             if (builder.Length > 0)
                 builder.Append('\u001F');
 
-            builder.Append(NormalizeDistinctKey(row.TryGetValue(i, out var value) ? value : null, dialect));
+            builder.Append(NormalizeDistinctKey(row.TryGetValue(i, out var value) ? value : null, context));
         }
 
         return builder.ToString();

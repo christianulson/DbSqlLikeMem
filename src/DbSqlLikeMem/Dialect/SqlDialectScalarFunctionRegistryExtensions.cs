@@ -107,20 +107,20 @@ internal static class SqlDialectScalarFunctionRegistryExtensions
 
     internal static bool TryEvalZeroArgTemporalFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(fn, nameof(fn));
-        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
+        ArgumentNullExceptionCompatible.ThrowIfNull(context, nameof(context));
         _ = evalArg;
 
         result = null;
         if (fn.Args.Count != 0)
             return false;
 
-        return SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, fn.Name, out result)
-            || SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, fn.Name, out result);
+        return SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(context, fn.Name, out result)
+            || SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(context, fn.Name, out result);
     }
 
     internal static bool AllowsTemporalIdentifier(

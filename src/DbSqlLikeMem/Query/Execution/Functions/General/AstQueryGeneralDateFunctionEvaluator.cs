@@ -6,12 +6,12 @@ internal static class AstQueryGeneralDateFunctionEvaluator
 
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler(fn, dialect, evalArg, out result);
+            return handler(fn, context, evalArg, out result);
 
         result = null;
         return false;
@@ -47,7 +47,7 @@ internal static class AstQueryGeneralDateFunctionEvaluator
 
     private static bool TryEvalDateConstructionFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -94,7 +94,7 @@ internal static class AstQueryGeneralDateFunctionEvaluator
 
     private static bool TryEvalStrftimeFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -206,7 +206,7 @@ internal static class AstQueryGeneralDateFunctionEvaluator
 
     private static bool TryEvalMakeDateFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -249,7 +249,7 @@ internal static class AstQueryGeneralDateFunctionEvaluator
 
     private static bool TryEvalMakeTimeFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -292,7 +292,7 @@ internal static class AstQueryGeneralDateFunctionEvaluator
 
     private static bool TryEvalMicrosecondFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -329,7 +329,7 @@ internal static class AstQueryGeneralDateFunctionEvaluator
 
     private static bool TryEvalMonthNameFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -352,7 +352,7 @@ internal static class AstQueryGeneralDateFunctionEvaluator
 
     private static bool TryEvalPeriodFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -426,7 +426,7 @@ internal static class AstQueryGeneralDateFunctionEvaluator
 
     private static bool TryEvalQuarterFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -449,7 +449,7 @@ internal static class AstQueryGeneralDateFunctionEvaluator
 
     private static bool TryEvalSecToTimeFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -481,7 +481,7 @@ internal static class AstQueryGeneralDateFunctionEvaluator
 
     private static bool TryEvalJulianDayFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -505,7 +505,7 @@ internal static class AstQueryGeneralDateFunctionEvaluator
 
     private static bool TryEvalTruncFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {

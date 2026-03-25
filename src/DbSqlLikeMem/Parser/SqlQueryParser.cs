@@ -202,7 +202,7 @@ internal sealed class SqlQueryParser
 
         var tokens = new SqlTokenizer(sql, dialect).Tokenize();
         var autoSyntaxFeatures = AutoDialectFactory.IsAutoDialect(dialect)
-            ? SqlSyntaxDetector.Detect(sql, tokens)
+            ? AutoDialectFactory.DetectSyntax(sql, tokens)
             : AutoSqlSyntaxFeatures.None;
 
         var prelude = new SqlQueryParsePreludeCache.Prelude(tokens, autoSyntaxFeatures);

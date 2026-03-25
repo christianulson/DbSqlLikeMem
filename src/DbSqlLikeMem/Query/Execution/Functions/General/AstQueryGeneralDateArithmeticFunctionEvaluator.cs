@@ -6,12 +6,12 @@ internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
 
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler(fn, dialect, evalArg, out result);
+            return handler(fn, context, evalArg, out result);
 
         result = null;
         return false;
@@ -38,7 +38,7 @@ internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
 
     private static bool TryEvalAddDateFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -71,7 +71,7 @@ internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
 
     private static bool TryEvalAddTimeFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -106,7 +106,7 @@ internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
 
     private static bool TryEvalLastDayFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -134,7 +134,7 @@ internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
 
     private static bool TryEvalSubTimeFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {

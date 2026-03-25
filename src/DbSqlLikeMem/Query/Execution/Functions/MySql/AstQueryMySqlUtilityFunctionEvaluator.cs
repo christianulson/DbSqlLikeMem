@@ -6,7 +6,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 {
     private delegate bool MySqlUtilityFunctionHandler(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -17,7 +17,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
     internal static bool TryEvaluate(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -26,11 +26,11 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
     {
         result = null;
 
-        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(dialect))
+        if (!MySqlFamilyDialectHelper.IsMySqlFamilyDialect(context.Dialect))
             return false;
 
         if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler(fn, dialect, row, evalArg, tryConvertNumericToInt64, tryConvertNumericToDouble, out result);
+            return handler(fn, context, row, evalArg, tryConvertNumericToInt64, tryConvertNumericToDouble, out result);
 
         return false;
     }
@@ -68,7 +68,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
     private static bool TryEvalSetFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -166,7 +166,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
     private static bool TryEvalHexFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -239,7 +239,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
     private static bool TryEvalFormatFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -285,15 +285,18 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
     private static bool TryEvalRandomBytesFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         out object? result)
     {
-        if (dialect.Version < 56)
-            throw SqlUnsupported.ForDialect(dialect, "RANDOM_BYTES");
+        if (!context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
+        {
+            result = null;
+            return false;
+        }
 
         if (fn.Args.Count == 0)
             throw new InvalidOperationException("RANDOM_BYTES() espera o tamanho em bytes.");
@@ -326,7 +329,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
     private static bool TryEvalSleepFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -356,7 +359,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
     private static bool TryEvalCompressFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -416,15 +419,18 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
     private static bool TryEvalFormatBytesFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         out object? result)
     {
-        if (dialect.Version < 80)
-            throw SqlUnsupported.ForDialect(dialect, "FORMAT_BYTES");
+        if (!context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
+        {
+            result = null;
+            return false;
+        }
 
         if (fn.Args.Count == 0)
             throw new InvalidOperationException("FORMAT_BYTES() espera um valor numerico.");
@@ -463,15 +469,18 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
     private static bool TryEvalFormatPicoTimeFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         out object? result)
     {
-        if (dialect.Version < 80)
-            throw SqlUnsupported.ForDialect(dialect, "FORMAT_PICO_TIME");
+        if (!context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
+        {
+            result = null;
+            return false;
+        }
 
         if (fn.Args.Count == 0)
             throw new InvalidOperationException("FORMAT_PICO_TIME() espera um valor numerico.");
@@ -519,7 +528,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
     private static bool TryEvalXmlFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -550,7 +559,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
     private static bool TryEvalCryptoFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -571,9 +580,10 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
         if (!fn.Name.Equals("AES_ENCRYPT", StringComparison.OrdinalIgnoreCase)
             && !fn.Name.Equals("AES_DECRYPT", StringComparison.OrdinalIgnoreCase)
-            && dialect.Version >= 80)
+            && !context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
         {
-            throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
+            result = null;
+            return false;
         }
 
         if (fn.Name.Equals("ENCRYPT", StringComparison.OrdinalIgnoreCase))
@@ -706,7 +716,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
     private static bool TryEvalDefaultFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -804,15 +814,18 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
     private static bool TryEvalRegexFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         out object? result)
     {
-        if (dialect.Version < 80)
-            throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
+        if (!context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
+        {
+            result = null;
+            return false;
+        }
 
         if (fn.Args.Count < 2)
         {
@@ -842,7 +855,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
         var matchType = fn.Args.Count >= 6 ? evalArg(5)?.ToString() ?? string.Empty : string.Empty;
         var options = RegexOptions.CultureInvariant;
-        if (dialect.RegexIsCaseInsensitive)
+        if (context.Dialect.RegexIsCaseInsensitive)
             options |= RegexOptions.IgnoreCase;
 
         if (!string.IsNullOrWhiteSpace(matchType))
@@ -924,15 +937,18 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
     private static bool TryEvalMemberOfFunction(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         out object? result)
     {
-        if (dialect.Version < 80)
-            throw SqlUnsupported.ForDialect(dialect, "MEMBER OF");
+        if (!context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
+        {
+            result = null;
+            return false;
+        }
 
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("MEMBER OF espera dois argumentos.");
@@ -973,7 +989,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
     private static bool TryEvalIpValidationFunctions(
         FunctionCallExpr fn,
-        ISqlDialect dialect,
+        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
