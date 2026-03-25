@@ -19,6 +19,16 @@ internal static class DbInsertStrategy
     }
 
     /// <summary>
+    /// EN: Implements ExecuteInsert using a pre-built execution context.
+    /// PT: Implementa ExecuteInsert usando um contexto de execução pré-construído.
+    /// </summary>
+    public static DmlExecutionResult ExecuteInsert(
+        this DbConnectionMockBase connection,
+        SqlInsertQuery query,
+        QueryExecutionContext context)
+        => connection.ExecuteInsert(query, context.DbParameters, context.Dialect);
+
+    /// <summary>
     /// EN: Implements ExecuteReplace.
     /// PT: Implementa ExecuteReplace.
     /// </summary>
@@ -33,6 +43,16 @@ internal static class DbInsertStrategy
         lock (connection.Db.SyncRoot)
             return Execute(connection, query with { IsReplace = true }, pars, dialect);
     }
+
+    /// <summary>
+    /// EN: Implements ExecuteReplace using a pre-built execution context.
+    /// PT: Implementa ExecuteReplace usando um contexto de execução pré-construído.
+    /// </summary>
+    public static DmlExecutionResult ExecuteReplace(
+        this DbConnectionMockBase connection,
+        SqlInsertQuery query,
+        QueryExecutionContext context)
+        => connection.ExecuteReplace(query, context.DbParameters, context.Dialect);
 
     private static DmlExecutionResult Execute(
         DbConnectionMockBase connection,
@@ -804,7 +824,7 @@ internal static class DbInsertStrategy
         DbParameterCollection? pars,
         ISqlDialect dialect)
     {
-        var executor = AstQueryExecutorFactory.Create(dialect, connection, pars ?? connection.CreateCommand().Parameters);
+        var executor = new QueryExecutionContext(connection, dialect, pars ?? (DbParameterCollection)connection.CreateCommand().Parameters).CreateExecutor();
         var res = executor.ExecuteSelect(query.InsertSelect!);
 
         var rows = new List<Dictionary<int, object?>>();

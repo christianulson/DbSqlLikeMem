@@ -13,6 +13,15 @@ internal sealed class CommandExecutionPipelineContext(
     public DbParameterCollection Parameters { get; } = pars;
     public CommandExecutionPipelineOptions Options { get; } = options;
 
+    private QueryExecutionContext? _executionContext;
+
+    /// <summary>
+    /// EN: Lazily builds a QueryExecutionContext for this pipeline run, reusing it across handlers.
+    /// PT: Constrói lazily um QueryExecutionContext para este pipeline, reutilizando-o entre handlers.
+    /// </summary>
+    public QueryExecutionContext ExecutionContext
+        => _executionContext ??= QueryExecutionContext.FromConnection(Connection, Parameters);
+
     public void EnsureValidatedBeforeParse(string sqlRaw)
     {
         if (string.Equals(validatedSqlRaw, sqlRaw, StringComparison.Ordinal))

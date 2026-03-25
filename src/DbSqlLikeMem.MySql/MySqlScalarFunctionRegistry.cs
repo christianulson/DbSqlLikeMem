@@ -69,6 +69,43 @@ internal partial class MySqlDialect
                 AstQueryExecutorBase.TryParseExactCachedDateTime,
                 out result);
 
+        static bool TryEvalNoopSessionContextFunction(
+            FunctionCallExpr fn,
+            Func<int, object?> evalArg,
+            out object? result)
+        {
+            _ = fn;
+            _ = evalArg;
+            result = null;
+            return false;
+        }
+
+        static bool TryEvalNoopGeneralSystemAndJsonFunction(
+            FunctionCallExpr fn,
+            ISqlDialect currentDialect,
+            Func<int, object?> evalArg,
+            out object? result)
+        {
+            _ = fn;
+            _ = currentDialect;
+            _ = evalArg;
+            result = null;
+            return false;
+        }
+
+        var generalSystemAndJsonFunctionEvaluator = new AstQueryGeneralSystemAndJsonFunctionEvaluator(
+            TryEvalNoopSessionContextFunction,
+            TryEvalNoopGeneralSystemAndJsonFunction,
+            TryEvalNoopGeneralSystemAndJsonFunction,
+            TryEvalNoopGeneralSystemAndJsonFunction);
+
+        bool TryEvalMySqlGeneralSystemAndJsonFunction(
+            FunctionCallExpr fn,
+            ISqlDialect currentDialect,
+            Func<int, object?> evalArg,
+            out object? result)
+            => generalSystemAndJsonFunctionEvaluator.TryEvaluate(fn, currentDialect, evalArg, out result);
+
         this.AddScalarFunction(
             "IFNULL",
             "VARCHAR",
@@ -225,7 +262,7 @@ internal partial class MySqlDialect
         this.AddScalarFunction(
             "DATE_SUB",
             "DATETIME",
-            AstQueryTemporalArithmeticFunctionEvaluator.TryEvaluate);
+            body);
         this.AddScalarFunctions(
             "VARCHAR",
             TryEvalMySqlUtilityFunction,
@@ -235,7 +272,7 @@ internal partial class MySqlDialect
         this.AddScalarFunction(
             "FIND_IN_SET",
             "INT",
-            QueryTextSearchFunctionHelper.TryEvalFindInSetFunction);
+            body);
         this.AddScalarFunction(
             "FROM_BASE64",
             "VARBINARY",
@@ -409,7 +446,7 @@ internal partial class MySqlDialect
             version >= MySqlDialect.JsonExtractMinVersion,
             "JSON_ARRAY",
             "VARCHAR",
-            AstQueryGeneralSystemAndJsonFunctionEvaluator.TryEvaluate);
+            TryEvalMySqlGeneralSystemAndJsonFunction);
 
         this.AddScalarFunctionIf(version >= 56, "JSON_ARRAYAGG", "VARCHAR", body, SqlScalarFunctionUsageKind.Call, null);
         this.AddScalarFunctionIf(version >= 56, "JSON_OBJECTAGG", "VARCHAR", body, SqlScalarFunctionUsageKind.Call, null);
@@ -424,19 +461,19 @@ internal partial class MySqlDialect
             version >= 80,
             "JSON_DEPTH",
             "INT",
-            AstQueryGeneralSystemAndJsonFunctionEvaluator.TryEvaluate);
+            TryEvalMySqlGeneralSystemAndJsonFunction);
 
         this.AddScalarFunctionIf(
             version >= 80,
             "IS_UUID",
             "INT",
-            AstQueryGeneralSystemAndJsonFunctionEvaluator.TryEvaluate);
+            TryEvalMySqlGeneralSystemAndJsonFunction);
 
         this.AddScalarFunctionIf(
             version >= 80,
             "UUID_SHORT",
             "BIGINT",
-            AstQueryGeneralSystemAndJsonFunctionEvaluator.TryEvaluate);
+            TryEvalMySqlGeneralSystemAndJsonFunction);
         this.AddScalarFunctions(
             "DATETIME",
             AstQueryGeneralDateArithmeticFunctionEvaluator.TryEvaluate,
@@ -446,8 +483,8 @@ internal partial class MySqlDialect
             "EOMONTH",
             "SUBTIME");
 
-        this.AddScalarFunction("DATE_ADD", "DATETIME", AstQueryTemporalArithmeticFunctionEvaluator.TryEvaluate);
-        this.AddScalarFunction("TIMESTAMPADD", "DATETIME", AstQueryTemporalArithmeticFunctionEvaluator.TryEvaluate);
+        this.AddScalarFunction("DATE_ADD", "DATETIME", body);
+        this.AddScalarFunction("TIMESTAMPADD", "DATETIME", body);
         this.AddScalarFunction("TRY_CAST", "VARCHAR", body);
         this.AddScalarFunction("DATEDIFF", "INT", AstQueryGeneralDateFunctionEvaluator.TryEvaluate);
         this.AddScalarFunction("TIMESTAMPDIFF", "INT", AstQueryGeneralDateFunctionEvaluator.TryEvaluate);

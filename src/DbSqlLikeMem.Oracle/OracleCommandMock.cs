@@ -182,7 +182,7 @@ public class OracleCommandMock(
         {
             return earlyReader!;
         }
-        var executor = new OracleAstQueryExecutor(connection!, Parameters);
+        var executor = new OracleAstQueryExecutor(QueryExecutionContext.FromConnection(connection!, Parameters));
         var tables = new List<TableResultMock>();
         var parsedStatementCount = 0;
 

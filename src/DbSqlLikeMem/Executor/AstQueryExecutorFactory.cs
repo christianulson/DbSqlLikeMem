@@ -1,5 +1,6 @@
-
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 
 namespace DbSqlLikeMem;
 
@@ -13,8 +14,7 @@ namespace DbSqlLikeMem;
 internal static class AstQueryExecutorFactory
 {
     private static readonly ConcurrentDictionary<string, Func<
-        DbConnectionMockBase,
-        IDataParameterCollection,
+        QueryExecutionContext,
         IAstQueryExecutor>> _executors = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
@@ -22,8 +22,7 @@ internal static class AstQueryExecutorFactory
     /// PT: Obtem os executores de AST registrados pela chave do nome do dialeto.
     /// </summary>
     public static IReadOnlyDictionary<string, Func<
-        DbConnectionMockBase,
-        IDataParameterCollection,
+        QueryExecutionContext,
         IAstQueryExecutor>> Executors => _executors;
 
     /// <summary>
@@ -32,7 +31,7 @@ internal static class AstQueryExecutorFactory
     /// </summary>
     public static void RegisterExecutor(
         string dialectName,
-        Func<DbConnectionMockBase, IDataParameterCollection, IAstQueryExecutor> executorFactory)
+        Func<QueryExecutionContext, IAstQueryExecutor> executorFactory)
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(dialectName, nameof(dialectName));
         ArgumentNullExceptionCompatible.ThrowIfNull(executorFactory, nameof(executorFactory));
@@ -52,17 +51,28 @@ internal static class AstQueryExecutorFactory
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
         ArgumentNullExceptionCompatible.ThrowIfNull(parameters, nameof(parameters));
 
-        if (_executors.TryGetValue(dialect.Name, out var exc))
-            return exc(connection, parameters);
+        return Create(new QueryExecutionContext(connection, dialect, (DbParameterCollection)parameters));
+    }
 
-        if (dialect.Name.Equals("auto", StringComparison.OrdinalIgnoreCase)
-            && _executors.TryGetValue(connection.Db.Dialect.Name, out var providerExecutor))
+    /// <summary>
+    /// EN: Creates an AST executor from a pre-built query execution context.
+    /// PT: Cria um executor de AST a partir de um contexto de execução de query pre-construído.
+    /// </summary>
+    public static IAstQueryExecutor Create(QueryExecutionContext context)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(context, nameof(context));
+        
+        if (_executors.TryGetValue(context.Dialect.Name, out var exc))
+            return exc(context);
+
+        if (context.Dialect.Name.Equals("auto", StringComparison.OrdinalIgnoreCase)
+            && _executors.TryGetValue(context.Connection.Db.Dialect.Name, out var providerExecutor))
         {
-            return providerExecutor(connection, parameters);
+            return providerExecutor(context);
         }
 
         // Preparado para futura implementação.
-        return new NotImplementedAstQueryExecutor(dialect.Name);
+        return new NotImplementedAstQueryExecutor(context.Dialect.Name);
     }
 
     private sealed class NotImplementedAstQueryExecutor(string dialectName)

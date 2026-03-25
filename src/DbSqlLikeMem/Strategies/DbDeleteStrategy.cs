@@ -19,6 +19,16 @@ internal static class DbDeleteStrategy
             return Execute(connection, query, pars);
     }
 
+    /// <summary>
+    /// EN: Implements ExecuteDelete using a pre-built execution context.
+    /// PT: Implementa ExecuteDelete usando um contexto de execução pré-construído.
+    /// </summary>
+    public static DmlExecutionResult ExecuteDelete(
+        this DbConnectionMockBase connection,
+        SqlDeleteQuery query,
+        QueryExecutionContext context)
+        => connection.ExecuteDelete(query, context.DbParameters);
+
     private static DmlExecutionResult Execute(
         this DbConnectionMockBase connection,
         SqlDeleteQuery query,

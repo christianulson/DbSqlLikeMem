@@ -1,5 +1,4 @@
-﻿namespace DbSqlLikeMem.Sqlite;
-
+namespace DbSqlLikeMem.Sqlite;
 
 /// <summary>
 /// EN: Registers the SQLite AST executor with the shared factory.
@@ -14,20 +13,14 @@ public static class SqliteAstQueryExecutorRegister
     public static void Register()
         => AstQueryExecutorFactory.RegisterExecutor(
             SqliteDialect.DialectName,
-            (
-                DbConnectionMockBase cnn,
-                IDataParameterCollection pars
-            ) => new SqliteAstQueryExecutor((SqliteConnectionMock)cnn, pars));
+            ctx => new SqliteAstQueryExecutor(ctx));
 }
 
 /// <summary>
 /// SQLite executor wrapper: wires <see cref="AstQueryExecutorBase"/> with <see cref="SqliteDialect"/> hooks.
 /// </summary>
-internal sealed class SqliteAstQueryExecutor(
-    SqliteConnectionMock cnn,
-    IDataParameterCollection pars
-    ) : AstQueryExecutorBase(cnn, pars, cnn.ExecutionDialect)
+internal sealed class SqliteAstQueryExecutor(QueryExecutionContext context)
+    : AstQueryExecutorBase(context)
 {
     // Keep SQLite defaults from base.
 }
-

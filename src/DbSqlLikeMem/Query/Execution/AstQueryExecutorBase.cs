@@ -9,10 +9,7 @@ namespace DbSqlLikeMem;
 /// EN: The executor currently covers SELECT and WITH queries only, matching the scope of <see cref="SqlQueryParser"/>.
 /// PT: O executor atualmente cobre apenas consultas SELECT e WITH, acompanhando o escopo de <see cref="SqlQueryParser"/>.
 /// </summary>
-internal abstract class AstQueryExecutorBase(
-    DbConnectionMockBase cnn,
-    IDataParameterCollection pars,
-    object dialect)
+internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
     : IAstQueryExecutor
 {
     private const int TemporalParseCacheSoftLimit = 1024;
@@ -39,8 +36,9 @@ internal abstract class AstQueryExecutorBase(
     internal static readonly object _uuidShortCounterLock = new();
     internal static long _uuidShortCounter;
 
-    private readonly DbConnectionMockBase _cnn = cnn ?? throw new ArgumentNullException(nameof(cnn));
-    private readonly IDataParameterCollection _pars = pars ?? throw new ArgumentNullException(nameof(pars));
+    private readonly QueryExecutionContext _context = context ?? throw new ArgumentNullException(nameof(context));
+    private DbConnectionMockBase _cnn => _context.Connection;
+    private IDataParameterCollection _pars => _context.DbParameters;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, ITableMock> _resolvedBaseTableCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly DateTime _evaluationLocalNow = DateTime.Now;
     private readonly DateTime _evaluationUtcNow = DateTime.UtcNow;
@@ -68,7 +66,6 @@ internal abstract class AstQueryExecutorBase(
         SqlExpr OuterExpr);
 
     private readonly record struct InLookupScalarKey(string Kind, string Value);
-    private readonly object _dialect = dialect ?? throw new ArgumentNullException(nameof(dialect));
     private readonly AstSubqueryEvaluationCache _subqueryEvaluationCache = new();
     private readonly Stack<IReadOnlyDictionary<string, object?>> _localParameterScopes = new();
     private AstQueryJoinService? _joinService;
@@ -86,10 +83,7 @@ internal abstract class AstQueryExecutorBase(
     private AstQuerySqlServerIdentityFunctionEvaluator? _sqlServerIdentityFunctionEvaluator;
     private AstQuerySqlServerUtilityFunctionEvaluator? _sqlServerUtilityFunctionEvaluator;
     private AstQuerySqlServerSessionFunctionEvaluator? _sqlServerSessionFunctionEvaluator;
-    private ISqlDialect? Dialect
-        => _cnn.UseAutoSqlDialect
-            ? _cnn.ExecutionDialect
-            : _dialect as ISqlDialect;
+    private ISqlDialect? Dialect => _context.Dialect;
     private AstQueryJoinService JoinService
         => _joinService ??= new AstQueryJoinService(
             resolveSource: ResolveSource,

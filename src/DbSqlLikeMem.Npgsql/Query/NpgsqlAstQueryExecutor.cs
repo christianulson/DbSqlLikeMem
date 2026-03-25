@@ -13,19 +13,14 @@ public static class NpgsqlAstQueryExecutorRegister
     public static void Register()
         => AstQueryExecutorFactory.RegisterExecutor(
             NpgsqlDialect.DialectName,
-            (
-                DbConnectionMockBase cnn,
-                IDataParameterCollection pars
-            ) => new NpgsqlAstQueryExecutor((NpgsqlConnectionMock)cnn, pars));
+            ctx => new NpgsqlAstQueryExecutor(ctx));
 }
 
 /// <summary>
 /// Executor do PostgreSQL (placeholder): hoje delega para o MySqlAstQueryExecutor.
 /// </summary>
-internal sealed class NpgsqlAstQueryExecutor(
-    NpgsqlConnectionMock cnn,
-    IDataParameterCollection pars
-    ) : AstQueryExecutorBase(cnn, pars, cnn.Db.Dialect)
+internal sealed class NpgsqlAstQueryExecutor(QueryExecutionContext context)
+    : AstQueryExecutorBase(context)
 {
     /// <summary>
     /// EN: Maps PostgreSQL JSON path access into the executor-specific JSON access function.

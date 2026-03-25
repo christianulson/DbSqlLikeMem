@@ -95,17 +95,47 @@ internal static class NpgsqlScalarFunctionRegistry
             out object? result)
             => AstQueryGeneralScalarFunctionEvaluator.TryEvaluate(fn, currentDialect, evalArg, out result);
 
-        //bool TryEvalGeneralSystemAndJsonFunction(
-        //    FunctionCallExpr fn,
-        //    ISqlDialect currentDialect,
-        //    Func<int, object?> evalArg,
-        //    out object? result)
-        //    => AstQueryGeneralSystemAndJsonFunctionEvaluator.TryEvaluate(fn, currentDialect, evalArg, out result);
+        static bool TryEvalNoopSessionContextFunction(
+            FunctionCallExpr fn,
+            Func<int, object?> evalArg,
+            out object? result)
+        {
+            _ = fn;
+            _ = evalArg;
+            result = null;
+            return false;
+        }
+
+        static bool TryEvalNoopGeneralJsonFunction(
+            FunctionCallExpr fn,
+            ISqlDialect currentDialect,
+            Func<int, object?> evalArg,
+            out object? result)
+        {
+            _ = fn;
+            _ = currentDialect;
+            _ = evalArg;
+            result = null;
+            return false;
+        }
+
+        var generalSystemAndJsonFunctionEvaluator = new AstQueryGeneralSystemAndJsonFunctionEvaluator(
+            TryEvalNoopSessionContextFunction,
+            TryEvalNoopGeneralJsonFunction,
+            TryEvalNoopGeneralJsonFunction,
+            TryEvalNoopGeneralJsonFunction);
+
+        bool TryEvalGeneralSystemAndJsonFunction(
+            FunctionCallExpr fn,
+            ISqlDialect currentDialect,
+            Func<int, object?> evalArg,
+            out object? result)
+            => generalSystemAndJsonFunctionEvaluator.TryEvaluate(fn, currentDialect, evalArg, out result);
 
         RegisterSystemFunctions(dialect, body, TryEvalPostgresSystemFunction);
         RegisterDateFunctions(dialect, body, TryEvalPostgresDateFunction);
         RegisterNumericFunctions(dialect, body, TryEvalGeneralScalarFunction);
-        RegisterTextFunctions(dialect, body, TryEvalPostgresTextFunction, TryEvalPostgresUnicodeFunction);
+        RegisterTextFunctions(dialect, body, TryEvalPostgresTextFunction, TryEvalPostgresUnicodeFunction, TryEvalGeneralScalarFunction);
         RegisterUtilityFunctions(dialect, body, TryEvalPostgresUtilityFunction);
         RegisterNetworkFunctions(dialect, body, TryEvalPostgresNetworkFunction);
         RegisterBinaryFunctions(dialect, body);
@@ -125,7 +155,7 @@ internal static class NpgsqlScalarFunctionRegistry
             SqlConst.LASTVAL);
 
         RegisterArrayFunctions(dialect, body, TryEvalPostgresArrayFunction);
-        RegisterJsonFunctions(dialect, body, TryEvalPostgresJsonFunction);
+        RegisterJsonFunctions(dialect, body, TryEvalPostgresJsonFunction, TryEvalGeneralSystemAndJsonFunction);
         RegisterRegexFunctions(dialect, body, TryEvalPostgresRegexFunction);
         RegisterUuidFunctions(dialect, body, TryEvalPostgresUuidFunction);
         RegisterGeneralFunctions(dialect, body, TryEvalGeneralScalarFunction);
@@ -199,7 +229,8 @@ internal static class NpgsqlScalarFunctionRegistry
         ISqlDialect dialect,
         Func<SqlExpr, object> body,
         AstQueryGeneralScalarFunctionHandler tryEvalPostgresTextFunction,
-        AstQueryGeneralScalarFunctionHandler tryEvalPostgresUnicodeFunction)
+        AstQueryGeneralScalarFunctionHandler tryEvalPostgresUnicodeFunction,
+        AstQueryGeneralScalarFunctionHandler tryEvalGeneralScalarFunction)
     {
         dialect.AddScalarFunctions(
             "VARCHAR",
@@ -297,7 +328,8 @@ internal static class NpgsqlScalarFunctionRegistry
     private static void RegisterJsonFunctions(
         ISqlDialect dialect,
         Func<SqlExpr, object> body,
-        AstQueryGeneralScalarFunctionHandler tryEvalPostgresJsonFunction)
+        AstQueryGeneralScalarFunctionHandler tryEvalPostgresJsonFunction,
+        AstQueryGeneralScalarFunctionHandler tryEvalGeneralSystemAndJsonFunction)
     {
         dialect.AddScalarFunction("TO_JSON", "VARCHAR", tryEvalPostgresJsonFunction);
         dialect.AddScalarFunction("TO_JSONB", "VARCHAR", tryEvalPostgresJsonFunction);

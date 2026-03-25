@@ -9,13 +9,14 @@ internal sealed class AstDmlNonQueryCommandHandler : INonQueryCommandHandler
     {
         using var _ = context.Connection.Metrics.BeginAmbientScope();
         var query = context.GetParsedQuery(sqlRaw);
+        var execCtx = context.ExecutionContext;
 
         affectedRows = query switch
         {
-            SqlInsertQuery insertQ => context.Connection.ExecuteInsert(insertQ, context.Parameters, context.Connection.ExecutionDialect),
-            SqlUpdateQuery updateQ => context.Connection.ExecuteUpdateSmart(updateQ, context.Parameters, context.Connection.ExecutionDialect),
-            SqlDeleteQuery deleteQ => context.Connection.ExecuteDeleteSmart(deleteQ, context.Parameters, context.Connection.ExecutionDialect),
-            SqlMergeQuery mergeQ when context.Options.AllowMerge => context.Connection.ExecuteMerge(mergeQ, context.Parameters, context.Connection.ExecutionDialect),
+            SqlInsertQuery insertQ => context.Connection.ExecuteInsert(insertQ, execCtx),
+            SqlUpdateQuery updateQ => context.Connection.ExecuteUpdateSmart(updateQ, execCtx),
+            SqlDeleteQuery deleteQ => context.Connection.ExecuteDeleteSmart(deleteQ, execCtx),
+            SqlMergeQuery mergeQ when context.Options.AllowMerge => context.Connection.ExecuteMerge(mergeQ, execCtx),
             _ => new DmlExecutionResult()
         };
 

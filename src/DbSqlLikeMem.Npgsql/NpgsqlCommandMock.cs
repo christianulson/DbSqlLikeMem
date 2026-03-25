@@ -143,7 +143,7 @@ public class NpgsqlCommandMock(
         {
             return earlyReader!;
         }
-        var executor = new NpgsqlAstQueryExecutor(connection!, Parameters);
+        var executor = new NpgsqlAstQueryExecutor(QueryExecutionContext.FromConnection(connection!, Parameters));
         var tables = new List<TableResultMock>();
         var parsedStatementCount = 0;
 

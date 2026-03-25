@@ -41,6 +41,23 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     }
 
     /// <summary>
+    /// EN: Dispatches parsed AST commands to ExecuteNonQuery handlers using a pre-built execution context.
+    /// PT: Despacha comandos AST parseados para handlers de ExecuteNonQuery usando um contexto de execução pré-construído.
+    /// </summary>
+    public static DmlExecutionResult ExecuteParsedNonQuery(
+        this DbConnectionMockBase connection,
+        SqlQueryBase query,
+        QueryExecutionContext context,
+        bool allowMerge,
+        bool unionUsesSelectMessage)
+        => connection.ExecuteParsedNonQuery(
+            query,
+            context.DbParameters,
+            context.Dialect,
+            allowMerge,
+            unionUsesSelectMessage);
+
+    /// <summary>
     /// EN: Implements ExecuteCreateView.
     /// PT: Implementa ExecuteCreateView.
     /// </summary>
@@ -475,7 +492,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             var tableName = m.Groups["name"].Value.NormalizeName();
             var selectSql = m.Groups["select"].Value;
 
-            var executor = AstQueryExecutorFactory.Create(dialect, connection, pars);
+            var executor = new QueryExecutionContext(connection, dialect, pars).CreateExecutor();
             var q = SqlQueryParser.Parse(
                 selectSql,
                 dialect,
@@ -767,7 +784,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             throw new InvalidOperationException(SqlExceptionMessages.TableAlreadyExists(tableName!));
         }
 
-        var executor = AstQueryExecutorFactory.Create(dialect, connection, pars);
+        var executor = new QueryExecutionContext(connection, dialect, pars).CreateExecutor();
         var res = executor.ExecuteSelect(query.AsSelect);
 
         var newTable = tempScope == TemporaryTableScope.Global
@@ -841,7 +858,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         ISqlDialect dialect)
     {
         var plan = BuildInsertSelectPlan(connection, query);
-        var executor = AstQueryExecutorFactory.Create(dialect, connection, pars);
+        var executor = new QueryExecutionContext(connection, dialect, pars).CreateExecutor();
         var q = SqlQueryParser.Parse(
             plan.SelectSql,
             dialect,

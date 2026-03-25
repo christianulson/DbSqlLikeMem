@@ -13,18 +13,13 @@ public static class OracleAstQueryExecutorRegister
     public static void Register()
         => AstQueryExecutorFactory.RegisterExecutor(
             OracleDialect.DialectName,
-            (
-                DbConnectionMockBase cnn,
-                IDataParameterCollection pars
-            ) => new OracleAstQueryExecutor((OracleConnectionMock)cnn, pars));
+            ctx => new OracleAstQueryExecutor(ctx));
 }
 
 /// <summary>
 /// Executor do Oracle (placeholder): hoje delega para o MySqlAstQueryExecutor.
 /// </summary>
-internal sealed class OracleAstQueryExecutor(
-    OracleConnectionMock cnn,
-    IDataParameterCollection pars
-    ) : AstQueryExecutorBase(cnn, pars, cnn.Db.Dialect)
+internal sealed class OracleAstQueryExecutor(QueryExecutionContext context)
+    : AstQueryExecutorBase(context)
 {
 }

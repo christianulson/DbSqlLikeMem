@@ -142,7 +142,7 @@ public class SqlServerCommandMock(
         {
             return earlyReader!;
         }
-        var executor = new SqlServerAstQueryExecutor(connection!, Parameters);
+        var executor = new SqlServerAstQueryExecutor(QueryExecutionContext.FromConnection(connection!, Parameters));
         var tables = new List<TableResultMock>();
         var parsedStatementCount = 0;
 

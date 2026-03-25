@@ -1,14 +1,8 @@
 namespace DbSqlLikeMem;
 
-internal delegate bool AstQueryTryEvalMySqlConversionAndMetadataFunction(
-    FunctionCallExpr fn,
-    ISqlDialect dialect,
-    Func<int, object?> evalArg,
-    out object? result);
-
 internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
 {
-    private static readonly IReadOnlyDictionary<string, AstQueryTryEvalMySqlConversionAndMetadataFunction> _handlers =
+    private static readonly IReadOnlyDictionary<string, AstQueryGeneralScalarFunctionHandler> _handlers =
         CreateHandlers();
 
     internal static bool TryEvaluate(
@@ -27,9 +21,9 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
         return false;
     }
 
-    private static Dictionary<string, AstQueryTryEvalMySqlConversionAndMetadataFunction> CreateHandlers()
+    private static Dictionary<string, AstQueryGeneralScalarFunctionHandler> CreateHandlers()
     {
-        var handlers = new Dictionary<string, AstQueryTryEvalMySqlConversionAndMetadataFunction>(StringComparer.OrdinalIgnoreCase);
+        var handlers = new Dictionary<string, AstQueryGeneralScalarFunctionHandler>(StringComparer.OrdinalIgnoreCase);
         Register(handlers, TryEvalMySqlConvFunction, "CONV");
         Register(handlers, TryEvalMySqlDayFunctions, "DAYNAME", "DAYOFMONTH", "DAYOFWEEK", "DAYOFYEAR");
         Register(handlers, TryEvalMySqlVersionFunction, "VERSION");
@@ -45,8 +39,8 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     }
 
     private static void Register(
-        IDictionary<string, AstQueryTryEvalMySqlConversionAndMetadataFunction> handlers,
-        AstQueryTryEvalMySqlConversionAndMetadataFunction handler,
+        IDictionary<string, AstQueryGeneralScalarFunctionHandler> handlers,
+        AstQueryGeneralScalarFunctionHandler handler,
         params string[] names)
     {
         foreach (var name in names)

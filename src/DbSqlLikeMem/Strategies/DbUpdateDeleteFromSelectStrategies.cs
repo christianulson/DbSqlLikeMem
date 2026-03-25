@@ -42,6 +42,16 @@ internal static class DbUpdateDeleteFromSelectStrategies
     }
 
     /// <summary>
+    /// EN: Implements ExecuteUpdateSmart using a pre-built execution context.
+    /// PT: Implementa ExecuteUpdateSmart usando um contexto de execução pré-construído.
+    /// </summary>
+    public static DmlExecutionResult ExecuteUpdateSmart(
+        this DbConnectionMockBase connection,
+        SqlUpdateQuery query,
+        QueryExecutionContext context)
+        => connection.ExecuteUpdateSmart(query, context.DbParameters, context.Dialect);
+
+    /// <summary>
     /// EN: Implements ExecuteDeleteSmart.
     /// PT: Implementa ExecuteDeleteSmart.
     /// </summary>
@@ -59,6 +69,16 @@ internal static class DbUpdateDeleteFromSelectStrategies
         connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
     }
+
+    /// <summary>
+    /// EN: Implements ExecuteDeleteSmart using a pre-built execution context.
+    /// PT: Implementa ExecuteDeleteSmart usando um contexto de execução pré-construído.
+    /// </summary>
+    public static DmlExecutionResult ExecuteDeleteSmart(
+        this DbConnectionMockBase connection,
+        SqlDeleteQuery query,
+        QueryExecutionContext context)
+        => connection.ExecuteDeleteSmart(query, context.DbParameters, context.Dialect);
 
     /// <summary>
     /// EN: Implements ExecuteUpdateFromSelect.
@@ -158,7 +178,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
         var subSetCol = setM.Groups["scol"].Value.Trim('`');
 
         // Execute subquery
-        var executor = AstQueryExecutorFactory.Create(dialect, connection, pars);
+        var executor = new QueryExecutionContext(connection, dialect, pars).CreateExecutor();
         var q = SqlQueryParser.Parse(
             subSql,
             dialect,
@@ -398,7 +418,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
             throw new InvalidOperationException(SqlExceptionMessages.JoinOnMustReferenceTargetAndSubqueryAliases());
         }
 
-        var executor = AstQueryExecutorFactory.Create(dialect, connection, pars);
+        var executor = new QueryExecutionContext(connection, dialect, pars).CreateExecutor();
         var q = SqlQueryParser.Parse(
             subSql,
             dialect,

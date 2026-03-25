@@ -19,6 +19,16 @@ internal static class DbUpdateStrategy
             return Execute(connection, query, pars);
     }
 
+    /// <summary>
+    /// EN: Implements ExecuteUpdate using a pre-built execution context.
+    /// PT: Implementa ExecuteUpdate usando um contexto de execução pré-construído.
+    /// </summary>
+    public static DmlExecutionResult ExecuteUpdate(
+        this DbConnectionMockBase connection,
+        SqlUpdateQuery query,
+        QueryExecutionContext context)
+        => connection.ExecuteUpdate(query, context.DbParameters);
+
     private static DmlExecutionResult Execute(
         DbConnectionMockBase connection,
         SqlUpdateQuery query,

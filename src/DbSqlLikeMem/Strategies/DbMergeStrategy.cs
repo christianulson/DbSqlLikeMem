@@ -25,6 +25,16 @@ internal static class DbMergeStrategy
         return affected;
     }
 
+    /// <summary>
+    /// EN: Implements ExecuteMerge using a pre-built execution context.
+    /// PT: Implementa ExecuteMerge usando um contexto de execução pré-construído.
+    /// </summary>
+    public static DmlExecutionResult ExecuteMerge(
+        this DbConnectionMockBase connection,
+        SqlMergeQuery query,
+        QueryExecutionContext context)
+        => connection.ExecuteMerge(query, context.DbParameters, context.Dialect);
+
     private static DmlExecutionResult ExecuteMergeImpl(
         DbConnectionMockBase connection,
         SqlMergeQuery query,
@@ -294,7 +304,7 @@ internal static class DbMergeStrategy
         DbParameterCollection pars,
         ISqlDialect dialect)
     {
-        var executor = AstQueryExecutorFactory.Create(dialect, connection, pars);
+        var executor = new QueryExecutionContext(connection, dialect, pars).CreateExecutor();
         var customFunctionSupported = SqlCustomFunctionResolverFactory.Create(connection);
         var parsedSource = SqlQueryParser.Parse(selectSql, dialect, null, customFunctionSupported) as SqlSelectQuery
             ?? throw new InvalidOperationException(SqlExceptionMessages.MergeSourceSelectInvalid());

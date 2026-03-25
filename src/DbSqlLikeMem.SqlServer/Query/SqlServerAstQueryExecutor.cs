@@ -13,18 +13,13 @@ public static class SqlServerAstQueryExecutorRegister
     public static void Register()
         => AstQueryExecutorFactory.RegisterExecutor(
             SqlServerDialect.DialectName,
-            (
-                DbConnectionMockBase cnn,
-                IDataParameterCollection pars
-            ) => new SqlServerAstQueryExecutor((SqlServerConnectionMock)cnn, pars));
+            ctx => new SqlServerAstQueryExecutor(ctx));
 }
 
 /// <summary>
 /// Executor do SQL Server (placeholder): hoje delega para o MySqlAstQueryExecutor.
 /// </summary>
-internal sealed class SqlServerAstQueryExecutor(
-    SqlServerConnectionMock cnn,
-    IDataParameterCollection pars
-    ) : AstQueryExecutorBase(cnn, pars, cnn.Db.Dialect)
+internal sealed class SqlServerAstQueryExecutor(QueryExecutionContext context)
+    : AstQueryExecutorBase(context)
 {
 }

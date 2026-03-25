@@ -89,7 +89,7 @@ internal static class CommandScalarExecutionPrelude
         if (TryEvaluateSimpleSelectScalar(selectQuery, connection.ExecutionDialect, pars, out scalar))
             return true;
 
-        var executor = AstQueryExecutorFactory.Create(connection.ExecutionDialect, connection, pars);
+        var executor = QueryExecutionContext.FromConnection(connection, pars).CreateExecutor();
         var table = executor.ExecuteSelect(selectQuery);
         if (table.Count <= 0)
         {

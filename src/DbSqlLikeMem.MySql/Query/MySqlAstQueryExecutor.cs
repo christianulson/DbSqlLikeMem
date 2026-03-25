@@ -1,6 +1,5 @@
 namespace DbSqlLikeMem.MySql;
 
-
 /// <summary>
 /// EN: Registers the MySQL AST executor with the shared factory.
 /// PT: Registra o executor AST de MySQL na factory compartilhada.
@@ -22,20 +21,14 @@ public static class MySqlAstQueryExecutorRegister
     public static void Register(string dialectName)
         => AstQueryExecutorFactory.RegisterExecutor(
             dialectName,
-            (
-                DbConnectionMockBase cnn,
-                IDataParameterCollection pars
-            ) => new MySqlAstQueryExecutor((MySqlConnectionMock)cnn, pars));
+            ctx => new MySqlAstQueryExecutor(ctx));
 }
 
 /// <summary>
 /// MySQL executor wrapper: wires <see cref="AstQueryExecutorBase"/> with <see cref="MySqlDialect"/> hooks.
 /// </summary>
-internal sealed class MySqlAstQueryExecutor(
-    MySqlConnectionMock cnn,
-    IDataParameterCollection pars
-    ) : AstQueryExecutorBase(cnn, pars, cnn.Db.Dialect)
+internal sealed class MySqlAstQueryExecutor(QueryExecutionContext context)
+    : AstQueryExecutorBase(context)
 {
     // Keep MySQL defaults from base.
 }
-

@@ -25,6 +25,12 @@ internal sealed class QueryExecutionContext
     public IDataParameterCollection Parameters { get; }
 
     /// <summary>
+    /// EN: ADO.NET parameters cast to DbParameterCollection for strategy compatibility.
+    /// PT: Parâmetros ADO.NET convertidos para DbParameterCollection para compatibilidade com as strategies.
+    /// </summary>
+    public DbParameterCollection DbParameters { get; }
+
+    /// <summary>
     /// EN: In-memory database backing this execution.
     /// PT: Banco de dados em memória que sustenta esta execução.
     /// </summary>
@@ -94,6 +100,7 @@ internal sealed class QueryExecutionContext
         Connection = connection;
         Dialect = dialect;
         Parameters = parameters;
+        DbParameters = (DbParameterCollection)parameters;
         Database = connection.Db;
         Metrics = connection.Metrics;
         MetricsEnabled = connection.Metrics.Enabled;
@@ -106,9 +113,25 @@ internal sealed class QueryExecutionContext
     }
 
     /// <summary>
+    /// EN: Creates a context from a connection using its current execution dialect.
+    /// PT: Cria um contexto a partir de uma conexão usando o dialeto de execução atual.
+    /// </summary>
+    public static QueryExecutionContext FromConnection(
+        DbConnectionMockBase connection,
+        DbParameterCollection parameters)
+        => new(connection, connection.ExecutionDialect, parameters);
+
+    /// <summary>
     /// EN: Builds a mock runtime context snapshot for execution-plan formatting.
     /// PT: Constrói um snapshot de contexto de runtime mock para formatação de planos de execução.
     /// </summary>
     public SqlPlanMockRuntimeContext BuildPlanRuntimeContext()
         => new(SimulatedLatencyMs, DropProbability, ThreadSafe);
+
+    /// <summary>
+    /// EN: Creates an AST executor scoped to the dialect and parameters of this context.
+    /// PT: Cria um executor de AST com escopo no dialeto e parâmetros deste contexto.
+    /// </summary>
+    public IAstQueryExecutor CreateExecutor()
+        => AstQueryExecutorFactory.Create(Dialect, Connection, Parameters);
 }
