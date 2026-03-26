@@ -79,6 +79,36 @@ internal partial class MySqlDialect
             return QueryTextSearchFunctionHelper.TryEvalFindInSetFunction(fn, evalArg, out result);
         }
 
+        static bool TryEvalBenchmarkFunction(
+            FunctionCallExpr fn,
+            QueryExecutionContext context,
+            Func<int, object?> evalArg,
+            out object? result)
+        {
+            _ = context;
+            if (fn.Args.Count < 2)
+                throw new InvalidOperationException("BENCHMARK() espera contagem e expressao.");
+
+            var countValue = evalArg(0);
+            if (countValue is null or DBNull)
+            {
+                result = null;
+                return true;
+            }
+
+            if (!AstQueryExecutorBase.TryConvertNumericToInt64(countValue, out var count) || count <= 0)
+            {
+                result = 0;
+                return true;
+            }
+
+            for (var i = 0L; i < count; i++)
+                _ = evalArg(1);
+
+            result = 0;
+            return true;
+        }
+
         static bool TryEvalNoopSessionContextFunction(
             QueryExecutionContext context,
             FunctionCallExpr fn,
@@ -141,6 +171,14 @@ internal partial class MySqlDialect
             tryEvalMySqlConversionAndMetadataFunction,
             "DATABASE",
             "SCHEMA");
+        this.AddScalarFunction(
+            "BENCHMARK",
+            "INT",
+            executionHandler: TryEvalBenchmarkFunction);
+        this.AddScalarFunction(
+            "FIELD",
+            "INT",
+            executionHandler: tryEvalMySqlGeneralScalarFunction);
         this.AddScalarFunctions(
             "VARCHAR",
             tryEvalMySqlConversionAndMetadataFunction,
@@ -171,7 +209,15 @@ internal partial class MySqlDialect
             "SYSTEM_USER");
         this.AddScalarFunctions("BIGINT", body, "FOUND_ROWS", "ROW_COUNT");
         this.AddScalarFunction("LAST_INSERT_ID", "BIGINT", body);
-        this.AddScalarFunction("GROUP_CONCAT", "VARCHAR", body, SqlScalarFunctionUsageKind.Call, null);
+        this.AddScalarFunction(
+            new DbScalarFunctionDef(
+                "GROUP_CONCAT",
+                "VARCHAR",
+                [],
+                body,
+                SqlScalarFunctionUsageKind.Call,
+                null,
+                true));
 
         this.AddScalarFunction(
             "CURDATE",
@@ -422,6 +468,10 @@ internal partial class MySqlDialect
             "UNHEX",
             "VARBINARY",
             tryEvalMySqlUtilityFunction);
+        this.AddScalarFunction(
+            "WEIGHT_STRING",
+            "VARBINARY",
+            executionHandler: global::DbSqlLikeMem.QueryMariaDbFunctionHelper.TryEvalFunctions);
         this.AddScalarFunctionsIf(
             version >= 80,
             "INT",
@@ -431,7 +481,7 @@ internal partial class MySqlDialect
             "REGEXP_SUBSTR",
             "REGEXP_LIKE");
         this.AddScalarFunctionsIf(
-            version >= MySqlDialect.JsonExtractMinVersion,
+            version >= MySqlDialect.JsonArrowOperatorsMinVersion,
             "VARCHAR",
             tryEvalJsonExtractionFunction,
             "JSON_EXTRACT",
@@ -439,7 +489,7 @@ internal partial class MySqlDialect
             "JSON_VALUE");
 
         this.AddScalarFunctionsIf(
-            version >= MySqlDialect.JsonExtractMinVersion,
+            version >= MySqlDialect.JsonArrowOperatorsMinVersion,
             "VARCHAR",
             tryEvalJsonUtilityFunctions,
             "JSON_UNQUOTE",
@@ -461,13 +511,13 @@ internal partial class MySqlDialect
             "JSON_MERGE_PATCH");
 
         this.AddScalarFunctionIf(
-            version >= MySqlDialect.JsonExtractMinVersion,
+            version >= MySqlDialect.JsonArrowOperatorsMinVersion,
             "JSON_TYPE",
             "VARCHAR",
             tryEvalJsonUtilityFunctions);
 
         this.AddScalarFunctionsIf(
-            version >= MySqlDialect.JsonExtractMinVersion,
+            version >= MySqlDialect.JsonArrowOperatorsMinVersion,
             "INT",
             tryEvalJsonUtilityFunctions,
             "JSON_VALID",
@@ -477,7 +527,7 @@ internal partial class MySqlDialect
             "JSON_OVERLAPS");
 
         this.AddScalarFunctionIf(
-            version >= MySqlDialect.JsonExtractMinVersion,
+            version >= MySqlDialect.JsonArrowOperatorsMinVersion,
             "JSON_ARRAY",
             "VARCHAR",
             executionHandler: tryEvalMySqlGeneralSystemAndJsonFunction);

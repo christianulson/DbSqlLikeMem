@@ -75,9 +75,6 @@ internal sealed class AstQuerySqlServerSessionFunctionEvaluator
         result = null;
 
         var dialect = _getDialect() ?? throw new InvalidOperationException("Dialeto SQL não disponível para SERVERPROPERTY.");
-        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("sqlazure", StringComparison.OrdinalIgnoreCase))
-            return false;
 
         var propertyName = evalArg(0)?.ToString();
         if (string.IsNullOrWhiteSpace(propertyName))
@@ -156,9 +153,6 @@ internal sealed class AstQuerySqlServerSessionFunctionEvaluator
         out object? result)
     {
         result = null;
-        var dialect = _getDialect() ?? throw new InvalidOperationException("Dialeto SQL não disponível para funções de sessão.");
-        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
-            return false;
 
         _ = fn;
         _ = evalArg;
@@ -172,9 +166,6 @@ internal sealed class AstQuerySqlServerSessionFunctionEvaluator
         out object? result)
     {
         result = null;
-        var dialect = _getDialect() ?? throw new InvalidOperationException("Dialeto SQL não disponível para funções de sessão.");
-        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
-            return false;
 
         _ = fn;
         _ = evalArg;
@@ -188,9 +179,6 @@ internal sealed class AstQuerySqlServerSessionFunctionEvaluator
         out object? result)
     {
         result = null;
-        var dialect = _getDialect() ?? throw new InvalidOperationException("Dialeto SQL não disponível para funções de sessão.");
-        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
-            return false;
 
         _ = fn;
         result = _tryResolveSqlServerRoleMembership(evalArg(0)?.ToString());
@@ -203,9 +191,6 @@ internal sealed class AstQuerySqlServerSessionFunctionEvaluator
         out object? result)
     {
         result = null;
-        var dialect = _getDialect() ?? throw new InvalidOperationException("Dialeto SQL não disponível para funções de sessão.");
-        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
-            return false;
 
         _ = fn;
         result = _tryResolveSqlServerRoleMembership(evalArg(0)?.ToString());
@@ -218,9 +203,6 @@ internal sealed class AstQuerySqlServerSessionFunctionEvaluator
         out object? result)
     {
         result = null;
-        var dialect = _getDialect() ?? throw new InvalidOperationException("Dialeto SQL não disponível para funções de sessão.");
-        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
-            return false;
 
         _ = fn;
         result = _tryResolveSqlServerServerRoleMembership(evalArg(0)?.ToString());
@@ -233,9 +215,6 @@ internal sealed class AstQuerySqlServerSessionFunctionEvaluator
         out object? result)
     {
         result = null;
-        var dialect = _getDialect() ?? throw new InvalidOperationException("Dialeto SQL não disponível para funções de sessão.");
-        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
-            return false;
 
         _ = fn;
         _ = evalArg;
@@ -249,9 +228,6 @@ internal sealed class AstQuerySqlServerSessionFunctionEvaluator
         out object? result)
     {
         result = null;
-        var dialect = _getDialect() ?? throw new InvalidOperationException("Dialeto SQL não disponível para funções de sessão.");
-        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
-            return false;
 
         _ = fn;
         _ = evalArg;
@@ -265,9 +241,6 @@ internal sealed class AstQuerySqlServerSessionFunctionEvaluator
         out object? result)
     {
         result = null;
-        var dialect = _getDialect() ?? throw new InvalidOperationException("Dialeto SQL não disponível para funções de sessão.");
-        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
-            return false;
 
         _ = fn;
         _ = evalArg;

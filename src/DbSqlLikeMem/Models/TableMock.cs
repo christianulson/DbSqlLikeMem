@@ -331,7 +331,7 @@ public abstract class TableMock
         public int Count => items.Count;
         public IReadOnlyDictionary<int, object?> this[int index] => items[index];
         public IEnumerator<IReadOnlyDictionary<int, object?>> GetEnumerator() => items.GetEnumerator();
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
     internal HashSet<int> _primaryKeyIndexes = [];
@@ -1851,7 +1851,7 @@ public abstract class TableMock
         if (!(resolved is IEnumerable ie and not string))
             return [resolved];
 
-        var tmp = resolved is System.Collections.ICollection collection
+        var tmp = resolved is ICollection collection
             ? new List<object?>(collection.Count)
             : new List<object?>();
         foreach (var v in ie) tmp.Add(v);

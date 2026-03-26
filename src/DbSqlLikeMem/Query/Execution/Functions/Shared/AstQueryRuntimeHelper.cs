@@ -1,18 +1,35 @@
 namespace DbSqlLikeMem;
 
-internal abstract partial class AstQueryExecutorBase
+internal static class AstQueryRuntimeHelper
 {
-    private static bool TryParseOracleDayOfWeek(string value, out DayOfWeek day)
+    private static readonly IReadOnlyDictionary<string, DayOfWeek> _oracleDayOfWeekMap = new Dictionary<string, DayOfWeek>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["SUN"] = DayOfWeek.Sunday,
+        ["SUNDAY"] = DayOfWeek.Sunday,
+        ["MON"] = DayOfWeek.Monday,
+        ["MONDAY"] = DayOfWeek.Monday,
+        ["TUE"] = DayOfWeek.Tuesday,
+        ["TUES"] = DayOfWeek.Tuesday,
+        ["TUESDAY"] = DayOfWeek.Tuesday,
+        ["WED"] = DayOfWeek.Wednesday,
+        ["WEDNESDAY"] = DayOfWeek.Wednesday,
+        ["THU"] = DayOfWeek.Thursday,
+        ["THUR"] = DayOfWeek.Thursday,
+        ["THURSDAY"] = DayOfWeek.Thursday,
+        ["FRI"] = DayOfWeek.Friday,
+        ["FRIDAY"] = DayOfWeek.Friday,
+        ["SAT"] = DayOfWeek.Saturday,
+        ["SATURDAY"] = DayOfWeek.Saturday,
+    };
+
+    internal static bool TryParseOracleDayOfWeek(string value, out DayOfWeek day)
     {
         day = default;
         var normalized = value.Trim().ToUpperInvariant();
-        if (_oracleDayOfWeekMap.TryGetValue(normalized, out day))
-            return true;
-
-        return false;
+        return _oracleDayOfWeekMap.TryGetValue(normalized, out day);
     }
 
-    private static string ApplyInitCap(string value)
+    internal static string ApplyInitCap(string value)
     {
         if (string.IsNullOrEmpty(value))
             return value;
@@ -38,7 +55,7 @@ internal abstract partial class AstQueryExecutorBase
         return builder.ToString();
     }
 
-    private static bool TryNormalizeHexPayload(string trimmed, out string hex)
+    internal static bool TryNormalizeHexPayload(string trimmed, out string hex)
     {
         hex = string.Empty;
 
@@ -67,14 +84,14 @@ internal abstract partial class AstQueryExecutorBase
     internal static long NextRandomInt64()
     {
         var buffer = new byte[8];
-        lock (_randomLock)
-            _sharedRandom.NextBytes(buffer);
+        lock (AstQueryExecutorBase._randomLock)
+            AstQueryExecutorBase._sharedRandom.NextBytes(buffer);
         return BitConverter.ToInt64(buffer, 0);
     }
 
     internal static double NextRandomDouble()
     {
-        lock (_randomLock)
-            return _sharedRandom.NextDouble();
+        lock (AstQueryExecutorBase._randomLock)
+            return AstQueryExecutorBase._sharedRandom.NextDouble();
     }
 }

@@ -30,7 +30,7 @@ public partial class SchemaSnapshotServiceTest<T>
     /// EN: Parses a representative schema-snapshot JSON payload.
     /// PT: Faz o parse de um payload JSON representativo de snapshot de schema.
     /// </summary>
-    public System.Text.Json.JsonDocument RunSchemaSnapshotLoadJson()
+    public JsonDocument RunSchemaSnapshotLoadJson()
     {
         var obj = RunSchemaSnapshotLoadJson(Dialect.DisplayName);
         GC.KeepAlive(obj);
@@ -41,7 +41,7 @@ public partial class SchemaSnapshotServiceTest<T>
     /// EN: Parses a representative schema-snapshot JSON payload without requiring a database connection.
     /// PT: Faz o parse de um payload JSON representativo de snapshot de schema sem exigir uma conexao de banco de dados.
     /// </summary>
-    public static System.Text.Json.JsonDocument RunSchemaSnapshotLoadJson(string providerDisplayName)
+    public static JsonDocument RunSchemaSnapshotLoadJson(string providerDisplayName)
     {
         var json = "{\"provider\":\"" + providerDisplayName + "\",\"version\":1}";
         return System.Text.Json.JsonDocument.Parse(json);
@@ -63,7 +63,7 @@ public partial class SchemaSnapshotServiceTest<T>
     /// EN: Serializes and parses a schema snapshot in a round-trip flow.
     /// PT: Serializa e faz o parse de um snapshot de schema em um fluxo de ida e volta.
     /// </summary>
-    public System.Text.Json.JsonDocument RunSchemaSnapshotRoundTrip()
+    public JsonDocument RunSchemaSnapshotRoundTrip()
     {
         var snapshot = GetSchemaSnapshot(Connection);
         var json = snapshot.ToJson();
@@ -86,7 +86,7 @@ public partial class SchemaSnapshotServiceTest<T>
 
     private SchemaSnapshot GetSchemaSnapshot(DbConnection connection)
     {
-        if (connection is DbSqlLikeMem.DbConnectionMockBase mockConnection)
+        if (connection is DbConnectionMockBase mockConnection)
         {
             return mockConnection.ExportSchemaSnapshot();
         }

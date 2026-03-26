@@ -52,7 +52,7 @@ public sealed class QueryDebugTrace
         var maxInputRows = 0;
         var maxOutputRows = 0;
         var operatorCounts = new Dictionary<string, int>(StringComparer.Ordinal);
-        var signature = new System.Text.StringBuilder();
+        var signature = new StringBuilder();
         var stepTicksParts = new string[Steps.Count];
         var stepMsParts = new string[Steps.Count];
 

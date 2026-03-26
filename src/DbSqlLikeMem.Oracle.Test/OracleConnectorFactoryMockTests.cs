@@ -20,7 +20,7 @@ public sealed class OracleConnectorFactoryMockTests(
         Assert.IsType<OracleCommandMock>(factory.CreateCommand());
         Assert.IsType<OracleConnectionMock>(factory.CreateConnection());
         Assert.IsType<OracleDataAdapterMock>(factory.CreateDataAdapter());
-        Assert.IsType<System.Data.Common.DbConnectionStringBuilder>(factory.CreateConnectionStringBuilder());
+        Assert.IsType<DbConnectionStringBuilder>(factory.CreateConnectionStringBuilder());
         Assert.NotNull(factory.CreateParameter());
     }
 

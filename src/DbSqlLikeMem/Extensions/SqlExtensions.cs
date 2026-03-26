@@ -82,7 +82,7 @@ internal static class SqlExtensions
         pattern ??= "";
 
         var escapeChar = ResolveLikeEscapeCharacter(dialect, escape);
-        var sb = new System.Text.StringBuilder();
+        var sb = new StringBuilder();
         sb.Append('^');
 
         for (int i = 0; i < pattern.Length; i++)
@@ -165,7 +165,7 @@ internal static class SqlExtensions
         return dialect.LikeDefaultEscapeCharacter;
     }
 
-    private static void AppendRegexLiteral(System.Text.StringBuilder sb, char ch)
+    private static void AppendRegexLiteral(StringBuilder sb, char ch)
     {
         if ("\\.^$|?*+()[]{}".Contains($"{ch}", StringComparison.OrdinalIgnoreCase))
             sb.Append('\\');

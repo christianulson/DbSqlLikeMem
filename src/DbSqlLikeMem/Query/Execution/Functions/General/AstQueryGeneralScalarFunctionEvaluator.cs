@@ -50,10 +50,16 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Register(handlers, TryEvalLikeFunction, "LIKE");
         Register(handlers, TryEvalPatIndexFunction, "PATINDEX");
         Register(handlers, TryEvalPrintfFunction, "PRINTF", "FORMAT", "SQLITE3_MPRINTF");
-        Register(handlers, TryEvalRandomFunctions, "RANDOM", "RANDOMBLOB", "ZEROBLOB", "SQLITE3_RESULT_ZEROBLOB");
+        Register(handlers, TryEvalRandomFunction, "RANDOM");
+        Register(handlers, TryEvalRandomBlobFunction, "RANDOMBLOB");
+        Register(handlers, TryEvalZeroBlobFunction, "ZEROBLOB", "SQLITE3_RESULT_ZEROBLOB");
         Register(handlers, TryEvalTypeofFunction, "TYPEOF");
-        Register(handlers, TryEvalUnicodeFunctions, "UNICODE", "UNISTR", "UNISTR_QUOTE");
-        Register(handlers, TryEvalLikelihoodFunctions, "LIKELY", "UNLIKELY", "LIKELIHOOD");
+        Register(handlers, TryEvalUnicodeFunction, "UNICODE");
+        Register(handlers, TryEvalUnistrFunction, "UNISTR");
+        Register(handlers, TryEvalUnistrQuoteFunction, "UNISTR_QUOTE");
+        Register(handlers, TryEvalLikelyFunction, "LIKELY");
+        Register(handlers, TryEvalUnlikelyFunction, "UNLIKELY");
+        Register(handlers, TryEvalLikelihoodFunction, "LIKELIHOOD");
         Register(handlers, TryEvalAsciiFunction, "ASCII");
         Register(handlers, TryEvalBasicStringFunctions, "LOWER", "LCASE", "UPPER", "UCASE", "TRIM", "RTRIM", "LTRIM", "TO_CHAR", "LENGTH", "CHAR_LENGTH", "CHARACTER_LENGTH", "LEN");
         Register(handlers, TryEvalPadFunctions, "LPAD");
@@ -83,7 +89,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Register(handlers, TryEvalReverseFunction, "REVERSE");
         Register(handlers, TryEvalReplaceFunction, "REPLACE");
         Register(handlers, TryEvalTranslateFunctions, "TRANSLATE");
-        Register(handlers, TryEvalCharFunction, "CHAR");
+        Register(handlers, TryEvalCharFunction, "CHAR", "NCHAR");
         Register(handlers, TryEvalLeftFunction, SqlConst.LEFT);
         Register(handlers, TryEvalRightFunction, SqlConst.RIGHT);
         Register(handlers, TryEvalRoundFunction, "ROUND");
@@ -116,13 +122,8 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var isGreatest = fn.Name.Equals("GREATEST", StringComparison.OrdinalIgnoreCase);
-        var isLeast = fn.Name.Equals("LEAST", StringComparison.OrdinalIgnoreCase);
-        if (!isGreatest && !isLeast)
-        {
-            result = null;
-            return false;
-        }
+        var isGreatest = string.Equals(fn.Name, "GREATEST", StringComparison.OrdinalIgnoreCase);
+        var isLeast = string.Equals(fn.Name, "LEAST", StringComparison.OrdinalIgnoreCase);
 
         if (fn.Args.Count == 0)
         {
@@ -163,12 +164,6 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("ASCII", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         if (IsNullish(value))
         {
@@ -194,12 +189,6 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("LOCATE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var needle = evalArg(0)?.ToString() ?? string.Empty;
         var haystack = evalArg(1)?.ToString() ?? string.Empty;
         var startPosition = fn.Args.Count > 2 ? evalArg(2) : null;
@@ -232,15 +221,10 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var isLn = fn.Name.Equals("LN", StringComparison.OrdinalIgnoreCase);
-        var isLog = fn.Name.Equals("LOG", StringComparison.OrdinalIgnoreCase);
-        var isLog10 = fn.Name.Equals("LOG10", StringComparison.OrdinalIgnoreCase);
-        var isLog2 = fn.Name.Equals("LOG2", StringComparison.OrdinalIgnoreCase);
-        if (!isLn && !isLog && !isLog10 && !isLog2)
-        {
-            result = null;
-            return false;
-        }
+        var isLn = string.Equals(fn.Name, "LN", StringComparison.OrdinalIgnoreCase);
+        var isLog = string.Equals(fn.Name, "LOG", StringComparison.OrdinalIgnoreCase);
+        var isLog10 = string.Equals(fn.Name, "LOG10", StringComparison.OrdinalIgnoreCase);
+        var isLog2 = string.Equals(fn.Name, "LOG2", StringComparison.OrdinalIgnoreCase);
 
         var value = evalArg(isLog && fn.Args.Count > 1 ? 1 : 0);
         if (IsNullish(value))
@@ -274,7 +258,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
         if (isLog2)
         {
-            result = Log2(number);
+            result = AstQueryRuntimeHelper.Log2(number);
             return true;
         }
 
@@ -318,12 +302,6 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("INSTR", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var haystack = evalArg(0);
         var needle = evalArg(1);
         if (IsNullish(haystack) || IsNullish(needle))
@@ -351,12 +329,6 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("GLOB", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         var pattern = evalArg(1);
         if (IsNullish(value) || IsNullish(pattern))
@@ -378,12 +350,6 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("LIKE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         var pattern = evalArg(1);
         if (IsNullish(value) || IsNullish(pattern))
@@ -405,12 +371,6 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("PATINDEX", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var pattern = evalArg(0);
         var value = evalArg(1);
         if (IsNullish(pattern) || IsNullish(value))
@@ -429,12 +389,6 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("DEGREES", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         if (IsNullish(value))
         {
@@ -461,12 +415,6 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("DIFFERENCE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var first = evalArg(0)?.ToString() ?? string.Empty;
         var second = evalArg(1)?.ToString() ?? string.Empty;
         var soundex1 = ComputeSoundex(first);
@@ -488,12 +436,6 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("EXP", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         if (IsNullish(value))
         {
@@ -520,12 +462,6 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("FLOOR", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         if (IsNullish(value))
         {
@@ -557,8 +493,9 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!(fn.Name.Equals("CEIL", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("CEILING", StringComparison.OrdinalIgnoreCase)))
+        var isCeil = string.Equals(fn.Name, "CEIL", StringComparison.OrdinalIgnoreCase);
+        var isCeiling = string.Equals(fn.Name, "CEILING", StringComparison.OrdinalIgnoreCase);
+        if (!(isCeil || isCeiling))
         {
             result = null;
             return false;
@@ -595,12 +532,6 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("ACOS", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         if (IsNullish(value))
         {
@@ -626,12 +557,6 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("ASIN", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         if (IsNullish(value))
         {
@@ -657,12 +582,6 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("ATAN", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         if (IsNullish(value))
         {
@@ -688,12 +607,6 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("ATAN2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("ATAN2() espera 2 argumentos.");
 
@@ -725,12 +638,6 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("COS", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         if (IsNullish(value))
         {
@@ -756,12 +663,6 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("COT", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         if (IsNullish(value))
         {
@@ -788,12 +689,6 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("SIGN", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         if (IsNullish(value))
         {
@@ -820,12 +715,6 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("REPLACE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var source = evalArg(0);
         var from = evalArg(1);
         var to = evalArg(2);
@@ -846,8 +735,9 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("TRANSLATE", StringComparison.OrdinalIgnoreCase)
-            && !fn.Name.Equals("TRANSLATE...USING", StringComparison.OrdinalIgnoreCase))
+        var isTranslate = string.Equals(fn.Name, "TRANSLATE", StringComparison.OrdinalIgnoreCase);
+        var isTranslateUsing = string.Equals(fn.Name, "TRANSLATE...USING", StringComparison.OrdinalIgnoreCase);
+        if (!(isTranslate || isTranslateUsing))
         {
             result = null;
             return false;
@@ -924,9 +814,10 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!(fn.Name.Equals("PRINTF", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("FORMAT", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("SQLITE3_MPRINTF", StringComparison.OrdinalIgnoreCase)))
+        var isPrintf = string.Equals(fn.Name, "PRINTF", StringComparison.OrdinalIgnoreCase);
+        var isFormat = string.Equals(fn.Name, "FORMAT", StringComparison.OrdinalIgnoreCase);
+        var isMPrintf = string.Equals(fn.Name, "SQLITE3_MPRINTF", StringComparison.OrdinalIgnoreCase);
+        if (!(isPrintf || isFormat || isMPrintf))
         {
             result = null;
             return false;
@@ -1026,49 +917,69 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         return $"'{text.Replace("'", "''")}'";
     }
 
-    private static bool TryEvalRandomFunctions(
+    private static bool TryEvalRandomFunction(
         FunctionCallExpr fn,
         QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (fn.Name.Equals("RANDOM", StringComparison.OrdinalIgnoreCase))
+        _ = fn;
+        _ = context;
+        _ = evalArg;
+        result = AstQueryRuntimeHelper.NextRandomInt64();
+        return true;
+    }
+
+    private static bool TryEvalRandomBlobFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        return TryEvalRandomBlobLikeFunction(fn, context, evalArg, randomize: true, out result);
+    }
+
+    private static bool TryEvalZeroBlobFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        return TryEvalRandomBlobLikeFunction(fn, context, evalArg, randomize: false, out result);
+    }
+
+    private static bool TryEvalRandomBlobLikeFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        bool randomize,
+        out object? result)
+    {
+        _ = context;
+
+        var lengthValue = evalArg(0);
+        if (IsNullish(lengthValue))
         {
-            result = NextRandomInt64();
+            result = null;
             return true;
         }
 
-        if (fn.Name.Equals("RANDOMBLOB", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("ZEROBLOB", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("SQLITE3_RESULT_ZEROBLOB", StringComparison.OrdinalIgnoreCase))
+        var length = Convert.ToInt32(lengthValue.ToDec());
+        if (length <= 0)
         {
-            var lengthValue = evalArg(0);
-            if (IsNullish(lengthValue))
-            {
-                result = null;
-                return true;
-            }
-
-            var length = Convert.ToInt32(lengthValue.ToDec());
-            if (length <= 0)
-            {
-                result = Array.Empty<byte>();
-                return true;
-            }
-
-            var buffer = new byte[length];
-            if (fn.Name.Equals("RANDOMBLOB", StringComparison.OrdinalIgnoreCase))
-            {
-                lock (_randomLock)
-                    _sharedRandom.NextBytes(buffer);
-            }
-
-            result = buffer;
+            result = Array.Empty<byte>();
             return true;
         }
 
-        result = null;
-        return false;
+        var buffer = new byte[length];
+        if (randomize)
+        {
+            lock (_randomLock)
+                _sharedRandom.NextBytes(buffer);
+        }
+
+        result = buffer;
+        return true;
     }
 
     private static bool TryEvalTypeofFunction(
@@ -1077,12 +988,8 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("TYPEOF", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
+        _ = fn;
+        _ = context;
         var value = evalArg(0);
         if (IsNullish(value))
         {
@@ -1100,65 +1007,101 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         return true;
     }
 
+    private static bool TryEvalUnicodeFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalUnicodeFunctions(fn, context, evalArg, out result);
+
     private static bool TryEvalUnicodeFunctions(
         FunctionCallExpr fn,
         QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (fn.Name.Equals("UNICODE", StringComparison.OrdinalIgnoreCase))
+        _ = fn;
+        _ = context;
+        var value = evalArg(0);
+        if (IsNullish(value))
         {
-            var value = evalArg(0);
-            if (IsNullish(value))
-            {
-                result = null;
-                return true;
-            }
-
-            var text = value?.ToString() ?? string.Empty;
-            if (text.Length == 0)
-            {
-                result = null;
-                return true;
-            }
-
-            var codePoint = text.Length >= 2 && char.IsSurrogatePair(text, 0)
-                ? char.ConvertToUtf32(text, 0)
-                : text[0];
-            result = codePoint;
+            result = null;
             return true;
         }
 
-        if (fn.Name.Equals("UNISTR", StringComparison.OrdinalIgnoreCase))
+        var text = value?.ToString() ?? string.Empty;
+        if (text.Length == 0)
         {
-            var value = evalArg(0);
-            if (IsNullish(value))
-            {
-                result = null;
-                return true;
-            }
-
-            result = UnescapeUnicodeLiteral(value?.ToString() ?? string.Empty);
+            result = null;
             return true;
         }
 
-        if (fn.Name.Equals("UNISTR_QUOTE", StringComparison.OrdinalIgnoreCase))
-        {
-            var value = evalArg(0);
-            if (IsNullish(value))
-            {
-                result = null;
-                return true;
-            }
-
-            var text = value?.ToString() ?? string.Empty;
-            result = $"'{text.Replace("'", "''")}'";
-            return true;
-        }
-
-        result = null;
-        return false;
+        var codePoint = text.Length >= 2 && char.IsSurrogatePair(text, 0)
+            ? char.ConvertToUtf32(text, 0)
+            : text[0];
+        result = codePoint;
+        return true;
     }
+
+    private static bool TryEvalUnistrFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = context;
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        result = UnescapeUnicodeLiteral(value?.ToString() ?? string.Empty);
+        return true;
+    }
+
+    private static bool TryEvalUnistrQuoteFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = context;
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = value?.ToString() ?? string.Empty;
+        result = $"'{text.Replace("'", "''")}'";
+        return true;
+    }
+
+    private static bool TryEvalLikelyFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalLikelihoodFunctions(fn, context, evalArg, out result);
+
+    private static bool TryEvalUnlikelyFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalLikelihoodFunctions(fn, context, evalArg, out result);
+
+    private static bool TryEvalLikelihoodFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalLikelihoodFunctions(fn, context, evalArg, out result);
 
     private static bool TryEvalLikelihoodFunctions(
         FunctionCallExpr fn,
@@ -1166,14 +1109,8 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!(fn.Name.Equals("LIKELY", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("UNLIKELY", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("LIKELIHOOD", StringComparison.OrdinalIgnoreCase)))
-        {
-            result = null;
-            return false;
-        }
-
+        _ = fn;
+        _ = context;
         result = evalArg(0);
         return true;
     }
@@ -1220,7 +1157,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
 
     internal static bool TryParsePostgresInetValue(
         object? value,
-        out System.Net.IPAddress address,
+        out IPAddress address,
         out int prefixLength)
     {
         address = IPAddress.None;
@@ -1499,7 +1436,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (fn.Name.Equals("JSON", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "JSON", StringComparison.OrdinalIgnoreCase))
         {
             var value = evalArg(0);
             if (IsNullish(value))
@@ -1518,7 +1455,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("JSON_ARRAY_LENGTH", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "JSON_ARRAY_LENGTH", StringComparison.OrdinalIgnoreCase))
         {
             var value = evalArg(0);
             if (value is null || !TryParseJsonElement(value, out var element))
@@ -1533,7 +1470,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("JSON_ERROR_POSITION", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "JSON_ERROR_POSITION", StringComparison.OrdinalIgnoreCase))
         {
             var value = evalArg(0);
             if (IsNullish(value))
@@ -1562,7 +1499,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("JSON_PATCH", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "JSON_PATCH", StringComparison.OrdinalIgnoreCase))
         {
             var baseValue = evalArg(0);
             var patchValue = evalArg(1);
@@ -1589,7 +1526,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("JSON_MERGE_PATCH", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "JSON_MERGE_PATCH", StringComparison.OrdinalIgnoreCase))
         {
             if (!context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
             {
@@ -1635,8 +1572,8 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("JSON_MERGE", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("JSON_MERGE_PRESERVE", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "JSON_MERGE", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "JSON_MERGE_PRESERVE", StringComparison.OrdinalIgnoreCase))
         {
             if (!context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
             {
@@ -1682,8 +1619,8 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("JSON_APPEND", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("JSON_ARRAY_APPEND", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "JSON_APPEND", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "JSON_ARRAY_APPEND", StringComparison.OrdinalIgnoreCase))
         {
             if (!context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
             {
@@ -1722,7 +1659,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("JSON_ARRAY_INSERT", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "JSON_ARRAY_INSERT", StringComparison.OrdinalIgnoreCase))
         {
             if (!context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
             {
@@ -1761,10 +1698,10 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("JSON_EACH", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("JSON_TREE", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("JSONB_EACH", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("JSONB_TREE", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "JSON_EACH", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "JSON_TREE", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "JSONB_EACH", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "JSONB_TREE", StringComparison.OrdinalIgnoreCase))
         {
             var value = evalArg(0);
             if (IsNullish(value))
@@ -1783,7 +1720,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("JSONB_EXTRACT", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "JSONB_EXTRACT", StringComparison.OrdinalIgnoreCase))
         {
             var shim = new FunctionCallExpr("JSON_EXTRACT", fn.Args)
                 .BindScalarFunctionDefinition(context.Dialect);
@@ -1867,7 +1804,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("LPAD", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "LPAD", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -1921,7 +1858,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("MD5", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "MD5", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -1951,7 +1888,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("TO_NUMBER", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "TO_NUMBER", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -2074,7 +2011,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         out object? result)
     {
         var dialect = context.Dialect;
-        if (fn.Name.Equals("JSON_VALID", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "JSON_VALID", StringComparison.OrdinalIgnoreCase))
         {
             var value = evalArg(0);
             if (IsNullish(value))
@@ -2103,7 +2040,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("JSON_TYPE", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "JSON_TYPE", StringComparison.OrdinalIgnoreCase))
         {
             var value = evalArg(0);
             if (IsNullish(value))
@@ -2134,7 +2071,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("JSON_LENGTH", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "JSON_LENGTH", StringComparison.OrdinalIgnoreCase))
         {
             var value = evalArg(0);
             if (IsNullish(value))
@@ -2173,7 +2110,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("JSON_STORAGE_SIZE", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "JSON_STORAGE_SIZE", StringComparison.OrdinalIgnoreCase))
         {
             if (!dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
             {
@@ -2202,7 +2139,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("JSON_OVERLAPS", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "JSON_OVERLAPS", StringComparison.OrdinalIgnoreCase))
         {
             if (!dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
             {
@@ -2232,7 +2169,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("JSON_OBJECT", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "JSON_OBJECT", StringComparison.OrdinalIgnoreCase))
         {
             if (fn.Args.Count % 2 != 0)
                 throw new InvalidOperationException("JSON_OBJECT() espera um número par de argumentos.");
@@ -2249,7 +2186,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("JSON_QUOTE", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "JSON_QUOTE", StringComparison.OrdinalIgnoreCase))
         {
             var value = evalArg(0);
             if (IsNullish(value))
@@ -2263,7 +2200,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("JSON_PRETTY", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "JSON_PRETTY", StringComparison.OrdinalIgnoreCase))
         {
             var value = evalArg(0);
             if (IsNullish(value))
@@ -2287,7 +2224,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("JSON_KEYS", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "JSON_KEYS", StringComparison.OrdinalIgnoreCase))
         {
             var value = evalArg(0);
             if (IsNullish(value))
@@ -2328,7 +2265,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("JSON_SET", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "JSON_SET", StringComparison.OrdinalIgnoreCase))
         {
             if (fn.Args.Count < 3 || fn.Args.Count % 2 == 0)
                 throw new InvalidOperationException("JSON_SET() espera um JSON seguido de pares path/valor.");
@@ -2361,7 +2298,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("JSON_REMOVE", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "JSON_REMOVE", StringComparison.OrdinalIgnoreCase))
         {
             if (fn.Args.Count < 2)
                 throw new InvalidOperationException("JSON_REMOVE() espera um JSON e ao menos um path.");
@@ -2389,10 +2326,10 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("JSON_INSERT", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("JSON_REPLACE", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "JSON_INSERT", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "JSON_REPLACE", StringComparison.OrdinalIgnoreCase))
         {
-            var isInsert = fn.Name.Equals("JSON_INSERT", StringComparison.OrdinalIgnoreCase);
+            var isInsert = string.Equals(fn.Name, "JSON_INSERT", StringComparison.OrdinalIgnoreCase);
             if (fn.Args.Count < 3 || fn.Args.Count % 2 == 0)
                 throw new InvalidOperationException($"{fn.Name.ToUpperInvariant()}() espera um JSON seguido de pares path/valor.");
 
@@ -2431,7 +2368,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("JSON_CONTAINS", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "JSON_CONTAINS", StringComparison.OrdinalIgnoreCase))
         {
             if (fn.Args.Count < 2)
                 throw new InvalidOperationException("JSON_CONTAINS() espera um JSON e um candidato.");
@@ -2470,7 +2407,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("JSON_CONTAINS_PATH", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "JSON_CONTAINS_PATH", StringComparison.OrdinalIgnoreCase))
         {
             if (fn.Args.Count < 3)
                 throw new InvalidOperationException("JSON_CONTAINS_PATH() espera um JSON, modo e paths.");
@@ -2533,7 +2470,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("JSON_SEARCH", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "JSON_SEARCH", StringComparison.OrdinalIgnoreCase))
         {
             if (fn.Args.Count < 3)
                 throw new InvalidOperationException("JSON_SEARCH() espera JSON, modo e termo.");
@@ -2607,21 +2544,21 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!(fn.Name.Equals("__JSON_ACCESS_JSON", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("__JSON_ACCESS_TEXT", StringComparison.OrdinalIgnoreCase)))
+        if (!(string.Equals(fn.Name, "__JSON_ACCESS_JSON", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "__JSON_ACCESS_TEXT", StringComparison.OrdinalIgnoreCase)))
         {
             result = null;
             return false;
         }
 
-        if (!TryGetJsonAndPathArguments(evalArg, out var json, out var path))
+        if (!AstQueryExecutionRuntimeHelper.TryGetJsonAndPathArguments(evalArg, out var json, out var path))
         {
             result = null;
             return true;
         }
 
         var value = QueryJsonFunctionHelper.TryReadJsonPathValue(json!, path!);
-        result = fn.Name.Equals("__JSON_ACCESS_TEXT", StringComparison.OrdinalIgnoreCase)
+        result = string.Equals(fn.Name, "__JSON_ACCESS_TEXT", StringComparison.OrdinalIgnoreCase)
             ? value?.ToString()
             : value;
         return true;
@@ -2634,9 +2571,9 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         out object? result)
     {
         var dialect = context.Dialect;
-        if (!(fn.Name.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("JSON_QUERY", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)))
+        if (!(string.Equals(fn.Name, "JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "JSON_QUERY", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "JSON_VALUE", StringComparison.OrdinalIgnoreCase)))
         {
             result = null;
             return false;
@@ -2650,7 +2587,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("JSON_QUERY", StringComparison.OrdinalIgnoreCase)
+        if (string.Equals(fn.Name, "JSON_QUERY", StringComparison.OrdinalIgnoreCase)
             && fn.Args.Count == 1)
         {
             result = TryEvalJsonQueryWithoutPath(json!);
@@ -2701,7 +2638,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
     {
         try
         {
-            if (fn.Name.Equals("JSON_QUERY", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(fn.Name, "JSON_QUERY", StringComparison.OrdinalIgnoreCase))
             {
                 if (!QueryJsonFunctionHelper.TryReadJsonPathElement(json, path, out var element))
                     return null;
@@ -2712,14 +2649,14 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             }
 
             var value = QueryJsonFunctionHelper.TryReadJsonPathValue(json, path);
-            return fn.Name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
+            return string.Equals(fn.Name, "JSON_VALUE", StringComparison.OrdinalIgnoreCase)
                 ? QueryJsonFunctionHelper.ApplyJsonValueReturningClause(fn, value)
                 : value;
         }
 #pragma warning disable CA1031
         catch (Exception e)
         {
-            LogFunctionEvaluationFailure(e);
+            AstQueryExecutionRuntimeHelper.LogFunctionEvaluationFailure(e);
             return null;
         }
 #pragma warning restore CA1031
@@ -2742,7 +2679,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         out object? result)
     {
         var dialect = context.Dialect;
-        if (!fn.Name.Equals(SqlConst.OPENJSON, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, SqlConst.OPENJSON, StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -2762,7 +2699,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("JSON_UNQUOTE", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "JSON_UNQUOTE", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -2789,7 +2726,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         out object? result)
     {
         var dialect = context.Dialect;
-        if (!fn.Name.Equals("JSON_MODIFY", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "JSON_MODIFY", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -2878,9 +2815,9 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         return true;
     }
 
-    internal static bool TryParseJsonElement(object value, out System.Text.Json.JsonElement element)
+    internal static bool TryParseJsonElement(object value, out JsonElement element)
     {
-        if (value is System.Text.Json.JsonElement jsonElement)
+        if (value is JsonElement jsonElement)
         {
             element = jsonElement;
             return true;
@@ -2905,9 +2842,9 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         }
     }
 
-    internal static bool TryParseJsonCandidate(object value, out System.Text.Json.JsonElement element)
+    internal static bool TryParseJsonCandidate(object value, out JsonElement element)
     {
-        if (value is System.Text.Json.JsonElement jsonElement)
+        if (value is JsonElement jsonElement)
         {
             element = jsonElement;
             return true;
@@ -2944,7 +2881,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         return true;
     }
 
-    internal static bool JsonContains(System.Text.Json.JsonElement target, System.Text.Json.JsonElement candidate)
+    internal static bool JsonContains(JsonElement target, JsonElement candidate)
     {
         if (candidate.ValueKind == JsonValueKind.Object)
         {
@@ -2981,7 +2918,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         return JsonElementEquals(target, candidate);
     }
 
-    private static bool JsonElementEquals(System.Text.Json.JsonElement left, System.Text.Json.JsonElement right)
+    private static bool JsonElementEquals(JsonElement left, JsonElement right)
     {
         if (left.ValueKind != right.ValueKind)
         {
@@ -3009,7 +2946,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         };
     }
 
-    internal static bool JsonOverlaps(System.Text.Json.JsonElement left, System.Text.Json.JsonElement right)
+    internal static bool JsonOverlaps(JsonElement left, JsonElement right)
     {
         if (left.ValueKind == JsonValueKind.Array)
         {
@@ -3177,9 +3114,9 @@ internal class AstQueryGeneralScalarFunctionEvaluator
     }
 
     internal static bool TryReadPostgresJsonPathElement(
-        System.Text.Json.JsonElement element,
+        JsonElement element,
         string pathSegment,
-        out System.Text.Json.JsonElement target)
+        out JsonElement target)
     {
         target = default;
         if (string.IsNullOrEmpty(pathSegment))
@@ -3214,9 +3151,9 @@ internal class AstQueryGeneralScalarFunctionEvaluator
     }
 
     internal static bool TryReadPostgresJsonPath(
-        System.Text.Json.JsonElement element,
+        JsonElement element,
         string path,
-        out System.Text.Json.JsonElement target)
+        out JsonElement target)
     {
         target = default;
         if (!TryParseJsonPathTokens(path, out var tokens))
@@ -3245,7 +3182,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
     }
 
     internal static void CollectJsonSearchMatches(
-        System.Text.Json.JsonElement element,
+        JsonElement element,
         string currentPath,
         string search,
         List<string> results)
@@ -3286,7 +3223,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             if (value is null or DBNull)
                 return "null";
 
-            if (value is System.Text.Json.JsonElement element)
+            if (value is JsonElement element)
                 return element.GetRawText();
 
             return JsonSerializer.Serialize(value);
@@ -3304,7 +3241,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             if (value is null or DBNull)
                 return $"{key}:null";
 
-            if (value is System.Text.Json.JsonElement element)
+            if (value is JsonElement element)
                 return $"{key}:{element.GetRawText()}";
 
             return $"{key}:{JsonSerializer.Serialize(value)}";
@@ -3540,7 +3477,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
                 ?? System.Text.Json.Nodes.JsonNode.Parse("null")!;
         }
 
-        if (value is System.Text.Json.JsonElement element)
+        if (value is JsonElement element)
             return System.Text.Json.Nodes.JsonNode.Parse(element.GetRawText())!;
 
         if (value is System.Text.Json.Nodes.JsonNode node)
@@ -3859,12 +3796,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("FIELD", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
+        _ = fn;
         var target = evalArg(0);
         if (IsNullish(target))
         {
@@ -3892,13 +3824,6 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("CHAR", StringComparison.OrdinalIgnoreCase)
-            && !fn.Name.Equals("NCHAR", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         if (IsNullish(value))
         {
@@ -3906,8 +3831,8 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        // SQL Server/MySQL CHAR(n) and SQL Server NCHAR(n) return the character represented by the numeric code.
-        if (context.Dialect.SupportsSqlServerScalarFunction(fn.Name))
+        if (fn.Name.Equals("CHAR", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("NCHAR", StringComparison.OrdinalIgnoreCase))
         {
             try
             {
@@ -3932,8 +3857,8 @@ internal class AstQueryGeneralScalarFunctionEvaluator
     {
         var value = evalArg(0);
 
-        if (fn.Name.Equals("LOWER", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("LCASE", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "LOWER", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "LCASE", StringComparison.OrdinalIgnoreCase))
         {
 #pragma warning disable CA1308 // Normalize strings to uppercase
             result = IsNullish(value) ? null : value!.ToString()!.ToLowerInvariant();
@@ -3941,41 +3866,41 @@ internal class AstQueryGeneralScalarFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("UPPER", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("UCASE", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "UPPER", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "UCASE", StringComparison.OrdinalIgnoreCase))
         {
             result = IsNullish(value) ? null : value!.ToString()!.ToUpperInvariant();
             return true;
         }
 
-        if (fn.Name.Equals("TRIM", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "TRIM", StringComparison.OrdinalIgnoreCase))
         {
             result = IsNullish(value) ? null : value!.ToString()!.Trim();
             return true;
         }
 
-        if (fn.Name.Equals("RTRIM", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "RTRIM", StringComparison.OrdinalIgnoreCase))
         {
             result = IsNullish(value) ? null : value!.ToString()!.TrimEnd();
             return true;
         }
 
-        if (fn.Name.Equals("LTRIM", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "LTRIM", StringComparison.OrdinalIgnoreCase))
         {
             result = IsNullish(value) ? null : value!.ToString()!.TrimStart();
             return true;
         }
 
-        if (fn.Name.Equals("TO_CHAR", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "TO_CHAR", StringComparison.OrdinalIgnoreCase))
         {
             result = IsNullish(value) ? null : value!.ToString() ?? string.Empty;
             return true;
         }
 
-        if (fn.Name.Equals("LENGTH", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("CHAR_LENGTH", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("CHARACTER_LENGTH", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("LEN", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "LENGTH", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "CHAR_LENGTH", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "CHARACTER_LENGTH", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "LEN", StringComparison.OrdinalIgnoreCase))
         {
             result = IsNullish(value) ? null : (long)(value!.ToString()!.Length);
             return true;
@@ -3990,9 +3915,9 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!(fn.Name.Equals("SUBSTRING", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("SUBSTR", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("MID", StringComparison.OrdinalIgnoreCase)))
+        if (!(string.Equals(fn.Name, "SUBSTRING", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "SUBSTR", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "MID", StringComparison.OrdinalIgnoreCase)))
         {
             result = null;
             return false;
@@ -4050,7 +3975,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("MOD", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "MOD", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -4093,7 +4018,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("OCT", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "OCT", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -4125,7 +4050,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("BIT_COUNT", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "BIT_COUNT", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -4165,7 +4090,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("BIT_LENGTH", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "BIT_LENGTH", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -4195,7 +4120,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("HEX", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "HEX", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -4225,7 +4150,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("UNHEX", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "UNHEX", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -4266,7 +4191,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("OCTET_LENGTH", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "OCTET_LENGTH", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -4296,7 +4221,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("NAME_CONST", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "NAME_CONST", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -4320,7 +4245,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("ORD", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "ORD", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -4351,7 +4276,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("POSITION", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "POSITION", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -4376,7 +4301,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("PI", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "PI", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -4392,8 +4317,8 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var isPower = fn.Name.Equals("POWER", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("POW", StringComparison.OrdinalIgnoreCase);
+        var isPower = string.Equals(fn.Name, "POWER", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "POW", StringComparison.OrdinalIgnoreCase);
         if (!isPower)
         {
             result = null;
@@ -4431,7 +4356,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("QUOTE", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "QUOTE", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -4456,7 +4381,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("RADIANS", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "RADIANS", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -4488,7 +4413,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("RAND", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "RAND", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -4517,7 +4442,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("REPEAT", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "REPEAT", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -4552,7 +4477,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("REVERSE", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "REVERSE", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -4578,7 +4503,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals(SqlConst.LEFT, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, SqlConst.LEFT, StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -4616,7 +4541,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals(SqlConst.RIGHT, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, SqlConst.RIGHT, StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -4654,7 +4579,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("ROUND", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "ROUND", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -4694,7 +4619,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("RPAD", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "RPAD", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -4796,7 +4721,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("SIN", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "SIN", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -4828,7 +4753,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("SOUNDEX", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "SOUNDEX", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -4942,7 +4867,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("SPACE", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "SPACE", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -4972,7 +4897,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("SQRT", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "SQRT", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -5013,7 +4938,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("SUBDATE", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "SUBDATE", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -5066,7 +4991,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("SUBSTRING_INDEX", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "SUBSTRING_INDEX", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -5114,7 +5039,7 @@ internal class AstQueryGeneralScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("TAN", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "TAN", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;

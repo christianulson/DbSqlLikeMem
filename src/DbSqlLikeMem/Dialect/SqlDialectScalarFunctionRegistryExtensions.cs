@@ -181,6 +181,22 @@ internal static class SqlDialectScalarFunctionRegistryExtensions
         dialect.ScalarFunctions[definition.Name] = definition;
     }
 
+    internal static void AddStringAggregateFunction(
+        this ISqlDialect dialect,
+        string name,
+        string returnTypeSql,
+        Func<SqlExpr, object>? fnBody = null)
+    {
+        dialect.AddScalarFunction(new DbScalarFunctionDef(
+            name,
+            returnTypeSql,
+            [],
+            fnBody ?? SqlFunctionBodyFactory.Identity(),
+            SqlScalarFunctionUsageKind.Call,
+            null,
+            true));
+    }
+
     internal static void AddScalarFunction(
         this ISqlDialect dialect,
         string name,

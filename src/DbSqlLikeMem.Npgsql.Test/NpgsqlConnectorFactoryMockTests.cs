@@ -20,7 +20,7 @@ public sealed class NpgsqlConnectorFactoryMockTests(
         Assert.IsType<NpgsqlCommandMock>(factory.CreateCommand());
         Assert.IsType<NpgsqlConnectionMock>(factory.CreateConnection());
         Assert.IsType<NpgsqlDataAdapterMock>(factory.CreateDataAdapter());
-        Assert.IsType<System.Data.Common.DbConnectionStringBuilder>(factory.CreateConnectionStringBuilder());
+        Assert.IsType<DbConnectionStringBuilder>(factory.CreateConnectionStringBuilder());
         Assert.NotNull(factory.CreateParameter());
     }
 

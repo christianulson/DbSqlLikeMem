@@ -439,12 +439,6 @@ internal static class NpgsqlScalarFunctionRegistry
         out object? result)
     {
         _ = context;
-        if (!fn.Name.Equals("LOG", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count == 0)
         {
             result = null;
@@ -507,12 +501,6 @@ internal static class NpgsqlScalarFunctionRegistry
         out object? result)
     {
         _ = context;
-        if (!fn.Name.Equals("FORMAT", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count == 0)
             throw new InvalidOperationException("FORMAT() espera ao menos o formato.");
 
@@ -581,19 +569,13 @@ internal static class NpgsqlScalarFunctionRegistry
     {
         _ = context;
         _ = evalArg;
-        if (!fn.Name.Equals("RANDOM", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count != 0)
         {
             result = null;
             return false;
         }
 
-        result = AstQueryExecutorBase.NextRandomDouble();
+        result = AstQueryRuntimeHelper.NextRandomDouble();
         return true;
     }
 }

@@ -1,74 +1,12 @@
 namespace DbSqlLikeMem;
 
-internal abstract partial class AstQueryExecutorBase
+internal static class AstQueryAggregateKeyHelper
 {
-    private long EvalCountDistinct(
-        CallExpr fn,
-        EvalGroup group,
-        IDictionary<string, Source> ctes,
-        bool useOrdinalTextComparison)
-    {
-        // COUNT(DISTINCT *) não faz sentido no MySQL; se acontecer, trata como COUNT(*)
-        if (fn.Args.Count == 1 && fn.Args[0] is StarExpr)
-            return group.Rows.Count;
-
-        var set = CreateDistinctStringSet(useOrdinalTextComparison, group.Rows.Count);
-        foreach (var row in group.Rows)
-        {
-            if (TryBuildCountDistinctKey(fn, row, ctes, useOrdinalTextComparison, out var key))
-                set.Add(key);
-        }
-
-        return set.Count;
-    }
-
-    private bool TryBuildCountDistinctKey(
-        CallExpr fn,
-        EvalRow row,
-        IDictionary<string, Source> ctes,
-        bool useOrdinalTextComparison,
-        out string key)
-    {
-        key = string.Empty;
-
-        if (fn.Args.Count == 1)
-        {
-            var singleValue = Eval(fn.Args[0], row, null, ctes);
-            if (!TryGetStringAggregateKeyAndText(singleValue, useOrdinalTextComparison, out _, out var singleKey))
-                return false;
-
-            key = singleKey;
-            return true;
-        }
-
-        var builder = new StringBuilder();
-        for (var i = 0; i < fn.Args.Count; i++)
-        {
-            var value = Eval(fn.Args[i], row, null, ctes);
-            if (!TryGetStringAggregateKeyAndText(value, useOrdinalTextComparison, out _, out var normalized))
-                return false;
-
-            if (builder.Length > 0)
-                builder.Append('\u001F');
-
-            builder.Append(normalized);
-        }
-
-        key = builder.ToString();
-        return true;
-    }
-
-    private static HashSet<string> CreateDistinctStringSet(bool useOrdinalTextComparison, int estimatedCount)
-    {
-        var comparer = useOrdinalTextComparison ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
-        return new HashSet<string>(comparer);
-    }
-
-    private static bool TryGetStringAggregateText(object? value, out string text)
+    internal static bool TryGetStringAggregateText(object? value, out string text)
     {
         text = string.Empty;
 
-        if (IsNullish(value))
+        if (AstQueryExecutorBase.IsNullish(value))
             return false;
 
         switch (value)
@@ -97,16 +35,18 @@ internal abstract partial class AstQueryExecutorBase
         }
     }
 
-    private static bool TryGetStringAggregateKeyAndText(
+    internal static bool TryGetStringAggregateKeyAndText(
         object? value,
         bool useOrdinalTextComparison,
         out string text,
         out string distinctKey)
     {
+        _ = useOrdinalTextComparison;
+
         text = string.Empty;
         distinctKey = string.Empty;
 
-        if (IsNullish(value))
+        if (AstQueryExecutorBase.IsNullish(value))
             return false;
 
         switch (value)

@@ -24,7 +24,7 @@ public sealed class TemporaryUsersScenario<T>(ProviderSqlDialect dialect) : ITes
             || dialect.Provider == ProviderId.Db2
             || dialect.Provider == ProviderId.SqlServer
             || dialect.Provider == ProviderId.SqlAzure)
-            && service.Connection is DbSqlLikeMem.DbConnectionMockBase mockConnection)
+            && service.Connection is DbConnectionMockBase mockConnection)
         {
             var tempTable = mockConnection.AddTemporaryTable(tableName);
             tempTable.AddColumn("Id", DbType.Int32, false);
@@ -61,7 +61,7 @@ CREATE GLOBAL TEMPORARY TABLE {tableName} (
         try
         {
             if (dialect.Provider == ProviderId.Db2
-                && service.Connection is DbSqlLikeMem.DbConnectionMockBase)
+                && service.Connection is DbConnectionMockBase)
             {
                 service.ExecuteNonQuery($"DROP TEMPORARY TABLE {tableName}");
             }

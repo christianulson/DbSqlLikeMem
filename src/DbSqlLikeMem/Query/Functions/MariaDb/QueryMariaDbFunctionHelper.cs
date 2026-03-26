@@ -96,19 +96,13 @@ internal static class QueryMariaDbFunctionHelper
             handlers[name] = handler;
     }
 
-    private static bool TryEvalBenchmarkFunction(
+    internal static bool TryEvalBenchmarkFunction(
         FunctionCallExpr fn,
         QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = context;
-        if (!fn.Name.Equals("BENCHMARK", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("BENCHMARK() espera contagem e expressao.");
 
@@ -139,12 +133,6 @@ internal static class QueryMariaDbFunctionHelper
         out object? result)
     {
         _ = context;
-        if (!fn.Name.Equals("FIELD", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("FIELD() espera ao menos dois argumentos.");
 
@@ -178,18 +166,7 @@ internal static class QueryMariaDbFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("LENGTHB", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!IsMariaDbDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
-
+        _ = context;
         var value = evalArg(0);
         if (IsNullish(value))
         {
@@ -213,18 +190,6 @@ internal static class QueryMariaDbFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("DECODE_ORACLE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!IsMariaDbDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 3)
             throw new InvalidOperationException("DECODE_ORACLE() espera ao menos 3 argumentos.");
 
@@ -253,23 +218,8 @@ internal static class QueryMariaDbFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("CRC32C", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!IsMariaDbDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count is 0 or > 2)
             throw new InvalidOperationException("CRC32C() espera um ou dois argumentos.");
-
-        if (context.Dialect.Version < 108)
-            throw SqlUnsupported.ForDialect(context.Dialect, "CRC32C");
 
         uint seed = uint.MaxValue;
         if (fn.Args.Count == 2)
@@ -307,18 +257,7 @@ internal static class QueryMariaDbFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("NATURAL_SORT_KEY", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!IsMariaDbDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
-
+        _ = context;
         var value = evalArg(0);
         if (IsNullish(value))
         {
@@ -366,18 +305,7 @@ internal static class QueryMariaDbFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("SFORMAT", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!IsMariaDbDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
-
+        _ = context;
         if (fn.Args.Count == 0)
         {
             result = string.Empty;
@@ -405,18 +333,6 @@ internal static class QueryMariaDbFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("KDF", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!IsMariaDbDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("KDF() espera pelo menos key_str e salt.");
 
@@ -510,18 +426,7 @@ internal static class QueryMariaDbFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("TRIM_ORACLE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!IsMariaDbDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
-
+        _ = context;
         if (fn.Args.Count == 0)
         {
             result = null;
@@ -555,18 +460,7 @@ internal static class QueryMariaDbFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("WEIGHT_STRING", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!IsMariaDbDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
-
+        _ = context;
         var value = evalArg(0);
         if (IsNullish(value))
         {
@@ -590,12 +484,6 @@ internal static class QueryMariaDbFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!IsMariaDbDialect(context.Dialect))
-        {
-            result = null;
-            return false;
-        }
-
         if (_jsonHandlers.TryGetValue(fn.Name, out var handler))
             return handler(fn, evalArg, out result);
 
@@ -608,12 +496,7 @@ internal static class QueryMariaDbFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("JSON_COMPACT", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
+        _ = fn;
         if (!TryParseJsonElement(evalArg(0), out var element))
         {
             result = null;
@@ -629,13 +512,7 @@ internal static class QueryMariaDbFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!(fn.Name.Equals("JSON_PRETTY", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("JSON_DETAILED", StringComparison.OrdinalIgnoreCase)))
-        {
-            result = null;
-            return false;
-        }
-
+        _ = fn;
         if (!TryParseJsonElement(evalArg(0), out var element))
         {
             result = null;
@@ -651,12 +528,6 @@ internal static class QueryMariaDbFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("JSON_LOOSE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (!TryParseJsonElement(evalArg(0), out var element))
         {
             result = null;
@@ -672,12 +543,6 @@ internal static class QueryMariaDbFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("JSON_NORMALIZE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (!TryParseJsonElement(evalArg(0), out var element))
         {
             result = null;
@@ -693,12 +558,6 @@ internal static class QueryMariaDbFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("JSON_EQUALS", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("JSON_EQUALS() espera dois JSONs.");
 
@@ -718,12 +577,6 @@ internal static class QueryMariaDbFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("JSON_EXISTS", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("JSON_EXISTS() espera um JSON e um path.");
 
@@ -750,12 +603,6 @@ internal static class QueryMariaDbFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("JSON_SCHEMA_VALID", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("JSON_SCHEMA_VALID() espera documento e schema.");
 
@@ -775,12 +622,6 @@ internal static class QueryMariaDbFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("JSON_ARRAY_INTERSECT", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("JSON_ARRAY_INTERSECT() espera dois arrays JSON.");
 
@@ -812,12 +653,6 @@ internal static class QueryMariaDbFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("JSON_OBJECT_FILTER_KEYS", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (!TryParseJsonElement(evalArg(0), out var element) || element.ValueKind != JsonValueKind.Object)
         {
             result = null;
@@ -841,12 +676,6 @@ internal static class QueryMariaDbFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("JSON_OBJECT_TO_ARRAY", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (!TryParseJsonElement(evalArg(0), out var element) || element.ValueKind != JsonValueKind.Object)
         {
             result = null;
@@ -866,12 +695,6 @@ internal static class QueryMariaDbFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("JSON_KEY_VALUE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (!TryParseJsonElement(evalArg(0), out var element))
         {
             result = null;

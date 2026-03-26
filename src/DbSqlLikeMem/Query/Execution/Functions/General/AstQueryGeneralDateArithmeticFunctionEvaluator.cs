@@ -117,7 +117,7 @@ internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("EOMONTH", StringComparison.OrdinalIgnoreCase) && fn.Args.Count > 1)
+        if (string.Equals(fn.Name, "EOMONTH", StringComparison.OrdinalIgnoreCase) && fn.Args.Count > 1)
         {
             var offsetValue = evalArg(1);
             if (!AstQueryExecutorBase.IsNullish(offsetValue))
@@ -138,12 +138,6 @@ internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("SUBTIME", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("SUBTIME() espera base e intervalo.");
 

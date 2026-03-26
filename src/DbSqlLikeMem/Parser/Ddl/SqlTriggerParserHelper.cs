@@ -6,7 +6,7 @@ internal static class SqlTriggerParserHelper
         this SqlQueryParserContext ctx,
         bool orReplace)
     {
-        if (!ctx.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!ctx.Dialect.SupportsDb2TriggerDdl)
             throw SqlUnsupported.ForDialect(ctx.Dialect, "CREATE TRIGGER");
 
         if (orReplace)

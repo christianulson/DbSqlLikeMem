@@ -21,10 +21,6 @@ internal sealed class AstQuerySqlServerIdentityFunctionEvaluator(
     {
         result = null;
 
-        var dialect = _getDialect();
-        if (dialect is null || !dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
-            return false;
-
         if (!_handlers.TryGetValue(fn.Name, out var handler))
             return false;
 

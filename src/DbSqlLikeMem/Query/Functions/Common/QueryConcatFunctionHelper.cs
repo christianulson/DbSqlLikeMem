@@ -26,12 +26,6 @@ internal static class QueryConcatFunctionHelper
         bool nullInputReturnsNull,
         out object? result)
     {
-        if (!fn.Name.Equals(SqlConst.CONCAT, StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var parts = new string[fn.Args.Count];
         for (var i = 0; i < fn.Args.Count; i++)
         {
@@ -53,12 +47,6 @@ internal static class QueryConcatFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals(SqlConst.CONCAT_WS, StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var separatorValue = evalArg(0);
         if (IsNullish(separatorValue))
         {

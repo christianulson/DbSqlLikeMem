@@ -14,24 +14,6 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         out object? result);
 
     private static readonly IReadOnlyDictionary<string, OracleDb2LegacyFunctionHandler> _handlers = CreateHandlers();
-    private static readonly IReadOnlyDictionary<string, DayOfWeek> _oracleDayOfWeekMap = new Dictionary<string, DayOfWeek>(StringComparer.OrdinalIgnoreCase)
-    {
-        ["SUNDAY"] = DayOfWeek.Sunday,
-        ["MONDAY"] = DayOfWeek.Monday,
-        ["TUESDAY"] = DayOfWeek.Tuesday,
-        ["WEDNESDAY"] = DayOfWeek.Wednesday,
-        ["THURSDAY"] = DayOfWeek.Thursday,
-        ["FRIDAY"] = DayOfWeek.Friday,
-        ["SATURDAY"] = DayOfWeek.Saturday,
-        ["SUN"] = DayOfWeek.Sunday,
-        ["MON"] = DayOfWeek.Monday,
-        ["TUE"] = DayOfWeek.Tuesday,
-        ["WED"] = DayOfWeek.Wednesday,
-        ["THU"] = DayOfWeek.Thursday,
-        ["FRI"] = DayOfWeek.Friday,
-        ["SAT"] = DayOfWeek.Saturday
-    };
-
     private static readonly HashSet<string> _conIdFunctionNames = new(StringComparer.OrdinalIgnoreCase)
     {
         "CON_DBID_TO_ID",
@@ -127,16 +109,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var dialect = context.Dialect;
         var name = fn.Name.ToUpperInvariant();
         if (name is not "COLLATION")
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -161,19 +135,11 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var dialect = context.Dialect;
         var name = fn.Name.ToUpperInvariant();
         if (!_conIdFunctionNames.Contains(name))
         {
             result = null;
             return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, name);
@@ -203,11 +169,7 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var dialect = context.Dialect;
         result = null;
-
-        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-            return false;
 
         var normalizedName = fn.Name.ToUpperInvariant();
         if (normalizedName is not ("BIGINT" or "BPCHAR" or "DBCLOB" or "DEC" or "DECIMAL" or "DOUBLE" or "DOUBLE_PRECISION" or "FLOAT" or "FLOAT4" or "FLOAT8" or "GRAPHIC" or "INT" or "INTEGER" or "REAL" or "SMALLINT" or "VARGRAPHIC" or "VARCHAR"))
@@ -237,7 +199,7 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
 #pragma warning disable CA1031
         catch (Exception e)
         {
-            AstQueryExecutorBase.LogFunctionEvaluationFailure(e);
+            AstQueryExecutionRuntimeHelper.LogFunctionEvaluationFailure(e);
             result = null;
         }
 #pragma warning restore CA1031
@@ -251,18 +213,10 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var dialect = context.Dialect;
-        if (!fn.Name.Equals("CUBE_TABLE", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "CUBE_TABLE", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         result = null;
@@ -275,18 +229,10 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var dialect = context.Dialect;
-        if (!fn.Name.Equals("CV", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "CV", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         result = null;
@@ -299,19 +245,11 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var dialect = context.Dialect;
-        if (!(fn.Name.Equals("DATAOBJ_TO_MAT_PARTITION", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("DATAOBJ_TO_PARTITION", StringComparison.OrdinalIgnoreCase)))
+        if (!(string.Equals(fn.Name, "DATAOBJ_TO_MAT_PARTITION", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "DATAOBJ_TO_PARTITION", StringComparison.OrdinalIgnoreCase)))
         {
             result = null;
             return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         result = null;
@@ -324,18 +262,10 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var dialect = context.Dialect;
-        if (!fn.Name.Equals("DEPTH", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "DEPTH", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         var value = evalArg(0);
@@ -355,18 +285,10 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var dialect = context.Dialect;
-        if (!fn.Name.Equals("DEREF", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "DEREF", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         result = evalArg(0);
@@ -379,18 +301,10 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var dialect = context.Dialect;
-        if (!fn.Name.Equals("DUMP", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "DUMP", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         var value = evalArg(0);
@@ -411,18 +325,10 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var dialect = context.Dialect;
-        if (!fn.Name.Equals("EXISTSNODE", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "EXISTSNODE", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         var value = evalArg(0);
@@ -442,18 +348,10 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var dialect = context.Dialect;
-        if (!fn.Name.Equals("FROM_TZ", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "FROM_TZ", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         if (fn.Args.Count < 2)
@@ -490,18 +388,10 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         out object? result)
     {
         _ = evalArg;
-        var dialect = context.Dialect;
-        if (!fn.Name.Equals("GROUP_ID", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "GROUP_ID", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         result = 0;
@@ -514,18 +404,10 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var dialect = context.Dialect;
-        if (!fn.Name.Equals("HEXTORAW", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "HEXTORAW", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         var value = evalArg(0)?.ToString() ?? string.Empty;
@@ -535,7 +417,7 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
             return true;
         }
 
-        if (!TryNormalizeHexPayload(value, out var hex) || hex.Length % 2 != 0)
+        if (!AstQueryRuntimeHelper.TryNormalizeHexPayload(value, out var hex) || hex.Length % 2 != 0)
         {
             result = null;
             return true;
@@ -564,18 +446,10 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         out object? result)
     {
         _ = evalArg;
-        var dialect = context.Dialect;
-        if (!fn.Name.Equals("ITERATION_NUMBER", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "ITERATION_NUMBER", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         result = 1;
@@ -588,18 +462,10 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var dialect = context.Dialect;
-        if (!fn.Name.Equals("JSON_DATAGUIDE", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "JSON_DATAGUIDE", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         var value = evalArg(0);
@@ -619,19 +485,11 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var dialect = context.Dialect;
         var name = fn.Name.ToUpperInvariant();
         if (name is not "JSON_TRANSFORM")
         {
             result = null;
             return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, name);
@@ -653,18 +511,10 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var dialect = context.Dialect;
-        if (!fn.Name.Equals("LNNVL", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "LNNVL", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         var value = evalArg(0);
@@ -685,15 +535,7 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         out object? result)
     {
         _ = evalArg;
-        var dialect = context.Dialect;
-        if (!fn.Name.Equals("LOCALTIMESTAMP", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!(dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            || dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase)))
+        if (!string.Equals(fn.Name, "LOCALTIMESTAMP", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -710,15 +552,7 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         out object? result)
     {
         _ = evalArg;
-        var dialect = context.Dialect;
-        if (!fn.Name.Equals("LOCALTIME", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!(dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            || dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase)))
+        if (!string.Equals(fn.Name, "LOCALTIME", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -736,7 +570,7 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     {
         _ = context;
 
-        if (!fn.Name.Equals("LOWER", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "LOWER", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -761,7 +595,7 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     {
         _ = context;
 
-        if (!fn.Name.Equals("LTRIM", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "LTRIM", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -786,7 +620,7 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     {
         _ = context;
 
-        if (!fn.Name.Equals("MOD", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "MOD", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -823,14 +657,7 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var dialect = context.Dialect;
-        if (!fn.Name.Equals("DIV", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "DIV", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -867,18 +694,10 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var dialect = context.Dialect;
-        if (!fn.Name.Equals("MONTHS_BETWEEN", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "MONTHS_BETWEEN", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         if (fn.Args.Count < 2)
@@ -912,14 +731,7 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var dialect = context.Dialect;
-        if (!fn.Name.Equals("MIDNIGHT_SECONDS", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "MIDNIGHT_SECONDS", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -978,18 +790,10 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var dialect = context.Dialect;
-        if (!fn.Name.Equals("NANVL", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "NANVL", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         if (fn.Args.Count < 2)
@@ -1014,18 +818,10 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var dialect = context.Dialect;
-        if (!fn.Name.Equals("NEW_TIME", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "NEW_TIME", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         if (fn.Args.Count < 3)
@@ -1063,18 +859,10 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var dialect = context.Dialect;
-        if (!fn.Name.Equals("NEXT_DAY", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "NEXT_DAY", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         if (fn.Args.Count < 2)
@@ -1094,7 +882,7 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
             return true;
         }
 
-        if (!TryParseOracleDayOfWeek(dayValue!, out var targetDay))
+        if (!AstQueryRuntimeHelper.TryParseOracleDayOfWeek(dayValue!, out var targetDay))
         {
             result = null;
             return true;
@@ -1115,19 +903,11 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var dialect = context.Dialect;
         var name = fn.Name.ToUpperInvariant();
         if (!_nlsFunctionNames.Contains(name))
         {
             result = null;
             return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, name);
@@ -1138,7 +918,7 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
             "NLS_CHARSET_NAME" => SetNlsConstantResult("AL32UTF8", out result),
             "NLS_COLLATION_ID" => SetNlsConstantResult(0, out result),
             "NLS_COLLATION_NAME" => SetNlsConstantResult("BINARY", out result),
-            "NLS_INITCAP" => TryEvalNlsTextResult(evalArg, ApplyInitCap, out result),
+            "NLS_INITCAP" => TryEvalNlsTextResult(evalArg, AstQueryRuntimeHelper.ApplyInitCap, out result),
             "NLS_LOWER" => TryEvalNlsTextResult(evalArg, static text => text.ToLowerInvariant(), out result),
             "NLS_UPPER" => TryEvalNlsTextResult(evalArg, static text => text.ToUpperInvariant(), out result),
             "NLSSORT" => TryEvalNlsTextResult(evalArg, static text => text, out result),
@@ -1181,19 +961,11 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var dialect = context.Dialect;
-        if (!(fn.Name.Equals("NUMTODSINTERVAL", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("NUMTOYMINTERVAL", StringComparison.OrdinalIgnoreCase)))
+        if (!(string.Equals(fn.Name, "NUMTODSINTERVAL", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "NUMTOYMINTERVAL", StringComparison.OrdinalIgnoreCase)))
         {
             result = null;
             return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         if (fn.Args.Count < 2)
@@ -1209,7 +981,7 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
 
         var number = Convert.ToDouble(numberValue, CultureInfo.InvariantCulture);
         var unit = unitValue!.Trim().ToUpperInvariant();
-        if (fn.Name.Equals("NUMTODSINTERVAL", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "NUMTODSINTERVAL", StringComparison.OrdinalIgnoreCase))
         {
             result = unit switch
             {
@@ -1237,18 +1009,10 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var dialect = context.Dialect;
-        if (!fn.Name.Equals("MAKE_REF", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "MAKE_REF", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return true;
         }
 
         result = null;
@@ -1261,14 +1025,7 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var dialect = context.Dialect;
-        if (!fn.Name.Equals("DATE_TRUNC", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "DATE_TRUNC", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -1285,7 +1042,7 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
             return true;
         }
 
-        var unit = AstQueryExecutorBase.ResolveTemporalUnit(unitText);
+        var unit = AstQueryExecutionRuntimeHelper.ResolveTemporalUnit(unitText);
         result = AstQueryExecutorBase.TruncateDateTime(dateTime, unit);
         return true;
     }
@@ -1296,17 +1053,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var dialect = context.Dialect;
-        if (!fn.Name.Equals("TRANSLATE", StringComparison.OrdinalIgnoreCase)
-            && !fn.Name.Equals("TRANSLATE...USING", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.SupportsSqlServerScalarFunction("TRANSLATE")
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "TRANSLATE", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(fn.Name, "TRANSLATE...USING", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -1337,65 +1085,6 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         }
 
         result = builder.ToString();
-        return true;
-    }
-
-    private static bool TryParseOracleDayOfWeek(string value, out DayOfWeek day)
-    {
-        day = default;
-        var normalized = value.Trim().ToUpperInvariant();
-        if (_oracleDayOfWeekMap.TryGetValue(normalized, out day))
-            return true;
-
-        return false;
-    }
-
-    private static string ApplyInitCap(string value)
-    {
-        if (string.IsNullOrEmpty(value))
-            return value;
-
-        var builder = new StringBuilder(value.Length);
-        var makeUpper = true;
-        foreach (var ch in value)
-        {
-            if (char.IsLetterOrDigit(ch))
-            {
-                builder.Append(makeUpper
-                    ? char.ToUpperInvariant(ch)
-                    : char.ToLowerInvariant(ch));
-                makeUpper = false;
-            }
-            else
-            {
-                builder.Append(ch);
-                makeUpper = true;
-            }
-        }
-
-        return builder.ToString();
-    }
-
-    private static bool TryNormalizeHexPayload(string trimmed, out string hex)
-    {
-        hex = string.Empty;
-
-        if (trimmed.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
-        {
-            hex = trimmed[2..];
-            return true;
-        }
-
-        if (trimmed.Length >= 3
-            && (trimmed[0] == 'x' || trimmed[0] == 'X')
-            && trimmed[1] == '\''
-            && trimmed[^1] == '\'')
-        {
-            hex = trimmed[2..^1];
-            return true;
-        }
-
-        hex = trimmed;
         return true;
     }
 

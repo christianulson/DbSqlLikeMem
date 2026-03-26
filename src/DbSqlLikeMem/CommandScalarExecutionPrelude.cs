@@ -531,7 +531,7 @@ internal static class CommandScalarExecutionPrelude
         }
 
         if (!TryGetTemporalUnitFromExpression(args[0], context, out var unit))
-            unit = TemporalUnit.Unknown;
+            unit = PreludeTemporalUnit.Unknown;
 
         if (args[1] is CallExpr addTimeIntervalCall
             && TryParseIntervalCall(addTimeIntervalCall, context, out var addTimeIntervalUnit, out var addTimeIntervalAmount))
@@ -659,10 +659,10 @@ internal static class CommandScalarExecutionPrelude
     private static bool TryParseIntervalCall(
         CallExpr intervalCall,
         QueryExecutionContext context,
-        out TemporalUnit unit,
+        out PreludeTemporalUnit unit,
         out decimal amount)
     {
-        unit = TemporalUnit.Unknown;
+        unit = PreludeTemporalUnit.Unknown;
         amount = 0m;
 
         if (!intervalCall.Name.Equals("INTERVAL", StringComparison.OrdinalIgnoreCase)
@@ -683,25 +683,25 @@ internal static class CommandScalarExecutionPrelude
     private static bool TryGetTemporalUnitFromExpression(
         SqlExpr expr,
         QueryExecutionContext context,
-        out TemporalUnit unit)
+        out PreludeTemporalUnit unit)
     {
-        unit = TemporalUnit.Unknown;
+        unit = PreludeTemporalUnit.Unknown;
 
         switch (expr)
         {
             case RawSqlExpr raw:
-                unit = ResolveTemporalUnit(raw.Sql);
-                return unit != TemporalUnit.Unknown;
+                unit = ResolvePreludeTemporalUnit(raw.Sql);
+                return unit != PreludeTemporalUnit.Unknown;
             case IdentifierExpr identifier:
-                unit = ResolveTemporalUnit(identifier.Name);
-                return unit != TemporalUnit.Unknown;
+                unit = ResolvePreludeTemporalUnit(identifier.Name);
+                return unit != PreludeTemporalUnit.Unknown;
         }
 
         if (!TryEvaluateConstantScalarExpression(expr, context, out var value))
             return false;
 
-        unit = ResolveTemporalUnit(value?.ToString() ?? string.Empty);
-        return unit != TemporalUnit.Unknown;
+        unit = ResolvePreludeTemporalUnit(value?.ToString() ?? string.Empty);
+        return unit != PreludeTemporalUnit.Unknown;
     }
 
     private static bool TryEvaluateConstantBinaryExpression(
@@ -878,7 +878,7 @@ internal static class CommandScalarExecutionPrelude
         => (IsNullish(left) && IsNullish(right))
             || (!IsNullish(left) && !IsNullish(right) && Equals(left, right));
 
-    private enum TemporalUnit
+    private enum PreludeTemporalUnit
     {
         Unknown,
         Year,
@@ -935,32 +935,32 @@ internal static class CommandScalarExecutionPrelude
             && TimeSpan.TryParse(text, CultureInfo.InvariantCulture, out span);
     }
 
-    private static TemporalUnit ResolveTemporalUnit(string unit)
+    private static PreludeTemporalUnit ResolvePreludeTemporalUnit(string unit)
         => unit.Trim().ToUpperInvariant() switch
         {
-            SqlConst.YEAR or "YEARS" or "YY" or "YYYY" => TemporalUnit.Year,
-            "MONTH" or "MONTHS" or "MM" => TemporalUnit.Month,
-            "DAY" or "DAYS" or "DD" or "D" => TemporalUnit.Day,
-            "HOUR" or "HOURS" or "HH" => TemporalUnit.Hour,
-            "MINUTE" or "MINUTES" or "MI" or "N" => TemporalUnit.Minute,
-            "SECOND" or "SECONDS" or "SS" or "S" => TemporalUnit.Second,
-            _ => TemporalUnit.Unknown
+            SqlConst.YEAR or "YEARS" or "YY" or "YYYY" => PreludeTemporalUnit.Year,
+            "MONTH" or "MONTHS" or "MM" => PreludeTemporalUnit.Month,
+            "DAY" or "DAYS" or "DD" or "D" => PreludeTemporalUnit.Day,
+            "HOUR" or "HOURS" or "HH" => PreludeTemporalUnit.Hour,
+            "MINUTE" or "MINUTES" or "MI" or "N" => PreludeTemporalUnit.Minute,
+            "SECOND" or "SECONDS" or "SS" or "S" => PreludeTemporalUnit.Second,
+            _ => PreludeTemporalUnit.Unknown
         };
 
-    private static DateTime ApplyDateDelta(DateTime dt, TemporalUnit unit, int amount) => unit switch
+    private static DateTime ApplyDateDelta(DateTime dt, PreludeTemporalUnit unit, int amount) => unit switch
     {
-        TemporalUnit.Year => dt.AddYears(amount),
-        TemporalUnit.Month => dt.AddMonths(amount),
-        TemporalUnit.Day => dt.AddDays(amount),
-        TemporalUnit.Hour => dt.AddHours(amount),
-        TemporalUnit.Minute => dt.AddMinutes(amount),
-        TemporalUnit.Second => dt.AddSeconds(amount),
+        PreludeTemporalUnit.Year => dt.AddYears(amount),
+        PreludeTemporalUnit.Month => dt.AddMonths(amount),
+        PreludeTemporalUnit.Day => dt.AddDays(amount),
+        PreludeTemporalUnit.Hour => dt.AddHours(amount),
+        PreludeTemporalUnit.Minute => dt.AddMinutes(amount),
+        PreludeTemporalUnit.Second => dt.AddSeconds(amount),
         _ => dt
     };
 
-    private static bool TryParseDateModifier(string modifier, out TemporalUnit unit, out int amount)
+    private static bool TryParseDateModifier(string modifier, out PreludeTemporalUnit unit, out int amount)
     {
-        unit = TemporalUnit.Unknown;
+        unit = PreludeTemporalUnit.Unknown;
         amount = 0;
 
         var trimmed = modifier.Trim();
@@ -982,8 +982,8 @@ internal static class CommandScalarExecutionPrelude
             return false;
 
         amount *= sign;
-        unit = ResolveTemporalUnit(trimmed[(firstSpace + 1)..]);
-        return unit != TemporalUnit.Unknown;
+        unit = ResolvePreludeTemporalUnit(trimmed[(firstSpace + 1)..]);
+        return unit != PreludeTemporalUnit.Unknown;
     }
 
     private static bool TryCoerceBooleanValue(object? value, out bool result)

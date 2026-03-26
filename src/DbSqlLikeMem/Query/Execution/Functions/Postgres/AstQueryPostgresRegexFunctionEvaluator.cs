@@ -110,7 +110,7 @@ internal static class AstQueryPostgresRegexFunctionEvaluator
         QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result,
-        Func<string, Group, string, bool, object?> projector,
+        Func<string, Match, string, bool, object?> projector,
         bool countMatches,
         bool returnsBool,
         bool returnIndex = false,

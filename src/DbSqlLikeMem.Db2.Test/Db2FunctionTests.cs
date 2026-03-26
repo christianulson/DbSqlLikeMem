@@ -249,7 +249,7 @@ public sealed class Db2FunctionTests
 
         if (version < Db2Dialect.JsonFunctionsMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+            var ex = Assert.Throws<NotSupportedException>(command.ExecuteReader);
             Assert.Contains(SqlConst.JSON_TABLE, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }

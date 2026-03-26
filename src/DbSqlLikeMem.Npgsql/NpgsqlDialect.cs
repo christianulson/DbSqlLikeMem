@@ -1,6 +1,6 @@
 namespace DbSqlLikeMem.Npgsql;
 
-internal sealed class NpgsqlDialect : SqlDialectBase
+internal sealed class NpgsqlDialect : SqlDialectBase, ISqlDialect
 {
     internal const string DialectName = "postgresql";
 
@@ -27,7 +27,7 @@ internal sealed class NpgsqlDialect : SqlDialectBase
             "->>", "->",
             "#>>", "#>",
             "::",
-            ">=", "<=", "<>", "!=", "==",
+            ">=", "<=", "<>", "!=",
             "&&", "||"
         ])
     {
@@ -42,6 +42,7 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     internal const int MergeMinVersion = 15;
     internal const int JsonbMinVersion = 9;
     internal const int WindowFunctionsMinVersion = 8;
+    internal const int WithMaterializedHintMinVersion = 12;
 
     /// <summary>
     /// EN: Gets whether dollar quoted strings is supported.
@@ -107,6 +108,7 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     public override bool SupportsAlterTableAddColumn => true;
     public override bool SupportsFunctionDdl => true;
     public override bool SupportsCreateOrReplaceFunctionDdl => true;
+    bool ISqlDialect.SupportsPostgreSqlCreateFunctionDdl => true;
 
     public override bool SupportsSequenceDdl => true;
     /// <summary>
@@ -145,7 +147,7 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     /// EN: Gets whether with materialized hint is supported.
     /// PT: Obtém se há suporte a with materialized hint.
     /// </summary>
-    public override bool SupportsWithMaterializedHint => true;
+    public override bool SupportsWithMaterializedHint => Version >= WithMaterializedHintMinVersion;
     /// <summary>
     /// EN: Gets whether merge is supported.
     /// PT: Obtém se há suporte a merge.

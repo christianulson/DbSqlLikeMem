@@ -143,35 +143,35 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
     private object? RunSchemaSnapshotExportScenario<TConnection>(TConnection connection)
         where TConnection : DbConnection
     {
-        var service = new SchemaSnapshotServiceTest<TConnection>(connection, new DbSqlLikeMem.TestTools.DML.NoopScenario<TConnection>(), dialect);
+        var service = new SchemaSnapshotServiceTest<TConnection>(connection, new TestTools.DML.NoopScenario<TConnection>(), dialect);
         return service.RunSchemaSnapshotExport();
     }
 
     private string RunSchemaSnapshotToJsonScenario<TConnection>(TConnection connection)
         where TConnection : DbConnection
     {
-        var service = new SchemaSnapshotServiceTest<TConnection>(connection, new DbSqlLikeMem.TestTools.DML.NoopScenario<TConnection>(), dialect);
+        var service = new SchemaSnapshotServiceTest<TConnection>(connection, new TestTools.DML.NoopScenario<TConnection>(), dialect);
         return service.RunSchemaSnapshotToJson();
     }
 
     private JsonDocument RunSchemaSnapshotLoadJsonScenario<TConnection>(TConnection connection)
         where TConnection : DbConnection
     {
-        var service = new SchemaSnapshotServiceTest<TConnection>(connection, new DbSqlLikeMem.TestTools.DML.NoopScenario<TConnection>(), dialect);
+        var service = new SchemaSnapshotServiceTest<TConnection>(connection, new TestTools.DML.NoopScenario<TConnection>(), dialect);
         return service.RunSchemaSnapshotLoadJson();
     }
 
     private bool RunSchemaSnapshotCompareScenario<TConnection>(TConnection connection)
         where TConnection : DbConnection
     {
-        var service = new SchemaSnapshotServiceTest<TConnection>(connection, new DbSqlLikeMem.TestTools.DML.NoopScenario<TConnection>(), dialect);
+        var service = new SchemaSnapshotServiceTest<TConnection>(connection, new TestTools.DML.NoopScenario<TConnection>(), dialect);
         return service.RunSchemaSnapshotCompare();
     }
 
     private JsonDocument RunSchemaSnapshotRoundTripScenario<TConnection>(TConnection connection)
         where TConnection : DbConnection
     {
-        var service = new SchemaSnapshotServiceTest<TConnection>(connection, new DbSqlLikeMem.TestTools.DML.NoopScenario<TConnection>(), dialect);
+        var service = new SchemaSnapshotServiceTest<TConnection>(connection, new TestTools.DML.NoopScenario<TConnection>(), dialect);
         return service.RunSchemaSnapshotRoundTrip();
     }
 

@@ -1,8 +1,11 @@
 namespace DbSqlLikeMem;
 
-internal abstract partial class AstQueryExecutorBase
+internal static class AstQuerySqlServerResolutionHelper
 {
-    private static int? TryResolveSqlServerSystemTypeId(string? typeName)
+    private static readonly IReadOnlyList<(int ObjectId, string SchemaName, string TableName, string FullName, string ObjectKind)> EmptyObjects =
+        Array.Empty<(int ObjectId, string SchemaName, string TableName, string FullName, string ObjectKind)>();
+
+    internal static int? TryResolveSqlServerSystemTypeId(string? typeName)
     {
         if (string.IsNullOrWhiteSpace(typeName))
             return null;
@@ -30,9 +33,9 @@ internal abstract partial class AstQueryExecutorBase
         };
     }
 
-    private static string? TryResolveSqlServerSystemTypeName(object? typeIdValue)
+    internal static string? TryResolveSqlServerSystemTypeName(object? typeIdValue)
     {
-        if (IsNullish(typeIdValue))
+        if (AstQueryExecutorBase.IsNullish(typeIdValue))
             return null;
 
         var typeId = Convert.ToInt32(typeIdValue, CultureInfo.InvariantCulture);
@@ -59,7 +62,7 @@ internal abstract partial class AstQueryExecutorBase
         };
     }
 
-    private static int? TryResolveSqlServerDatabasePrincipalId(string? principalName)
+    internal static int? TryResolveSqlServerDatabasePrincipalId(string? principalName)
     {
         if (string.IsNullOrWhiteSpace(principalName))
             return null;
@@ -73,7 +76,7 @@ internal abstract partial class AstQueryExecutorBase
         };
     }
 
-    private static object? TryResolveSqlServerTypeProperty(string? typeName, string? propertyName)
+    internal static object? TryResolveSqlServerTypeProperty(string? typeName, string? propertyName)
     {
         if (string.IsNullOrWhiteSpace(typeName) || string.IsNullOrWhiteSpace(propertyName))
             return null;
@@ -103,36 +106,40 @@ internal abstract partial class AstQueryExecutorBase
         };
     }
 
-    private object? TryResolveSqlServerDatabaseProperty(string? databaseName, string? propertyName)
+    internal static object? TryResolveSqlServerDatabaseProperty(
+        QueryExecutionContext context,
+        string? databaseName,
+        string? propertyName)
     {
         if (string.IsNullOrWhiteSpace(databaseName) || string.IsNullOrWhiteSpace(propertyName))
             return null;
 
         var normalizedDatabase = databaseName!.Trim().Trim('[', ']').NormalizeName();
-        if (!string.Equals(normalizedDatabase, _cnn.Database.NormalizeName(), StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(normalizedDatabase, context.Connection.Database.NormalizeName(), StringComparison.OrdinalIgnoreCase))
             return null;
 
         return propertyName!.Trim().ToUpperInvariant() switch
         {
             "STATUS" => "ONLINE",
             "UPDATEABILITY" => "READ_WRITE",
-            "VERSION" => _cnn.Db.Version,
+            "VERSION" => context.Connection.Db.Version,
             _ => null
         };
     }
 
-    private object? TryResolveSqlServerColumnProperty(
+    internal static object? TryResolveSqlServerColumnProperty(
+        QueryExecutionContext context,
         object? objectIdValue,
         string? columnName,
         string? propertyName)
     {
-        if (IsNullish(objectIdValue) || string.IsNullOrWhiteSpace(columnName) || string.IsNullOrWhiteSpace(propertyName))
+        if (AstQueryExecutorBase.IsNullish(objectIdValue) || string.IsNullOrWhiteSpace(columnName) || string.IsNullOrWhiteSpace(propertyName))
             return null;
 
         ITableMock? table = objectIdValue switch
         {
-            string objectName => TryResolveSqlServerTable(objectName, out var tableByName) ? tableByName : null,
-            _ => TryResolveSqlServerTableByObjectId(Convert.ToInt32(objectIdValue, CultureInfo.InvariantCulture))
+            string objectName => TryResolveSqlServerTable(context, objectName, out var tableByName) ? tableByName : null,
+            _ => TryResolveSqlServerTableByObjectId(context, Convert.ToInt32(objectIdValue, CultureInfo.InvariantCulture))
         };
 
         if (table is null)
@@ -148,12 +155,15 @@ internal abstract partial class AstQueryExecutorBase
         };
     }
 
-    private int? TryResolveSqlServerColumnLength(string? objectName, string? columnName)
+    internal static int? TryResolveSqlServerColumnLength(
+        QueryExecutionContext context,
+        string? objectName,
+        string? columnName)
     {
-        if (!TryResolveSqlServerTable(objectName, out var table) || table is null || string.IsNullOrWhiteSpace(columnName))
+        if (!TryResolveSqlServerTable(context, objectName, out var table) || table is null || string.IsNullOrWhiteSpace(columnName))
             return null;
 
-        var column = table!.GetColumn(columnName!);
+        var column = table.GetColumn(columnName!);
         return column.DbType switch
         {
             DbType.Boolean => 1,
@@ -177,12 +187,12 @@ internal abstract partial class AstQueryExecutorBase
         };
     }
 
-    private string? TryResolveSqlServerColumnName(object? objectIdValue, object? columnIdValue)
+    internal static string? TryResolveSqlServerColumnName(QueryExecutionContext context, object? objectIdValue, object? columnIdValue)
     {
-        if (IsNullish(objectIdValue) || IsNullish(columnIdValue))
+        if (AstQueryExecutorBase.IsNullish(objectIdValue) || AstQueryExecutorBase.IsNullish(columnIdValue))
             return null;
 
-        var table = TryResolveSqlServerTableByObjectId(Convert.ToInt32(objectIdValue, CultureInfo.InvariantCulture));
+        var table = TryResolveSqlServerTableByObjectId(context, Convert.ToInt32(objectIdValue, CultureInfo.InvariantCulture));
         if (table is null)
             return null;
 
@@ -195,14 +205,17 @@ internal abstract partial class AstQueryExecutorBase
             ?.Name;
     }
 
-    private bool TryResolveSqlServerTable(string? objectName, out ITableMock? table)
+    internal static bool TryResolveSqlServerTable(
+        QueryExecutionContext context,
+        string? objectName,
+        out ITableMock? table)
     {
         table = null;
         if (string.IsNullOrWhiteSpace(objectName))
             return false;
 
         var normalizedInput = objectName!.Trim().Trim('[', ']').NormalizeName();
-        var objectEntry = EnumerateSqlServerObjects()
+        var objectEntry = EnumerateSqlServerObjects(context)
             .Where(item => item.FullName.Equals(normalizedInput, StringComparison.OrdinalIgnoreCase)
                 || item.TableName.Equals(normalizedInput, StringComparison.OrdinalIgnoreCase))
             .Take(2)
@@ -211,27 +224,27 @@ internal abstract partial class AstQueryExecutorBase
         if (objectEntry.Count != 1)
             return false;
 
-        return _cnn.TryGetTable(objectEntry[0].TableName, out table, objectEntry[0].SchemaName);
+        return context.Connection.TryGetTable(objectEntry[0].TableName, out table, objectEntry[0].SchemaName);
     }
 
-    private ITableMock? TryResolveSqlServerTableByObjectId(int objectId)
+    internal static ITableMock? TryResolveSqlServerTableByObjectId(QueryExecutionContext context, int objectId)
     {
-        var objectEntry = EnumerateSqlServerObjects().FirstOrDefault(item => item.ObjectId == objectId);
+        var objectEntry = EnumerateSqlServerObjects(context).FirstOrDefault(item => item.ObjectId == objectId);
         if (objectEntry == default)
             return null;
 
-        return _cnn.TryGetTable(objectEntry.TableName, out var table, objectEntry.SchemaName)
+        return context.Connection.TryGetTable(objectEntry.TableName, out var table, objectEntry.SchemaName)
             ? table
             : null;
     }
 
-    private int? TryResolveSqlServerObjectId(string? objectName)
+    internal static int? TryResolveSqlServerObjectId(QueryExecutionContext context, string? objectName)
     {
         if (string.IsNullOrWhiteSpace(objectName))
             return null;
 
         var normalizedInput = objectName!.Trim().Trim('[', ']').NormalizeName();
-        var matches = EnumerateSqlServerObjects()
+        var matches = EnumerateSqlServerObjects(context)
             .Where(item => item.FullName.Equals(normalizedInput, StringComparison.OrdinalIgnoreCase)
                 || item.TableName.Equals(normalizedInput, StringComparison.OrdinalIgnoreCase))
             .Take(2)
@@ -243,13 +256,13 @@ internal abstract partial class AstQueryExecutorBase
         return matches[0].ObjectId;
     }
 
-    private object? TryResolveSqlServerObjectProperty(object? objectIdValue, string? propertyName)
+    internal static object? TryResolveSqlServerObjectProperty(QueryExecutionContext context, object? objectIdValue, string? propertyName)
     {
-        if (IsNullish(objectIdValue) || string.IsNullOrWhiteSpace(propertyName))
+        if (AstQueryExecutorBase.IsNullish(objectIdValue) || string.IsNullOrWhiteSpace(propertyName))
             return null;
 
         var objectId = Convert.ToInt32(objectIdValue, CultureInfo.InvariantCulture);
-        var entry = EnumerateSqlServerObjects().FirstOrDefault(item => item.ObjectId == objectId);
+        var entry = EnumerateSqlServerObjects(context).FirstOrDefault(item => item.ObjectId == objectId);
         if (entry == default)
             return null;
 
@@ -261,50 +274,29 @@ internal abstract partial class AstQueryExecutorBase
         };
     }
 
-    private string? TryResolveSqlServerObjectName(object? objectIdValue)
+    internal static string? TryResolveSqlServerObjectName(QueryExecutionContext context, object? objectIdValue)
     {
-        if (IsNullish(objectIdValue))
+        if (AstQueryExecutorBase.IsNullish(objectIdValue))
             return null;
 
         var objectId = Convert.ToInt32(objectIdValue, CultureInfo.InvariantCulture);
-        var match = EnumerateSqlServerObjects()
+        var match = EnumerateSqlServerObjects(context)
             .FirstOrDefault(item => item.ObjectId == objectId);
         return match.ObjectId == 0 ? null : match.TableName;
     }
 
-    private string? TryResolveSqlServerObjectSchemaName(object? objectIdValue)
+    internal static string? TryResolveSqlServerObjectSchemaName(QueryExecutionContext context, object? objectIdValue)
     {
-        if (IsNullish(objectIdValue))
+        if (AstQueryExecutorBase.IsNullish(objectIdValue))
             return null;
 
         var objectId = Convert.ToInt32(objectIdValue, CultureInfo.InvariantCulture);
-        var match = EnumerateSqlServerObjects()
+        var match = EnumerateSqlServerObjects(context)
             .FirstOrDefault(item => item.ObjectId == objectId);
         return match.ObjectId == 0 ? null : match.SchemaName;
     }
 
-    private List<(int ObjectId, string SchemaName, string TableName, string FullName, string ObjectKind)> EnumerateSqlServerObjects()
-    {
-        var objects = new List<(int ObjectId, string SchemaName, string TableName, string FullName, string ObjectKind)>();
-        var nextId = 1;
-
-        foreach (var schema in _cnn.Db.Values.OrderBy(static s => s.SchemaName, StringComparer.OrdinalIgnoreCase))
-        {
-            foreach (var table in schema.Tables.Values.OrderBy(static t => t.TableName, StringComparer.OrdinalIgnoreCase))
-            {
-                objects.Add((nextId++, schema.SchemaName, table.TableName, $"{schema.SchemaName}.{table.TableName}", SqlConst.TABLE));
-            }
-
-            foreach (var procedure in schema.Procedures.Keys.OrderBy(static p => p, StringComparer.OrdinalIgnoreCase))
-            {
-                objects.Add((nextId++, schema.SchemaName, procedure, $"{schema.SchemaName}.{procedure}", "PROCEDURE"));
-            }
-        }
-
-        return objects;
-    }
-
-    private static int? TryResolveSqlServerRoleMembership(string? roleName)
+    internal static int? TryResolveSqlServerRoleMembership(string? roleName)
     {
         if (string.IsNullOrWhiteSpace(roleName))
             return null;
@@ -319,7 +311,7 @@ internal abstract partial class AstQueryExecutorBase
         };
     }
 
-    private static int? TryResolveSqlServerServerRoleMembership(string? roleName)
+    internal static int? TryResolveSqlServerServerRoleMembership(string? roleName)
     {
         if (string.IsNullOrWhiteSpace(roleName))
             return null;
@@ -332,7 +324,7 @@ internal abstract partial class AstQueryExecutorBase
         };
     }
 
-    private static string ComputeSoundex(string value)
+    internal static string ComputeSoundex(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
             return string.Empty;
@@ -340,7 +332,7 @@ internal abstract partial class AstQueryExecutorBase
         var firstLetter = char.ToUpperInvariant(value[0]);
         var codes = new StringBuilder();
 
-        char? lastCode = null;
+        int? lastCode = null;
         foreach (var ch in value.Skip(1))
         {
             var code = GetSoundexCode(ch);
@@ -357,15 +349,43 @@ internal abstract partial class AstQueryExecutorBase
             lastCode = code.Value;
         }
 
-        var soundex = new StringBuilder(4);
-        soundex.Append(firstLetter);
-        soundex.Append(codes);
-        while (soundex.Length < 4)
-            soundex.Append('0');
+        var result = firstLetter + codes.ToString();
+        return result.PadRight(4, '0')[..4];
+    }
 
-        if (soundex.Length > 4)
-            soundex.Length = 4;
+    internal static int? GetSoundexCode(char c)
+    {
+        c = char.ToUpperInvariant(c);
+        return c switch
+        {
+            'B' or 'F' or 'P' or 'V' => 1,
+            'C' or 'G' or 'J' or 'K' or 'Q' or 'S' or 'X' or 'Z' => 2,
+            'D' or 'T' => 3,
+            'L' => 4,
+            'M' or 'N' => 5,
+            'R' => 6,
+            _ => null
+        };
+    }
 
-        return soundex.ToString();
+    private static IReadOnlyList<(int ObjectId, string SchemaName, string TableName, string FullName, string ObjectKind)> EnumerateSqlServerObjects(QueryExecutionContext context)
+    {
+        var objects = new List<(int ObjectId, string SchemaName, string TableName, string FullName, string ObjectKind)>();
+        var nextId = 1;
+
+        foreach (var schema in context.Connection.Db.Values.OrderBy(static s => s.SchemaName, StringComparer.OrdinalIgnoreCase))
+        {
+            foreach (var table in schema.Tables.Values.OrderBy(static t => t.TableName, StringComparer.OrdinalIgnoreCase))
+            {
+                objects.Add((nextId++, schema.SchemaName, table.TableName, $"{schema.SchemaName}.{table.TableName}", SqlConst.TABLE));
+            }
+
+            foreach (var procedure in schema.Procedures.Keys.OrderBy(static p => p, StringComparer.OrdinalIgnoreCase))
+            {
+                objects.Add((nextId++, schema.SchemaName, procedure, $"{schema.SchemaName}.{procedure}", "PROCEDURE"));
+            }
+        }
+
+        return objects.Count == 0 ? EmptyObjects : objects;
     }
 }

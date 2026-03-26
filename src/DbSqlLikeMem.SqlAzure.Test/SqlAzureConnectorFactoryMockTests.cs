@@ -20,7 +20,7 @@ public sealed class SqlAzureConnectorFactoryMockTests(
         Assert.IsType<SqlAzureCommandMock>(factory.CreateCommand());
         Assert.IsType<SqlAzureConnectionMock>(factory.CreateConnection());
         Assert.IsType<SqlAzureDataAdapterMock>(factory.CreateDataAdapter());
-        Assert.IsType<System.Data.Common.DbConnectionStringBuilder>(factory.CreateConnectionStringBuilder());
+        Assert.IsType<DbConnectionStringBuilder>(factory.CreateConnectionStringBuilder());
         Assert.NotNull(factory.CreateParameter());
     }
 

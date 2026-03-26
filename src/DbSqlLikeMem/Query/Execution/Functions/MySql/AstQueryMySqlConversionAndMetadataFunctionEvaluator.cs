@@ -64,12 +64,6 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("CONV", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 3)
             throw new InvalidOperationException("CONV() espera valor, base origem e base destino.");
 

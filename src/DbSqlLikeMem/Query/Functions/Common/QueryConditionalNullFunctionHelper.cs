@@ -28,8 +28,8 @@ internal static class QueryConditionalNullFunctionHelper
     private static Dictionary<string, ConditionalNullFunctionHandler> CreateHandlers()
     {
         var handlers = new Dictionary<string, ConditionalNullFunctionHandler>(StringComparer.OrdinalIgnoreCase);
-        Register(handlers, SqlConst.IF, TryEvalConditionalFunction);
-        Register(handlers, "IIF", TryEvalConditionalFunction);
+        Register(handlers, SqlConst.IF, TryEvalIfFunction);
+        Register(handlers, "IIF", TryEvalIifFunction);
         Register(handlers, "NVL2", TryEvalNvl2Function);
         Register(handlers, "DECODE", TryEvalDecodeFunction);
         Register(handlers, "COALESCE", TryEvalCoalesceFunction);
@@ -45,15 +45,31 @@ internal static class QueryConditionalNullFunctionHelper
         handlers[name] = handler;
     }
 
-    private static bool TryEvalConditionalFunction(
+    private static bool TryEvalIfFunction(
         FunctionCallExpr fn,
         QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        var isIf = fn.Name.Equals(SqlConst.IF, StringComparison.OrdinalIgnoreCase);
-        var isIif = fn.Name.Equals("IIF", StringComparison.OrdinalIgnoreCase);
-        if (!((isIf && context.Dialect.SupportsIfFunction) || (isIif && context.Dialect.SupportsIifFunction)))
+        if (!context.Dialect.SupportsIfFunction)
+        {
+            result = null;
+            return false;
+        }
+
+        var condition = evalArg(0).ToBool();
+        result = condition ? evalArg(1) : evalArg(2);
+        return true;
+    }
+
+    private static bool TryEvalIifFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        if (!context.Dialect.SupportsIifFunction)
         {
             result = null;
             return false;
@@ -70,12 +86,6 @@ internal static class QueryConditionalNullFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (fn.Name.Equals("COALESCE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var supportsNullSubstitute = false;
         foreach (var functionName in context.Dialect.NullSubstituteFunctionNames)
         {
@@ -103,12 +113,6 @@ internal static class QueryConditionalNullFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("NVL2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 3)
             throw new InvalidOperationException("NVL2() espera 3 argumentos.");
 
@@ -123,12 +127,6 @@ internal static class QueryConditionalNullFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("DECODE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count == 2)
         {
             var payload = evalArg(0)?.ToString();
@@ -186,12 +184,6 @@ internal static class QueryConditionalNullFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("COALESCE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         for (int i = 0; i < fn.Args.Count; i++)
         {
             var value = evalArg(i);
@@ -212,12 +204,6 @@ internal static class QueryConditionalNullFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("NULLIF", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var left = evalArg(0);
         var right = evalArg(1);
         if (IsNullish(left) || IsNullish(right))

@@ -12,9 +12,6 @@ internal static class AstQuerySqlServerScalarFunctionEvaluator
     {
         result = null;
 
-        if (!context.Dialect.SupportsSqlServerScalarFunction(fn.Name))
-            return false;
-
         if (_handlers.TryGetValue(fn.Name, out var handler))
             return handler(fn, context, evalArg, out result);
 

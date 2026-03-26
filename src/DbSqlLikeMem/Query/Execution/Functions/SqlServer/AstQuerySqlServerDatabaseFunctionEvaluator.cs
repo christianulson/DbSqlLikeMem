@@ -34,10 +34,6 @@ internal sealed class AstQuerySqlServerDatabaseFunctionEvaluator(
     {
         result = null;
 
-        var dialect = _getDialect();
-        if (dialect is null || !dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
-            return false;
-
         var name = fn.Name.ToUpperInvariant();
         result = name switch
         {

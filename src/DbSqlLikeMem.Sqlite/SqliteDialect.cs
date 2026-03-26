@@ -9,26 +9,26 @@ internal sealed class SqliteDialect : SqlDialectBase
         ) : base(
         name: DialectName,
         version: version,
-        keywords: ["REGEXP"],
+        keywords: [],//"REGEXP"],
         binOps:
         [
             new KeyValuePair<string, SqlBinaryOp>(SqlConst.AND, SqlBinaryOp.And),
             new KeyValuePair<string, SqlBinaryOp>(SqlConst.OR, SqlBinaryOp.Or),
+            new KeyValuePair<string, SqlBinaryOp>("||", SqlBinaryOp.Concat),
             new KeyValuePair<string, SqlBinaryOp>("=", SqlBinaryOp.Eq),
+            new KeyValuePair<string, SqlBinaryOp>("==", SqlBinaryOp.Eq),
             new KeyValuePair<string, SqlBinaryOp>("<>", SqlBinaryOp.Neq),
             new KeyValuePair<string, SqlBinaryOp>("!=", SqlBinaryOp.Neq),
             new KeyValuePair<string, SqlBinaryOp>(">", SqlBinaryOp.Greater),
             new KeyValuePair<string, SqlBinaryOp>(">=", SqlBinaryOp.GreaterOrEqual),
             new KeyValuePair<string, SqlBinaryOp>("<", SqlBinaryOp.Less),
             new KeyValuePair<string, SqlBinaryOp>("<=", SqlBinaryOp.LessOrEqual),
-            new KeyValuePair<string, SqlBinaryOp>("<=>", SqlBinaryOp.NullSafeEq),
         ],
         operators:
         [
-            "<=>",
             "->>", "->",
             ">=", "<=", "<>", "!=", "==",
-            "&&", "||"
+            "||"
         ])
     {
         SqliteScalarFunctionRegistry.Register(this, version);
@@ -36,7 +36,13 @@ internal sealed class SqliteDialect : SqlDialectBase
     }
 
  
-    internal const int WithCteMinVersion = 3;
+    internal const int WithCteMinVersion = 300;
+    internal const int OnUpsertMinVersion = 324;
+    internal const int ReturningMinVersion = 335;
+    internal const int WithMaterializedHintMinVersion = 335;
+    internal const int JsonArrowOperatorsMinVersion = 338;
+    internal const int OrderByNullsModifierMinVersion = 330;
+    internal const int AggregateOrderByMinVersion = 330;
     internal const int MergeMinVersion = int.MaxValue;
     /// <summary>
     /// EN: Gets or sets allows backtick identifiers.
@@ -44,6 +50,7 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// </summary>
     public override bool AllowsBacktickIdentifiers => true;
 
+    public override bool AllowsBracketIdentifiers => true;
     /// <summary>
     /// EN: Gets or sets identifier escape style.
     /// PT: Obtém ou define identifier escape style.
@@ -54,7 +61,7 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// EN: Determines whether the character is treated as a string quote delimiter.
     /// PT: Determina se o caractere é tratado como delimitador de string.
     /// </summary>
-    public override bool IsStringQuote(char ch) => ch is '\'' or '"';
+    public override bool IsStringQuote(char ch) => ch is '\'';
     /// <summary>
     /// EN: Gets or sets string escape style.
     /// PT: Obtém ou define string escape style.
@@ -62,42 +69,26 @@ internal sealed class SqliteDialect : SqlDialectBase
     public override SqlStringEscapeStyle StringEscapeStyle => SqlStringEscapeStyle.doubled_quote;
 
     /// <summary>
-    /// EN: Gets whether hash line comment is supported.
-    /// PT: Obtém se há suporte a hash line comment.
-    /// </summary>
-    public override bool SupportsHashLineComment => true;
-
-
-    /// <summary>
     /// EN: Gets whether limit offset is supported.
     /// PT: Obtém se há suporte a limit offset.
     /// </summary>
     public override bool SupportsLimitOffset => true;
-    /// <summary>
-    /// EN: Enables OFFSET/FETCH compatibility syntax for shared smoke tests.
-    /// PT: Habilita sintaxe de compatibilidade OFFSET/FETCH para testes smoke compartilhados.
-    /// </summary>
-    public override bool SupportsOffsetFetch => true;
-    /// <summary>
-    /// EN: Gets whether on duplicate key update is supported.
-    /// PT: Obtém se há suporte a on duplicate key update.
-    /// </summary>
-    public override bool SupportsOnDuplicateKeyUpdate => true;
+
     /// <summary>
     /// EN: Gets whether on conflict clause is supported.
     /// PT: Obtém se há suporte a on conflict clause.
     /// </summary>
-    public override bool SupportsOnConflictClause => true;
+    public override bool SupportsOnConflictClause => Version >= OnUpsertMinVersion;
     /// <summary>
     /// EN: Gets whether RETURNING clause is supported for DML statements.
     /// PT: Obtém se a cláusula RETURNING é suportada para comandos DML.
     /// </summary>
-    public override bool SupportsReturning => true;
+    public override bool SupportsReturning => Version >= ReturningMinVersion;
     /// <summary>
     /// EN: Gets whether order by nulls modifier is supported.
     /// PT: Obtém se há suporte a order by nulls modifier.
     /// </summary>
-    public override bool SupportsOrderByNullsModifier => true;
+    public override bool SupportsOrderByNullsModifier => Version >= OrderByNullsModifierMinVersion;
 
     /// <summary>
     /// EN: Gets whether delete target alias is supported.
@@ -122,17 +113,13 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// EN: Gets whether with materialized hint is supported.
     /// PT: Obtém se há suporte a with materialized hint.
     /// </summary>
-    public override bool SupportsWithMaterializedHint => true;
-    /// <summary>
-    /// EN: Gets whether null safe eq is supported.
-    /// PT: Obtém se há suporte a null safe eq.
-    /// </summary>
-    public override bool SupportsNullSafeEq => true;
+    public override bool SupportsWithMaterializedHint => Version >= WithMaterializedHintMinVersion;
+
     /// <summary>
     /// EN: Gets or sets null substitute function names.
     /// PT: Obtém ou define null substitute function names.
     /// </summary>
-    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["IFNULL", "ISNULL", "NVL"];
+    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["IFNULL", "COALESCE"];
     /// <summary>
     /// EN: Gets or sets concat returns null on null input.
     /// PT: Obtém ou define concat returns null on null input.
@@ -142,19 +129,13 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// EN: Gets whether json arrow operators is supported.
     /// PT: Obtém se há suporte a json arrow operators.
     /// </summary>
-    public override bool SupportsJsonArrowOperators => true;
+    public override bool SupportsJsonArrowOperators => Version >= JsonArrowOperatorsMinVersion;
     /// <summary>
     /// EN: Gets or sets text comparison.
     /// PT: Obtém ou define text comparison.
     /// </summary>
-    public override StringComparison TextComparison => StringComparison.OrdinalIgnoreCase;
+    public override StringComparison TextComparison => StringComparison.OrdinalIgnoreCase; // evoluir para collation-sensitive com base na versão e configuração do banco de dados
 
-    /// <summary>
-    /// EN: Gets whether implicit numeric string comparison is supported.
-    /// PT: Obtém se há suporte a implicit numeric string comparison.
-    /// </summary>
-    public override bool SupportsImplicitNumericStringComparison => true;
-
-    public override bool SupportsAggregateOrderByForStringAggregates => true;
+    public override bool SupportsAggregateOrderByForStringAggregates => Version >= AggregateOrderByMinVersion;
 
 }

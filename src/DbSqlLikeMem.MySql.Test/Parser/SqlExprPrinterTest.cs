@@ -41,7 +41,7 @@ public sealed class SqlExprPrinterTest(
         yield return new object[] { "a IN (1,2,3)", 0 };
         yield return new object[] { "a IN ((SELECT 1 WHERE 0))", 0 };
         yield return new object[] { "EXISTS(SELECT 1 WHERE 0)", 0 };
-        yield return new object[] { "data->'$.name' = 'x'", MySqlDialect.JsonExtractMinVersion };
-        yield return new object[] { "data->>'$.name' = 'x'", MySqlDialect.JsonExtractMinVersion };
+        yield return new object[] { "data->'$.name' = 'x'", MySqlDialect.JsonArrowOperatorsMinVersion };
+        yield return new object[] { "data->>'$.name' = 'x'", MySqlDialect.JsonArrowOperatorsMinVersion };
     }
 }

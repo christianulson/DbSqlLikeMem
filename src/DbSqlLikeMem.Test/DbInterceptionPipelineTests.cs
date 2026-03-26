@@ -95,7 +95,7 @@ public sealed class DbInterceptionPipelineTests(
             new RecordingInterceptor("second", events));
         using var command = connection.CreateCommand();
 
-        var ex = Assert.Throws<InvalidOperationException>(() => command.ExecuteScalar());
+        var ex = Assert.Throws<InvalidOperationException>(command.ExecuteScalar);
 
         Assert.Equal("boom", ex.Message);
         Assert.Equal(
@@ -314,7 +314,7 @@ public sealed class DbInterceptionPipelineTests(
                 ConnectionOpenExceptionFactory = static _ => new IOException("open-blocked")
             });
 
-        var openEx = Assert.Throws<IOException>(() => blockedOpen.Open());
+        var openEx = Assert.Throws<IOException>(blockedOpen.Open);
         Assert.Equal("open-blocked", openEx.Message);
 
         using var blockedTransaction = new FakeDbConnection().WithInterceptors(

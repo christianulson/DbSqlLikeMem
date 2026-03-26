@@ -174,7 +174,7 @@ internal sealed class SqlTokenizer
         var quote = Read();
         var startPos = _pos - 1;
 
-        var sb = new System.Text.StringBuilder();
+        var sb = new StringBuilder();
 
         while (!Eof)
         {
@@ -270,7 +270,7 @@ internal sealed class SqlTokenizer
             char close = pair.End;
 
             var start = _pos;
-            var sb = new System.Text.StringBuilder();
+            var sb = new StringBuilder();
             while (!Eof)
             {
                 var ch = Read();

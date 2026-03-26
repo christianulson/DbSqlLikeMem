@@ -20,7 +20,7 @@ public sealed class SqliteConnectorFactoryMockTests(
         Assert.IsType<SqliteCommandMock>(factory.CreateCommand());
         Assert.IsType<SqliteConnectionMock>(factory.CreateConnection());
         Assert.IsType<SqliteDataAdapterMock>(factory.CreateDataAdapter());
-        Assert.IsType<System.Data.Common.DbConnectionStringBuilder>(factory.CreateConnectionStringBuilder());
+        Assert.IsType<DbConnectionStringBuilder>(factory.CreateConnectionStringBuilder());
         Assert.NotNull(factory.CreateParameter());
     }
 

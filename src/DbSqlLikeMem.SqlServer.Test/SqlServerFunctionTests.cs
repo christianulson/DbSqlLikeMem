@@ -531,7 +531,7 @@ public sealed class SqlServerFunctionTests
 
         if (version < SqlServerDialect.JsonFunctionsMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+            var ex = Assert.Throws<NotSupportedException>(command.ExecuteReader);
             Assert.Contains(SqlConst.STRING_SPLIT, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }

@@ -19,6 +19,9 @@
     <Project Path="DbSqlLikeMem.Db2.Test/DbSqlLikeMem.Db2.Test.csproj" />
     <Project Path="DbSqlLikeMem.Db2.TestTools/DbSqlLikeMem.Db2.TestTools.csproj" />
   </Folder>
+  <Folder Name="/Firebird/">
+    <Project Path="DbSqlLikeMem.Firebird/DbSqlLikeMem.Firebird.csproj" />
+  </Folder>
   <Folder Name="/MariaDb/">
     <Project Path="DbSqlLikeMem.MariaDb.XUnit/DbSqlLikeMem.MariaDb.XUnit.csproj" />
     <Project Path="DbSqlLikeMem.MariaDb/DbSqlLikeMem.MariaDb.csproj" />

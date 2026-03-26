@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<Description>Firebird provider for the DbSqlLikeMem in-memory SQL-like database.</Description>
+	</PropertyGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net462'">
+		<PackageReference Include="FirebirdSql.Data.FirebirdClient" Version="7.10.1" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net8.0'">
+		<PackageReference Include="FirebirdSql.Data.FirebirdClient" Version="10.3.4" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem\DbSqlLikeMem.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+		<InternalsVisibleTo Include="DbSqlLikeMem.Firebird.NHibernate" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.Firebird.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.Firebird.Dapper.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.Firebird.NHibernate.Test" />
+	</ItemGroup>
+	<ItemGroup>
+		<Using Include="DbSqlLikeMem.Resources" />
+		<Using Include="FirebirdSql.Data.FirebirdClient" />
+		<Using Include="System.Collections" />
+		<Using Include="System.Data" />
+		<Using Include="System.Data.Common" />
+		<Using Include="System.Diagnostics.CodeAnalysis" />
+		<Using Include="System.Globalization" />
+		<Using Include="System.Linq.Expressions" />
+		<Using Include="System.Reflection" />
+		<Using Include="System.Text" />
+		<Using Include="System.Text.RegularExpressions" />
+	</ItemGroup>
+</Project>

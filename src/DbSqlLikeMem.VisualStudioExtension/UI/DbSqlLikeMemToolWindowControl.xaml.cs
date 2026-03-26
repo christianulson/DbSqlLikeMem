@@ -296,7 +296,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     }
 
     private async void OnRefreshObjectsClick(object sender, RoutedEventArgs e)
-        => await RunSafeAsync(() => viewModel.RefreshObjectsAsync());
+        => await RunSafeAsync(viewModel.RefreshObjectsAsync);
 
     private async void OnImportSettingsClick(object sender, RoutedEventArgs e)
         => await RunSafeAsync(async () =>

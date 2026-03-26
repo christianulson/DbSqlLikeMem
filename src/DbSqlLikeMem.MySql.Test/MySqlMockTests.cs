@@ -2697,7 +2697,7 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        if (version < MySqlDialect.JsonExtractMinVersion)
+        if (version < MySqlDialect.JsonArrowOperatorsMinVersion)
         {
             using var unsupported = new MySqlCommandMock(connection)
             {
@@ -2715,7 +2715,7 @@ public sealed class MySqlMockTests
                     """
             };
 
-            Assert.Throws<NotSupportedException>(() => unsupported.ExecuteReader());
+            Assert.Throws<NotSupportedException>(unsupported.ExecuteReader);
             return;
         }
 

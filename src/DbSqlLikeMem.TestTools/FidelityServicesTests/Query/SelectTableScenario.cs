@@ -24,7 +24,7 @@ public class SelectTableScenario<T>(
         if (dialect.Provider == ProviderId.Oracle)
         {
             var tableName = users.ToLowerInvariant();
-            if (service.Connection is DbSqlLikeMem.DbConnectionMockBase mockConnection)
+            if (service.Connection is DbConnectionMockBase mockConnection)
             {
                 var table = mockConnection.AddTable(
                     tableName,

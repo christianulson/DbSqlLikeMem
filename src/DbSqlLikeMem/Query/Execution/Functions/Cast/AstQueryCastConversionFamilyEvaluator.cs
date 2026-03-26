@@ -45,10 +45,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
     AstQueryTryEvalSqlServerJsonModifyFunction tryEvalSqlServerJsonModifyFunction,
     AstQueryTryEvalOpenJsonFunction tryEvalOpenJsonFunction,
     AstQueryTryEvalJsonUnquoteFunction tryEvalJsonUnquoteFunction,
-    AstQueryTryEvalToNumberFunction tryEvalToNumberFunction,
-    AstQueryEvalTryCast evalTryCast,
-    AstQueryEvalParseFunction evalParseFunction,
-    AstQueryEvalCast evalCast)
+    AstQueryTryEvalToNumberFunction tryEvalToNumberFunction)
 {
     private readonly AstQueryTryEvalJsonAccessShimFunction _tryEvalJsonAccessShimFunction =
         tryEvalJsonAccessShimFunction ?? throw new ArgumentNullException(nameof(tryEvalJsonAccessShimFunction));
@@ -67,15 +64,6 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
 
     private readonly AstQueryTryEvalToNumberFunction _tryEvalToNumberFunction =
         tryEvalToNumberFunction ?? throw new ArgumentNullException(nameof(tryEvalToNumberFunction));
-
-    private readonly AstQueryEvalTryCast _evalTryCast =
-        evalTryCast ?? throw new ArgumentNullException(nameof(evalTryCast));
-
-    private readonly AstQueryEvalParseFunction _evalParseFunction =
-        evalParseFunction ?? throw new ArgumentNullException(nameof(evalParseFunction));
-
-    private readonly AstQueryEvalCast _evalCast =
-        evalCast ?? throw new ArgumentNullException(nameof(evalCast));
 
     internal bool TryEvaluate(
         FunctionCallExpr fn,
@@ -101,49 +89,301 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
         if (_tryEvalToNumberFunction(fn, evalArg, out result))
             return true;
 
-        if (fn.Name.Equals("TRY_CAST", StringComparison.OrdinalIgnoreCase))
-        {
-            if (!context.Dialect.SupportsTryCastFunction)
-                throw SqlUnsupported.ForDialect(context.Dialect, "TRY_CAST");
-
-            result = _evalTryCast(fn, evalArg);
+        if (TryEvalTryCastFunction(fn, context, evalArg, out result))
             return true;
-        }
 
-        if (fn.Name.Equals("TRY_CONVERT", StringComparison.OrdinalIgnoreCase))
-        {
-            if (!context.Dialect.SupportsTryConvertFunction)
-                throw SqlUnsupported.ForDialect(context.Dialect, "TRY_CONVERT");
-
-            result = _evalTryCast(fn, evalArg);
+        if (TryEvalTryConvertFunction(fn, context, evalArg, out result))
             return true;
-        }
 
-        if (fn.Name.Equals("PARSE", StringComparison.OrdinalIgnoreCase))
-        {
-            if (!context.Dialect.SupportsParseFunction)
-                throw SqlUnsupported.ForDialect(context.Dialect, "PARSE");
-
-            result = _evalParseFunction(fn, evalArg, false);
+        if (TryEvalParseFunction(fn, context, evalArg, out result))
             return true;
-        }
 
-        if (fn.Name.Equals("TRY_PARSE", StringComparison.OrdinalIgnoreCase))
-        {
-            if (!context.Dialect.SupportsTryParseFunction)
-                throw SqlUnsupported.ForDialect(context.Dialect, "TRY_PARSE");
-
-            result = _evalParseFunction(fn, evalArg, true);
+        if (TryEvalTryParseFunction(fn, context, evalArg, out result))
             return true;
-        }
 
-        if (fn.Name.Equals("CAST", StringComparison.OrdinalIgnoreCase))
-        {
-            result = _evalCast(fn, evalArg);
+        if (TryEvalCastFunction(fn, context, evalArg, out result))
             return true;
-        }
 
         result = null;
         return false;
+    }
+
+    private static bool TryEvalTryCastFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!context.Dialect.SupportsTryCastFunction)
+            throw SqlUnsupported.ForDialect(context.Dialect, "TRY_CAST");
+
+        result = EvalTryCast(fn, context, evalArg);
+        return true;
+    }
+
+    private static bool TryEvalTryConvertFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!context.Dialect.SupportsTryConvertFunction)
+            throw SqlUnsupported.ForDialect(context.Dialect, "TRY_CONVERT");
+
+        result = EvalTryCast(fn, context, evalArg);
+        return true;
+    }
+
+    private static bool TryEvalParseFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!context.Dialect.SupportsParseFunction)
+            throw SqlUnsupported.ForDialect(context.Dialect, "PARSE");
+
+        result = EvalParseFunction(fn, context, evalArg, swallowErrors: false);
+        return true;
+    }
+
+    private static bool TryEvalTryParseFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!context.Dialect.SupportsTryParseFunction)
+            throw SqlUnsupported.ForDialect(context.Dialect, "TRY_PARSE");
+
+        result = EvalParseFunction(fn, context, evalArg, swallowErrors: true);
+        return true;
+    }
+
+    private static bool TryEvalCastFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+        result = EvalCast(fn, context, evalArg);
+        return true;
+    }
+
+    private static object? EvalTryCast(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg)
+    {
+        if (fn.Args.Count < 2)
+            return null;
+
+        var v = evalArg(0);
+        var type = fn.Args[1] is RawSqlExpr trx ? trx.Sql : (evalArg(1)?.ToString() ?? "");
+        type = type.Trim();
+        if (AstQueryExecutorBase.IsNullish(v))
+            return null;
+
+        try
+        {
+            if ((context.Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para CAST.")).IsIntegerCastTypeName(type))
+            {
+                if (v is long l) return (int)l;
+                if (v is int i) return i;
+                if (v is decimal d) return (int)d;
+                if (int.TryParse(v!.ToString(), out var ix)) return ix;
+                if (long.TryParse(v!.ToString(), out var lx)) return (int)lx;
+                return null;
+            }
+
+            if (type.StartsWith("DECIMAL", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("NUMERIC", StringComparison.OrdinalIgnoreCase))
+            {
+                if (v is decimal dd) return dd;
+                if (decimal.TryParse(v!.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var dx)) return dx;
+                return null;
+            }
+
+            if (type.StartsWith("FLOAT", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("REAL", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("DOUBLE", StringComparison.OrdinalIgnoreCase))
+            {
+                if (v is double dfx) return dfx;
+                if (v is float ffx) return (double)ffx;
+                if (v is decimal ddx) return (double)ddx;
+                if (double.TryParse(v!.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var fx)) return fx;
+                return null;
+            }
+
+            if (type.StartsWith("DATE", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("DATETIME", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("SMALLDATETIME", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("TIMESTAMP", StringComparison.OrdinalIgnoreCase))
+            {
+                return AstQueryExecutionRuntimeHelper.TryCoerceDateTime(v, out var dt) ? dt : null;
+            }
+
+            return v!.ToString();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static object? EvalParseFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        bool swallowErrors)
+    {
+        if (fn.Args.Count < 2)
+            return swallowErrors ? null : throw new InvalidOperationException($"{fn.Name}() requires value and target type.");
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+            return null;
+
+        var type = fn.Args[1] is RawSqlExpr rx ? rx.Sql : (evalArg(1)?.ToString() ?? string.Empty);
+        type = type.Trim();
+        var cultureName = fn.Args.Count > 2 ? evalArg(2)?.ToString() : null;
+
+        try
+        {
+            var culture = string.IsNullOrWhiteSpace(cultureName)
+                ? CultureInfo.InvariantCulture
+                : CultureInfo.GetCultureInfo(cultureName!);
+
+            if ((context.Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para PARSE.")).IsIntegerCastTypeName(type))
+            {
+                if (int.TryParse(value!.ToString(), NumberStyles.Integer, culture, out var parsedInt))
+                    return parsedInt;
+                return null;
+            }
+
+            if (type.StartsWith("DECIMAL", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("NUMERIC", StringComparison.OrdinalIgnoreCase))
+            {
+                if (decimal.TryParse(value!.ToString(), NumberStyles.Any, culture, out var parsedDecimal))
+                    return parsedDecimal;
+                return null;
+            }
+
+            if (type.StartsWith("FLOAT", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("REAL", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("DOUBLE", StringComparison.OrdinalIgnoreCase))
+            {
+                if (double.TryParse(value!.ToString(), NumberStyles.Any, culture, out var parsedDouble))
+                    return parsedDouble;
+                return null;
+            }
+
+            if (type.StartsWith("DATE", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("DATETIME", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("SMALLDATETIME", StringComparison.OrdinalIgnoreCase))
+            {
+                if (AstQueryExecutionRuntimeHelper.TryCoerceDateTime(value!.ToString()!, out var parsedDate))
+                    return parsedDate;
+                return null;
+            }
+
+            return value!.ToString();
+        }
+        catch
+        {
+            if (swallowErrors)
+                return null;
+            throw;
+        }
+    }
+
+    private static object? EvalCast(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg)
+    {
+        if (fn.Args.Count < 2)
+            return null;
+
+        var v = evalArg(0);
+        var type = fn.Args[1] is RawSqlExpr rx ? rx.Sql : (evalArg(1)?.ToString() ?? "");
+        type = type.Trim();
+        if (AstQueryExecutorBase.IsNullish(v))
+            return null;
+
+        try
+        {
+            if ((context.Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para CAST.")).IsIntegerCastTypeName(type))
+            {
+                if (v is long l) return (int)l;
+                if (v is int i) return i;
+                if (v is decimal d) return (int)d;
+                var text = v!.ToString()?.Trim() ?? string.Empty;
+                if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var ix)) return ix;
+                if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var lx)) return (int)lx;
+                if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var dx)) return (int)dx;
+                return 0;
+            }
+
+            if (type.StartsWith("DECIMAL", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("NUMERIC", StringComparison.OrdinalIgnoreCase))
+            {
+                if (v is decimal dd) return dd;
+                if (decimal.TryParse(v!.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var dx)) return dx;
+                return 0m;
+            }
+
+            if (type.StartsWith("FLOAT", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("REAL", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("DOUBLE", StringComparison.OrdinalIgnoreCase))
+            {
+                if (v is double dfx) return dfx;
+                if (v is float ffx) return (double)ffx;
+                if (v is decimal ddx) return (double)ddx;
+                if (double.TryParse(v!.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var fx)) return fx;
+                return 0d;
+            }
+
+            if (type.StartsWith("DATE", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("DATETIME", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("SMALLDATETIME", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("TIMESTAMP", StringComparison.OrdinalIgnoreCase))
+            {
+                return AstQueryExecutionRuntimeHelper.TryCoerceDateTime(v, out var dt) ? dt : null;
+            }
+
+            if (type.Equals("JSON", StringComparison.OrdinalIgnoreCase))
+            {
+                static string? ValidateJsonOrNull(string? json)
+                {
+                    if (json is null || string.IsNullOrWhiteSpace(json))
+                        return null;
+
+                    var normalizedJson = json.Trim();
+
+                    QueryJsonFunctionHelper.TryGetJsonRootElement(normalizedJson, out _);
+                    return normalizedJson;
+                }
+
+                if (v is string s)
+                    return ValidateJsonOrNull(s);
+
+                if (v is JsonElement je)
+                    return ValidateJsonOrNull(je.GetRawText());
+
+                var serialized = JsonSerializer.Serialize(v);
+                return ValidateJsonOrNull(serialized);
+            }
+
+            return v!.ToString();
+        }
+#pragma warning disable CA1031
+        catch (Exception e)
+        {
+            AstQueryExecutionRuntimeHelper.LogFunctionEvaluationFailure(e);
+            return null;
+        }
+#pragma warning restore CA1031
     }
 }

@@ -46,12 +46,6 @@ internal static class AstQuerySqlServerDateConstructionFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("DATEFROMPARTS", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 3)
             throw new InvalidOperationException("DATEFROMPARTS() espera ano, mês e dia.");
 
@@ -85,12 +79,6 @@ internal static class AstQuerySqlServerDateConstructionFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("DATETIMEFROMPARTS", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 6)
             throw new InvalidOperationException("DATETIMEFROMPARTS() espera ao menos 6 argumentos.");
 
@@ -125,12 +113,6 @@ internal static class AstQuerySqlServerDateConstructionFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("DATETIME2FROMPARTS", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 7)
             throw new InvalidOperationException("DATETIME2FROMPARTS() espera ao menos 7 argumentos.");
 
@@ -167,12 +149,6 @@ internal static class AstQuerySqlServerDateConstructionFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("DATETIMEOFFSETFROMPARTS", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 8)
             throw new InvalidOperationException("DATETIMEOFFSETFROMPARTS() espera ao menos 8 argumentos.");
 
@@ -212,12 +188,6 @@ internal static class AstQuerySqlServerDateConstructionFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("TIMEFROMPARTS", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 5)
             throw new InvalidOperationException("TIMEFROMPARTS() espera ao menos 5 argumentos.");
 
@@ -251,12 +221,6 @@ internal static class AstQuerySqlServerDateConstructionFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("SMALLDATETIMEFROMPARTS", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 5)
             throw new InvalidOperationException("SMALLDATETIMEFROMPARTS() espera ao menos 5 argumentos.");
 

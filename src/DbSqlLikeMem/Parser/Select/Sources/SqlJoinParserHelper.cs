@@ -80,7 +80,6 @@ internal static class SqlJoinParserHelper
     internal static SqlJoin ParseJoin(
         this SqlQueryParserContext ctx,
         Func<SqlTableSource> parseTableSource,
-        Func<string, NotSupportedException> createApplyUnsupportedException,
         Action<SqlTableSource, string> validateApplySource)
     {
         if (ctx.IsWord(SqlConst.CROSS) && ctx.IsWord(1, SqlConst.APPLY))

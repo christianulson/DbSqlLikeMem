@@ -90,12 +90,6 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         out object? result)
     {
         _ = evalArg;
-        if (!fn.Name.Equals("APP_NAME", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         result = "DbSqlLikeMem";
         return true;
     }
@@ -106,12 +100,6 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("CHARINDEX", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var needle = evalArg(0)?.ToString() ?? string.Empty;
         var haystack = evalArg(1)?.ToString() ?? string.Empty;
         var start = fn.Args.Count > 2 ? evalArg(2) : null;
@@ -144,12 +132,6 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("DATALENGTH", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value))
         {
@@ -182,12 +164,6 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
     {
         _ = evalArg;
         _ = context;
-        if (!fn.Name.Equals("CURRENT_USER", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         result = "dbo";
         return true;
     }
@@ -199,12 +175,6 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         out object? result)
     {
         _ = context.Dialect;
-        if (!fn.Name.Equals("SESSION_CONTEXT", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count == 0)
             throw new InvalidOperationException("SESSION_CONTEXT() expects a key.");
 
@@ -272,20 +242,7 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("STRING_ESCAPE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var dialect = _getDialect() ?? throw new InvalidOperationException("Dialeto SQL não disponível para STRING_ESCAPE.");
-        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("sqlazure", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("STRING_ESCAPE() espera texto e tipo.");
 
@@ -332,19 +289,6 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("FORMAT", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        var dialect = context.Dialect;
-        if (!dialect.SupportsSqlServerScalarFunction("FORMAT"))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("FORMAT() espera valor e máscara.");
 
@@ -373,12 +317,6 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("FORMATMESSAGE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count == 0)
             throw new InvalidOperationException("FORMATMESSAGE() espera ao menos a mensagem.");
 
@@ -394,12 +332,6 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("COMPRESS", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value))
         {
@@ -427,12 +359,6 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("DECOMPRESS", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value))
         {
@@ -460,14 +386,8 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var isChecksum = fn.Name.Equals("CHECKSUM", StringComparison.OrdinalIgnoreCase);
-        var isBinaryChecksum = fn.Name.Equals("BINARY_CHECKSUM", StringComparison.OrdinalIgnoreCase);
-        if (!isChecksum && !isBinaryChecksum)
-        {
-            result = null;
-            return false;
-        }
-
+        var isChecksum = fn.ResolvedScalarFunction?.Name.Equals("CHECKSUM", StringComparison.OrdinalIgnoreCase) == true
+            || string.Equals(fn.Name, "CHECKSUM", StringComparison.OrdinalIgnoreCase);
         var hash = new HashCode();
         for (var i = 0; i < fn.Args.Count; i++)
         {
@@ -507,20 +427,8 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         out object? result)
     {
         _ = evalArg;
-        var name = fn.Name;
-        if (!(name.Equals("ERROR_LINE", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("ERROR_MESSAGE", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("ERROR_NUMBER", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("ERROR_PROCEDURE", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("ERROR_SEVERITY", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("ERROR_STATE", StringComparison.OrdinalIgnoreCase)))
-        {
-            result = null;
-            return false;
-        }
-
-        result = name.Equals("ERROR_MESSAGE", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("ERROR_PROCEDURE", StringComparison.OrdinalIgnoreCase)
+        result = string.Equals(fn.Name, "ERROR_MESSAGE", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "ERROR_PROCEDURE", StringComparison.OrdinalIgnoreCase)
             ? string.Empty
             : 0;
         return true;
@@ -532,12 +440,6 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("STR", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value))
         {

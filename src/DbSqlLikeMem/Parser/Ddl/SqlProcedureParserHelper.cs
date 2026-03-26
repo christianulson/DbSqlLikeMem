@@ -6,7 +6,7 @@ internal static class SqlProcedureParserHelper
         this SqlQueryParserContext ctx,
         bool orReplace)
     {
-        if (!ctx.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (!ctx.Dialect.SupportsDb2ProcedureDdl)
             throw SqlUnsupported.ForDialect(ctx.Dialect, "CREATE PROCEDURE");
 
         if (orReplace)

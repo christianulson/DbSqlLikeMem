@@ -1,6 +1,6 @@
 namespace DbSqlLikeMem.Db2;
 
-internal sealed class Db2Dialect : SqlDialectBase
+internal sealed class Db2Dialect : SqlDialectBase, ISqlDialect
 {
     internal const string DialectName = "db2";
 
@@ -39,7 +39,8 @@ internal sealed class Db2Dialect : SqlDialectBase
     internal const int MergeMinVersion = 9;
     internal const int JsonFunctionsMinVersion = 11;
     internal const int WindowFunctionsMinVersion = 8;
-            
+    internal const int OffsetFetchMinVersion = 10;
+
     /// <summary>
     /// EN: Gets or sets identifier escape style.
     /// PT: Obtém ou define identifier escape style.
@@ -68,7 +69,7 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// EN: Gets whether offset fetch is supported.
     /// PT: Obtém se há suporte a offset fetch.
     /// </summary>
-    public override bool SupportsOffsetFetch => true;
+    public override bool SupportsOffsetFetch => Version >= OffsetFetchMinVersion;
 
     public override bool SupportsLikeEscapeClause => true;
 
@@ -115,6 +116,9 @@ internal sealed class Db2Dialect : SqlDialectBase
     public override bool SupportsMerge => Version >= MergeMinVersion;
     public override bool SupportsAlterTableAddColumn => true;
     public override bool SupportsFunctionDdl => true;
+    bool ISqlDialect.SupportsInlineReturnCreateFunctionDdl => true;
+    bool ISqlDialect.SupportsDb2TriggerDdl => true;
+    bool ISqlDialect.SupportsDb2ProcedureDdl => true;
     /// <summary>
     /// EN: Gets whether CREATE OR REPLACE FUNCTION is supported.
     /// PT: Obtém se CREATE OR REPLACE FUNCTION é suportado.

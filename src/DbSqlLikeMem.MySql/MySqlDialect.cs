@@ -19,6 +19,9 @@ internal partial class MySqlDialect : SqlDialectBase
     {
     }
 
+    //TODO: implementar ANSI_QUOTES
+    //TODO: implementar PIPES_AS_CONCAT
+
     /// <summary>
     /// EN: Initializes a MySQL-family dialect with a custom provider name and version.
     /// PT: Inicializa um dialeto da família MySQL com nome de provedor e versão customizados.
@@ -35,7 +38,9 @@ internal partial class MySqlDialect : SqlDialectBase
         binOps:
         [
             new KeyValuePair<string, SqlBinaryOp>(SqlConst.AND, SqlBinaryOp.And),
+            new KeyValuePair<string, SqlBinaryOp>("&&", SqlBinaryOp.And),
             new KeyValuePair<string, SqlBinaryOp>(SqlConst.OR, SqlBinaryOp.Or),
+            new KeyValuePair<string, SqlBinaryOp>("||", SqlBinaryOp.Or), 
             new KeyValuePair<string, SqlBinaryOp>("=", SqlBinaryOp.Eq),
             new KeyValuePair<string, SqlBinaryOp>("<>", SqlBinaryOp.Neq),
             new KeyValuePair<string, SqlBinaryOp>("!=", SqlBinaryOp.Neq),
@@ -64,7 +69,7 @@ internal partial class MySqlDialect : SqlDialectBase
     internal const int WithCteMinVersion = 80;
     internal const int MergeMinVersion = int.MaxValue;
     internal const int WindowFunctionsMinVersion = 80;
-    internal const int JsonExtractMinVersion = 50;
+    internal const int JsonArrowOperatorsMinVersion = 57;
     /// <summary>
     /// EN: Gets or sets AllowsBacktickIdentifiers.
     /// PT: Obtém ou define AllowsBacktickIdentifiers.
@@ -130,7 +135,7 @@ internal partial class MySqlDialect : SqlDialectBase
     /// EN: Enables SQL Server-style OFFSET/FETCH syntax as parser compatibility mode.
     /// PT: Habilita sintaxe OFFSET/FETCH estilo SQL Server como modo de compatibilidade do parser.
     /// </summary>
-    public override bool SupportsOffsetFetch => true;
+    public override bool SupportsOffsetFetch => false;
     /// <summary>
     /// EN: Gets or sets SupportsOnDuplicateKeyUpdate.
     /// PT: Obtém ou define SupportsOnDuplicateKeyUpdate.
@@ -154,6 +159,7 @@ internal partial class MySqlDialect : SqlDialectBase
     /// <inheritdoc />
     public override bool SupportsAlterTableAddColumn => true;
     public override bool SupportsFunctionDdl => true;
+    public override bool SupportsInlineReturnCreateFunctionDdl => true;
 
     /// <summary>
     /// EN: Indicates whether recursive CTE syntax is supported by the configured MySQL version.
@@ -193,13 +199,13 @@ internal partial class MySqlDialect : SqlDialectBase
     /// EN: Gets or sets SupportsJsonArrowOperators.
     /// PT: Obtém ou define SupportsJsonArrowOperators.
     /// </summary>
-    public override bool SupportsJsonArrowOperators => Version >= JsonExtractMinVersion;
+    public override bool SupportsJsonArrowOperators => Version >= JsonArrowOperatorsMinVersion;
 
     /// <summary>
     /// EN: Indicates whether parser-level cross-dialect JSON operators are accepted for compatibility.
     /// PT: Indica se operadores JSON entre dialetos são aceitos pelo parser para compatibilidade.
     /// </summary>
-    public override bool AllowsParserCrossDialectJsonOperators => Version >= JsonExtractMinVersion;
+    public override bool AllowsParserCrossDialectJsonOperators => Version >= JsonArrowOperatorsMinVersion;
 
     /// <summary>
     /// EN: Indicates whether MySQL index hints are supported in SQL generation.

@@ -19,7 +19,6 @@ internal sealed class SqlExpressionParserContext
         _parameters = parameters;
         _customFunctionSupported = customFunctionSupported;
     }
-
     internal IReadOnlyList<SqlToken> Toks => _toks;
 
     internal ISqlDialect Dialect => _dialect;

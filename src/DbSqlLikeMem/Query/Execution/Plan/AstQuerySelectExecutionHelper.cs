@@ -1,15 +1,23 @@
+using static DbSqlLikeMem.AstQueryExecutorBase;
+
 namespace DbSqlLikeMem;
 
-internal abstract partial class AstQueryExecutorBase
+internal static class AstQuerySelectExecutionHelper
 {
-    private SelectPlan BuildSelectPlan(
-        SqlSelectQuery q,
+    internal static SelectPlan BuildSelectPlan(
+        DbConnectionMockBase connection,
+        ISqlDialect? dialect,
+        SqlSelectQuery query,
         List<EvalRow> sampleRows,
-        IDictionary<string, Source> ctes)
+        IDictionary<string, Source> ctes,
+        QueryExecutionContext context,
+        Func<string, SqlExpr> parseScalarExpr,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> evalExpression,
+        Func<string?, string, EvalRow, object?> resolveColumn)
     {
-        var cacheKey = ctes.Count == 0 ? BuildSelectPlanCacheKey(q, sampleRows) : null;
+        var cacheKey = ctes.Count == 0 ? BuildSelectPlanCacheKey(connection, dialect, query, sampleRows) : null;
         if (cacheKey is not null
-            && _cnn.TryGetCachedSelectPlan(cacheKey, out var cachedPlan)
+            && connection.TryGetCachedSelectPlan(cacheKey, out var cachedPlan)
             && cachedPlan is not null)
         {
             return cachedPlan.CanBeCachedWithoutClone
@@ -18,26 +26,68 @@ internal abstract partial class AstQueryExecutorBase
         }
 
         var plan = SelectPlanBuilderHelper.Build(
-            q,
+            query,
             sampleRows,
             ctes,
-            _context,
-            ParseScalarExpr,
-            Eval,
-            ResolveColumn);
+            context,
+            parseScalarExpr,
+            evalExpression,
+            resolveColumn);
 
         if (cacheKey is not null)
-            _cnn.TryCacheSelectPlan(cacheKey, plan.CanBeCachedWithoutClone ? plan : plan.CloneForCache());
+            connection.TryCacheSelectPlan(cacheKey, plan.CanBeCachedWithoutClone ? plan : plan.CloneForCache());
 
         return plan;
     }
 
-    private string? BuildSelectPlanCacheKey(SqlSelectQuery query, List<EvalRow> sampleRows)
+    internal static TableResultMock ApplyOrderAndLimit(
+        TableResultMock result,
+        SqlSelectQuery query,
+        IDictionary<string, Source> ctes,
+        Func<string, SqlExpr> parseExpr,
+        Func<SqlExpr, EvalRow, object?> evalExpression,
+        Func<SqlExpr, IDictionary<string, Source>, int> evalLimitExpr,
+        Comparison<object?> compareSql,
+        QueryDebugTraceBuilder? debugTrace = null)
+        => AstQueryOrderLimitHelper.Apply(
+            result,
+            query,
+            ctes,
+            parseExpr,
+            evalExpression,
+            evalLimitExpr,
+            compareSql,
+            debugTrace);
+
+    internal static bool ContainsDistinctUnionFlag(IReadOnlyList<bool> allFlags)
+    {
+        for (var i = 0; i < allFlags.Count; i++)
+        {
+            if (!allFlags[i])
+                return true;
+        }
+
+        return false;
+    }
+
+    internal static string FormatJoinTypeForDebug(SqlJoinType joinType)
+        => joinType switch
+        {
+            SqlJoinType.CrossApply => "CROSS APPLY",
+            SqlJoinType.OuterApply => "OUTER APPLY",
+            _ => joinType.ToString().ToUpperInvariant()
+        };
+
+    private static string? BuildSelectPlanCacheKey(
+        DbConnectionMockBase connection,
+        ISqlDialect? dialect,
+        SqlSelectQuery query,
+        List<EvalRow> sampleRows)
     {
         if (string.IsNullOrWhiteSpace(query.RawSql))
             return null;
 
-        var cacheDialect = Dialect ?? _cnn.ExecutionDialect;
+        var cacheDialect = dialect ?? connection.ExecutionDialect;
         var sb = new StringBuilder(query.RawSql.Length + 160);
         sb.Append(query.RawSql);
         sb.Append("|dialect:");
@@ -45,7 +95,7 @@ internal abstract partial class AstQueryExecutorBase
         sb.Append(':');
         sb.Append(cacheDialect.Version);
         sb.Append("|schema:");
-        sb.Append(_cnn.GetSelectPlanCacheGeneration());
+        sb.Append(connection.GetSelectPlanCacheGeneration());
         sb.Append("|sources:");
         sb.Append(sampleRows.Count);
 
@@ -105,35 +155,4 @@ internal abstract partial class AstQueryExecutorBase
 
         return sb.ToString();
     }
-
-    // Remove "AS alias" somente quando:
-    // - está no FINAL do select item
-    // - e esse SqlConst.AS está fora de parênteses (pra não quebrar CAST(x AS CHAR))
-    private static (string expr, string? alias) SplitTrailingAsAlias(
-        string raw,
-        string? alreadyAlias)
-        => SelectAliasParserHelper.SplitTrailingAsAlias(raw, alreadyAlias);
-
-    private TableResultMock ApplyOrderAndLimit(
-        TableResultMock res,
-        SqlSelectQuery q,
-        IDictionary<string, Source> ctes,
-        QueryDebugTraceBuilder? debugTrace = null)
-        => AstQueryOrderLimitHelper.Apply(
-            res,
-            q,
-            ctes,
-            ParseExpr,
-            (expr, row) => Eval(expr, row, group: null, ctes),
-            (expr, scope) => Convert.ToInt32(Eval(expr, EvalRow.Empty(), null, scope), CultureInfo.InvariantCulture),
-            CompareSql,
-            debugTrace);
-
-    private static string FormatJoinTypeForDebug(SqlJoinType joinType)
-        => joinType switch
-        {
-            SqlJoinType.CrossApply => "CROSS APPLY",
-            SqlJoinType.OuterApply => "OUTER APPLY",
-            _ => joinType.ToString().ToUpperInvariant()
-        };
 }

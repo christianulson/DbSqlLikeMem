@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.Models;
+namespace DbSqlLikeMem.Models;
 
 internal sealed record DbScalarFunctionParameterDef(
     string Name,
@@ -21,10 +21,11 @@ internal sealed record DbScalarFunctionDef(
     IReadOnlyList<DbScalarFunctionParameterDef> Parameters,
     Func<SqlExpr, object> fnBody,
     SqlScalarFunctionUsageKind UsageKind = SqlScalarFunctionUsageKind.Call,
-    SqlTemporalFunctionKind? TemporalKind = null)
+    SqlTemporalFunctionKind? TemporalKind = null,
+    bool IsStringAggregate = false)
     : ProcessDef(Name)
 {
-    internal DbSqlLikeMem.AstQueryGeneralScalarFunctionHandler? AstExecutor { get; init; }
+    internal AstQueryGeneralScalarFunctionHandler? AstExecutor { get; init; }
 
     internal bool AllowsCall
         => UsageKind is SqlScalarFunctionUsageKind.Call

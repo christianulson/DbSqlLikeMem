@@ -323,7 +323,8 @@ internal abstract class SqlDialectBase : ISqlDialect
         if (string.IsNullOrWhiteSpace(functionName))
             return false;
 
-        return SupportsRegisteredScalarCall(functionName);
+        return this.TryGetScalarFunctionDefinition(functionName, out var definition)
+            && definition!.IsStringAggregate;
     }
 
     public virtual bool SupportsAggregateOrderByForStringAggregates => false;
@@ -333,7 +334,8 @@ internal abstract class SqlDialectBase : ISqlDialect
         if (!SupportsAggregateOrderByForStringAggregates || string.IsNullOrWhiteSpace(functionName))
             return false;
 
-        return SupportsRegisteredScalarCall(functionName);
+        return this.TryGetScalarFunctionDefinition(functionName, out var definition)
+            && definition!.IsStringAggregate;
     }
 
     public virtual bool SupportsAggregateSeparatorKeywordForStringAggregates => false;
@@ -343,7 +345,8 @@ internal abstract class SqlDialectBase : ISqlDialect
         if (!SupportsAggregateSeparatorKeywordForStringAggregates || string.IsNullOrWhiteSpace(functionName))
             return false;
 
-        return SupportsRegisteredScalarCall(functionName);
+        return this.TryGetScalarFunctionDefinition(functionName, out var definition)
+            && definition!.IsStringAggregate;
     }
 
     public virtual bool SupportsMatchAgainstPredicate => false;
@@ -832,6 +835,16 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// PT: Obtém ou define SupportsMySqlIndexHints.
     /// </summary>
     public virtual bool SupportsMySqlIndexHints => false;
+    /// <summary>
+    /// EN: Indicates whether MariaDB-specific scalar and special functions are supported by this dialect.
+    /// PT: Indica se funcoes escalares e especiais especificas do MariaDB sao suportadas por este dialeto.
+    /// </summary>
+    public virtual bool SupportsMariaDbFunctions => false;
+    public virtual bool SupportsDb2TriggerDdl => false;
+    public virtual bool SupportsDb2ProcedureDdl => false;
+    public virtual bool SupportsOracleCreateFunctionDdl => false;
+    public virtual bool SupportsPostgreSqlCreateFunctionDdl => false;
+    public virtual bool SupportsInlineReturnCreateFunctionDdl => false;
     /// <summary>
     /// EN: Checks whether a SQL Server metadata function is supported by this dialect.
     /// PT: Verifica se uma funcao de metadados do SQL Server e suportada por este dialeto.

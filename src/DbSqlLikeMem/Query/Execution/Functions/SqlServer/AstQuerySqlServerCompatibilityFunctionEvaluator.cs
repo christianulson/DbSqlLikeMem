@@ -65,7 +65,7 @@ internal sealed class AstQuerySqlServerCompatibilityFunctionEvaluator(
             return true;
         }
 
-        if (fn.Name.Equals("EOMONTH", StringComparison.OrdinalIgnoreCase)
+        if (!context.Dialect.SupportsEomonthFunction
             && !(fn.ResolvedScalarFunction?.AllowsCall
                 ?? (context.Dialect.TryGetScalarFunctionDefinition(fn, out var eomonthDefinition)
                     && eomonthDefinition is not null

@@ -4,7 +4,7 @@ internal sealed record DbTableFunctionDef(
     string Name,
     int MinArguments,
     int MaxArguments,
-    Func<DbSqlLikeMem.AstQueryTableFunctionExecutor, DbSqlLikeMem.SqlTableSource, IDictionary<string, DbSqlLikeMem.AstQueryExecutorBase.Source>, DbSqlLikeMem.AstQueryExecutorBase.EvalRow?, DbSqlLikeMem.TableResultMock>? AstExecutor = null)
+    Func<AstQueryTableFunctionExecutor, SqlTableSource, IDictionary<string, AstQueryExecutorBase.Source>, AstQueryExecutorBase.EvalRow?, TableResultMock>? AstExecutor = null)
     : ProcessDef(Name)
 {
     internal bool AllowsArgumentCount(int count)

@@ -2223,7 +2223,7 @@ public abstract class NHibernateSupportTestsBase(
         using (var staleTx = staleSession.BeginTransaction())
         {
             staleEntity.Name = "Retry-Intent";
-            _ = Assert.Throws<global::NHibernate.StaleObjectStateException>(() => staleSession.Flush());
+            _ = Assert.Throws<global::NHibernate.StaleObjectStateException>(staleSession.Flush);
             staleTx.Rollback();
         }
 
@@ -2281,7 +2281,7 @@ public abstract class NHibernateSupportTestsBase(
         using (var tx = appSession.BeginTransaction())
         {
             appEntity.Name = "Intent-Initial" + suffix;
-            _ = Assert.Throws<global::NHibernate.StaleObjectStateException>(() => appSession.Flush());
+            _ = Assert.Throws<global::NHibernate.StaleObjectStateException>(appSession.Flush);
             tx.Rollback();
         }
 
@@ -2949,7 +2949,7 @@ public abstract class NHibernateSupportTestsBase(
         using (var staleTx = staleSession.BeginTransaction())
         {
             AppendMarkerIfMissing(staleEntity, "|APP");
-            _ = Assert.Throws<global::NHibernate.StaleObjectStateException>(() => staleSession.Flush());
+            _ = Assert.Throws<global::NHibernate.StaleObjectStateException>(staleSession.Flush);
             staleTx.Rollback();
         }
 

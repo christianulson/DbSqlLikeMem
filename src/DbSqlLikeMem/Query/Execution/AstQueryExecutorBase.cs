@@ -9,7 +9,7 @@ namespace DbSqlLikeMem;
 /// EN: The executor currently covers SELECT and WITH queries only, matching the scope of <see cref="SqlQueryParser"/>.
 /// PT: O executor atualmente cobre apenas consultas SELECT e WITH, acompanhando o escopo de <see cref="SqlQueryParser"/>.
 /// </summary>
-internal abstract partial class AstQueryExecutorBase(QueryExecutionContext context)
+internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
     : IAstQueryExecutor
 {
     private const int TemporalParseCacheSoftLimit = 1024;
@@ -37,36 +37,38 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
     internal static long _uuidShortCounter;
 
     private readonly QueryExecutionContext _context = context ?? throw new ArgumentNullException(nameof(context));
-    private DbConnectionMockBase _cnn => _context.Connection;
+    private DbConnectionMockBase Cnn => _context.Connection;
     private IDataParameterCollection _pars => _context.DbParameters;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, ITableMock> _resolvedBaseTableCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly DateTime _evaluationLocalNow = DateTime.Now;
     private readonly DateTime _evaluationUtcNow = DateTime.UtcNow;
     private readonly long _evaluationUnixTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
-    private sealed record InSubqueryLookupState(
+    internal sealed record InSubqueryLookupState(
         List<object?> Values,
         HashSet<InLookupScalarKey>? ScalarCandidates,
         List<object?[]>? RowValues,
         HashSet<string>? RowCandidates,
         bool HasNullCandidate);
 
-    private sealed record CorrelatedCountLookupState(
+    internal sealed record CorrelatedCountLookupState(
         IReadOnlyDictionary<string, int> Counts,
         IReadOnlyList<CorrelatedLookupKeyPair> KeyPairs,
         SqlExpr? InnerFilterExpr);
 
-    private sealed record CorrelatedExistsLookupState(
+    internal sealed record CorrelatedExistsLookupState(
         HashSet<string> Presence,
         IReadOnlyList<CorrelatedLookupKeyPair> KeyPairs,
         SqlExpr? InnerFilterExpr);
 
-    private sealed record CorrelatedLookupKeyPair(
+    internal sealed record CorrelatedLookupKeyPair(
         SqlExpr InnerExpr,
         SqlExpr OuterExpr);
 
-    private readonly record struct InLookupScalarKey(string Kind, string Value);
+    internal readonly record struct InLookupScalarKey(string Kind, string Value);
     private readonly AstSubqueryEvaluationCache _subqueryEvaluationCache = new();
+    private AstQuerySubqueryLookupEvaluator? _subqueryLookupEvaluator;
+    private AstQuerySubqueryComparisonEvaluator? _subqueryComparisonEvaluator;
     private readonly Stack<IReadOnlyDictionary<string, object?>> _localParameterScopes = new();
     private AstQueryJoinService? _joinService;
     private AstQuerySourceResolver? _sourceResolver;
@@ -85,6 +87,17 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
     private AstQuerySqlServerSessionFunctionEvaluator? _sqlServerSessionFunctionEvaluator;
     private AstQuerySqlServerCompatibilityFunctionEvaluator? _sqlServerCompatibilityFunctionEvaluator;
     private ISqlDialect? Dialect => _context.Dialect;
+    private AstQuerySubqueryLookupEvaluator SubqueryLookupEvaluator
+        => _subqueryLookupEvaluator ??= new AstQuerySubqueryLookupEvaluator(
+            _subqueryEvaluationCache,
+            _context,
+            Eval,
+            ParseExpr,
+            BuildFrom,
+            (tableSource, scope) => ResolveSource(tableSource, scope),
+            AttachOuterRow,
+            (select, scope, outerRow) => ExecuteSelect(select, scope, outerRow),
+            PartitionHelper);
     private AstQueryJoinService JoinService
         => _joinService ??= new AstQueryJoinService(
             resolveSource: ResolveSource,
@@ -102,14 +115,14 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             _context,
             ParseExpr,
             Eval,
-            CreateSourceEvalRow);
+            AstQueryRowSourceHelper.CreateSourceEvalRow);
 
     private AstQueryHavingHelper HavingHelper
         => _havingHelper ??= new AstQueryHavingHelper(
             () => Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para HAVING."),
             ParseExpr,
-            WalkHasAggregate,
-            SplitTrailingAsAlias);
+            AggregateExpressionInspector.WalkHasAggregate,
+            SelectAliasParserHelper.SplitTrailingAsAlias);
 
     private AstQueryPartitionHelper PartitionHelper
         => _partitionHelper ??= new AstQueryPartitionHelper(
@@ -120,11 +133,26 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
                     case LiteralExpr l:
                         return (true, l.Value);
                     case ParameterExpr p:
-                        return (true, ResolveParam(p.Name));
+                        return (true, QueryRowValueHelper.ResolveParam(_context, p.Name));
                     default:
                         return (false, null);
                 }
             });
+
+    private AstQuerySubqueryComparisonEvaluator SubqueryComparisonEvaluator
+        => _subqueryComparisonEvaluator ??= new AstQuerySubqueryComparisonEvaluator(
+            _subqueryEvaluationCache,
+            _context,
+            Eval,
+            ParseExpr,
+            (tableSource, scope) => ResolveSource(tableSource, scope),
+            BuildFrom,
+            AttachOuterRow,
+            (select, scope, outerRow) => ExecuteSelect(select, scope, outerRow),
+            PartitionHelper,
+            IndexHelper,
+            BuildCorrelatedExistsPatternSource,
+            GetOrEvaluateSubqueryFirstColumnValuesForOperation);
 
     private bool TryGetYearPartitionFunctionInfo(
         SqlExpr expr,
@@ -136,18 +164,45 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
     private static bool TryResolvePartitionYearConstant(object? rawValue, out int year)
         => AstQueryPartitionHelper.TryResolvePartitionYearConstant(rawValue, out year);
 
+    private Source BuildCorrelatedExistsPatternSource(
+        string cacheKey,
+        SqlTableSource tableSource,
+        IDictionary<string, Source> ctes)
+    {
+        var physical = _resolvedBaseTableCache.GetOrAdd(
+            cacheKey,
+            _ =>
+            {
+                if (Cnn.TryGetTable(tableSource.Name!, out var table, tableSource.DbName)
+                    && table is not null)
+                {
+                    Cnn.Metrics.IncrementTableHint(tableSource.Name!.NormalizeName());
+                    return table;
+                }
+
+                return Cnn.GetTable(tableSource.Name!, tableSource.DbName);
+            });
+
+        return Source.FromPhysical(
+            tableSource.Name!.NormalizeName(),
+            tableSource.Alias ?? tableSource.Name!,
+            physical,
+            tableSource.MySqlIndexHints,
+            tableSource.PartitionNames);
+    }
+
     private AstQueryIndexHelper IndexHelper
         => _indexHelper ??= new AstQueryIndexHelper(
             collectColumnEqualities: (where, src) => PartitionHelper.TryCollectColumnEqualities(where, src, out var equalities) ? equalities : null,
             incrementIndexLookupMetric: () =>
             {
-                if (_cnn.Metrics.Enabled)
-                    _cnn.Metrics.IndexLookups++;
+                if (Cnn.Metrics.Enabled)
+                    Cnn.Metrics.IndexLookups++;
             },
             incrementIndexHintMetric: indexName =>
             {
-                if (_cnn.Metrics.Enabled)
-                    _cnn.Metrics.IncrementIndexHint(indexName);
+                if (Cnn.Metrics.Enabled)
+                    Cnn.Metrics.IncrementIndexHint(indexName);
             },
             recordPrimaryKeyHintMetric: TryRecordPrimaryKeyHintMetric);
 
@@ -162,6 +217,149 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             tryEvalGeneralScalarFunctionFamily: TryEvalGeneralScalarFunctionFamily,
             tryEvalCastStringAndDateTail: TryEvalCastStringAndDateTail);
 
+    private object? EvalCase(
+        CaseExpr c,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes)
+        => AstQueryFunctionDispatchHelper.EvalCase(c, row, group, ctes, _context, Eval);
+
+    private object? EvalFunction(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes)
+        => AstQueryFunctionDispatchHelper.EvalFunction(
+            fn,
+            row,
+            group,
+            ctes,
+            _context,
+            _evaluationLocalNow,
+            _evaluationUtcNow,
+            i => i < fn.Args.Count ? Eval(fn.Args[i], row, group, ctes) : null,
+            FunctionEvaluator);
+
+    internal static bool TryConvertNumericToDouble(object? value, out double result)
+        => AstQueryBinaryArithmeticHelper.TryConvertNumericToDouble(value, out result);
+
+    internal static bool TryConvertNumericToDecimal(object? value, out decimal result)
+        => AstQueryBinaryArithmeticHelper.TryConvertNumericToDecimal(value, out result);
+
+    private static bool TryEvalBoundScalarFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => AstQueryFunctionDispatchHelper.TryEvalBoundScalarFunction(fn, context, evalArg, out result);
+
+    private bool TryEvalNonSqlServerScalarFunctionFamily(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, TemporalUnit> getTemporalUnit =
+            (SqlExpr expr, EvalRow evalRow, EvalGroup? evalGroup, IDictionary<string, Source> evalCtes)
+                => AstQueryExecutionRuntimeHelper.GetTemporalUnit(expr, evalRow, evalGroup, evalCtes, Eval);
+
+        if (AstQueryMySqlMariaDbFunctionEvaluator.TryEvaluate(
+            fn,
+            _context,
+            row,
+            group,
+            ctes,
+            evalArg,
+            Eval,
+            getTemporalUnit,
+            TryConvertNumericToInt64,
+            TryConvertNumericToDouble,
+            TryCoerceDateTime,
+            TryParseExactCachedDateTime,
+            out result))
+        {
+            return true;
+        }
+
+        if (AstQueryOracleDb2ScalarFunctionEvaluator.TryEvaluate(fn, _context, evalArg, TryCoerceDateTime, out result)
+            || TryEvalPostgresScalarFunctionFamily(fn, _context, evalArg, out result))
+        {
+            return true;
+        }
+
+        result = null;
+        return false;
+    }
+
+    private bool TryEvalPostgresScalarFunctionFamily(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => AstQueryPostgresScalarFunctionEvaluator.TryEvaluate(fn, context, evalArg, Cnn.GetCurrentQueryText, out result);
+
+    private bool TryEvalSqlServerAndCompatibilityFunctionFamily(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => SqlServerCompatibilityFunctionEvaluator.TryEvaluate(fn, row, group, ctes, context, evalArg, out result);
+
+    private bool TryEvalGeneralScalarFunctionFamily(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => AstQueryGeneralScalarFunctionFamilyEvaluator.TryEvaluate(fn, row, group, ctes, context, GeneralSystemAndJsonFunctionEvaluator.TryEvaluate, evalArg, Eval, ParseIntervalValue, out result);
+
+    private bool TryEvalCastStringAndDateTail(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => CastStringAndDateTailEvaluator.TryEvaluate(fn, row, group, ctes, context, evalArg, out result);
+
+    private bool TryEvalCastConversionFamily(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => CastConversionFamilyEvaluator.TryEvaluate(fn, context, evalArg, out result);
+
+    private bool TryEvalUserDefinedScalarFunction(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        out object? result)
+        => AstQueryFunctionDispatchHelper.TryEvalUserDefinedScalarFunction(
+            fn,
+            row,
+            group,
+            ctes,
+            _context,
+            _localParameterScopes,
+            Eval,
+            out result);
+
+    private bool TryResolveLocalFunctionValue(string name, out object? value)
+        => AstQueryFunctionDispatchHelper.TryResolveLocalFunctionValue(name, _localParameterScopes, out value);
+
     private AstQueryCastConversionFamilyEvaluator CastConversionFamilyEvaluator
         => _castConversionFamilyEvaluator ??= new AstQueryCastConversionFamilyEvaluator(
             tryEvalJsonAccessShimFunction: AstQueryGeneralScalarFunctionEvaluator.TryEvalJsonAccessShimFunction,
@@ -169,18 +367,29 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             tryEvalSqlServerJsonModifyFunction: AstQueryGeneralScalarFunctionEvaluator.TryEvalSqlServerJsonModifyFunction,
             tryEvalOpenJsonFunction: AstQueryGeneralScalarFunctionEvaluator.TryEvalOpenJsonFunction,
             tryEvalJsonUnquoteFunction: AstQueryGeneralScalarFunctionEvaluator.TryEvalJsonUnquoteFunction,
-            tryEvalToNumberFunction: AstQueryGeneralScalarFunctionEvaluator.TryEvalToNumberFunction,
-            evalTryCast: EvalTryCast,
-            evalParseFunction: EvalParseFunction,
-            evalCast: EvalCast);
+            tryEvalToNumberFunction: AstQueryGeneralScalarFunctionEvaluator.TryEvalToNumberFunction);
 
     private AstQueryCastStringAndDateTailEvaluator CastStringAndDateTailEvaluator
         => _castStringAndDateTailEvaluator ??= new AstQueryCastStringAndDateTailEvaluator(
             tryEvalCastConversionFamily: TryEvalCastConversionFamily,
-            tryEvalCastConcatAndStringTail: (fn, row, group, ctes, context, evalArg, out result) =>
-                AstQueryCastStringAndDateTailEvaluator.TryEvalCastConcatAndStringTail(fn, row, group, ctes, context, evalArg, out result),
+            tryEvalCastConcatAndStringTail: AstQueryCastStringAndDateTailEvaluator.TryEvalCastConcatAndStringTail,
             tryEvalCastDateTail: (fn, row, group, ctes, context, evalArg, out result) =>
-                AstQueryCastStringAndDateTailEvaluator.TryEvalCastDateTail(fn, row, group, ctes, context, evalArg, Eval, GetTemporalUnit, out result));
+            {
+                Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, TemporalUnit> getTemporalUnit =
+                    (SqlExpr expr, EvalRow evalRow, EvalGroup? evalGroup, IDictionary<string, Source> evalCtes)
+                        => AstQueryExecutionRuntimeHelper.GetTemporalUnit(expr, evalRow, evalGroup, evalCtes, Eval);
+
+                return AstQueryCastStringAndDateTailEvaluator.TryEvalCastDateTail(
+                    fn,
+                    row,
+                    group,
+                    ctes,
+                    context,
+                    evalArg,
+                    Eval,
+                    getTemporalUnit,
+                    out result);
+            });
 
     private AstQueryGeneralSystemAndJsonFunctionEvaluator GeneralSystemAndJsonFunctionEvaluator
         => _generalSystemAndJsonFunctionEvaluator ??= new AstQueryGeneralSystemAndJsonFunctionEvaluator(
@@ -190,29 +399,29 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             tryEvalSqliteJsonFunctions: GeneralScalarFunctionEvaluator.TryEvalSqliteJsonFunctions);
 
     private AstQueryGeneralScalarFunctionEvaluator GeneralScalarFunctionEvaluator
-        => _generalScalarFunctionEvaluator ??= new AstQueryGeneralScalarFunctionEvaluator(_cnn);
+        => _generalScalarFunctionEvaluator ??= new AstQueryGeneralScalarFunctionEvaluator(Cnn);
 
     private AstQuerySqlServerDatabaseFunctionEvaluator SqlServerDatabaseFunctionEvaluator
         => _sqlServerDatabaseFunctionEvaluator ??= new AstQuerySqlServerDatabaseFunctionEvaluator(
             getDialect: () => Dialect,
-            resolveDatabaseProperty: TryResolveSqlServerDatabaseProperty,
-            resolveDatabasePrincipalId: TryResolveSqlServerDatabasePrincipalId,
-            resolveColumnProperty: TryResolveSqlServerColumnProperty,
-            resolveColumnLength: TryResolveSqlServerColumnLength,
-            resolveColumnName: TryResolveSqlServerColumnName,
-            resolveObjectId: TryResolveSqlServerObjectId,
-            resolveObjectProperty: TryResolveSqlServerObjectProperty,
-            resolveObjectName: TryResolveSqlServerObjectName,
-            resolveObjectSchemaName: TryResolveSqlServerObjectSchemaName,
-            resolveTypeProperty: TryResolveSqlServerTypeProperty,
-            getDatabaseName: () => _cnn.Database);
+            resolveDatabaseProperty: (databaseName, propertyName) => AstQuerySqlServerResolutionHelper.TryResolveSqlServerDatabaseProperty(_context, databaseName, propertyName),
+            resolveDatabasePrincipalId: AstQuerySqlServerResolutionHelper.TryResolveSqlServerDatabasePrincipalId,
+            resolveColumnProperty: (objectIdValue, columnName, propertyName) => AstQuerySqlServerResolutionHelper.TryResolveSqlServerColumnProperty(_context, objectIdValue, columnName, propertyName),
+            resolveColumnLength: (objectName, columnName) => AstQuerySqlServerResolutionHelper.TryResolveSqlServerColumnLength(_context, objectName, columnName),
+            resolveColumnName: (objectIdValue, columnIdValue) => AstQuerySqlServerResolutionHelper.TryResolveSqlServerColumnName(_context, objectIdValue, columnIdValue),
+            resolveObjectId: objectName => AstQuerySqlServerResolutionHelper.TryResolveSqlServerObjectId(_context, objectName),
+            resolveObjectProperty: (objectIdValue, propertyName) => AstQuerySqlServerResolutionHelper.TryResolveSqlServerObjectProperty(_context, objectIdValue, propertyName),
+            resolveObjectName: objectIdValue => AstQuerySqlServerResolutionHelper.TryResolveSqlServerObjectName(_context, objectIdValue),
+            resolveObjectSchemaName: objectIdValue => AstQuerySqlServerResolutionHelper.TryResolveSqlServerObjectSchemaName(_context, objectIdValue),
+            resolveTypeProperty: AstQuerySqlServerResolutionHelper.TryResolveSqlServerTypeProperty,
+            getDatabaseName: () => Cnn.Database);
 
     private AstQuerySqlServerIdentityFunctionEvaluator SqlServerIdentityFunctionEvaluator
         => _sqlServerIdentityFunctionEvaluator ??= new AstQuerySqlServerIdentityFunctionEvaluator(
             getDialect: () => Dialect,
-            getLastInsertId: _cnn.GetLastInsertId,
-            resolveSystemTypeId: TryResolveSqlServerSystemTypeId,
-            resolveSystemTypeName: TryResolveSqlServerSystemTypeName);
+            getLastInsertId: Cnn.GetLastInsertId,
+            resolveSystemTypeId: AstQuerySqlServerResolutionHelper.TryResolveSqlServerSystemTypeId,
+            resolveSystemTypeName: AstQuerySqlServerResolutionHelper.TryResolveSqlServerSystemTypeName);
 
     private AstQuerySqlServerUtilityFunctionEvaluator SqlServerUtilityFunctionEvaluator
         => _sqlServerUtilityFunctionEvaluator ??= new AstQuerySqlServerUtilityFunctionEvaluator(
@@ -225,10 +434,10 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
     private AstQuerySqlServerSessionFunctionEvaluator SqlServerSessionFunctionEvaluator
         => _sqlServerSessionFunctionEvaluator ??= new AstQuerySqlServerSessionFunctionEvaluator(
             getDialect: () => Dialect,
-            getContextInfo: _cnn.GetContextInfo,
-            hasActiveTransaction: () => _cnn.HasActiveTransaction,
-            tryResolveSqlServerRoleMembership: TryResolveSqlServerRoleMembership,
-            tryResolveSqlServerServerRoleMembership: TryResolveSqlServerServerRoleMembership);
+            getContextInfo: Cnn.GetContextInfo,
+            hasActiveTransaction: () => Cnn.HasActiveTransaction,
+            tryResolveSqlServerRoleMembership: AstQuerySqlServerResolutionHelper.TryResolveSqlServerRoleMembership,
+            tryResolveSqlServerServerRoleMembership: AstQuerySqlServerResolutionHelper.TryResolveSqlServerServerRoleMembership);
 
     private AstQuerySqlServerCompatibilityFunctionEvaluator SqlServerCompatibilityFunctionEvaluator
         => _sqlServerCompatibilityFunctionEvaluator ??= new AstQuerySqlServerCompatibilityFunctionEvaluator(
@@ -237,117 +446,12 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             SqlServerIdentityFunctionEvaluator,
             SqlServerUtilityFunctionEvaluator,
             Eval,
-            GetTemporalUnit,
-            ResolveTemporalUnit);
+            CreateTemporalUnitResolver(),
+            AstQueryExecutionRuntimeHelper.ResolveTemporalUnit);
 
-    private sealed class WindowPartitionExecutionContext(
-        AstQueryExecutorBase owner,
-        List<EvalRow> part,
-        WindowSpec spec,
-        IDictionary<string, Source> ctes,
-        Dictionary<EvalRow, object?[]>? precomputedOrderValuesByRow)
-    {
-        private readonly AstQueryExecutorBase _owner = owner;
-        private readonly WindowSpec _spec = spec;
-        private readonly IDictionary<string, Source> _ctes = ctes;
-        private Dictionary<EvalRow, object?[]>? _orderValuesByRow = precomputedOrderValuesByRow;
-        private RowsFrameRange[]? _frameRangesByRow;
-        private List<(int Start, int End)>? _peerGroups;
-        private bool? _coversWholePartition;
-
-        internal List<EvalRow> Part { get; } = part;
-
-        internal Dictionary<EvalRow, object?[]> GetRequiredOrderValuesByRow()
-        {
-            _orderValuesByRow ??= WindowOrderValueHelper.BuildWindowOrderValuesByRow(
-                Part,
-                _spec.OrderBy,
-                (expr, row) => _owner.Eval(expr, row, null, _ctes));
-            return _orderValuesByRow;
-        }
-
-        internal RowsFrameRange GetFrameRange(int rowIndex)
-        {
-            if (_frameRangesByRow is null)
-            {
-                _frameRangesByRow = new RowsFrameRange[Part.Count];
-                var needsOrderValues = _spec.Frame is not null
-                    && _spec.Frame.Unit != WindowFrameUnit.Rows
-                    && _spec.OrderBy.Count > 0;
-                var orderValuesByRow = needsOrderValues ? GetRequiredOrderValuesByRow() : null;
-                for (var i = 0; i < Part.Count; i++)
-                {
-                    _frameRangesByRow[i] = _owner.ResolveWindowFrameRange(
-                        _spec.Frame,
-                        Part,
-                        i,
-                        _spec.OrderBy,
-                        _ctes,
-                        orderValuesByRow);
-                }
-            }
-
-            return _frameRangesByRow[rowIndex];
-        }
-
-        internal bool CoversWholePartition()
-        {
-            if (_coversWholePartition.HasValue)
-                return _coversWholePartition.Value;
-
-            if (Part.Count == 0)
-            {
-                _coversWholePartition = false;
-                return false;
-            }
-
-            for (var i = 0; i < Part.Count; i++)
-            {
-                var frameRange = GetFrameRange(i);
-                if (frameRange.IsEmpty || frameRange.StartIndex != 0 || frameRange.EndIndex != Part.Count - 1)
-                {
-                    _coversWholePartition = false;
-                    return false;
-                }
-            }
-
-            _coversWholePartition = true;
-            return true;
-        }
-
-        internal List<(int Start, int End)> GetPeerGroups()
-        {
-            if (_peerGroups is not null)
-                return _peerGroups;
-
-            var peerGroups = new List<(int Start, int End)>();
-            if (Part.Count == 0)
-                return _peerGroups = peerGroups;
-
-            if (Part.Count == 1)
-                return _peerGroups = [(0, 0)];
-
-            var orderValuesByRow = GetRequiredOrderValuesByRow();
-            var start = 0;
-            for (var i = 1; i <= Part.Count; i++)
-            {
-                var isBoundary = i == Part.Count
-                    || !WindowOrderValueHelper.WindowOrderValuesEqual(
-                        orderValuesByRow[Part[i - 1]],
-                        orderValuesByRow[Part[i]],
-                        _owner.CompareSql);
-                if (!isBoundary)
-                    continue;
-
-                peerGroups.Add((start, i - 1));
-                start = i;
-            }
-
-            _peerGroups = peerGroups;
-            return _peerGroups;
-        }
-    }
-
+    private Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, TemporalUnit> CreateTemporalUnitResolver()
+        => (SqlExpr expr, EvalRow evalRow, EvalGroup? evalGroup, IDictionary<string, Source> evalCtes)
+            => AstQueryExecutionRuntimeHelper.GetTemporalUnit(expr, evalRow, evalGroup, evalCtes, Eval);
 
     // Dialect-aware expression parsing without hard dependency on a specific dialect type.
     // Custom schema functions are resolved through the current connection when available.
@@ -358,7 +462,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             raw,
             dialectInstance,
             null,
-            customFunctionSupported: name => _cnn.TryGetFunction(name, out _));
+            customFunctionSupported: name => Cnn.TryGetFunction(name, out _));
     }
 
     private SqlExpr ParseScalarExpr(string raw)
@@ -368,70 +472,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             raw,
             dialect1,
             _pars,
-            customFunctionSupported: name => _cnn.TryGetFunction(name, out _));
-    }
-
-    private static List<List<WindowSlot>> GroupWindowSlotsBySpec(List<WindowSlot> slots)
-    {
-        var groups = new Dictionary<string, List<WindowSlot>>(Math.Max(1, slots.Count), StringComparer.Ordinal);
-        foreach (var slot in slots)
-        {
-            var key = BuildWindowSpecCacheKey(slot.Expr.Spec);
-            if (!groups.TryGetValue(key, out var group))
-            {
-                group = new List<WindowSlot>();
-                groups[key] = group;
-            }
-
-            group.Add(slot);
-        }
-
-        return [.. groups.Values];
-    }
-
-    private static string BuildWindowSpecCacheKey(WindowSpec spec)
-    {
-        var sb = new StringBuilder();
-        sb.Append("PART:");
-        for (var i = 0; i < spec.PartitionBy.Count; i++)
-        {
-            if (i > 0)
-                sb.Append('|');
-
-            sb.Append(SqlExprPrinter.Print(spec.PartitionBy[i]));
-        }
-
-        sb.Append(";ORDER:");
-        for (var i = 0; i < spec.OrderBy.Count; i++)
-        {
-            if (i > 0)
-                sb.Append('|');
-
-            sb.Append(SqlExprPrinter.Print(spec.OrderBy[i].Expr));
-            sb.Append(spec.OrderBy[i].Desc ? ":DESC" : ":ASC");
-        }
-
-        sb.Append(";FRAME:");
-        if (spec.Frame is null)
-        {
-            sb.Append(SqlConst.NULL);
-            return sb.ToString();
-        }
-
-        sb.Append(spec.Frame.Unit);
-        sb.Append(':');
-        AppendWindowFrameBoundCacheKey(sb, spec.Frame.Start);
-        sb.Append(':');
-        AppendWindowFrameBoundCacheKey(sb, spec.Frame.End);
-        return sb.ToString();
-    }
-
-    private static void AppendWindowFrameBoundCacheKey(StringBuilder sb, WindowFrameBound bound)
-    {
-        sb.Append(bound.Kind);
-        sb.Append('(');
-        sb.Append(bound.Offset?.ToString(CultureInfo.InvariantCulture) ?? "null");
-        sb.Append(')');
+            customFunctionSupported: name => Cnn.TryGetFunction(name, out _));
     }
 
     /// <summary>
@@ -454,7 +495,15 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             sqlContextForErrors,
             _context,
             parts1 => ExecuteSelect(parts1, null, null),
-            ApplyOrderAndLimit,
+            (result, query, ctes, trace) => AstQuerySelectExecutionHelper.ApplyOrderAndLimit(
+                result,
+                query,
+                ctes,
+                ParseExpr,
+                (expr, row) => Eval(expr, row, group: null, ctes),
+                (expr, scope) => Convert.ToInt32(Eval(expr, EvalRow.Empty(), null, scope), CultureInfo.InvariantCulture),
+                (left, right) => AstQueryComparisonSupport.CompareSql(left, right, _context),
+                trace),
             AstQueryPlanMetricsHelper.CountKnownInputTables,
             query => AstQueryPlanMetricsHelper.EstimateRowsRead(_context, query));
     }
@@ -467,20 +516,20 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
     {
         var sw = Stopwatch.StartNew();
         ClearSubqueryEvaluationCaches();
-        QueryDebugTraceBuilder? debugTrace = _cnn.IsDebugTraceCaptureEnabled
+        QueryDebugTraceBuilder? debugTrace = Cnn.IsDebugTraceCaptureEnabled
             ? new QueryDebugTraceBuilder(SqlConst.SELECT)
             : null;
         var result = ExecuteSelect(q, null, null, debugTrace);
         sw.Stop();
 
         if (!HasSqlCalcFoundRows(q) && !IsRowCountHelperSelect(q))
-            _cnn.SetLastFoundRows(result.Count);
+            Cnn.SetLastFoundRows(result.Count);
 
         var metrics = AstQueryPlanMetricsHelper.BuildPlanRuntimeMetrics(_context, q, result.Count, sw.ElapsedMilliseconds);
         var indexRecommendations = BuildIndexRecommendations(_context, q, metrics);
         var planWarnings = QueryPlanWarningHelper.BuildPlanWarnings(q, metrics);
         var runtimeContext = _context.BuildPlanRuntimeContext();
-        if (_cnn.Db.CaptureExecutionPlans)
+        if (Cnn.Db.CaptureExecutionPlans)
         {
             var plan = SqlExecutionPlanFormatter.FormatSelect(
                 q,
@@ -489,11 +538,593 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
                 planWarnings,
                 runtimeContext: runtimeContext);
             result.ExecutionPlan = plan;
-            _cnn.RegisterExecutionPlan(plan);
+            Cnn.RegisterExecutionPlan(plan);
         }
         if (debugTrace is not null)
-            _cnn.RegisterDebugTrace(debugTrace.Build());
+            Cnn.RegisterDebugTrace(debugTrace.Build());
         return result;
+    }
+
+    private TableResultMock ExecuteSelect(
+        SqlSelectQuery selectQuery,
+        IDictionary<string, Source>? inheritedCtes,
+        EvalRow? outerRow,
+        QueryDebugTraceBuilder? debugTrace = null)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(selectQuery, nameof(selectQuery));
+
+        var ctes = inheritedCtes is null
+            ? new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase)
+            : new Dictionary<string, Source>(inheritedCtes, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var cte in selectQuery.Ctes)
+        {
+            var cteStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
+            var res = cte.Query switch
+            {
+                SqlSelectQuery cteSelect => ExecuteSelect(cteSelect, ctes, outerRow),
+                SqlUnionQuery cteUnion => ExecuteUnion(
+                    cteUnion.Parts,
+                    cteUnion.AllFlags,
+                    cteUnion.OrderBy,
+                    cteUnion.RowLimit,
+                    cteUnion.RawSql),
+                _ => throw new NotSupportedException($"CTE query type '{cte.Query.GetType().Name}' is not supported.")
+            };
+            ctes[cte.Name] = Source.FromResult(cte.Name, res);
+            debugTrace?.AddStep(
+                "CteMaterialize",
+                0,
+                res.Count,
+                TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(cteStart)),
+                cte.Name);
+        }
+
+        if (TryEvaluateSimpleUnionAllCount(selectQuery, ctes, outerRow, out var fastCountResult))
+            return fastCountResult;
+
+        var fromStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
+        var rows = BuildFrom(
+            selectQuery.Table,
+            ctes,
+            selectQuery.Where,
+            hasOrderBy: selectQuery.OrderBy.Count > 0,
+            hasGroupBy: selectQuery.GroupBy.Count > 0);
+        if (debugTrace is not null)
+        {
+            var fromRows = rows as List<EvalRow> ?? [.. rows];
+            debugTrace.AddStep(
+                "TableScan",
+                (int)Math.Min(int.MaxValue, AstQueryPlanMetricsHelper.GetKnownSourceRows(_context, selectQuery.Table)),
+                fromRows.Count,
+                TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(fromStart)),
+                SqlSourceFormattingHelper.FormatSource(selectQuery.Table));
+            rows = fromRows;
+        }
+
+        foreach (var j in selectQuery.Joins)
+        {
+            var joinStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
+            var inputRows = debugTrace is not null
+                ? (rows as ICollection<EvalRow>)?.Count ?? rows.Count()
+                : 0;
+            rows = ApplyJoin(
+                rows,
+                j,
+                ctes,
+                hasOrderBy: selectQuery.OrderBy.Count > 0,
+                hasGroupBy: selectQuery.GroupBy.Count > 0);
+            if (debugTrace is not null)
+            {
+                var joinedRows = rows as List<EvalRow> ?? [.. rows];
+                debugTrace.AddStep(
+                    $"Join({AstQuerySelectExecutionHelper.FormatJoinTypeForDebug(j.Type)})",
+                    inputRows,
+                    joinedRows.Count,
+                    TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(joinStart)),
+                    SqlSourceFormattingHelper.FormatJoinDebugDetails(j));
+                rows = joinedRows;
+            }
+        }
+
+        if (outerRow is not null)
+            rows = AttachOuterRows(rows, outerRow);
+
+        if (selectQuery.Where is not null)
+        {
+            var filterStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
+            var inputRows = debugTrace is not null
+                ? (rows as ICollection<EvalRow>)?.Count ?? rows.Count()
+                : 0;
+            rows = ApplyRowPredicate(rows, selectQuery.Where, ctes);
+            if (debugTrace is not null)
+            {
+                var filteredRows = rows as List<EvalRow> ?? [.. rows];
+                debugTrace.AddStep(
+                    "Filter",
+                    inputRows,
+                    filteredRows.Count,
+                    TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(filterStart)),
+                    SqlExprPrinter.Print(selectQuery.Where));
+                rows = filteredRows;
+            }
+        }
+
+        var needsGrouping = selectQuery.GroupBy.Count > 0
+            || selectQuery.Having is not null
+            || AstQueryAggregateAnalysisHelper.ContainsAggregate(
+                selectQuery,
+                ParseScalarExpr,
+                AggregateExpressionInspector.WalkHasAggregate);
+        if (needsGrouping)
+        {
+            var groupedRows = rows as List<EvalRow> ?? [.. rows];
+            if (debugTrace is null && TryEvaluateSimpleStringAggregate(selectQuery, groupedRows, ctes, out var fastStringAggregateResult))
+                return fastStringAggregateResult;
+
+            return ExecuteGroup(selectQuery, ctes, groupedRows, debugTrace);
+        }
+
+        var projectedRows = rows as List<EvalRow> ?? [.. rows];
+        var projectStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
+        var projected = ProjectRows(selectQuery, projectedRows, ctes);
+        debugTrace?.AddStep(
+            "Project",
+            projectedRows.Count,
+            projected.Count,
+            TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(projectStart)),
+            QueryDebugTraceFormattingHelper.FormatProjectDebugDetails(selectQuery.SelectItems));
+
+        if (selectQuery.Distinct)
+        {
+            var distinctStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
+            var inputRows = projected.Count;
+            projected = QueryRowValueHelper.ApplyDistinct(projected, _context);
+            debugTrace?.AddStep(
+                "Distinct",
+                inputRows,
+                projected.Count,
+                TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(distinctStart)),
+                QueryDebugTraceFormattingHelper.FormatDistinctDebugDetails(selectQuery.SelectItems.Count));
+        }
+
+        if (HasSqlCalcFoundRows(selectQuery))
+            Cnn.SetLastFoundRows(projected.Count);
+
+        projected = AstQuerySelectExecutionHelper.ApplyOrderAndLimit(
+            projected,
+            selectQuery,
+            ctes,
+            ParseExpr,
+            (expr, row) => Eval(expr, row, group: null, ctes),
+            (expr, scope) => Convert.ToInt32(Eval(expr, EvalRow.Empty(), null, scope), CultureInfo.InvariantCulture),
+            (left, right) => AstQueryComparisonSupport.CompareSql(left, right, _context),
+            debugTrace);
+        projected = AstQueryExecutorForJsonHelper.ApplyForJsonIfNeeded(projected, selectQuery, debugTrace);
+        return projected;
+    }
+
+    private bool TryEvaluateSimpleUnionAllCount(
+        SqlSelectQuery query,
+        IDictionary<string, Source> ctes,
+        EvalRow? outerRow,
+        out TableResultMock result)
+    {
+        result = null!;
+
+        if (query.Table?.DerivedUnion is null
+            || query.Joins.Count > 0
+            || query.Where is not null
+            || query.GroupBy.Count > 0
+            || query.Having is not null
+            || query.ForJson is not null
+            || query.SelectItems.Count != 1)
+            return false;
+
+        var (exprRaw, _) = SelectAliasParserHelper.SplitTrailingAsAlias(query.SelectItems[0].Raw, query.SelectItems[0].Alias);
+        if (!AstQueryAggregateEvaluator.TryParseScalarCountAggregate(exprRaw, ParseExpr, out var countArg) || countArg is not StarExpr)
+            return false;
+
+        var union = query.Table.DerivedUnion;
+        if (union.RowLimit is not null
+            || AstQuerySelectExecutionHelper.ContainsDistinctUnionFlag(union.AllFlags))
+            return false;
+
+        long count = 0;
+        foreach (var part in union.Parts)
+        {
+            if (!TryCountSimpleRows(part, ctes, outerRow, out var partCount))
+                return false;
+
+            count += partCount;
+        }
+
+        var tableAlias = query.Table?.Alias ?? query.Table?.TableFunction?.Name ?? query.Table?.Name ?? string.Empty;
+        var columnAlias = SelectPlanProjectionHelper.InferColumnAlias(exprRaw);
+        result = new TableResultMock
+        {
+            Columns =
+            [
+                SelectPlanProjectionHelper.CreateSelectPlanColumn(
+                    tableAlias,
+                    columnAlias,
+                    0,
+                    DbType.Int64,
+                    isNullable: false)
+            ]
+        };
+        result.Add(new Dictionary<int, object?> { [0] = count });
+        result.JoinFields.Add(new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase));
+
+        if (query.OrderBy.Count > 0 || query.RowLimit is not null)
+        {
+            var orderCtes = new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase);
+            result = AstQuerySelectExecutionHelper.ApplyOrderAndLimit(
+                result,
+                query,
+                orderCtes,
+                ParseExpr,
+                (expr, row) => Eval(expr, row, group: null, orderCtes),
+                (expr, scope) => Convert.ToInt32(Eval(expr, EvalRow.Empty(), null, scope), CultureInfo.InvariantCulture),
+                (left, right) => AstQueryComparisonSupport.CompareSql(left, right, _context));
+        }
+
+        return true;
+    }
+
+    private bool TryEvaluateSimpleStringAggregate(
+        SqlSelectQuery query,
+        List<EvalRow> rows,
+        IDictionary<string, Source> ctes,
+        out TableResultMock result)
+    {
+        result = null!;
+
+        if (query.GroupBy.Count > 0
+            || query.Having is not null
+            || query.SelectItems.Count != 1)
+            return false;
+
+        var (exprRaw, _) = SelectAliasParserHelper.SplitTrailingAsAlias(query.SelectItems[0].Raw, query.SelectItems[0].Alias);
+        if (!AstQueryAggregateEvaluator.TryParseStringAggregateCall(exprRaw, ParseScalarExpr, out var aggregateCall))
+            return false;
+
+        var dialect2 = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação.");
+        var aggregateDefinition = aggregateCall.ResolvedScalarFunction;
+        if (aggregateDefinition is null
+            && !dialect2.TryGetScalarFunctionDefinition(aggregateCall, out aggregateDefinition))
+            return false;
+
+        if (aggregateDefinition is not null
+            && !aggregateDefinition.AllowsCall)
+            return false;
+
+        if (aggregateDefinition is null)
+            return false;
+
+        if (aggregateCall.Distinct)
+            return false;
+
+        var firstRow = rows.Count > 0 ? rows[0] : EvalRow.Empty();
+        var aggregateGroup = new EvalGroup(rows);
+        var resultValue = AstQueryAggregateEvaluator.EvalAggregate(aggregateCall, aggregateGroup, ctes, dialect2, Eval);
+
+        result = new TableResultMock
+        {
+            Columns =
+            [
+                SelectPlanProjectionHelper.CreateSelectPlanColumn(
+                    query.Table?.Alias ?? query.Table?.TableFunction?.Name ?? query.Table?.Name ?? string.Empty,
+                    SelectPlanProjectionHelper.InferColumnAlias(exprRaw),
+                    0,
+                    DbType.String,
+                    isNullable: true)
+            ]
+        };
+        result.Add(new Dictionary<int, object?> { [0] = resultValue });
+        result.JoinFields.Add(firstRow.Fields);
+
+        if (HasSqlCalcFoundRows(query))
+            Cnn.SetLastFoundRows(result.Count);
+
+        if (query.Distinct)
+            result = QueryRowValueHelper.ApplyDistinct(result, _context);
+
+        result = AstQuerySelectExecutionHelper.ApplyOrderAndLimit(
+            result,
+            query,
+            ctes,
+            ParseExpr,
+            (expr, row) => Eval(expr, row, group: null, ctes),
+            (expr, scope) => Convert.ToInt32(Eval(expr, EvalRow.Empty(), null, scope), CultureInfo.InvariantCulture),
+            (left, right) => AstQueryComparisonSupport.CompareSql(left, right, _context));
+        result = AstQueryExecutorForJsonHelper.ApplyForJsonIfNeeded(result, query);
+        return true;
+    }
+
+    private bool TryCountSimpleRows(
+        SqlSelectQuery query,
+        IDictionary<string, Source> ctes,
+        EvalRow? outerRow,
+        out long count)
+    {
+        count = 0;
+
+        if (query.Ctes.Count > 0
+            || query.Joins.Count > 0
+            || query.Distinct
+            || query.GroupBy.Count > 0
+            || query.Having is not null
+            || query.RowLimit is not null
+            || query.ForJson is not null)
+            return false;
+
+        if (outerRow is null && query.Where is null)
+        {
+            if (query.Table is null)
+            {
+                count = 1;
+                return true;
+            }
+
+            if (AstQueryPlanMetricsHelper.HasKnownPhysicalTable(query.Table))
+            {
+                count = AstQueryPlanMetricsHelper.GetKnownSourceRows(_context, query.Table);
+                return true;
+            }
+        }
+
+        if (outerRow is null
+            && query.Table is not null
+            && query.Where is not null
+            && TryCountRowsFromPrimaryKey(query, ctes, out count))
+            return true;
+
+        var rows = BuildFrom(
+            query.Table,
+            ctes,
+            query.Where,
+            hasOrderBy: query.OrderBy.Count > 0,
+            hasGroupBy: false);
+
+        if (query.Where is null)
+        {
+            foreach (var _ in rows)
+                count++;
+            return true;
+        }
+
+        if (outerRow is not null)
+        {
+            foreach (var candidate in rows)
+            {
+                if (Eval(query.Where, AttachOuterRow(candidate, outerRow), group: null, ctes).ToBool())
+                    count++;
+            }
+
+            return true;
+        }
+
+        foreach (var candidate in rows)
+        {
+            if (Eval(query.Where, candidate, group: null, ctes).ToBool())
+                count++;
+        }
+
+        return true;
+    }
+
+    private bool TryCountRowsFromPrimaryKey(
+        SqlSelectQuery query,
+        IDictionary<string, Source> ctes,
+        out long count)
+    {
+        count = 0;
+
+        var src = ResolveSource(query.Table!, ctes);
+        var rows = IndexHelper.TryRowsFromIndex(src, query.Table, query.Where, hasOrderBy: query.OrderBy.Count > 0, hasGroupBy: false);
+        if (rows is null)
+            return false;
+
+        count = rows.Count();
+        return true;
+    }
+
+    private TableResultMock ExecuteGroup(
+        SqlSelectQuery q,
+        Dictionary<string, Source> ctes,
+        IEnumerable<EvalRow> rows,
+        QueryDebugTraceBuilder? debugTrace = null)
+    {
+        var sourceRows = rows as List<EvalRow> ?? [.. rows];
+        var keyExprs = AstQuerySelectGroupKeyHelper.BuildGroupByKeyExpressions(q, ParseExpr);
+
+        GroupKey BuildGroupKey(EvalRow row)
+        {
+            var values = new object?[keyExprs.Length];
+            for (var i = 0; i < keyExprs.Length; i++)
+                values[i] = Eval(keyExprs[i], row, group: null, ctes);
+
+            return new GroupKey(values);
+        }
+
+        var groupStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
+        var grouped = MaterializeGroups(sourceRows.GroupBy(
+            BuildGroupKey,
+            new GroupKey.GroupKeyComparer(context)));
+        debugTrace?.AddStep(
+            "Group",
+            sourceRows.Count,
+            grouped.Count,
+            TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(groupStart)),
+            QueryDebugTraceFormattingHelper.FormatGroupDebugDetails(q));
+
+        if (q.Having is null)
+            return ProjectGrouped(q, grouped, ctes, debugTrace);
+
+        var aliasExprs = new List<(string Alias, SqlExpr Ast)>(q.SelectItems.Count);
+        for (var i = 0; i < q.SelectItems.Count; i++)
+        {
+            var selectItem = q.SelectItems[i];
+            var (exprRaw, alias) = SelectAliasParserHelper.SplitTrailingAsAlias(selectItem.Raw, selectItem.Alias);
+            if (string.IsNullOrWhiteSpace(alias))
+                continue;
+
+            SqlExpr ast;
+#pragma warning disable CA1031 // Do not catch general exception types
+            try { ast = ParseExpr(exprRaw); }
+            catch (Exception e)
+            {
+#pragma warning disable CA1303
+                Console.WriteLine($"{GetType().Name}.{nameof(ExecuteSelect)}");
+#pragma warning restore CA1303
+                Console.WriteLine(e);
+                ast = new RawSqlExpr(exprRaw);
+            }
+#pragma warning restore CA1031
+
+            aliasExprs.Add((alias!, ast));
+        }
+
+        var havingExpr = HavingHelper.NormalizeHavingExpression(q.Having, q);
+
+        var havingStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
+        var inputGroups = grouped.Count;
+        grouped = ApplyHavingPredicate(grouped, havingExpr, aliasExprs, ctes);
+        debugTrace?.AddStep(
+            "Having",
+            inputGroups,
+            grouped.Count,
+            TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(havingStart)),
+            SqlExprPrinter.Print(q.Having));
+
+        return ProjectGrouped(q, grouped, ctes, debugTrace);
+    }
+
+    private IEnumerable<EvalRow> ApplyRowPredicate(
+        IEnumerable<EvalRow> rows,
+        SqlExpr predicate,
+        IDictionary<string, Source> ctes)
+        => rows.Where(r => Eval(predicate, r, group: null, ctes).ToBool());
+
+    private List<MaterializedGroup> ApplyHavingPredicate(
+        IReadOnlyList<MaterializedGroup> grouped,
+        SqlExpr havingExpr,
+        IReadOnlyList<(string Alias, SqlExpr Ast)> aliasExprs,
+        IDictionary<string, Source> ctes)
+    {
+        if (grouped.Count == 0)
+            return [];
+
+        var filtered = new List<MaterializedGroup>(grouped.Count);
+
+        var firstGroup = grouped[0];
+        var firstEvalCtx = BuildHavingEvaluationContext(firstGroup, aliasExprs, ctes, out var firstEvalGroup);
+        HavingHelper.EnsureHavingIdentifiersAreBound(havingExpr, firstEvalCtx, Dialect!);
+        if (Eval(havingExpr, firstEvalCtx, firstEvalGroup, ctes).ToBool())
+            filtered.Add(firstGroup);
+
+        for (var i = 1; i < grouped.Count; i++)
+        {
+            var group = grouped[i];
+            var evalCtx = BuildHavingEvaluationContext(group, aliasExprs, ctes, out var evalGroup);
+            if (Eval(havingExpr, evalCtx, evalGroup, ctes).ToBool())
+                filtered.Add(group);
+        }
+
+        return filtered;
+    }
+
+    private EvalRow BuildHavingEvaluationContext(
+        MaterializedGroup grouped,
+        IReadOnlyList<(string Alias, SqlExpr Ast)> aliasExprs,
+        IDictionary<string, Source> ctes,
+        out EvalGroup evalGroup)
+    {
+        var rows = grouped.Rows;
+        evalGroup = new EvalGroup(rows);
+        var first = rows[0];
+
+        var fields = new Dictionary<string, object?>(first.Fields, StringComparer.OrdinalIgnoreCase);
+        fields.EnsureCapacity(first.Fields.Count + aliasExprs.Count);
+
+        var sources = new Dictionary<string, Source>(first.Sources, StringComparer.OrdinalIgnoreCase);
+        sources.EnsureCapacity(first.Sources.Count);
+
+        var baseOrdinalValues = first.OrdinalValues is null ? [] : first.OrdinalValues;
+        var ordinalValues = new object?[baseOrdinalValues.Length + aliasExprs.Count];
+        if (baseOrdinalValues.Length > 0)
+            Array.Copy(baseOrdinalValues, ordinalValues, baseOrdinalValues.Length);
+
+        var ordinalIndexes = first.OrdinalIndexes is null
+            ? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            : new Dictionary<string, int>(first.OrdinalIndexes, StringComparer.OrdinalIgnoreCase);
+
+        for (var i = 0; i < aliasExprs.Count; i++)
+        {
+            var (alias, ast) = aliasExprs[i];
+            var value = Eval(ast, first, evalGroup, ctes);
+            fields[alias] = value;
+
+            var ordinalIndex = baseOrdinalValues.Length + i;
+            ordinalValues[ordinalIndex] = value;
+            ordinalIndexes[alias] = ordinalIndex;
+        }
+
+        return new EvalRow(fields, sources)
+        {
+            OrdinalValues = ordinalValues,
+            OrdinalIndexes = ordinalIndexes
+        };
+    }
+
+    private IEnumerable<EvalRow> BuildFrom(
+        SqlTableSource? from,
+        IDictionary<string, Source> ctes,
+        SqlExpr? where,
+        bool hasOrderBy,
+        bool hasGroupBy)
+    {
+        if (from is null)
+        {
+            yield return EvalRow.Empty();
+            yield break;
+        }
+
+        var src = ResolveSource(from, ctes);
+        if (from.PartitionNames is { Count: > 0 } requestedPartitions
+            && src.Physical is TableMock partitionedTable)
+        {
+            src = src.WithRequestedPartitions(requestedPartitions);
+        }
+        src = PartitionHelper.ApplyPartitionPruning(src, where);
+        var sourceRows = IndexHelper.TryRowsFromIndex(src, from, where, hasOrderBy, hasGroupBy) ?? src.Rows();
+        foreach (var r in sourceRows)
+            yield return AstQueryRowSourceHelper.CreateSourceEvalRow(src, r);
+    }
+
+    private void TryRecordPrimaryKeyHintMetric(
+        ITableMock table,
+        MySqlIndexHintPlan? hintPlan)
+    {
+        if (hintPlan is null || !Cnn.Metrics.Enabled)
+            return;
+
+        if (!hintPlan.HasRowAccessHints)
+            return;
+
+        string? hintedPrimaryEquivalent = null;
+        foreach (var item in hintPlan.PrimaryEquivalentIndexNames)
+        {
+            if (!hintPlan.AllowedIndexNames.Contains(item))
+                continue;
+
+            hintedPrimaryEquivalent = item;
+            break;
+        }
+
+        if (!string.IsNullOrWhiteSpace(hintedPrimaryEquivalent))
+            Cnn.Metrics.IncrementIndexHint(hintedPrimaryEquivalent!);
     }
 
     private IReadOnlyList<SqlIndexRecommendation> BuildIndexRecommendations(
@@ -556,9 +1187,25 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         IDictionary<string, Source> ctes)
     {
         var res = new TableResultMock();
-        var selectPlan = BuildSelectPlan(q, rows, ctes);
+        var selectPlan = AstQuerySelectExecutionHelper.BuildSelectPlan(
+            Cnn,
+            Dialect,
+            q,
+            rows,
+            ctes,
+            _context,
+            ParseScalarExpr,
+            Eval,
+            QueryRowValueHelper.ResolveColumn);
 
-        ComputeWindowSlots(selectPlan.WindowSlots, rows, ctes);
+        AstQueryWindowExecutionHelper.ComputeWindowSlots(
+            _context,
+            Dialect,
+            Eval,
+            (left, right) => AstQueryComparisonSupport.CompareSql(left, right, _context),
+            selectPlan.WindowSlots,
+            rows,
+            ctes);
 
         // columns
         for (int i = 0; i < selectPlan.Columns.Count; i++)
@@ -604,10 +1251,16 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
                 representativeRows.Add(groupsList[i].Rows[0]);
         }
 
-        var selectPlan = BuildSelectPlan(
+        var selectPlan = AstQuerySelectExecutionHelper.BuildSelectPlan(
+            Cnn,
+            Dialect,
             q,
             representativeRows,
-            ctes);
+            ctes,
+            _context,
+            ParseScalarExpr,
+            Eval,
+            QueryRowValueHelper.ResolveColumn);
 
         // columns
         for (int i = 0; i < selectPlan.Columns.Count; i++)
@@ -632,7 +1285,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         {
             var distinctStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
             var inputRows = res.Count;
-            res = ApplyDistinct(res, _context);
+            res = QueryRowValueHelper.ApplyDistinct(res, _context);
             debugTrace?.AddStep(
                 "Distinct",
                 inputRows,
@@ -642,7 +1295,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         }
 
         if (HasSqlCalcFoundRows(q))
-            _cnn.SetLastFoundRows(res.Count);
+            Cnn.SetLastFoundRows(res.Count);
 
         // ORDER / LIMIT
         debugTrace?.AddStep(
@@ -651,7 +1304,15 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             res.Count,
             TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(projectStart)),
             QueryDebugTraceFormattingHelper.FormatProjectDebugDetails(q.SelectItems));
-        res = ApplyOrderAndLimit(res, q, ctes, debugTrace);
+        res = AstQuerySelectExecutionHelper.ApplyOrderAndLimit(
+            res,
+            q,
+            ctes,
+            ParseExpr,
+            (expr, row) => Eval(expr, row, group: null, ctes),
+            (expr, scope) => Convert.ToInt32(Eval(expr, EvalRow.Empty(), null, scope), CultureInfo.InvariantCulture),
+            (left, right) => AstQueryComparisonSupport.CompareSql(left, right, _context),
+            debugTrace);
         res = AstQueryExecutorForJsonHelper.ApplyForJsonIfNeeded(res, q, debugTrace);
         return res;
     }
@@ -691,20 +1352,63 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         IDictionary<string, Source> ctes,
         EvalRow row)
     {
-        var cacheKey = BuildCorrelatedSubqueryCacheKey(SqlConst.SCALAR, sq.Sql, row);
+        var cacheKey = AstQuerySubqueryLookupSupport.BuildCorrelatedSubqueryCacheKey(SqlConst.SCALAR, sq.Sql, row);
 
         return _subqueryEvaluationCache.GetOrAddScalar(
             cacheKey,
             _ =>
             {
-                var query = GetSingleSubqueryOrThrow(sq, "EVAL subquery");
+                var query = sq.Parsed ?? throw new InvalidOperationException(
+                    "EVAL subquery: SubqueryExpr sem AST parseado (Parsed vazio).");
                 if (TryEvaluateScalarSubqueryFast(query, row, ctes, out var fastValue))
                     return fastValue;
 
-                var r = ExecuteSelect(LimitToSingleRow(query), ctes, row);
+                var r = ExecuteSelect(AstQuerySubqueryLookupSupport.LimitToSingleRow(query), ctes, row);
                 return r.Count > 0 && r[0].TryGetValue(0, out var v) ? v : null;
             });
     }
+
+    private bool TryEvaluateScalarSubqueryFast(
+        SqlSelectQuery query,
+        EvalRow row,
+        IDictionary<string, Source> ctes,
+        out object? value)
+        => SubqueryLookupEvaluator.TryEvaluateScalarSubqueryFast(query, row, ctes, out value);
+
+    private bool TryCountRowsFromSimpleEqualityScan(
+        SqlSelectQuery query,
+        IDictionary<string, Source> ctes,
+        out long count)
+        => SubqueryLookupEvaluator.TryCountRowsFromSimpleEqualityScan(query, ctes, out count);
+
+    private InSubqueryLookupState GetOrEvaluateInSubqueryLookup(
+        SubqueryExpr sq,
+        EvalRow row,
+        IDictionary<string, Source> ctes)
+        => SubqueryLookupEvaluator.GetOrEvaluateInSubqueryLookup(sq, row, ctes);
+
+    private InSubqueryLookupState GetOrEvaluateInSubqueryRowLookup(
+        SubqueryExpr sq,
+        EvalRow row,
+        IDictionary<string, Source> ctes)
+        => SubqueryLookupEvaluator.GetOrEvaluateInSubqueryRowLookup(sq, row, ctes);
+
+    private List<object?>? GetOrEvaluateSubqueryFirstColumnValuesForOperation(
+        SubqueryExpr sq,
+        string operation,
+        EvalRow row,
+        IDictionary<string, Source> ctes)
+        => SubqueryLookupEvaluator.GetOrEvaluateSubqueryFirstColumnValuesForOperation(sq, operation, row, ctes);
+
+    private List<object?[]> GetOrEvaluateSubqueryRowValuesForOperation(
+        SubqueryExpr sq,
+        string operation,
+        EvalRow row,
+        IDictionary<string, Source> ctes)
+        => SubqueryLookupEvaluator.GetOrEvaluateSubqueryRowValuesForOperation(sq, operation, row, ctes);
+
+    private void ClearSubqueryEvaluationCaches()
+        => SubqueryLookupEvaluator.Clear();
 
     // ---------------- EXPRESSION EVAL ----------------
 
@@ -720,7 +1424,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
                 return l.Value;
 
             case ParameterExpr p:
-                return ResolveParam(p.Name);
+                return QueryRowValueHelper.ResolveParam(_context, p.Name);
 
             case IdentifierExpr id:
                 if (TryResolveLocalFunctionValue(id.Name, out var localValue))
@@ -729,7 +1433,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
                 return EvalIdentifier(id, row);
 
             case ColumnExpr col:
-                return ResolveColumn(col.Qualifier, col.Name, row);
+                return QueryRowValueHelper.ResolveColumn(col.Qualifier, col.Name, row);
 
             case StarExpr:
                 // only meaningful inside COUNT(*)
@@ -739,39 +1443,77 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
                 return EvalIsNull(isn, row, group, ctes);
 
             case LikeExpr like:
-                return EvalLike(like, row, group, ctes);
+                return AstQueryExpressionEvaluationHelper.EvalLike(like, row, group, ctes, _context, Eval);
 
             case UnaryExpr u when u.Op == SqlUnaryOp.Not:
-                return EvalNot(u, row, group, ctes);
+                return AstQueryExpressionEvaluationHelper.EvalNot(
+                    u,
+                    row,
+                    group,
+                    ctes,
+                    Eval,
+                    (InExpr a, EvalRow b, EvalGroup? c, IDictionary<string, Source> d)
+                        => AstQueryExpressionEvaluationHelper.EvalNotIn(
+                            a,
+                            b,
+                            c,
+                            d,
+                            _context,
+                            Eval,
+                            GetOrEvaluateInSubqueryLookup,
+                            GetOrEvaluateInSubqueryRowLookup)
+                    );
 
             case BinaryExpr b:
-                return EvalBinary(b, row, group, ctes);
+        return AstQueryExpressionEvaluationHelper.EvalBinary(
+                    b,
+                    row,
+                    group,
+                    ctes,
+                    _context,
+                    Dialect,
+                    Eval,
+                    SubqueryComparisonEvaluator.TryEvaluateCorrelatedCountComparisonFast);
 
             case InExpr i:
-                return EvalIn(i, row, group, ctes);
+                return AstQueryExpressionEvaluationHelper.EvalIn(
+                    i,
+                    row,
+                    group,
+                    ctes,
+                    _context,
+                    Eval,
+                    GetOrEvaluateInSubqueryLookup,
+                    GetOrEvaluateInSubqueryRowLookup);
 
             case ExistsExpr ex:
-                return EvalExists(ex, row, ctes);
+                return SubqueryComparisonEvaluator.EvalExists(ex, row, ctes);
 
             case QuantifiedComparisonExpr qc:
-                return EvalQuantifiedComparison(qc, row, group, ctes);
+                return SubqueryComparisonEvaluator.EvalQuantifiedComparison(qc, row, group, ctes);
 
 
             case CaseExpr c:
                 return EvalCase(c, row, group, ctes);
 
             case JsonAccessExpr ja:
-                return EvalJsonAccess(ja, row, group, ctes);
+                return AstQueryExpressionEvaluationHelper.EvalJsonAccess(
+                    ja,
+                    row,
+                    group,
+                    ctes,
+                    MapJsonAccess,
+                    Eval);
             case FunctionCallExpr fn:
                 return EvalFunction(fn, row, group, ctes);
             case CallExpr ce:
                 return EvalCall(ce, row, group, ctes);
             case BetweenExpr b:
-                return EvalBetween(b, row, group, ctes);
+                return AstQueryExpressionEvaluationHelper.EvalBetween(b, row, group, ctes, Eval);
             case SubqueryExpr sq:
                 return EvalScalarSubquery(sq, ctes, row);
             case RowExpr re:
-                return EvalRowExpression(re, row, group, ctes);
+                return AstQueryExpressionEvaluationHelper.EvalRowExpression(re, row, group, ctes, Eval);
 
             case RawSqlExpr:
                 // unsupported expression (e.g. CAST(x AS CHAR)): best-effort: null
@@ -789,13 +1531,13 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
                 identifier,
                 _evaluationLocalNow,
                 _evaluationUtcNow,
-                _cnn,
+                Cnn,
                 out var resolved))
         {
             return resolved;
         }
 
-        return ResolveIdentifier(identifier.Name, row);
+        return QueryRowValueHelper.ResolveIdentifier(identifier.Name, row);
     }
 
     private object? EvalIsNull(
@@ -807,38 +1549,6 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         var value = Eval(expression.Expr, row, group, ctes);
         var isNull = value is null || value is DBNull;
         return expression.Negated ? !isNull : isNull;
-    }
-
-    
-    private static void AppendLookupScalarKeyComponent(StringBuilder sb, InLookupScalarKey component)
-    {
-        if (sb.Length > 0)
-            sb.Append('|');
-
-        sb.Append(component.Kind.Length);
-        sb.Append(':');
-        sb.Append(component.Kind);
-        sb.Append(';');
-        sb.Append(component.Value.Length);
-        sb.Append(':');
-        sb.Append(component.Value);
-    }
-
-    private InMembershipState EvaluateRowMembershipCandidates(
-        object?[] leftRow,
-        IEnumerable<object?[]> candidates,
-        ref bool hasNullCandidate)
-    {
-        foreach (var candidate in candidates)
-        {
-            if (TryEvaluateRowCandidateMembership(leftRow, candidate, ref hasNullCandidate, out var state)
-                && state.Matched)
-            {
-                return state;
-            }
-        }
-
-        return CreateMembershipState(matched: false, hasNullCandidate);
     }
 
     internal static bool TryConvertNumericToInt64(object value, out long numeric)
@@ -882,7 +1592,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         return sb.ToString();
     }
 
-    internal static byte[] ComputeHash(System.Security.Cryptography.HashAlgorithm algorithm, byte[] bytes)
+    internal static byte[] ComputeHash(HashAlgorithm algorithm, byte[] bytes)
     {
         using (algorithm)
             return algorithm.ComputeHash(bytes);
@@ -992,7 +1702,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         if (fn.Args.Count < 2)
             return false;
 
-        unit = GetTemporalUnit(fn.Args[1], row, group, ctes);
+        unit = AstQueryExecutionRuntimeHelper.GetTemporalUnit(fn.Args[1], row, group, ctes, Eval);
         if (unit == TemporalUnit.Unknown)
             return false;
 
@@ -1028,118 +1738,303 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         if (!decimal.TryParse(match.Groups["num"].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out value))
             return false;
 
-        unit = ResolveTemporalUnit(match.Groups["unit"].Value);
+        unit = AstQueryExecutionRuntimeHelper.ResolveTemporalUnit(match.Groups["unit"].Value);
         return unit != TemporalUnit.Unknown;
+    }
+
+    internal static DateTime ApplyDateDelta(DateTime dt, TemporalUnit unit, int amount) => unit switch
+    {
+        TemporalUnit.Year => dt.AddYears(amount),
+        TemporalUnit.Month => dt.AddMonths(amount),
+        TemporalUnit.Day => dt.AddDays(amount),
+        TemporalUnit.Hour => dt.AddHours(amount),
+        TemporalUnit.Minute => dt.AddMinutes(amount),
+        TemporalUnit.Second => dt.AddSeconds(amount),
+        _ => dt
+    };
+
+    internal static DateTime TruncateDateTime(DateTime dateTime, TemporalUnit unit) => unit switch
+    {
+        TemporalUnit.Year => new DateTime(dateTime.Year, 1, 1),
+        TemporalUnit.Month => new DateTime(dateTime.Year, dateTime.Month, 1),
+        TemporalUnit.Day => dateTime.Date,
+        TemporalUnit.Hour => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, 0, 0),
+        TemporalUnit.Minute => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, 0),
+        TemporalUnit.Second => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, dateTime.Second),
+        _ => dateTime
+    };
+
+    internal static int? GetTemporalPartValue(DateTime dateTime, TemporalUnit unit) => unit switch
+    {
+        TemporalUnit.Year => dateTime.Year,
+        TemporalUnit.Month => dateTime.Month,
+        TemporalUnit.Day => dateTime.Day,
+        TemporalUnit.Hour => dateTime.Hour,
+        TemporalUnit.Minute => dateTime.Minute,
+        TemporalUnit.Second => dateTime.Second,
+        _ => null
+    };
+
+    internal static bool TryParseDateModifier(string modifier, out TemporalUnit unit, out int amount)
+    {
+        unit = TemporalUnit.Unknown;
+        amount = 0;
+
+        var match = _dateModifierRegex.Match(modifier.Trim());
+        if (!match.Success)
+            return false;
+
+        if (!int.TryParse(match.Groups["amount"].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out amount))
+            return false;
+
+        unit = AstQueryExecutionRuntimeHelper.ResolveTemporalUnit(match.Groups["unit"].Value);
+        return unit != TemporalUnit.Unknown;
+    }
+
+    private static TimeSpan? TryConvertIntervalToTimeSpan(decimal value, TemporalUnit unit)
+        => unit switch
+        {
+            TemporalUnit.Day => TimeSpan.FromDays((double)value),
+            TemporalUnit.Hour => TimeSpan.FromHours((double)value),
+            TemporalUnit.Minute => TimeSpan.FromMinutes((double)value),
+            TemporalUnit.Second => TimeSpan.FromSeconds((double)value),
+            _ => (TimeSpan?)null
+        };
+
+    internal static bool TryCoerceDateTime(object? baseVal, out DateTime dt)
+    {
+        dt = default;
+
+        if (baseVal is null || baseVal is DBNull)
+            return false;
+
+        switch (baseVal)
+        {
+            case DateTime d:
+                dt = d;
+                return true;
+            case DateTimeOffset dto:
+                dt = dto.DateTime;
+                return true;
+        }
+
+        var text = baseVal.ToString();
+        return !string.IsNullOrWhiteSpace(text)
+            && TryParseCachedDateTime(text, DateTimeStyles.AssumeLocal, out dt);
+    }
+
+    internal static bool TryCoerceTimeSpan(object? baseVal, out TimeSpan span)
+    {
+        span = default;
+
+        if (baseVal is null || baseVal is DBNull)
+            return false;
+
+        if (baseVal is TimeSpan ts)
+        {
+            span = ts;
+            return true;
+        }
+
+        if (baseVal is DateTime dt)
+        {
+            span = dt.TimeOfDay;
+            return true;
+        }
+
+        var text = baseVal.ToString();
+        return !string.IsNullOrWhiteSpace(text)
+            && TryParseCachedTimeSpan(text, out span);
+    }
+
+    internal static bool TryParseCachedDateTime(string text, DateTimeStyles styles, out DateTime dt)
+    {
+        var cacheKey = BuildDateTimeParseCacheKey(text, styles);
+        if (_dateTimeParseCache.TryGetValue(cacheKey, out var cached))
+        {
+            dt = cached.Value;
+            return cached.Success;
+        }
+
+        var success = DateTime.TryParse(
+            text,
+            CultureInfo.InvariantCulture,
+            styles,
+            out dt);
+
+        CacheTemporalParseEntry(_dateTimeParseCache, cacheKey, new DateTimeParseCacheEntry(success, dt));
+        return success;
+    }
+
+    internal static bool TryParseCachedDateTime(string text, CultureInfo culture, DateTimeStyles styles, out DateTime dt)
+    {
+        if (string.IsNullOrEmpty(culture.Name))
+            return TryParseCachedDateTime(text, styles, out dt);
+
+        var cacheKey = BuildDateTimeParseCacheKey(text, culture.Name, styles);
+        if (_dateTimeParseCache.TryGetValue(cacheKey, out var cached))
+        {
+            dt = cached.Value;
+            return cached.Success;
+        }
+
+        var success = DateTime.TryParse(
+            text,
+            culture,
+            styles,
+            out dt);
+
+        CacheTemporalParseEntry(_dateTimeParseCache, cacheKey, new DateTimeParseCacheEntry(success, dt));
+        return success;
+    }
+
+    internal static bool TryParseExactCachedDateTime(string text, string format, DateTimeStyles styles, out DateTime dt)
+    {
+        var cacheKey = BuildExactDateTimeParseCacheKey(text, format, styles);
+        if (_dateTimeExactParseCache.TryGetValue(cacheKey, out var cached))
+        {
+            dt = cached.Value;
+            return cached.Success;
+        }
+
+        var success = DateTime.TryParseExact(
+            text,
+            format,
+            CultureInfo.InvariantCulture,
+            styles,
+            out dt);
+
+        CacheTemporalParseEntry(_dateTimeExactParseCache, cacheKey, new DateTimeParseCacheEntry(success, dt));
+        return success;
+    }
+
+    internal static bool TryParseCachedDateTimeOffset(string text, DateTimeStyles styles, out DateTimeOffset dto)
+    {
+        var cacheKey = BuildDateTimeOffsetParseCacheKey(text, styles);
+        if (_dateTimeOffsetParseCache.TryGetValue(cacheKey, out var cached))
+        {
+            dto = cached.Value;
+            return cached.Success;
+        }
+
+        var success = DateTimeOffset.TryParse(
+            text,
+            CultureInfo.InvariantCulture,
+            styles,
+            out dto);
+
+        CacheTemporalParseEntry(_dateTimeOffsetParseCache, cacheKey, new DateTimeOffsetParseCacheEntry(success, dto));
+        return success;
+    }
+
+    internal static bool TryParseExactCachedDateTimeOffset(string text, string format, DateTimeStyles styles, out DateTimeOffset dto)
+    {
+        var cacheKey = BuildExactDateTimeOffsetParseCacheKey(text, format, styles);
+        if (_dateTimeOffsetExactParseCache.TryGetValue(cacheKey, out var cached))
+        {
+            dto = cached.Value;
+            return cached.Success;
+        }
+
+        var success = DateTimeOffset.TryParseExact(
+            text,
+            format,
+            CultureInfo.InvariantCulture,
+            styles,
+            out dto);
+
+        CacheTemporalParseEntry(_dateTimeOffsetExactParseCache, cacheKey, new DateTimeOffsetParseCacheEntry(success, dto));
+        return success;
+    }
+
+    private static bool TryParseCachedTimeSpan(string text, out TimeSpan span)
+    {
+        if (_timeSpanParseCache.TryGetValue(text, out var cached))
+        {
+            span = cached.Value;
+            return cached.Success;
+        }
+
+        var success = false;
+        span = default;
+
+        if (TimeSpan.TryParse(text, CultureInfo.InvariantCulture, out var parsed))
+        {
+            span = parsed;
+            success = true;
+        }
+        else if (TryParseCachedDateTime(text, DateTimeStyles.AssumeLocal, out var parsedDate))
+        {
+            span = parsedDate.TimeOfDay;
+            success = true;
+        }
+
+        CacheTemporalParseEntry(_timeSpanParseCache, text, new TimeSpanParseCacheEntry(success, span));
+        return success;
+    }
+
+    private static void CacheTemporalParseEntry<TEntry>(
+        System.Collections.Concurrent.ConcurrentDictionary<string, TEntry> cache,
+        string text,
+        TEntry entry)
+    {
+        if (cache.Count >= TemporalParseCacheSoftLimit)
+            cache.Clear();
+
+        cache[text] = entry;
+    }
+
+    private static string BuildDateTimeParseCacheKey(string text, DateTimeStyles styles)
+        => $"{(int)styles}:{text}";
+
+    private static string BuildDateTimeParseCacheKey(string text, string cultureName, DateTimeStyles styles)
+        => $"{cultureName}:{(int)styles}:{text}";
+
+    private static string BuildDateTimeOffsetParseCacheKey(string text, DateTimeStyles styles)
+        => $"{(int)styles}:{text}";
+
+    private static string BuildExactDateTimeParseCacheKey(string text, string format, DateTimeStyles styles)
+        => $"{(int)styles}:{format}:{text}";
+
+    private static string BuildExactDateTimeOffsetParseCacheKey(string text, string format, DateTimeStyles styles)
+        => $"{(int)styles}:{format}:{text}";
+
+    internal static bool LooksLikeTimeOnly(string value)
+    {
+        var trimmed = value.Trim();
+        if (trimmed.Length == 0)
+            return false;
+
+        if (trimmed.Contains('T') || trimmed.Contains('t'))
+            return false;
+
+        if (trimmed.Contains('-') || trimmed.Contains('/'))
+            return false;
+
+        return trimmed.Contains(':');
     }
 
     private object? EvalAggregate(
         FunctionCallExpr fn,
         EvalGroup group,
         IDictionary<string, Source> ctes)
-    {
-        var name = fn.Name.ToUpperInvariant();
+        => AstQueryAggregateEvaluator.EvalAggregate(
+            fn,
+            group,
+            ctes,
+            Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação."),
+            Eval);
 
-        if (TryEvalAggregateCount(fn, group, ctes, name, out var countValue))
-            return countValue;
-
-        if (name is "JSON_GROUP_OBJECT" or "JSON_OBJECTAGG")
-        {
-            var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação.");
-            if (name == "JSON_OBJECTAGG"
-                && !dialect.TryGetScalarFunctionDefinition(name, out _))
-            {
-                throw SqlUnsupported.ForDialect(dialect, name);
-            }
-
-            return EvalJsonGroupObjectAggregate(fn, group, ctes);
-        }
-
-        if (name is "JSON_OBJECT_AGG" or "JSON_OBJECT_AGG_STRICT" or "JSON_OBJECT_AGG_UNIQUE" or "JSON_OBJECT_AGG_UNIQUE_STRICT"
-            or "JSONB_OBJECT_AGG" or "JSONB_OBJECT_AGG_STRICT" or "JSONB_OBJECT_AGG_UNIQUE" or "JSONB_OBJECT_AGG_UNIQUE_STRICT")
-            return EvalJsonGroupObjectAggregate(fn, group, ctes);
-
-        if (name is "CORR" or "CORR_K" or "CORR_S" or "COVAR_POP" or "COVAR_SAMP" or "COVARIANCE" or "COVARIANCE_SAMP" or "CORRELATION")
-        {
-            var normalized = name switch
-            {
-                "COVARIANCE" => "COVAR_POP",
-                "COVARIANCE_SAMP" => "COVAR_SAMP",
-                "CORRELATION" => "CORR",
-                _ => name
-            };
-            return EvalCorrelationAggregate(fn, group, ctes, normalized);
-        }
-
-        if (name is "GROUP_ID")
-            return 0;
-
-        if (name.StartsWith("APPROX_", StringComparison.OrdinalIgnoreCase))
-        {
-            var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação.");
-            var definition = fn.ResolvedScalarFunction;
-            if (definition is null || !definition.AllowsCall)
-            {
-                throw SqlUnsupported.ForDialect(dialect, name);
-            }
-
-            return EvalApproxAggregate(fn, group, ctes, name);
-        }
-
-        if (name.StartsWith("REGR_", StringComparison.OrdinalIgnoreCase))
-            return EvalRegressionAggregate(fn, group, ctes, name);
-
-        if (name.StartsWith("STATS_", StringComparison.OrdinalIgnoreCase))
-            return null;
-
-        if (name is "STD" or "STDDEV" or "STDDEV_POP" or "STDDEV_SAMP")
-        {
-            var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação.");
-            var normalizedName = name == "STD" ? "STDDEV_POP" : name;
-            return EvalStdDevAggregate(fn, group, ctes, normalizedName);
-        }
-
-        if (name is "RATIO_TO_REPORT")
-            return null;
-
-        if (name is "MEDIAN" or "PERCENTILE" or "PERCENTILE_CONT" or "PERCENTILE_DISC")
-        {
-            var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação.");
-            if (!dialect.SupportsSqlServerAggregateFunction(name))
-            {
-                throw SqlUnsupported.ForDialect(dialect, name);
-            }
-
-            return EvalPercentileAggregate(fn, group, ctes, name);
-        }
-
-        if (name is "CHECKSUM_AGG")
-        {
-            var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação.");
-            if (!(fn.ResolvedScalarFunction?.AllowsCall
-                ?? (dialect.TryGetScalarFunctionDefinition(fn, out var checksumDefinition)
-                    && checksumDefinition is not null
-                    && checksumDefinition.AllowsCall)))
-                throw SqlUnsupported.ForDialect(dialect, name);
-        }
-
-        if (name is "GROUP_CONCAT" or "STRING_AGG" or "LISTAGG")
-        {
-            var separator = GetAggregateSeparator(fn, group, ctes);
-            return EvalSimpleStringAggregate(fn, group, ctes, separator, GetStringAggregateDefaultSeparator(name));
-        }
-
-        var values = TryGetAggregateValues(fn, group, ctes);
-        if (values is null)
-            return null;
-
-        if (values.Count == 0)
-        {
-            // MySQL: SUM/AVG/MIN/MAX sobre conjunto vazio (ou tudo NULL) => NULL
-            return name == "TOTAL" ? 0d : null;
-        }
-
-        return EvalCollectedAggregateValues(fn, group, ctes, name, values);
-    }
+    private object? EvalAggregate(
+        CallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes)
+        => AstQueryAggregateEvaluator.EvalAggregate(
+            fn,
+            group,
+            ctes,
+            Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação."),
+            Eval);
 
     // ---------------- RESOLUTION HELPERS ----------------
 

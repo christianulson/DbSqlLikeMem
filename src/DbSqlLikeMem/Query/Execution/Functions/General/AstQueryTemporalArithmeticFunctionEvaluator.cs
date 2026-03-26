@@ -70,13 +70,8 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, TemporalUnit> getTemporalUnit,
         out object? result)
     {
-        var isAdd = fn.Name.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase);
-        var isSub = fn.Name.Equals("DATE_SUB", StringComparison.OrdinalIgnoreCase);
-        if (!isAdd && !isSub)
-        {
-            result = null;
-            return false;
-        }
+        var isAdd = string.Equals(fn.Name, "DATE_ADD", StringComparison.OrdinalIgnoreCase);
+        var isSub = string.Equals(fn.Name, "DATE_SUB", StringComparison.OrdinalIgnoreCase);
 
         var baseValue = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(baseValue) || !AstQueryExecutorBase.TryCoerceDateTime(baseValue, out var dateTime))
@@ -119,13 +114,6 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
         out object? result)
     {
         _ = evalExpr;
-        if (!(fn.Name.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("DATEADD", StringComparison.OrdinalIgnoreCase)))
-        {
-            result = null;
-            return false;
-        }
-
         var definition = fn.ResolvedScalarFunction;
         if (definition is not null
             && !definition.AllowsCall)
@@ -174,12 +162,6 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
     {
         _ = context.Dialect;
         _ = evalExpr;
-        if (!fn.Name.Equals("DATEDIFF_BIG", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count != 3)
             throw new InvalidOperationException("DATEDIFF_BIG() espera 3 argumentos.");
 
@@ -211,12 +193,6 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
     {
         _ = context.Dialect;
         _ = evalExpr;
-        if (!fn.Name.Equals("TIMESTAMPDIFF", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count != 3)
             throw new InvalidOperationException("TIMESTAMPDIFF() espera 3 argumentos.");
 
@@ -247,12 +223,6 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
         out object? result)
     {
         _ = evalExpr;
-        if (!fn.Name.Equals("DATEDIFF", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count == 2)
         {
             var startValueMySql = evalArg(0);

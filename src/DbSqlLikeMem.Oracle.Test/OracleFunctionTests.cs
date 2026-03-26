@@ -301,7 +301,7 @@ public sealed class OracleFunctionTests
 
         if (version < OracleDialect.OracleJsonSqlFunctionMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+            var ex = Assert.Throws<NotSupportedException>(command.ExecuteReader);
             Assert.Contains(SqlConst.JSON_TABLE, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }

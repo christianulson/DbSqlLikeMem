@@ -81,12 +81,6 @@ internal static class QueryMySqlDateTimeFunctionHelper
         _ = tryConvertNumericToDouble;
         _ = tryConvertNumericToInt64;
         _ = tryParseExactCachedDateTime;
-        if (!fn.Name.Equals("DATE_FORMAT", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("DATE_FORMAT() espera data e formato.");
 
@@ -115,12 +109,6 @@ internal static class QueryMySqlDateTimeFunctionHelper
         _ = tryConvertNumericToDouble;
         _ = tryConvertNumericToInt64;
         _ = tryCoerceDateTime;
-        if (!fn.Name.Equals("STR_TO_DATE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("STR_TO_DATE() espera texto e formato.");
 
@@ -162,12 +150,6 @@ internal static class QueryMySqlDateTimeFunctionHelper
         _ = tryConvertNumericToInt64;
         _ = tryCoerceDateTime;
         _ = tryParseExactCachedDateTime;
-        if (!fn.Name.Equals("FROM_UNIXTIME", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count == 0)
             throw new InvalidOperationException("FROM_UNIXTIME() espera um argumento.");
 
@@ -209,12 +191,6 @@ internal static class QueryMySqlDateTimeFunctionHelper
         _ = tryConvertNumericToDouble;
         _ = tryCoerceDateTime;
         _ = tryParseExactCachedDateTime;
-        if (!fn.Name.Equals("FROM_DAYS", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count == 0)
             throw new InvalidOperationException("FROM_DAYS() espera um argumento.");
 
@@ -243,12 +219,6 @@ internal static class QueryMySqlDateTimeFunctionHelper
         _ = tryConvertNumericToInt64;
         _ = tryCoerceDateTime;
         _ = tryParseExactCachedDateTime;
-        if (!fn.Name.Equals("GET_FORMAT", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("GET_FORMAT() espera tipo e formato.");
 
@@ -297,12 +267,6 @@ internal static class QueryMySqlDateTimeFunctionHelper
         _ = tryConvertNumericToDouble;
         _ = tryConvertNumericToInt64;
         _ = tryParseExactCachedDateTime;
-        if (!fn.Name.Equals("CONVERT_TZ", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 3)
             throw new InvalidOperationException("CONVERT_TZ() espera data e dois fusos.");
 

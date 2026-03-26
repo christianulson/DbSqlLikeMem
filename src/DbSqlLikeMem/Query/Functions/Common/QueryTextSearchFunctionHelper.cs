@@ -14,12 +14,6 @@ internal static class QueryTextSearchFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("FIND_IN_SET", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var needle = evalArg(0)?.ToString() ?? string.Empty;
         var haystack = evalArg(1)?.ToString() ?? string.Empty;
         var index = 0;
@@ -50,12 +44,6 @@ internal static class QueryTextSearchFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("MATCH_AGAINST", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (!context.Dialect.SupportsMatchAgainstPredicate)
             throw SqlUnsupported.ForDialect(context.Dialect, "MATCH ... AGAINST full-text predicate");
 

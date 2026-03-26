@@ -1,0 +1,294 @@
+using static DbSqlLikeMem.AstQueryExecutorBase;
+
+namespace DbSqlLikeMem;
+
+internal static class AstQueryInMembershipHelper
+{
+    private readonly record struct InMembershipState(bool Matched, bool HasNullCandidate);
+
+    internal static object? EvaluateIn(
+        InExpr expression,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        QueryExecutionContext context,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
+        Func<SubqueryExpr, EvalRow, IDictionary<string, Source>, InSubqueryLookupState> getScalarLookup,
+        Func<SubqueryExpr, EvalRow, IDictionary<string, Source>, InSubqueryLookupState> getRowLookup)
+    {
+        var leftVal = eval(expression.Left, row, group, ctes);
+        if (IsInLeftOperandNullish(leftVal))
+            return IsInExpressionEmpty(expression, leftVal, row, ctes, getScalarLookup, getRowLookup) ? false : null;
+
+        var membership = EvaluateInMembership(
+            expression,
+            leftVal!,
+            row,
+            group,
+            ctes,
+            context,
+            eval,
+            getScalarLookup,
+            getRowLookup);
+
+        if (membership.Matched)
+            return true;
+
+        return membership.HasNullCandidate ? null : false;
+    }
+
+    internal static object? EvaluateNotIn(
+        InExpr expression,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        QueryExecutionContext context,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
+        Func<SubqueryExpr, EvalRow, IDictionary<string, Source>, InSubqueryLookupState> getScalarLookup,
+        Func<SubqueryExpr, EvalRow, IDictionary<string, Source>, InSubqueryLookupState> getRowLookup)
+    {
+        var leftVal = eval(expression.Left, row, group, ctes);
+        if (IsInLeftOperandNullish(leftVal))
+            return IsInExpressionEmpty(expression, leftVal, row, ctes, getScalarLookup, getRowLookup) ? true : null;
+
+        var membership = EvaluateInMembership(
+            expression,
+            leftVal!,
+            row,
+            group,
+            ctes,
+            context,
+            eval,
+            getScalarLookup,
+            getRowLookup);
+
+        if (membership.Matched)
+            return false;
+
+        return membership.HasNullCandidate ? null : true;
+    }
+
+    private static bool IsInLeftOperandNullish(object? value)
+        => value is null or DBNull || (value is object?[] row && AstQueryBinarySupportHelper.HasNullElement(row));
+
+    private static bool IsInExpressionEmpty(
+        InExpr expression,
+        object? leftVal,
+        EvalRow row,
+        IDictionary<string, Source> ctes,
+        Func<SubqueryExpr, EvalRow, IDictionary<string, Source>, InSubqueryLookupState> getScalarLookup,
+        Func<SubqueryExpr, EvalRow, IDictionary<string, Source>, InSubqueryLookupState> getRowLookup)
+    {
+        if (expression.Items.Count == 0)
+            return true;
+
+        if (expression.Items.Count == 1 && expression.Items[0] is SubqueryExpr subquery)
+        {
+            if (leftVal is object?[] leftRow)
+            {
+                var rowLookup = getRowLookup(subquery, row, ctes);
+                return rowLookup.RowValues is null || rowLookup.RowValues.Count == 0;
+            }
+
+            var scalarLookup = getScalarLookup(subquery, row, ctes);
+            return scalarLookup.Values.Count == 0;
+        }
+
+        return false;
+    }
+
+    private static InMembershipState EvaluateInMembership(
+        InExpr expression,
+        object leftVal,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        QueryExecutionContext context,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
+        Func<SubqueryExpr, EvalRow, IDictionary<string, Source>, InSubqueryLookupState> getScalarLookup,
+        Func<SubqueryExpr, EvalRow, IDictionary<string, Source>, InSubqueryLookupState> getRowLookup)
+    {
+        var hasNullCandidate = false;
+
+        if (TryEvaluateInSubqueryMembership(expression, leftVal, row, ctes, context, eval, getScalarLookup, getRowLookup, ref hasNullCandidate, out var subqueryState))
+            return subqueryState;
+
+        foreach (var item in expression.Items)
+        {
+            var candidate = eval(item, row, group, ctes);
+            if (TryEvaluateEnumerableMembership(leftVal, candidate, context, ref hasNullCandidate, out var enumerableState))
+            {
+                if (enumerableState.Matched)
+                    return enumerableState;
+
+                continue;
+            }
+
+            if (TryEvaluateCandidateMembership(leftVal, candidate, context, ref hasNullCandidate, out var candidateState))
+                return candidateState;
+        }
+
+        return new InMembershipState(Matched: false, HasNullCandidate: hasNullCandidate);
+    }
+
+    private static bool TryEvaluateInSubqueryMembership(
+        InExpr expression,
+        object leftVal,
+        EvalRow row,
+        IDictionary<string, Source> ctes,
+        QueryExecutionContext context,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
+        Func<SubqueryExpr, EvalRow, IDictionary<string, Source>, InSubqueryLookupState> getScalarLookup,
+        Func<SubqueryExpr, EvalRow, IDictionary<string, Source>, InSubqueryLookupState> getRowLookup,
+        ref bool hasNullCandidate,
+        out InMembershipState state)
+    {
+        _ = context;
+        _ = eval;
+        state = default;
+        if (expression.Items.Count != 1 || expression.Items[0] is not SubqueryExpr subquery)
+            return false;
+
+        if (leftVal is object?[] leftRow)
+        {
+            var rowLookup = getRowLookup(subquery, row, ctes);
+            hasNullCandidate |= rowLookup.HasNullCandidate;
+
+            if (rowLookup.RowCandidates is not null
+                && AstQuerySubqueryLookupSupport.TryBuildInLookupCompositeKey(leftRow, out var rowKey))
+            {
+                state = CreateMembershipState(rowLookup.RowCandidates.Contains(rowKey), hasNullCandidate);
+                return true;
+            }
+
+            state = EvaluateRowMembershipCandidates(leftRow, rowLookup.RowValues ?? [], context, ref hasNullCandidate);
+            return true;
+        }
+
+        var scalarLookup = getScalarLookup(subquery, row, ctes);
+        hasNullCandidate |= scalarLookup.HasNullCandidate;
+
+        if (scalarLookup.ScalarCandidates is not null
+            && AstQuerySubqueryLookupSupport.TryCreateInLookupScalarKey(leftVal, context.Dialect, out var scalarKey))
+        {
+            state = CreateMembershipState(scalarLookup.ScalarCandidates.Contains(scalarKey), hasNullCandidate);
+            return true;
+        }
+
+        state = EvaluateMembershipCandidates(leftVal, scalarLookup.Values, context, ref hasNullCandidate);
+        return true;
+    }
+
+    private static bool TryEvaluateEnumerableMembership(
+        object leftVal,
+        object? candidateValue,
+        QueryExecutionContext context,
+        ref bool hasNullCandidate,
+        out InMembershipState state)
+    {
+        _ = context;
+        state = default;
+        if (candidateValue is not IEnumerable enumerable || candidateValue is string)
+            return false;
+
+        state = EvaluateMembershipCandidates(leftVal, enumerable, context, ref hasNullCandidate);
+        return true;
+    }
+
+    private static InMembershipState EvaluateMembershipCandidates(
+        object leftVal,
+        IEnumerable candidates,
+        QueryExecutionContext context,
+        ref bool hasNullCandidate)
+    {
+        foreach (var candidate in candidates)
+        {
+            if (TryEvaluateCandidateMembership(leftVal, candidate, context, ref hasNullCandidate, out var state))
+                return state;
+        }
+
+        return CreateMembershipState(matched: false, hasNullCandidate);
+    }
+
+    private static InMembershipState EvaluateRowMembershipCandidates(
+        object?[] leftRow,
+        IEnumerable<object?[]> candidates,
+        QueryExecutionContext context,
+        ref bool hasNullCandidate)
+    {
+        foreach (var candidate in candidates)
+        {
+            if (TryEvaluateRowCandidateMembership(leftRow, candidate, context, ref hasNullCandidate, out var state)
+                && state.Matched)
+            {
+                return state;
+            }
+        }
+
+        return CreateMembershipState(matched: false, hasNullCandidate);
+    }
+
+    private static bool TryEvaluateCandidateMembership(
+        object leftVal,
+        object? candidateValue,
+        QueryExecutionContext context,
+        ref bool hasNullCandidate,
+        out InMembershipState state)
+    {
+        if (AstQueryBinarySupportHelper.IsSqlNullLike(candidateValue))
+        {
+            state = RegisterNullCandidate(ref hasNullCandidate);
+            return false;
+        }
+
+        if (TryEvaluateRowCandidateMembership(leftVal, candidateValue, context, ref hasNullCandidate, out state))
+            return state.Matched;
+
+        state = CreateMembershipState(leftVal.EqualsSql(candidateValue, context), hasNullCandidate);
+        return state.Matched;
+    }
+
+    private static bool TryEvaluateRowCandidateMembership(
+        object leftVal,
+        object? candidateValue,
+        QueryExecutionContext context,
+        ref bool hasNullCandidate,
+        out InMembershipState state)
+    {
+        state = default;
+        if (leftVal is not object?[] leftRow || candidateValue is not object?[] rightRow)
+            return false;
+
+        if (AstQueryBinarySupportHelper.HasNullElement(leftRow) || AstQueryBinarySupportHelper.HasNullElement(rightRow))
+        {
+            state = RegisterNullCandidate(ref hasNullCandidate);
+            return true;
+        }
+
+        state = CreateMembershipState(RowValuesMatch(leftRow, rightRow, context), hasNullCandidate);
+        return true;
+    }
+
+    private static InMembershipState RegisterNullCandidate(ref bool hasNullCandidate)
+    {
+        hasNullCandidate = true;
+        return CreateMembershipState(matched: false, hasNullCandidate);
+    }
+
+    private static InMembershipState CreateMembershipState(bool matched, bool hasNullCandidate)
+        => new(matched, hasNullCandidate);
+
+    private static bool RowValuesMatch(object?[] left, object?[] right, QueryExecutionContext context)
+    {
+        if (left.Length != right.Length)
+            return false;
+
+        for (var i = 0; i < left.Length; i++)
+        {
+            if (!left[i].EqualsSql(right[i], context))
+                return false;
+        }
+
+        return true;
+    }
+}

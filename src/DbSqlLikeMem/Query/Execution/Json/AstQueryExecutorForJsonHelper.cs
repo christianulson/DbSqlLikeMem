@@ -295,7 +295,7 @@ internal static class AstQueryExecutorForJsonHelper
         if (!isJsonFragment || value is null)
             return value;
 
-        if (value is System.Text.Json.JsonElement jsonElement)
+        if (value is JsonElement jsonElement)
             return jsonElement.Clone();
 
         if (value is not string text)
@@ -312,7 +312,7 @@ internal static class AstQueryExecutorForJsonHelper
                 ? root
                 : value;
         }
-        catch (System.Text.Json.JsonException)
+        catch (JsonException)
         {
             return value;
         }

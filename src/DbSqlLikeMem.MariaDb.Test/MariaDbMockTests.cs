@@ -764,7 +764,7 @@ public sealed class MariaDbMockTests : XUnitTestBase
             CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (907, 'Agg', 'agg@maria.test') RETURNING COUNT(*)"
         };
 
-        var ex = Assert.Throws<InvalidOperationException>(() => command.ExecuteReader());
+        var ex = Assert.Throws<InvalidOperationException>(command.ExecuteReader);
 
         Assert.Contains("aggregate", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -783,7 +783,7 @@ public sealed class MariaDbMockTests : XUnitTestBase
             CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (903, 'Blocked', NULL) RETURNING Id"
         };
 
-        var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+        var ex = Assert.Throws<NotSupportedException>(command.ExecuteReader);
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1451,7 +1451,7 @@ public sealed class MariaDbMockTests : XUnitTestBase
                 """
         };
 
-        var ex = Assert.Throws<InvalidOperationException>(() => command.ExecuteReader());
+        var ex = Assert.Throws<InvalidOperationException>(command.ExecuteReader);
 
         Assert.Contains("tag_name", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1602,7 +1602,7 @@ public sealed class MariaDbMockTests : XUnitTestBase
                 """
         };
 
-        var ex = Assert.Throws<InvalidOperationException>(() => command.ExecuteReader());
+        var ex = Assert.Throws<InvalidOperationException>(command.ExecuteReader);
 
         Assert.Contains("strict path", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1902,7 +1902,7 @@ public sealed class MariaDbMockTests : XUnitTestBase
                 """
         };
 
-        var ex = Assert.Throws<InvalidOperationException>(() => command.ExecuteReader());
+        var ex = Assert.Throws<InvalidOperationException>(command.ExecuteReader);
 
         Assert.Contains("strict path", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2039,7 +2039,7 @@ public sealed class MariaDbMockTests : XUnitTestBase
                 """
         };
 
-        var ex = Assert.Throws<InvalidOperationException>(() => command.ExecuteReader());
+        var ex = Assert.Throws<InvalidOperationException>(command.ExecuteReader);
 
         Assert.Contains("Title", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2268,7 +2268,7 @@ public sealed class MariaDbMockTests : XUnitTestBase
                 """
         };
 
-        var ex = Assert.Throws<InvalidOperationException>(() => command.ExecuteReader());
+        var ex = Assert.Throws<InvalidOperationException>(command.ExecuteReader);
 
         Assert.Contains("TagValue", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2298,7 +2298,7 @@ public sealed class MariaDbMockTests : XUnitTestBase
                 """
         };
 
-        var ex = Assert.Throws<InvalidOperationException>(() => command.ExecuteReader());
+        var ex = Assert.Throws<InvalidOperationException>(command.ExecuteReader);
 
         Assert.Contains("TagName", ex.Message, StringComparison.OrdinalIgnoreCase);
     }

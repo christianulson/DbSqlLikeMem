@@ -76,7 +76,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         out object? result)
     {
-        if (fn.Name.Equals("ELT", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "ELT", StringComparison.OrdinalIgnoreCase))
         {
             if (fn.Args.Count < 2)
                 throw new InvalidOperationException("ELT() espera indice e valores.");
@@ -106,7 +106,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("MAKE_SET", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "MAKE_SET", StringComparison.OrdinalIgnoreCase))
         {
             if (fn.Args.Count < 2)
                 throw new InvalidOperationException("MAKE_SET() espera bits e valores.");
@@ -184,7 +184,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("HEX", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "HEX", StringComparison.OrdinalIgnoreCase))
         {
             if (value is byte[] bytes)
             {
@@ -377,7 +377,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("COMPRESS", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "COMPRESS", StringComparison.OrdinalIgnoreCase))
         {
             var text = value?.ToString() ?? string.Empty;
             var input = value is byte[] bytes
@@ -406,7 +406,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
             deflate.CopyTo(output);
             var decompressed = output.ToArray();
 
-            result = fn.Name.Equals("UNCOMPRESSED_LENGTH", StringComparison.OrdinalIgnoreCase)
+            result = string.Equals(fn.Name, "UNCOMPRESSED_LENGTH", StringComparison.OrdinalIgnoreCase)
                 ? decompressed.LongLength
                 : decompressed;
             return true;
@@ -536,7 +536,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         out object? result)
     {
-        if (fn.Name.Equals("EXTRACTVALUE", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "EXTRACTVALUE", StringComparison.OrdinalIgnoreCase))
         {
             if (fn.Args.Count < 2)
                 throw new InvalidOperationException("EXTRACTVALUE() espera xml e xpath.");
@@ -545,7 +545,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("UPDATEXML", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "UPDATEXML", StringComparison.OrdinalIgnoreCase))
         {
             if (fn.Args.Count < 3)
                 throw new InvalidOperationException("UPDATEXML() espera xml, xpath e novo xml.");
@@ -571,7 +571,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         _ = tryConvertNumericToInt64;
         _ = tryConvertNumericToDouble;
 
-        if (!fn.Name.Equals("LAST_INSERT_ID", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "LAST_INSERT_ID", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -598,27 +598,27 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         out object? result)
     {
-        if (!fn.Name.Equals("AES_ENCRYPT", StringComparison.OrdinalIgnoreCase)
-            && !fn.Name.Equals("AES_DECRYPT", StringComparison.OrdinalIgnoreCase)
-            && !fn.Name.Equals("DES_ENCRYPT", StringComparison.OrdinalIgnoreCase)
-            && !fn.Name.Equals("DES_DECRYPT", StringComparison.OrdinalIgnoreCase)
-            && !fn.Name.Equals("ENCODE", StringComparison.OrdinalIgnoreCase)
-            && !fn.Name.Equals("DECODE", StringComparison.OrdinalIgnoreCase)
-            && !fn.Name.Equals("ENCRYPT", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "AES_ENCRYPT", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(fn.Name, "AES_DECRYPT", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(fn.Name, "DES_ENCRYPT", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(fn.Name, "DES_DECRYPT", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(fn.Name, "ENCODE", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(fn.Name, "DECODE", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(fn.Name, "ENCRYPT", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
         }
 
-        if (!fn.Name.Equals("AES_ENCRYPT", StringComparison.OrdinalIgnoreCase)
-            && !fn.Name.Equals("AES_DECRYPT", StringComparison.OrdinalIgnoreCase)
+        if (!string.Equals(fn.Name, "AES_ENCRYPT", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(fn.Name, "AES_DECRYPT", StringComparison.OrdinalIgnoreCase)
             && !context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
         {
             result = null;
             return false;
         }
 
-        if (fn.Name.Equals("ENCRYPT", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "ENCRYPT", StringComparison.OrdinalIgnoreCase))
         {
             if (fn.Args.Count == 0)
                 throw new InvalidOperationException("ENCRYPT() espera texto.");
@@ -655,8 +655,8 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
         var keyText = keyValue?.ToString() ?? string.Empty;
 
-        if (fn.Name.Equals("AES_ENCRYPT", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("AES_DECRYPT", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "AES_ENCRYPT", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "AES_DECRYPT", StringComparison.OrdinalIgnoreCase))
         {
             var payload = TryGetBinaryPayload(payloadValue, out var payloadBytes)
                 ? payloadBytes
@@ -669,7 +669,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
                     output1[i] = (byte)(payload[i] ^ key[i % key.Length]);
             }
 
-            if (fn.Name.Equals("AES_ENCRYPT", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(fn.Name, "AES_ENCRYPT", StringComparison.OrdinalIgnoreCase))
             {
                 result = output1;
                 return true;
@@ -679,8 +679,8 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
             return true;
         }
 
-        if (fn.Name.Equals("DES_ENCRYPT", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("DES_DECRYPT", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "DES_ENCRYPT", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "DES_DECRYPT", StringComparison.OrdinalIgnoreCase))
         {
             var payload = TryGetBinaryPayload(payloadValue, out var payloadBytes)
                 ? payloadBytes
@@ -700,7 +700,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
                 des.Key = key;
                 des.IV = new byte[des.BlockSize / 8];
 
-                if (fn.Name.Equals("DES_ENCRYPT", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(fn.Name, "DES_ENCRYPT", StringComparison.OrdinalIgnoreCase))
                 {
                     using var encryptor = des.CreateEncryptor();
                     result = encryptor.TransformFinalBlock(payload, 0, payload.Length);
@@ -736,7 +736,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         for (var i = 0; i < inputBytes.Length; i++)
             output[i] = (byte)(inputBytes[i] ^ keyBytes[i % keyBytes.Length]);
 
-        if (fn.Name.Equals("DECODE", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fn.Name, "DECODE", StringComparison.OrdinalIgnoreCase))
         {
             result = Encoding.UTF8.GetString(output);
             return true;
@@ -907,13 +907,13 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
         try
         {
-            if (fn.Name.Equals("REGEXP_LIKE", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(fn.Name, "REGEXP_LIKE", StringComparison.OrdinalIgnoreCase))
             {
                 result = Regex.IsMatch(scoped, pattern, options) ? 1 : 0;
                 return true;
             }
 
-            if (fn.Name.Equals("REGEXP_REPLACE", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(fn.Name, "REGEXP_REPLACE", StringComparison.OrdinalIgnoreCase))
             {
                 var replacement = fn.Args.Count >= 3 ? evalArg(2)?.ToString() ?? string.Empty : string.Empty;
                 if (fn.Args.Count >= 4 && !AstQueryExecutorBase.IsNullish(evalArg(3)) && occurrence > 0)
@@ -940,14 +940,14 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
             var matchesForInstr = Regex.Matches(scoped, pattern, options);
             if (matchesForInstr.Count == 0)
             {
-                result = fn.Name.Equals("REGEXP_SUBSTR", StringComparison.OrdinalIgnoreCase) ? null : 0;
+                result = string.Equals(fn.Name, "REGEXP_SUBSTR", StringComparison.OrdinalIgnoreCase) ? null : 0;
                 return true;
             }
 
             var index = Math.Min(occurrence - 1, matchesForInstr.Count - 1);
             var instrMatch = matchesForInstr[index];
 
-            if (fn.Name.Equals("REGEXP_INSTR", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(fn.Name, "REGEXP_INSTR", StringComparison.OrdinalIgnoreCase))
             {
                 var positionValue = returnOption == 1
                     ? startIndex + instrMatch.Index + instrMatch.Length

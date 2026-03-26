@@ -28,16 +28,15 @@ internal static class SqlCreateFunctionHelper
             : null;
         var parameters = ctx.ParseFunctionParameters(
             rawParameterList,
-            allowMissingParameterList: ctx.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase));
+            allowMissingParameterList: ctx.Dialect.SupportsOracleCreateFunctionDdl);
 
-        if (ctx.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (ctx.Dialect.SupportsOracleCreateFunctionDdl)
             return ctx.ParseOracleCreateFunction(function, parameters, orReplace);
 
-        if (ctx.Dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        if (ctx.Dialect.SupportsPostgreSqlCreateFunctionDdl)
             return ctx.ParsePostgreSqlCreateFunction(function, parameters, orReplace);
 
-        if (ctx.Dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase)
-            || ctx.Dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        if (ctx.Dialect.SupportsInlineReturnCreateFunctionDdl)
         {
             return ctx.ParseInlineReturnCreateFunction(function, parameters, orReplace);
         }

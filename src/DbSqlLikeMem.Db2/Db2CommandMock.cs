@@ -1,6 +1,6 @@
 namespace DbSqlLikeMem.Db2;
 #if NET462
-using DB2Parameter = IBM.Data.DB2.iSeries.iDB2Parameter;
+using DB2Parameter = iDB2Parameter;
 #endif
 /// <summary>
 /// EN: Represents a mock database command used to execute SQL text and stored procedures in memory.

@@ -75,7 +75,7 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("BFILENAME", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "BFILENAME", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -289,7 +289,7 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("REMAINDER", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "REMAINDER", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -350,7 +350,7 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("HEXTORAW", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "HEXTORAW", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -363,7 +363,7 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
             return true;
         }
 
-        if (!TryNormalizeHexPayload(value, out var hex) || hex.Length % 2 != 0)
+        if (!AstQueryRuntimeHelper.TryNormalizeHexPayload(value, out var hex) || hex.Length % 2 != 0)
         {
             result = null;
             return true;
@@ -382,29 +382,6 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
         }
 
         result = buffer;
-        return true;
-    }
-
-    private static bool TryNormalizeHexPayload(string trimmed, out string hex)
-    {
-        hex = string.Empty;
-
-        if (trimmed.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
-        {
-            hex = trimmed[2..];
-            return true;
-        }
-
-        if (trimmed.Length >= 3
-            && (trimmed[0] == 'x' || trimmed[0] == 'X')
-            && trimmed[1] == '\''
-            && trimmed[^1] == '\'')
-        {
-            hex = trimmed[2..^1];
-            return true;
-        }
-
-        hex = trimmed;
         return true;
     }
 

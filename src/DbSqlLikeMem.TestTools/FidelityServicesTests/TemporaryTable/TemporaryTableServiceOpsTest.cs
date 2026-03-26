@@ -10,7 +10,7 @@ public partial class TemporaryTableServiceTest<T>
     {
         var users = (string)pars[0];
         var uId = (string)pars[1];
-        var isMockConnection = Connection is DbSqlLikeMem.DbConnectionMockBase;
+        var isMockConnection = Connection is DbConnectionMockBase;
         var tempTable = BuildTemporaryTableName(uId, isMockConnection);
         var sessionTempTable = Dialect.Provider == ProviderId.Db2 && !isMockConnection
             ? $"SESSION.{tempTable}"
@@ -34,7 +34,7 @@ SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10");
         }
         else if (Dialect.Provider == ProviderId.Db2)
         {
-            if (Connection is not DbSqlLikeMem.DbConnectionMockBase mockConnection)
+            if (Connection is not DbConnectionMockBase mockConnection)
             {
                 throw new InvalidOperationException("Db2 temporary table mock flow requires a mock connection.");
             }

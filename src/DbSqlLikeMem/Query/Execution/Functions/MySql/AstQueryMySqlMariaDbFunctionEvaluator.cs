@@ -41,11 +41,14 @@ internal static class AstQueryMySqlMariaDbFunctionEvaluator
             return true;
         }
 
-        if (QueryMariaDbFunctionHelper.TryEvalFunctions(fn, context, evalArg, out result))
-            return true;
+        if (context.Dialect.SupportsMariaDbFunctions)
+        {
+            if (QueryMariaDbFunctionHelper.TryEvalFunctions(fn, context, evalArg, out result))
+                return true;
 
-        if (QueryMariaDbSpecialFunctionHelper.TryEvalFunctions(fn, context, evalArg, out result))
-            return true;
+            if (QueryMariaDbSpecialFunctionHelper.TryEvalFunctions(fn, context, evalArg, out result))
+                return true;
+        }
 
         if (AstQueryTemporalArithmeticFunctionEvaluator.TryEvaluate(fn, context, row, group, ctes, evalArg, eval, getTemporalUnit, out result)
             || AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)

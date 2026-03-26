@@ -20,7 +20,7 @@ public sealed class SqlServerConnectorFactoryMockTests(
         Assert.IsType<SqlServerCommandMock>(factory.CreateCommand());
         Assert.IsType<SqlServerConnectionMock>(factory.CreateConnection());
         Assert.IsType<SqlServerDataAdapterMock>(factory.CreateDataAdapter());
-        Assert.IsType<System.Data.Common.DbConnectionStringBuilder>(factory.CreateConnectionStringBuilder());
+        Assert.IsType<DbConnectionStringBuilder>(factory.CreateConnectionStringBuilder());
         Assert.NotNull(factory.CreateParameter());
     }
 

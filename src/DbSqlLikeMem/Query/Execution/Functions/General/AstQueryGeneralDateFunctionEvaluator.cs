@@ -51,10 +51,11 @@ internal static class AstQueryGeneralDateFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!(fn.Name.Equals("DATE", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("TIMESTAMP", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("DATETIME", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("TIME", StringComparison.OrdinalIgnoreCase))
+        var isDate = string.Equals(fn.Name, "DATE", StringComparison.OrdinalIgnoreCase);
+        var isTimestamp = string.Equals(fn.Name, "TIMESTAMP", StringComparison.OrdinalIgnoreCase);
+        var isDateTime = string.Equals(fn.Name, "DATETIME", StringComparison.OrdinalIgnoreCase);
+        var isTime = string.Equals(fn.Name, "TIME", StringComparison.OrdinalIgnoreCase);
+        if (!(isDate || isTimestamp || isDateTime || isTime)
             || fn.Args.Count < 1)
         {
             result = null;
@@ -80,13 +81,13 @@ internal static class AstQueryGeneralDateFunctionEvaluator
             dateTime = AstQueryExecutorBase.ApplyDateDelta(dateTime, unit, amount);
         }
 
-        if (fn.Name.Equals("TIME", StringComparison.OrdinalIgnoreCase))
+        if (isTime)
         {
             result = dateTime.TimeOfDay;
             return true;
         }
 
-        result = fn.Name.Equals("DATE", StringComparison.OrdinalIgnoreCase)
+        result = isDate
             ? dateTime.Date
             : dateTime;
         return true;
@@ -98,12 +99,6 @@ internal static class AstQueryGeneralDateFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("STRFTIME", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count == 0)
         {
             result = null;
@@ -210,12 +205,6 @@ internal static class AstQueryGeneralDateFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("MAKEDATE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("MAKEDATE() espera ano e dia do ano.");
 
@@ -253,12 +242,6 @@ internal static class AstQueryGeneralDateFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("MAKETIME", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 3)
             throw new InvalidOperationException("MAKETIME() espera hora, minuto e segundo.");
 
@@ -296,12 +279,6 @@ internal static class AstQueryGeneralDateFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("MICROSECOND", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value))
         {
@@ -333,12 +310,6 @@ internal static class AstQueryGeneralDateFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("MONTHNAME", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value) || !AstQueryExecutorBase.TryCoerceDateTime(value, out var dateTime))
         {
@@ -356,13 +327,8 @@ internal static class AstQueryGeneralDateFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var isAdd = fn.Name.Equals("PERIOD_ADD", StringComparison.OrdinalIgnoreCase);
-        var isDiff = fn.Name.Equals("PERIOD_DIFF", StringComparison.OrdinalIgnoreCase);
-        if (!isAdd && !isDiff)
-        {
-            result = null;
-            return false;
-        }
+        var isAdd = string.Equals(fn.Name, "PERIOD_ADD", StringComparison.OrdinalIgnoreCase);
+        var isDiff = string.Equals(fn.Name, "PERIOD_DIFF", StringComparison.OrdinalIgnoreCase);
 
         if (fn.Args.Count < 2)
             throw new InvalidOperationException($"{fn.Name.ToUpperInvariant()}() espera dois argumentos.");
@@ -430,12 +396,6 @@ internal static class AstQueryGeneralDateFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("QUARTER", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value) || !AstQueryExecutorBase.TryCoerceDateTime(value, out var dateTime))
         {
@@ -453,12 +413,6 @@ internal static class AstQueryGeneralDateFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("SEC_TO_TIME", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value))
         {
@@ -485,8 +439,7 @@ internal static class AstQueryGeneralDateFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("JULIANDAY", StringComparison.OrdinalIgnoreCase)
-            || fn.Args.Count < 1)
+        if (fn.Args.Count < 1)
         {
             result = null;
             return false;
@@ -509,8 +462,7 @@ internal static class AstQueryGeneralDateFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("TRUNC", StringComparison.OrdinalIgnoreCase)
-            || fn.Args.Count < 1)
+        if (fn.Args.Count < 1)
         {
             result = null;
             return false;

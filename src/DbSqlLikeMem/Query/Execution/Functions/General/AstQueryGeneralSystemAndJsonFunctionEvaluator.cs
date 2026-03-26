@@ -387,9 +387,9 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
         return true;
     }
 
-    private static int GetJsonDepth(System.Text.Json.JsonElement element)
+    private static int GetJsonDepth(JsonElement element)
     {
-        if (element.ValueKind is System.Text.Json.JsonValueKind.Object)
+        if (element.ValueKind is JsonValueKind.Object)
         {
             var maxDepth = 0;
             foreach (var property in element.EnumerateObject())
@@ -398,7 +398,7 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
             return 1 + maxDepth;
         }
 
-        if (element.ValueKind is System.Text.Json.JsonValueKind.Array)
+        if (element.ValueKind is JsonValueKind.Array)
         {
             var maxDepth = 0;
             foreach (var item in element.EnumerateArray())

@@ -69,7 +69,7 @@ internal static class AstQueryPostgresDateFunctionEvaluator
             return true;
         }
 
-        var unit = AstQueryExecutorBase.ResolveTemporalUnit(unitText);
+        var unit = AstQueryExecutionRuntimeHelper.ResolveTemporalUnit(unitText);
         result = AstQueryExecutorBase.TruncateDateTime(dateTime, unit);
         return true;
     }
@@ -84,7 +84,7 @@ internal static class AstQueryPostgresDateFunctionEvaluator
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("DATE_PART() espera unidade e data.");
 
-        var unit = AstQueryExecutorBase.ResolveTemporalUnit(evalArg(0)?.ToString() ?? string.Empty);
+        var unit = AstQueryExecutionRuntimeHelper.ResolveTemporalUnit(evalArg(0)?.ToString() ?? string.Empty);
         var value = evalArg(1);
         if (AstQueryExecutorBase.IsNullish(value) || unit == AstQueryExecutorBase.TemporalUnit.Unknown || !AstQueryExecutorBase.TryCoerceDateTime(value, out var dateTime))
         {

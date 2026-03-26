@@ -53,7 +53,14 @@ internal static class QueryMySqlUtilityFunctionHelper
     private static Dictionary<string, MySqlUtilityFunctionHandler> CreateHandlers()
     {
         var handlers = new Dictionary<string, MySqlUtilityFunctionHandler>(StringComparer.OrdinalIgnoreCase);
-        Register(handlers, TryEvalMySqlBase64Functions, "FROM_BASE64", "TO_BASE64");
+        Register(
+            handlers,
+            TryEvalMySqlFromBase64Function,
+            "FROM_BASE64");
+        Register(
+            handlers,
+            TryEvalMySqlToBase64Function,
+            "TO_BASE64");
         Register(handlers, TryEvalMySqlStringCompareFunction, "STRCMP");
         Register(handlers, TryEvalMySqlChecksumFunction, "CRC32");
         Register(handlers, TryEvalInetAtonFunction, "INET_ATON");
@@ -78,21 +85,31 @@ internal static class QueryMySqlUtilityFunctionHelper
             handlers[name] = handler;
     }
 
-    private static bool TryEvalMySqlBase64Functions(
+    private static bool TryEvalMySqlFromBase64Function(
         FunctionCallExpr fn,
         QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
         out object? result)
+        => TryEvalMySqlBase64Function(fn, context, evalArg, tryConvertNumericToInt64, encode: false, out result);
+
+    private static bool TryEvalMySqlToBase64Function(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        out object? result)
+        => TryEvalMySqlBase64Function(fn, context, evalArg, tryConvertNumericToInt64, encode: true, out result);
+
+    private static bool TryEvalMySqlBase64Function(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        bool encode,
+        out object? result)
     {
         _ = tryConvertNumericToInt64;
-        if (!(fn.Name.Equals("FROM_BASE64", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("TO_BASE64", StringComparison.OrdinalIgnoreCase)))
-        {
-            result = null;
-            return false;
-        }
-
         if (context.Dialect.Version < 56)
             throw SqlUnsupported.ForDialect(context.Dialect, fn.Name.ToUpperInvariant());
 
@@ -106,7 +123,7 @@ internal static class QueryMySqlUtilityFunctionHelper
             return true;
         }
 
-        if (fn.Name.Equals("TO_BASE64", StringComparison.OrdinalIgnoreCase))
+        if (encode)
         {
             var bytes = value as byte[]
                 ?? Encoding.UTF8.GetBytes(value!.ToString() ?? string.Empty);
@@ -141,12 +158,6 @@ internal static class QueryMySqlUtilityFunctionHelper
         out object? result)
     {
         _ = tryConvertNumericToInt64;
-        if (!fn.Name.Equals("STRCMP", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("STRCMP() espera dois argumentos.");
 
@@ -175,12 +186,6 @@ internal static class QueryMySqlUtilityFunctionHelper
         out object? result)
     {
         _ = tryConvertNumericToInt64;
-        if (!fn.Name.Equals("CRC32", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count == 0)
             throw new InvalidOperationException("CRC32() espera um argumento.");
 
@@ -229,10 +234,12 @@ internal static class QueryMySqlUtilityFunctionHelper
         FunctionCallExpr fn,
         QueryExecutionContext context,
         Func<int, object?> evalArg,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
         out object? result)
     {
         _ = fn;
         _ = context;
+        _ = tryConvertNumericToInt64;
         var value = evalArg(0);
         if (IsNullish(value))
         {
@@ -261,9 +268,11 @@ internal static class QueryMySqlUtilityFunctionHelper
         FunctionCallExpr fn,
         QueryExecutionContext context,
         Func<int, object?> evalArg,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
         out object? result)
     {
         _ = fn;
+        _ = tryConvertNumericToInt64;
         if (context.Dialect.Version < 56 || context.Dialect.Version >= 84)
             throw SqlUnsupported.ForDialect(context.Dialect, "INET6_ATON");
 
@@ -289,9 +298,11 @@ internal static class QueryMySqlUtilityFunctionHelper
         FunctionCallExpr fn,
         QueryExecutionContext context,
         Func<int, object?> evalArg,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
         out object? result)
     {
         _ = fn;
+        _ = tryConvertNumericToInt64;
         if (context.Dialect.Version < 56 || context.Dialect.Version >= 84)
             throw SqlUnsupported.ForDialect(context.Dialect, "INET6_NTOA");
 

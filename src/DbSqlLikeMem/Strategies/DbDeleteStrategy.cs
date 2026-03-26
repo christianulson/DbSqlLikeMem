@@ -224,7 +224,7 @@ internal static class DbDeleteStrategy
 
     private static bool HasReferenceByScan(
         ITableMock childTable,
-        Models.ForeignDef fk,
+        ForeignDef fk,
         IReadOnlyDictionary<int, object?> parentRow,
         bool allowParallel)
     {
@@ -242,7 +242,7 @@ internal static class DbDeleteStrategy
 
     private static bool HasReferenceByIndex(
         ITableMock childTable,
-        Models.ForeignDef fk,
+        ForeignDef fk,
         IReadOnlyDictionary<int, object?> parentRow)
     {
         IndexDef? matchingIndex = null;

@@ -2,6 +2,10 @@ namespace DbSqlLikeMem;
 
 internal static class SqlInsertConflictHelper
 {
+    /// <summary>
+    /// EN: Parses an 'ON DUPLICATE KEY UPDATE' or 'ON CONFLICT' clause for INSERT statements.
+    /// PT: Faz o parsing de uma cláusula 'ON DUPLICATE KEY UPDATE' ou 'ON CONFLICT' para instruções INSERT.
+    /// </summary>
     internal static SqlOnDuplicateKeyUpdate? ParseOnDuplicated(
         this SqlQueryParserContext ctx)
     {
@@ -115,6 +119,10 @@ internal static class SqlInsertConflictHelper
         return null;
     }
 
+    /// <summary>
+    /// EN: Parses the 'SET' assignments for a REPLACE statement.
+    /// PT: Faz o parsing das atribuições 'SET' para uma instrução REPLACE.
+    /// </summary>
     internal static List<SqlAssignment> ParseReplaceSetAssignments(
         this SqlQueryParserContext ctx)
     {
@@ -129,6 +137,10 @@ internal static class SqlInsertConflictHelper
             normalizeRaw: raw => NormalizeInsertValueRaw(raw, ctx.Dialect));
     }
 
+    /// <summary>
+    /// EN: Parses the 'SET' assignments for an UPDATE statement.
+    /// PT: Faz o parsing das atribuições 'SET' para uma instrução UPDATE.
+    /// </summary>
     internal static List<SqlAssignment> ParseUpdateAssignmentsList(
         this SqlQueryParserContext ctx)
     {
@@ -383,6 +395,10 @@ internal static class SqlInsertConflictHelper
         }
     }
 
+    /// <summary>
+    /// EN: Expects an identifier with optional dots (e.g., table.column).
+    /// PT: Espera um identificador com pontos opcionais (ex: tabela.coluna).
+    /// </summary>
     private static string ExpectIdentifierWithDots(
         this SqlQueryParserContext ctx)
     {
@@ -393,7 +409,7 @@ internal static class SqlInsertConflictHelper
         if (first.Kind is not (SqlTokenKind.Identifier or SqlTokenKind.Keyword))
             throw new InvalidOperationException($"Expected identifier, found '{SqlQueryParserContext.DescribeFoundToken(first)}'.");
 
-        var sb = new System.Text.StringBuilder();
+        var sb = new StringBuilder();
         sb.Append(ctx.Consume().Text);
 
         while (ctx.IsSymbol("."))
@@ -412,12 +428,16 @@ internal static class SqlInsertConflictHelper
         return sb.ToString();
     }
 
+    /// <summary>
+    /// EN: Expects an assignment equals operator between a column and its expression.
+    /// PT: Espera um operador de igualdade de atribuição entre uma coluna e sua expressão.
+    /// </summary>
     private static void ExpectAssignmentEquals(
         this SqlQueryParserContext ctx,
         string clauseLabel,
         string column)
     {
-        if (!ctx.IsSymbol("="))
+        if (ctx.Peek().Text != "=")
             throw new InvalidOperationException(
                 $"{clauseLabel} assignment for '{column}' requires '=' between column and expression.");
 

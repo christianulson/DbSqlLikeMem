@@ -2,8 +2,16 @@ using static DbSqlLikeMem.SqlQueryParser;
 
 namespace DbSqlLikeMem;
 
+/// <summary>
+/// EN: Helper for parsing SQL table sources (tables, subqueries, table-valued functions).
+/// PT: Helper para o parsing de fontes de tabela SQL (tabelas, subqueries, funções de tabela).
+/// </summary>
 internal static class SqlTableSourceParserHelper
 {
+    /// <summary>
+    /// EN: Parses a table source from the current context.
+    /// PT: Faz o parsing de uma fonte de tabela a partir do contexto atual.
+    /// </summary>
     internal static SqlTableSource ParseTableSource(
         this SqlQueryParserContext ctx,
         bool consumeHints = true,
@@ -36,13 +44,12 @@ internal static class SqlTableSourceParserHelper
 
         var first = ExpectIdentifier(ctx);
 
-        if (allowFunctionSource && ctx.Dialect.TableFunctions.ContainsKey(first) && ctx.IsSymbol( "("))
+        if (allowFunctionSource && ctx.IsSymbol("("))
             return SqlTableFunctionSourceHelper.ParseTableFunctionSource(ctx, first, null, aliasStopWords);
 
         if (allowFunctionSource
-            && ctx.IsSymbol( ".")
+            && ctx.IsSymbol(".")
             && ctx.Peek(1).Kind is SqlTokenKind.Identifier or SqlTokenKind.Keyword
-            && ctx.Dialect.TableFunctions.ContainsKey(ctx.Peek(1).Text)
             && SqlQueryParserContext.IsSymbol(ctx.Peek(2), "("))
         {
             ctx.Consume(); // .
@@ -83,6 +90,10 @@ internal static class SqlTableSourceParserHelper
             MySqlIndexHints: mySqlIndexHints);
     }
 
+    /// <summary>
+    /// EN: Expects an identifier in the table source context.
+    /// PT: Espera um identificador no contexto de fonte de tabela.
+    /// </summary>
     private static string ExpectIdentifier(
         SqlQueryParserContext ctx)
     {

@@ -59,7 +59,7 @@ public sealed class SqlQueryParserCorpusTests(
             else if (sql.Contains("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
                 || sql.Contains("->>", StringComparison.OrdinalIgnoreCase)
                 || sql.Contains("->", StringComparison.OrdinalIgnoreCase))
-                minVersion = MySqlDialect.JsonExtractMinVersion;
+                minVersion = MySqlDialect.JsonArrowOperatorsMinVersion;
 
             yield return Case(sql, why, expectation, minVersion);
         }
@@ -74,23 +74,23 @@ public sealed class SqlQueryParserCorpusTests(
             "select json_extract(data, '$.name') from users",
             "JSON_EXTRACT function call",
             SqlCaseExpectation.ParseOk,
-            MySqlDialect.JsonExtractMinVersion);
+            MySqlDialect.JsonArrowOperatorsMinVersion);
         yield return Case(
             "select data->'$.name' from users",
             "MySQL JSON -> operator",
             SqlCaseExpectation.ParseOk,
-            MySqlDialect.JsonExtractMinVersion);
+            MySqlDialect.JsonArrowOperatorsMinVersion);
         yield return Case(
             "select data->>'$.name' from users",
             "MySQL JSON ->> operator",
             SqlCaseExpectation.ParseOk,
-            MySqlDialect.JsonExtractMinVersion);
+            MySqlDialect.JsonArrowOperatorsMinVersion);
         yield return Case(
             @"INSERT INTO t (a)
               SELECT JSON_EXTRACT(data, '$.on_duplicate') FROM src",
             "INSERT INTO ... SELECT with JSON path containing on_duplicate",
             SqlCaseExpectation.ParseOk,
-            MySqlDialect.JsonExtractMinVersion);
+            MySqlDialect.JsonArrowOperatorsMinVersion);
         // Inválidas (ThrowInvalid)
         foreach (var row in InvalidSelectStatements())
         {

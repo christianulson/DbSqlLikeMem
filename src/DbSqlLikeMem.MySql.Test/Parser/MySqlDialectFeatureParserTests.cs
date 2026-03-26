@@ -168,7 +168,7 @@ public sealed class MySqlDialectFeatureParserTests
             """;
 
         var dialect = new MySqlDialect(version);
-        if (version < MySqlDialect.JsonExtractMinVersion)
+        if (version < MySqlDialect.JsonArrowOperatorsMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
             Assert.Contains(SqlConst.JSON_TABLE, ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -619,7 +619,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "JSON_EXTRACT(payload, '$.name')";
         var dialect = new MySqlDialect(version);
 
-        if (version < MySqlDialect.JsonExtractMinVersion)
+        if (version < MySqlDialect.JsonArrowOperatorsMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(() =>
                 SqlExpressionParser.ParseScalar(sql, dialect));

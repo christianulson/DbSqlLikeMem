@@ -462,7 +462,7 @@ public sealed class SqlServerMockTests
         command.ExecuteNonQuery();
 
         command.CommandText = "SELECT Name FROM Users ORDER BY Id OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY; SELECT FOUND_ROWS();";
-        var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+        var ex = Assert.Throws<NotSupportedException>(command.ExecuteReader);
 
         Assert.Contains("FOUND_ROWS", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1120,7 +1120,7 @@ public sealed class SqlServerMockTests
                 """
         };
 
-        var ex = Assert.Throws<InvalidOperationException>(() => command.ExecuteReader());
+        var ex = Assert.Throws<InvalidOperationException>(command.ExecuteReader);
         Assert.Contains("strict", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Qty", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2169,7 +2169,7 @@ public sealed class SqlServerMockTests
                 """
         };
 
-        var ex = Assert.Throws<InvalidOperationException>(() => command.ExecuteReader());
+        var ex = Assert.Throws<InvalidOperationException>(command.ExecuteReader);
         Assert.Contains("enable_ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -2398,7 +2398,7 @@ public sealed class SqlServerMockTests
                 """
         };
 
-        var ex = Assert.Throws<InvalidOperationException>(() => command.ExecuteReader());
+        var ex = Assert.Throws<InvalidOperationException>(command.ExecuteReader);
         Assert.Contains("enable_ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 

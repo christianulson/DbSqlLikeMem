@@ -70,12 +70,6 @@ internal static class QueryOracleDb2ScalarFunctionHelper
         TryCoerceDateTimeDelegate tryCoerceDateTime,
         out object? result)
     {
-        if (!fn.Name.Equals("ADD_MONTHS", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("ADD_MONTHS() espera data e quantidade de meses.");
 
@@ -114,12 +108,6 @@ internal static class QueryOracleDb2ScalarFunctionHelper
         out object? result)
     {
         _ = tryCoerceDateTime;
-        if (!fn.Name.Equals("ASCIISTR", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         if (IsNullish(value))
         {
@@ -153,12 +141,6 @@ internal static class QueryOracleDb2ScalarFunctionHelper
         out object? result)
     {
         _ = tryCoerceDateTime;
-        if (!fn.Name.Equals("BIN_TO_NUM", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count == 0)
         {
             result = null;
@@ -199,12 +181,6 @@ internal static class QueryOracleDb2ScalarFunctionHelper
         out object? result)
     {
         _ = tryCoerceDateTime;
-        if (!fn.Name.Equals("BITAND", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("BITAND() espera 2 argumentos.");
 
@@ -238,12 +214,6 @@ internal static class QueryOracleDb2ScalarFunctionHelper
         out object? result)
     {
         _ = tryCoerceDateTime;
-        if (!fn.Name.Equals("BITOR", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("BITOR() espera 2 argumentos.");
 
@@ -277,12 +247,6 @@ internal static class QueryOracleDb2ScalarFunctionHelper
         out object? result)
     {
         _ = tryCoerceDateTime;
-        if (!fn.Name.Equals("BITXOR", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("BITXOR() espera 2 argumentos.");
 
@@ -316,12 +280,6 @@ internal static class QueryOracleDb2ScalarFunctionHelper
         out object? result)
     {
         _ = tryCoerceDateTime;
-        if (!fn.Name.Equals("BITNOT", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 1)
             throw new InvalidOperationException("BITNOT() espera 1 argumento.");
 
@@ -353,12 +311,6 @@ internal static class QueryOracleDb2ScalarFunctionHelper
         out object? result)
     {
         _ = tryCoerceDateTime;
-        if (!fn.Name.Equals("BITANDNOT", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("BITANDNOT() espera 2 argumentos.");
 

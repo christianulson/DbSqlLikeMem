@@ -1,0 +1,1013 @@
+using static DbSqlLikeMem.AstQueryGeneralScalarFunctionEvaluator;
+using static DbSqlLikeMem.AstQueryExecutorBase;
+
+namespace DbSqlLikeMem;
+
+internal static class AstQueryAggregateEvaluator
+{
+    internal static bool TryParseScalarCountAggregate(
+        string exprRaw,
+        Func<string, SqlExpr> parseExpr,
+        out SqlExpr countArg)
+    {
+        countArg = default!;
+        if (string.IsNullOrWhiteSpace(exprRaw))
+            return false;
+
+        var parsed = parseExpr(exprRaw);
+        if (parsed is FunctionCallExpr fn
+            && fn.Name.Equals("COUNT", StringComparison.OrdinalIgnoreCase)
+            && fn.Args.Count == 1)
+        {
+            countArg = fn.Args[0];
+            return true;
+        }
+
+        if (parsed is CallExpr call
+            && call.Name.Equals("COUNT", StringComparison.OrdinalIgnoreCase)
+            && call.Args.Count == 1)
+        {
+            countArg = call.Args[0];
+            return true;
+        }
+
+        return false;
+    }
+
+    internal static bool TryParseStringAggregateCall(
+        string exprRaw,
+        Func<string, SqlExpr> parseExpr,
+        out CallExpr call)
+    {
+        call = null!;
+        if (string.IsNullOrWhiteSpace(exprRaw))
+            return false;
+
+        SqlExpr expr;
+        try
+        {
+            expr = parseExpr(exprRaw);
+        }
+        catch
+        {
+            return false;
+        }
+
+        if (expr is not CallExpr parsedCall)
+            return false;
+
+        if (parsedCall.Name is not ("GROUP_CONCAT" or "STRING_AGG" or "LISTAGG"))
+            return false;
+
+        if (parsedCall.WithinGroupOrderBy is not null)
+            return false;
+
+        call = parsedCall;
+        return true;
+    }
+
+    internal static object? EvalAggregate(
+        FunctionCallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes,
+        ISqlDialect dialect,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
+    {
+        var name = fn.Name.ToUpperInvariant();
+
+        if (TryEvalAggregateCount(fn, group, ctes, eval, name, out var countValue))
+            return countValue;
+
+        if (name is "JSON_GROUP_OBJECT" or "JSON_OBJECTAGG")
+        {
+            if (name == "JSON_OBJECTAGG"
+                && !dialect.TryGetScalarFunctionDefinition(name, out _))
+            {
+                throw SqlUnsupported.ForDialect(dialect, name);
+            }
+
+            return EvalJsonGroupObjectAggregate(fn, group, ctes, eval);
+        }
+
+        if (name is "JSON_OBJECT_AGG" or "JSON_OBJECT_AGG_STRICT" or "JSON_OBJECT_AGG_UNIQUE" or "JSON_OBJECT_AGG_UNIQUE_STRICT"
+            or "JSONB_OBJECT_AGG" or "JSONB_OBJECT_AGG_STRICT" or "JSONB_OBJECT_AGG_UNIQUE" or "JSONB_OBJECT_AGG_UNIQUE_STRICT")
+            return EvalJsonGroupObjectAggregate(fn, group, ctes, eval);
+
+        if (name is "CORR" or "CORR_K" or "CORR_S" or "COVAR_POP" or "COVAR_SAMP" or "COVARIANCE" or "COVARIANCE_SAMP" or "CORRELATION")
+        {
+            var normalized = name switch
+            {
+                "COVARIANCE" => "COVAR_POP",
+                "COVARIANCE_SAMP" => "COVAR_SAMP",
+                "CORRELATION" => "CORR",
+                _ => name
+            };
+            return EvalCorrelationAggregate(fn, group, ctes, eval, normalized);
+        }
+
+        if (name is "GROUP_ID")
+            return 0;
+
+        if (name.StartsWith("APPROX_", StringComparison.OrdinalIgnoreCase))
+        {
+            var definition = fn.ResolvedScalarFunction;
+            if (definition is null || !definition.AllowsCall)
+            {
+                throw SqlUnsupported.ForDialect(dialect, name);
+            }
+
+            return EvalApproxAggregate(fn, group, ctes, eval, name);
+        }
+
+        if (name.StartsWith("REGR_", StringComparison.OrdinalIgnoreCase))
+            return EvalRegressionAggregate(fn, group, ctes, eval, name);
+
+        if (name.StartsWith("STATS_", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        if (name is "STD" or "STDDEV" or "STDDEV_POP" or "STDDEV_SAMP")
+        {
+            var normalizedName = name == "STD" ? "STDDEV_POP" : name;
+            return EvalStdDevAggregate(fn, group, ctes, eval, normalizedName);
+        }
+
+        if (name is "RATIO_TO_REPORT")
+            return null;
+
+        if (name is "MEDIAN" or "PERCENTILE" or "PERCENTILE_CONT" or "PERCENTILE_DISC")
+        {
+            if (!dialect.SupportsSqlServerAggregateFunction(name))
+            {
+                throw SqlUnsupported.ForDialect(dialect, name);
+            }
+
+            return EvalPercentileAggregate(fn, group, ctes, eval, name);
+        }
+
+        if (name is "CHECKSUM_AGG")
+        {
+            if (!(fn.ResolvedScalarFunction?.AllowsCall
+                ?? (dialect.TryGetScalarFunctionDefinition(fn, out var checksumDefinition)
+                    && checksumDefinition is not null
+                    && checksumDefinition.AllowsCall)))
+                throw SqlUnsupported.ForDialect(dialect, name);
+        }
+
+        if (name is "GROUP_CONCAT" or "STRING_AGG" or "LISTAGG")
+        {
+            var separator = GetAggregateSeparator(fn, group, ctes, eval);
+            var defaultSeparator = GetStringAggregateDefaultSeparator(name) ?? string.Empty;
+            return EvalSimpleStringAggregate(fn, group, ctes, eval, separator, defaultSeparator);
+        }
+
+        var values = TryGetAggregateValues(fn, group, ctes, eval);
+        if (values is null)
+            return null;
+
+        if (values.Count == 0)
+            return name == "TOTAL" ? 0d : null;
+
+        return EvalCollectedAggregateValues(fn, group, ctes, eval, name, values);
+    }
+
+    internal static object? EvalAggregate(
+        CallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes,
+        ISqlDialect dialect,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
+    {
+        var shim = fn.ResolvedScalarFunction is not null
+            ? new FunctionCallExpr(fn.Name, fn.Args).BindScalarFunctionDefinition(fn.ResolvedScalarFunction)
+            : new FunctionCallExpr(fn.Name, fn.Args);
+        return EvalAggregate(shim, group, ctes, dialect, eval);
+    }
+
+    private static object? EvalCollectedAggregateValues(
+        FunctionCallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
+        string name,
+        IReadOnlyList<object?> values)
+    {
+        var separator = GetAggregateSeparator(fn, group, ctes, eval);
+        return name switch
+        {
+            "SUM" => AggregateNumericValues(values, AggregateNumericOperation.Sum),
+            "AVG" => AggregateNumericValues(values, AggregateNumericOperation.Average),
+            "MIN" => AggregateNumericValues(values, AggregateNumericOperation.Min),
+            "MAX" => AggregateNumericValues(values, AggregateNumericOperation.Max),
+            "CHECKSUM_AGG" => AggregateChecksumValues(values, binary: false),
+            "GROUP_CONCAT" => EvalStringAggregate(values, separator, ","),
+            "STRING_AGG" => EvalStringAggregate(values, separator, ","),
+            "LISTAGG" => EvalStringAggregate(values, separator, string.Empty),
+            "ANY_VALUE" => AggregateAnyValue(values),
+            "BIT_AND" => AggregateBitwiseValues(values, BitwiseAggregateOperation.And),
+            "BIT_OR" => AggregateBitwiseValues(values, BitwiseAggregateOperation.Or),
+            "BIT_XOR" => AggregateBitwiseValues(values, BitwiseAggregateOperation.Xor),
+            "JSON_ARRAYAGG" => EvalJsonArrayAggregate(values),
+            "JSON_AGG" => EvalJsonArrayAggregate(values),
+            "JSONB_AGG" => EvalJsonArrayAggregate(values),
+            "ARRAY_AGG" => AggregateCollect(values),
+            "BOOL_AND" => AggregateBoolValues(values, useAnd: true),
+            "EVERY" => AggregateBoolValues(values, useAnd: true),
+            "BOOL_OR" => AggregateBoolValues(values, useAnd: false),
+            "COLLECT" => AggregateCollect(values),
+            "TOTAL" => AggregateTotal(values),
+            "STDEV" => AggregateVariance(values, sample: true) is double stdev ? Math.Sqrt(stdev) : null,
+            "STDEVP" => AggregateVariance(values, sample: false) is double stdevp ? Math.Sqrt(stdevp) : null,
+            "VAR" => AggregateVariance(values, sample: true),
+            "VARP" => AggregateVariance(values, sample: false),
+            "VAR_POP" => AggregateVariance(values, sample: false),
+            "VARIANCE" => AggregateVariance(values, sample: false),
+            "VARIANCE_SAMP" => AggregateVariance(values, sample: true),
+            "VAR_SAMP" => AggregateVariance(values, sample: true),
+            "CV" => AggregateCoefficientOfVariation(values),
+            _ => null
+        };
+    }
+
+    private static object? EvalJsonGroupObjectAggregate(
+        FunctionCallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
+    {
+        if (fn.Args.Count < 2)
+            return null;
+
+        var obj = new System.Text.Json.Nodes.JsonObject();
+        foreach (var row in group.Rows)
+        {
+            var keyValue = eval(fn.Args[0], row, null, ctes);
+            if (IsNullish(keyValue))
+                continue;
+
+            var key = keyValue?.ToString() ?? string.Empty;
+            var value = eval(fn.Args[1], row, null, ctes);
+            obj[key] = CreateJsonNodeFromValue(value);
+        }
+
+        return obj.ToJsonString();
+    }
+
+    private static object? EvalPercentileAggregate(
+        FunctionCallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
+        string name)
+    {
+        if (fn.Args.Count == 0)
+            return null;
+
+        var values = new List<double>(group.Rows.Count);
+        foreach (var row in group.Rows)
+        {
+            var value = eval(fn.Args[0], row, null, ctes);
+            if (IsNullish(value))
+                continue;
+
+            if (TryConvertNumericToDouble(value, out var numeric))
+                values.Add(numeric);
+        }
+
+        if (values.Count == 0)
+            return null;
+
+        values.Sort();
+
+        var percentile = 0.5d;
+        if (fn.Args.Count > 1)
+        {
+            var percentileValue = eval(fn.Args[1], group.Rows[0], null, ctes);
+            if (IsNullish(percentileValue) || !TryConvertNumericToDouble(percentileValue, out percentile))
+                return null;
+        }
+
+        if (percentile < 0d)
+            percentile = 0d;
+        else if (percentile > 1d)
+            percentile = 1d;
+        var isDiscrete = name.Equals("PERCENTILE_DISC", StringComparison.OrdinalIgnoreCase);
+        if (name.Equals("MEDIAN", StringComparison.OrdinalIgnoreCase))
+            percentile = 0.5d;
+
+        if (isDiscrete)
+        {
+            var index = (int)Math.Ceiling(percentile * values.Count) - 1;
+            if (index < 0)
+                index = 0;
+            if (index >= values.Count)
+                index = values.Count - 1;
+            return values[index];
+        }
+
+        var rank = percentile * (values.Count - 1);
+        var lowerIndex = (int)Math.Floor(rank);
+        var upperIndex = (int)Math.Ceiling(rank);
+        if (lowerIndex == upperIndex)
+            return values[lowerIndex];
+
+        var fraction = rank - lowerIndex;
+        return values[lowerIndex] + (values[upperIndex] - values[lowerIndex]) * fraction;
+    }
+
+    private static object? EvalCorrelationAggregate(
+        FunctionCallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
+        string name)
+    {
+        if (fn.Args.Count < 2)
+            return null;
+
+        var pairs = new List<(double X, double Y)>(group.Rows.Count);
+        foreach (var row in group.Rows)
+        {
+            var xValue = eval(fn.Args[0], row, null, ctes);
+            var yValue = eval(fn.Args[1], row, null, ctes);
+            if (IsNullish(xValue) || IsNullish(yValue))
+                continue;
+
+            try
+            {
+                var x = Convert.ToDouble(xValue, CultureInfo.InvariantCulture);
+                var y = Convert.ToDouble(yValue, CultureInfo.InvariantCulture);
+                pairs.Add((x, y));
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        if (pairs.Count == 0)
+            return null;
+
+        var meanX = pairs.Average(p => p.X);
+        var meanY = pairs.Average(p => p.Y);
+        var sumXY = pairs.Sum(p => (p.X - meanX) * (p.Y - meanY));
+
+        if (name is "COVAR_POP")
+            return sumXY / pairs.Count;
+
+        if (name is "COVAR_SAMP")
+            return pairs.Count < 2 ? null : sumXY / (pairs.Count - 1);
+
+        var sumXX = pairs.Sum(p =>
+        {
+            var dx = p.X - meanX;
+            return dx * dx;
+        });
+        var sumYY = pairs.Sum(p =>
+        {
+            var dy = p.Y - meanY;
+            return dy * dy;
+        });
+
+        if (sumXX == 0d || sumYY == 0d)
+            return null;
+
+        return sumXY / Math.Sqrt(sumXX * sumYY);
+    }
+
+    private static object? EvalApproxAggregate(
+        FunctionCallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
+        string name)
+    {
+        if (fn.Args.Count == 0)
+            return null;
+
+        if (name is "APPROX_MEDIAN")
+            return EvalPercentileAggregate(fn, group, ctes, eval, "MEDIAN");
+
+        if (name is "APPROX_PERCENTILE" or "APPROX_PERCENTILE_AGG" or "APPROX_PERCENTILE_DETAIL")
+            return EvalPercentileAggregate(fn, group, ctes, eval, "PERCENTILE_CONT");
+
+        if (name is "APPROX_COUNT_DISTINCT" or "APPROX_COUNT_DISTINCT_AGG" or "APPROX_COUNT_DISTINCT_DETAIL")
+        {
+            var set = new HashSet<object?>();
+            foreach (var row in group.Rows)
+            {
+                var value = eval(fn.Args[0], row, null, ctes);
+                if (!IsNullish(value))
+                    set.Add(value);
+            }
+            return set.Count;
+        }
+
+        return null;
+    }
+
+    private static object? EvalRegressionAggregate(
+        FunctionCallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
+        string name)
+    {
+        if (fn.Args.Count < 2)
+            return null;
+
+        var pairs = new List<(double X, double Y)>(group.Rows.Count);
+        foreach (var row in group.Rows)
+        {
+            var xValue = eval(fn.Args[0], row, null, ctes);
+            var yValue = eval(fn.Args[1], row, null, ctes);
+            if (IsNullish(xValue) || IsNullish(yValue))
+                continue;
+
+            try
+            {
+                var x = Convert.ToDouble(xValue, CultureInfo.InvariantCulture);
+                var y = Convert.ToDouble(yValue, CultureInfo.InvariantCulture);
+                pairs.Add((x, y));
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        if (pairs.Count == 0)
+            return null;
+
+        var meanX = pairs.Average(p => p.X);
+        var meanY = pairs.Average(p => p.Y);
+        var sumXX = pairs.Sum(p =>
+        {
+            var dx = p.X - meanX;
+            return dx * dx;
+        });
+        var sumYY = pairs.Sum(p =>
+        {
+            var dy = p.Y - meanY;
+            return dy * dy;
+        });
+        var sumXY = pairs.Sum(p => (p.X - meanX) * (p.Y - meanY));
+
+        return name switch
+        {
+            "REGR_COUNT" => pairs.Count,
+            "REGR_AVGX" => meanX,
+            "REGR_AVGY" => meanY,
+            "REGR_SXX" => sumXX,
+            "REGR_SYY" => sumYY,
+            "REGR_SXY" => sumXY,
+            "REGR_SLOPE" => sumXX == 0 ? null : sumXY / sumXX,
+            "REGR_INTERCEPT" => sumXX == 0 ? null : meanY - (sumXY / sumXX) * meanX,
+            "REGR_ICPT" => sumXX == 0 ? null : meanY - (sumXY / sumXX) * meanX,
+            "REGR_R2" => (sumXX == 0 || sumYY == 0) ? null : (sumXY * sumXY) / (sumXX * sumYY),
+            _ => null
+        };
+    }
+
+    private static object? EvalStdDevAggregate(
+        FunctionCallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
+        string name)
+    {
+        var values = TryGetAggregateValues(fn, group, ctes, eval);
+        if (values is null)
+            return null;
+
+        var mean = 0d;
+        var m2 = 0d;
+        var count = 0;
+        for (var i = 0; i < values.Count; i++)
+        {
+            if (IsNullish(values[i]))
+                continue;
+
+            count++;
+            var x = Convert.ToDouble(values[i], CultureInfo.InvariantCulture);
+            var delta = x - mean;
+            mean += delta / count;
+            m2 += delta * (x - mean);
+        }
+
+        if (count == 0)
+            return null;
+
+        var denominator = name == "STDDEV_SAMP" ? count - 1 : count;
+        if (denominator <= 0)
+            return null;
+
+        var variance = m2 / denominator;
+        return Math.Sqrt(variance);
+    }
+
+    private static object? AggregateAnyValue(IReadOnlyList<object?> values)
+    {
+        foreach (var value in values)
+        {
+            if (!IsNullish(value))
+                return value;
+        }
+
+        return null;
+    }
+
+    private enum BitwiseAggregateOperation
+    {
+        And,
+        Or,
+        Xor
+    }
+
+    private static object? AggregateBitwiseValues(IReadOnlyList<object?> values, BitwiseAggregateOperation operation)
+    {
+        var hasValue = false;
+        var acc = 0L;
+        for (var i = 0; i < values.Count; i++)
+        {
+            var value = values[i];
+            if (IsNullish(value))
+                continue;
+
+            var next = Convert.ToInt64(value, CultureInfo.InvariantCulture);
+            if (!hasValue)
+            {
+                acc = next;
+                hasValue = true;
+                continue;
+            }
+
+            acc = operation switch
+            {
+                BitwiseAggregateOperation.And => acc & next,
+                BitwiseAggregateOperation.Or => acc | next,
+                BitwiseAggregateOperation.Xor => acc ^ next,
+                _ => acc
+            };
+        }
+
+        return hasValue ? acc : null;
+    }
+
+    private static object? EvalJsonArrayAggregate(IReadOnlyList<object?> values)
+    {
+        if (values.Count == 0)
+            return null;
+
+        return BuildJsonArray(values);
+    }
+
+    private static object? AggregateCollect(IReadOnlyList<object?> values)
+    {
+        if (values.Count == 0)
+            return null;
+
+        var filtered = new List<object?>(values.Count);
+        for (var i = 0; i < values.Count; i++)
+        {
+            var value = values[i];
+            if (!IsNullish(value))
+                filtered.Add(value);
+        }
+
+        return filtered.Count == 0 ? null : filtered.ToArray();
+    }
+
+    private static object? AggregateVariance(IReadOnlyList<object?> values, bool sample)
+    {
+        var mean = 0d;
+        var m2 = 0d;
+        var count = 0;
+        for (var i = 0; i < values.Count; i++)
+        {
+            var value = values[i];
+            if (IsNullish(value))
+                continue;
+
+            count++;
+            var x = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            var delta = x - mean;
+            mean += delta / count;
+            m2 += delta * (x - mean);
+        }
+
+        if (count == 0)
+            return null;
+
+        if (sample && count < 2)
+            return null;
+
+        var divisor = sample ? count - 1 : count;
+        return m2 / divisor;
+    }
+
+    private static object? AggregateCoefficientOfVariation(IReadOnlyList<object?> values)
+    {
+        var mean = 0d;
+        var m2 = 0d;
+        var count = 0;
+        for (var i = 0; i < values.Count; i++)
+        {
+            var value = values[i];
+            if (IsNullish(value))
+                continue;
+
+            count++;
+            var x = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            var delta = x - mean;
+            mean += delta / count;
+            m2 += delta * (x - mean);
+        }
+
+        if (count == 0)
+            return null;
+
+        if (IsNearlyZero(mean))
+            return null;
+
+        var variance = m2 / count;
+
+        var stdDev = Math.Sqrt(variance);
+        return stdDev / mean;
+    }
+
+    private static object? AggregateBoolValues(IReadOnlyList<object?> values, bool useAnd)
+    {
+        var hasValue = false;
+        var acc = useAnd;
+
+        foreach (var value in values)
+        {
+            if (IsNullish(value))
+                continue;
+
+            hasValue = true;
+            var current = value!.ToBool();
+            acc = useAnd ? acc && current : acc || current;
+        }
+
+        return hasValue ? acc : null;
+    }
+
+    private enum AggregateNumericOperation
+    {
+        Sum,
+        Average,
+        Min,
+        Max
+    }
+
+    private static object? AggregateNumericValues(IReadOnlyList<object?> values, AggregateNumericOperation operation)
+    {
+        if (values.Count == 0)
+            return null;
+
+        var useDouble = false;
+        for (var i = 0; i < values.Count; i++)
+        {
+            if (values[i] is float or double)
+            {
+                useDouble = true;
+                break;
+            }
+        }
+
+        if (useDouble)
+        {
+            var numericValues = new double[values.Count];
+            for (var i = 0; i < values.Count; i++)
+                numericValues[i] = Convert.ToDouble(values[i], CultureInfo.InvariantCulture);
+
+            double sum = 0d;
+            double min = numericValues[0];
+            double max = numericValues[0];
+            for (var i = 0; i < numericValues.Length; i++)
+            {
+                var current = numericValues[i];
+                sum += current;
+                if (current < min)
+                    min = current;
+                if (current > max)
+                    max = current;
+            }
+
+            return operation switch
+            {
+                AggregateNumericOperation.Sum => sum,
+                AggregateNumericOperation.Average => sum / numericValues.Length,
+                AggregateNumericOperation.Min => min,
+                AggregateNumericOperation.Max => max,
+                _ => null
+            };
+        }
+
+        var decimalValues = new decimal[values.Count];
+        for (var i = 0; i < values.Count; i++)
+            decimalValues[i] = values[i]!.ToDec();
+
+        decimal decimalSum = 0m;
+        decimal decimalMin = decimalValues[0];
+        decimal decimalMax = decimalValues[0];
+        for (var i = 0; i < decimalValues.Length; i++)
+        {
+            var current = decimalValues[i];
+            decimalSum += current;
+            if (current < decimalMin)
+                decimalMin = current;
+            if (current > decimalMax)
+                decimalMax = current;
+        }
+
+        return operation switch
+        {
+            AggregateNumericOperation.Sum => decimalSum,
+            AggregateNumericOperation.Average => decimalSum / decimalValues.Length,
+            AggregateNumericOperation.Min => decimalMin,
+            AggregateNumericOperation.Max => decimalMax,
+            _ => null
+        };
+    }
+
+    private static object? AggregateTotal(IReadOnlyList<object?> values)
+    {
+        var total = 0d;
+        var hasValue = false;
+        for (var i = 0; i < values.Count; i++)
+        {
+            var value = values[i];
+            if (IsNullish(value))
+                continue;
+
+            total += Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            hasValue = true;
+        }
+
+        return hasValue ? total : 0d;
+    }
+
+    private static object? AggregateChecksumValues(IReadOnlyList<object?> values, bool binary)
+    {
+        var hash = new HashCode();
+        var hasValue = false;
+        for (var i = 0; i < values.Count; i++)
+        {
+            var value = values[i];
+            if (IsNullish(value))
+                continue;
+
+            hasValue = true;
+            if (value is byte[] bytes)
+            {
+                foreach (var b in bytes)
+                    hash.Add(b);
+                continue;
+            }
+
+            if (value is string text)
+            {
+                var normalized = binary ? text : text.ToUpperInvariant();
+                foreach (var ch in normalized)
+                    hash.Add(ch);
+                continue;
+            }
+
+            hash.Add(value);
+        }
+
+        if (!hasValue)
+            return null;
+
+        return hash.ToHashCode();
+    }
+
+    private static string? EvalStringAggregate(
+        IReadOnlyList<object?> values,
+        object? separatorObj,
+        string? defaultSeparator)
+    {
+        if (values.Count == 0)
+            return null;
+
+        var separator = separatorObj?.ToString() ?? defaultSeparator ?? string.Empty;
+        StringBuilder? builder = null;
+        for (var i = 0; i < values.Count; i++)
+        {
+            if (!AstQueryAggregateKeyHelper.TryGetStringAggregateText(values[i], out var text))
+                continue;
+
+            if (builder is null)
+            {
+                builder = new StringBuilder(text.Length + separator.Length);
+                builder.Append(text);
+                continue;
+            }
+
+            builder.Append(separator);
+            builder.Append(text);
+        }
+
+        return builder?.ToString();
+    }
+
+    private static string? EvalSimpleStringAggregate(
+        FunctionCallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
+        object? separatorObj,
+        string? defaultSeparator)
+    {
+        if (fn.Args.Count == 0)
+            return null;
+
+        var hasDirectValueSelector = TryCreateStringAggregateValueSelector(fn.Args[0], out var valueSelector);
+        if (group.Rows.Count == 1)
+        {
+            var singleValue = hasDirectValueSelector
+                ? valueSelector!(group.Rows[0])
+                : eval(fn.Args[0], group.Rows[0], null, ctes);
+            if (!AstQueryAggregateKeyHelper.TryGetStringAggregateText(singleValue, out var singleText))
+                return null;
+
+            return singleText;
+        }
+
+        var separator = separatorObj?.ToString() ?? defaultSeparator ?? string.Empty;
+        StringBuilder? builder = null;
+        var hasValue = false;
+        var estimatedCapacity = EstimateStringAggregateCapacity(group.Rows.Count, separator.Length);
+
+        if (!hasDirectValueSelector)
+        {
+            for (var i = 0; i < group.Rows.Count; i++)
+            {
+                var value = eval(fn.Args[0], group.Rows[i], null, ctes);
+                if (IsNullish(value))
+                    continue;
+
+                var text = value?.ToString() ?? string.Empty;
+                if (!hasValue)
+                {
+                    builder = new StringBuilder(Math.Max(estimatedCapacity, text.Length));
+                    builder.Append(text);
+                    hasValue = true;
+                    continue;
+                }
+
+                builder!.Append(separator);
+                builder.Append(text);
+            }
+        }
+        else
+        {
+            for (var i = 0; i < group.Rows.Count; i++)
+            {
+                var value = valueSelector!(group.Rows[i]);
+                if (IsNullish(value))
+                    continue;
+
+                var text = value?.ToString() ?? string.Empty;
+                if (!hasValue)
+                {
+                    builder = new StringBuilder(Math.Max(estimatedCapacity, text.Length));
+                    builder.Append(text);
+                    hasValue = true;
+                    continue;
+                }
+
+                builder!.Append(separator);
+                builder.Append(text);
+            }
+        }
+
+        return hasValue ? builder!.ToString() : null;
+    }
+
+    private static string? GetStringAggregateDefaultSeparator(string name)
+        => name == "LISTAGG" ? string.Empty : ",";
+
+    private static object? GetAggregateSeparator(
+        FunctionCallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
+        => fn.Args.Count > 1 && group.Rows.Count > 0
+            ? eval(fn.Args[1], group.Rows[0], null, ctes)
+            : null;
+
+    private static object? GetAggregateSeparator(
+        CallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
+        => fn.Args.Count > 1 && group.Rows.Count > 0
+            ? eval(fn.Args[1], group.Rows[0], null, ctes)
+            : null;
+
+    private static int EstimateStringAggregateCapacity(int rowCount, int separatorLength)
+    {
+        if (rowCount <= 1)
+            return 16;
+
+        var estimated = rowCount * Math.Max(8, separatorLength + 6);
+        return Math.Min(estimated, 64 * 1024);
+    }
+
+    internal static int GetKnownRowCount(IEnumerable<EvalRow> rows, int defaultValue = 0)
+    {
+        if (rows is ICollection<EvalRow> collection)
+            return collection.Count;
+
+        if (rows is IReadOnlyCollection<EvalRow> readOnlyCollection)
+            return readOnlyCollection.Count;
+
+        return defaultValue;
+    }
+
+    private static bool TryCreateStringAggregateValueSelector(
+        SqlExpr expr,
+        out Func<EvalRow, object?> selector)
+    {
+        switch (expr)
+        {
+            case ColumnExpr column:
+                selector = row => QueryRowValueHelper.ResolveColumn(column.Qualifier, column.Name, row);
+                return true;
+            case IdentifierExpr identifier:
+                selector = row => QueryRowValueHelper.ResolveIdentifier(identifier.Name, row);
+                return true;
+            case LiteralExpr literal:
+                selector = _ => literal.Value;
+                return true;
+            default:
+                selector = null!;
+                return false;
+        }
+    }
+
+    private static bool TryEvalAggregateCount(
+        FunctionCallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
+        string name,
+        out object? value)
+    {
+        if (name != "COUNT" && name != "COUNT_BIG")
+        {
+            value = null;
+            return false;
+        }
+
+        if (fn.Args.Count == 0)
+        {
+            value = (long)group.Rows.Count;
+            return true;
+        }
+
+        if (fn.Args.Count == 1 && fn.Args[0] is StarExpr)
+        {
+            value = (long)group.Rows.Count;
+            return true;
+        }
+
+        long c = 0;
+        foreach (var r in group.Rows)
+        {
+            var v = eval(fn.Args[0], r, null, ctes);
+            if (!IsNullish(v))
+                c++;
+        }
+
+        value = c;
+        return true;
+    }
+
+    private static List<object?>? TryGetAggregateValues(
+        FunctionCallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
+    {
+        if (fn.Args.Count == 0)
+            return null;
+
+        var values = new List<object?>(group.Rows.Count);
+        foreach (var r in group.Rows)
+        {
+            var v = eval(fn.Args[0], r, null, ctes);
+            if (!IsNullish(v))
+                values.Add(v);
+        }
+        return values;
+    }
+
+    private static bool IsNearlyZero(double value, double epsilon = 1e-12)
+    {
+        return Math.Abs(value) <= epsilon * Math.Max(1.0, Math.Abs(value));
+    }
+}

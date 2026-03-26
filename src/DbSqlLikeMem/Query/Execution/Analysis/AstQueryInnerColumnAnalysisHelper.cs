@@ -1,8 +1,10 @@
+using static DbSqlLikeMem.AstQueryExecutorBase;
+
 namespace DbSqlLikeMem;
 
-internal abstract partial class AstQueryExecutorBase
+internal static class AstQueryInnerColumnAnalysisHelper
 {
-    private static bool TryResolveInnerColumnName(
+    internal static bool TryResolveInnerColumnName(
         SqlExpr expr,
         Source source,
         out string column)
@@ -63,7 +65,7 @@ internal abstract partial class AstQueryExecutorBase
         }
     }
 
-    private static bool ExpressionReferencesInnerColumns(
+    internal static bool ExpressionReferencesInnerColumns(
         SqlExpr expr,
         Source source)
     {
@@ -131,7 +133,7 @@ internal abstract partial class AstQueryExecutorBase
         }
     }
 
-    private static bool ExpressionUsesOnlyInnerColumnsOrConstants(
+    internal static bool ExpressionUsesOnlyInnerColumnsOrConstants(
         SqlExpr expr,
         Source source)
     {
@@ -192,35 +194,4 @@ internal abstract partial class AstQueryExecutorBase
                 return false;
         }
     }
-
-    private static bool TryGetDecimalLiteral(SqlExpr expression, out decimal value)
-    {
-        value = default;
-
-        if (expression is not LiteralExpr literal || literal.Value is null)
-            return false;
-
-        try
-        {
-            value = Convert.ToDecimal(literal.Value, CultureInfo.InvariantCulture);
-        }
-        catch
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    private static SqlBinaryOp ReverseComparisonOperator(SqlBinaryOp op)
-        => op switch
-        {
-            SqlBinaryOp.Eq => SqlBinaryOp.Eq,
-            SqlBinaryOp.Neq => SqlBinaryOp.Neq,
-            SqlBinaryOp.Greater => SqlBinaryOp.Less,
-            SqlBinaryOp.GreaterOrEqual => SqlBinaryOp.LessOrEqual,
-            SqlBinaryOp.Less => SqlBinaryOp.Greater,
-            SqlBinaryOp.LessOrEqual => SqlBinaryOp.GreaterOrEqual,
-            _ => throw new InvalidOperationException($"Operador não reversível: {op}")
-        };
 }

@@ -32,7 +32,8 @@ internal static class QueryOracleDb2UtilityFunctionHelper
         Register(handlers, TryEvalComposeFunction, "COMPOSE");
         Register(handlers, TryEvalDbTimeZoneFunction, "DBTIMEZONE");
         Register(handlers, TryEvalDecomposeFunction, "DECOMPOSE");
-        Register(handlers, TryEvalEmptyLobFunction, "EMPTY_BLOB", "EMPTY_CLOB", "EMPTY_DBCLOB", "EMPTY_NCLOB");
+        Register(handlers, TryEvalEmptyBlobFunction, "EMPTY_BLOB");
+        Register(handlers, TryEvalEmptyClobFunction, "EMPTY_CLOB", "EMPTY_DBCLOB", "EMPTY_NCLOB");
         Register(handlers, TryEvalInitCapFunction, "INITCAP");
         Register(handlers, TryEvalChartoRowidFunction, "CHARTOROWID");
         Register(handlers, TryEvalClusterFunctions, "CLUSTER_DETAILS", "CLUSTER_DISTANCE", "CLUSTER_ID", "CLUSTER_PROBABILITY", "CLUSTER_SET");
@@ -54,12 +55,6 @@ internal static class QueryOracleDb2UtilityFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("CARDINALITY", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         EnsureOracleDb2FunctionSupported(context, fn);
 
         var value = evalArg(0);
@@ -69,7 +64,7 @@ internal static class QueryOracleDb2UtilityFunctionHelper
             return true;
         }
 
-        if (value is System.Text.Json.JsonElement element
+        if (value is JsonElement element
             && element.ValueKind == JsonValueKind.Array)
         {
             result = element.GetArrayLength();
@@ -113,12 +108,6 @@ internal static class QueryOracleDb2UtilityFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("CHR", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         EnsureOracleDb2FunctionSupported(context, fn);
 
         var value = evalArg(0);
@@ -153,12 +142,6 @@ internal static class QueryOracleDb2UtilityFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("COMPOSE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         EnsureOracleDb2FunctionSupported(context, fn);
 
         var value = evalArg(0);
@@ -179,12 +162,6 @@ internal static class QueryOracleDb2UtilityFunctionHelper
         out object? result)
     {
         _ = evalArg;
-        if (!fn.Name.Equals("DBTIMEZONE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         EnsureOracleDb2FunctionSupported(context, fn);
 
         result = "+00:00";
@@ -197,12 +174,6 @@ internal static class QueryOracleDb2UtilityFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("DECOMPOSE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         EnsureOracleDb2FunctionSupported(context, fn);
 
         var value = evalArg(0);
@@ -216,27 +187,29 @@ internal static class QueryOracleDb2UtilityFunctionHelper
         return true;
     }
 
-    private static bool TryEvalEmptyLobFunction(
+    private static bool TryEvalEmptyBlobFunction(
         FunctionCallExpr fn,
         QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = evalArg;
-        if (!(fn.Name.Equals("EMPTY_BLOB", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("EMPTY_CLOB", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("EMPTY_DBCLOB", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("EMPTY_NCLOB", StringComparison.OrdinalIgnoreCase)))
-        {
-            result = null;
-            return false;
-        }
-
         EnsureOracleDb2FunctionSupported(context, fn);
 
-        result = fn.Name.Equals("EMPTY_BLOB", StringComparison.OrdinalIgnoreCase)
-            ? Array.Empty<byte>()
-            : string.Empty;
+        result = Array.Empty<byte>();
+        return true;
+    }
+
+    private static bool TryEvalEmptyClobFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = evalArg;
+        EnsureOracleDb2FunctionSupported(context, fn);
+
+        result = string.Empty;
         return true;
     }
 
@@ -246,12 +219,6 @@ internal static class QueryOracleDb2UtilityFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("INITCAP", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         EnsureOracleDb2FunctionSupported(context, fn);
 
         var value = evalArg(0);
@@ -296,12 +263,6 @@ internal static class QueryOracleDb2UtilityFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("CHARTOROWID", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         EnsureOracleDb2FunctionSupported(context, fn);
 
         var value = evalArg(0);

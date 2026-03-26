@@ -13,7 +13,7 @@ internal static class SqlStringExtencions
         if (str.Length == 0)
             return string.Empty;
 
-        var sb = new System.Text.StringBuilder(str.Length);
+        var sb = new StringBuilder(str.Length);
         var pendingSpace = false;
         var inSingleQuotedString = false;
 

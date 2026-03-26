@@ -16,7 +16,7 @@ public sealed class SchemaParallelizationTests(
     [Trait("Category", "Concurrency")]
     public void BackupRestoreAndClear_ShouldWorkWithMultipleTables_WhenThreadSafe()
     {
-        var db = new DbSqlLikeMem.Sqlite.SqliteDbMock
+        var db = new SqliteDbMock
         {
             ThreadSafe = true
         };
@@ -30,7 +30,7 @@ public sealed class SchemaParallelizationTests(
             new("UserId", System.Data.DbType.Int32, false)
         ]);
 
-        var schema = Assert.IsType<DbSqlLikeMem.Sqlite.SqliteSchemaMock>(db["DefaultSchema"]);
+        var schema = Assert.IsType<SqliteSchemaMock>(db["DefaultSchema"]);
         var users = db.GetTable("Users");
         var orders = db.GetTable("Orders");
 
@@ -66,7 +66,7 @@ public sealed class SchemaParallelizationTests(
     [Trait("Category", "Concurrency")]
     public void BackupRestoreAndClear_ShouldWorkAcrossSchemas_WhenThreadSafe()
     {
-        var db = new DbSqlLikeMem.Sqlite.SqliteDbMock
+        var db = new SqliteDbMock
         {
             ThreadSafe = true
         };
@@ -115,7 +115,7 @@ public sealed class SchemaParallelizationTests(
     [Trait("Category", "Concurrency")]
     public void ResetVolatileData_ShouldWorkAcrossSchemas_WhenThreadSafe()
     {
-        var db = new DbSqlLikeMem.Sqlite.SqliteDbMock
+        var db = new SqliteDbMock
         {
             ThreadSafe = true
         };

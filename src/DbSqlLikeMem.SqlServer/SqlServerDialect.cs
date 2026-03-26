@@ -54,7 +54,9 @@ internal sealed class SqlServerDialect : SqlDialectBase
     internal const int ParseMinVersion = 2012;
     internal const int TryCastMinVersion = 2012;
     internal const int TryConvertMinVersion = 2012;
-    internal const int WindowFunctionsMinVersion = 2005;
+    internal const int WindowFunctionsROW_NUMBERMinVersion = 2005;
+    internal const int WindowFunctionsMinVersion = 2012;
+    internal const int WindowFrameClauseMinVersion = 2012;
 
     /// <summary>
     /// EN: Gets or sets allows bracket identifiers.
@@ -96,11 +98,12 @@ internal sealed class SqlServerDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsWindowFunctions => Version >= WindowFunctionsMinVersion;
 
+    //TODO: Separar ROWS BETWEEN - 2012, RANGE BETWEEN - 2012, GROUPS BETWEEN - 2022
     /// <summary>
     /// EN: Indicates whether SQL window frame clauses are supported by the configured version.
     /// PT: Indica se cláusulas de frame de janela SQL são suportadas pela versão configurada.
     /// </summary>
-    public override bool SupportsWindowFrameClause => Version >= WindowFunctionsMinVersion;
+    public override bool SupportsWindowFrameClause => Version >= WindowFrameClauseMinVersion;
 
     public override bool SupportsWithinGroupForStringAggregates => Version >= StringAggMinVersion;
 
@@ -410,6 +413,8 @@ internal sealed class SqlServerDialect : SqlDialectBase
     /// PT: Obtém ou define null substitute function names.
     /// </summary>
         public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["ISNULL"];
+
+    //TODO: implementar + → NULL contamina, CONCAT() → não contamina
     /// <summary>
     /// EN: Gets or sets concat returns null on null input.
     /// PT: Obtém ou define concat returns null on null input.

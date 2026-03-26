@@ -245,14 +245,14 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
         QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
-        => TryEvalArrayMutationFunction(fn, context, evalArg, out result, (list, args) => list.Add(args[1]));
+        => TryEvalArrayMutationFunction(fn, context, evalArg, out result, isCat: false, isPrepend: false, (list, args) => list.Add(args[1]));
 
     private static bool TryEvalArrayPrependFunction(
         FunctionCallExpr fn,
         QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
-        => TryEvalArrayMutationFunction(fn, context, evalArg, out result, (list, args) => list.Insert(0, args[0]));
+        => TryEvalArrayMutationFunction(fn, context, evalArg, out result, isCat: false, isPrepend: true, (list, args) => list.Insert(0, args[0]));
 
     private static bool TryEvalArrayCatFunction(
         FunctionCallExpr fn,
@@ -264,6 +264,8 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
             context,
             evalArg,
             out result,
+            isCat: true,
+            isPrepend: false,
             (list, args) =>
             {
                 var right = args[1];
@@ -281,6 +283,8 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
             context,
             evalArg,
             out result,
+            isCat: false,
+            isPrepend: false,
             (list, args) =>
             {
                 var target = args[1];
@@ -297,6 +301,8 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
             context,
             evalArg,
             out result,
+            isCat: false,
+            isPrepend: false,
             (list, args) =>
             {
                 var target = args[1];
@@ -313,6 +319,8 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
         QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result,
+        bool isCat,
+        bool isPrepend,
         Action<List<object?>, object?[]> mutate)
     {
         _ = context;
@@ -321,7 +329,7 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
         for (var i = 0; i < fn.Args.Count; i++)
             args[i] = evalArg(i);
 
-        var left = fn.Name.Equals("ARRAY_PREPEND", StringComparison.OrdinalIgnoreCase) ? args[1] : args[0];
+        var left = isPrepend ? args[1] : args[0];
         var leftEnumerable = !AstQueryExecutorBase.IsNullish(left) && left is IEnumerable enumerable ? enumerable : null;
         var list = leftEnumerable is ICollection leftCollection
             ? new List<object?>(leftCollection.Count)
@@ -329,7 +337,7 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
         if (leftEnumerable is not null)
             list.AddRange(leftEnumerable.Cast<object?>());
 
-        if (fn.Name.Equals("ARRAY_CAT", StringComparison.OrdinalIgnoreCase))
+        if (isCat)
         {
             var right = args[1];
             if (!AstQueryExecutorBase.IsNullish(right) && right is IEnumerable rightEnum)

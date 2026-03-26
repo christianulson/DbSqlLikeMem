@@ -93,7 +93,15 @@ internal sealed class AstQueryCastStringAndDateTailEvaluator(
         }
 
         if (AstQueryGeneralDateFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)
-            || AstQueryTemporalAccessorFunctionEvaluator.TryEvaluate(fn, row, group, ctes, evalArg, getTemporalUnit, AstQueryExecutorBase.ResolveTemporalUnit, out result)
+            || AstQueryTemporalAccessorFunctionEvaluator.TryEvaluate(
+                fn,
+                row,
+                group,
+                ctes,
+                evalArg,
+                getTemporalUnit,
+                AstQueryExecutionRuntimeHelper.ResolveTemporalUnit,
+                out result)
             || AstQueryGeneralScalarFunctionEvaluator.TryEvalFieldFunction(fn, context, evalArg, out result))
         {
             return true;

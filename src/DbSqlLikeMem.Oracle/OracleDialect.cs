@@ -1,6 +1,6 @@
 namespace DbSqlLikeMem.Oracle;
 
-internal sealed class OracleDialect : SqlDialectBase
+internal sealed class OracleDialect : SqlDialectBase, ISqlDialect
 {
     internal const string DialectName = "oracle";
     internal OracleDialect(
@@ -13,6 +13,7 @@ internal sealed class OracleDialect : SqlDialectBase
         [
             new KeyValuePair<string, SqlBinaryOp>(SqlConst.AND, SqlBinaryOp.And),
             new KeyValuePair<string, SqlBinaryOp>(SqlConst.OR, SqlBinaryOp.Or),
+            new KeyValuePair<string, SqlBinaryOp>("||", SqlBinaryOp.Concat),
             new KeyValuePair<string, SqlBinaryOp>("=", SqlBinaryOp.Eq),
             new KeyValuePair<string, SqlBinaryOp>("<>", SqlBinaryOp.Neq),
             new KeyValuePair<string, SqlBinaryOp>("!=", SqlBinaryOp.Neq),
@@ -34,7 +35,7 @@ internal sealed class OracleDialect : SqlDialectBase
 
     internal const int WithCteMinVersion = 9;
     internal const int MergeMinVersion = 9;
-    internal const int WindowFunctionsMinVersion = 8;
+    internal const int WindowFunctionsMinVersion = 9;
     internal const int OffsetFetchMinVersion = 12;
     internal const int FetchFirstMinVersion = 12;
     internal const int ApproxCountDistinctMinVersion = 12;
@@ -137,6 +138,7 @@ internal sealed class OracleDialect : SqlDialectBase
     public override bool SupportsAlterTableAddColumn => true;
     public override bool SupportsFunctionDdl => true;
     public override bool SupportsCreateOrReplaceFunctionDdl => true;
+    bool ISqlDialect.SupportsOracleCreateFunctionDdl => true;
     public override bool SupportsSequenceDdl => true;
     public override bool SupportsSequenceDotValueExpression(string suffix)
         => this.TryGetScalarFunctionDefinition(suffix, out var definition)

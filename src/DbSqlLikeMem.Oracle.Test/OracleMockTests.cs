@@ -268,7 +268,7 @@ public sealed class OracleMockTests
         command.ExecuteNonQuery();
 
         command.CommandText = "SELECT Name FROM Users ORDER BY Id FETCH FIRST 1 ROWS ONLY; SELECT FOUND_ROWS();";
-        var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+        var ex = Assert.Throws<NotSupportedException>(command.ExecuteReader);
 
         Assert.Contains("FOUND_ROWS", ex.Message, StringComparison.OrdinalIgnoreCase);
     }

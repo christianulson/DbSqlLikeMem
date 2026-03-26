@@ -29,7 +29,7 @@ public class MySqlDbMock
     private protected MySqlDbMock(
         int? version,
         Func<int, SqlDialectBase> dialectFactory
-        ) : base(version ?? 80)
+        ) : base(version ?? MySqlDbVersions.Default)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(dialectFactory, nameof(dialectFactory));
         Dialect = dialectFactory(Version);

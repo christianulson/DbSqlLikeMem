@@ -25,6 +25,12 @@ public static class MariaDbDbVersions
     public const int Version10_6 = 106;
 
     /// <summary>
+    /// EN: MariaDB 10.6 version token.
+    /// PT: Token de versao do MariaDB 10.8.
+    /// </summary>
+    public const int Version10_8 = 108;
+
+    /// <summary>
     /// EN: MariaDB 11.0 version token.
     /// PT: Token de versao do MariaDB 11.0.
     /// </summary>
@@ -45,6 +51,7 @@ public static class MariaDbDbVersions
         yield return Version10_3;
         yield return Version10_5;
         yield return Version10_6;
+        yield return Version10_8;
         yield return Version11_0;
     }
 }

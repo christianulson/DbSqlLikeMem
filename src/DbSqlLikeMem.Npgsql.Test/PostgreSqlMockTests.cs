@@ -239,7 +239,7 @@ public sealed class PostgreSqlMockTests
         command.ExecuteNonQuery();
 
         command.CommandText = "SELECT Name FROM Users ORDER BY Id LIMIT 1; SELECT FOUND_ROWS();";
-        var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+        var ex = Assert.Throws<NotSupportedException>(command.ExecuteReader);
 
         Assert.Contains("FOUND_ROWS", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -282,7 +282,7 @@ public sealed class PostgreSqlMockTests
             CommandText = "SELECT SQL_CALC_FOUND_ROWS Name FROM Users LIMIT 1"
         };
 
-        Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+        Assert.Throws<NotSupportedException>(command.ExecuteReader);
     }
 
 

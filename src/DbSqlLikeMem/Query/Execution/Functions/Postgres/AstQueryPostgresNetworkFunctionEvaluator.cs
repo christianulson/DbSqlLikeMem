@@ -97,7 +97,7 @@ internal static class AstQueryPostgresNetworkFunctionEvaluator
             fn,
             context,
             evalArg,
-            value => new System.Net.IPAddress([.. value.MaskBytes.Select(static b => (byte)~b)]).ToString(),
+            value => new IPAddress([.. value.MaskBytes.Select(static b => (byte)~b)]).ToString(),
             out result);
 
     private static bool TryEvalMaskLenFunction(
@@ -116,7 +116,7 @@ internal static class AstQueryPostgresNetworkFunctionEvaluator
             fn,
             context,
             evalArg,
-            value => new System.Net.IPAddress(value.MaskBytes).ToString(),
+            value => new IPAddress(value.MaskBytes).ToString(),
             out result);
 
     private static bool TryEvalNetworkFunction(
@@ -128,14 +128,14 @@ internal static class AstQueryPostgresNetworkFunctionEvaluator
             fn,
             context,
             evalArg,
-            value => $"{new System.Net.IPAddress(AstQueryGeneralScalarFunctionEvaluator.ApplyNetworkMask(value.Address.GetAddressBytes(), value.MaskBytes))}/{value.PrefixLength}",
+            value => $"{new IPAddress(AstQueryGeneralScalarFunctionEvaluator.ApplyNetworkMask(value.Address.GetAddressBytes(), value.MaskBytes))}/{value.PrefixLength}",
             out result);
 
     private static bool TryEvalInetAddressFunction(
         FunctionCallExpr fn,
         QueryExecutionContext context,
         Func<int, object?> evalArg,
-        Func<(System.Net.IPAddress Address, byte[] MaskBytes, int PrefixLength), object?> transform,
+        Func<(IPAddress Address, byte[] MaskBytes, int PrefixLength), object?> transform,
         out object? result)
     {
         _ = context;

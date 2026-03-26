@@ -235,7 +235,7 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("TZ_OFFSET", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "TZ_OFFSET", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -272,7 +272,7 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         out object? result)
     {
         _ = evalArg;
-        if (!fn.Name.Equals("SESSIONTIMEZONE", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "SESSIONTIMEZONE", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -377,7 +377,7 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         var normalized = type.Trim().ToUpperInvariant();
         var isValid = normalized switch
         {
-            "NUMBER" => AstQueryExecutorBase.TryCoerceDecimal(value, out _),
+            "NUMBER" => AstQueryExecutionRuntimeHelper.TryCoerceDecimal(value, out _),
             "DATE" or "TIMESTAMP" => AstQueryExecutorBase.TryCoerceDateTime(value, out _),
             _ => true
         };
@@ -392,7 +392,7 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("MONTHS_BETWEEN", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "MONTHS_BETWEEN", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -430,7 +430,7 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         out object? result)
     {
         _ = evalArg;
-        if (!fn.Name.Equals("ITERATION_NUMBER", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "ITERATION_NUMBER", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -446,7 +446,7 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("LNNVL", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "LNNVL", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -469,7 +469,7 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("NANVL", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "NANVL", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -497,7 +497,7 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("DEPTH", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "DEPTH", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -520,7 +520,7 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("DEREF", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "DEREF", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -536,7 +536,7 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("DUMP", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "DUMP", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -560,7 +560,7 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("EXISTSNODE", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "EXISTSNODE", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -583,7 +583,7 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("JSON_DATAGUIDE", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "JSON_DATAGUIDE", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -606,7 +606,7 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("MAKE_REF", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "MAKE_REF", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -622,7 +622,7 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("VSIZE", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "VSIZE", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -652,7 +652,7 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("WIDTH_BUCKET", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "WIDTH_BUCKET", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -726,7 +726,7 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
         out object? result)
     {
         _ = evalArg;
-        if (!fn.Name.Equals("USER", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, "USER", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;

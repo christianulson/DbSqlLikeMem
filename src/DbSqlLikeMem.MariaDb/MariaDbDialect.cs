@@ -5,12 +5,13 @@ namespace DbSqlLikeMem.MariaDb;
 /// PT: Implementacao de dialeto SQL para MariaDB construida sobre o comportamento compartilhado da familia MySQL.
 /// </summary>
 internal sealed class MariaDbDialect
-    : MySqlDialect
+    : MySqlDialect, ISqlDialect
 {
     internal new const string DialectName = "mariadb";
     internal const int SequenceMinVersion = MariaDbDbVersions.Version10_3;
     internal const int ReturningMinVersion = MariaDbDbVersions.Version10_5;
     internal const int JsonTableMinVersion = MariaDbDbVersions.Version10_6;
+    internal const int Crc32cMinVersion = MariaDbDbVersions.Version10_8;
 
     /// <summary>
     /// EN: Initializes the MariaDB dialect for the requested simulated version.
@@ -20,8 +21,12 @@ internal sealed class MariaDbDialect
     internal MariaDbDialect(int version)
         : base(DialectName, version)
     {
+        MariaDbScalarFunctionRegistry.Register(this, version);
         MariaDbTableFunctionRegistry.Register(this, version);
     }
+
+    /// <inheritdoc />
+    public override bool SupportsMariaDbFunctions => true;
 
     /// <inheritdoc />
     public override bool SupportsReturning => SupportsInsertReturning || SupportsDeleteReturning;

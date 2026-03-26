@@ -29,8 +29,12 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
         Register(handlers, TryEvalToDaysFunction, "TO_DAYS");
         Register(handlers, TryEvalToSecondsFunction, "TO_SECONDS");
         Register(handlers, TryEvalTruncateFunction, "TRUNCATE");
-        Register(handlers, TryEvalUnixTimestampFunction, "UNIX_TIMESTAMP", "UNIXEPOCH");
-        Register(handlers, TryEvalWeekFunctions, "WEEK", "WEEKDAY", "WEEKOFYEAR", "YEARWEEK");
+        Register(handlers, TryEvalUnixTimestampFunction, "UNIX_TIMESTAMP");
+        Register(handlers, TryEvalUnixEpochFunction, "UNIXEPOCH");
+        Register(handlers, TryEvalWeekFunction, "WEEK");
+        Register(handlers, TryEvalWeekdayFunction, "WEEKDAY");
+        Register(handlers, TryEvalWeekOfYearFunction, "WEEKOFYEAR");
+        Register(handlers, TryEvalYearWeekFunction, "YEARWEEK");
 
         return handlers;
     }
@@ -50,12 +54,6 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("TIME_FORMAT", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         var format = evalArg(1)?.ToString() ?? string.Empty;
         if (IsNullish(value))
@@ -125,12 +123,6 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("TIME_TO_SEC", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         if (IsNullish(value))
         {
@@ -160,12 +152,6 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("TIMEDIFF", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var left = evalArg(0);
         var right = evalArg(1);
         if (IsNullish(left) || IsNullish(right))
@@ -198,12 +184,6 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("TO_DAYS", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         if (IsNullish(value) || !TryCoerceDateTime(value, out var dateTime))
         {
@@ -222,12 +202,6 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("TO_SECONDS", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         if (IsNullish(value) || !TryCoerceDateTime(value, out var dateTime))
         {
@@ -246,12 +220,6 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("TRUNCATE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
         var value = evalArg(0);
         var decimalsValue = evalArg(1);
         if (IsNullish(value) || IsNullish(decimalsValue))
@@ -281,13 +249,6 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!(fn.Name.Equals("UNIX_TIMESTAMP", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("UNIXEPOCH", StringComparison.OrdinalIgnoreCase)))
-        {
-            result = null;
-            return false;
-        }
-
         var value = fn.Args.Count > 0 ? evalArg(0) : null;
         if (IsNullish(value))
         {
@@ -320,22 +281,48 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
         return true;
     }
 
-    private static bool TryEvalWeekFunctions(
+    private static bool TryEvalUnixEpochFunction(
         FunctionCallExpr fn,
         QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
-    {
-        var name = fn.Name;
-        if (!(name.Equals("WEEK", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("WEEKDAY", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("WEEKOFYEAR", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("YEARWEEK", StringComparison.OrdinalIgnoreCase)))
-        {
-            result = null;
-            return false;
-        }
+        => TryEvalUnixTimestampFunction(fn, context, evalArg, out result);
 
+    private static bool TryEvalWeekFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalWeekFunctionCore(fn, context, evalArg, WeekFunctionKind.Week, out result);
+
+    private static bool TryEvalWeekdayFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalWeekFunctionCore(fn, context, evalArg, WeekFunctionKind.Weekday, out result);
+
+    private static bool TryEvalWeekOfYearFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalWeekFunctionCore(fn, context, evalArg, WeekFunctionKind.WeekOfYear, out result);
+
+    private static bool TryEvalYearWeekFunction(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalWeekFunctionCore(fn, context, evalArg, WeekFunctionKind.YearWeek, out result);
+
+    private static bool TryEvalWeekFunctionCore(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        WeekFunctionKind kind,
+        out object? result)
+    {
         var value = evalArg(0);
         if (IsNullish(value) || !TryCoerceDateTime(value, out var dateTime))
         {
@@ -343,34 +330,33 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
             return true;
         }
 
-        if (name.Equals("WEEKDAY", StringComparison.OrdinalIgnoreCase))
+        result = kind switch
         {
-            var weekday = ((int)dateTime.DayOfWeek + 6) % 7;
-            result = weekday;
-            return true;
-        }
+            WeekFunctionKind.Weekday => ((int)dateTime.DayOfWeek + 6) % 7,
+            WeekFunctionKind.WeekOfYear => GetIsoWeekOfYear(dateTime),
+            WeekFunctionKind.YearWeek => GetIsoWeekYear(dateTime) * 100 + GetIsoWeekOfYear(dateTime),
+            _ => ResolveMySqlWeek(dateTime, fn.Args.Count > 1 ? evalArg(1) : 0)
+        };
+        return true;
+    }
 
-        if (name.Equals("WEEKOFYEAR", StringComparison.OrdinalIgnoreCase))
-        {
-            var week = GetIsoWeekOfYear(dateTime);
-            result = week;
-            return true;
-        }
-
-        if (name.Equals("YEARWEEK", StringComparison.OrdinalIgnoreCase))
-        {
-            var week = GetIsoWeekOfYear(dateTime);
-            var year = GetIsoWeekYear(dateTime);
-            result = year * 100 + week;
-            return true;
-        }
+    private static int ResolveMySqlWeek(DateTime dateTime, object? modeValue)
+    {
+        _ = modeValue;
 
         // MySQL WEEK(date) default mode is 0: Sunday-first, range 0-53.
         var firstDayOfYear = new DateTime(dateTime.Year, 1, 1);
         var dayOffset = (int)firstDayOfYear.DayOfWeek;
         var dayOfYearZeroBased = dateTime.DayOfYear - 1;
-        result = (dayOfYearZeroBased + dayOffset) / 7;
-        return true;
+        return (dayOfYearZeroBased + dayOffset) / 7;
+    }
+
+    private enum WeekFunctionKind
+    {
+        Week,
+        Weekday,
+        WeekOfYear,
+        YearWeek
     }
 
 }

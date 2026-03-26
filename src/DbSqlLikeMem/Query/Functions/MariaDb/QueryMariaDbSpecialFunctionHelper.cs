@@ -66,7 +66,8 @@ internal static class QueryMariaDbSpecialFunctionHelper
         Register(handlers, TryEvalColumnGetFunction, "COLUMN_GET");
         Register(handlers, TryEvalVectorFunction, "VECTOR", "VEC_FROMTEXT");
         Register(handlers, TryEvalVecToTextFunction, "VEC_TOTEXT");
-        Register(handlers, TryEvalVecDistanceFunction, "VEC_DISTANCE", "VEC_DISTANCE_EUCLIDEAN", "VEC_DISTANCE_COSINE");
+        Register(handlers, TryEvalVecDistanceEuclideanFunction, "VEC_DISTANCE", "VEC_DISTANCE_EUCLIDEAN");
+        Register(handlers, TryEvalVecDistanceCosineFunction, "VEC_DISTANCE_COSINE");
         Register(handlers, TryEvalWsrepLastSeenOrWrittenFunction, "WSREP_LAST_SEEN_GTID", "WSREP_LAST_WRITTEN_GTID");
         Register(handlers, TryEvalWsrepSyncWaitFunction, "WSREP_SYNC_WAIT_UPTO_GTID");
         return handlers;
@@ -246,9 +247,22 @@ internal static class QueryMariaDbSpecialFunctionHelper
         return true;
     }
 
+    private static bool TryEvalVecDistanceEuclideanFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalVecDistanceFunction(fn, evalArg, useCosine: false, out result);
+
+    private static bool TryEvalVecDistanceCosineFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalVecDistanceFunction(fn, evalArg, useCosine: true, out result);
+
     private static bool TryEvalVecDistanceFunction(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
+        bool useCosine,
         out object? result)
     {
         if (fn.Args.Count < 2)
@@ -260,7 +274,7 @@ internal static class QueryMariaDbSpecialFunctionHelper
             return true;
         }
 
-        result = fn.Name.Equals("VEC_DISTANCE_COSINE", StringComparison.OrdinalIgnoreCase)
+        result = useCosine
             ? VectorDistanceCosine(left, right)
             : VectorDistanceEuclidean(left, right);
         return true;

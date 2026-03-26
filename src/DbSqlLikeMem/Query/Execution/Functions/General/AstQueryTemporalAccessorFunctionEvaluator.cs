@@ -37,10 +37,22 @@ internal static class AstQueryTemporalAccessorFunctionEvaluator
     private static Dictionary<string, TemporalAccessorFunctionHandler> CreateHandlers()
     {
         var handlers = new Dictionary<string, TemporalAccessorFunctionHandler>(StringComparer.OrdinalIgnoreCase);
-        Register(handlers, TryEvalDaysFunction, "DAYS");
-        Register(handlers, TryEvalDateNameFunction, "DATENAME");
-        Register(handlers, TryEvalDatePartFunction, "DATEPART", "DAY", "MONTH", SqlConst.YEAR, "HOUR", "MINUTE", "SECOND");
-        Register(handlers, TryEvalExtractFunction, "EXTRACT");
+        Register(
+            handlers,
+            TryEvalDaysFunction,
+            "DAYS");
+        Register(
+            handlers,
+            TryEvalDateNameFunction,
+            "DATENAME");
+        Register(
+            handlers,
+            TryEvalDatePartFunction,
+            "DATEPART", "DAY", "MONTH", SqlConst.YEAR, "HOUR", "MINUTE", "SECOND");
+        Register(
+            handlers,
+            TryEvalExtractFunction,
+            "EXTRACT");
         return handlers;
     }
 
@@ -55,9 +67,19 @@ internal static class AstQueryTemporalAccessorFunctionEvaluator
 
     private static bool TryEvalDaysFunction(
         FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
         Func<int, object?> evalArg,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, TemporalUnit> getTemporalUnit,
+        Func<string, TemporalUnit> resolveTemporalUnit,
         out object? result)
     {
+        _ = row;
+        _ = group;
+        _ = ctes;
+        _ = getTemporalUnit;
+        _ = resolveTemporalUnit;
         if (fn.Args.Count != 1)
             throw new InvalidOperationException("DAYS() espera 1 argumento.");
 
@@ -79,8 +101,10 @@ internal static class AstQueryTemporalAccessorFunctionEvaluator
         IDictionary<string, Source> ctes,
         Func<int, object?> evalArg,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, TemporalUnit> getTemporalUnit,
+        Func<string, TemporalUnit> resolveTemporalUnit,
         out object? result)
     {
+        _ = resolveTemporalUnit;
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("DATENAME() espera 2 argumentos.");
 
@@ -147,8 +171,10 @@ internal static class AstQueryTemporalAccessorFunctionEvaluator
         IDictionary<string, Source> ctes,
         Func<int, object?> evalArg,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, TemporalUnit> getTemporalUnit,
+        Func<string, TemporalUnit> resolveTemporalUnit,
         out object? result)
     {
+        _ = resolveTemporalUnit;
         if (fn.Args.Count < 2)
         {
             result = null;

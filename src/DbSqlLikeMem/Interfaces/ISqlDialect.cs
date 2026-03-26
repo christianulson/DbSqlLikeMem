@@ -125,6 +125,12 @@ internal interface ISqlDialect
     bool SupportsSqlServerTableHints { get; }
     bool SupportsSqlServerQueryHints { get; }
     bool SupportsMySqlIndexHints { get; }
+    bool SupportsMariaDbFunctions { get; }
+    bool SupportsDb2TriggerDdl { get; }
+    bool SupportsDb2ProcedureDdl { get; }
+    bool SupportsOracleCreateFunctionDdl { get; }
+    bool SupportsPostgreSqlCreateFunctionDdl { get; }
+    bool SupportsInlineReturnCreateFunctionDdl { get; }
     bool SupportsSqlServerMetadataFunction(string functionName);
     bool SupportsSqlServerMetadataIdentifier(string identifier);
     bool SupportsSqlServerScalarFunction(string functionName);
