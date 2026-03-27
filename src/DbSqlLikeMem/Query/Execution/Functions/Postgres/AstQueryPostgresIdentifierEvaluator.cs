@@ -5,7 +5,7 @@ internal static class AstQueryPostgresIdentifierEvaluator
     private static readonly IReadOnlyDictionary<string, Func<object?>> _handlers = CreateHandlers();
 
     internal static bool TryResolveIdentifier(
-        QueryExecutionContext context,
+        this QueryExecutionContext context,
         IdentifierExpr identifier,
         out object? result)
     {

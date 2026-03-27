@@ -3,8 +3,8 @@ namespace DbSqlLikeMem;
 using System.Globalization;
 
 internal delegate bool AstQueryTryEvalOracleDb2ConversionFunction(
-    FunctionCallExpr fn,
     QueryExecutionContext context,
+    FunctionCallExpr fn,
     Func<int, object?> evalArg,
     out object? result);
 
@@ -30,8 +30,8 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
     };
 
     internal static bool TryEvaluate(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -42,7 +42,7 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
         }
 
         if (_requiresSupportCheck.Contains(fn.Name))
-            QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, fn.Name);
+            context.EnsureOracleDb2FunctionSupported(fn.Name);
 
         if (fn.Args.Count == 0)
         {
@@ -57,7 +57,7 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
             return true;
         }
 
-        return handler(fn, context, evalArg, out result);
+        return handler(context, fn, evalArg, out result);
     }
 
     private static Dictionary<string, AstQueryTryEvalOracleDb2ConversionFunction> CreateHandlers()
@@ -87,8 +87,8 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
     }
 
     private static bool TryEvalConvertFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -99,8 +99,8 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
     }
 
     private static bool TryEvalToBinaryDoubleFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -111,8 +111,8 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
     }
 
     private static bool TryEvalToBinaryFloatFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -123,8 +123,8 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
     }
 
     private static bool TryEvalToNumberFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -145,8 +145,8 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
     }
 
     private static bool TryEvalToCharFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -198,8 +198,8 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
     }
 
     private static bool TryEvalToDateFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -208,8 +208,8 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
     }
 
     private static bool TryEvalToTimestampFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -218,8 +218,8 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
     }
 
     private static bool TryEvalToTimestampTzFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -265,8 +265,8 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
     }
 
     private static bool TryEvalToDsIntervalFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -283,8 +283,8 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
     }
 
     private static bool TryEvalToYmIntervalFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -301,8 +301,8 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
     }
 
     private static bool TryEvalToTextFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {

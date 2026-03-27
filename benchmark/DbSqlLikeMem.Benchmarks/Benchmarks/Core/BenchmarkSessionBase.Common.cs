@@ -629,43 +629,30 @@ public abstract partial class BenchmarkSessionBase
         }
     }
 
-    private sealed class PreparedSelectByPkState : IDisposable
+    private sealed class PreparedSelectByPkState(
+        DbConnection connection,
+        SelectByPKServiceTest<DbConnection> service,
+        string users,
+        string uId) : IDisposable
     {
-        private readonly SelectByPKServiceTest<DbConnection> _service;
-        private readonly DbConnection _connection;
-        private readonly string _users;
-        private readonly string _uId;
+        public SelectByPKServiceTest<DbConnection> Service => service;
 
-        public PreparedSelectByPkState(
-            DbConnection connection,
-            SelectByPKServiceTest<DbConnection> service,
-            string users,
-            string uId)
-        {
-            _connection = connection;
-            _service = service;
-            _users = users;
-            _uId = uId;
-        }
+        public string Users => users;
 
-        public SelectByPKServiceTest<DbConnection> Service => _service;
-
-        public string Users => _users;
-
-        public string UId => _uId;
+        public string UId => uId;
 
         public void Dispose()
         {
             try
             {
-                _service.DropScenario(_users, _uId);
+                service.DropScenario(users, uId);
             }
             catch
             {
                 try
                 {
-                    var fallbackSql = _service.Dialect.DropTable(_users, _uId);
-                    ExecuteNonQuery(_connection, fallbackSql);
+                    var fallbackSql = service.Dialect.DropTable(users, uId);
+                    ExecuteNonQuery(connection, fallbackSql);
                 }
                 catch
                 {
@@ -674,56 +661,41 @@ public abstract partial class BenchmarkSessionBase
             }
             finally
             {
-                _connection.Dispose();
+                connection.Dispose();
             }
         }
     }
 
-    private sealed class PreparedSelectJoinState : IDisposable
+    private sealed class PreparedSelectJoinState(
+        DbConnection connection,
+        DmlMutationServiceTest<DbConnection> service,
+        string users,
+        string orders,
+        string uId) : IDisposable
     {
-        private readonly DmlMutationServiceTest<DbConnection> _service;
-        private readonly DbConnection _connection;
-        private readonly string _users;
-        private readonly string _orders;
-        private readonly string _uId;
+        public DmlMutationServiceTest<DbConnection> Service => service;
 
-        public PreparedSelectJoinState(
-            DbConnection connection,
-            DmlMutationServiceTest<DbConnection> service,
-            string users,
-            string orders,
-            string uId)
-        {
-            _connection = connection;
-            _service = service;
-            _users = users;
-            _orders = orders;
-            _uId = uId;
-        }
+        public string Users => users;
 
-        public DmlMutationServiceTest<DbConnection> Service => _service;
+        public string Orders => orders;
 
-        public string Users => _users;
+        public string UId => uId;
 
-        public string Orders => _orders;
+        public string UsersTable => $"{users}_{uId}";
 
-        public string UId => _uId;
-
-        public string UsersTable => $"{_users}_{_uId}";
-
-        public string OrdersTable => $"{_orders}_{_uId}";
+        public string OrdersTable => $"{orders}_{uId}";
 
         public void Dispose()
         {
             try
             {
-                _service.DropScenario(_users, _orders, _uId);
+                service.DropScenario(users, orders, uId);
             }
             catch
             {
                 try
                 {
-                    ExecuteNonQuery(_connection, _service.Dialect.DropTable(_orders, _uId));
+                    ExecuteNonQuery(connection, service.Dialect.DropTable(orders, uId));
                 }
                 catch
                 {
@@ -732,7 +704,7 @@ public abstract partial class BenchmarkSessionBase
 
                 try
                 {
-                    ExecuteNonQuery(_connection, _service.Dialect.DropTable(_users, _uId));
+                    ExecuteNonQuery(connection, service.Dialect.DropTable(users, uId));
                 }
                 catch
                 {
@@ -741,49 +713,34 @@ public abstract partial class BenchmarkSessionBase
             }
             finally
             {
-                _connection.Dispose();
+                connection.Dispose();
             }
         }
     }
 
-    private sealed class PreparedCreateSchemaState : IDisposable
+    private sealed class PreparedCreateSchemaState(
+        BenchmarkSessionBase owner,
+        DbConnection connection,
+        CreateTableServiceTest<DbConnection> service,
+        string users,
+        string uId) : IDisposable
     {
-        private readonly BenchmarkSessionBase _owner;
-        private readonly CreateTableServiceTest<DbConnection> _service;
-        private readonly DbConnection _connection;
-        private readonly string _users;
-        private readonly string _uId;
-
-        public PreparedCreateSchemaState(
-            BenchmarkSessionBase owner,
-            DbConnection connection,
-            CreateTableServiceTest<DbConnection> service,
-            string users,
-            string uId)
-        {
-            _owner = owner;
-            _connection = connection;
-            _service = service;
-            _users = users;
-            _uId = uId;
-        }
-
         public void RunCreateSchema()
         {
             try
             {
-                _service.CreateScenario(_users, _uId);
-                _service.RunTest(_users, _uId);
+                service.CreateScenario(users, uId);
+                service.RunTest(users, uId);
             }
             finally
             {
                 try
                 {
-                    _service.DropScenario(_users, _uId);
+                    service.DropScenario(users, uId);
                 }
                 catch
                 {
-                    _owner.SafeDropTable(_connection, _users, _uId);
+                    owner.SafeDropTable(connection, users, uId);
                 }
             }
         }
@@ -792,13 +749,13 @@ public abstract partial class BenchmarkSessionBase
         {
             try
             {
-                _service.DropScenario(_users, _uId);
+                service.DropScenario(users, uId);
             }
             catch
             {
                 try
                 {
-                    _owner.SafeDropTable(_connection, _users, _uId);
+                    owner.SafeDropTable(connection, users, uId);
                 }
                 catch
                 {
@@ -807,54 +764,37 @@ public abstract partial class BenchmarkSessionBase
             }
             finally
             {
-                _connection.Dispose();
+                connection.Dispose();
             }
         }
     }
 
-    private sealed class PreparedCreateTableWithFkState : IDisposable
+    private sealed class PreparedCreateTableWithFkState(
+        BenchmarkSessionBase owner,
+        DbConnection connection,
+        CreateTableWithFKServiceTest<DbConnection> service,
+        string users,
+        string orders,
+        string uId) : IDisposable
     {
-        private readonly BenchmarkSessionBase _owner;
-        private readonly CreateTableWithFKServiceTest<DbConnection> _service;
-        private readonly DbConnection _connection;
-        private readonly string _users;
-        private readonly string _orders;
-        private readonly string _uId;
-
-        public PreparedCreateTableWithFkState(
-            BenchmarkSessionBase owner,
-            DbConnection connection,
-            CreateTableWithFKServiceTest<DbConnection> service,
-            string users,
-            string orders,
-            string uId)
-        {
-            _owner = owner;
-            _connection = connection;
-            _service = service;
-            _users = users;
-            _orders = orders;
-            _uId = uId;
-        }
-
         public void RunCreateTableWithFk()
         {
             try
             {
-                _service.CreateScenario(_users, _uId);
-                _service.RunTest(_users, _orders, _uId);
+                service.CreateScenario(users, uId);
+                service.RunTest(users, orders, uId);
             }
             finally
             {
                 try
                 {
-                    _service.DropScenario(_users, _orders, _uId);
+                    service.DropScenario(users, orders, uId);
                 }
                 catch
                 {
                     try
                     {
-                        _owner.SafeDropTable(_connection, _orders, _uId);
+                        owner.SafeDropTable(connection, orders, uId);
                     }
                     catch
                     {
@@ -863,7 +803,7 @@ public abstract partial class BenchmarkSessionBase
 
                     try
                     {
-                        _owner.SafeDropTable(_connection, _users, _uId);
+                        owner.SafeDropTable(connection, users, uId);
                     }
                     catch
                     {
@@ -875,25 +815,25 @@ public abstract partial class BenchmarkSessionBase
 
         public int RunCreateTableWithFkInsert()
         {
-            var orderedAt = _service.Dialect.Provider == ProviderId.Db2 ? "CURRENT TIMESTAMP" : "CURRENT_TIMESTAMP";
+            var orderedAt = service.Dialect.Provider == ProviderId.Db2 ? "CURRENT TIMESTAMP" : "CURRENT_TIMESTAMP";
 
             try
             {
-                _service.CreateScenario(_users, _uId);
-                _service.RunTest(_users, _orders, _uId);
+                service.CreateScenario(users, uId);
+                service.RunTest(users, orders, uId);
 
-                var usersTable = $"{_users}_{_uId}";
-                var ordersTable = $"{_orders}_{_uId}";
+                var usersTable = $"{users}_{uId}";
+                var ordersTable = $"{orders}_{uId}";
 
-                ExecuteNonQuery(_connection, _service.Dialect.InsertUser(usersTable, 1, "Ana"));
-                ExecuteNonQuery(_connection, _service.Dialect.InsertOrder(ordersTable, usersTable, 10, 1, "first", "o-10", 12.34m, 2, true, orderedAt));
+                ExecuteNonQuery(connection, service.Dialect.InsertUser(usersTable, 1, "Ana"));
+                ExecuteNonQuery(connection, service.Dialect.InsertOrder(ordersTable, usersTable, 10, 1, "first", "o-10", 12.34m, 2, true, orderedAt));
 
                 var count = Convert.ToInt32(
-                    ExecuteScalar(_connection, _service.Dialect.CountJoinForUser(usersTable, ordersTable, 1)),
+                    ExecuteScalar(connection, service.Dialect.CountJoinForUser(usersTable, ordersTable, 1)),
                     CultureInfo.InvariantCulture);
                 if (count != 1)
                 {
-                    throw new InvalidOperationException($"Unexpected foreign-key insert benchmark join count for {_service.Dialect.DisplayName}: {count}.");
+                    throw new InvalidOperationException($"Unexpected foreign-key insert benchmark join count for {service.Dialect.DisplayName}: {count}.");
                 }
 
                 return count;
@@ -902,13 +842,13 @@ public abstract partial class BenchmarkSessionBase
             {
                 try
                 {
-                    _service.DropScenario(_users, _orders, _uId);
+                    service.DropScenario(users, orders, uId);
                 }
                 catch
                 {
                     try
                     {
-                        _owner.SafeDropTable(_connection, _orders, _uId);
+                        owner.SafeDropTable(connection, orders, uId);
                     }
                     catch
                     {
@@ -917,7 +857,7 @@ public abstract partial class BenchmarkSessionBase
 
                     try
                     {
-                        _owner.SafeDropTable(_connection, _users, _uId);
+                        owner.SafeDropTable(connection, users, uId);
                     }
                     catch
                     {
@@ -931,13 +871,13 @@ public abstract partial class BenchmarkSessionBase
         {
             try
             {
-                _service.DropScenario(_users, _orders, _uId);
+                service.DropScenario(users, orders, uId);
             }
             catch
             {
                 try
                 {
-                    _owner.SafeDropTable(_connection, _orders, _uId);
+                    owner.SafeDropTable(connection, orders, uId);
                 }
                 catch
                 {
@@ -946,7 +886,7 @@ public abstract partial class BenchmarkSessionBase
 
                 try
                 {
-                    _owner.SafeDropTable(_connection, _users, _uId);
+                    owner.SafeDropTable(connection, users, uId);
                 }
                 catch
                 {
@@ -955,45 +895,30 @@ public abstract partial class BenchmarkSessionBase
             }
             finally
             {
-                _connection.Dispose();
+                connection.Dispose();
             }
         }
     }
 
-    private sealed class PreparedDropTableState : IDisposable
+    private sealed class PreparedDropTableState(
+        BenchmarkSessionBase owner,
+        DbConnection connection,
+        DropTableServiceTest<DbConnection> service,
+        string users,
+        string uId) : IDisposable
     {
-        private readonly BenchmarkSessionBase _owner;
-        private readonly DropTableServiceTest<DbConnection> _service;
-        private readonly DbConnection _connection;
-        private readonly string _users;
-        private readonly string _uId;
-
-        public PreparedDropTableState(
-            BenchmarkSessionBase owner,
-            DbConnection connection,
-            DropTableServiceTest<DbConnection> service,
-            string users,
-            string uId)
-        {
-            _owner = owner;
-            _connection = connection;
-            _service = service;
-            _users = users;
-            _uId = uId;
-        }
-
         public void RunDropTable()
         {
             try
             {
-                _service.CreateScenario(_users, "Orders", _uId);
-                _service.RunTest(_users, _uId);
+                service.CreateScenario(users, "Orders", uId);
+                service.RunTest(users, uId);
             }
             finally
             {
                 try
                 {
-                    _owner.SafeDropTable(_connection, _users, _uId);
+                    owner.SafeDropTable(connection, users, uId);
                 }
                 catch
                 {
@@ -1006,7 +931,7 @@ public abstract partial class BenchmarkSessionBase
         {
             try
             {
-                _owner.SafeDropTable(_connection, _users, _uId);
+                owner.SafeDropTable(connection, users, uId);
             }
             catch
             {
@@ -1014,37 +939,25 @@ public abstract partial class BenchmarkSessionBase
             }
             finally
             {
-                _connection.Dispose();
+                connection.Dispose();
             }
         }
     }
 
-    private sealed class PreparedInsertUsersState : IDisposable
+    private sealed class PreparedInsertUsersState(
+        DbConnection connection,
+        InsertUsersServiceTest<DbConnection> service,
+        string users,
+        string uId) : IDisposable
     {
-        private readonly InsertUsersServiceTest<DbConnection> _service;
-        private readonly DbConnection _connection;
-        private readonly string _users;
-        private readonly string _uId;
         private int _nextInsertId = 1;
         private int _rowCount;
-
-        public PreparedInsertUsersState(
-            DbConnection connection,
-            InsertUsersServiceTest<DbConnection> service,
-            string users,
-            string uId)
-        {
-            _connection = connection;
-            _service = service;
-            _users = users;
-            _uId = uId;
-        }
 
         public int RunSequentialInsert(int rowCount)
         {
             var startId = _nextInsertId;
             var expectedCount = _rowCount + rowCount;
-            var count = _service.RunTest(_users, _uId, rowCount, startId, expectedCount);
+            var count = service.RunTest(users, uId, rowCount, startId, expectedCount);
             _nextInsertId += rowCount;
             _rowCount = expectedCount;
             return count;
@@ -1054,7 +967,7 @@ public abstract partial class BenchmarkSessionBase
         {
             var startId = _nextInsertId;
             var expectedCount = _rowCount + rowCount;
-            var count = _service.RunParallelTest(_users, _uId, rowCount, startId, expectedCount);
+            var count = service.RunParallelTest(users, uId, rowCount, startId, expectedCount);
             _nextInsertId += rowCount;
             _rowCount = expectedCount;
             return count;
@@ -1063,7 +976,7 @@ public abstract partial class BenchmarkSessionBase
         public int RunRowCountAfterInsert()
         {
             var id = _nextInsertId;
-            var affected = _service.RunRowCountAfterInsert(_users, _uId, id);
+            var affected = service.RunRowCountAfterInsert(users, uId, id);
             _nextInsertId += 1;
             _rowCount += 1;
             return affected;
@@ -1078,12 +991,12 @@ INSERT INTO {UsersTable} (
     Name
 )
 VALUES (
-    {_service.Dialect.Parameter("id")},
-    {_service.Dialect.Parameter("name")}
+    {service.Dialect.Parameter("id")},
+    {service.Dialect.Parameter("name")}
 )
 """;
 
-            var affected = ExecuteNonQuery(_connection, sql, command =>
+            var affected = ExecuteNonQuery(connection, sql, command =>
             {
                 AddParameter(command, "id", DbType.Int32, id);
                 AddParameter(command, "name", DbType.String, $"User {id}");
@@ -1098,12 +1011,12 @@ VALUES (
         {
             try
             {
-                _service.RunTest(_users, _uId, 3, 10, 3);
-                var firstName = Convert.ToString(ExecuteScalar(_connection, _service.Dialect.SelectUserNameById(UsersTable, 10)), CultureInfo.InvariantCulture) ?? string.Empty;
-                var lastName = Convert.ToString(ExecuteScalar(_connection, _service.Dialect.SelectUserNameById(UsersTable, 12)), CultureInfo.InvariantCulture) ?? string.Empty;
+                service.RunTest(users, uId, 3, 10, 3);
+                var firstName = Convert.ToString(ExecuteScalar(connection, service.Dialect.SelectUserNameById(UsersTable, 10)), CultureInfo.InvariantCulture) ?? string.Empty;
+                var lastName = Convert.ToString(ExecuteScalar(connection, service.Dialect.SelectUserNameById(UsersTable, 12)), CultureInfo.InvariantCulture) ?? string.Empty;
                 if (!string.Equals(firstName, "User-10", StringComparison.Ordinal) || !string.Equals(lastName, "User-12", StringComparison.Ordinal))
                 {
-                    throw new InvalidOperationException($"Unexpected custom-start insert benchmark result for {_service.Dialect.DisplayName}: {firstName}, {lastName}.");
+                    throw new InvalidOperationException($"Unexpected custom-start insert benchmark result for {service.Dialect.DisplayName}: {firstName}, {lastName}.");
                 }
 
                 return (firstName, lastName);
@@ -1112,7 +1025,7 @@ VALUES (
             {
                 try
                 {
-                    ExecuteNonQuery(_connection, _service.Dialect.DeleteUserById(UsersTable, 12));
+                    ExecuteNonQuery(connection, service.Dialect.DeleteUserById(UsersTable, 12));
                 }
                 catch
                 {
@@ -1121,7 +1034,7 @@ VALUES (
 
                 try
                 {
-                    ExecuteNonQuery(_connection, _service.Dialect.DeleteUserById(UsersTable, 11));
+                    ExecuteNonQuery(connection, service.Dialect.DeleteUserById(UsersTable, 11));
                 }
                 catch
                 {
@@ -1130,7 +1043,7 @@ VALUES (
 
                 try
                 {
-                    ExecuteNonQuery(_connection, _service.Dialect.DeleteUserById(UsersTable, 10));
+                    ExecuteNonQuery(connection, service.Dialect.DeleteUserById(UsersTable, 10));
                 }
                 catch
                 {
@@ -1139,7 +1052,7 @@ VALUES (
             }
         }
 
-        private string UsersTable => $"{_users}_{_uId}";
+        private string UsersTable => $"{users}_{uId}";
 
         private static void AddParameter(DbCommand command, string name, DbType dbType, object? value)
         {
@@ -1154,13 +1067,13 @@ VALUES (
         {
             try
             {
-                _service.DropScenario(_users, _uId);
+                service.DropScenario(users, uId);
             }
             catch
             {
                 try
                 {
-                    ExecuteNonQuery(_connection, _service.Dialect.DropTable(_users, _uId));
+                    ExecuteNonQuery(connection, service.Dialect.DropTable(users, uId));
                 }
                 catch
                 {
@@ -1169,46 +1082,33 @@ VALUES (
             }
             finally
             {
-                _connection.Dispose();
+                connection.Dispose();
             }
         }
     }
 
-    private sealed class PreparedCrudUsersState : IDisposable
+    private sealed class PreparedCrudUsersState(
+        DbConnection connection,
+        DmlMutationServiceTest<DbConnection> service,
+        ProviderSqlDialect dialect,
+        string users,
+        string uId) : IDisposable
     {
-        private readonly DmlMutationServiceTest<DbConnection> _service;
-        private readonly DbConnection _connection;
-        private readonly ProviderSqlDialect _dialect;
-        private readonly string _users;
-        private readonly string _uId;
+        private readonly ProviderSqlDialect _dialect = dialect;
 
-        public PreparedCrudUsersState(
-            DbConnection connection,
-            DmlMutationServiceTest<DbConnection> service,
-            ProviderSqlDialect dialect,
-            string users,
-            string uId)
-        {
-            _connection = connection;
-            _service = service;
-            _dialect = dialect;
-            _users = users;
-            _uId = uId;
-        }
-
-        private string UsersTable => $"{_users}_{_uId}";
+        private string UsersTable => $"{users}_{uId}";
 
         public string RunUpdateByPk()
         {
             try
             {
-                return _service.RunUpdateByPk(UsersTable);
+                return service.RunUpdateByPk(UsersTable);
             }
             finally
             {
                 try
                 {
-                    ExecuteNonQuery(_connection, _dialect.UpdateUserNameById(UsersTable, 1, "Alice"));
+                    ExecuteNonQuery(connection, _dialect.UpdateUserNameById(UsersTable, 1, "Alice"));
                 }
                 catch
                 {
@@ -1221,13 +1121,13 @@ VALUES (
         {
             try
             {
-                return _service.RunDeleteByPk(UsersTable);
+                return service.RunDeleteByPk(UsersTable);
             }
             finally
             {
                 try
                 {
-                    ExecuteNonQuery(_connection, _dialect.InsertUser(UsersTable, 1, "Alice"));
+                    ExecuteNonQuery(connection, _dialect.InsertUser(UsersTable, 1, "Alice"));
                 }
                 catch
                 {
@@ -1240,13 +1140,13 @@ VALUES (
         {
             try
             {
-                return _service.RunRowCountAfterUpdate(UsersTable);
+                return service.RunRowCountAfterUpdate(UsersTable);
             }
             finally
             {
                 try
                 {
-                    ExecuteNonQuery(_connection, _dialect.UpdateUserNameById(UsersTable, 1, "Alice"));
+                    ExecuteNonQuery(connection, _dialect.UpdateUserNameById(UsersTable, 1, "Alice"));
                 }
                 catch
                 {
@@ -1259,13 +1159,13 @@ VALUES (
         {
             try
             {
-                return _service.RunUpsert(UsersTable);
+                return service.RunUpsert(UsersTable);
             }
             finally
             {
                 try
                 {
-                    ExecuteNonQuery(_connection, _dialect.UpdateUserNameById(UsersTable, 1, "Alice"));
+                    ExecuteNonQuery(connection, _dialect.UpdateUserNameById(UsersTable, 1, "Alice"));
                 }
                 catch
                 {
@@ -1278,13 +1178,13 @@ VALUES (
         {
             try
             {
-                _service.DropScenario(_users, _uId);
+                service.DropScenario(users, uId);
             }
             catch
             {
                 try
                 {
-                    ExecuteNonQuery(_connection, _service.Dialect.DropTable(_users, _uId));
+                    ExecuteNonQuery(connection, service.Dialect.DropTable(users, uId));
                 }
                 catch
                 {
@@ -1293,46 +1193,33 @@ VALUES (
             }
             finally
             {
-                _connection.Dispose();
+                connection.Dispose();
             }
         }
     }
 
-    private sealed class PreparedTransactionUsersState : IDisposable
+    private sealed class PreparedTransactionUsersState(
+        DbConnection connection,
+        DmlMutationServiceTest<DbConnection> service,
+        ProviderSqlDialect dialect,
+        string users,
+        string uId) : IDisposable
     {
-        private readonly DmlMutationServiceTest<DbConnection> _service;
-        private readonly DbConnection _connection;
-        private readonly ProviderSqlDialect _dialect;
-        private readonly string _users;
-        private readonly string _uId;
+        private readonly ProviderSqlDialect _dialect = dialect;
 
-        public PreparedTransactionUsersState(
-            DbConnection connection,
-            DmlMutationServiceTest<DbConnection> service,
-            ProviderSqlDialect dialect,
-            string users,
-            string uId)
-        {
-            _connection = connection;
-            _service = service;
-            _dialect = dialect;
-            _users = users;
-            _uId = uId;
-        }
-
-        private string UsersTable => $"{_users}_{_uId}";
+        private string UsersTable => $"{users}_{uId}";
 
         public int RunTransactionCommit()
         {
             try
             {
-                return _service.RunTransactionCommit(UsersTable);
+                return service.RunTransactionCommit(UsersTable);
             }
             finally
             {
                 try
                 {
-                    ExecuteNonQuery(_connection, _dialect.DeleteUserById(UsersTable, 1));
+                    ExecuteNonQuery(connection, _dialect.DeleteUserById(UsersTable, 1));
                 }
                 catch
                 {
@@ -1342,19 +1229,19 @@ VALUES (
         }
 
         public int RunTransactionRollback()
-            => _service.RunTransactionRollback(UsersTable);
+            => service.RunTransactionRollback(UsersTable);
 
         public int RunRollbackToSavepoint()
         {
             try
             {
-                return _service.RunRollbackToSavepoint(UsersTable);
+                return service.RunRollbackToSavepoint(UsersTable);
             }
             finally
             {
                 try
                 {
-                    ExecuteNonQuery(_connection, _dialect.DeleteUserById(UsersTable, 1));
+                    ExecuteNonQuery(connection, _dialect.DeleteUserById(UsersTable, 1));
                 }
                 catch
                 {
@@ -1367,13 +1254,13 @@ VALUES (
         {
             try
             {
-                return _service.RunNestedSavepointFlow(UsersTable);
+                return service.RunNestedSavepointFlow(UsersTable);
             }
             finally
             {
                 try
                 {
-                    ExecuteNonQuery(_connection, _dialect.DeleteUserById(UsersTable, 2));
+                    ExecuteNonQuery(connection, _dialect.DeleteUserById(UsersTable, 2));
                 }
                 catch
                 {
@@ -1382,7 +1269,7 @@ VALUES (
 
                 try
                 {
-                    ExecuteNonQuery(_connection, _dialect.DeleteUserById(UsersTable, 1));
+                    ExecuteNonQuery(connection, _dialect.DeleteUserById(UsersTable, 1));
                 }
                 catch
                 {
@@ -1395,13 +1282,13 @@ VALUES (
         {
             try
             {
-                _service.DropScenario(_users, _uId);
+                service.DropScenario(users, uId);
             }
             catch
             {
                 try
                 {
-                    ExecuteNonQuery(_connection, _service.Dialect.DropTable(_users, _uId));
+                    ExecuteNonQuery(connection, service.Dialect.DropTable(users, uId));
                 }
                 catch
                 {
@@ -1410,31 +1297,22 @@ VALUES (
             }
             finally
             {
-                _connection.Dispose();
+                connection.Dispose();
             }
         }
     }
 
-    private sealed class PreparedNoopMutationState : IDisposable
+    private sealed class PreparedNoopMutationState(
+        DbConnection connection,
+        DmlMutationServiceTest<DbConnection> service) : IDisposable
     {
-        private readonly DmlMutationServiceTest<DbConnection> _service;
-        private readonly DbConnection _connection;
-
-        public PreparedNoopMutationState(
-            DbConnection connection,
-            DmlMutationServiceTest<DbConnection> service)
-        {
-            _connection = connection;
-            _service = service;
-        }
-
-        public DmlMutationServiceTest<DbConnection> Service => _service;
+        public DmlMutationServiceTest<DbConnection> Service => service;
 
         public void Dispose()
         {
             try
             {
-                _service.DropScenario();
+                service.DropScenario();
             }
             catch
             {
@@ -1442,31 +1320,22 @@ VALUES (
             }
             finally
             {
-                _connection.Dispose();
+                connection.Dispose();
             }
         }
     }
 
-    private sealed class PreparedNoopQueryState : IDisposable
+    private sealed class PreparedNoopQueryState(
+        DbConnection connection,
+        QueryServiceTest<DbConnection> service) : IDisposable
     {
-        private readonly QueryServiceTest<DbConnection> _service;
-        private readonly DbConnection _connection;
-
-        public PreparedNoopQueryState(
-            DbConnection connection,
-            QueryServiceTest<DbConnection> service)
-        {
-            _connection = connection;
-            _service = service;
-        }
-
-        public QueryServiceTest<DbConnection> Service => _service;
+        public QueryServiceTest<DbConnection> Service => service;
 
         public void Dispose()
         {
             try
             {
-                _service.DropScenario();
+                service.DropScenario();
             }
             catch
             {
@@ -1474,23 +1343,16 @@ VALUES (
             }
             finally
             {
-                _connection.Dispose();
+                connection.Dispose();
             }
         }
     }
 
-    private sealed class PreparedParameterProjectionState : IDisposable
+    private sealed class PreparedParameterProjectionState(
+        DbConnection connection,
+        ProviderSqlDialect dialect) : IDisposable
     {
-        private readonly DbConnection _connection;
-        private readonly ProviderSqlDialect _dialect;
-
-        public PreparedParameterProjectionState(
-            DbConnection connection,
-            ProviderSqlDialect dialect)
-        {
-            _connection = connection;
-            _dialect = dialect;
-        }
+        private readonly ProviderSqlDialect _dialect = dialect;
 
         public object? RunParameterProjection()
         {
@@ -1513,7 +1375,7 @@ VALUES (
     {_dialect.Parameter("dateValue")} AS DateValue,
     {_dialect.Parameter("currencyValue")} AS CurrencyValue");
 
-            return ExecuteScalar(_connection, sql, command =>
+            return ExecuteScalar(connection, sql, command =>
             {
                 AddParameter(command, "textValue", DbType.String, "benchmark");
                 AddParameter(command, "ansiTextValue", DbType.AnsiString, "ansi");
@@ -1546,28 +1408,19 @@ VALUES (
 
         public void Dispose()
         {
-            _connection.Dispose();
+            connection.Dispose();
         }
     }
 
-    private sealed class PreparedStoredProcedureState : IDisposable
+    private sealed class PreparedStoredProcedureState(
+        DbConnection connection,
+        string procedureName) : IDisposable
     {
-        private readonly DbConnection _connection;
-        private readonly string _procedureName;
-
-        public PreparedStoredProcedureState(
-            DbConnection connection,
-            string procedureName)
-        {
-            _connection = connection;
-            _procedureName = procedureName;
-        }
-
         public int RunStoredProcedureCall()
         {
-            using var command = _connection.CreateCommand();
+            using var command = connection.CreateCommand();
             command.CommandType = CommandType.StoredProcedure;
-            command.CommandText = _procedureName;
+            command.CommandText = procedureName;
 
             AddParameter(command, "tenantId", DbType.Int32, 10, ParameterDirection.Input);
             AddParameter(command, "note", DbType.String, "benchmark", ParameterDirection.Input);
@@ -1599,45 +1452,32 @@ VALUES (
 
         public void Dispose()
         {
-            _connection.Dispose();
+            connection.Dispose();
         }
     }
 
-    private sealed class PreparedReturningInsertState : IDisposable
+    private sealed class PreparedReturningInsertState(
+        DbConnection connection,
+        BatchServiceTest<DbConnection> service,
+        ProviderSqlDialect dialect,
+        string users,
+        string uId) : IDisposable
     {
-        private readonly BatchServiceTest<DbConnection> _service;
-        private readonly DbConnection _connection;
-        private readonly ProviderSqlDialect _dialect;
-        private readonly string _users;
-        private readonly string _uId;
+        private readonly ProviderSqlDialect _dialect = dialect;
 
-        public PreparedReturningInsertState(
-            DbConnection connection,
-            BatchServiceTest<DbConnection> service,
-            ProviderSqlDialect dialect,
-            string users,
-            string uId)
-        {
-            _connection = connection;
-            _service = service;
-            _dialect = dialect;
-            _users = users;
-            _uId = uId;
-        }
-
-        private string UsersTable => $"{_users}_{_uId}";
+        private string UsersTable => $"{users}_{uId}";
 
         public int RunReturningInsert()
         {
             try
             {
-                return _service.RunReturningInsert(UsersTable);
+                return service.RunReturningInsert(UsersTable);
             }
             finally
             {
                 try
                 {
-                    ExecuteNonQuery(_connection, _dialect.DeleteUserById(UsersTable, 1));
+                    ExecuteNonQuery(connection, _dialect.DeleteUserById(UsersTable, 1));
                 }
                 catch
                 {
@@ -1650,13 +1490,13 @@ VALUES (
         {
             try
             {
-                _service.DropScenario(_users, _uId);
+                service.DropScenario(users, uId);
             }
             catch
             {
                 try
                 {
-                    ExecuteNonQuery(_connection, _service.Dialect.DropTable(_users, _uId));
+                    ExecuteNonQuery(connection, service.Dialect.DropTable(users, uId));
                 }
                 catch
                 {
@@ -1665,41 +1505,30 @@ VALUES (
             }
             finally
             {
-                _connection.Dispose();
+                connection.Dispose();
             }
         }
     }
 
-    private sealed class PreparedSequenceState : IDisposable
+    private sealed class PreparedSequenceState(
+        DbConnection connection,
+        DmlMutationServiceTest<DbConnection> service,
+        string sequence) : IDisposable
     {
-        private readonly DmlMutationServiceTest<DbConnection> _service;
-        private readonly DbConnection _connection;
-        private readonly string _sequence;
-
-        public PreparedSequenceState(
-            DbConnection connection,
-            DmlMutationServiceTest<DbConnection> service,
-            string sequence)
-        {
-            _connection = connection;
-            _service = service;
-            _sequence = sequence;
-        }
-
         public object? RunSequenceNextValue()
-            => _service.RunSequenceNextValue(_sequence);
+            => service.RunSequenceNextValue(sequence);
 
         public void Dispose()
         {
             try
             {
-                _service.DropScenario(_sequence);
+                service.DropScenario(sequence);
             }
             catch
             {
                 try
                 {
-                    ExecuteNonQuery(_connection, _service.Dialect.DropSequence(_sequence));
+                    ExecuteNonQuery(connection, service.Dialect.DropSequence(sequence));
                 }
                 catch
                 {
@@ -1708,38 +1537,23 @@ VALUES (
             }
             finally
             {
-                _connection.Dispose();
+                connection.Dispose();
             }
         }
     }
 
-    private sealed class PreparedBatchUsersState : IDisposable
+    private sealed class PreparedBatchUsersState(
+        DbConnection connection,
+        BatchServiceTest<DbConnection> service,
+        ProviderSqlDialect dialect,
+        string users,
+        string uId) : IDisposable
     {
-        private readonly BatchServiceTest<DbConnection> _service;
-        private readonly DbConnection _connection;
-        private readonly ProviderSqlDialect _dialect;
-        private readonly string _users;
-        private readonly string _uId;
-        private readonly (int id, string name)[] _batch10Values;
-        private readonly (int id, string name)[] _batch100Values;
+        private readonly ProviderSqlDialect _dialect = dialect;
+        private readonly (int id, string name)[] _batch10Values = CreateBatchValues(10);
+        private readonly (int id, string name)[] _batch100Values = CreateBatchValues(100);
 
-        public PreparedBatchUsersState(
-            DbConnection connection,
-            BatchServiceTest<DbConnection> service,
-            ProviderSqlDialect dialect,
-            string users,
-            string uId)
-        {
-            _connection = connection;
-            _service = service;
-            _dialect = dialect;
-            _users = users;
-            _uId = uId;
-            _batch10Values = CreateBatchValues(10);
-            _batch100Values = CreateBatchValues(100);
-        }
-
-        private string UsersTable => $"{_users}_{_uId}";
+        private string UsersTable => $"{users}_{uId}";
 
         private static (int id, string name)[] CreateBatchValues(int rowCount)
         {
@@ -1754,11 +1568,11 @@ VALUES (
 
         public string RunBatchMixedReadWrite()
         {
-            using var transaction = _connection.BeginTransaction();
-            ExecuteNonQuery(_connection, _dialect.InsertUser(UsersTable, 1, "Alice"), transaction);
-            ExecuteNonQuery(_connection, _dialect.InsertUser(UsersTable, 2, "Bob"), transaction);
-            var value = Convert.ToString(ExecuteScalar(_connection, _dialect.SelectUserNameById(UsersTable, 1), transaction), CultureInfo.InvariantCulture);
-            ExecuteNonQuery(_connection, _dialect.UpdateUserNameById(UsersTable, 2, "Bob-v2"), transaction);
+            using var transaction = connection.BeginTransaction();
+            ExecuteNonQuery(connection, _dialect.InsertUser(UsersTable, 1, "Alice"), transaction);
+            ExecuteNonQuery(connection, _dialect.InsertUser(UsersTable, 2, "Bob"), transaction);
+            var value = Convert.ToString(ExecuteScalar(connection, _dialect.SelectUserNameById(UsersTable, 1), transaction), CultureInfo.InvariantCulture);
+            ExecuteNonQuery(connection, _dialect.UpdateUserNameById(UsersTable, 2, "Bob-v2"), transaction);
             transaction.Rollback();
 
             if (!string.Equals(value, "Alice", StringComparison.Ordinal))
@@ -1771,11 +1585,11 @@ VALUES (
 
         public string RunBatchScalar()
         {
-            using var transaction = _connection.BeginTransaction();
-            ExecuteNonQuery(_connection, _dialect.InsertUser(UsersTable, 1, "Alice"), transaction);
-            ExecuteNonQuery(_connection, _dialect.InsertUser(UsersTable, 2, "Bob"), transaction);
-            var count = Convert.ToInt32(ExecuteScalar(_connection, _dialect.CountRows(UsersTable), transaction), CultureInfo.InvariantCulture);
-            var second = Convert.ToString(ExecuteScalar(_connection, _dialect.SelectUserNameById(UsersTable, 2), transaction), CultureInfo.InvariantCulture);
+            using var transaction = connection.BeginTransaction();
+            ExecuteNonQuery(connection, _dialect.InsertUser(UsersTable, 1, "Alice"), transaction);
+            ExecuteNonQuery(connection, _dialect.InsertUser(UsersTable, 2, "Bob"), transaction);
+            var count = Convert.ToInt32(ExecuteScalar(connection, _dialect.CountRows(UsersTable), transaction), CultureInfo.InvariantCulture);
+            var second = Convert.ToString(ExecuteScalar(connection, _dialect.SelectUserNameById(UsersTable, 2), transaction), CultureInfo.InvariantCulture);
             transaction.Rollback();
 
             if (count != 2 || !string.Equals(second, "Bob", StringComparison.Ordinal))
@@ -1788,12 +1602,12 @@ VALUES (
 
         public int RunBatchNonQuery()
         {
-            using var transaction = _connection.BeginTransaction();
-            ExecuteNonQuery(_connection, _dialect.InsertUser(UsersTable, 1, "Alice"), transaction);
-            ExecuteNonQuery(_connection, _dialect.InsertUser(UsersTable, 2, "Bob"), transaction);
-            ExecuteNonQuery(_connection, _dialect.UpdateUserNameById(UsersTable, 2, "Bob-v2"), transaction);
-            ExecuteNonQuery(_connection, _dialect.DeleteUserById(UsersTable, 1), transaction);
-            var count = Convert.ToInt32(ExecuteScalar(_connection, _dialect.CountRows(UsersTable), transaction), CultureInfo.InvariantCulture);
+            using var transaction = connection.BeginTransaction();
+            ExecuteNonQuery(connection, _dialect.InsertUser(UsersTable, 1, "Alice"), transaction);
+            ExecuteNonQuery(connection, _dialect.InsertUser(UsersTable, 2, "Bob"), transaction);
+            ExecuteNonQuery(connection, _dialect.UpdateUserNameById(UsersTable, 2, "Bob-v2"), transaction);
+            ExecuteNonQuery(connection, _dialect.DeleteUserById(UsersTable, 1), transaction);
+            var count = Convert.ToInt32(ExecuteScalar(connection, _dialect.CountRows(UsersTable), transaction), CultureInfo.InvariantCulture);
             transaction.Rollback();
 
             if (count != 1)
@@ -1806,11 +1620,11 @@ VALUES (
 
         public object? RunBatchReaderMultiResult()
         {
-            using var transaction = _connection.BeginTransaction();
-            ExecuteNonQuery(_connection, _dialect.InsertUser(UsersTable, 1, "Alice"), transaction);
-            ExecuteNonQuery(_connection, _dialect.InsertUser(UsersTable, 2, "Bob"), transaction);
-            var first = Convert.ToInt32(ExecuteScalar(_connection, _dialect.CountRows(UsersTable), transaction), CultureInfo.InvariantCulture);
-            var second = ExecuteScalar(_connection, _dialect.SelectUserNameById(UsersTable, 1), transaction);
+            using var transaction = connection.BeginTransaction();
+            ExecuteNonQuery(connection, _dialect.InsertUser(UsersTable, 1, "Alice"), transaction);
+            ExecuteNonQuery(connection, _dialect.InsertUser(UsersTable, 2, "Bob"), transaction);
+            var first = Convert.ToInt32(ExecuteScalar(connection, _dialect.CountRows(UsersTable), transaction), CultureInfo.InvariantCulture);
+            var second = ExecuteScalar(connection, _dialect.SelectUserNameById(UsersTable, 1), transaction);
             transaction.Rollback();
 
             if (first != 2 || !string.Equals(Convert.ToString(second, CultureInfo.InvariantCulture), "Alice", StringComparison.Ordinal))
@@ -1825,10 +1639,10 @@ VALUES (
 
         public int RunBatchInsert(int rowCount)
         {
-            using var transaction = _connection.BeginTransaction();
+            using var transaction = connection.BeginTransaction();
             var values = rowCount == 10 ? _batch10Values : rowCount == 100 ? _batch100Values : CreateBatchValues(rowCount);
-            ExecuteNonQuery(_connection, _dialect.InsertUsers(UsersTable, values), transaction);
-            var count = Convert.ToInt32(ExecuteScalar(_connection, _dialect.CountRows(UsersTable), transaction), CultureInfo.InvariantCulture);
+            ExecuteNonQuery(connection, _dialect.InsertUsers(UsersTable, values), transaction);
+            var count = Convert.ToInt32(ExecuteScalar(connection, _dialect.CountRows(UsersTable), transaction), CultureInfo.InvariantCulture);
             transaction.Rollback();
 
             if (count != rowCount)
@@ -1841,11 +1655,11 @@ VALUES (
 
         public int RunRowCountInBatch()
         {
-            using var transaction = _connection.BeginTransaction();
-            ExecuteNonQuery(_connection, _dialect.InsertUser(UsersTable, 1, "Alice"), transaction);
-            ExecuteNonQuery(_connection, _dialect.InsertUser(UsersTable, 2, "Bob"), transaction);
+            using var transaction = connection.BeginTransaction();
+            ExecuteNonQuery(connection, _dialect.InsertUser(UsersTable, 1, "Alice"), transaction);
+            ExecuteNonQuery(connection, _dialect.InsertUser(UsersTable, 2, "Bob"), transaction);
 
-            var count = Convert.ToInt32(ExecuteScalar(_connection, _dialect.CountRows(UsersTable), transaction), CultureInfo.InvariantCulture);
+            var count = Convert.ToInt32(ExecuteScalar(connection, _dialect.CountRows(UsersTable), transaction), CultureInfo.InvariantCulture);
             transaction.Rollback();
 
             if (count != 2)
@@ -1858,15 +1672,15 @@ VALUES (
 
         public string RunBatchTransactionControl()
         {
-            using var transaction = _connection.BeginTransaction();
-            ExecuteNonQuery(_connection, _dialect.InsertUser(UsersTable, 1, "Alice"), transaction);
-            ExecuteNonQuery(_connection, _dialect.InsertUser(UsersTable, 2, "Bob"), transaction);
+            using var transaction = connection.BeginTransaction();
+            ExecuteNonQuery(connection, _dialect.InsertUser(UsersTable, 1, "Alice"), transaction);
+            ExecuteNonQuery(connection, _dialect.InsertUser(UsersTable, 2, "Bob"), transaction);
             transaction.Commit();
 
             try
             {
-                ExecuteNonQuery(_connection, _dialect.DeleteUserById(UsersTable, 1));
-                ExecuteNonQuery(_connection, _dialect.DeleteUserById(UsersTable, 2));
+                ExecuteNonQuery(connection, _dialect.DeleteUserById(UsersTable, 1));
+                ExecuteNonQuery(connection, _dialect.DeleteUserById(UsersTable, 2));
             }
             catch
             {
@@ -1881,13 +1695,13 @@ VALUES (
         {
             try
             {
-                _service.DropScenario(_users, _uId);
+                service.DropScenario(users, uId);
             }
             catch
             {
                 try
                 {
-                    ExecuteNonQuery(_connection, _service.Dialect.DropTable(_users, _uId));
+                    ExecuteNonQuery(connection, service.Dialect.DropTable(users, uId));
                 }
                 catch
                 {
@@ -1896,33 +1710,20 @@ VALUES (
             }
             finally
             {
-                _connection.Dispose();
+                connection.Dispose();
             }
         }
     }
 
-    private sealed class PreparedTemporaryTableSourceState : IDisposable
+    private sealed class PreparedTemporaryTableSourceState(
+        DbConnection connection,
+        TemporaryTableServiceTest<DbConnection> service,
+        string users,
+        string uId) : IDisposable
     {
-        private readonly TemporaryTableServiceTest<DbConnection> _service;
-        private readonly DbConnection _connection;
-        private readonly string _users;
-        private readonly string _uId;
-
-        public PreparedTemporaryTableSourceState(
-            DbConnection connection,
-            TemporaryTableServiceTest<DbConnection> service,
-            string users,
-            string uId)
-        {
-            _connection = connection;
-            _service = service;
-            _users = users;
-            _uId = uId;
-        }
-
         public List<int> RunCreateTemporaryTableAsSelectThenSelect()
         {
-            var rows = _service.RunCreateTemporaryTableAsSelectThenSelect(_users, _uId);
+            var rows = service.RunCreateTemporaryTableAsSelectThenSelect(users, uId);
             return rows;
         }
 
@@ -1930,13 +1731,13 @@ VALUES (
         {
             try
             {
-                _service.DropScenario(_users, _uId);
+                service.DropScenario(users, uId);
             }
             catch
             {
                 try
                 {
-                    ExecuteNonQuery(_connection, _service.Dialect.DropTable(_users, _uId));
+                    ExecuteNonQuery(connection, service.Dialect.DropTable(users, uId));
                 }
                 catch
                 {
@@ -1945,42 +1746,29 @@ VALUES (
             }
             finally
             {
-                _connection.Dispose();
+                connection.Dispose();
             }
         }
     }
 
-    private sealed class PreparedTemporaryUsersState : IDisposable
+    private sealed class PreparedTemporaryUsersState(
+        DbConnection connection,
+        TemporaryTableServiceTest<DbConnection> service,
+        ProviderSqlDialect dialect,
+        Func<DbConnection> secondaryConnectionFactory,
+        string users) : IDisposable
     {
-        private readonly TemporaryTableServiceTest<DbConnection> _service;
-        private readonly DbConnection _connection;
-        private readonly ProviderSqlDialect _dialect;
-        private readonly Func<DbConnection> _secondaryConnectionFactory;
-        private readonly string _users;
-
-        public PreparedTemporaryUsersState(
-            DbConnection connection,
-            TemporaryTableServiceTest<DbConnection> service,
-            ProviderSqlDialect dialect,
-            Func<DbConnection> secondaryConnectionFactory,
-            string users)
-        {
-            _connection = connection;
-            _service = service;
-            _dialect = dialect;
-            _secondaryConnectionFactory = secondaryConnectionFactory;
-            _users = users;
-        }
+        private readonly ProviderSqlDialect _dialect = dialect;
 
         public void RunTempTableRollback()
         {
-            var usersTable = _dialect.TemporaryUsersTableName(_users);
-            using var tx = _connection.BeginTransaction();
-            ExecuteNonQuery(_connection, $"INSERT INTO {usersTable} (Id, Name) VALUES (1, 'Alice')", tx);
-            ExecuteNonQuery(_connection, $"INSERT INTO {usersTable} (Id, Name) VALUES (2, 'Bob')", tx);
+            var usersTable = _dialect.TemporaryUsersTableName(users);
+            using var tx = connection.BeginTransaction();
+            ExecuteNonQuery(connection, $"INSERT INTO {usersTable} (Id, Name) VALUES (1, 'Alice')", tx);
+            ExecuteNonQuery(connection, $"INSERT INTO {usersTable} (Id, Name) VALUES (2, 'Bob')", tx);
             tx.Rollback();
 
-            var count = Convert.ToInt32(ExecuteScalar(_connection, $"SELECT COUNT(*) FROM {usersTable}"), CultureInfo.InvariantCulture);
+            var count = Convert.ToInt32(ExecuteScalar(connection, $"SELECT COUNT(*) FROM {usersTable}"), CultureInfo.InvariantCulture);
             if (count != 0)
             {
                 throw new InvalidOperationException($"Unexpected temporary-table rollback rowcount for {_dialect.DisplayName}: {count}.");
@@ -1989,11 +1777,11 @@ VALUES (
 
         public int RunTemporaryTableCrossConnectionIsolation()
         {
-            var usersTable = _dialect.TemporaryUsersTableName(_users);
-            using var tx = _connection.BeginTransaction();
-            ExecuteNonQuery(_connection, $"INSERT INTO {usersTable} (Id, Name) VALUES (1, 'Alice')", tx);
+            var usersTable = _dialect.TemporaryUsersTableName(users);
+            using var tx = connection.BeginTransaction();
+            ExecuteNonQuery(connection, $"INSERT INTO {usersTable} (Id, Name) VALUES (1, 'Alice')", tx);
 
-            using var secondaryConnection = _secondaryConnectionFactory();
+            using var secondaryConnection = secondaryConnectionFactory();
             secondaryConnection.Open();
 
             try
@@ -2039,13 +1827,13 @@ VALUES (
         {
             try
             {
-                _service.DropScenario(_users);
+                service.DropScenario(users);
             }
             catch
             {
                 try
                 {
-                    ExecuteNonQuery(_connection, _service.Dialect.DropTemporaryUsersTable(_users));
+                    ExecuteNonQuery(connection, service.Dialect.DropTemporaryUsersTable(users));
                 }
                 catch
                 {
@@ -2054,67 +1842,45 @@ VALUES (
             }
             finally
             {
-                _connection.Dispose();
+                connection.Dispose();
             }
         }
     }
 
-    private sealed class PreparedSchemaSnapshotState : IDisposable
+    private sealed class PreparedSchemaSnapshotState(
+        DbConnection connection,
+        SchemaSnapshotServiceTest<DbConnection> service) : IDisposable
     {
-        private readonly DbConnection _connection;
-        private readonly SchemaSnapshotServiceTest<DbConnection> _service;
+        public DbConnection Connection => connection;
 
-        public PreparedSchemaSnapshotState(
-            DbConnection connection,
-            SchemaSnapshotServiceTest<DbConnection> service)
-        {
-            _connection = connection;
-            _service = service;
-        }
-
-        public DbConnection Connection => _connection;
-
-        public SchemaSnapshotServiceTest<DbConnection> Service => _service;
+        public SchemaSnapshotServiceTest<DbConnection> Service => service;
 
         public void Dispose()
         {
-            _connection.Dispose();
+            connection.Dispose();
         }
     }
 
-    private sealed class PreparedUsersQueryState : IDisposable
+    private sealed class PreparedUsersQueryState(
+        DbConnection connection,
+        QueryServiceTest<DbConnection> service,
+        string users,
+        string uId) : IDisposable
     {
-        private readonly QueryServiceTest<DbConnection> _service;
-        private readonly DbConnection _connection;
-        private readonly string _users;
-        private readonly string _uId;
+        public DbConnection Connection => connection;
 
-        public DbConnection Connection => _connection;
+        public QueryServiceTest<DbConnection> Service => service;
 
-        public PreparedUsersQueryState(
-            DbConnection connection,
-            QueryServiceTest<DbConnection> service,
-            string users,
-            string uId)
-        {
-            _connection = connection;
-            _service = service;
-            _users = users;
-            _uId = uId;
-        }
+        public string Users => users;
 
-        public QueryServiceTest<DbConnection> Service => _service;
+        public string UId => uId;
 
-        public string Users => _users;
-
-        public string UId => _uId;
-
-        public string UsersTable => $"{_users}_{_uId}";
+        public string UsersTable => $"{users}_{uId}";
 
         public int RunBetweenLikeOrderByMatrix()
         {
             var count = CountReaderRows(
-                _connection,
+                connection,
                 $"""
 SELECT Name
 FROM {UsersTable}
@@ -2124,7 +1890,7 @@ ORDER BY Name
 """);
             if (count != 2)
             {
-                throw new InvalidOperationException($"Unexpected BETWEEN/LIKE/ORDER BY benchmark rowcount for {_service.Dialect.DisplayName}: {count}.");
+                throw new InvalidOperationException($"Unexpected BETWEEN/LIKE/ORDER BY benchmark rowcount for {service.Dialect.DisplayName}: {count}.");
             }
 
             return count;
@@ -2134,13 +1900,13 @@ ORDER BY Name
         {
             try
             {
-                _service.DropScenario(_users, _uId);
+                service.DropScenario(users, uId);
             }
             catch
             {
                 try
                 {
-                    ExecuteNonQuery(_connection, _service.Dialect.DropTable(_users, _uId));
+                    ExecuteNonQuery(connection, service.Dialect.DropTable(users, uId));
                 }
                 catch
                 {
@@ -2149,53 +1915,38 @@ ORDER BY Name
             }
             finally
             {
-                _connection.Dispose();
+                connection.Dispose();
             }
         }
     }
 
-    private sealed class PreparedUsersOrdersQueryState : IDisposable
+    private sealed class PreparedUsersOrdersQueryState(
+        DbConnection connection,
+        QueryServiceTest<DbConnection> service,
+        string users,
+        string orders,
+        string uId) : IDisposable
     {
-        private readonly QueryServiceTest<DbConnection> _service;
-        private readonly DbConnection _connection;
-        private readonly string _users;
-        private readonly string _orders;
-        private readonly string _uId;
+        public QueryServiceTest<DbConnection> Service => service;
 
-        public PreparedUsersOrdersQueryState(
-            DbConnection connection,
-            QueryServiceTest<DbConnection> service,
-            string users,
-            string orders,
-            string uId)
-        {
-            _connection = connection;
-            _service = service;
-            _users = users;
-            _orders = orders;
-            _uId = uId;
-        }
+        public string Users => users;
 
-        public QueryServiceTest<DbConnection> Service => _service;
+        public string Orders => orders;
 
-        public string Users => _users;
+        public string UId => uId;
 
-        public string Orders => _orders;
+        public string UsersTable => $"{users}_{uId}";
 
-        public string UId => _uId;
-
-        public string UsersTable => $"{_users}_{_uId}";
-
-        public string OrdersTable => $"{_orders}_{_uId}";
+        public string OrdersTable => $"{orders}_{uId}";
 
         public int RunSelectLeftJoinAntiJoin()
         {
             var count = Convert.ToInt32(
-                ExecuteScalar(_connection, _service.Dialect.SelectLeftJoinAntiJoin(UsersTable, OrdersTable)),
+                ExecuteScalar(connection, service.Dialect.SelectLeftJoinAntiJoin(UsersTable, OrdersTable)),
                 CultureInfo.InvariantCulture);
             if (count != 1)
             {
-                throw new InvalidOperationException($"Unexpected LEFT JOIN anti-join benchmark count for {_service.Dialect.DisplayName}: {count}.");
+                throw new InvalidOperationException($"Unexpected LEFT JOIN anti-join benchmark count for {service.Dialect.DisplayName}: {count}.");
             }
 
             return count;
@@ -2205,13 +1956,13 @@ ORDER BY Name
         {
             try
             {
-                _service.DropScenario(_users, _orders, _uId);
+                service.DropScenario(users, orders, uId);
             }
             catch
             {
                 try
                 {
-                    ExecuteNonQuery(_connection, _service.Dialect.DropTable(_orders, _uId));
+                    ExecuteNonQuery(connection, service.Dialect.DropTable(orders, uId));
                 }
                 catch
                 {
@@ -2220,7 +1971,7 @@ ORDER BY Name
 
                 try
                 {
-                    ExecuteNonQuery(_connection, _service.Dialect.DropTable(_users, _uId));
+                    ExecuteNonQuery(connection, service.Dialect.DropTable(users, uId));
                 }
                 catch
                 {
@@ -2229,45 +1980,32 @@ ORDER BY Name
             }
             finally
             {
-                _connection.Dispose();
+                connection.Dispose();
             }
         }
     }
 
-    private sealed class PreparedExecutionPlanState : IDisposable
+    private sealed class PreparedExecutionPlanState(
+        DbConnection connection,
+        ExecutionPlanServiceTest<DbConnection> service,
+        string users,
+        string uId) : IDisposable
     {
-        private readonly ExecutionPlanServiceTest<DbConnection> _service;
-        private readonly DbConnection _connection;
-        private readonly string _users;
-        private readonly string _uId;
+        public ExecutionPlanServiceTest<DbConnection> Service => service;
 
-        public PreparedExecutionPlanState(
-            DbConnection connection,
-            ExecutionPlanServiceTest<DbConnection> service,
-            string users,
-            string uId)
-        {
-            _connection = connection;
-            _service = service;
-            _users = users;
-            _uId = uId;
-        }
-
-        public ExecutionPlanServiceTest<DbConnection> Service => _service;
-
-        public string UsersTable => $"{_users}_{_uId}";
+        public string UsersTable => $"{users}_{uId}";
 
         public void Dispose()
         {
             try
             {
-                _service.DropScenario(_users, _uId);
+                service.DropScenario(users, uId);
             }
             catch
             {
                 try
                 {
-                    ExecuteNonQuery(_connection, _service.Dialect.DropTable(_users, _uId));
+                    ExecuteNonQuery(connection, service.Dialect.DropTable(users, uId));
                 }
                 catch
                 {
@@ -2276,50 +2014,35 @@ ORDER BY Name
             }
             finally
             {
-                _connection.Dispose();
+                connection.Dispose();
             }
         }
     }
 
-    private sealed class PreparedExecutionPlanJoinState : IDisposable
+    private sealed class PreparedExecutionPlanJoinState(
+        DbConnection connection,
+        ExecutionPlanServiceTest<DbConnection> service,
+        string users,
+        string orders,
+        string uId) : IDisposable
     {
-        private readonly ExecutionPlanServiceTest<DbConnection> _service;
-        private readonly DbConnection _connection;
-        private readonly string _users;
-        private readonly string _orders;
-        private readonly string _uId;
+        public ExecutionPlanServiceTest<DbConnection> Service => service;
 
-        public PreparedExecutionPlanJoinState(
-            DbConnection connection,
-            ExecutionPlanServiceTest<DbConnection> service,
-            string users,
-            string orders,
-            string uId)
-        {
-            _connection = connection;
-            _service = service;
-            _users = users;
-            _orders = orders;
-            _uId = uId;
-        }
+        public string UsersTable => $"{users}_{uId}";
 
-        public ExecutionPlanServiceTest<DbConnection> Service => _service;
-
-        public string UsersTable => $"{_users}_{_uId}";
-
-        public string OrdersTable => $"{_orders}_{_uId}";
+        public string OrdersTable => $"{orders}_{uId}";
 
         public void Dispose()
         {
             try
             {
-                _service.DropScenario(_users, _orders, _uId);
+                service.DropScenario(users, orders, uId);
             }
             catch
             {
                 try
                 {
-                    ExecuteNonQuery(_connection, _service.Dialect.DropTable(_orders, _uId));
+                    ExecuteNonQuery(connection, service.Dialect.DropTable(orders, uId));
                 }
                 catch
                 {
@@ -2328,7 +2051,7 @@ ORDER BY Name
 
                 try
                 {
-                    ExecuteNonQuery(_connection, _service.Dialect.DropTable(_users, _uId));
+                    ExecuteNonQuery(connection, service.Dialect.DropTable(users, uId));
                 }
                 catch
                 {
@@ -2337,34 +2060,22 @@ ORDER BY Name
             }
             finally
             {
-                _connection.Dispose();
+                connection.Dispose();
             }
         }
     }
 
-    private sealed class PreparedExecutionPlanDmlState : IDisposable
+    private sealed class PreparedExecutionPlanDmlState(
+        DbConnection connection,
+        ExecutionPlanServiceTest<DbConnection> service,
+        string users,
+        string uId) : IDisposable
     {
-        private readonly ExecutionPlanServiceTest<DbConnection> _service;
-        private readonly DbConnection _connection;
-        private readonly string _users;
-        private readonly string _uId;
         private int _nextInsertId = 1;
-
-        public PreparedExecutionPlanDmlState(
-            DbConnection connection,
-            ExecutionPlanServiceTest<DbConnection> service,
-            string users,
-            string uId)
-        {
-            _connection = connection;
-            _service = service;
-            _users = users;
-            _uId = uId;
-        }
 
         public object? RunExecutionPlanDml()
         {
-            var value = _service.RunExecutionPlanDml($"{_users}_{_uId}", _nextInsertId);
+            var value = service.RunExecutionPlanDml($"{users}_{uId}", _nextInsertId);
             _nextInsertId += 1;
             return value;
         }
@@ -2373,13 +2084,13 @@ ORDER BY Name
         {
             try
             {
-                _service.DropScenario(_users, _uId);
+                service.DropScenario(users, uId);
             }
             catch
             {
                 try
                 {
-                    ExecuteNonQuery(_connection, _service.Dialect.DropTable(_users, _uId));
+                    ExecuteNonQuery(connection, service.Dialect.DropTable(users, uId));
                 }
                 catch
                 {
@@ -2388,45 +2099,32 @@ ORDER BY Name
             }
             finally
             {
-                _connection.Dispose();
+                connection.Dispose();
             }
         }
     }
 
-    private sealed class PreparedDebugTraceSelectState : IDisposable
+    private sealed class PreparedDebugTraceSelectState(
+        DbConnection connection,
+        DebugTraceServiceTest<DbConnection> service,
+        string users,
+        string uId) : IDisposable
     {
-        private readonly DebugTraceServiceTest<DbConnection> _service;
-        private readonly DbConnection _connection;
-        private readonly string _users;
-        private readonly string _uId;
+        public DebugTraceServiceTest<DbConnection> Service => service;
 
-        public PreparedDebugTraceSelectState(
-            DbConnection connection,
-            DebugTraceServiceTest<DbConnection> service,
-            string users,
-            string uId)
-        {
-            _connection = connection;
-            _service = service;
-            _users = users;
-            _uId = uId;
-        }
-
-        public DebugTraceServiceTest<DbConnection> Service => _service;
-
-        public string UsersTable => $"{_users}_{_uId}";
+        public string UsersTable => $"{users}_{uId}";
 
         public void Dispose()
         {
             try
             {
-                _service.DropScenario(_users, _uId);
+                service.DropScenario(users, uId);
             }
             catch
             {
                 try
                 {
-                    ExecuteNonQuery(_connection, _service.Dialect.DropTable(_users, _uId));
+                    ExecuteNonQuery(connection, service.Dialect.DropTable(users, uId));
                 }
                 catch
                 {
@@ -2435,35 +2133,23 @@ ORDER BY Name
             }
             finally
             {
-                _connection.Dispose();
+                connection.Dispose();
             }
         }
     }
 
-    private sealed class PreparedDebugTraceBatchState : IDisposable
+    private sealed class PreparedDebugTraceBatchState(
+        DbConnection connection,
+        DebugTraceServiceTest<DbConnection> service,
+        string users,
+        string uId) : IDisposable
     {
-        private readonly DebugTraceServiceTest<DbConnection> _service;
-        private readonly DbConnection _connection;
-        private readonly string _users;
-        private readonly string _uId;
         private int _nextInsertId = 1;
-
-        public PreparedDebugTraceBatchState(
-            DbConnection connection,
-            DebugTraceServiceTest<DbConnection> service,
-            string users,
-            string uId)
-        {
-            _connection = connection;
-            _service = service;
-            _users = users;
-            _uId = uId;
-        }
 
         public object? RunDebugTraceBatch()
         {
-            var usersTable = $"{_users}_{_uId}";
-            var trace = _service.RunDebugTraceBatch(usersTable, _nextInsertId, _nextInsertId + 1);
+            var usersTable = $"{users}_{uId}";
+            var trace = service.RunDebugTraceBatch(usersTable, _nextInsertId, _nextInsertId + 1);
             _nextInsertId += 2;
             return trace;
         }
@@ -2472,13 +2158,13 @@ ORDER BY Name
         {
             try
             {
-                _service.DropScenario(_users, _uId);
+                service.DropScenario(users, uId);
             }
             catch
             {
                 try
                 {
-                    ExecuteNonQuery(_connection, _service.Dialect.DropTable(_users, _uId));
+                    ExecuteNonQuery(connection, service.Dialect.DropTable(users, uId));
                 }
                 catch
                 {
@@ -2487,7 +2173,7 @@ ORDER BY Name
             }
             finally
             {
-                _connection.Dispose();
+                connection.Dispose();
             }
         }
     }

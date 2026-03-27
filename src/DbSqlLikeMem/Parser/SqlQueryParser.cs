@@ -152,7 +152,7 @@ internal sealed class SqlQueryParser
             var (preludeTokens, autoSyntaxFeatures) = GetPrelude(sql, dialect);
             var first = preludeTokens.Count > 0 ? preludeTokens[0] : default;
             if (IsWord(first, SqlConst.MERGE) && !dialect.SupportsMerge)
-                throw SqlUnsupported.ForMerge(dialect);
+                throw SqlUnsupported.NotSupportedMerge(dialect);
 
             if (customFunctionSupported is not null)
             {
@@ -215,7 +215,7 @@ internal sealed class SqlQueryParser
         switch (parsed)
         {
             case SqlMergeQuery when !dialect.SupportsMerge:
-                throw SqlUnsupported.ForMerge(dialect);
+                throw SqlUnsupported.NotSupportedMerge(dialect);
             case SqlSelectQuery select:
                 EnsureSelectDialectSupport(select, dialect);
                 break;
@@ -239,12 +239,12 @@ internal sealed class SqlQueryParser
     private static void EnsureSelectDialectSupport(SqlSelectQuery select, ISqlDialect dialect)
     {
         if (select.Ctes.Count > 0 && !dialect.SupportsWithCte)
-            throw SqlUnsupported.ForDialect(dialect, SqlConst.WITH_CTE);
+            throw SqlUnsupported.NotSupported(dialect, SqlConst.WITH_CTE);
 
         EnsureRowLimitDialectSupport(select.RowLimit, dialect);
 
         if (select.ForJson is not null && !dialect.SupportsForJsonClause)
-            throw SqlUnsupported.ForDialect(dialect, SqlConst.FOR_JSON);
+            throw SqlUnsupported.NotSupported(dialect, SqlConst.FOR_JSON);
 
         if (select.Table?.Derived is not null)
             EnsureSelectDialectSupport(select.Table.Derived, dialect);
@@ -263,12 +263,12 @@ internal sealed class SqlQueryParser
             if (fetch.Offset != null)
             {
                 if (!dialect.SupportsOffsetFetch)
-                    throw SqlUnsupported.ForPagination(dialect, SqlConst.OFFSET_FETCH);
+                    throw SqlUnsupported.NotSupportedPagination(dialect, SqlConst.OFFSET_FETCH);
                 return;
             }
 
             if (!dialect.SupportsFetchFirst)
-                throw SqlUnsupported.ForPagination(dialect, SqlConst.FETCH_FIRST_NEXT);
+                throw SqlUnsupported.NotSupportedPagination(dialect, SqlConst.FETCH_FIRST_NEXT);
         }
     }
 
@@ -304,12 +304,12 @@ internal sealed class SqlQueryParser
             // Para MySQL, MERGE simplesmente não existe (é sintaxe inválida para o dialeto).
             // Os testes de corpus esperam ThrowInvalid aqui, não NotSupported.
             if (!dialect.SupportsMerge)
-                throw SqlUnsupported.ForMerge(dialect);
+                throw SqlUnsupported.NotSupportedMerge(dialect);
 
             result = q.ParseMerge();
         }
         else
-            throw SqlUnsupported.ForUnknownTopLevelStatement(dialect, first.Text);
+            throw SqlUnsupported.NotSupportedUnknownTopLevelStatement(dialect, first.Text);
 
         return result;
     }
@@ -803,7 +803,7 @@ internal sealed class SqlQueryParser
         while (_ctx.IsWord(SqlConst.SQL_CALC_FOUND_ROWS))
         {
             if (!_dialect.SupportsSqlCalcFoundRowsModifier)
-                throw SqlUnsupported.ForDialect(_dialect, "SELECT modifier SQL_CALC_FOUND_ROWS");
+                throw SqlUnsupported.NotSupported(_dialect, "SELECT modifier SQL_CALC_FOUND_ROWS");
 
             _ctx.Consume();
         }

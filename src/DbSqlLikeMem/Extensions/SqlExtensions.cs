@@ -64,17 +64,17 @@ internal static class SqlExtensions
     }
 
     internal static bool Like(
-        this string input,
-        string pattern,
-        QueryExecutionContext context,
+        this QueryExecutionContext context,
+        string? input,
+        string? pattern,
         string? escape = null,
         bool? forceCaseInsensitive = null)
-        => Like(input, pattern, context.Dialect, escape, forceCaseInsensitive);
+        => Like(context.Dialect,input, pattern,  escape, forceCaseInsensitive);
 
     internal static bool Like(
-        this string input,
-        string pattern,
-        ISqlDialect dialect,
+        this ISqlDialect dialect,
+        string? input,
+        string? pattern,
         string? escape = null,
         bool? forceCaseInsensitive = null)
     {
@@ -122,12 +122,12 @@ internal static class SqlExtensions
         string pattern,
         QueryExecutionContext context,
         string? escape = null)
-        => PatIndex(input, pattern, context.Dialect, escape);
+        => context.Dialect.PatIndex(input, pattern, escape);
 
     internal static int PatIndex(
-        this string input,
+        this ISqlDialect dialect,
+        string input,
         string pattern,
-        ISqlDialect dialect,
         string? escape = null)
     {
         input ??= "";
@@ -142,7 +142,7 @@ internal static class SqlExtensions
 
         for (var i = 0; i < input.Length; i++)
         {
-            if (input[i..].Like(searchPattern, dialect, escape))
+            if (dialect.Like(input[i..],searchPattern, escape))
                 return i + 1;
         }
 
@@ -150,7 +150,7 @@ internal static class SqlExtensions
     }
 
     private static char? ResolveLikeEscapeCharacter(
-        ISqlDialect dialect,
+        this ISqlDialect dialect,
         string? explicitEscape)
     {
         if (explicitEscape is not null)
@@ -165,7 +165,8 @@ internal static class SqlExtensions
         return dialect.LikeDefaultEscapeCharacter;
     }
 
-    private static void AppendRegexLiteral(StringBuilder sb, char ch)
+    private static void AppendRegexLiteral(
+        this StringBuilder sb, char ch)
     {
         if ("\\.^$|?*+()[]{}".Contains($"{ch}", StringComparison.OrdinalIgnoreCase))
             sb.Append('\\');
@@ -191,14 +192,19 @@ internal static class SqlExtensions
         return pattern[index..];
     }
 
-    internal static int Compare(this object a, object b, QueryExecutionContext context)
-        => Compare(a, b, context.Dialect);
+    internal static int Compare(this QueryExecutionContext context, object? a, object? b)
+        => context.Dialect.Compare(a, b);
 
     internal static int Compare(this object a, object b)
-        => Compare(a, b, new SqlExtensionsDefaultDialect());
+        => new SqlExtensionsDefaultDialect().Compare(a, b);
 
-    internal static int Compare(this object a, object b, ISqlDialect dialect)
+    internal static int Compare(this ISqlDialect dialect, object? a, object? b)
     {
+        if(a is null || a is DBNull)
+            return b is null || b is DBNull ? 0 : -1;
+        if(b is null || b is DBNull)
+            return 1;
+
         if (a is byte[] ba && b is byte[] bb)
             return CompareBinary(ba, bb);
 

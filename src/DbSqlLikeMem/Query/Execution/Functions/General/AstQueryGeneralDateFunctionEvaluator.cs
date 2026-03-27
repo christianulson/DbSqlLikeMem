@@ -5,13 +5,13 @@ internal static class AstQueryGeneralDateFunctionEvaluator
     private static readonly Dictionary<string, AstQueryGeneralScalarFunctionHandler> _handlers = CreateHandlers();
 
     internal static bool TryEvaluate(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler(fn, context, evalArg, out result);
+            return handler( context,fn, evalArg, out result);
 
         result = null;
         return false;
@@ -46,8 +46,8 @@ internal static class AstQueryGeneralDateFunctionEvaluator
     }
 
     private static bool TryEvalDateConstructionFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -94,8 +94,8 @@ internal static class AstQueryGeneralDateFunctionEvaluator
     }
 
     private static bool TryEvalStrftimeFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -200,8 +200,8 @@ internal static class AstQueryGeneralDateFunctionEvaluator
     }
 
     private static bool TryEvalMakeDateFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -237,8 +237,8 @@ internal static class AstQueryGeneralDateFunctionEvaluator
     }
 
     private static bool TryEvalMakeTimeFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -274,8 +274,8 @@ internal static class AstQueryGeneralDateFunctionEvaluator
     }
 
     private static bool TryEvalMicrosecondFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -305,8 +305,8 @@ internal static class AstQueryGeneralDateFunctionEvaluator
     }
 
     private static bool TryEvalMonthNameFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -322,8 +322,8 @@ internal static class AstQueryGeneralDateFunctionEvaluator
     }
 
     private static bool TryEvalPeriodFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -391,8 +391,8 @@ internal static class AstQueryGeneralDateFunctionEvaluator
     }
 
     private static bool TryEvalQuarterFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -408,8 +408,8 @@ internal static class AstQueryGeneralDateFunctionEvaluator
     }
 
     private static bool TryEvalSecToTimeFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -434,8 +434,8 @@ internal static class AstQueryGeneralDateFunctionEvaluator
     }
 
     private static bool TryEvalJulianDayFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -457,8 +457,8 @@ internal static class AstQueryGeneralDateFunctionEvaluator
     }
 
     private static bool TryEvalTruncFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {

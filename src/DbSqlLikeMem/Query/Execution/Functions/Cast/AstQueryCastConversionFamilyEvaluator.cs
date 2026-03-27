@@ -12,20 +12,20 @@ internal delegate bool AstQueryTryEvalJsonAccessShimFunction(
     out object? result);
 
 internal delegate bool AstQueryTryEvalJsonExtractionFunction(
-    FunctionCallExpr fn,
     QueryExecutionContext context,
+    FunctionCallExpr fn,
     Func<int, object?> evalArg,
     out object? result);
 
 internal delegate bool AstQueryTryEvalSqlServerJsonModifyFunction(
-    FunctionCallExpr fn,
     QueryExecutionContext context,
+    FunctionCallExpr fn,
     Func<int, object?> evalArg,
     out object? result);
 
 internal delegate bool AstQueryTryEvalOpenJsonFunction(
-    FunctionCallExpr fn,
     QueryExecutionContext context,
+    FunctionCallExpr fn,
     Func<int, object?> evalArg,
     out object? result);
 
@@ -74,13 +74,13 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
         if (_tryEvalJsonAccessShimFunction(fn, evalArg, out result))
             return true;
 
-        if (_tryEvalJsonExtractionFunction(fn, context, evalArg, out result))
+        if (_tryEvalJsonExtractionFunction(context, fn, evalArg, out result))
             return true;
 
-        if (_tryEvalSqlServerJsonModifyFunction(fn, context, evalArg, out result))
+        if (_tryEvalSqlServerJsonModifyFunction(context, fn, evalArg, out result))
             return true;
 
-        if (_tryEvalOpenJsonFunction(fn, context, evalArg, out result))
+        if (_tryEvalOpenJsonFunction(context, fn, evalArg, out result))
             return true;
 
         if (_tryEvalJsonUnquoteFunction(fn, evalArg, out result))
@@ -89,19 +89,19 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
         if (_tryEvalToNumberFunction(fn, evalArg, out result))
             return true;
 
-        if (TryEvalTryCastFunction(fn, context, evalArg, out result))
+        if (TryEvalTryCastFunction(context, fn, evalArg, out result))
             return true;
 
-        if (TryEvalTryConvertFunction(fn, context, evalArg, out result))
+        if (TryEvalTryConvertFunction(context, fn, evalArg, out result))
             return true;
 
-        if (TryEvalParseFunction(fn, context, evalArg, out result))
+        if (TryEvalParseFunction(context, fn, evalArg, out result))
             return true;
 
-        if (TryEvalTryParseFunction(fn, context, evalArg, out result))
+        if (TryEvalTryParseFunction(context, fn, evalArg, out result))
             return true;
 
-        if (TryEvalCastFunction(fn, context, evalArg, out result))
+        if (TryEvalCastFunction(context, fn, evalArg, out result))
             return true;
 
         result = null;
@@ -109,71 +109,71 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
     }
 
     private static bool TryEvalTryCastFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (!context.Dialect.SupportsTryCastFunction)
-            throw SqlUnsupported.ForDialect(context.Dialect, "TRY_CAST");
+            throw SqlUnsupported.NotSupported(context.Dialect, "TRY_CAST");
 
-        result = EvalTryCast(fn, context, evalArg);
+        result = EvalTryCast(context, fn, evalArg);
         return true;
     }
 
     private static bool TryEvalTryConvertFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (!context.Dialect.SupportsTryConvertFunction)
-            throw SqlUnsupported.ForDialect(context.Dialect, "TRY_CONVERT");
+            throw SqlUnsupported.NotSupported(context.Dialect, "TRY_CONVERT");
 
-        result = EvalTryCast(fn, context, evalArg);
+        result = EvalTryCast(context, fn, evalArg);
         return true;
     }
 
     private static bool TryEvalParseFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (!context.Dialect.SupportsParseFunction)
-            throw SqlUnsupported.ForDialect(context.Dialect, "PARSE");
+            throw SqlUnsupported.NotSupported(context.Dialect, "PARSE");
 
-        result = EvalParseFunction(fn, context, evalArg, swallowErrors: false);
+        result = EvalParseFunction(context, fn, evalArg, swallowErrors: false);
         return true;
     }
 
     private static bool TryEvalTryParseFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (!context.Dialect.SupportsTryParseFunction)
-            throw SqlUnsupported.ForDialect(context.Dialect, "TRY_PARSE");
+            throw SqlUnsupported.NotSupported(context.Dialect, "TRY_PARSE");
 
-        result = EvalParseFunction(fn, context, evalArg, swallowErrors: true);
+        result = EvalParseFunction(context, fn, evalArg, swallowErrors: true);
         return true;
     }
 
     private static bool TryEvalCastFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = context;
-        result = EvalCast(fn, context, evalArg);
+        result = EvalCast(context, fn, evalArg);
         return true;
     }
 
     private static object? EvalTryCast(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg)
     {
         if (fn.Args.Count < 2)
@@ -233,8 +233,8 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
     }
 
     private static object? EvalParseFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         bool swallowErrors)
     {
@@ -299,8 +299,8 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
     }
 
     private static object? EvalCast(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg)
     {
         if (fn.Args.Count < 2)

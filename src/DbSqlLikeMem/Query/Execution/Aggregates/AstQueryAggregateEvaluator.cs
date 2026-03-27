@@ -1,5 +1,5 @@
-using static DbSqlLikeMem.AstQueryGeneralScalarFunctionEvaluator;
 using static DbSqlLikeMem.AstQueryExecutorBase;
+using static DbSqlLikeMem.AstQueryGeneralScalarFunctionEvaluator;
 
 namespace DbSqlLikeMem;
 
@@ -16,7 +16,7 @@ internal static class AstQueryAggregateEvaluator
 
         var parsed = parseExpr(exprRaw);
         if (parsed is FunctionCallExpr fn
-            && fn.Name.Equals("COUNT", StringComparison.OrdinalIgnoreCase)
+            && fn.Name.Equals(SqlConst.COUNT, StringComparison.OrdinalIgnoreCase)
             && fn.Args.Count == 1)
         {
             countArg = fn.Args[0];
@@ -24,7 +24,7 @@ internal static class AstQueryAggregateEvaluator
         }
 
         if (parsed is CallExpr call
-            && call.Name.Equals("COUNT", StringComparison.OrdinalIgnoreCase)
+            && call.Name.Equals(SqlConst.COUNT, StringComparison.OrdinalIgnoreCase)
             && call.Args.Count == 1)
         {
             countArg = call.Args[0];
@@ -56,7 +56,7 @@ internal static class AstQueryAggregateEvaluator
         if (expr is not CallExpr parsedCall)
             return false;
 
-        if (parsedCall.Name is not ("GROUP_CONCAT" or "STRING_AGG" or "LISTAGG"))
+        if (parsedCall.Name is not (SqlConst.GROUP_CONCAT or SqlConst.STRING_AGG or SqlConst.LISTAGG))
             return false;
 
         if (parsedCall.WithinGroupOrderBy is not null)
@@ -67,10 +67,10 @@ internal static class AstQueryAggregateEvaluator
     }
 
     internal static object? EvalAggregate(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
         EvalGroup group,
         IDictionary<string, Source> ctes,
-        ISqlDialect dialect,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
     {
         var name = fn.Name.ToUpperInvariant();
@@ -78,22 +78,35 @@ internal static class AstQueryAggregateEvaluator
         if (TryEvalAggregateCount(fn, group, ctes, eval, name, out var countValue))
             return countValue;
 
-        if (name is "JSON_GROUP_OBJECT" or "JSON_OBJECTAGG")
+        if (name is SqlConst.JSON_GROUP_OBJECT or SqlConst.JSON_OBJECTAGG)
         {
-            if (name == "JSON_OBJECTAGG"
-                && !dialect.TryGetScalarFunctionDefinition(name, out _))
+            if (name == SqlConst.JSON_OBJECTAGG
+                && !context.Dialect.TryGetScalarFunctionDefinition(name, out _))
             {
-                throw SqlUnsupported.ForDialect(dialect, name);
+                throw context.NotSupported(name);
             }
 
             return EvalJsonGroupObjectAggregate(fn, group, ctes, eval);
         }
 
-        if (name is "JSON_OBJECT_AGG" or "JSON_OBJECT_AGG_STRICT" or "JSON_OBJECT_AGG_UNIQUE" or "JSON_OBJECT_AGG_UNIQUE_STRICT"
-            or "JSONB_OBJECT_AGG" or "JSONB_OBJECT_AGG_STRICT" or "JSONB_OBJECT_AGG_UNIQUE" or "JSONB_OBJECT_AGG_UNIQUE_STRICT")
+        if (name is SqlConst.JSON_OBJECT_AGG 
+            or SqlConst.JSON_OBJECT_AGG_STRICT
+            or SqlConst.JSON_OBJECT_AGG_UNIQUE
+            or SqlConst.JSON_OBJECT_AGG_UNIQUE_STRICT
+            or SqlConst.JSONB_OBJECT_AGG
+            or SqlConst.JSONB_OBJECT_AGG_STRICT
+            or SqlConst.JSONB_OBJECT_AGG_UNIQUE
+            or SqlConst.JSONB_OBJECT_AGG_UNIQUE_STRICT)
             return EvalJsonGroupObjectAggregate(fn, group, ctes, eval);
 
-        if (name is "CORR" or "CORR_K" or "CORR_S" or "COVAR_POP" or "COVAR_SAMP" or "COVARIANCE" or "COVARIANCE_SAMP" or "CORRELATION")
+        if (name is "CORR"
+            or "CORR_K"
+            or "CORR_S"
+            or "COVAR_POP"
+            or "COVAR_SAMP"
+            or "COVARIANCE"
+            or "COVARIANCE_SAMP"
+            or "CORRELATION")
         {
             var normalized = name switch
             {
@@ -113,7 +126,7 @@ internal static class AstQueryAggregateEvaluator
             var definition = fn.ResolvedScalarFunction;
             if (definition is null || !definition.AllowsCall)
             {
-                throw SqlUnsupported.ForDialect(dialect, name);
+                throw context.NotSupported( name);
             }
 
             return EvalApproxAggregate(fn, group, ctes, eval, name);
@@ -136,24 +149,24 @@ internal static class AstQueryAggregateEvaluator
 
         if (name is "MEDIAN" or "PERCENTILE" or "PERCENTILE_CONT" or "PERCENTILE_DISC")
         {
-            if (!dialect.SupportsSqlServerAggregateFunction(name))
+            if (!context.Dialect.SupportsSqlServerAggregateFunction(name))
             {
-                throw SqlUnsupported.ForDialect(dialect, name);
+                throw context.NotSupported( name);
             }
 
             return EvalPercentileAggregate(fn, group, ctes, eval, name);
         }
 
-        if (name is "CHECKSUM_AGG")
+        if (name is SqlConst.CHECKSUM_AGG)
         {
             if (!(fn.ResolvedScalarFunction?.AllowsCall
-                ?? (dialect.TryGetScalarFunctionDefinition(fn, out var checksumDefinition)
+                ?? (context.Dialect.TryGetScalarFunctionDefinition(fn, out var checksumDefinition)
                     && checksumDefinition is not null
                     && checksumDefinition.AllowsCall)))
-                throw SqlUnsupported.ForDialect(dialect, name);
+                throw context.NotSupported( name);
         }
 
-        if (name is "GROUP_CONCAT" or "STRING_AGG" or "LISTAGG")
+        if (name is SqlConst.GROUP_CONCAT or SqlConst.STRING_AGG or SqlConst.LISTAGG)
         {
             var separator = GetAggregateSeparator(fn, group, ctes, eval);
             var defaultSeparator = GetStringAggregateDefaultSeparator(name) ?? string.Empty;
@@ -165,22 +178,22 @@ internal static class AstQueryAggregateEvaluator
             return null;
 
         if (values.Count == 0)
-            return name == "TOTAL" ? 0d : null;
+            return name == SqlConst.TOTAL ? 0d : null;
 
         return EvalCollectedAggregateValues(fn, group, ctes, eval, name, values);
     }
 
     internal static object? EvalAggregate(
+        this QueryExecutionContext context,
         CallExpr fn,
         EvalGroup group,
         IDictionary<string, Source> ctes,
-        ISqlDialect dialect,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
     {
         var shim = fn.ResolvedScalarFunction is not null
             ? new FunctionCallExpr(fn.Name, fn.Args).BindScalarFunctionDefinition(fn.ResolvedScalarFunction)
             : new FunctionCallExpr(fn.Name, fn.Args);
-        return EvalAggregate(shim, group, ctes, dialect, eval);
+        return context.EvalAggregate(shim, group, ctes, eval);
     }
 
     private static object? EvalCollectedAggregateValues(
@@ -194,36 +207,36 @@ internal static class AstQueryAggregateEvaluator
         var separator = GetAggregateSeparator(fn, group, ctes, eval);
         return name switch
         {
-            "SUM" => AggregateNumericValues(values, AggregateNumericOperation.Sum),
-            "AVG" => AggregateNumericValues(values, AggregateNumericOperation.Average),
-            "MIN" => AggregateNumericValues(values, AggregateNumericOperation.Min),
-            "MAX" => AggregateNumericValues(values, AggregateNumericOperation.Max),
-            "CHECKSUM_AGG" => AggregateChecksumValues(values, binary: false),
-            "GROUP_CONCAT" => EvalStringAggregate(values, separator, ","),
-            "STRING_AGG" => EvalStringAggregate(values, separator, ","),
-            "LISTAGG" => EvalStringAggregate(values, separator, string.Empty),
-            "ANY_VALUE" => AggregateAnyValue(values),
-            "BIT_AND" => AggregateBitwiseValues(values, BitwiseAggregateOperation.And),
-            "BIT_OR" => AggregateBitwiseValues(values, BitwiseAggregateOperation.Or),
-            "BIT_XOR" => AggregateBitwiseValues(values, BitwiseAggregateOperation.Xor),
-            "JSON_ARRAYAGG" => EvalJsonArrayAggregate(values),
-            "JSON_AGG" => EvalJsonArrayAggregate(values),
-            "JSONB_AGG" => EvalJsonArrayAggregate(values),
-            "ARRAY_AGG" => AggregateCollect(values),
-            "BOOL_AND" => AggregateBoolValues(values, useAnd: true),
-            "EVERY" => AggregateBoolValues(values, useAnd: true),
-            "BOOL_OR" => AggregateBoolValues(values, useAnd: false),
-            "COLLECT" => AggregateCollect(values),
-            "TOTAL" => AggregateTotal(values),
-            "STDEV" => AggregateVariance(values, sample: true) is double stdev ? Math.Sqrt(stdev) : null,
-            "STDEVP" => AggregateVariance(values, sample: false) is double stdevp ? Math.Sqrt(stdevp) : null,
-            "VAR" => AggregateVariance(values, sample: true),
-            "VARP" => AggregateVariance(values, sample: false),
-            "VAR_POP" => AggregateVariance(values, sample: false),
-            "VARIANCE" => AggregateVariance(values, sample: false),
-            "VARIANCE_SAMP" => AggregateVariance(values, sample: true),
-            "VAR_SAMP" => AggregateVariance(values, sample: true),
-            "CV" => AggregateCoefficientOfVariation(values),
+            SqlConst.SUM => AggregateNumericValues(values, AggregateNumericOperation.Sum),
+            SqlConst.AVG => AggregateNumericValues(values, AggregateNumericOperation.Average),
+            SqlConst.MIN => AggregateNumericValues(values, AggregateNumericOperation.Min),
+            SqlConst.MAX => AggregateNumericValues(values, AggregateNumericOperation.Max),
+            SqlConst.CHECKSUM_AGG => AggregateChecksumValues(values, binary: false),
+            SqlConst.GROUP_CONCAT => EvalStringAggregate(values, separator, ","),
+            SqlConst.STRING_AGG => EvalStringAggregate(values, separator, ","),
+            SqlConst.LISTAGG => EvalStringAggregate(values, separator, string.Empty),
+            SqlConst.ANY_VALUE => AggregateAnyValue(values),
+            SqlConst.BIT_AND => AggregateBitwiseValues(values, BitwiseAggregateOperation.And),
+            SqlConst.BIT_OR => AggregateBitwiseValues(values, BitwiseAggregateOperation.Or),
+            SqlConst.BIT_XOR => AggregateBitwiseValues(values, BitwiseAggregateOperation.Xor),
+            SqlConst.JSON_ARRAYAGG => EvalJsonArrayAggregate(values),
+            SqlConst.JSON_AGG => EvalJsonArrayAggregate(values),
+            SqlConst.JSONB_AGG => EvalJsonArrayAggregate(values),
+            SqlConst.ARRAY_AGG => AggregateCollect(values),
+            SqlConst.BOOL_AND => AggregateBoolValues(values, useAnd: true),
+            SqlConst.EVERY => AggregateBoolValues(values, useAnd: true),
+            SqlConst.BOOL_OR => AggregateBoolValues(values, useAnd: false),
+            SqlConst.COLLECT => AggregateCollect(values),
+            SqlConst.TOTAL => AggregateTotal(values),
+            SqlConst.STDEV => AggregateVariance(values, sample: true) is double stdev ? Math.Sqrt(stdev) : null,
+            SqlConst.STDEVP => AggregateVariance(values, sample: false) is double stdevp ? Math.Sqrt(stdevp) : null,
+            SqlConst.VAR => AggregateVariance(values, sample: true),
+            SqlConst.VARP => AggregateVariance(values, sample: false),
+            SqlConst.VAR_POP => AggregateVariance(values, sample: false),
+            SqlConst.VARIANCE => AggregateVariance(values, sample: false),
+            SqlConst.VARIANCE_SAMP => AggregateVariance(values, sample: true),
+            SqlConst.VAR_SAMP => AggregateVariance(values, sample: true),
+            SqlConst.CV => AggregateCoefficientOfVariation(values),
             _ => null
         };
     }
@@ -888,19 +901,10 @@ internal static class AstQueryAggregateEvaluator
     }
 
     private static string? GetStringAggregateDefaultSeparator(string name)
-        => name == "LISTAGG" ? string.Empty : ",";
+        => name == SqlConst.LISTAGG ? string.Empty : ",";
 
     private static object? GetAggregateSeparator(
         FunctionCallExpr fn,
-        EvalGroup group,
-        IDictionary<string, Source> ctes,
-        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
-        => fn.Args.Count > 1 && group.Rows.Count > 0
-            ? eval(fn.Args[1], group.Rows[0], null, ctes)
-            : null;
-
-    private static object? GetAggregateSeparator(
-        CallExpr fn,
         EvalGroup group,
         IDictionary<string, Source> ctes,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
@@ -957,7 +961,7 @@ internal static class AstQueryAggregateEvaluator
         string name,
         out object? value)
     {
-        if (name != "COUNT" && name != "COUNT_BIG")
+        if (name != SqlConst.COUNT && name != SqlConst.COUNT_BIG)
         {
             value = null;
             return false;

@@ -12,7 +12,7 @@ internal static class SqlTableHintsHelper
             if (ctx.IsWord( SqlConst.WITH) && SqlQueryParserContext.IsSymbol(ctx.Peek(1), "("))
             {
                 if (!ctx.Dialect.SupportsSqlServerTableHints)
-                    throw SqlUnsupported.ForDialect(ctx.Dialect, "WITH(table hints)");
+                    throw ctx.NotSupported("WITH(table hints)");
 
                 ctx.Consume(); // WITH
                 _ = ctx.ReadBalancedParenRawTokens();
@@ -31,7 +31,7 @@ internal static class SqlTableHintsHelper
             if (ctx.IsWord( SqlConst.USE) || ctx.IsWord( SqlConst.IGNORE) || ctx.IsWord( SqlConst.FORCE))
             {
                 if (!ctx.Dialect.SupportsMySqlIndexHints)
-                    throw SqlUnsupported.ForDialect(ctx.Dialect, "INDEX hints");
+                    throw ctx.NotSupported("INDEX hints");
 
                 mySqlHints.Add(ctx.ConsumeMySqlIndexHint());
                 continue;

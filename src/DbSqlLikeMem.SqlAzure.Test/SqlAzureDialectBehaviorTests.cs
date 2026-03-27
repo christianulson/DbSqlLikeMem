@@ -197,7 +197,7 @@ public sealed class SqlAzureDialectBehaviorTests(
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2017)
         {
             var ex = Assert.Throws<NotSupportedException>(command.ExecuteReader);
-            Assert.Contains("STRING_AGG", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.STRING_AGG, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -661,10 +661,10 @@ public sealed class SqlAzureDialectBehaviorTests(
             Assert.False(reader.Read());
         }
 
-        AssertPivotAggregate(connection, "STDEV", Math.Sqrt(2d), Math.Sqrt(8d));
-        AssertPivotAggregate(connection, "STDEVP", 1d, 2d);
-        AssertPivotAggregate(connection, "VAR", 2d, 8d);
-        AssertPivotAggregate(connection, "VARP", 1d, 4d);
+        AssertPivotAggregate(connection, SqlConst.STDEV, Math.Sqrt(2d), Math.Sqrt(8d));
+        AssertPivotAggregate(connection, SqlConst.STDEVP, 1d, 2d);
+        AssertPivotAggregate(connection, SqlConst.VAR, 2d, 8d);
+        AssertPivotAggregate(connection, SqlConst.VARP, 1d, 4d);
     }
 
     /// <summary>

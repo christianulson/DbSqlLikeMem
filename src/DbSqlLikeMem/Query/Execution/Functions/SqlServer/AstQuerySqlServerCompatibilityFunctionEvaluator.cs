@@ -33,22 +33,22 @@ internal sealed class AstQuerySqlServerCompatibilityFunctionEvaluator(
         resolveTemporalUnit ?? throw new ArgumentNullException(nameof(resolveTemporalUnit));
 
     internal bool TryEvaluate(
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (AstQueryGeneralScalarFunctionEvaluator.TryEvalNumericFunction(fn, context, evalArg, out result)
-            || _sqlServerUtilityFunctionEvaluator.TryEvalCurrentUserFunction(fn, context, out result)
+        if (context.TryEvalNumericFunction(fn, evalArg, out result)
+            || _sqlServerUtilityFunctionEvaluator.TryEvalCurrentUserFunction(context, fn, out result)
             || _sqlServerUtilityFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result))
         {
             return true;
         }
 
-        SqlServerFunctionSupportHelper.EnsureSupport(fn, context);
+        context.EnsureSupport(fn);
 
         if (_sqlServerSessionFunctionEvaluator.TryEvaluate(fn, evalArg, out result))
             return true;
@@ -56,11 +56,11 @@ internal sealed class AstQuerySqlServerCompatibilityFunctionEvaluator(
         if (_sqlServerDatabaseFunctionEvaluator.TryEvaluate(fn, evalArg, out result)
             || _sqlServerIdentityFunctionEvaluator.TryEvaluate(fn, evalArg, out result)
             || _sqlServerUtilityFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)
-            || AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)
+            || context.TryEvaluateSqlServerDateConstructionFunction(fn, evalArg, out result)
             || AstQueryTemporalAccessorFunctionEvaluator.TryEvaluate(fn, row, group, ctes, evalArg, _getTemporalUnit, _resolveTemporalUnit, out result)
-            || AstQueryDb2DateFunctionEvaluator.TryEvaluate(fn, context, evalArg, _resolveTemporalUnit, out result)
-            || AstQueryGeneralScalarFunctionEvaluator.TryEvalDegreesFunction(fn, context, evalArg, out result)
-            || AstQueryTemporalArithmeticFunctionEvaluator.TryEvaluate(fn, context, row, group, ctes, evalArg, _eval, _getTemporalUnit, out result))
+            || context.TryEvaluateDb2DateFunction(fn, evalArg, _resolveTemporalUnit, out result)
+            || AstQueryGeneralScalarFunctionEvaluator.TryEvalDegreesFunction(context, fn, evalArg, out result)
+            || context.TryEvaluate(fn, row, group, ctes, evalArg, _eval, _getTemporalUnit, out result))
         {
             return true;
         }
@@ -71,13 +71,13 @@ internal sealed class AstQuerySqlServerCompatibilityFunctionEvaluator(
                     && eomonthDefinition is not null
                     && eomonthDefinition.AllowsCall)))
         {
-            throw SqlUnsupported.ForDialect(context.Dialect, "EOMONTH");
+            throw SqlUnsupported.NotSupported(context.Dialect, "EOMONTH");
         }
 
-        if (AstQueryGeneralDateArithmeticFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)
-            || AstQueryGeneralScalarFunctionEvaluator.TryEvalDifferenceFunction(fn, context, evalArg, out result)
-            || AstQueryGeneralScalarFunctionEvaluator.TryEvalExpFunction(fn, context, evalArg, out result)
-            || AstQueryGeneralScalarFunctionEvaluator.TryEvalFloorFunction(fn, context, evalArg, out result)
+        if (AstQueryGeneralDateArithmeticFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result)
+            || AstQueryGeneralScalarFunctionEvaluator.TryEvalDifferenceFunction(context, fn, evalArg, out result)
+            || AstQueryGeneralScalarFunctionEvaluator.TryEvalExpFunction(context, fn, evalArg, out result)
+            || AstQueryGeneralScalarFunctionEvaluator.TryEvalFloorFunction(context, fn, evalArg, out result)
             || _sqlServerUtilityFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result))
         {
             return true;

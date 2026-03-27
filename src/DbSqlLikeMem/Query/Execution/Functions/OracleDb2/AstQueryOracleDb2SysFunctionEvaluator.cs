@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem;
 
 internal delegate bool AstQueryTryEvalOracleDb2SysFunction(
-    FunctionCallExpr fn,
     QueryExecutionContext context,
+    FunctionCallExpr fn,
     Func<int, object?> evalArg,
     out object? result);
 
@@ -12,8 +12,8 @@ internal static class AstQueryOracleDb2SysFunctionEvaluator
         CreateHandlers();
 
     internal static bool TryEvaluate(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -23,8 +23,8 @@ internal static class AstQueryOracleDb2SysFunctionEvaluator
             return false;
         }
 
-        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, fn.Name);
-        return handler(fn, context, evalArg, out result);
+        context.EnsureOracleDb2FunctionSupported(fn.Name);
+        return handler(context, fn, evalArg, out result);
     }
 
     private static Dictionary<string, AstQueryTryEvalOracleDb2SysFunction> CreateHandlers()
@@ -53,8 +53,8 @@ internal static class AstQueryOracleDb2SysFunctionEvaluator
     }
 
     private static bool TryEvalSysGuidFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -66,8 +66,8 @@ internal static class AstQueryOracleDb2SysFunctionEvaluator
     }
 
     private static bool TryEvalSysExtractUtcFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -102,8 +102,8 @@ internal static class AstQueryOracleDb2SysFunctionEvaluator
     }
 
     private static bool TryEvalSysContextFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -128,8 +128,8 @@ internal static class AstQueryOracleDb2SysFunctionEvaluator
     }
 
     private static bool TryEvalUnsupportedSysFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {

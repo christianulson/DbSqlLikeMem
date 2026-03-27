@@ -39,13 +39,13 @@ internal static class QueryTextSearchFunctionHelper
     }
 
     public static bool TryEvalMatchAgainstFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (!context.Dialect.SupportsMatchAgainstPredicate)
-            throw SqlUnsupported.ForDialect(context.Dialect, "MATCH ... AGAINST full-text predicate");
+            throw SqlUnsupported.NotSupported(context.Dialect, "MATCH ... AGAINST full-text predicate");
 
         if (fn.Args.Count < 2)
         {

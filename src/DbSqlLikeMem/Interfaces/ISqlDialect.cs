@@ -1,4 +1,6 @@
-﻿namespace DbSqlLikeMem;
+using DbSqlLikeMem.Dialect;
+
+namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Defines escape rules and behavior for a SQL dialect.
@@ -17,13 +19,7 @@ internal interface ISqlDialect
     /// EN: Gets the scalar function registry supported by this dialect.
     /// PT: Obtém o registry de funcoes escalares suportadas por este dialeto.
     /// </summary>
-    IDictionaryProcess<DbScalarFunctionDef> ScalarFunctions { get; }
-
-    /// <summary>
-    /// EN: Gets the table-valued function registry supported by this dialect.
-    /// PT: Obtém o registry de funções de tabela suportadas por este dialeto.
-    /// </summary>
-    IDictionaryProcess<DbTableFunctionDef> TableFunctions { get; }
+    FunctionDictionaryProcess Functions { get; }
 
     /// <summary>
     /// EN: Gets the stored procedure registry supported by this dialect.
@@ -31,11 +27,16 @@ internal interface ISqlDialect
     /// </summary>
     IDictionaryProcess<ProcedureDef> Procedures { get; }
 
-    /// <summary>
-    /// EN: Gets the window function registry supported by this dialect.
-    /// PT: Obtém o registry de funções de janela suportadas por este dialeto.
-    /// </summary>
-    IDictionaryProcess<DbWindowFunctionDef> WindowFunctions { get; }
+    bool TryGetScalarFunctionDefinition(string functionName, out DbFunctionDef? definition);
+    bool TryGetScalarFunctionDefinition(FunctionCallExpr functionCall, out DbFunctionDef? definition);
+    bool TryGetScalarFunctionDefinition(CallExpr functionCall, out DbFunctionDef? definition);
+    bool TryGetTableFunctionDefinition(string functionName, out DbFunctionDef? definition);
+    bool TryGetTableFunctionDefinition(FunctionCallExpr functionCall, out DbFunctionDef? definition);
+    bool TryGetWindowFunctionDefinition(string functionName, out DbFunctionDef? definition);
+    bool TryGetWindowFunctionDefinition(WindowFunctionExpr windowFunction, out DbFunctionDef? definition);
+    bool TryGetTemporalFunctionKind(string functionName, out SqlTemporalFunctionKind kind);
+    bool AllowsTemporalIdentifier(string functionName);
+    bool AllowsTemporalCall(string functionName);
 
     // Identifier quoting
     bool AllowsBacktickIdentifiers { get; }

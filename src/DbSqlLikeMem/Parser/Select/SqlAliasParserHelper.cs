@@ -163,7 +163,7 @@ internal static class SqlAliasParserHelper
             || (aliasRaw[0] == '[' && !options.AllowBracket)
             || (aliasRaw[0] == '"' && !options.AllowDqIdent && !options.DqIsString))
         {
-            throw SqlUnsupported.ForDialect(dialect, $"Identificador/alias quoting: '{aliasRaw[0]}'");
+            throw SqlUnsupported.NotSupported(dialect, $"Identificador/alias quoting: '{aliasRaw[0]}'");
         }
     }
 
@@ -373,13 +373,13 @@ internal static class SqlAliasParserHelper
         aliasRaw = aliasRaw.Trim();
 
         if (aliasRaw.StartsWith("`") && !allowBacktick)
-            throw SqlUnsupported.ForDialect(dialect, "alias/identificadores com '`'");
+            throw SqlUnsupported.NotSupported(dialect, "alias/identificadores com '`'");
 
         if (aliasRaw.StartsWith("[") && !allowBracket)
-            throw SqlUnsupported.ForDialect(dialect, "alias/identificadores com '['");
+            throw SqlUnsupported.NotSupported(dialect, "alias/identificadores com '['");
 
         if (aliasRaw.StartsWith("\"") && !allowDqIdent && !dqIsString)
-            throw SqlUnsupported.ForDialect(dialect, "alias/identificadores com '\"'");
+            throw SqlUnsupported.NotSupported(dialect, "alias/identificadores com '\"'");
 
         if (allowBacktick && aliasRaw.Length >= 2 && aliasRaw[0] == '`' && aliasRaw[^1] == '`')
         {

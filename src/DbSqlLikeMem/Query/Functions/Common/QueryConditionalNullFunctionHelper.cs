@@ -3,26 +3,26 @@ namespace DbSqlLikeMem;
 internal static class QueryConditionalNullFunctionHelper
 {
     private delegate bool ConditionalNullFunctionHandler(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result);
 
     private static readonly Dictionary<string, ConditionalNullFunctionHandler> _handlers = CreateHandlers();
 
     public static bool TryEvalConditionalAndNullFunctions(
-        FunctionCallExpr fn, 
-        QueryExecutionContext context,
+        this QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler)
-            && handler(fn, context, evalArg, out result))
+            && handler(context, fn, evalArg, out result))
         {
             return true;
         }
 
-        return TryEvalNullSubstituteFunction(fn, context, evalArg, out result);
+        return TryEvalNullSubstituteFunction(context, fn, evalArg, out result);
     }
 
     private static Dictionary<string, ConditionalNullFunctionHandler> CreateHandlers()
@@ -46,8 +46,8 @@ internal static class QueryConditionalNullFunctionHelper
     }
 
     private static bool TryEvalIfFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -63,8 +63,8 @@ internal static class QueryConditionalNullFunctionHelper
     }
 
     private static bool TryEvalIifFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -81,8 +81,8 @@ internal static class QueryConditionalNullFunctionHelper
     }
 
     private static bool TryEvalNullSubstituteFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -108,8 +108,8 @@ internal static class QueryConditionalNullFunctionHelper
     }
 
     private static bool TryEvalNvl2Function(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -122,8 +122,8 @@ internal static class QueryConditionalNullFunctionHelper
     }
 
     private static bool TryEvalDecodeFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -179,8 +179,8 @@ internal static class QueryConditionalNullFunctionHelper
     }
 
     private static bool TryEvalCoalesceFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -199,8 +199,8 @@ internal static class QueryConditionalNullFunctionHelper
     }
 
     private static bool TryEvalNullIfFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -212,7 +212,7 @@ internal static class QueryConditionalNullFunctionHelper
             return true;
         }
 
-        result = left!.Compare(right!, context) == 0 ? null : left;
+        result =context.Compare(left, right) == 0 ? null : left;
         return true;
     }
 

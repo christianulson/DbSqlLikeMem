@@ -12,7 +12,7 @@ internal static class SqlPaginationHelper
         if (ctx.IsWord(SqlConst.LIMIT))
         {
             if (!dialect.SupportsLimitOffset && !dialect.AllowsParserLimitOffsetCompatibility)
-                throw SqlUnsupported.ForPagination(dialect, SqlConst.LIMIT);
+                throw SqlUnsupported.NotSupportedPagination(dialect, SqlConst.LIMIT);
 
             ctx.Consume();
             var a = ctx.ExpectRowLimitExpr();
@@ -33,9 +33,9 @@ internal static class SqlPaginationHelper
         if (ctx.IsWord(SqlConst.OFFSET))
         {
             if (!dialect.SupportsOffsetFetch)
-                throw SqlUnsupported.ForPagination(dialect, SqlConst.OFFSET_FETCH);
+                throw SqlUnsupported.NotSupportedPagination(dialect, SqlConst.OFFSET_FETCH);
             if (dialect.RequiresOrderByForOffsetFetch && !hasOrderBy)
-                throw SqlUnsupported.ForOffsetFetchRequiresOrderBy(dialect);
+                throw SqlUnsupported.NotSupportedOffsetFetchRequiresOrderBy(dialect);
 
             ctx.Consume();
             var offset = ctx.ExpectRowLimitExpr();
@@ -66,7 +66,7 @@ internal static class SqlPaginationHelper
         if (ctx.IsWord(SqlConst.FETCH))
         {
             if (!dialect.SupportsFetchFirst)
-                throw SqlUnsupported.ForPagination(dialect, SqlConst.FETCH_FIRST_NEXT);
+                throw SqlUnsupported.NotSupportedPagination(dialect, SqlConst.FETCH_FIRST_NEXT);
 
             ctx.Consume();
             if (ctx.IsWord(SqlConst.NEXT) || ctx.IsWord(SqlConst.FIRST))

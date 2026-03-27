@@ -157,21 +157,21 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
     }
 
     internal static bool TryEvaluate(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler(fn, context, evalArg, out result);
+            return handler(context, fn, evalArg, out result);
 
         result = null;
         return false;
     }
 
     private static bool TryEvalOracleApproxFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -186,8 +186,8 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
     }
 
     private static bool TryEvalOracleAnalyticsFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -198,15 +198,15 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
             return false;
         }
 
-        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, name);
+        context.EnsureOracleDb2FunctionSupported(name);
 
         result = null;
         return true;
     }
 
     private static bool TryEvalOracleScnFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -217,7 +217,7 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
             return false;
         }
 
-        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, name);
+        context.EnsureOracleDb2FunctionSupported(name);
 
         if (fn.Args.Count == 0)
         {
@@ -230,8 +230,8 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
     }
 
     private static bool TryEvalOracleTimeZoneOffsetFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -266,8 +266,8 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
     }
 
     private static bool TryEvalOracleSessionTimeZoneFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -284,12 +284,12 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
     }
 
     private static bool TryEvalOracleUserEnvFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, fn.Name);
+        context.EnsureOracleDb2FunctionSupported(fn.Name);
 
         if (fn.Args.Count == 0)
         {
@@ -310,44 +310,44 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
     }
 
     private static bool TryEvalOracleInvokingUserFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = evalArg;
-        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, fn.Name);
+        context.EnsureOracleDb2FunctionSupported(fn.Name);
         result = "SYS";
         return true;
     }
 
     private static bool TryEvalOracleInvokingUserIdFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = evalArg;
-        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, fn.Name);
+        context.EnsureOracleDb2FunctionSupported(fn.Name);
         result = 0;
         return true;
     }
 
     private static bool TryEvalOracleDstNoopFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = evalArg;
-        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, fn.Name);
+        context.EnsureOracleDb2FunctionSupported(fn.Name);
         result = null;
         return true;
     }
 
     private static bool TryEvalOracleValidateConversionFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -358,7 +358,7 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
             return false;
         }
 
-        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, name);
+        context.EnsureOracleDb2FunctionSupported(name);
 
         if (fn.Args.Count < 2)
         {
@@ -387,8 +387,8 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
     }
 
     private static bool TryEvalOracleMonthsBetweenFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -424,8 +424,8 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
     }
 
     private static bool TryEvalOracleIterationNumberFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -441,8 +441,8 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
     }
 
     private static bool TryEvalOracleLnnvlFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -464,8 +464,8 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
     }
 
     private static bool TryEvalOracleNanvlFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -492,8 +492,8 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
     }
 
     private static bool TryEvalOracleDepthFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -515,8 +515,8 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
     }
 
     private static bool TryEvalOracleDerefFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -531,8 +531,8 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
     }
 
     private static bool TryEvalOracleDumpFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -555,8 +555,8 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
     }
 
     private static bool TryEvalOracleExistsNodeFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -578,8 +578,8 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
     }
 
     private static bool TryEvalOracleJsonDataGuideFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -601,8 +601,8 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
     }
 
     private static bool TryEvalOracleMakeRefFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -617,8 +617,8 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
     }
 
     private static bool TryEvalOracleVsizeFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -647,8 +647,8 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
     }
 
     private static bool TryEvalOracleWidthBucketFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -703,8 +703,8 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
     }
 
     private static bool TryEvalOracleXmlFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -720,8 +720,8 @@ internal static class AstQueryOracleDb2SpecialFunctionEvaluator
     }
 
     private static bool TryEvalOracleUserFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {

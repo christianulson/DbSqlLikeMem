@@ -86,28 +86,23 @@ public readonly struct Index : IEquatable<Index>
 /// <summary>
 /// Minimal polyfill for frameworks where System.Range is not available.
 /// </summary>
-public readonly struct Range : IEquatable<Range>
+/// <remarks>
+/// Initializes a new range with start and end _indexes.
+/// </remarks>
+/// <param name="start">Start index, inclusive.</param>
+/// <param name="end">End index, exclusive.</param>
+public readonly struct Range(Index start, Index end) : IEquatable<Range>
 {
-    /// <summary>
-    /// Initializes a new range with start and end _indexes.
-    /// </summary>
-    /// <param name="start">Start index, inclusive.</param>
-    /// <param name="end">End index, exclusive.</param>
-    public Range(Index start, Index end)
-    {
-        Start = start;
-        End = end;
-    }
 
     /// <summary>
     /// Gets the start index of the range.
     /// </summary>
-    public Index Start { get; }
+    public Index Start { get; } = start;
 
     /// <summary>
     /// Gets the end index of the range.
     /// </summary>
-    public Index End { get; }
+    public Index End { get; } = end;
 
     /// <summary>
     /// Gets a range that covers all elements.

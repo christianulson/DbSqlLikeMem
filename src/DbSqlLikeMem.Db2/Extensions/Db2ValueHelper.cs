@@ -13,7 +13,7 @@ internal static class Db2ValueHelper
     private static readonly AsyncLocal<string?> _currentColumn = new();
 
     /// <summary>
-    /// Nome da coluna que está sendo processada (setado pelo caller antes de chamar <c>Resolve</c>).
+    /// Nome da coluna que está sendo processada (setado pelo caller antes de chamar <c>ResolveRowsFrameRange</c>).
     /// Mantido em <see cref="AsyncLocal{T}"/> para evitar interferência entre testes.
     /// </summary>
     internal static string? CurrentColumn
@@ -23,8 +23,8 @@ internal static class Db2ValueHelper
     }
 
     /// <summary>
-    /// EN: Implements Resolve.
-    /// PT: Implementa Resolve.
+    /// EN: Implements ResolveRowsFrameRange.
+    /// PT: Implementa ResolveRowsFrameRange.
     /// </summary>
     public static object? Resolve(
         string token,

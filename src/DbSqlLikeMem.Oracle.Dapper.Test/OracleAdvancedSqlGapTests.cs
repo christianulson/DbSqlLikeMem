@@ -4,18 +4,13 @@ namespace DbSqlLikeMem.Oracle.Test;
 /// EN: Covers version-gated Oracle gap scenarios that are not fully implemented in the in-memory mock yet.
 /// PT: Cobre cenarios de gap do Oracle controlados por versao que ainda nao estao totalmente implementados no mock em memoria.
 /// </summary>
-public sealed class OracleAdvancedSqlGapTests : XUnitTestBase
+/// <remarks>
+/// EN: Creates the in-memory Oracle connection used by the advanced gap tests.
+/// PT: Cria a conexao Oracle em memoria usada pelos testes de gap avancados.
+/// </remarks>
+public sealed class OracleAdvancedSqlGapTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
-    private readonly OracleConnectionMock _cnn;
-
-    /// <summary>
-    /// EN: Creates the in-memory Oracle connection used by the advanced gap tests.
-    /// PT: Cria a conexao Oracle em memoria usada pelos testes de gap avancados.
-    /// </summary>
-    public OracleAdvancedSqlGapTests(ITestOutputHelper helper) : base(helper)
-    {
-        _cnn = CreateOpenConnection();
-    }
+    private readonly OracleConnectionMock _cnn = CreateOpenConnection();
 
     private static OracleConnectionMock CreateOpenConnection(int? version = null)
     {

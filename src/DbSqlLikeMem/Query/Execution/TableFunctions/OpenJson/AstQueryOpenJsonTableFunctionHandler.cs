@@ -18,7 +18,7 @@ internal sealed class AstQueryOpenJsonTableFunctionHandler(
         var dialect = _context.Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para OPENJSON.");
         if (!dialect.TryGetTableFunctionDefinition(SqlConst.OPENJSON, out var openJsonDefinition)
             || openJsonDefinition is null)
-            throw SqlUnsupported.ForDialect(dialect, SqlConst.OPENJSON);
+            throw SqlUnsupported.NotSupported(dialect, SqlConst.OPENJSON);
 
         if (function.Args.Count is < 1 or > 2)
             throw new NotSupportedException("OPENJSON table source currently supports one or two arguments in the mock.");

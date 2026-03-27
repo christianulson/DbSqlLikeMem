@@ -6,11 +6,14 @@ internal static class SqlSharedTableFunctionRegistry
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
 
-        dialect.AddTableFunction(new DbTableFunctionDef(
+        var jsonTableFunction = DbFunctionDef.CreateTable(
             SqlConst.JSON_TABLE,
-            2,
-            2,
-            static (executor, tableSource, ctes, outerRow)
-                => executor.ExecuteJsonTableFunction(tableSource, ctes, outerRow)));
+            signatures: new DbFunctionSignature([], 2, 2)) with
+        {
+            TableExecutor = static (executor, tableSource, ctes, outerRow)
+                => executor.ExecuteJsonTableFunction(tableSource, ctes, outerRow)
+        };
+
+        dialect.AddTableFunction(jsonTableFunction);
     }
 }

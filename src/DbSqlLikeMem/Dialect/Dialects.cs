@@ -16,7 +16,7 @@ internal enum SqlIdentifierEscapeStyle { double_quote, backtick, bracket }
 
 internal readonly record struct SqlQuotePair(char Begin, char End);
 
-internal enum SqlTemporalFunctionKind
+public enum SqlTemporalFunctionKind
 {
     Date,
     Time,
@@ -68,28 +68,16 @@ internal abstract class SqlDialectBase : ISqlDialect
     public int Version { get; }
 
     /// <summary>
-    /// EN: Gets the scalar function registry supported by this dialect.
-    /// PT: Obtém o registry de funcoes escalares suportadas por este dialeto.
+    /// EN: Gets the function registry supported by this dialect.
+    /// PT: Obtém o registry de funcoes suportadas por este dialeto.
     /// </summary>
-    public IDictionaryProcess<DbScalarFunctionDef> ScalarFunctions { get; } = new DictionaryProcess<DbScalarFunctionDef>();
-
-    /// <summary>
-    /// EN: Gets the table-valued function registry supported by this dialect.
-    /// PT: Obtém o registry de funções de tabela suportadas por este dialeto.
-    /// </summary>
-    public IDictionaryProcess<DbTableFunctionDef> TableFunctions { get; } = new DictionaryProcess<DbTableFunctionDef>();
+    public FunctionDictionaryProcess Functions { get; } = new();
 
     /// <summary>
     /// EN: Gets the stored procedure registry supported by this dialect.
     /// PT: Obtém o registry de procedimentos armazenados suportados por este dialeto.
     /// </summary>
     public IDictionaryProcess<ProcedureDef> Procedures { get; } = new DictionaryProcess<ProcedureDef>();
-
-    /// <summary>
-    /// EN: Gets the window function registry supported by this dialect.
-    /// PT: Obtém o registry de funções de janela suportadas por este dialeto.
-    /// </summary>
-    public IDictionaryProcess<DbWindowFunctionDef> WindowFunctions { get; } = new DictionaryProcess<DbWindowFunctionDef>();
 
     /// <summary>
     /// EN: Gets or sets AllowsBacktickIdentifiers.
@@ -214,7 +202,7 @@ internal abstract class SqlDialectBase : ISqlDialect
         get
         {
             var registryNames = new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase);
-            foreach (var item in ScalarFunctions)
+            foreach (var item in Functions)
             {
                 if (item.Value.TemporalKind is SqlTemporalFunctionKind temporalKind)
                     registryNames[item.Key] = temporalKind;
@@ -229,7 +217,7 @@ internal abstract class SqlDialectBase : ISqlDialect
         get
         {
             var registryNames = new List<string>();
-            foreach (var item in ScalarFunctions)
+            foreach (var item in Functions)
             {
                 if (item.Value.TemporalKind is not null && item.Value.AllowsIdentifier)
                     registryNames.Add(item.Key);
@@ -244,7 +232,7 @@ internal abstract class SqlDialectBase : ISqlDialect
         get
         {
             var registryNames = new List<string>();
-            foreach (var item in ScalarFunctions)
+            foreach (var item in Functions)
             {
                 if (item.Value.TemporalKind is not null && item.Value.AllowsCall)
                     registryNames.Add(item.Key);
@@ -323,7 +311,7 @@ internal abstract class SqlDialectBase : ISqlDialect
         if (string.IsNullOrWhiteSpace(functionName))
             return false;
 
-        return this.TryGetScalarFunctionDefinition(functionName, out var definition)
+        return TryGetScalarFunctionDefinition(functionName, out var definition)
             && definition!.IsStringAggregate;
     }
 
@@ -334,7 +322,7 @@ internal abstract class SqlDialectBase : ISqlDialect
         if (!SupportsAggregateOrderByForStringAggregates || string.IsNullOrWhiteSpace(functionName))
             return false;
 
-        return this.TryGetScalarFunctionDefinition(functionName, out var definition)
+        return TryGetScalarFunctionDefinition(functionName, out var definition)
             && definition!.IsStringAggregate;
     }
 
@@ -345,18 +333,18 @@ internal abstract class SqlDialectBase : ISqlDialect
         if (!SupportsAggregateSeparatorKeywordForStringAggregates || string.IsNullOrWhiteSpace(functionName))
             return false;
 
-        return this.TryGetScalarFunctionDefinition(functionName, out var definition)
+        return TryGetScalarFunctionDefinition(functionName, out var definition)
             && definition!.IsStringAggregate;
     }
 
     public virtual bool SupportsMatchAgainstPredicate => false;
     public virtual bool SupportsApplyClause => false;
     public virtual bool SupportsStringSplitFunction
-        => TableFunctions.ContainsKey(SqlConst.STRING_SPLIT);
+        => TryGetTableFunctionDefinition(SqlConst.STRING_SPLIT, out _);
 
     public virtual bool SupportsStringSplitOrdinalArgument
-        => TableFunctions.TryGetValue(SqlConst.STRING_SPLIT, out var definition)
-            && definition.MaxArguments >= 3;
+        => TryGetTableFunctionDefinition(SqlConst.STRING_SPLIT, out var definition)
+            && definition!.Signatures.Any(s => s.MaxArguments >= 3);
     public virtual bool SupportsTryCastFunction
         => SupportsRegisteredScalarCall("TRY_CAST");
 
@@ -427,12 +415,12 @@ internal abstract class SqlDialectBase : ISqlDialect
 
     private bool SupportsRegisteredScalarCall(string functionName)
         => !string.IsNullOrWhiteSpace(functionName)
-            && this.TryGetScalarFunctionDefinition(functionName, out var definition)
+            && TryGetScalarFunctionDefinition(functionName, out var definition)
             && definition!.AllowsCall;
 
     private bool SupportsRegisteredScalarIdentifier(string functionName)
         => !string.IsNullOrWhiteSpace(functionName)
-            && this.TryGetScalarFunctionDefinition(functionName, out var definition)
+            && TryGetScalarFunctionDefinition(functionName, out var definition)
             && definition!.AllowsIdentifier;
 
     /// <summary>
@@ -444,7 +432,7 @@ internal abstract class SqlDialectBase : ISqlDialect
         if (!SupportsWindowFunctions || string.IsNullOrWhiteSpace(functionName))
             return false;
 
-        return WindowFunctions.ContainsKey(functionName);
+        return Functions.IsWindowFunction(functionName);
     }
 
     /// <summary>
@@ -456,8 +444,8 @@ internal abstract class SqlDialectBase : ISqlDialect
         if (!SupportsWindowFunction(functionName))
             return false;
 
-        return WindowFunctions.TryGetValue(functionName, out var definition)
-            && definition.RequiresOrderBy;
+        return TryGetWindowFunctionDefinition(functionName, out var definition)
+            && definition!.Signatures.Any(s => s.RequiresOrderBy);
     }
 
 
@@ -473,11 +461,11 @@ internal abstract class SqlDialectBase : ISqlDialect
         if (!SupportsWindowFunction(functionName))
             return false;
 
-        if (!WindowFunctions.TryGetValue(functionName, out var definition))
+        if (!TryGetWindowFunctionDefinition(functionName, out var definition))
             return false;
 
-        minArgs = definition.MinArguments;
-        maxArgs = definition.MaxArguments;
+        minArgs = definition!.Signatures.Count == 0 ? 0 : definition.Signatures.Min(s => s.MinArguments);
+        maxArgs = definition.Signatures.Count == 0 ? 0 : definition.Signatures.Max(s => s.MaxArguments);
         return true;
     }
 
@@ -636,7 +624,7 @@ internal abstract class SqlDialectBase : ISqlDialect
         => SupportsRegisteredScalarCall("PREVIOUS_VALUE_FOR");
 
     public virtual bool SupportsSequenceDotValueExpression(string suffix)
-        => this.TryGetScalarFunctionDefinition(suffix, out var definition)
+        => TryGetScalarFunctionDefinition(suffix, out var definition)
             && definition is not null
             && definition.AllowsCall;
 
@@ -734,6 +722,119 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// </summary>
     public virtual bool SupportsWithRecursive => true;
 
+    protected bool TryGetFunctionDefinition(string functionName, out DbFunctionDef? definition)
+    {
+        definition = null;
+
+        if (string.IsNullOrWhiteSpace(functionName))
+            return false;
+
+        return Functions.TryGetValue(functionName, out definition)
+            && definition is not null;
+    }
+
+    public virtual bool TryGetScalarFunctionDefinition(string functionName, out DbFunctionDef? definition)
+        => TryGetFunctionDefinition(functionName, out definition)
+            && definition!.HasCapability(DbFunctionCapability.Scalar);
+
+    public virtual bool TryGetScalarFunctionDefinition(FunctionCallExpr functionCall, out DbFunctionDef? definition)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(functionCall, nameof(functionCall));
+
+        if (functionCall.ResolvedScalarFunction is not null)
+        {
+            definition = functionCall.ResolvedScalarFunction;
+            return true;
+        }
+
+        return TryGetScalarFunctionDefinition(functionCall.Name, out definition);
+    }
+
+    public virtual bool TryGetScalarFunctionDefinition(CallExpr functionCall, out DbFunctionDef? definition)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(functionCall, nameof(functionCall));
+
+        if (functionCall.ResolvedScalarFunction is not null)
+        {
+            definition = functionCall.ResolvedScalarFunction;
+            return true;
+        }
+
+        return TryGetScalarFunctionDefinition(functionCall.Name, out definition);
+    }
+
+    public virtual bool TryGetTableFunctionDefinition(string functionName, out DbFunctionDef? definition)
+        => TryGetFunctionDefinition(functionName, out definition)
+            && definition!.HasCapability(DbFunctionCapability.Table);
+
+    public virtual bool TryGetTableFunctionDefinition(FunctionCallExpr functionCall, out DbFunctionDef? definition)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(functionCall, nameof(functionCall));
+
+        if (functionCall.ResolvedTableFunction is not null)
+        {
+            definition = functionCall.ResolvedTableFunction;
+            return true;
+        }
+
+        return TryGetTableFunctionDefinition(functionCall.Name, out definition);
+    }
+
+    public virtual bool TryGetWindowFunctionDefinition(string functionName, out DbFunctionDef? definition)
+        => TryGetFunctionDefinition(functionName, out definition)
+            && definition!.HasCapability(DbFunctionCapability.Window);
+
+    public virtual bool TryGetWindowFunctionDefinition(WindowFunctionExpr windowFunction, out DbFunctionDef? definition)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(windowFunction, nameof(windowFunction));
+
+        if (windowFunction.ResolvedWindowFunction is not null)
+        {
+            definition = windowFunction.ResolvedWindowFunction;
+            return true;
+        }
+
+        return TryGetWindowFunctionDefinition(windowFunction.Name, out definition);
+    }
+
+    public virtual bool TryGetTemporalFunctionKind(string functionName, out SqlTemporalFunctionKind kind)
+    {
+        if (TryGetScalarFunctionDefinition(functionName, out var definition)
+            && definition!.TemporalKind is SqlTemporalFunctionKind temporalKind)
+        {
+            kind = temporalKind;
+            return true;
+        }
+
+        return TemporalFunctionNames.TryGetValue(functionName, out kind);
+    }
+
+    public virtual bool AllowsTemporalIdentifier(string functionName)
+    {
+        if (TryGetScalarFunctionDefinition(functionName, out var definition)
+            && definition!.TemporalKind is not null)
+        {
+            return definition.AllowsIdentifier;
+        }
+
+        return TemporalFunctionIdentifierNames.Any(token => token.Equals(functionName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public virtual bool AllowsTemporalCall(string functionName)
+    {
+        if (TryGetScalarFunctionDefinition(functionName, out var definition)
+            && definition!.TemporalKind is not null)
+        {
+            return definition.AllowsCall;
+        }
+
+        return TemporalFunctionCallNames.Any(token => token.Equals(functionName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    protected bool TryGetAggregateFunctionDefinition(string functionName, out DbFunctionDef? definition)
+        => TryGetFunctionDefinition(functionName, out definition)
+            && definition!.HasCapability(DbFunctionCapability.Aggregate);
+
     /// <summary>
     /// EN: Gets or sets SupportsWithMaterializedHint.
     /// PT: Obtém ou define SupportsWithMaterializedHint.
@@ -777,14 +878,14 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// PT: Obtém se OPENJSON é suportada como função de tabela neste dialeto.
     /// </summary>
     public virtual bool SupportsOpenJsonFunction
-        => TableFunctions.ContainsKey(SqlConst.OPENJSON);
+        => TryGetTableFunctionDefinition(SqlConst.OPENJSON, out _);
 
     /// <summary>
     /// EN: Gets whether JSON_TABLE is supported as a table function in this dialect.
     /// PT: Obtém se JSON_TABLE é suportada como função de tabela neste dialeto.
     /// </summary>
     public virtual bool SupportsJsonTableFunction
-        => TableFunctions.ContainsKey(SqlConst.JSON_TABLE);
+        => TryGetTableFunctionDefinition(SqlConst.JSON_TABLE, out _);
 
     public virtual bool SupportsJsonValueReturningClause => false;
 

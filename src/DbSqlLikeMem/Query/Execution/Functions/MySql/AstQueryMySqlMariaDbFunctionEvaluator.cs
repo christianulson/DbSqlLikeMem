@@ -5,8 +5,8 @@ namespace DbSqlLikeMem;
 internal static class AstQueryMySqlMariaDbFunctionEvaluator
 {
     internal static bool TryEvaluate(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
@@ -20,8 +20,8 @@ internal static class AstQueryMySqlMariaDbFunctionEvaluator
         out object? result)
     {
         if (QueryTextSearchFunctionHelper.TryEvalFindInSetFunction(fn, evalArg, out result)
-            || QueryTextSearchFunctionHelper.TryEvalMatchAgainstFunction(fn, context, evalArg, out result)
-            || QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions(fn, context, evalArg, out result))
+            || context.TryEvalMatchAgainstFunction(fn, evalArg, out result)
+            || context.TryEvalConditionalAndNullFunctions(fn, evalArg, out result))
         {
             return true;
         }
@@ -35,24 +35,24 @@ internal static class AstQueryMySqlMariaDbFunctionEvaluator
             return true;
         }
 
-        if (QueryMySqlUtilityFunctionHelper.TryEvalUtilityFunctions(fn, context, evalArg, tryConvertNumericToInt64, out result)
-            || QueryMySqlDateTimeFunctionHelper.TryEvalFunctions(fn, context, evalArg, tryConvertNumericToDouble, tryConvertNumericToInt64, tryCoerceDateTime, tryParseExactCachedDateTime, out result))
+        if (context.TryEvalUtilityFunctions(fn, evalArg, tryConvertNumericToInt64, out result)
+            || context.TryEvalFunctions(fn, evalArg, tryConvertNumericToDouble, tryConvertNumericToInt64, tryCoerceDateTime, tryParseExactCachedDateTime, out result))
         {
             return true;
         }
 
         if (context.Dialect.SupportsMariaDbFunctions)
         {
-            if (QueryMariaDbFunctionHelper.TryEvalFunctions(fn, context, evalArg, out result))
+            if (context.TryEvalFunctions(fn, evalArg, out result))
                 return true;
 
-            if (QueryMariaDbSpecialFunctionHelper.TryEvalFunctions(fn, context, evalArg, out result))
+            if (context.TryEvalSpecialFunctions(fn, evalArg, out result))
                 return true;
         }
 
-        if (AstQueryTemporalArithmeticFunctionEvaluator.TryEvaluate(fn, context, row, group, ctes, evalArg, eval, getTemporalUnit, out result)
-            || AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)
-            || AstQueryMySqlUtilityFunctionEvaluator.TryEvaluate(fn, context, row, evalArg, tryConvertNumericToInt64, tryConvertNumericToDouble, out result))
+        if (context.TryEvaluate(fn, row, group, ctes, evalArg, eval, getTemporalUnit, out result)
+            || AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result)
+            || context.TryEvaluate(fn, row, evalArg, tryConvertNumericToInt64, tryConvertNumericToDouble, out result))
         {
             return true;
         }

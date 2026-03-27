@@ -6,13 +6,13 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
         CreateHandlers();
 
     internal static bool TryEvaluate(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler)
-            && handler(fn, context, evalArg, out result))
+            && handler(context, fn, evalArg, out result))
         {
             return true;
         }
@@ -59,8 +59,8 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     }
 
     private static bool TryEvalMySqlConvFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -113,8 +113,8 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     }
 
     private static bool TryEvalMySqlDayNameFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -136,8 +136,8 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     }
 
     private static bool TryEvalMySqlDayOfMonthFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -160,8 +160,8 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     }
 
     private static bool TryEvalMySqlDayOfWeekFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -184,8 +184,8 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     }
 
     private static bool TryEvalMySqlDayOfYearFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -208,8 +208,8 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     }
 
     private static bool TryEvalMySqlVersionFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -221,8 +221,8 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     }
 
     private static bool TryEvalMySqlCurrentDateFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -233,8 +233,8 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     }
 
     private static bool TryEvalMySqlUtcDateFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -245,8 +245,8 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     }
 
     private static bool TryEvalMySqlCurrentTimeFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -257,8 +257,8 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     }
 
     private static bool TryEvalMySqlUtcTimeFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -269,8 +269,8 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     }
 
     private static bool TryEvalMySqlLocalTimestampFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -281,8 +281,8 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     }
 
     private static bool TryEvalMySqlUtcTimestampFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -293,8 +293,8 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     }
 
     private static bool TryEvalMySqlDatabaseFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -309,8 +309,8 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     }
 
     private static bool TryEvalMySqlSchemaFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -322,8 +322,8 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     }
 
     private static bool TryEvalMySqlSessionUserFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -335,8 +335,8 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     }
 
     private static bool TryEvalMySqlCurrentUserFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -348,8 +348,8 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     }
 
     private static bool TryEvalMySqlUserFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -361,8 +361,8 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     }
 
     private static bool TryEvalMySqlSystemUserFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -374,8 +374,8 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     }
 
     private static bool TryEvalMySqlConnectionIdFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -387,8 +387,8 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     }
 
     private static bool TryEvalMySqlCharsetFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -412,8 +412,8 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     }
 
     private static bool TryEvalMySqlCollationFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -437,8 +437,8 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     }
 
     private static bool TryEvalMySqlCoercibilityFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {

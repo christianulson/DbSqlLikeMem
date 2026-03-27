@@ -4,17 +4,13 @@ namespace DbSqlLikeMem.Npgsql.Test;
 /// EN: Execution plan coverage tests for Npgsql mock commands.
 /// PT: Testes de cobertura de plano de execução para comandos simulado Npgsql.
 /// </summary>
-public sealed class ExecutionPlanTests : XUnitTestBase
+/// <remarks>
+/// EN: Creates the execution plan test helper with xUnit output integration.
+/// PT: Cria o helper dos testes de plano de execucao com integracao de saida do xUnit.
+/// </remarks>
+/// <param name="helper">EN: xUnit output helper. PT: Helper de saída do xUnit.</param>
+public sealed class ExecutionPlanTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
-    /// <summary>
-    /// EN: Creates the execution plan test helper with xUnit output integration.
-    /// PT: Cria o helper dos testes de plano de execucao com integracao de saida do xUnit.
-    /// </summary>
-    /// <param name="helper">EN: xUnit output helper. PT: Helper de saída do xUnit.</param>
-    public ExecutionPlanTests(ITestOutputHelper helper)
-        : base(helper)
-    {
-    }
 
     /// <summary>
     /// EN: Verifies command execution prints a readable plan to test output.

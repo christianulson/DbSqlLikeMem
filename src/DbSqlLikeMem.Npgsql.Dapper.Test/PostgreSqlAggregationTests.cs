@@ -4,16 +4,13 @@ namespace DbSqlLikeMem.Npgsql.Test;
 /// EN: Runs shared aggregation/HAVING scenarios for PostgreSQL and keeps PostgreSQL-specific coverage.
 /// PT: Executa cenários compartilhados de agregação/HAVING para PostgreSQL e mantém cobertura específica de PostgreSQL.
 /// </summary>
-public sealed class PostgreSqlAggregationTests : AggregationHavingOrdinalTestsBase<NpgsqlDbMock, NpgsqlConnectionMock>
+/// <remarks>
+/// EN: Creates the PostgreSQL aggregation test suite helper.
+/// PT: Cria o helper da suite de testes de agregacao do PostgreSQL.
+/// </remarks>
+/// <param name="helper">EN: Output helper. PT: Helper de saída.</param>
+public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : AggregationHavingOrdinalTestsBase<NpgsqlDbMock, NpgsqlConnectionMock>(helper)
 {
-    /// <summary>
-    /// EN: Creates the PostgreSQL aggregation test suite helper.
-    /// PT: Cria o helper da suite de testes de agregacao do PostgreSQL.
-    /// </summary>
-    /// <param name="helper">EN: Output helper. PT: Helper de saída.</param>
-    public PostgreSqlAggregationTests(ITestOutputHelper helper) : base(helper)
-    {
-    }
 
     /// <inheritdoc />
     protected override NpgsqlDbMock CreateDb() => [];

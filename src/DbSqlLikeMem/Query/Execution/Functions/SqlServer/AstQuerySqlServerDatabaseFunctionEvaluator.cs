@@ -1,7 +1,6 @@
 namespace DbSqlLikeMem;
 
 internal sealed class AstQuerySqlServerDatabaseFunctionEvaluator(
-    Func<ISqlDialect?> getDialect,
     Func<string?, string?, object?> resolveDatabaseProperty,
     Func<string?, int?> resolveDatabasePrincipalId,
     Func<object?, string?, string?, object?> resolveColumnProperty,
@@ -14,7 +13,6 @@ internal sealed class AstQuerySqlServerDatabaseFunctionEvaluator(
     Func<string?, string?, object?> resolveTypeProperty,
     Func<string> getDatabaseName)
 {
-    private readonly Func<ISqlDialect?> _getDialect = getDialect ?? throw new ArgumentNullException(nameof(getDialect));
     private readonly Func<string?, string?, object?> _resolveDatabaseProperty = resolveDatabaseProperty ?? throw new ArgumentNullException(nameof(resolveDatabaseProperty));
     private readonly Func<string?, int?> _resolveDatabasePrincipalId = resolveDatabasePrincipalId ?? throw new ArgumentNullException(nameof(resolveDatabasePrincipalId));
     private readonly Func<object?, string?, string?, object?> _resolveColumnProperty = resolveColumnProperty ?? throw new ArgumentNullException(nameof(resolveColumnProperty));

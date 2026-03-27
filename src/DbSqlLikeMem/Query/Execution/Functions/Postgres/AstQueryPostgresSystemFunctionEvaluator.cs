@@ -1,137 +1,106 @@
-using System.Globalization;
-
 namespace DbSqlLikeMem;
 
 internal static class AstQueryPostgresSystemFunctionEvaluator
 {
-    private delegate bool PostgresSystemFunctionHandler(
+    internal static bool TryEvaluatePostgresSystemFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
-        Func<string?> getCurrentQueryText,
-        out object? result);
-
-    private static readonly IReadOnlyDictionary<string, PostgresSystemFunctionHandler> _handlers = CreateHandlers();
-
-    internal static bool TryEvaluate(
-        FunctionCallExpr fn,
-        QueryExecutionContext context,
-        Func<int, object?> evalArg,
-        Func<string?> getCurrentQueryText,
         out object? result)
     {
         result = null;
-        if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler(fn, context, evalArg, getCurrentQueryText, out result);
+        if (context.Dialect.Functions.TryGetValue(fn.Name, out var handler)
+            && handler.AstExecutor != null)
+            return handler.AstExecutor(context, fn, evalArg, out result);
 
         return false;
     }
 
-    private static Dictionary<string, PostgresSystemFunctionHandler> CreateHandlers()
+    internal static void CreateHandlers(
+        this ISqlDialect dialect)
     {
-        var handlers = new Dictionary<string, PostgresSystemFunctionHandler>(StringComparer.OrdinalIgnoreCase);
-        Register(handlers, TryEvalCurrentDatabaseFunction, "CURRENT_DATABASE", "CURRENT_CATALOG");
-        Register(handlers, TryEvalCurrentSchemaFunction, "CURRENT_SCHEMA");
-        Register(handlers, TryEvalCurrentUserFunction, "CURRENT_USER", "CURRENT_ROLE");
-        Register(handlers, TryEvalVersionFunction, "VERSION");
-        Register(handlers, TryEvalCurrentSchemasFunction, "CURRENT_SCHEMAS");
-        Register(handlers, TryEvalCurrentSettingFunction, "CURRENT_SETTING");
-        Register(handlers, TryEvalCurrentQueryFunction, "CURRENT_QUERY");
-        Register(handlers, TryEvalCurrentTimestampFunction, "CLOCK_TIMESTAMP", "STATEMENT_TIMESTAMP", "TRANSACTION_TIMESTAMP");
-        return handlers;
-    }
-
-    private static void Register(
-        IDictionary<string, PostgresSystemFunctionHandler> handlers,
-        PostgresSystemFunctionHandler handler,
-        params string[] names)
-    {
-        foreach (var name in names)
-            handlers[name] = handler;
+        var f = dialect.Functions;
+        f.Add("VARCHAR", TryEvalCurrentDatabaseFunction, "CURRENT_DATABASE", "CURRENT_CATALOG");
+        f.Add("VARCHAR", TryEvalCurrentSchemaFunction, "CURRENT_SCHEMA");
+        f.Add("VARCHAR", TryEvalCurrentUserFunction, "CURRENT_ROLE");
+        f.Add("VARCHAR", TryEvalCurrentUserFunction, "CURRENT_USER", "CURRENT_ROLE");
+        f.Add("VARCHAR", TryEvalVersionFunction, "VERSION");
+        f.Add("STRING_ARRAY", TryEvalCurrentSchemasFunction, "CURRENT_SCHEMAS");
+        f.Add("VARCHAR", TryEvalCurrentSettingFunction, "CURRENT_SETTING");
+        f.Add("VARCHAR", TryEvalCurrentQueryFunction, "CURRENT_QUERY");
+        f.Add("DATETIME", TryEvalCurrentTimestampFunction, "CLOCK_TIMESTAMP", "STATEMENT_TIMESTAMP", "TRANSACTION_TIMESTAMP");
     }
 
     private static bool TryEvalCurrentDatabaseFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
-        Func<string?> getCurrentQueryText,
         out object? result)
     {
         _ = fn;
         _ = context;
         _ = evalArg;
-        _ = getCurrentQueryText;
         result = "postgres";
         return true;
     }
 
     private static bool TryEvalCurrentSchemaFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
-        Func<string?> getCurrentQueryText,
         out object? result)
     {
         _ = fn;
         _ = context;
         _ = evalArg;
-        _ = getCurrentQueryText;
         result = "public";
         return true;
     }
 
     private static bool TryEvalCurrentUserFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
-        Func<string?> getCurrentQueryText,
         out object? result)
     {
         _ = fn;
         _ = context;
         _ = evalArg;
-        _ = getCurrentQueryText;
-        result = "postgres";
+        result = "user_postgres";
         return true;
     }
 
     private static bool TryEvalVersionFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
-        Func<string?> getCurrentQueryText,
         out object? result)
     {
         _ = fn;
         _ = evalArg;
-        _ = getCurrentQueryText;
         result = $"PostgreSQL {context.Dialect.Version}";
         return true;
     }
 
     private static bool TryEvalCurrentSchemasFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
-        Func<string?> getCurrentQueryText,
         out object? result)
     {
         _ = fn;
         _ = context;
         _ = evalArg;
-        _ = getCurrentQueryText;
         result = new[] { "public" };
         return true;
     }
 
     private static bool TryEvalCurrentSettingFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
-        Func<string?> getCurrentQueryText,
         out object? result)
     {
-        _ = getCurrentQueryText;
         if (fn.Args.Count == 0)
         {
             result = null;
@@ -157,30 +126,27 @@ internal static class AstQueryPostgresSystemFunctionEvaluator
     }
 
     private static bool TryEvalCurrentQueryFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
-        Func<string?> getCurrentQueryText,
         out object? result)
     {
         _ = fn;
         _ = context;
         _ = evalArg;
-        result = getCurrentQueryText();
+        result = context.Connection.GetCurrentQueryText();
         return true;
     }
 
     private static bool TryEvalCurrentTimestampFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
-        Func<string?> getCurrentQueryText,
         out object? result)
     {
         _ = fn;
         _ = context;
         _ = evalArg;
-        _ = getCurrentQueryText;
         result = DateTime.Now;
         return true;
     }

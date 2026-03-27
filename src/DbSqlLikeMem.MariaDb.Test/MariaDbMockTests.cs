@@ -4,16 +4,12 @@ namespace DbSqlLikeMem.MariaDb.Test;
 /// EN: Covers MariaDB runtime behavior built on top of the shared MySQL provider family.
 /// PT: Cobre o comportamento de runtime do MariaDB construido sobre a familia compartilhada do provider MySQL.
 /// </summary>
-public sealed class MariaDbMockTests : XUnitTestBase
+/// <remarks>
+/// EN: Initializes the MariaDB runtime test fixture.
+/// PT: Inicializa a fixture de testes de runtime do MariaDB.
+/// </remarks>
+public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
-    /// <summary>
-    /// EN: Initializes the MariaDB runtime test fixture.
-    /// PT: Inicializa a fixture de testes de runtime do MariaDB.
-    /// </summary>
-    public MariaDbMockTests(ITestOutputHelper helper)
-        : base(helper)
-    {
-    }
 
     /// <summary>
     /// EN: Ensures INSERT ... RETURNING returns the inserted projection once the MariaDB version gate is enabled.

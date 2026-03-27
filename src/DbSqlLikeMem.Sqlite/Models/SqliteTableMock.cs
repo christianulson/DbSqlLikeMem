@@ -24,7 +24,7 @@ internal class SqliteTableMock(
 
     /// <summary>
     /// EN: Resolves a SQL token to a typed value according to SQLite conversion rules.
-    /// PT: Resolve um token SQL para um valor tipado conforme as regras de conversão do SQLite.
+    /// PT: ResolveRowsFrameRange um token SQL para um valor tipado conforme as regras de conversão do SQLite.
     /// </summary>
     public override object? Resolve(
         string token,

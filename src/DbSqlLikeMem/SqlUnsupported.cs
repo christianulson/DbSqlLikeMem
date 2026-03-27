@@ -2,26 +2,25 @@ namespace DbSqlLikeMem;
 
 internal static class SqlUnsupported
 {
-    private static string FormatDialectLabel(ISqlDialect dialect)
+    private static string FormatDialectLabel(this ISqlDialect dialect)
         => string.Equals(dialect.Name, "postgresql", StringComparison.OrdinalIgnoreCase)
             ? $"{dialect.Name}/npgsql"
             : dialect.Name;
 
-    public static NotSupportedException ForDialect(
-        this SqlExpressionParserContext ctx, string feature)
-        => ForDialect(ctx.Dialect, feature);
-
-    public static NotSupportedException ForDialect(ISqlDialect dialect, string feature)
+    public static NotSupportedException NotSupported(this ISqlDialect dialect, string feature)
         => new($"SQL não suportado para dialeto '{FormatDialectLabel(dialect)}' (v{dialect.Version}): {feature}.");
 
-    public static NotSupportedException ForParser(string feature)
+    public static NotSupportedException NotSupported(this SqlQueryParserContext ctx, string feature)
+        => ctx.Dialect.NotSupported(feature);
+
+    public static NotSupportedException NotSupportedParser(string feature)
         => new($"SQL não suportado no parser: {feature}.");
 
-    public static NotSupportedException ForWithRecursive(ISqlDialect dialect)
+    public static NotSupportedException NotSupportedWithRecursive(this ISqlDialect dialect)
         => new($"SQL não suportado para dialeto '{FormatDialectLabel(dialect)}' (v{dialect.Version}): WITH RECURSIVE. Use WITH sem RECURSIVE quando possível, ou selecione uma versão/dialeto que suporte recursão.");
 
 
-    public static NotSupportedException ForMerge(ISqlDialect dialect)
+    public static NotSupportedException NotSupportedMerge(this ISqlDialect dialect)
     {
         var hint = dialect.Name.ToLowerInvariant() switch
         {
@@ -35,7 +34,7 @@ internal static class SqlUnsupported
     }
 
 
-    public static NotSupportedException ForPagination(ISqlDialect dialect, string feature)
+    public static NotSupportedException NotSupportedPagination(this ISqlDialect dialect, string feature)
     {
         var hint = feature.ToUpperInvariant() switch
         {
@@ -54,7 +53,7 @@ internal static class SqlUnsupported
 
 
 
-    public static Exception ForOnConflictClause(ISqlDialect dialect)
+    public static Exception NotSupportedOnConflictClause(this ISqlDialect dialect)
     {
         var hint = dialect.Name.ToLowerInvariant() switch
         {
@@ -69,7 +68,7 @@ internal static class SqlUnsupported
             : new InvalidOperationException(message);
     }
 
-    public static Exception ForOnDuplicateKeyUpdateClause(ISqlDialect dialect)
+    public static Exception NotSupportedOnDuplicateKeyUpdateClause(this ISqlDialect dialect)
     {
         var hint = dialect.Name.ToLowerInvariant() switch
         {
@@ -84,7 +83,7 @@ internal static class SqlUnsupported
             : new InvalidOperationException(message);
     }
 
-    public static NotSupportedException ForOptionQueryHints(ISqlDialect dialect)
+    public static NotSupportedException NotSupportedOptionQueryHints(this ISqlDialect dialect)
     {
         var hint = string.Equals(dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase)
             ? "OPTION(query hints) é suportado neste dialeto."
@@ -93,20 +92,20 @@ internal static class SqlUnsupported
         return new NotSupportedException($"SQL não suportado para dialeto '{FormatDialectLabel(dialect)}' (v{dialect.Version}): OPTION(query hints). {hint}");
     }
 
-    public static InvalidOperationException ForDeleteWithoutFrom(ISqlDialect dialect)
+    public static InvalidOperationException NotSupportedDeleteWithoutFrom(this ISqlDialect dialect)
         => new($"DELETE sem FROM não suportado no dialeto '{FormatDialectLabel(dialect)}'. Use DELETE FROM <tabela> ...");
 
-    public static InvalidOperationException ForDeleteTargetAliasFrom(ISqlDialect dialect)
+    public static InvalidOperationException NotSupportedDeleteTargetAliasFrom(this ISqlDialect dialect)
         => new($"DELETE <alvo> FROM ... não suportado no dialeto '{FormatDialectLabel(dialect)}'. Use DELETE FROM <tabela> ...");
 
-    public static InvalidOperationException ForOffsetFetchRequiresOrderBy(ISqlDialect dialect)
+    public static InvalidOperationException NotSupportedOffsetFetchRequiresOrderBy(this ISqlDialect dialect)
         => new($"OFFSET/FETCH requer ORDER BY no dialeto '{FormatDialectLabel(dialect)}'. Adicione ORDER BY para usar paginação com OFFSET/FETCH.");
 
 
-    public static InvalidOperationException ForUnknownTopLevelStatement(ISqlDialect dialect, string token)
+    public static InvalidOperationException NotSupportedUnknownTopLevelStatement(this ISqlDialect dialect, string token)
         => new($"SQL não suportado ou parser inválido para dialeto '{FormatDialectLabel(dialect)}' (v{dialect.Version}): token inicial '{token}'. Use SELECT/INSERT/UPDATE/DELETE/CREATE/ALTER/DROP/MERGE.");
 
-    public static NotSupportedException ForCommandType(ISqlDialect dialect, string operation, Type queryType)
+    public static NotSupportedException NotSupportedCommandType(this ISqlDialect dialect, string operation, Type queryType)
         => new($"SQL não suportado em {operation} para dialeto '{FormatDialectLabel(dialect)}' (v{dialect.Version}): {queryType.Name}.");
 
     public static InvalidOperationException ForTableDoesNotExist(string tableName)

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem;
 
 internal static class SqlServerFunctionSupportHelper
 {
-    public static void EnsureSupport(FunctionCallExpr fn, QueryExecutionContext context)
+    public static void EnsureSupport(this QueryExecutionContext context, FunctionCallExpr fn)
     {
         var definition = fn.ResolvedScalarFunction;
         if (definition is not null
@@ -19,6 +19,6 @@ internal static class SqlServerFunctionSupportHelper
             return;
         }
 
-        throw SqlUnsupported.ForDialect(context.Dialect, fn.Name.ToUpperInvariant());
+        throw SqlUnsupported.NotSupported(context.Dialect, fn.Name.ToUpperInvariant());
     }
 }

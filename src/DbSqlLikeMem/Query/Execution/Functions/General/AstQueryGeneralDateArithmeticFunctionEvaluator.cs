@@ -5,13 +5,13 @@ internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
     private static readonly Dictionary<string, AstQueryGeneralScalarFunctionHandler> _handlers = CreateHandlers();
 
     internal static bool TryEvaluate(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler(fn, context, evalArg, out result);
+            return handler(context, fn, evalArg, out result);
 
         result = null;
         return false;
@@ -37,8 +37,8 @@ internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
     }
 
     private static bool TryEvalAddDateFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -70,8 +70,8 @@ internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
     }
 
     private static bool TryEvalAddTimeFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -105,8 +105,8 @@ internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
     }
 
     private static bool TryEvalLastDayFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -133,8 +133,8 @@ internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
     }
 
     private static bool TryEvalSubTimeFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {

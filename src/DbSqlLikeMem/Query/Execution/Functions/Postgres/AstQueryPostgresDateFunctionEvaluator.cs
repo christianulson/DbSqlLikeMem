@@ -5,55 +5,39 @@ using System.Globalization;
 
 internal static class AstQueryPostgresDateFunctionEvaluator
 {
-    private delegate bool PostgresDateFunctionHandler(
+    internal static bool TryEvaluatePostgresDateFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
-        Func<int, object?> evalArg,
-        out object? result);
-
-    private static readonly IReadOnlyDictionary<string, PostgresDateFunctionHandler> _handlers = CreateHandlers();
-
-    internal static bool TryEvaluate(
-        FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         result = null;
-        if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler(fn, context, evalArg, out result);
+        if (context.Dialect.Functions.TryGetValue(fn.Name, out var handler)
+            && handler.AstExecutor != null)
+            return handler.AstExecutor(context, fn, evalArg, out result);
 
         return false;
     }
 
-    private static Dictionary<string, PostgresDateFunctionHandler> CreateHandlers()
+    internal static void CreateHandlers(
+        this QueryExecutionContext context)
     {
-        var handlers = new Dictionary<string, PostgresDateFunctionHandler>(StringComparer.OrdinalIgnoreCase);
-        Register(handlers, TryEvalDateTruncFunction, "DATE_TRUNC");
-        Register(handlers, TryEvalDatePartFunction, "DATE_PART");
-        Register(handlers, TryEvalAgeFunction, "AGE");
-        Register(handlers, TryEvalMakeIntervalFunction, "MAKE_INTERVAL");
-        Register(handlers, TryEvalMakeDateFunction, "MAKE_DATE");
-        Register(handlers, TryEvalMakeTimeFunction, "MAKE_TIME");
-        Register(handlers, TryEvalMakeTimestampFunction, "MAKE_TIMESTAMP");
-        Register(handlers, TryEvalMakeTimestamptzFunction, "MAKE_TIMESTAMPTZ");
-        Register(handlers, TryEvalToDateFunction, "TO_DATE");
-        Register(handlers, TryEvalToCharFunction, "TO_CHAR");
-        return handlers;
-    }
-
-    private static void Register(
-        IDictionary<string, PostgresDateFunctionHandler> handlers,
-        PostgresDateFunctionHandler handler,
-        params string[] names)
-    {
-        foreach (var name in names)
-            handlers[name] = handler;
+        var f = context.Dialect.Functions;
+        f.Add("DATE", TryEvalDateTruncFunction, "DATE_TRUNC");
+        f.Add("DATE", TryEvalDatePartFunction, "DATE_PART");
+        f.Add("AGE", TryEvalAgeFunction, "AGE");
+        f.Add("INTERVAL", TryEvalMakeIntervalFunction, "MAKE_INTERVAL");
+        f.Add("DATE", TryEvalMakeDateFunction, "MAKE_DATE");
+        f.Add("TIME", TryEvalMakeTimeFunction, "MAKE_TIME");
+        f.Add("TIMESTAMP", TryEvalMakeTimestampFunction, "MAKE_TIMESTAMP");
+        f.Add("TIMESTAMP", TryEvalMakeTimestamptzFunction, "MAKE_TIMESTAMPTZ");
+        f.Add("DATE", TryEvalToDateFunction, "TO_DATE");
+        f.Add("VARCHAR", TryEvalToCharFunction, "TO_CHAR");
     }
 
     private static bool TryEvalDateTruncFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -75,8 +59,8 @@ internal static class AstQueryPostgresDateFunctionEvaluator
     }
 
     private static bool TryEvalDatePartFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -86,7 +70,9 @@ internal static class AstQueryPostgresDateFunctionEvaluator
 
         var unit = AstQueryExecutionRuntimeHelper.ResolveTemporalUnit(evalArg(0)?.ToString() ?? string.Empty);
         var value = evalArg(1);
-        if (AstQueryExecutorBase.IsNullish(value) || unit == AstQueryExecutorBase.TemporalUnit.Unknown || !AstQueryExecutorBase.TryCoerceDateTime(value, out var dateTime))
+        if (AstQueryExecutorBase.IsNullish(value)
+            || unit == AstQueryExecutorBase.TemporalUnit.Unknown
+            || !AstQueryExecutorBase.TryCoerceDateTime(value, out var dateTime))
         {
             result = null;
             return true;
@@ -98,8 +84,8 @@ internal static class AstQueryPostgresDateFunctionEvaluator
     }
 
     private static bool TryEvalAgeFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -111,7 +97,8 @@ internal static class AstQueryPostgresDateFunctionEvaluator
         }
 
         var left = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(left) || !AstQueryExecutorBase.TryCoerceDateTime(left, out var leftDate))
+        if (AstQueryExecutorBase.IsNullish(left)
+            || !AstQueryExecutorBase.TryCoerceDateTime(left, out var leftDate))
         {
             result = null;
             return true;
@@ -124,7 +111,8 @@ internal static class AstQueryPostgresDateFunctionEvaluator
         }
 
         var right = evalArg(1);
-        if (AstQueryExecutorBase.IsNullish(right) || !AstQueryExecutorBase.TryCoerceDateTime(right, out var rightDate))
+        if (AstQueryExecutorBase.IsNullish(right)
+            || !AstQueryExecutorBase.TryCoerceDateTime(right, out var rightDate))
         {
             result = null;
             return true;
@@ -135,8 +123,8 @@ internal static class AstQueryPostgresDateFunctionEvaluator
     }
 
     private static bool TryEvalMakeIntervalFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -157,8 +145,8 @@ internal static class AstQueryPostgresDateFunctionEvaluator
     }
 
     private static bool TryEvalMakeDateFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -174,8 +162,8 @@ internal static class AstQueryPostgresDateFunctionEvaluator
     }
 
     private static bool TryEvalMakeTimeFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -191,8 +179,8 @@ internal static class AstQueryPostgresDateFunctionEvaluator
     }
 
     private static bool TryEvalMakeTimestampFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -211,8 +199,8 @@ internal static class AstQueryPostgresDateFunctionEvaluator
     }
 
     private static bool TryEvalMakeTimestamptzFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -231,8 +219,8 @@ internal static class AstQueryPostgresDateFunctionEvaluator
     }
 
     private static bool TryEvalToDateFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -275,8 +263,8 @@ internal static class AstQueryPostgresDateFunctionEvaluator
     }
 
     private static bool TryEvalToCharFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {

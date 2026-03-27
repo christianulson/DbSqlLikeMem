@@ -2,23 +2,22 @@ namespace DbSqlLikeMem;
 
 internal static class AstQueryPostgresScalarFunctionEvaluator
 {
-    internal static bool TryEvaluate(
+    internal static bool TryEvaluateyPostgresScalarFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
-        Func<string?> getCurrentQueryText,
         out object? result)
     {
-        if (AstQueryPostgresSystemFunctionEvaluator.TryEvaluate(fn, context, evalArg, getCurrentQueryText, out result)
-            || AstQueryPostgresDateFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)
-            || AstQueryPostgresScalarUtilityFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)
-            || AstQueryPostgresTextFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)
-            || AstQueryPostgresNetworkFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)
-            || AstQueryPostgresUnicodeFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)
-            || AstQueryPostgresRegexFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)
-            || AstQueryPostgresArrayFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)
-            || AstQueryPostgresJsonFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)
-            || AstQueryPostgresUuidFunctionEvaluator.TryEvaluate(fn, context, out result))
+        if (context.TryEvaluatePostgresSystemFunction(fn, evalArg, out result)
+            || context.TryEvaluatePostgresDateFunction(fn, evalArg, out result)
+            || AstQueryPostgresScalarUtilityFunctionEvaluator.TryEvaluatePostgresScalarUtilityFunction(context, fn, evalArg, out result)
+            || AstQueryPostgresTextFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result)
+            || AstQueryPostgresNetworkFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result)
+            || AstQueryPostgresUnicodeFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result)
+            || AstQueryPostgresRegexFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result)
+            || AstQueryPostgresArrayFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result)
+            || AstQueryPostgresJsonFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result)
+            || AstQueryPostgresUuidFunctionEvaluator.TryEvaluate(context, fn, out result))
         {
             return true;
         }

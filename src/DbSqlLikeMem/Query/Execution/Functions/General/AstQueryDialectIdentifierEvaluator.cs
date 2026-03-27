@@ -2,8 +2,17 @@ namespace DbSqlLikeMem;
 
 internal static class AstQueryDialectIdentifierEvaluator
 {
-    internal static bool TryResolveIdentifier(
+    internal static bool TryResolveIdentifierCore(
         QueryExecutionContext context,
+        IdentifierExpr identifier,
+        DateTime evaluationLocalNow,
+        DateTime evaluationUtcNow,
+        DbConnectionMockBase connection,
+        out object? result)
+        => context.TryResolveIdentifier(identifier, evaluationLocalNow, evaluationUtcNow, connection, out result);
+
+    internal static bool TryResolveIdentifier(
+        this QueryExecutionContext context,
         IdentifierExpr identifier,
         DateTime evaluationLocalNow,
         DateTime evaluationUtcNow,
@@ -43,13 +52,13 @@ internal static class AstQueryDialectIdentifierEvaluator
 
         if (!metadataDefinition.AllowsIdentifier)
         {
-            throw SqlUnsupported.ForDialect(dialect, identifier.Name.ToUpperInvariant());
+            throw SqlUnsupported.NotSupported(dialect, identifier.Name.ToUpperInvariant());
         }
 
         if (metadataDefinition.AstExecutor is not null
             && metadataDefinition.AstExecutor(
-                new FunctionCallExpr(identifier.Name, []),
                 context,
+                new FunctionCallExpr(identifier.Name, []),
                 static _ => null,
                 out var boundIdentifierValue))
         {
@@ -58,8 +67,7 @@ internal static class AstQueryDialectIdentifierEvaluator
         }
 
         if (metadataDefinition.TemporalKind is not null
-            && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(
-                context,
+            && context.TryEvaluateZeroArgIdentifier(
                 identifier.Name,
                 evaluationLocalNow,
                 evaluationUtcNow,

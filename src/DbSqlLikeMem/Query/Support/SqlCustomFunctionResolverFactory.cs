@@ -17,7 +17,7 @@ internal static class SqlCustomFunctionResolverFactory
         if (!db.TryGetValue(schemaName, out var schema) || schema is not SchemaMock schemaMock)
             return null;
 
-        if (schemaMock.ScalarFunctions.Count == 0)
+        if (schemaMock.Functions.Count == 0)
             return null;
 
         return functionName => schemaMock.TryGetFunction(functionName, out _);

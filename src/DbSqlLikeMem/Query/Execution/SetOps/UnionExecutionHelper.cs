@@ -4,17 +4,16 @@ namespace DbSqlLikeMem;
 
 internal static class UnionExecutionHelper
 {
-    internal static TableResultMock Execute(
+    internal static TableResultMock ExecuteUnion(
+        this QueryExecutionContext context,
         IReadOnlyList<SqlSelectQuery> parts,
         IReadOnlyList<bool> allFlags,
         IReadOnlyList<SqlOrderByItem>? orderBy,
         SqlRowLimit? rowLimit,
         string? sqlContextForErrors,
-        QueryExecutionContext context,
         Func<SqlSelectQuery, TableResultMock> executeSelect,
         Func<TableResultMock, SqlSelectQuery, IDictionary<string, Source>, QueryDebugTraceBuilder?, TableResultMock> applyOrderAndLimit,
-        Func<SqlSelectQuery, int> countKnownInputTables,
-        Func<SqlSelectQuery, long> estimateRowsRead)
+        Func<SqlSelectQuery, int> countKnownInputTables)
     {
         var sw = Stopwatch.StartNew();
         QueryDebugTraceBuilder? debugTrace = context.Connection.IsDebugTraceCaptureEnabled
@@ -55,24 +54,22 @@ internal static class UnionExecutionHelper
             JoinFields = new List<Dictionary<string, object?>>(totalRows)
         };
 
-        if (TryUseSimpleUnionAllProjectionPath(tables, allFlags, context.Dialect, out var fastUnionResult))
+        if (context.TryUseSimpleUnionAllProjectionPath(tables, allFlags, out var fastUnionResult))
         {
             result = fastUnionResult;
-            return FinalizeUnionResult(
+            return context.FinalizeUnionResult(
                 parts,
                 allFlags,
                 orderBy,
                 rowLimit,
-                context,
                 countKnownInputTables,
-                estimateRowsRead,
                 result,
                 sw,
                 debugTrace,
                 applyOrderAndLimit);
         }
 
-        ValidateUnionTables(tables, sqlContextForErrors, context);
+        context.ValidateUnionTables(tables, sqlContextForErrors);
 
         result.Columns = AreUnionColumnMetadataIdentical(tables)
             ? tables[0].Columns
@@ -101,14 +98,12 @@ internal static class UnionExecutionHelper
             TimeSpan.Zero,
             QueryDebugTraceFormattingHelper.FormatUnionCombineDebugDetails(parts, allFlags));
 
-        return FinalizeUnionResult(
+        return context.FinalizeUnionResult(
             parts,
             allFlags,
             orderBy,
             rowLimit,
-            context,
             countKnownInputTables,
-            estimateRowsRead,
             result,
             sw,
             debugTrace,
@@ -116,9 +111,9 @@ internal static class UnionExecutionHelper
     }
 
     private static void ValidateUnionTables(
+        this QueryExecutionContext context,
         IReadOnlyList<TableResultMock> tables,
-        string? sqlContextForErrors,
-        QueryExecutionContext context)
+        string? sqlContextForErrors)
     {
         var resultColumns = tables[0].Columns;
         for (var i = 0; i < tables.Count; i++)
@@ -134,7 +129,7 @@ internal static class UnionExecutionHelper
                 throw new InvalidOperationException(msg);
             }
 
-            UnionQueryValidationHelper.ValidateUnionColumnTypes(resultColumns, tables[i].Columns, i, sqlContextForErrors, context);
+            context.ValidateUnionColumnTypes(resultColumns, tables[i].Columns, i, sqlContextForErrors);
         }
     }
 
@@ -161,13 +156,12 @@ internal static class UnionExecutionHelper
         => AppendUnionRows(sourceTable, targetTable, seenRows);
 
     private static TableResultMock FinalizeUnionResult(
+        this QueryExecutionContext context,
         IReadOnlyList<SqlSelectQuery> parts,
         IReadOnlyList<bool> allFlags,
         IReadOnlyList<SqlOrderByItem>? orderBy,
         SqlRowLimit? rowLimit,
-        QueryExecutionContext context,
         Func<SqlSelectQuery, int> countKnownInputTables,
-        Func<SqlSelectQuery, long> estimateRowsRead,
         TableResultMock result,
         Stopwatch sw,
         QueryDebugTraceBuilder? debugTrace,
@@ -194,7 +188,7 @@ internal static class UnionExecutionHelper
 
         var unionMetrics = new SqlPlanRuntimeMetrics(
             InputTables: parts.Sum(countKnownInputTables),
-            EstimatedRowsRead: parts.Sum(estimateRowsRead),
+            EstimatedRowsRead: parts.Sum(context.EstimateRowsRead),
             ActualRows: result.Count,
             ElapsedMs: sw.ElapsedMilliseconds);
         var runtimeContext = context.BuildPlanRuntimeContext();
@@ -220,9 +214,9 @@ internal static class UnionExecutionHelper
     }
 
     private static bool TryUseSimpleUnionAllProjectionPath(
+        this QueryExecutionContext context,
         IReadOnlyList<TableResultMock> tables,
         IReadOnlyList<bool> allFlags,
-        ISqlDialect dialect,
         out TableResultMock result)
     {
         result = null!;
@@ -236,7 +230,7 @@ internal static class UnionExecutionHelper
         if (tables[0].Columns.Count == 0)
             return false;
 
-        if (!TryValidateUnionAllProjectionTables(tables, dialect, out var useFirstColumns))
+        if (!context.TryValidateUnionAllProjectionTables(tables, out var useFirstColumns))
             return false;
 
         var totalRows = tables.Sum(static table => table.Count);
@@ -245,9 +239,9 @@ internal static class UnionExecutionHelper
             Columns = useFirstColumns
                 ? tables[0].Columns
                 : MergeUnionColumnMetadata(tables),
-            JoinFields = new List<Dictionary<string, object?>>(totalRows)
+            JoinFields = new List<Dictionary<string, object?>>(totalRows),
+            Capacity = totalRows
         };
-        fastResult.Capacity = totalRows;
 
         foreach (var table in tables)
         {
@@ -262,7 +256,7 @@ internal static class UnionExecutionHelper
         return true;
     }
 
-    private static IList<TableResultColMock> MergeUnionColumnMetadata(IReadOnlyList<TableResultMock> tables)
+    private static List<TableResultColMock> MergeUnionColumnMetadata(IReadOnlyList<TableResultMock> tables)
     {
         if (tables.Count == 0)
             return [];
@@ -327,8 +321,8 @@ internal static class UnionExecutionHelper
     }
 
     private static bool TryValidateUnionAllProjectionTables(
+        this QueryExecutionContext context,
         IReadOnlyList<TableResultMock> tables,
-        ISqlDialect dialect,
         out bool useFirstColumns)
     {
         useFirstColumns = true;
@@ -349,7 +343,7 @@ internal static class UnionExecutionHelper
             {
                 var left = first[columnIndex];
                 var right = current[columnIndex];
-                if (!dialect.AreUnionColumnTypesCompatible(left.DbType, right.DbType))
+                if (!context.Dialect.AreUnionColumnTypesCompatible(left.DbType, right.DbType))
                     return false;
 
                 if (useFirstColumns

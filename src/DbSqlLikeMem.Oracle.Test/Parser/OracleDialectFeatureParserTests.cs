@@ -114,11 +114,11 @@ public sealed class OracleDialectFeatureParserTests
             dialect));
 
         Assert.Equal("fn_users", create.Table?.Name, ignoreCase: true);
-        Assert.Equal("NUMBER", create.ReturnTypeSql, ignoreCase: true);
-        Assert.Equal(2, create.Parameters.Count);
-        Assert.Equal("baseValue", create.Parameters[0].Name, ignoreCase: true);
-        Assert.Equal("incrementValue", create.Parameters[1].Name, ignoreCase: true);
-        Assert.IsType<BinaryExpr>(create.Body);
+        Assert.Equal("NUMBER", create.Definition.ReturnTypeSql, ignoreCase: true);
+        Assert.Equal(2, create.Definition.Parameters.Count);
+        Assert.Equal("baseValue", create.Definition.Parameters[0].Name, ignoreCase: true);
+        Assert.Equal("incrementValue", create.Definition.Parameters[1].Name, ignoreCase: true);
+        Assert.IsType<BinaryExpr>(create.Definition.Body);
 
         var drop = Assert.IsType<SqlDropFunctionQuery>(SqlQueryParser.Parse(
             "DROP FUNCTION fn_users",
@@ -144,8 +144,8 @@ public sealed class OracleDialectFeatureParserTests
             dialect));
         Assert.True(create.OrReplace);
         Assert.Equal("fn_users", create.Table?.Name, ignoreCase: true);
-        Assert.Equal(2, create.Parameters.Count);
-        Assert.IsType<BinaryExpr>(create.Body);
+        Assert.Equal(2, create.Definition.Parameters.Count);
+        Assert.IsType<BinaryExpr>(create.Definition.Body);
     }
 
     /// <summary>
@@ -1297,7 +1297,7 @@ public sealed class OracleDialectFeatureParserTests
         Assert.Equal(expected, dialect.RequiresOrderByInWindowFunction("ROW_NUMBER"));
         Assert.Equal(expected, dialect.RequiresOrderByInWindowFunction("LAG"));
 
-        Assert.False(dialect.RequiresOrderByInWindowFunction("COUNT"));
+        Assert.False(dialect.RequiresOrderByInWindowFunction(SqlConst.COUNT));
     }
 
 
@@ -1326,7 +1326,7 @@ public sealed class OracleDialectFeatureParserTests
         Assert.Equal(1, lagMin);
         Assert.Equal(3, lagMax);
 
-        Assert.False(dialect.TryGetWindowFunctionArgumentArity("COUNT", out _, out _));
+        Assert.False(dialect.TryGetWindowFunctionArgumentArity(SqlConst.COUNT, out _, out _));
     }
 
 
@@ -1393,7 +1393,7 @@ public sealed class OracleDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
 
-        Assert.Contains("STRING_AGG", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.STRING_AGG, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

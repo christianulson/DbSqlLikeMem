@@ -2158,7 +2158,7 @@ public abstract class TableMock
 
     /// <summary>
     /// EN: Resolves a token to a value in the table context.
-    /// PT: Resolve um token para um valor no contexto da tabela.
+    /// PT: ResolveRowsFrameRange um token para um valor no contexto da tabela.
     /// </summary>
     /// <param name="token">EN: Token to resolve. PT: Token a resolver.</param>
     /// <param name="dbType">EN: Expected type. PT: Tipo esperado.</param>

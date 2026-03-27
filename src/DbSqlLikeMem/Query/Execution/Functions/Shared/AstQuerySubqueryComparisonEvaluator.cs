@@ -509,7 +509,7 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
         if (left is null || left is DBNull || right is null || right is DBNull)
             return SqlTruthValue.Unknown;
 
-        var cmp = left.Compare(right, _context);
+        var cmp = _context.Compare(left,right );
         return op switch
         {
             SqlBinaryOp.Eq => cmp == 0 ? SqlTruthValue.True : SqlTruthValue.False,
@@ -661,7 +661,7 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
         var count = state.Counts.TryGetValue(outerKey, out var matchedCount)
             ? matchedCount
             : 0;
-        var comparison = AstQueryComparisonSupport.CompareSql((decimal)count, literalValue, _context);
+        var comparison = _context.CompareSql((decimal)count, literalValue);
         result = comparisonOp switch
         {
             SqlBinaryOp.Eq => comparison == 0,

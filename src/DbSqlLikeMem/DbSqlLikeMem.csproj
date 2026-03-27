@@ -6,6 +6,7 @@
 	</PropertyGroup>
  
 	<ItemGroup>
+		<InternalsVisibleTo Include="DbSqlLikeMem.Auto" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Db2" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Db2.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Db2.Dapper.Test" />
@@ -32,7 +33,6 @@
 		<InternalsVisibleTo Include="DbSqlLikeMem.SqlServer.Dapper.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.SqlAzure" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.SqlAzure.Test" />
-		<InternalsVisibleTo Include="DbSqlLikeMem.Auto" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.TestTools" />
 	</ItemGroup>

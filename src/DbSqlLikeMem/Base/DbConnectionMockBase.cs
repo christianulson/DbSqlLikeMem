@@ -77,7 +77,7 @@ public abstract class DbConnectionMockBase(
     private sealed record TransactionFunctionState(
         string SchemaName,
         string FunctionName,
-        ScalarFunctionDef? PreviousDefinition);
+        DbFunctionDef? PreviousDefinition);
 
     private sealed record TransactionProcedureState(
         string SchemaName,
@@ -1399,7 +1399,7 @@ public abstract class DbConnectionMockBase(
 
     internal bool TryGetFunction(
         string functionName,
-        out ScalarFunctionDef? function,
+        out DbFunctionDef? function,
         string? schemaName = null)
         => Db.TryGetFunction(
             functionName,
@@ -1407,24 +1407,18 @@ public abstract class DbConnectionMockBase(
             schemaName ?? Database);
 
     internal void CreateFunction(
-        string functionName,
-        string returnTypeSql,
-        IReadOnlyList<ScalarFunctionParameterDef> parameters,
-        SqlExpr body,
+        DbFunctionDef definition,
         bool orReplace = false,
         string? schemaName = null)
     {
-        var targetSchema = schemaName ?? Database;
-        ScalarFunctionDef? previousDefinition = null;
-        Db.TryGetFunction(functionName, out previousDefinition, targetSchema);
+        ArgumentNullExceptionCompatible.ThrowIfNull(definition, nameof(definition));
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(definition.Name, nameof(definition.Name));
 
-        Db.CreateFunction(
-            functionName,
-            returnTypeSql,
-            parameters,
-            body,
-            orReplace,
-            targetSchema);
+        var targetSchema = schemaName ?? Database;
+        DbFunctionDef? previousDefinition = null;
+        Db.TryGetFunction(definition.Name, out previousDefinition, targetSchema);
+
+        Db.CreateFunction(definition, orReplace, targetSchema);
 
         if (CurrentTransaction == null)
             return;
@@ -1440,7 +1434,7 @@ public abstract class DbConnectionMockBase(
             string.Empty,
             FunctionState: new TransactionFunctionState(
                 targetSchema,
-                functionName.NormalizeName(),
+                definition.Name.NormalizeName(),
                 previousDefinition)));
     }
 
@@ -2002,7 +1996,7 @@ public abstract class DbConnectionMockBase(
     {
         EnsureActiveTransaction();
         if (!SupportsSavepoints)
-            throw SqlUnsupported.ForDialect(ExecutionDialect, "SAVEPOINT");
+            throw SqlUnsupported.NotSupported(ExecutionDialect, "SAVEPOINT");
 
         var normalizedName = NormalizeSavepointName(savepointName);
         if (_savepoints.ContainsKey(normalizedName))
@@ -2015,7 +2009,7 @@ public abstract class DbConnectionMockBase(
     {
         EnsureActiveTransaction();
         if (!SupportsSavepoints)
-            throw SqlUnsupported.ForDialect(ExecutionDialect, "ROLLBACK TO SAVEPOINT");
+            throw SqlUnsupported.NotSupported(ExecutionDialect, "ROLLBACK TO SAVEPOINT");
 
         var normalizedName = NormalizeSavepointName(savepointName);
         if (!_savepoints.TryGetValue(normalizedName, out var journalPosition))
@@ -2038,7 +2032,7 @@ public abstract class DbConnectionMockBase(
     {
         EnsureActiveTransaction();
         if (!SupportsSavepoints || !SupportsReleaseSavepoint)
-            throw SqlUnsupported.ForDialect(ExecutionDialect, "RELEASE SAVEPOINT");
+            throw SqlUnsupported.NotSupported(ExecutionDialect, "RELEASE SAVEPOINT");
 
         var normalizedName = NormalizeSavepointName(savepointName);
         if (!_savepoints.Remove(normalizedName))

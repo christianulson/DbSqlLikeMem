@@ -114,11 +114,11 @@ public sealed class NpgsqlDialectFeatureParserTests
             dialect));
 
         Assert.Equal("fn_users", create.Table?.Name, ignoreCase: true);
-        Assert.Equal("integer", create.ReturnTypeSql, ignoreCase: true);
-        Assert.Equal(2, create.Parameters.Count);
-        Assert.Equal("base_value", create.Parameters[0].Name, ignoreCase: true);
-        Assert.Equal("increment_value", create.Parameters[1].Name, ignoreCase: true);
-        Assert.IsType<BinaryExpr>(create.Body);
+        Assert.Equal("integer", create.Definition.ReturnTypeSql, ignoreCase: true);
+        Assert.Equal(2, create.Definition.Parameters.Count);
+        Assert.Equal("base_value", create.Definition.Parameters[0].Name, ignoreCase: true);
+        Assert.Equal("increment_value", create.Definition.Parameters[1].Name, ignoreCase: true);
+        Assert.IsType<BinaryExpr>(create.Definition.Body);
 
         var drop = Assert.IsType<SqlDropFunctionQuery>(SqlQueryParser.Parse(
             "DROP FUNCTION IF EXISTS fn_users(integer, integer)",
@@ -144,8 +144,8 @@ public sealed class NpgsqlDialectFeatureParserTests
             dialect));
         Assert.True(create.OrReplace);
         Assert.Equal("fn_users", create.Table?.Name, ignoreCase: true);
-        Assert.Equal(2, create.Parameters.Count);
-        Assert.IsType<BinaryExpr>(create.Body);
+        Assert.Equal(2, create.Definition.Parameters.Count);
+        Assert.IsType<BinaryExpr>(create.Definition.Body);
     }
 
     /// <summary>
@@ -4396,7 +4396,7 @@ WHERE id = 1";
         Assert.Equal(expected, dialect.RequiresOrderByInWindowFunction("ROW_NUMBER"));
         Assert.Equal(expected, dialect.RequiresOrderByInWindowFunction("LAG"));
 
-        Assert.False(dialect.RequiresOrderByInWindowFunction("COUNT"));
+        Assert.False(dialect.RequiresOrderByInWindowFunction(SqlConst.COUNT));
     }
 
 
@@ -4425,7 +4425,7 @@ WHERE id = 1";
         Assert.Equal(1, lagMin);
         Assert.Equal(3, lagMax);
 
-        Assert.False(dialect.TryGetWindowFunctionArgumentArity("COUNT", out _, out _));
+        Assert.False(dialect.TryGetWindowFunctionArgumentArity(SqlConst.COUNT, out _, out _));
     }
 
 
@@ -4495,7 +4495,7 @@ WHERE id = 1";
         var expr = SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect);
         var call = Assert.IsType<CallExpr>(expr);
 
-        Assert.Equal("STRING_AGG", call.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.STRING_AGG, call.Name, StringComparer.OrdinalIgnoreCase);
         Assert.NotNull(call.WithinGroupOrderBy);
         Assert.Single(call.WithinGroupOrderBy!);
         Assert.True(call.WithinGroupOrderBy![0].Desc);
@@ -4515,7 +4515,7 @@ WHERE id = 1";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
 
-        Assert.Contains("LISTAGG", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.LISTAGG, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

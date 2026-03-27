@@ -574,7 +574,7 @@ public abstract class DbMock
 
     internal bool TryGetFunction(
         string functionName,
-        out ScalarFunctionDef? function,
+        out DbFunctionDef? function,
         string? schemaName = null)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(functionName, nameof(functionName));
@@ -583,21 +583,18 @@ public abstract class DbMock
     }
 
     internal void CreateFunction(
-        string functionName,
-        string returnTypeSql,
-        IReadOnlyList<ScalarFunctionParameterDef> parameters,
-        SqlExpr body,
+        DbFunctionDef definition,
         bool orReplace = false,
         string? schemaName = null)
     {
-        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
-        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(returnTypeSql, nameof(returnTypeSql));
-        ArgumentNullExceptionCompatible.ThrowIfNull(parameters, nameof(parameters));
-        ArgumentNullExceptionCompatible.ThrowIfNull(body, nameof(body));
+        ArgumentNullExceptionCompatible.ThrowIfNull(definition, nameof(definition));
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(definition.Name, nameof(definition.Name));
         var sc = GetSchemaName(schemaName);
         if (!this.TryGetValue(sc, out var s) || s == null)
             CreateSchema(sc);
-        this[sc].CreateFunction(functionName, returnTypeSql, parameters, body, orReplace);
+        this[sc].CreateFunction(
+            definition,
+            orReplace);
     }
 
     internal void DropFunction(
@@ -612,7 +609,7 @@ public abstract class DbMock
 
     internal void RestoreFunction(
         string functionName,
-        ScalarFunctionDef definition,
+        DbFunctionDef definition,
         string? schemaName = null)
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));

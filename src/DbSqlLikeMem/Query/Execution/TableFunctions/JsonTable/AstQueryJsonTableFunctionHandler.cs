@@ -19,7 +19,7 @@ internal sealed class AstQueryJsonTableFunctionHandler(
         var dialect = _context.Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para JSON_TABLE.");
         if (!dialect.TryGetTableFunctionDefinition(SqlConst.JSON_TABLE, out var jsonTableDefinition)
             || jsonTableDefinition is null)
-            throw SqlUnsupported.ForDialect(dialect, SqlConst.JSON_TABLE);
+            throw SqlUnsupported.NotSupported(dialect, SqlConst.JSON_TABLE);
 
         if (function.Args.Count != 2)
             throw new NotSupportedException("JSON_TABLE table source currently supports exactly two arguments in the mock.");

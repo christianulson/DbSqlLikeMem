@@ -7,8 +7,8 @@ internal static class QueryMariaDbFunctionHelper
     private static readonly IReadOnlyDictionary<string, MariaDbJsonFunctionHandler> _jsonHandlers = CreateJsonHandlers();
 
     private delegate bool MariaDbFunctionHandler(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result);
 
@@ -18,13 +18,13 @@ internal static class QueryMariaDbFunctionHelper
         out object? result);
 
     public static bool TryEvalFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler(fn, context, evalArg, out result);
+            return handler( context,fn, evalArg, out result);
 
         result = null;
         return false;
@@ -97,8 +97,8 @@ internal static class QueryMariaDbFunctionHelper
     }
 
     internal static bool TryEvalBenchmarkFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -127,8 +127,8 @@ internal static class QueryMariaDbFunctionHelper
     }
 
     private static bool TryEvalFieldFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -161,8 +161,8 @@ internal static class QueryMariaDbFunctionHelper
     }
 
     private static bool TryEvalLengthBFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -185,8 +185,8 @@ internal static class QueryMariaDbFunctionHelper
     }
 
     private static bool TryEvalDecodeOracleFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -213,8 +213,8 @@ internal static class QueryMariaDbFunctionHelper
     }
 
     private static bool TryEvalCrc32cFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -252,8 +252,8 @@ internal static class QueryMariaDbFunctionHelper
     }
 
     private static bool TryEvalNaturalSortKeyFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -300,8 +300,8 @@ internal static class QueryMariaDbFunctionHelper
     }
 
     private static bool TryEvalSFormatFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -328,8 +328,8 @@ internal static class QueryMariaDbFunctionHelper
     }
 
     private static bool TryEvalKdfFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -362,7 +362,7 @@ internal static class QueryMariaDbFunctionHelper
         }
 
         if (!algorithm.Equals("pbkdf2_hmac", StringComparison.OrdinalIgnoreCase))
-            throw SqlUnsupported.ForDialect(context.Dialect, "KDF");
+            throw SqlUnsupported.NotSupported(context.Dialect, "KDF");
 
         var iterations = 1000;
         if (fn.Args.Count > 2 && TryConvertToInt32(evalArg(2), out var parsedIterations))
@@ -421,8 +421,8 @@ internal static class QueryMariaDbFunctionHelper
     }
 
     private static bool TryEvalTrimOracleFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -455,8 +455,8 @@ internal static class QueryMariaDbFunctionHelper
     }
 
     private static bool TryEvalWeightStringFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -479,8 +479,8 @@ internal static class QueryMariaDbFunctionHelper
     }
 
     private static bool TryEvalJsonFunctions(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -723,11 +723,11 @@ internal static class QueryMariaDbFunctionHelper
         var rows = new List<object?>();
         foreach (var prop in element.EnumerateObject())
         {
-            rows.Add(BuildJsonObject(new[]
-            {
+            rows.Add(BuildJsonObject(
+            [
                 ("key", (object?)prop.Name),
                 ("value", ConvertJsonElementToValue(prop.Value))
-            }));
+            ]));
         }
 
         result = BuildJsonArray(rows);

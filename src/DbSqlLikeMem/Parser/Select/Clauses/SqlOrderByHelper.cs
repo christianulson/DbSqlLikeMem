@@ -25,14 +25,14 @@ internal static class SqlOrderByHelper
             if (raw.EndsWith(" NULLS FIRST", StringComparison.OrdinalIgnoreCase))
             {
                 if (!ctx.Dialect.SupportsOrderByNullsModifier)
-                    throw SqlUnsupported.ForDialect(ctx.Dialect, "ORDER BY ... NULLS FIRST");
+                    throw ctx.NotSupported("ORDER BY ... NULLS FIRST");
                 nullsFirst = true;
                 raw = raw[..^12].Trim();
             }
             else if (raw.EndsWith(" NULLS LAST", StringComparison.OrdinalIgnoreCase))
             {
                 if (!ctx.Dialect.SupportsOrderByNullsModifier)
-                    throw SqlUnsupported.ForDialect(ctx.Dialect, "ORDER BY ... NULLS LAST");
+                    throw ctx.NotSupported("ORDER BY ... NULLS LAST");
                 nullsFirst = false;
                 raw = raw[..^11].Trim();
             }
@@ -77,14 +77,14 @@ internal static class SqlOrderByHelper
             if (raw.EndsWith(" NULLS FIRST", StringComparison.OrdinalIgnoreCase))
             {
                 if (!dialect.SupportsOrderByNullsModifier)
-                    throw SqlUnsupported.ForDialect(dialect, "ORDER BY ... NULLS FIRST");
+                    throw SqlUnsupported.NotSupported(dialect, "ORDER BY ... NULLS FIRST");
                 nullsFirst = true;
                 raw = raw[..^12].Trim();
             }
             else if (raw.EndsWith(" NULLS LAST", StringComparison.OrdinalIgnoreCase))
             {
                 if (!dialect.SupportsOrderByNullsModifier)
-                    throw SqlUnsupported.ForDialect(dialect, "ORDER BY ... NULLS LAST");
+                    throw SqlUnsupported.NotSupported(dialect, "ORDER BY ... NULLS LAST");
                 nullsFirst = false;
                 raw = raw[..^11].Trim();
             }

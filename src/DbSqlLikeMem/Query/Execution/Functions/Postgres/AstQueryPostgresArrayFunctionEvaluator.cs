@@ -8,8 +8,8 @@ using System.Linq;
 using System.Text.Json;
 
 internal delegate bool AstQueryTryEvalPostgresArrayFunction(
-    FunctionCallExpr fn,
     QueryExecutionContext context,
+    FunctionCallExpr fn,
     Func<int, object?> evalArg,
     out object? result);
 
@@ -19,8 +19,8 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
         CreateHandlers();
 
     internal static bool TryEvaluate(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -30,7 +30,7 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
             return false;
         }
 
-        return handler(fn, context, evalArg, out result);
+        return handler(context, fn, evalArg, out result);
     }
 
     private static IReadOnlyDictionary<string, AstQueryTryEvalPostgresArrayFunction> CreateHandlers()
@@ -63,8 +63,8 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
     }
 
     private static bool TryEvalArrayToStringFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -95,8 +95,8 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
     }
 
     private static bool TryEvalArrayLengthFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -106,8 +106,8 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
     }
 
     private static bool TryEvalArrayUpperFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -117,8 +117,8 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
     }
 
     private static bool TryEvalArrayLowerFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -128,8 +128,8 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
     }
 
     private static bool TryEvalArrayDimsFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -139,8 +139,8 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
     }
 
     private static bool TryEvalArrayNdimsFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -150,8 +150,8 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
     }
 
     private static bool TryEvalArrayPositionFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -177,8 +177,8 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
     }
 
     private static bool TryEvalArrayPositionsFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -211,8 +211,8 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
     }
 
     private static bool TryEvalArrayToJsonFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -241,27 +241,27 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
     }
 
     private static bool TryEvalArrayAppendFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
-        => TryEvalArrayMutationFunction(fn, context, evalArg, out result, isCat: false, isPrepend: false, (list, args) => list.Add(args[1]));
+        => TryEvalArrayMutationFunction(context,fn,  evalArg, out result, isCat: false, isPrepend: false, (list, args) => list.Add(args[1]));
 
     private static bool TryEvalArrayPrependFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
-        => TryEvalArrayMutationFunction(fn, context, evalArg, out result, isCat: false, isPrepend: true, (list, args) => list.Insert(0, args[0]));
+        => TryEvalArrayMutationFunction(context, fn, evalArg, out result, isCat: false, isPrepend: true, (list, args) => list.Insert(0, args[0]));
 
     private static bool TryEvalArrayCatFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
         => TryEvalArrayMutationFunction(
-            fn,
             context,
+            fn,
             evalArg,
             out result,
             isCat: true,
@@ -274,13 +274,13 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
             });
 
     private static bool TryEvalArrayRemoveFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
         => TryEvalArrayMutationFunction(
-            fn,
             context,
+            fn,
             evalArg,
             out result,
             isCat: false,
@@ -292,13 +292,13 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
             });
 
     private static bool TryEvalArrayReplaceFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
         => TryEvalArrayMutationFunction(
-            fn,
             context,
+            fn,
             evalArg,
             out result,
             isCat: false,
@@ -315,8 +315,8 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
             });
 
     private static bool TryEvalArrayMutationFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result,
         bool isCat,

@@ -198,4 +198,7 @@ internal sealed class SqlExpressionParserContext
 
         return tokens;
     }
+
+    public NotSupportedException NotSupported(string feature)
+        => Dialect.NotSupported(feature);
 }

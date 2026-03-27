@@ -67,6 +67,51 @@ public static class SqlConst
     public const string LANGUAGE = "LANGUAGE";
     public const string COLUMN = "COLUMN";
     public const string ADD = "ADD";
+    public const string COUNT = "COUNT";
+    public const string COUNT_BIG = "COUNT_BIG";
+    public const string JSON_GROUP_OBJECT = "JSON_GROUP_OBJECT";
+    public const string JSON_OBJECTAGG = "JSON_OBJECTAGG";
+    public const string JSON_OBJECT_AGG = "JSON_OBJECT_AGG";
+    public const string JSON_OBJECT_AGG_STRICT = "JSON_OBJECT_AGG_STRICT";
+    public const string JSON_OBJECT_AGG_UNIQUE = "JSON_OBJECT_AGG_UNIQUE";
+    public const string JSON_OBJECT_AGG_UNIQUE_STRICT = "JSON_OBJECT_AGG_UNIQUE_STRICT";
+    public const string JSONB_OBJECT_AGG = "JSONB_OBJECT_AGG";
+    public const string JSONB_OBJECT_AGG_STRICT = "JSONB_OBJECT_AGG_STRICT";
+    public const string JSONB_OBJECT_AGG_UNIQUE = "JSONB_OBJECT_AGG_UNIQUE";
+    public const string JSONB_OBJECT_AGG_UNIQUE_STRICT = "JSONB_OBJECT_AGG_UNIQUE_STRICT";
+
+    public const string GROUP_CONCAT = "GROUP_CONCAT";
+    public const string STRING_AGG = "STRING_AGG";
+    public const string LISTAGG = "LISTAGG";
+    public const string SUM = "SUM";
+    public const string AVG = "AVG";
+    public const string MIN = "MIN";
+    public const string MAX = "MAX";
+    public const string CHECKSUM_AGG = "CHECKSUM_AGG";
+    public const string ANY_VALUE = "ANY_VALUE";
+    public const string BIT_AND = "BIT_AND";
+    public const string BIT_OR = "BIT_OR";
+    public const string BIT_XOR = "BIT_XOR";
+    public const string JSON_ARRAYAGG = "JSON_ARRAYAGG";
+    public const string JSON_AGG = "JSON_AGG";
+    public const string JSONB_AGG = "JSONB_AGG";
+    public const string ARRAY_AGG = "ARRAY_AGG";
+    public const string BOOL_AND = "BOOL_AND";
+    public const string EVERY = "EVERY";
+    public const string BOOL_OR = "BOOL_OR";
+    public const string COLLECT = "COLLECT";
+    public const string TOTAL = "TOTAL";
+    public const string STDEV = "STDEV";
+    public const string STDEVP = "STDEVP";
+    public const string VAR = "VAR";
+    public const string VARP = "VARP";
+    public const string VAR_POP = "VAR_POP";
+    public const string VARIANCE = "VARIANCE";
+    public const string VARIANCE_SAMP = "VARIANCE_SAMP";
+    public const string VAR_SAMP = "VAR_SAMP";
+    public const string CV = "CV";
+
+
     #endregion
 
     #region Pagination and row limiting

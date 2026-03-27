@@ -4,18 +4,13 @@ namespace DbSqlLikeMem.Npgsql.Test;
 /// EN: Covers advanced PostgreSQL SQL scenarios that the mock validates against version gates.
 /// PT: Cobre cenarios SQL avancados do PostgreSQL que o mock valida com base em restricoes de versao.
 /// </summary>
-public sealed class PostgreSqlAdvancedSqlGapTests : XUnitTestBase
+/// <remarks>
+/// EN: Creates the in-memory PostgreSQL connection used by the advanced gap tests.
+/// PT: Cria a conexao PostgreSQL em memoria usada pelos testes de gap avancados.
+/// </remarks>
+public sealed class PostgreSqlAdvancedSqlGapTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
-    private readonly NpgsqlConnectionMock _cnn;
-
-    /// <summary>
-    /// EN: Creates the in-memory PostgreSQL connection used by the advanced gap tests.
-    /// PT: Cria a conexao PostgreSQL em memoria usada pelos testes de gap avancados.
-    /// </summary>
-    public PostgreSqlAdvancedSqlGapTests(ITestOutputHelper helper) : base(helper)
-    {
-        _cnn = CreateOpenConnection();
-    }
+    private readonly NpgsqlConnectionMock _cnn = CreateOpenConnection();
 
     private static NpgsqlConnectionMock CreateOpenConnection(int? version = null)
     {

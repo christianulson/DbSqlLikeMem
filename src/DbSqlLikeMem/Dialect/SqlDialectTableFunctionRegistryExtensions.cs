@@ -2,72 +2,73 @@ namespace DbSqlLikeMem;
 
 internal static class SqlDialectTableFunctionRegistryExtensions
 {
-    internal static bool TryGetTableFunctionDefinition(
-        this ISqlDialect dialect,
-        string name,
-        out DbTableFunctionDef? definition)
+    internal static FunctionCallExpr BindTableFunctionDefinition(
+        this FunctionCallExpr call,
+        DbFunctionDef? definition)
     {
-        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
-        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(name, nameof(name));
-
-        return dialect.TableFunctions.TryGetValue(name, out definition)
-            && definition is not null;
-    }
-
-    internal static bool TryGetTableFunctionDefinition(
-        this ISqlDialect dialect,
-        FunctionCallExpr call,
-        out DbTableFunctionDef? definition)
-    {
-        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
         ArgumentNullExceptionCompatible.ThrowIfNull(call, nameof(call));
 
-        if (call.ResolvedTableFunction is not null)
-        {
-            definition = call.ResolvedTableFunction;
-            return true;
-        }
+        return definition is null
+            ? call
+            : call with { ResolvedTableFunction = definition };
+    }
 
-        return dialect.TryGetTableFunctionDefinition(call.Name, out definition);
+    internal static FunctionCallExpr BindTableFunctionDefinition(
+        this FunctionCallExpr call,
+        ISqlDialect dialect)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(call, nameof(call));
+        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
+
+        return dialect.TryGetTableFunctionDefinition(call, out var definition)
+            ? call with { ResolvedTableFunction = definition }
+            : call;
+    }
+
+    internal static void AddTableFunction(
+        this ISqlDialect dialect,
+        DbFunctionDef definition)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
+        ArgumentNullExceptionCompatible.ThrowIfNull(definition, nameof(definition));
+
+        dialect.Functions.Add(definition);
     }
 
     internal static void AddTableFunction(
         this ISqlDialect dialect,
         string name,
         int minArguments,
-        int maxArguments)
+        int maxArguments,
+        AstQueryTableFunctionHandler? astExecutor = null)
     {
-        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
-        if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("name vazio", nameof(name));
+        var definition = DbFunctionDef.CreateTable(
+            name,
+            signatures: new DbFunctionSignature([], minArguments, maxArguments)) with
+        {
+            TableExecutor = astExecutor
+        };
 
-        if (minArguments < 0)
-            throw new ArgumentOutOfRangeException(nameof(minArguments));
-
-        if (maxArguments < minArguments)
-            throw new ArgumentOutOfRangeException(nameof(maxArguments));
-
-        dialect.TableFunctions[name] = new DbTableFunctionDef(name, minArguments, maxArguments);
-    }
-
-    internal static void AddTableFunction(
-        this ISqlDialect dialect,
-        DbTableFunctionDef definition)
-    {
-        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
-        ArgumentNullExceptionCompatible.ThrowIfNull(definition, nameof(definition));
-
-        dialect.TableFunctions[definition.Name] = definition;
+        dialect.AddTableFunction(definition);
     }
 
     internal static void AddTableFunctions(
         this ISqlDialect dialect,
-        params DbTableFunctionDef[] definitions)
+        params DbFunctionDef[] definitions)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
         ArgumentNullExceptionCompatible.ThrowIfNull(definitions, nameof(definitions));
 
         foreach (var definition in definitions)
             dialect.AddTableFunction(definition);
+    }
+
+    internal static void AddTableFunctionsIf(
+        this ISqlDialect dialect,
+        bool supported,
+        params DbFunctionDef[] definitions)
+    {
+        if (supported)
+            dialect.AddTableFunctions(definitions);
     }
 }

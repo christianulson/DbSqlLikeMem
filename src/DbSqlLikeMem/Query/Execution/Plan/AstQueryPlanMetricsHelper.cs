@@ -2,20 +2,20 @@ namespace DbSqlLikeMem;
 
 internal static class AstQueryPlanMetricsHelper
 {
-    internal static SqlPlanMockRuntimeContext BuildPlanMockRuntimeContext(QueryExecutionContext context)
+    internal static SqlPlanMockRuntimeContext BuildPlanMockRuntimeContext(this QueryExecutionContext context)
         => new(
             context.SimulatedLatencyMs,
             context.DropProbability,
             context.ThreadSafe);
 
     internal static SqlPlanRuntimeMetrics BuildPlanRuntimeMetrics(
-        QueryExecutionContext context,
+        this QueryExecutionContext context,
         SqlSelectQuery query,
         int actualRows,
         long elapsedMs)
         => new(
             InputTables: CountKnownInputTables(query),
-            EstimatedRowsRead: EstimateRowsRead(context, query),
+            EstimatedRowsRead: context.EstimateRowsRead(query),
             ActualRows: actualRows,
             ElapsedMs: elapsedMs);
 
@@ -34,13 +34,13 @@ internal static class AstQueryPlanMetricsHelper
         return count;
     }
 
-    internal static long EstimateRowsRead(QueryExecutionContext context, SqlSelectQuery query)
+    internal static long EstimateRowsRead(this QueryExecutionContext context, SqlSelectQuery query)
     {
         long total = 0;
 
-        total += GetKnownSourceRows(context, query.Table);
+        total += context.GetKnownSourceRows(query.Table);
         foreach (var join in query.Joins)
-            total += GetKnownSourceRows(context, join.Table);
+            total += context.GetKnownSourceRows(join.Table);
 
         return total;
     }
@@ -48,7 +48,7 @@ internal static class AstQueryPlanMetricsHelper
     internal static bool HasKnownPhysicalTable(SqlTableSource source)
         => source.Name is not null && source.Derived is null && source.DerivedUnion is null && source.TableFunction is null;
 
-    internal static long GetKnownSourceRows(QueryExecutionContext context, SqlTableSource? source)
+    internal static long GetKnownSourceRows(this QueryExecutionContext context, SqlTableSource? source)
     {
         if (source is null || !HasKnownPhysicalTable(source) || string.IsNullOrWhiteSpace(source.Name))
             return 0;

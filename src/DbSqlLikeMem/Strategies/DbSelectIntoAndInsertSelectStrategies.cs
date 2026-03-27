@@ -35,7 +35,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             SqlMergeQuery mergeQ when allowMerge => connection.ExecuteMerge(mergeQ, context),
             SqlSelectQuery _ => throw new InvalidOperationException(SqlExceptionMessages.UseExecuteReaderForSelect()),
             SqlUnionQuery _ when unionUsesSelectMessage => throw new InvalidOperationException(SqlExceptionMessages.UseExecuteReaderForSelectUnion()),
-            _ => throw SqlUnsupported.ForCommandType(context.Dialect, "ExecuteNonQuery", query.GetType())
+            _ => throw SqlUnsupported.NotSupportedCommandType(context.Dialect, "ExecuteNonQuery", query.GetType())
         };
     }
 
@@ -330,9 +330,8 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         DbConnectionMockBase connection,
         SqlCreateFunctionQuery query)
     {
-        var functionName = query.Table?.Name;
-        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
-        connection.CreateFunction(functionName!, query.ReturnTypeSql, query.Parameters, query.Body, query.OrReplace, query.Table?.DbName);
+        ArgumentNullExceptionCompatible.ThrowIfNull(query.Definition, nameof(query.Definition));
+        connection.CreateFunction(query.Definition, query.OrReplace, query.Table?.DbName);
         return new DmlExecutionResult();
     }
 

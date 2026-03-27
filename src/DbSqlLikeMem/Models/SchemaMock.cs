@@ -1,3 +1,5 @@
+using DbSqlLikeMem.Dialect;
+
 namespace DbSqlLikeMem;
 
 /// <summary>
@@ -17,15 +19,18 @@ public abstract class SchemaMock
     /// <param name="schemaName">EN: Schema name. PT: Nome do schema.</param>
     /// <param name="db">EN: Parent database instance. PT: Instância do banco pai.</param>
     /// <param name="tables">EN: Initial table configuration. PT: Configuração inicial de tabelas.</param>
+    /// <param name="functions">EN: Initial functions. PT: Funções iniciais.</param>
     /// <param name="procedures">EN: Initial procedures. PT: Procedimentos iniciais.</param>
     /// <param name="sequences">EN: Initial sequences. PT: Sequences iniciais.</param>
+    /// <param name="views">EN: Initial sequences. PT: Sequences iniciais.</param>
     protected SchemaMock(
         string schemaName,
         DbMock db,
         IDictionary<string, (IEnumerable<Col> columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null,
-        IDictionary<string, ProcedureDef>? procedures = null,
-        IDictionary<string, SequenceDef>? sequences = null/*,
-        IDictionary<string, SqlSelectQuery>? views = null*/
+        IEnumerable<DbFunctionDef>? functions = null,
+        IEnumerable<ProcedureDef>? procedures = null,
+        IDictionary<string, SequenceDef>? sequences = null,
+        IDictionary<string, string>? views = null
     )
     {
         SchemaName = schemaName.NormalizeName();
@@ -33,15 +38,18 @@ public abstract class SchemaMock
         if (tables != null)
             foreach (var it in tables)
                 CreateTable(it.Key, it.Value.columns, it.Value.rows);
-        if (procedures != null)
-            foreach (var it in procedures)
-                Procedures.Add(it.Key.NormalizeName(), it.Value);
         if (sequences != null)
             foreach (var it in sequences)
                 this.sequences.Add(it.Key, it.Value);
-        //if (views != null)
-        //    foreach (var (viewName, config) in views)
-        //        Views.AddTable(viewName, config);
+        if(functions != null)
+            foreach (var it in functions)
+                Functions.Add(it.Name, it);
+        if (procedures != null)
+            foreach (var it in procedures)
+                Procedures.Add(it.Name.NormalizeName(), it);
+        if (views != null)
+            foreach (var it in views)
+                Views.Add(it.Key, ((SqlCreateViewQuery)SqlQueryParser.Parse(it.Value, db.Dialect)).Select);
     }
 
     /// <summary>
@@ -67,6 +75,8 @@ public abstract class SchemaMock
     /// PT: Exposição das tabelas do schema.
     /// </summary>
     public ITableDictionary Tables => tables;
+
+    #region Procedures
 
     /// <summary>
     /// EN: Stored procedure contracts (signature only).
@@ -116,35 +126,33 @@ public abstract class SchemaMock
         Procedures.Remove(procedureName.NormalizeName());
     }
 
-    internal IDictionary<string, ScalarFunctionDef> ScalarFunctions { get; } =
-        new Dictionary<string, ScalarFunctionDef>(StringComparer.OrdinalIgnoreCase);
+    #endregion
+
+    #region Functions
+
+    internal FunctionDictionaryProcess Functions { get; } = [];
 
     internal bool TryGetFunction(
         string functionName,
-        out ScalarFunctionDef? function)
+        out DbFunctionDef? function)
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
-        return ScalarFunctions.TryGetValue(functionName.NormalizeName(), out function)
+
+        return Functions.TryGetValue(functionName.NormalizeName(), out function)
             && function != null;
     }
 
     internal void CreateFunction(
-        string functionName,
-        string returnTypeSql,
-        IReadOnlyList<ScalarFunctionParameterDef> parameters,
-        SqlExpr body,
+        DbFunctionDef function,
         bool orReplace = false)
     {
-        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
-        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(returnTypeSql, nameof(returnTypeSql));
-        ArgumentNullExceptionCompatible.ThrowIfNull(parameters, nameof(parameters));
-        ArgumentNullExceptionCompatible.ThrowIfNull(body, nameof(body));
+        ArgumentNullExceptionCompatible.ThrowIfNull(function, nameof(function));
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(function.Name, nameof(function.Name));
 
-        var normalized = functionName.NormalizeName();
-        if (ScalarFunctions.ContainsKey(normalized) && !orReplace)
-            throw new InvalidOperationException($"Function '{normalized}' already exists.");
+        if (Functions.ContainsKey(function.Name) && !orReplace)
+            throw new InvalidOperationException($"Function '{function.Name}' already exists.");
 
-        ScalarFunctions[normalized] = new ScalarFunctionDef(functionName, returnTypeSql.Trim(), parameters, body);
+        Functions.Add(function.Name, function);
     }
 
     internal void DropFunction(
@@ -153,32 +161,33 @@ public abstract class SchemaMock
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
 
-        var normalized = functionName.NormalizeName();
-        if (ScalarFunctions.Remove(normalized))
+        if (Functions.Remove(functionName))
             return;
 
         if (ifExists)
             return;
 
-        throw new InvalidOperationException($"Function '{normalized}' does not exist.");
+        throw new InvalidOperationException($"Function '{functionName}' does not exist.");
     }
 
     internal void RestoreFunction(
         string functionName,
-        ScalarFunctionDef definition)
+        DbFunctionDef definition)
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
         ArgumentNullExceptionCompatible.ThrowIfNull(definition, nameof(definition));
 
-        ScalarFunctions[functionName.NormalizeName()] = definition;
+        Functions[functionName.NormalizeName()] = definition;
     }
 
     internal void RemoveFunction(
         string functionName)
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
-        ScalarFunctions.Remove(functionName.NormalizeName());
+        Functions.Remove(functionName);
     }
+
+    #endregion
 
     /// <summary>
     /// EN: Sequence definitions registered in the schema.

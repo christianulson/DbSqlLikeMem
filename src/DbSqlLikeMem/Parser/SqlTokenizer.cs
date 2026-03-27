@@ -87,7 +87,7 @@ internal sealed class SqlTokenizer
                 && !_dialect.TryGetIdentifierQuote(ch, out _)
                 && !_dialect.IsStringQuote(ch)
                 && !_dialect.AllowsParserCrossDialectQuotedIdentifiers)
-                throw SqlUnsupported.ForDialect(_dialect, $"alias/identificadores com '{ch}'");
+                throw SqlUnsupported.NotSupported(_dialect, $"alias/identificadores com '{ch}'");
 
             if (IsIdentStart(ch) || IsStartOfQuotedIdentifier(ch))
             {
@@ -265,7 +265,7 @@ internal sealed class SqlTokenizer
             var open = Read();
 
             if (!TryGetIdentifierQuote(open, out var pair))
-                throw SqlUnsupported.ForDialect(_dialect, $"alias/identificadores com '{open}'");
+                throw SqlUnsupported.NotSupported(_dialect, $"alias/identificadores com '{open}'");
 
             char close = pair.End;
 

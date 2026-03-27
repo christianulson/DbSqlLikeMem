@@ -4,16 +4,13 @@ namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 /// EN: Runs shared aggregation/HAVING scenarios for SQL Server and keeps SQL Server-specific coverage.
 /// PT: Executa cenários compartilhados de agregação/HAVING para SQL Server e mantém cobertura específica de SQL Server.
 /// </summary>
-public sealed class SqlServerAggregationTests : AggregationHavingOrdinalTestsBase<SqlServerDbMock, SqlServerConnectionMock>
+/// <remarks>
+/// EN: Creates the SQL Server aggregation test suite helper.
+/// PT: Cria o helper da suite de testes de agregacao do SQL Server.
+/// </remarks>
+/// <param name="helper">EN: Output helper. PT: Helper de saída.</param>
+public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : AggregationHavingOrdinalTestsBase<SqlServerDbMock, SqlServerConnectionMock>(helper)
 {
-    /// <summary>
-    /// EN: Creates the SQL Server aggregation test suite helper.
-    /// PT: Cria o helper da suite de testes de agregacao do SQL Server.
-    /// </summary>
-    /// <param name="helper">EN: Output helper. PT: Helper de saída.</param>
-    public SqlServerAggregationTests(ITestOutputHelper helper) : base(helper)
-    {
-    }
 
     /// <inheritdoc />
     protected override SqlServerDbMock CreateDb() => [];

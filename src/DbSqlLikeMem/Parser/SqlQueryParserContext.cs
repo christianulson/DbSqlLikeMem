@@ -298,7 +298,7 @@ internal sealed class SqlQueryParserContext
             return;
 
         if (!_dialect.SupportsSqlServerQueryHints)
-            throw SqlUnsupported.ForOptionQueryHints(_dialect);
+            throw SqlUnsupported.NotSupportedOptionQueryHints(_dialect);
 
         Consume();
         _ = ReadBalancedParenRawTokens();

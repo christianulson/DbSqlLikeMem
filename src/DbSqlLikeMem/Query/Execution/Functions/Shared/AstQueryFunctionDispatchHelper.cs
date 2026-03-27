@@ -5,25 +5,25 @@ namespace DbSqlLikeMem;
 internal static class AstQueryFunctionDispatchHelper
 {
     internal static object? EvalCase(
+        this QueryExecutionContext context,
         CaseExpr c,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        QueryExecutionContext context,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
     {
         if (c.BaseExpr is null)
-            return EvaluateSearchedCase(c, row, group, ctes, context, eval);
+            return context.EvaluateSearchedCase(c, row, group, ctes, eval);
 
-        return EvaluateSimpleCase(c, row, group, ctes, context, eval);
+        return context.EvaluateSimpleCase(c, row, group, ctes, eval);
     }
 
     internal static object? EvaluateSearchedCase(
+        this QueryExecutionContext context,
         CaseExpr @case,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        QueryExecutionContext context,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
     {
         foreach (var whenThen in @case.Whens)
@@ -32,18 +32,19 @@ internal static class AstQueryFunctionDispatchHelper
                 return eval(whenThen.Then, row, group, ctes);
         }
 
-        return EvaluateCaseElse(@case, row, group, ctes, context, eval);
+        return context.EvaluateCaseElse(@case, row, group, ctes, eval);
     }
 
     internal static object? EvaluateSimpleCase(
+        this QueryExecutionContext context,
         CaseExpr @case,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        QueryExecutionContext context,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
     {
-        var baseValue = eval(@case.BaseExpr!, row, group, ctes);
+        var baseExpr = @case.BaseExpr ?? throw new InvalidOperationException("Simple CASE requires a base expression.");
+        var baseValue = eval(baseExpr, row, group, ctes);
 
         foreach (var whenThen in @case.Whens)
         {
@@ -51,19 +52,19 @@ internal static class AstQueryFunctionDispatchHelper
             if (ShouldSkipSimpleCaseMatch(baseValue, whenValue))
                 continue;
 
-            if (baseValue!.Compare(whenValue!, context) == 0)
+            if (context.Compare(baseValue,whenValue) == 0)
                 return eval(whenThen.Then, row, group, ctes);
         }
 
-        return EvaluateCaseElse(@case, row, group, ctes, context, eval);
+        return context.EvaluateCaseElse(@case, row, group, ctes, eval);
     }
 
     internal static object? EvaluateCaseElse(
+        this QueryExecutionContext context,
         CaseExpr @case,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        QueryExecutionContext context,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
         => @case.ElseExpr is not null
             ? eval(@case.ElseExpr, row, group, ctes)
@@ -73,28 +74,28 @@ internal static class AstQueryFunctionDispatchHelper
         => baseValue is null or DBNull || whenValue is null or DBNull;
 
     internal static object? EvalFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        QueryExecutionContext context,
         DateTime evaluationLocalNow,
         DateTime evaluationUtcNow,
         Func<int, object?> evalArg,
         AstQueryFunctionEvaluator functionEvaluator)
         => functionEvaluator.Evaluate(
+            context,
             fn,
             row,
             group,
             ctes,
-            context,
             evaluationLocalNow,
             evaluationUtcNow,
             evalArg);
 
     internal static bool TryEvalBoundScalarFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -114,15 +115,15 @@ internal static class AstQueryFunctionDispatchHelper
             return false;
         }
 
-        return definition.AstExecutor(fn, context, evalArg, out result);
+        return definition.AstExecutor(context, fn, evalArg, out result);
     }
 
     internal static bool TryEvalUserDefinedScalarFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        QueryExecutionContext context,
         Stack<IReadOnlyDictionary<string, object?>> localParameterScopes,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
         out object? result)
@@ -145,7 +146,8 @@ internal static class AstQueryFunctionDispatchHelper
         localParameterScopes.Push(parameterScope);
         try
         {
-            result = eval(function.Body, row, group, ctes);
+            var body = function.Body ?? throw new InvalidOperationException($"Function '{fn.Name}' does not have a body.");
+            result = eval(body, row, group, ctes);
             return true;
         }
         finally
@@ -155,6 +157,7 @@ internal static class AstQueryFunctionDispatchHelper
     }
 
     internal static bool TryResolveLocalFunctionValue(
+        this QueryExecutionContext context,
         string name,
         Stack<IReadOnlyDictionary<string, object?>> localParameterScopes,
         out object? value)

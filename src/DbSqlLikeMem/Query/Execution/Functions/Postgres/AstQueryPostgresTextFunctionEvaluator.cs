@@ -6,8 +6,8 @@ using System.Globalization;
 using System.Text;
 
 internal delegate bool AstQueryTryEvalPostgresTextFunction(
-    FunctionCallExpr fn,
     QueryExecutionContext context,
+    FunctionCallExpr fn,
     Func<int, object?> evalArg,
     out object? result);
 
@@ -17,8 +17,8 @@ internal static class AstQueryPostgresTextFunctionEvaluator
         CreateHandlers();
 
     internal static bool TryEvaluate(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -28,7 +28,7 @@ internal static class AstQueryPostgresTextFunctionEvaluator
             return false;
         }
 
-        return handler(fn, context, evalArg, out result);
+        return handler(context, fn, evalArg, out result);
     }
 
     private static IReadOnlyDictionary<string, AstQueryTryEvalPostgresTextFunction> CreateHandlers()
@@ -57,8 +57,8 @@ internal static class AstQueryPostgresTextFunctionEvaluator
     }
 
     private static bool TryEvalBtrimFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -77,8 +77,8 @@ internal static class AstQueryPostgresTextFunctionEvaluator
     }
 
     private static bool TryEvalInitcapFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -98,8 +98,8 @@ internal static class AstQueryPostgresTextFunctionEvaluator
     }
 
     private static bool TryEvalChrFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -133,8 +133,8 @@ internal static class AstQueryPostgresTextFunctionEvaluator
     }
 
     private static bool TryEvalSplitPartFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -158,8 +158,8 @@ internal static class AstQueryPostgresTextFunctionEvaluator
     }
 
     private static bool TryEvalStringToArrayFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -175,8 +175,8 @@ internal static class AstQueryPostgresTextFunctionEvaluator
     }
 
     private static bool TryEvalQuoteLiteralFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -196,8 +196,8 @@ internal static class AstQueryPostgresTextFunctionEvaluator
     }
 
     private static bool TryEvalQuoteIdentFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -217,8 +217,8 @@ internal static class AstQueryPostgresTextFunctionEvaluator
     }
 
     private static bool TryEvalToHexFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -238,8 +238,8 @@ internal static class AstQueryPostgresTextFunctionEvaluator
     }
 
     private static bool TryEvalTranslateFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -274,8 +274,8 @@ internal static class AstQueryPostgresTextFunctionEvaluator
     }
 
     private static bool TryEvalStartsWithFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {

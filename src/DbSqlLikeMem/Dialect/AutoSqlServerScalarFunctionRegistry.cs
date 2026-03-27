@@ -7,27 +7,19 @@ internal static class AutoSqlServerScalarFunctionRegistry
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
 
         bool TryEvalCurrentUserFunction(
-            FunctionCallExpr fn,
             QueryExecutionContext context,
+            FunctionCallExpr fn,
             Func<int, object?> evalArg,
             out object? result)
-            => AstQuerySqlServerUtilityFunctionEvaluator.TryEvalCurrentUserFunction(fn, context, evalArg, out result);
+        {
+            _ = fn;
+            _ = context;
+            _ = evalArg;
+            result = "dbo";
+            return true;
+        }
 
-        bool TryEvalSessionUserFunction(
-            FunctionCallExpr fn,
-            QueryExecutionContext context,
-            Func<int, object?> evalArg,
-            out object? result)
-            => AstQueryGeneralSystemAndJsonFunctionEvaluator.TryEvalSessionUserFunction(fn, context, evalArg, out result);
-
-        bool TryEvalSystemUserFunction(
-            FunctionCallExpr fn,
-            QueryExecutionContext context,
-            Func<int, object?> evalArg,
-            out object? result)
-            => AstQueryGeneralSystemAndJsonFunctionEvaluator.TryEvalSystemUserFunction(fn, context, evalArg, out result);
-
-        dialect.AddScalarFunctions("DOUBLE", AstQueryGeneralScalarFunctionEvaluator.TryEvaluate,
+        dialect.AddScalarFunctions("DOUBLE", AstQueryGeneralScalarFunctionEvaluator.TryEvaluateGeneralScalarFunction,
             "COT",
             "DEGREES",
             "EXP",
@@ -43,35 +35,37 @@ internal static class AutoSqlServerScalarFunctionRegistry
             "TAN",
             "SQRT");
 
-        dialect.AddScalarFunction(
-            new DbScalarFunctionDef("SQUARE", "DOUBLE", [], SqlFunctionBodyFactory.Identity())
-            {
-                AstExecutor = AstQuerySqlServerScalarFunctionEvaluator.TryEvaluate
-            });
+        var squareFunction = DbFunctionDef.CreateScalar("SQUARE", "DOUBLE") with
+        {
+            AstExecutor = AstQuerySqlServerScalarFunctionEvaluator.TryEvaluate
+        };
+        dialect.AddScalarFunction(squareFunction);
 
-        dialect.AddScalarFunctions("INT", AstQueryGeneralScalarFunctionEvaluator.TryEvaluate,
+        dialect.AddScalarFunctions("INT", AstQueryGeneralScalarFunctionEvaluator.TryEvaluateGeneralScalarFunction,
             "DIFFERENCE",
             "LEN",
             "UNICODE");
 
-        dialect.AddScalarFunctions("VARCHAR", AstQueryGeneralScalarFunctionEvaluator.TryEvaluate,
+        dialect.AddScalarFunctions("VARCHAR", AstQueryGeneralScalarFunctionEvaluator.TryEvaluateGeneralScalarFunction,
             "LTRIM",
             "REVERSE",
             "RTRIM",
             "SOUNDEX",
             "SPACE");
 
+        var parsenameFunction = DbFunctionDef.CreateScalar("PARSENAME", "VARCHAR") with
+        {
+            AstExecutor = AstQuerySqlServerScalarFunctionEvaluator.TryEvaluate
+        };
         dialect.AddScalarFunctions(
-            new DbScalarFunctionDef("PARSENAME", "VARCHAR", [], SqlFunctionBodyFactory.Identity())
-            {
-                AstExecutor = AstQuerySqlServerScalarFunctionEvaluator.TryEvaluate
-            },
+            parsenameFunction,
             "PARSENAME",
             "QUOTENAME",
             "REPLICATE",
             "STUFF");
 
-        dialect.AddScalarFunctions("INT", SqlFunctionBodyFactory.Identity(),
+        dialect.AddScalarFunctions(
+            DbFunctionDef.CreateScalar("DB_ID", "INT"),
             "DB_ID",
             "SCHEMA_ID",
             "SCOPE_IDENTITY",
@@ -80,7 +74,8 @@ internal static class AutoSqlServerScalarFunctionRegistry
             "USER_ID",
             "XACT_STATE");
 
-        dialect.AddScalarFunctions("VARCHAR", SqlFunctionBodyFactory.Identity(),
+        dialect.AddScalarFunctions(
+            DbFunctionDef.CreateScalar("DB_NAME", "VARCHAR"),
             "DB_NAME",
             "SCHEMA_NAME",
             "SERVERPROPERTY",
@@ -88,41 +83,41 @@ internal static class AutoSqlServerScalarFunctionRegistry
             "SUSER_SNAME",
             "USER_NAME");
 
-        dialect.AddScalarFunction(
-            new DbScalarFunctionDef("CURRENT_USER", "VARCHAR", [], SqlFunctionBodyFactory.Identity(), SqlScalarFunctionUsageKind.Identifier)
-            {
-                AstExecutor = TryEvalCurrentUserFunction
-            });
-        dialect.AddScalarFunction(
-            new DbScalarFunctionDef("SESSION_USER", "VARCHAR", [], SqlFunctionBodyFactory.Identity(), SqlScalarFunctionUsageKind.Identifier)
-            {
-                AstExecutor = TryEvalSessionUserFunction
-            });
-        dialect.AddScalarFunction(
-            new DbScalarFunctionDef("SYSTEM_USER", "VARCHAR", [], SqlFunctionBodyFactory.Identity(), SqlScalarFunctionUsageKind.Identifier)
-            {
-                AstExecutor = TryEvalSystemUserFunction
-            });
+        var currentUserFunction = DbFunctionDef.CreateIdentifier("CURRENT_USER", "VARCHAR") with
+        {
+            AstExecutor = TryEvalCurrentUserFunction
+        };
+        dialect.AddScalarFunction(currentUserFunction);
+        var sessionUserFunction = DbFunctionDef.CreateIdentifier("SESSION_USER", "VARCHAR") with
+        {
+            AstExecutor = AstQueryGeneralSystemAndJsonFunctionEvaluator.TryEvalSessionUserFunction
+        };
+        dialect.AddScalarFunction(sessionUserFunction);
+        var systemUserFunction = DbFunctionDef.CreateIdentifier("SYSTEM_USER", "VARCHAR") with
+        {
+            AstExecutor = AstQueryGeneralSystemAndJsonFunctionEvaluator.TryEvalSystemUserFunction
+        };
+        dialect.AddScalarFunction(systemUserFunction);
 
         dialect.AddScalarFunctions(
-            new DbScalarFunctionDef("@@DATEFIRST", "INT", [], SqlFunctionBodyFactory.Identity(), SqlScalarFunctionUsageKind.Identifier),
+            DbFunctionDef.CreateIdentifier("@@DATEFIRST", "INT"),
             "@@DATEFIRST",
             "@@MAX_PRECISION",
             "@@TEXTSIZE",
             "@@ROWCOUNT");
 
         dialect.AddScalarFunction(
-            new DbScalarFunctionDef("@@IDENTITY", "BIGINT", [], SqlFunctionBodyFactory.Identity(), SqlScalarFunctionUsageKind.Identifier));
+            DbFunctionDef.CreateIdentifier("@@IDENTITY", "BIGINT"));
 
-        dialect.AddScalarFunction("DATEFROMPARTS", "DATE", AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluate);
-        dialect.AddScalarFunction("DATETIMEFROMPARTS", "DATETIME", AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluate);
-        dialect.AddScalarFunction("DATETIME2FROMPARTS", "DATETIME", AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluate);
-        dialect.AddScalarFunction("DATETIMEOFFSETFROMPARTS", "DATETIMEOFFSET", AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluate);
-        dialect.AddScalarFunction("TIMEFROMPARTS", "TIME", AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluate);
-        dialect.AddScalarFunction("SMALLDATETIMEFROMPARTS", "DATETIME", AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluate);
+        dialect.AddScalarFunction("DATEFROMPARTS", "DATE", AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluateSqlServerDateConstructionFunction);
+        dialect.AddScalarFunction("DATETIMEFROMPARTS", "DATETIME", AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluateSqlServerDateConstructionFunction);
+        dialect.AddScalarFunction("DATETIME2FROMPARTS", "DATETIME", AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluateSqlServerDateConstructionFunction);
+        dialect.AddScalarFunction("DATETIMEOFFSETFROMPARTS", "DATETIMEOFFSET", AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluateSqlServerDateConstructionFunction);
+        dialect.AddScalarFunction("TIMEFROMPARTS", "TIME", AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluateSqlServerDateConstructionFunction);
+        dialect.AddScalarFunction("SMALLDATETIMEFROMPARTS", "DATETIME", AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluateSqlServerDateConstructionFunction);
 
         dialect.AddScalarFunctions(
-            new DbScalarFunctionDef("FOUND_ROWS", "BIGINT", [], SqlFunctionBodyFactory.Identity()),
+            DbFunctionDef.CreateScalar("FOUND_ROWS", "BIGINT"),
             "FOUND_ROWS",
             "ROW_COUNT",
             "CHANGES",
@@ -130,10 +125,10 @@ internal static class AutoSqlServerScalarFunctionRegistry
             "ROWCOUNT_BIG");
 
         dialect.AddScalarFunctions(
-            new DbScalarFunctionDef("NEXT_VALUE_FOR", "BIGINT", [], SqlFunctionBodyFactory.Identity()),
+            DbFunctionDef.CreateScalar("NEXT_VALUE_FOR", "BIGINT"),
             "NEXT_VALUE_FOR",
             "PREVIOUS_VALUE_FOR");
 
-        dialect.AddScalarFunction("CHECKSUM_AGG", "INT", SqlFunctionBodyFactory.Identity());
+        dialect.AddScalarFunction(DbFunctionDef.CreateScalar(SqlConst.CHECKSUM_AGG, "INT"));
     }
 }

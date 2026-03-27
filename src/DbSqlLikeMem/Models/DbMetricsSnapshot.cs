@@ -1,16 +1,10 @@
 namespace DbSqlLikeMem;
 
-internal sealed class DbMetricsSnapshot
+internal sealed class DbMetricsSnapshot(
+    IReadOnlyDictionary<string, int> performancePhaseHits,
+    IReadOnlyDictionary<string, long> performancePhaseElapsedTicks)
 {
-    public DbMetricsSnapshot(
-        IReadOnlyDictionary<string, int> performancePhaseHits,
-        IReadOnlyDictionary<string, long> performancePhaseElapsedTicks)
-    {
-        PerformancePhaseHits = performancePhaseHits;
-        PerformancePhaseElapsedTicks = performancePhaseElapsedTicks;
-    }
+    public IReadOnlyDictionary<string, int> PerformancePhaseHits { get; } = performancePhaseHits;
 
-    public IReadOnlyDictionary<string, int> PerformancePhaseHits { get; }
-
-    public IReadOnlyDictionary<string, long> PerformancePhaseElapsedTicks { get; }
+    public IReadOnlyDictionary<string, long> PerformancePhaseElapsedTicks { get; } = performancePhaseElapsedTicks;
 }

@@ -10,7 +10,7 @@ internal static class SqlCreateFunctionHelper
             throw new InvalidOperationException("CREATE OR REPLACE FUNCTION is not supported for this dialect in the mock.");
 
         if (!ctx.Dialect.SupportsFunctionDdl)
-            throw SqlUnsupported.ForDialect(ctx.Dialect, "CREATE FUNCTION");
+            throw ctx.NotSupported("CREATE FUNCTION");
 
         if (!ctx.IsWord(SqlConst.FUNCTION))
             throw new InvalidOperationException("CREATE FUNCTION requires FUNCTION keyword.");
@@ -47,7 +47,7 @@ internal static class SqlCreateFunctionHelper
     private static SqlCreateFunctionQuery ParseSqlServerStyleCreateFunction(
         this SqlQueryParserContext ctx,
         SqlTableSource function,
-        IReadOnlyList<ScalarFunctionParameterDef> parameters,
+        IReadOnlyList<DbFunctionParameterDef> parameters,
         bool orReplace)
     {
         ctx.ExpectWord(SqlConst.RETURNS);
@@ -62,7 +62,7 @@ internal static class SqlCreateFunctionHelper
     private static SqlCreateFunctionQuery ParseInlineReturnCreateFunction(
         this SqlQueryParserContext ctx,
         SqlTableSource function,
-        IReadOnlyList<ScalarFunctionParameterDef> parameters,
+        IReadOnlyList<DbFunctionParameterDef> parameters,
         bool orReplace)
     {
         ctx.ExpectWord(SqlConst.RETURNS);
@@ -76,7 +76,7 @@ internal static class SqlCreateFunctionHelper
     private static SqlCreateFunctionQuery ParseOracleCreateFunction(
         this SqlQueryParserContext ctx,
         SqlTableSource function,
-        IReadOnlyList<ScalarFunctionParameterDef> parameters,
+        IReadOnlyList<DbFunctionParameterDef> parameters,
         bool orReplace)
     {
         ctx.ExpectWord(SqlConst.RETURN);
@@ -95,7 +95,7 @@ internal static class SqlCreateFunctionHelper
     private static SqlCreateFunctionQuery ParsePostgreSqlCreateFunction(
         this SqlQueryParserContext ctx,
         SqlTableSource function,
-        IReadOnlyList<ScalarFunctionParameterDef> parameters,
+        IReadOnlyList<DbFunctionParameterDef> parameters,
         bool orReplace)
     {
         ctx.ExpectWord(SqlConst.RETURNS);

@@ -33,27 +33,27 @@ internal static class SqlTemporalFunctionEvaluator
     /// PT: Verifica se o nome informado é um token/chamada temporal conhecido entre os dialetos suportados.
     /// </summary>
     /// <param name="functionName">EN: Function/token name to inspect. PT: Nome da função/token a inspecionar.</param>
-    /// <returns>EN: True when the name is recognized as temporal in at least one context.Dialect. PT: True quando o nome é reconhecido como temporal em ao menos um dialeto.</returns>
-    public static bool IsKnownTemporalFunctionName(string functionName)
+    /// <returns>EN: True when the name is recognized as temporal in at least one supported dialect. PT: True quando o nome é reconhecido como temporal em ao menos um dialeto suportado.</returns>
+    public static bool IsKnownTemporalTokenName(string functionName)
         => !string.IsNullOrWhiteSpace(functionName)
             && KnownTemporalFunctionNames.Contains(functionName);
 
     /// <summary>
-    /// EN: Checks whether the provided temporal name is known by the current context.Dialect or by compatibility fallback.
+    /// EN: Checks whether the provided temporal name is known by the current execution context dialect or by compatibility fallback.
     /// PT: Verifica se o nome temporal informado é conhecido pelo dialeto atual ou pelo fallback de compatibilidade.
     /// </summary>
-    /// <param name="context.Dialect">EN: context.Dialect used to inspect registry-backed temporal support. PT: Dialeto usado para inspecionar suporte temporal baseado em registry.</param>
+    /// <param name="context">EN: Execution context used to inspect registry-backed temporal support. PT: Contexto de execução usado para inspecionar suporte temporal baseado em registry.</param>
     /// <param name="functionName">EN: Function/token name to inspect. PT: Nome da função/token a inspecionar.</param>
-    /// <returns>EN: True when the name is recognized as temporal in the context.Dialect or compatibility list. PT: True quando o nome é reconhecido como temporal no dialeto ou na lista de compatibilidade.</returns>
-    public static bool IsKnownTemporalFunctionName(QueryExecutionContext context, string functionName)
+    /// <returns>EN: True when the name is recognized as temporal in the context dialect or compatibility list. PT: True quando o nome é reconhecido como temporal no dialeto do contexto ou na lista de compatibilidade.</returns>
+    public static bool IsKnownTemporalFunctionName(this QueryExecutionContext context, string functionName)
         => context.Dialect is not null
             && !string.IsNullOrWhiteSpace(functionName)
             && (context.Dialect.AllowsTemporalIdentifier(functionName)
                 || context.Dialect.AllowsTemporalCall(functionName)
-                || IsKnownTemporalFunctionName(functionName));
+                || IsKnownTemporalTokenName(functionName));
 
     public static bool TryEvaluateZeroArgIdentifier(
-        QueryExecutionContext context,
+        this QueryExecutionContext context,
         string functionName,
         DateTime localNow,
         DateTime utcNow,
@@ -72,11 +72,11 @@ internal static class SqlTemporalFunctionEvaluator
         return TryMapKind(kind, localNow, utcNow, out value);
     }
 
-    public static bool TryEvaluateZeroArgIdentifier(QueryExecutionContext context, string functionName, out object? value)
+    public static bool TryEvaluateZeroArgIdentifier(this QueryExecutionContext context, string functionName, out object? value)
         => TryEvaluateZeroArgIdentifier(context, functionName, DateTime.Now, DateTime.UtcNow, out value);
 
     public static bool TryEvaluateZeroArgCall(
-        QueryExecutionContext context,
+        this QueryExecutionContext context,
         string functionName,
         DateTime localNow,
         DateTime utcNow,
@@ -95,7 +95,7 @@ internal static class SqlTemporalFunctionEvaluator
         return TryMapKind(kind, localNow, utcNow, out value);
     }
 
-    public static bool TryEvaluateZeroArgCall(QueryExecutionContext context, string functionName, out object? value)
+    public static bool TryEvaluateZeroArgCall(this QueryExecutionContext context, string functionName, out object? value)
         => TryEvaluateZeroArgCall(context, functionName, DateTime.Now, DateTime.UtcNow, out value);
 
     internal static bool TryParseOffset(string value, out TimeSpan offset)

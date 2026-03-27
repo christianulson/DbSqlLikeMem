@@ -6,20 +6,14 @@ namespace DbSqlLikeMem.SqlServer.Test;
 /// EN: Validates SQL Server function execution for provider-specific scalar and sequence features.
 /// PT: Valida a execucao de funcoes SQL Server para recursos escalares e de sequence especificos do provedor.
 /// </summary>
-public sealed class SqlServerFunctionTests
-    : XUnitTestBase
+/// <remarks>
+/// EN: Creates SQL Server function fixtures with sample tables and sequences.
+/// PT: Cria fixtures de funcoes SQL Server com tabelas e sequences de exemplo.
+/// </remarks>
+public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
+        : XUnitTestBase(helper)
 {
-    private readonly SqlServerConnectionMock _connection;
-
-    /// <summary>
-    /// EN: Creates SQL Server function fixtures with sample tables and sequences.
-    /// PT: Cria fixtures de funcoes SQL Server com tabelas e sequences de exemplo.
-    /// </summary>
-    public SqlServerFunctionTests(ITestOutputHelper helper)
-        : base(helper)
-    {
-        _connection = CreateOpenConnection();
-    }
+    private readonly SqlServerConnectionMock _connection = CreateOpenConnection();
 
     /// <summary>
     /// EN: Ensures SQL Server executes the first pragmatic scalar FUNCTION DDL subset end to end.

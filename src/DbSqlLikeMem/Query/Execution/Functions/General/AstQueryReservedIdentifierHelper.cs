@@ -3,9 +3,10 @@ namespace DbSqlLikeMem;
 internal static class AstQueryReservedIdentifierHelper
 {
     internal static bool IsReservedWindowValueIdentifier(
-        ISqlDialect? dialect,
+        this WindowPartitionExecutionContext context,
         string name)
     {
+        var dialect = context.QueryExecutionContext.Dialect;
         if (dialect is not null
             && dialect.TryGetScalarFunctionDefinition(name, out var definition)
             && definition is not null

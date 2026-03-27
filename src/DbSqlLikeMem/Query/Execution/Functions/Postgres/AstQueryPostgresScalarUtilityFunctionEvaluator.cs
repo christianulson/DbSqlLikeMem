@@ -1,54 +1,35 @@
-using System.Globalization;
-using System.Linq;
-
 namespace DbSqlLikeMem;
 
 internal static class AstQueryPostgresScalarUtilityFunctionEvaluator
 {
-    private delegate bool PostgresScalarUtilityFunctionHandler(
+    internal static bool TryEvaluatePostgresScalarUtilityFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
-        Func<int, object?> evalArg,
-        out object? result);
-
-    private static readonly IReadOnlyDictionary<string, PostgresScalarUtilityFunctionHandler> _handlers = CreateHandlers();
-
-    internal static bool TryEvaluate(
-        FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         result = null;
-        if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler(fn, context, evalArg, out result);
+        if (context.Dialect.Functions.TryGetValue(fn.Name, out var handler)
+            && handler.AstExecutor != null)
+            return handler.AstExecutor(context, fn, evalArg, out result);
 
         return false;
     }
 
-    private static Dictionary<string, PostgresScalarUtilityFunctionHandler> CreateHandlers()
+    internal static void CreateHandlers(
+        this QueryExecutionContext context)
     {
-        var handlers = new Dictionary<string, PostgresScalarUtilityFunctionHandler>(StringComparer.OrdinalIgnoreCase);
-        Register(handlers, TryEvalNumNullsFunction, "NUM_NULLS");
-        Register(handlers, TryEvalNumNonNullsFunction, "NUM_NONNULLS");
-        Register(handlers, TryEvalLcmFunction, "LCM");
-        Register(handlers, TryEvalMinScaleFunction, "MIN_SCALE");
-        Register(handlers, TryEvalParseIdentFunction, "PARSE_IDENT");
-        return handlers;
-    }
-
-    private static void Register(
-        IDictionary<string, PostgresScalarUtilityFunctionHandler> handlers,
-        PostgresScalarUtilityFunctionHandler handler,
-        params string[] names)
-    {
-        foreach (var name in names)
-            handlers[name] = handler;
+        var f = context.Dialect.Functions;
+        f.Add("INT", TryEvalNumNullsFunction, "NUM_NULLS");
+        f.Add("INT", TryEvalNumNonNullsFunction, "NUM_NONNULLS");
+        f.Add("BIGINT", TryEvalLcmFunction, "LCM");
+        f.Add("INT", TryEvalMinScaleFunction, "MIN_SCALE");
+        f.Add("STRING_ARRAY", TryEvalParseIdentFunction, "PARSE_IDENT");
     }
 
     private static bool TryEvalNumNullsFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -58,8 +39,8 @@ internal static class AstQueryPostgresScalarUtilityFunctionEvaluator
     }
 
     private static bool TryEvalNumNonNullsFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -69,8 +50,8 @@ internal static class AstQueryPostgresScalarUtilityFunctionEvaluator
     }
 
     private static bool TryEvalLcmFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -102,8 +83,8 @@ internal static class AstQueryPostgresScalarUtilityFunctionEvaluator
     }
 
     private static bool TryEvalMinScaleFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -126,8 +107,8 @@ internal static class AstQueryPostgresScalarUtilityFunctionEvaluator
     }
 
     private static bool TryEvalParseIdentFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {

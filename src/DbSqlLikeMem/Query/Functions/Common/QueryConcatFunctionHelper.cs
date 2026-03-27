@@ -2,34 +2,32 @@ namespace DbSqlLikeMem;
 
 internal static class QueryConcatFunctionHelper
 {
-    internal static object? TryEvalConcatFunctions(
+    internal static bool TryEvalConcatFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
-        bool nullInputReturnsNull,
-        out bool handled)
+        out object? result)
     {
-        handled = true;
+        if (context.TryEvalConcatFunction(fn, evalArg, out result))
+            return true;
 
-        if (TryEvalConcatFunction(fn, evalArg, nullInputReturnsNull, out var concatResult))
-            return concatResult;
+        if (TryEvalConcatWithSeparatorFunction(fn, evalArg, out result))
+            return true;
 
-        if (TryEvalConcatWithSeparatorFunction(fn, evalArg, out var concatWithSeparatorResult))
-            return concatWithSeparatorResult;
-
-        handled = false;
-        return null;
+        result = null;
+        return false;
     }
 
     private static bool TryEvalConcatFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
-        bool nullInputReturnsNull,
         out object? result)
     {
         var parts = new string[fn.Args.Count];
         for (var i = 0; i < fn.Args.Count; i++)
         {
-            if (!TryConvertConcatArgument(evalArg(i), nullInputReturnsNull, out var part))
+            if (!context.TryConvertConcatArgument(evalArg(i), out var part))
             {
                 result = null;
                 return true;
@@ -67,14 +65,14 @@ internal static class QueryConcatFunctionHelper
     }
 
     private static bool TryConvertConcatArgument(
+        this QueryExecutionContext context,
         object? value,
-        bool nullInputReturnsNull,
         out string part)
     {
         if (IsNullish(value))
         {
             part = string.Empty;
-            return !nullInputReturnsNull;
+            return !context.Dialect.ConcatReturnsNullOnNullInput;
         }
 
         part = value?.ToString() ?? string.Empty;

@@ -4,26 +4,26 @@ internal static class SqlReturningClauseHelper
 {
     private static readonly HashSet<string> AggregateFunctionNames = new(StringComparer.OrdinalIgnoreCase)
     {
-        "COUNT",
-        "SUM",
-        "AVG",
-        "MIN",
-        "MAX",
-        "GROUP_CONCAT",
-        "STRING_AGG",
-        "LISTAGG",
-        "JSON_ARRAYAGG",
-        "JSON_OBJECTAGG",
+        SqlConst.COUNT,
+        SqlConst.SUM,
+        SqlConst.AVG,
+        SqlConst.MIN,
+        SqlConst.MAX,
+        SqlConst.GROUP_CONCAT,
+        SqlConst.STRING_AGG,
+        SqlConst.LISTAGG,
+        SqlConst.JSON_ARRAYAGG,
+        SqlConst.JSON_OBJECTAGG,
         "STDDEV",
         "STDDEV_POP",
         "STDDEV_SAMP",
-        "VARIANCE",
-        "VAR_POP",
-        "VAR_SAMP",
-        "VAR",
-        "BIT_AND",
-        "BIT_OR",
-        "BIT_XOR"
+        SqlConst.VARIANCE,
+        SqlConst.VAR_POP,
+        SqlConst.VAR_SAMP,
+        SqlConst.VAR,
+        SqlConst.BIT_AND,
+        SqlConst.BIT_OR,
+        SqlConst.BIT_XOR
     };
 
     internal static IReadOnlyList<SqlSelectItem> ParseOptionalReturningItems(
@@ -31,7 +31,7 @@ internal static class SqlReturningClauseHelper
         bool supportsReturning)
     {
         if (!supportsReturning)
-            throw SqlUnsupported.ForDialect(ctx.Dialect, SqlConst.RETURNING);
+            throw ctx.NotSupported(SqlConst.RETURNING);
 
         ctx.Consume(); // RETURNING
 

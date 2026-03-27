@@ -5,15 +5,15 @@ internal static class AstQuerySqlServerScalarFunctionEvaluator
     private static readonly Dictionary<string, AstQueryGeneralScalarFunctionHandler> _handlers = CreateHandlers();
 
     internal static bool TryEvaluate(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         result = null;
 
         if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler(fn, context, evalArg, out result);
+            return handler(context, fn, evalArg, out result);
 
         return false;
     }
@@ -41,8 +41,8 @@ internal static class AstQuerySqlServerScalarFunctionEvaluator
     }
 
     private static bool TryEvalQuotenameFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -70,8 +70,8 @@ internal static class AstQuerySqlServerScalarFunctionEvaluator
     }
 
     private static bool TryEvalReplicateFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -100,8 +100,8 @@ internal static class AstQuerySqlServerScalarFunctionEvaluator
     }
 
     private static bool TryEvalSquareFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -126,8 +126,8 @@ internal static class AstQuerySqlServerScalarFunctionEvaluator
     }
 
     private static bool TryEvalStuffFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -164,8 +164,8 @@ internal static class AstQuerySqlServerScalarFunctionEvaluator
     }
 
     private static bool TryEvalParsenameFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {

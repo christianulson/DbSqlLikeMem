@@ -38,11 +38,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private readonly QueryExecutionContext _context = context ?? throw new ArgumentNullException(nameof(context));
     private DbConnectionMockBase Cnn => _context.Connection;
+
     private IDataParameterCollection _pars => _context.DbParameters;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, ITableMock> _resolvedBaseTableCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly DateTime _evaluationLocalNow = DateTime.Now;
     private readonly DateTime _evaluationUtcNow = DateTime.UtcNow;
-    private readonly long _evaluationUnixTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
     internal sealed record InSubqueryLookupState(
         List<object?> Values,
@@ -80,13 +80,12 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
     private AstQueryCastConversionFamilyEvaluator? _castConversionFamilyEvaluator;
     private AstQueryCastStringAndDateTailEvaluator? _castStringAndDateTailEvaluator;
     private AstQueryGeneralSystemAndJsonFunctionEvaluator? _generalSystemAndJsonFunctionEvaluator;
-    private AstQueryGeneralScalarFunctionEvaluator? _generalScalarFunctionEvaluator;
     private AstQuerySqlServerDatabaseFunctionEvaluator? _sqlServerDatabaseFunctionEvaluator;
     private AstQuerySqlServerIdentityFunctionEvaluator? _sqlServerIdentityFunctionEvaluator;
     private AstQuerySqlServerUtilityFunctionEvaluator? _sqlServerUtilityFunctionEvaluator;
     private AstQuerySqlServerSessionFunctionEvaluator? _sqlServerSessionFunctionEvaluator;
     private AstQuerySqlServerCompatibilityFunctionEvaluator? _sqlServerCompatibilityFunctionEvaluator;
-    private ISqlDialect? Dialect => _context.Dialect;
+
     private AstQuerySubqueryLookupEvaluator SubqueryLookupEvaluator
         => _subqueryLookupEvaluator ??= new AstQuerySubqueryLookupEvaluator(
             _subqueryEvaluationCache,
@@ -119,7 +118,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private AstQueryHavingHelper HavingHelper
         => _havingHelper ??= new AstQueryHavingHelper(
-            () => Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para HAVING."),
+            () => context.Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para HAVING."),
             ParseExpr,
             AggregateExpressionInspector.WalkHasAggregate,
             SelectAliasParserHelper.SplitTrailingAsAlias);
@@ -173,14 +172,14 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             cacheKey,
             _ =>
             {
-                if (Cnn.TryGetTable(tableSource.Name!, out var table, tableSource.DbName)
+                if (_context.Connection.TryGetTable(tableSource.Name!, out var table, tableSource.DbName)
                     && table is not null)
                 {
-                    Cnn.Metrics.IncrementTableHint(tableSource.Name!.NormalizeName());
+                    _context.Connection.Metrics.IncrementTableHint(tableSource.Name!.NormalizeName());
                     return table;
                 }
 
-                return Cnn.GetTable(tableSource.Name!, tableSource.DbName);
+                return _context.Connection.GetTable(tableSource.Name!, tableSource.DbName);
             });
 
         return Source.FromPhysical(
@@ -209,7 +208,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
     private AstQueryFunctionEvaluator FunctionEvaluator
         => _functionEvaluator ??= new AstQueryFunctionEvaluator(
             isAggregateFunction: AggregateFunctionCatalog.Contains,
-            evalAggregate: EvalAggregate,
+            evalAggregate: (fn, group, ctes) => _context.EvalAggregate(fn, group, ctes, Eval),
             tryEvalUserDefinedScalarFunction: TryEvalUserDefinedScalarFunction,
             tryEvalBoundScalarFunction: TryEvalBoundScalarFunction,
             tryEvalNonSqlServerScalarFunctionFamily: TryEvalNonSqlServerScalarFunctionFamily,
@@ -222,19 +221,18 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes)
-        => AstQueryFunctionDispatchHelper.EvalCase(c, row, group, ctes, _context, Eval);
+        => _context.EvalCase(c, row, group, ctes, Eval);
 
     private object? EvalFunction(
         FunctionCallExpr fn,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes)
-        => AstQueryFunctionDispatchHelper.EvalFunction(
+        => _context.EvalFunction(
             fn,
             row,
             group,
             ctes,
-            _context,
             _evaluationLocalNow,
             _evaluationUtcNow,
             i => i < fn.Args.Count ? Eval(fn.Args[i], row, group, ctes) : null,
@@ -247,18 +245,18 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         => AstQueryBinaryArithmeticHelper.TryConvertNumericToDecimal(value, out result);
 
     private static bool TryEvalBoundScalarFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
-        => AstQueryFunctionDispatchHelper.TryEvalBoundScalarFunction(fn, context, evalArg, out result);
+        => context.TryEvalBoundScalarFunction(fn, evalArg, out result);
 
     private bool TryEvalNonSqlServerScalarFunctionFamily(
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -266,9 +264,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             (SqlExpr expr, EvalRow evalRow, EvalGroup? evalGroup, IDictionary<string, Source> evalCtes)
                 => AstQueryExecutionRuntimeHelper.GetTemporalUnit(expr, evalRow, evalGroup, evalCtes, Eval);
 
-        if (AstQueryMySqlMariaDbFunctionEvaluator.TryEvaluate(
+        if (_context.TryEvaluate(
             fn,
-            _context,
             row,
             group,
             ctes,
@@ -284,8 +281,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return true;
         }
 
-        if (AstQueryOracleDb2ScalarFunctionEvaluator.TryEvaluate(fn, _context, evalArg, TryCoerceDateTime, out result)
-            || TryEvalPostgresScalarFunctionFamily(fn, _context, evalArg, out result))
+        if (AstQueryOracleDb2ScalarFunctionEvaluator.TryEvaluate(_context, fn, evalArg, TryCoerceDateTime, out result)
+            || AstQueryPostgresScalarFunctionEvaluator.TryEvaluateyPostgresScalarFunction(_context, fn, evalArg, out result))
         {
             return true;
         }
@@ -294,49 +291,42 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         return false;
     }
 
-    private bool TryEvalPostgresScalarFunctionFamily(
-        FunctionCallExpr fn,
-        QueryExecutionContext context,
-        Func<int, object?> evalArg,
-        out object? result)
-        => AstQueryPostgresScalarFunctionEvaluator.TryEvaluate(fn, context, evalArg, Cnn.GetCurrentQueryText, out result);
-
     private bool TryEvalSqlServerAndCompatibilityFunctionFamily(
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
-        => SqlServerCompatibilityFunctionEvaluator.TryEvaluate(fn, row, group, ctes, context, evalArg, out result);
+        => SqlServerCompatibilityFunctionEvaluator.TryEvaluate(context, fn, row, group, ctes, evalArg, out result);
 
     private bool TryEvalGeneralScalarFunctionFamily(
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
-        => AstQueryGeneralScalarFunctionFamilyEvaluator.TryEvaluate(fn, row, group, ctes, context, GeneralSystemAndJsonFunctionEvaluator.TryEvaluate, evalArg, Eval, ParseIntervalValue, out result);
+        => context.TryEvaluate(fn, row, group, ctes, GeneralSystemAndJsonFunctionEvaluator.TryEvaluate, evalArg, Eval, ParseIntervalValue, out result);
 
     private bool TryEvalCastStringAndDateTail(
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
-        => CastStringAndDateTailEvaluator.TryEvaluate(fn, row, group, ctes, context, evalArg, out result);
+        => CastStringAndDateTailEvaluator.TryEvaluate(context, fn, row, group, ctes, evalArg, out result);
 
     private bool TryEvalCastConversionFamily(
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
         => CastConversionFamilyEvaluator.TryEvaluate(fn, context, evalArg, out result);
@@ -347,18 +337,17 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         EvalGroup? group,
         IDictionary<string, Source> ctes,
         out object? result)
-        => AstQueryFunctionDispatchHelper.TryEvalUserDefinedScalarFunction(
+        => _context.TryEvalUserDefinedScalarFunction(
             fn,
             row,
             group,
             ctes,
-            _context,
             _localParameterScopes,
             Eval,
             out result);
 
     private bool TryResolveLocalFunctionValue(string name, out object? value)
-        => AstQueryFunctionDispatchHelper.TryResolveLocalFunctionValue(name, _localParameterScopes, out value);
+        => _context.TryResolveLocalFunctionValue(name, _localParameterScopes, out value);
 
     private AstQueryCastConversionFamilyEvaluator CastConversionFamilyEvaluator
         => _castConversionFamilyEvaluator ??= new AstQueryCastConversionFamilyEvaluator(
@@ -395,37 +384,33 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         => _generalSystemAndJsonFunctionEvaluator ??= new AstQueryGeneralSystemAndJsonFunctionEvaluator(
             tryEvalSessionContextFunction: SqlServerUtilityFunctionEvaluator.TryEvalSessionContextFunction,
             tryEvalJsonUtilityFunctions: AstQueryGeneralScalarFunctionEvaluator.TryEvalJsonUtilityFunctions,
-            tryEvalSqliteSystemFunctions: GeneralScalarFunctionEvaluator.TryEvalSqliteSystemFunctions,
-            tryEvalSqliteJsonFunctions: GeneralScalarFunctionEvaluator.TryEvalSqliteJsonFunctions);
-
-    private AstQueryGeneralScalarFunctionEvaluator GeneralScalarFunctionEvaluator
-        => _generalScalarFunctionEvaluator ??= new AstQueryGeneralScalarFunctionEvaluator(Cnn);
+            tryEvalSqliteSystemFunctions: AstQueryGeneralScalarFunctionEvaluator.TryEvalSqliteSystemFunctions,
+            tryEvalSqliteJsonFunctions: AstQueryGeneralScalarFunctionEvaluator.TryEvalSqliteJsonFunctions);
 
     private AstQuerySqlServerDatabaseFunctionEvaluator SqlServerDatabaseFunctionEvaluator
         => _sqlServerDatabaseFunctionEvaluator ??= new AstQuerySqlServerDatabaseFunctionEvaluator(
-            getDialect: () => Dialect,
-            resolveDatabaseProperty: (databaseName, propertyName) => AstQuerySqlServerResolutionHelper.TryResolveSqlServerDatabaseProperty(_context, databaseName, propertyName),
+            resolveDatabaseProperty: _context.TryResolveSqlServerDatabaseProperty,
             resolveDatabasePrincipalId: AstQuerySqlServerResolutionHelper.TryResolveSqlServerDatabasePrincipalId,
-            resolveColumnProperty: (objectIdValue, columnName, propertyName) => AstQuerySqlServerResolutionHelper.TryResolveSqlServerColumnProperty(_context, objectIdValue, columnName, propertyName),
-            resolveColumnLength: (objectName, columnName) => AstQuerySqlServerResolutionHelper.TryResolveSqlServerColumnLength(_context, objectName, columnName),
-            resolveColumnName: (objectIdValue, columnIdValue) => AstQuerySqlServerResolutionHelper.TryResolveSqlServerColumnName(_context, objectIdValue, columnIdValue),
-            resolveObjectId: objectName => AstQuerySqlServerResolutionHelper.TryResolveSqlServerObjectId(_context, objectName),
-            resolveObjectProperty: (objectIdValue, propertyName) => AstQuerySqlServerResolutionHelper.TryResolveSqlServerObjectProperty(_context, objectIdValue, propertyName),
-            resolveObjectName: objectIdValue => AstQuerySqlServerResolutionHelper.TryResolveSqlServerObjectName(_context, objectIdValue),
-            resolveObjectSchemaName: objectIdValue => AstQuerySqlServerResolutionHelper.TryResolveSqlServerObjectSchemaName(_context, objectIdValue),
+            resolveColumnProperty: _context.TryResolveSqlServerColumnProperty,
+            resolveColumnLength: _context.TryResolveSqlServerColumnLength,
+            resolveColumnName: _context.TryResolveSqlServerColumnName,
+            resolveObjectId: _context.TryResolveSqlServerObjectId,
+            resolveObjectProperty: _context.TryResolveSqlServerObjectProperty,
+            resolveObjectName: _context.TryResolveSqlServerObjectName,
+            resolveObjectSchemaName: _context.TryResolveSqlServerObjectSchemaName,
             resolveTypeProperty: AstQuerySqlServerResolutionHelper.TryResolveSqlServerTypeProperty,
             getDatabaseName: () => Cnn.Database);
 
     private AstQuerySqlServerIdentityFunctionEvaluator SqlServerIdentityFunctionEvaluator
         => _sqlServerIdentityFunctionEvaluator ??= new AstQuerySqlServerIdentityFunctionEvaluator(
-            getDialect: () => Dialect,
+            getDialect: () => context.Dialect,
             getLastInsertId: Cnn.GetLastInsertId,
             resolveSystemTypeId: AstQuerySqlServerResolutionHelper.TryResolveSqlServerSystemTypeId,
             resolveSystemTypeName: AstQuerySqlServerResolutionHelper.TryResolveSqlServerSystemTypeName);
 
     private AstQuerySqlServerUtilityFunctionEvaluator SqlServerUtilityFunctionEvaluator
         => _sqlServerUtilityFunctionEvaluator ??= new AstQuerySqlServerUtilityFunctionEvaluator(
-            getDialect: () => Dialect,
+            getDialect: () => context.Dialect,
             tryConvertNumericToDecimal: TryConvertNumericToDecimal,
             tryCoerceDateTime: TryCoerceDateTime,
             tryParseOffset: SqlTemporalFunctionEvaluator.TryParseOffset,
@@ -433,7 +418,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private AstQuerySqlServerSessionFunctionEvaluator SqlServerSessionFunctionEvaluator
         => _sqlServerSessionFunctionEvaluator ??= new AstQuerySqlServerSessionFunctionEvaluator(
-            getDialect: () => Dialect,
+            getDialect: () => context.Dialect,
             getContextInfo: Cnn.GetContextInfo,
             hasActiveTransaction: () => Cnn.HasActiveTransaction,
             tryResolveSqlServerRoleMembership: AstQuerySqlServerResolutionHelper.TryResolveSqlServerRoleMembership,
@@ -457,7 +442,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
     // Custom schema functions are resolved through the current connection when available.
     private SqlExpr ParseExpr(string raw)
     {
-        var dialectInstance = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para parse de expressão.");
+        var dialectInstance = context.Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para parse de expressão.");
         return SqlExpressionParser.ParseWhere(
             raw,
             dialectInstance,
@@ -467,7 +452,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private SqlExpr ParseScalarExpr(string raw)
     {
-        var dialect1 = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para parse de expressão escalar.");
+        var dialect1 = context.Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para parse de expressão escalar.");
         return SqlExpressionParser.ParseScalar(
             raw,
             dialect1,
@@ -487,25 +472,23 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         string? sqlContextForErrors = null)
     {
         ClearSubqueryEvaluationCaches();
-        return UnionExecutionHelper.Execute(
+        return _context.ExecuteUnion(
             parts,
             allFlags,
             orderBy,
             rowLimit,
             sqlContextForErrors,
-            _context,
             parts1 => ExecuteSelect(parts1, null, null),
-            (result, query, ctes, trace) => AstQuerySelectExecutionHelper.ApplyOrderAndLimit(
+            (result, query, ctes, trace) => context.ApplyQueryOrderLimit(
                 result,
                 query,
                 ctes,
                 ParseExpr,
                 (expr, row) => Eval(expr, row, group: null, ctes),
                 (expr, scope) => Convert.ToInt32(Eval(expr, EvalRow.Empty(), null, scope), CultureInfo.InvariantCulture),
-                (left, right) => AstQueryComparisonSupport.CompareSql(left, right, _context),
                 trace),
-            AstQueryPlanMetricsHelper.CountKnownInputTables,
-            query => AstQueryPlanMetricsHelper.EstimateRowsRead(_context, query));
+            AstQueryPlanMetricsHelper.CountKnownInputTables
+            );
     }
 
     /// <summary>
@@ -525,7 +508,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         if (!HasSqlCalcFoundRows(q) && !IsRowCountHelperSelect(q))
             Cnn.SetLastFoundRows(result.Count);
 
-        var metrics = AstQueryPlanMetricsHelper.BuildPlanRuntimeMetrics(_context, q, result.Count, sw.ElapsedMilliseconds);
+        var metrics = _context.BuildPlanRuntimeMetrics(q, result.Count, sw.ElapsedMilliseconds);
         var indexRecommendations = BuildIndexRecommendations(_context, q, metrics);
         var planWarnings = QueryPlanWarningHelper.BuildPlanWarnings(q, metrics);
         var runtimeContext = _context.BuildPlanRuntimeContext();
@@ -595,7 +578,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             var fromRows = rows as List<EvalRow> ?? [.. rows];
             debugTrace.AddStep(
                 "TableScan",
-                (int)Math.Min(int.MaxValue, AstQueryPlanMetricsHelper.GetKnownSourceRows(_context, selectQuery.Table)),
+                (int)Math.Min(int.MaxValue, _context.GetKnownSourceRows(selectQuery.Table)),
                 fromRows.Count,
                 TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(fromStart)),
                 SqlSourceFormattingHelper.FormatSource(selectQuery.Table));
@@ -679,7 +662,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         {
             var distinctStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
             var inputRows = projected.Count;
-            projected = QueryRowValueHelper.ApplyDistinct(projected, _context);
+            projected = _context.ApplyDistinct(projected);
             debugTrace?.AddStep(
                 "Distinct",
                 inputRows,
@@ -691,14 +674,13 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         if (HasSqlCalcFoundRows(selectQuery))
             Cnn.SetLastFoundRows(projected.Count);
 
-        projected = AstQuerySelectExecutionHelper.ApplyOrderAndLimit(
+        projected = context.ApplyQueryOrderLimit(
             projected,
             selectQuery,
             ctes,
             ParseExpr,
             (expr, row) => Eval(expr, row, group: null, ctes),
             (expr, scope) => Convert.ToInt32(Eval(expr, EvalRow.Empty(), null, scope), CultureInfo.InvariantCulture),
-            (left, right) => AstQueryComparisonSupport.CompareSql(left, right, _context),
             debugTrace);
         projected = AstQueryExecutorForJsonHelper.ApplyForJsonIfNeeded(projected, selectQuery, debugTrace);
         return projected;
@@ -759,14 +741,13 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         if (query.OrderBy.Count > 0 || query.RowLimit is not null)
         {
             var orderCtes = new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase);
-            result = AstQuerySelectExecutionHelper.ApplyOrderAndLimit(
+            result = context.ApplyQueryOrderLimit(
                 result,
                 query,
                 orderCtes,
                 ParseExpr,
                 (expr, row) => Eval(expr, row, group: null, orderCtes),
-                (expr, scope) => Convert.ToInt32(Eval(expr, EvalRow.Empty(), null, scope), CultureInfo.InvariantCulture),
-                (left, right) => AstQueryComparisonSupport.CompareSql(left, right, _context));
+                (expr, scope) => Convert.ToInt32(Eval(expr, EvalRow.Empty(), null, scope), CultureInfo.InvariantCulture));
         }
 
         return true;
@@ -789,10 +770,9 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         if (!AstQueryAggregateEvaluator.TryParseStringAggregateCall(exprRaw, ParseScalarExpr, out var aggregateCall))
             return false;
 
-        var dialect2 = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação.");
         var aggregateDefinition = aggregateCall.ResolvedScalarFunction;
         if (aggregateDefinition is null
-            && !dialect2.TryGetScalarFunctionDefinition(aggregateCall, out aggregateDefinition))
+            && !context.Dialect.TryGetScalarFunctionDefinition(aggregateCall, out aggregateDefinition))
             return false;
 
         if (aggregateDefinition is not null
@@ -807,7 +787,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
         var firstRow = rows.Count > 0 ? rows[0] : EvalRow.Empty();
         var aggregateGroup = new EvalGroup(rows);
-        var resultValue = AstQueryAggregateEvaluator.EvalAggregate(aggregateCall, aggregateGroup, ctes, dialect2, Eval);
+        var resultValue = context.EvalAggregate(aggregateCall, aggregateGroup, ctes, Eval);
 
         result = new TableResultMock
         {
@@ -828,16 +808,15 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             Cnn.SetLastFoundRows(result.Count);
 
         if (query.Distinct)
-            result = QueryRowValueHelper.ApplyDistinct(result, _context);
+            result = _context.ApplyDistinct(result);
 
-        result = AstQuerySelectExecutionHelper.ApplyOrderAndLimit(
+        result = context.ApplyQueryOrderLimit(
             result,
             query,
             ctes,
             ParseExpr,
             (expr, row) => Eval(expr, row, group: null, ctes),
-            (expr, scope) => Convert.ToInt32(Eval(expr, EvalRow.Empty(), null, scope), CultureInfo.InvariantCulture),
-            (left, right) => AstQueryComparisonSupport.CompareSql(left, right, _context));
+            (expr, scope) => Convert.ToInt32(Eval(expr, EvalRow.Empty(), null, scope), CultureInfo.InvariantCulture));
         result = AstQueryExecutorForJsonHelper.ApplyForJsonIfNeeded(result, query);
         return true;
     }
@@ -869,7 +848,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
             if (AstQueryPlanMetricsHelper.HasKnownPhysicalTable(query.Table))
             {
-                count = AstQueryPlanMetricsHelper.GetKnownSourceRows(_context, query.Table);
+                count = _context.GetKnownSourceRows(query.Table);
                 return true;
             }
         }
@@ -1020,7 +999,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
         var firstGroup = grouped[0];
         var firstEvalCtx = BuildHavingEvaluationContext(firstGroup, aliasExprs, ctes, out var firstEvalGroup);
-        HavingHelper.EnsureHavingIdentifiersAreBound(havingExpr, firstEvalCtx, Dialect!);
+        HavingHelper.EnsureHavingIdentifiersAreBound(havingExpr, firstEvalCtx, context.Dialect!);
         if (Eval(havingExpr, firstEvalCtx, firstEvalGroup, ctes).ToBool())
             filtered.Add(firstGroup);
 
@@ -1187,22 +1166,16 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         IDictionary<string, Source> ctes)
     {
         var res = new TableResultMock();
-        var selectPlan = AstQuerySelectExecutionHelper.BuildSelectPlan(
-            Cnn,
-            Dialect,
+        var selectPlan = _context.BuildSelectPlan(
             q,
             rows,
             ctes,
-            _context,
             ParseScalarExpr,
             Eval,
             QueryRowValueHelper.ResolveColumn);
 
-        AstQueryWindowExecutionHelper.ComputeWindowSlots(
-            _context,
-            Dialect,
+        context.ComputeWindowSlots(
             Eval,
-            (left, right) => AstQueryComparisonSupport.CompareSql(left, right, _context),
             selectPlan.WindowSlots,
             rows,
             ctes);
@@ -1251,13 +1224,10 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
                 representativeRows.Add(groupsList[i].Rows[0]);
         }
 
-        var selectPlan = AstQuerySelectExecutionHelper.BuildSelectPlan(
-            Cnn,
-            Dialect,
+        var selectPlan = _context.BuildSelectPlan(
             q,
             representativeRows,
             ctes,
-            _context,
             ParseScalarExpr,
             Eval,
             QueryRowValueHelper.ResolveColumn);
@@ -1285,7 +1255,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         {
             var distinctStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
             var inputRows = res.Count;
-            res = QueryRowValueHelper.ApplyDistinct(res, _context);
+            res = _context.ApplyDistinct(res);
             debugTrace?.AddStep(
                 "Distinct",
                 inputRows,
@@ -1304,14 +1274,13 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             res.Count,
             TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(projectStart)),
             QueryDebugTraceFormattingHelper.FormatProjectDebugDetails(q.SelectItems));
-        res = AstQuerySelectExecutionHelper.ApplyOrderAndLimit(
+        res = _context.ApplyQueryOrderLimit(
             res,
             q,
             ctes,
             ParseExpr,
             (expr, row) => Eval(expr, row, group: null, ctes),
             (expr, scope) => Convert.ToInt32(Eval(expr, EvalRow.Empty(), null, scope), CultureInfo.InvariantCulture),
-            (left, right) => AstQueryComparisonSupport.CompareSql(left, right, _context),
             debugTrace);
         res = AstQueryExecutorForJsonHelper.ApplyForJsonIfNeeded(res, q, debugTrace);
         return res;
@@ -1332,12 +1301,12 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         // MySQL semantics (best-effort):
         //  a ->  '$.x'  => JSON_EXTRACT(a, '$.x')
         //  a ->> '$.x'  => JSON_UNQUOTE(JSON_EXTRACT(a, '$.x'))
-        var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para acesso JSON.");
+
         var extract = new FunctionCallExpr("JSON_EXTRACT", [ja.Target, ja.Path])
-            .BindScalarFunctionDefinition(dialect);
+            .BindScalarFunctionDefinition(_context.Dialect);
         return ja.Unquote
             ? new FunctionCallExpr("JSON_UNQUOTE", [extract])
-                .BindScalarFunctionDefinition(dialect)
+                .BindScalarFunctionDefinition(_context.Dialect)
             : extract;
     }
 
@@ -1443,7 +1412,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
                 return EvalIsNull(isn, row, group, ctes);
 
             case LikeExpr like:
-                return AstQueryExpressionEvaluationHelper.EvalLike(like, row, group, ctes, _context, Eval);
+                return _context.EvalLike(like, row, group, ctes, Eval);
 
             case UnaryExpr u when u.Op == SqlUnaryOp.Not:
                 return AstQueryExpressionEvaluationHelper.EvalNot(
@@ -1453,35 +1422,31 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
                     ctes,
                     Eval,
                     (InExpr a, EvalRow b, EvalGroup? c, IDictionary<string, Source> d)
-                        => AstQueryExpressionEvaluationHelper.EvalNotIn(
+                        => _context.EvalNotIn(
                             a,
                             b,
                             c,
                             d,
-                            _context,
                             Eval,
                             GetOrEvaluateInSubqueryLookup,
                             GetOrEvaluateInSubqueryRowLookup)
                     );
 
             case BinaryExpr b:
-        return AstQueryExpressionEvaluationHelper.EvalBinary(
+                return _context.EvalBinary(
                     b,
                     row,
                     group,
                     ctes,
-                    _context,
-                    Dialect,
                     Eval,
                     SubqueryComparisonEvaluator.TryEvaluateCorrelatedCountComparisonFast);
 
             case InExpr i:
-                return AstQueryExpressionEvaluationHelper.EvalIn(
+                return _context.EvalIn(
                     i,
                     row,
                     group,
                     ctes,
-                    _context,
                     Eval,
                     GetOrEvaluateInSubqueryLookup,
                     GetOrEvaluateInSubqueryRowLookup);
@@ -1526,8 +1491,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private object? EvalIdentifier(IdentifierExpr identifier, EvalRow row)
     {
-        if (AstQueryDialectIdentifierEvaluator.TryResolveIdentifier(
-                _context,
+        if (_context.TryResolveIdentifier(
                 identifier,
                 _evaluationLocalNow,
                 _evaluationUtcNow,
@@ -1629,7 +1593,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
     {
         // Aggregate?
         if (group is not null && AggregateFunctionCatalog.Contains(fn.Name))
-            return EvalAggregate(fn, group, ctes);
+            return _context.EvalAggregate(
+                fn,
+                group,
+                ctes,
+                Eval);
 
         if (fn.Name.Equals("INTERVAL", StringComparison.OrdinalIgnoreCase))
             return ParseIntervalValue(fn, row, group, ctes);
@@ -1639,7 +1607,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         var shim = fn.ResolvedScalarFunction is not null
             ? new FunctionCallExpr(fn.Name, fn.Args).BindScalarFunctionDefinition(fn.ResolvedScalarFunction)
             : new FunctionCallExpr(fn.Name, fn.Args).BindScalarFunctionDefinition(
-                Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para função escalar."));
+                _context.Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para função escalar."));
         return EvalFunction(shim, row, group, ctes);
     }
 
@@ -2018,23 +1986,12 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         FunctionCallExpr fn,
         EvalGroup group,
         IDictionary<string, Source> ctes)
-        => AstQueryAggregateEvaluator.EvalAggregate(
+        => _context.EvalAggregate(
             fn,
             group,
             ctes,
-            Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação."),
             Eval);
 
-    private object? EvalAggregate(
-        CallExpr fn,
-        EvalGroup group,
-        IDictionary<string, Source> ctes)
-        => AstQueryAggregateEvaluator.EvalAggregate(
-            fn,
-            group,
-            ctes,
-            Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação."),
-            Eval);
 
     // ---------------- RESOLUTION HELPERS ----------------
 
@@ -3039,18 +2996,17 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         return materialized;
     }
 
-    internal sealed class EvalGroup
+    /// <summary>
+    /// EN: Implements EvalGroup.
+    /// PT: Implementa EvalGroup.
+    /// </summary>
+    internal sealed class EvalGroup(List<AstQueryExecutorBase.EvalRow> rows)
     {
         /// <summary>
         /// EN: Gets or sets Rows.
         /// PT: Obtém ou define Rows.
         /// </summary>
-        public List<EvalRow> Rows { get; }
-        /// <summary>
-        /// EN: Implements EvalGroup.
-        /// PT: Implementa EvalGroup.
-        /// </summary>
-        public EvalGroup(List<EvalRow> rows) => Rows = rows;
+        public List<EvalRow> Rows { get; } = rows;
     }
 
     private sealed record MaterializedGroup(GroupKey Key, List<EvalRow> Rows);
@@ -3146,7 +3102,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
     }
 
     private bool HasSqlCalcFoundRows(SqlSelectQuery query)
-        => Dialect?.SupportsSqlCalcFoundRowsModifier == true
+        => _context.Dialect?.SupportsSqlCalcFoundRowsModifier == true
            && !string.IsNullOrWhiteSpace(query.RawSql)
            && _sqlCalcFoundRowsRegex.IsMatch(query.RawSql);
 }

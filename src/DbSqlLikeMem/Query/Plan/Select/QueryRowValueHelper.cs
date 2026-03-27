@@ -2,7 +2,7 @@ namespace DbSqlLikeMem;
 
 internal static class QueryRowValueHelper
 {
-    internal static object? ResolveParam(QueryExecutionContext context, string name)
+    internal static object? ResolveParam(this QueryExecutionContext context, string name)
     {
         if (name == "?")
             return ResolvePositionalParam(context.Parameters);
@@ -46,7 +46,7 @@ internal static class QueryRowValueHelper
             : null;
     }
 
-    internal static string NormalizeDistinctKey(object? value, QueryExecutionContext? context = null)
+    internal static string NormalizeDistinctKey(this QueryExecutionContext? context, object? value)
     {
         if (value is null or DBNull)
             return SqlConst.NULL;
@@ -65,7 +65,7 @@ internal static class QueryRowValueHelper
         };
     }
 
-    internal static TableResultMock ApplyDistinct(TableResultMock result, QueryExecutionContext context)
+    internal static TableResultMock ApplyDistinct(this QueryExecutionContext context, TableResultMock result)
     {
         var estimatedCount = result.Count;
         var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -372,7 +372,7 @@ internal static class QueryRowValueHelper
             return string.Empty;
 
         if (columnCount == 1)
-            return NormalizeDistinctKey(row.TryGetValue(0, out var singleValue) ? singleValue : null, context);
+            return context.NormalizeDistinctKey(row.TryGetValue(0, out var singleValue) ? singleValue : null);
 
         var builder = new StringBuilder(Math.Max(16, columnCount * 12));
         for (var i = 0; i < columnCount; i++)
@@ -380,7 +380,7 @@ internal static class QueryRowValueHelper
             if (builder.Length > 0)
                 builder.Append('\u001F');
 
-            builder.Append(NormalizeDistinctKey(row.TryGetValue(i, out var value) ? value : null, context));
+            builder.Append(context.NormalizeDistinctKey(row.TryGetValue(i, out var value) ? value : null));
         }
 
         return builder.ToString();

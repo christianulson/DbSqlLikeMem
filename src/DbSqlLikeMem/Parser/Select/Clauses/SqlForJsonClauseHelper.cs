@@ -9,7 +9,7 @@ internal static class SqlForJsonClauseHelper
             return null;
 
         if (!ctx.Dialect.SupportsForJsonClause)
-            throw SqlUnsupported.ForDialect(ctx.Dialect, SqlConst.FOR_JSON);
+            throw SqlUnsupported.NotSupported(ctx.Dialect, SqlConst.FOR_JSON);
 
         ctx.Consume(); // FOR
         ctx.Consume(); // JSON
@@ -86,7 +86,7 @@ internal static class SqlForJsonClauseHelper
             return null;
 
         if (!ctx.Dialect.SupportsForJsonClause)
-            throw SqlUnsupported.ForDialect(ctx.Dialect, SqlConst.FOR_JSON);
+            throw SqlUnsupported.NotSupported(ctx.Dialect, SqlConst.FOR_JSON);
 
         ctx.Consume(); // FOR
         ctx.Consume(); // JSON

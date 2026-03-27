@@ -27,16 +27,16 @@ internal static class WindowOrderValueHelper
         => rowIndex >= frameRange.StartIndex && rowIndex <= frameRange.EndIndex;
 
     internal static bool WindowOrderValuesEqual(
+        this WindowPartitionExecutionContext context,
         object?[] left,
-        object?[] right,
-        Func<object?, object?, int> compareSql)
+        object?[] right)
     {
         if (left.Length != right.Length)
             return false;
 
         for (var i = 0; i < left.Length; i++)
         {
-            if (compareSql(left[i], right[i]) != 0)
+            if (context.QueryExecutionContext.CompareSql(left[i], right[i]) != 0)
                 return false;
         }
 

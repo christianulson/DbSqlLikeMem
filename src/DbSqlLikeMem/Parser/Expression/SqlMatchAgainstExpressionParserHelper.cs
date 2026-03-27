@@ -16,7 +16,7 @@ internal static class SqlMatchAgainstExpressionParserHelper
             return false;
 
         if (!ctx.Dialect.SupportsMatchAgainstPredicate)
-            throw SqlUnsupported.ForDialect(ctx.Dialect, "MATCH ... AGAINST full-text predicate");
+            throw ctx.NotSupported("MATCH ... AGAINST full-text predicate");
 
         var againstToken = ctx.Consume(); // AGAINST
         if (ctx.Peek().Kind != SqlTokenKind.Symbol || ctx.Peek().Text != "(")

@@ -109,11 +109,11 @@ public sealed class Db2DialectFeatureParserTests
             dialect));
 
         Assert.Equal("fn_users", create.Table?.Name, ignoreCase: true);
-        Assert.Equal("INT", create.ReturnTypeSql, ignoreCase: true);
-        Assert.Equal(2, create.Parameters.Count);
-        Assert.Equal("baseValue", create.Parameters[0].Name, ignoreCase: true);
-        Assert.Equal("incrementValue", create.Parameters[1].Name, ignoreCase: true);
-        Assert.IsType<BinaryExpr>(create.Body);
+        Assert.Equal("INT", create.Definition.ReturnTypeSql, ignoreCase: true);
+        Assert.Equal(2, create.Definition.Parameters.Count);
+        Assert.Equal("baseValue", create.Definition.Parameters[0].Name, ignoreCase: true);
+        Assert.Equal("incrementValue", create.Definition.Parameters[1].Name, ignoreCase: true);
+        Assert.IsType<BinaryExpr>(create.Definition.Body);
 
         var drop = Assert.IsType<SqlDropFunctionQuery>(SqlQueryParser.Parse(
             "DROP FUNCTION IF EXISTS fn_users(INT, INT)",
@@ -141,11 +141,11 @@ public sealed class Db2DialectFeatureParserTests
 
         Assert.True(create.OrReplace);
         Assert.Equal("fn_users", create.Table?.Name, ignoreCase: true);
-        Assert.Equal("INT", create.ReturnTypeSql, ignoreCase: true);
-        Assert.Equal(2, create.Parameters.Count);
-        Assert.Equal("baseValue", create.Parameters[0].Name, ignoreCase: true);
-        Assert.Equal("incrementValue", create.Parameters[1].Name, ignoreCase: true);
-        Assert.IsType<BinaryExpr>(create.Body);
+        Assert.Equal("INT", create.Definition.ReturnTypeSql, ignoreCase: true);
+        Assert.Equal(2, create.Definition.Parameters.Count);
+        Assert.Equal("baseValue", create.Definition.Parameters[0].Name, ignoreCase: true);
+        Assert.Equal("incrementValue", create.Definition.Parameters[1].Name, ignoreCase: true);
+        Assert.IsType<BinaryExpr>(create.Definition.Body);
     }
 
     /// <summary>
@@ -916,7 +916,7 @@ public sealed class Db2DialectFeatureParserTests
         Assert.True(dialect.RequiresOrderByInWindowFunction("ROW_NUMBER"));
         Assert.True(dialect.RequiresOrderByInWindowFunction("LAG"));
 
-        Assert.False(dialect.RequiresOrderByInWindowFunction("COUNT"));
+        Assert.False(dialect.RequiresOrderByInWindowFunction(SqlConst.COUNT));
     }
 
 
@@ -939,7 +939,7 @@ public sealed class Db2DialectFeatureParserTests
         Assert.Equal(1, lagMin);
         Assert.Equal(3, lagMax);
 
-        Assert.False(dialect.TryGetWindowFunctionArgumentArity("COUNT", out _, out _));
+        Assert.False(dialect.TryGetWindowFunctionArgumentArity(SqlConst.COUNT, out _, out _));
     }
 
 
@@ -984,7 +984,7 @@ public sealed class Db2DialectFeatureParserTests
         var expr = SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect);
         var call = Assert.IsType<CallExpr>(expr);
 
-        Assert.Equal("LISTAGG", call.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.LISTAGG, call.Name, StringComparer.OrdinalIgnoreCase);
         Assert.NotNull(call.WithinGroupOrderBy);
         Assert.Single(call.WithinGroupOrderBy!);
         Assert.True(call.WithinGroupOrderBy![0].Desc);

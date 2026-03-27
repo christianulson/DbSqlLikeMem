@@ -31,8 +31,8 @@ internal sealed class AstQueryTableFunctionExecutor
         AstQueryExecutorBase.EvalRow? outerRow)
     {
         var function = tableSource.TableFunction ?? throw new InvalidOperationException("Table function source is missing function metadata.");
-        if (function.ResolvedTableFunction?.AstExecutor is not null)
-            return function.ResolvedTableFunction.AstExecutor(this, tableSource, ctes, outerRow);
+        if (function.ResolvedTableFunction?.TableExecutor is not null)
+            return function.ResolvedTableFunction.TableExecutor(this, tableSource, ctes, outerRow);
 
         if (!_tableFunctionHandlers.TryGetValue(function.Name, out var handler))
             throw new NotSupportedException($"Table-valued function '{function.Name}' not supported yet in the mock.");

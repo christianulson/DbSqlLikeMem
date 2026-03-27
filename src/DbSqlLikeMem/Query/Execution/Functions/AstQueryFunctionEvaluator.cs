@@ -10,11 +10,11 @@ internal delegate bool AstQueryTryEvalUserDefinedScalarFunction(
     out object? result);
 
 internal delegate bool AstQueryTryEvalFunctionFamily(
+    QueryExecutionContext context,
     FunctionCallExpr fn,
     EvalRow row,
     EvalGroup? group,
     IDictionary<string, Source> ctes,
-    QueryExecutionContext context,
     Func<int, object?> evalArg,
     out object? result);
 
@@ -41,11 +41,11 @@ internal sealed class AstQueryFunctionEvaluator(
     ];
 
     internal object? Evaluate(
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        QueryExecutionContext context,
         DateTime localNow,
         DateTime utcNow,
         Func<int, object?> evalArg)
@@ -56,12 +56,11 @@ internal sealed class AstQueryFunctionEvaluator(
         if (_tryEvalUserDefinedScalarFunction(fn, row, group, ctes, out var userDefinedResult))
             return userDefinedResult;
 
-        if (_tryEvalBoundScalarFunction(fn, context, evalArg, out var boundScalarResult))
+        if (_tryEvalBoundScalarFunction(context, fn, evalArg, out var boundScalarResult))
             return boundScalarResult;
  
         if (fn.Args.Count == 0
-            && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(
-                context,
+            && context.TryEvaluateZeroArgCall(
                 fn.Name,
                 localNow,
                 utcNow,
@@ -72,12 +71,12 @@ internal sealed class AstQueryFunctionEvaluator(
  
         foreach (var tryEvalScalarFunctionFamily in _tryEvalScalarFunctionFamilies)
         {
-            if (tryEvalScalarFunctionFamily(fn, row, group, ctes, context, evalArg, out var scalarResult))
+            if (tryEvalScalarFunctionFamily(context, fn, row, group, ctes, evalArg, out var scalarResult))
                 return scalarResult;
         }
  
         if (fn.Args.Count == 0
-            && SqlTemporalFunctionEvaluator.IsKnownTemporalFunctionName(context, fn.Name))
+            && context.IsKnownTemporalFunctionName(fn.Name))
             throw new InvalidOperationException($"Temporal function '{fn.Name}' is not supported for context.Dialect '{context.Dialect.Name}'.");
 
         return null;

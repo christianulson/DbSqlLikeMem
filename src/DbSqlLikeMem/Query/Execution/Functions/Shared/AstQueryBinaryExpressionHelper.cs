@@ -32,10 +32,10 @@ internal static class AstQueryBinaryExpressionHelper
     }
 
     internal static bool TryEvalNullSafeEqualityBinary(
+        this QueryExecutionContext context,
         SqlBinaryOp op,
         object? left,
         object? right,
-        QueryExecutionContext context,
         out object? result)
     {
         if (op != SqlBinaryOp.NullSafeEq)
@@ -56,17 +56,17 @@ internal static class AstQueryBinaryExpressionHelper
             return true;
         }
 
-        result = left.Compare(right, context) == 0;
+        result = context.Compare(left, right) == 0;
         return true;
     }
 
     internal static bool EvalComparisonBinary(
+        this QueryExecutionContext context,
         SqlBinaryOp op,
         object left,
-        object right,
-        QueryExecutionContext context)
+        object right)
     {
-        var comparison = left.Compare(right, context);
+        var comparison = context.Compare(left, right);
 
         return op switch
         {

@@ -102,20 +102,21 @@ internal static class SqlFunctionBodyParserHelper
     internal static SqlCreateFunctionQuery BuildCreateFunctionQuery(
         this SqlQueryParserContext ctx,
         SqlTableSource function,
-        IReadOnlyList<ScalarFunctionParameterDef> parameters,
+        IReadOnlyList<DbFunctionParameterDef> parameters,
         string returnTypeSql,
         SqlExpr body,
         bool orReplace,
         string statementEnd)
     {
         ctx.EnsureStatementEnd(statementEnd);
+        if (function.Name is null)
+            throw new InvalidOperationException("CREATE FUNCTION requires a function name.");
+
         return new SqlCreateFunctionQuery
         {
             Table = function,
             OrReplace = orReplace,
-            Parameters = parameters,
-            ReturnTypeSql = returnTypeSql,
-            Body = body
+            Definition = DbFunctionDef.CreateUserDefined(function.Name, returnTypeSql, parameters, body)
         };
     }
 }

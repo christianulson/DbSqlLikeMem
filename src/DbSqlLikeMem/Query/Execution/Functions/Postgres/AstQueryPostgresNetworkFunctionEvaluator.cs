@@ -5,8 +5,8 @@ using System.Collections.Generic;
 using System.Linq;
 
 internal delegate bool AstQueryTryEvalPostgresNetworkFunction(
-    FunctionCallExpr fn,
     QueryExecutionContext context,
+    FunctionCallExpr fn,
     Func<int, object?> evalArg,
     out object? result);
 
@@ -16,8 +16,8 @@ internal static class AstQueryPostgresNetworkFunctionEvaluator
         CreateHandlers();
 
     internal static bool TryEvaluate(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -27,7 +27,7 @@ internal static class AstQueryPostgresNetworkFunctionEvaluator
             return false;
         }
 
-        return handler(fn, context, evalArg, out result);
+        return handler(context,fn,  evalArg, out result);
     }
 
     private static IReadOnlyDictionary<string, AstQueryTryEvalPostgresNetworkFunction> CreateHandlers()
@@ -52,8 +52,8 @@ internal static class AstQueryPostgresNetworkFunctionEvaluator
     }
 
     private static bool TryEvalInetSameFamilyFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -82,58 +82,58 @@ internal static class AstQueryPostgresNetworkFunctionEvaluator
     }
 
     private static bool TryEvalHostFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
-        => TryEvalInetAddressFunction(fn, context, evalArg, value => value.Address.ToString(), out result);
+        => TryEvalInetAddressFunction(context,fn,  evalArg, value => value.Address.ToString(), out result);
 
     private static bool TryEvalHostMaskFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
         => TryEvalInetAddressFunction(
-            fn,
             context,
+            fn,
             evalArg,
             value => new IPAddress([.. value.MaskBytes.Select(static b => (byte)~b)]).ToString(),
             out result);
 
     private static bool TryEvalMaskLenFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
-        => TryEvalInetAddressFunction(fn, context, evalArg, value => value.PrefixLength, out result);
+        => TryEvalInetAddressFunction(context, fn, evalArg, value => value.PrefixLength, out result);
 
     private static bool TryEvalNetmaskFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
         => TryEvalInetAddressFunction(
-            fn,
             context,
+            fn,
             evalArg,
             value => new IPAddress(value.MaskBytes).ToString(),
             out result);
 
     private static bool TryEvalNetworkFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
         => TryEvalInetAddressFunction(
-            fn,
             context,
+            fn,
             evalArg,
             value => $"{new IPAddress(AstQueryGeneralScalarFunctionEvaluator.ApplyNetworkMask(value.Address.GetAddressBytes(), value.MaskBytes))}/{value.PrefixLength}",
             out result);
 
     private static bool TryEvalInetAddressFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         Func<(IPAddress Address, byte[] MaskBytes, int PrefixLength), object?> transform,
         out object? result)

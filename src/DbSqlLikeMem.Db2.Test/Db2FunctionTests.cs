@@ -4,20 +4,14 @@ namespace DbSqlLikeMem.Db2.Test;
 /// EN: Validates DB2 function execution for provider-specific scalar and sequence features.
 /// PT: Valida a execucao de funcoes DB2 para recursos escalares e de sequence especificos do provedor.
 /// </summary>
-public sealed class Db2FunctionTests
-    : XUnitTestBase
+/// <remarks>
+/// EN: Creates DB2 function fixtures with sample tables and sequences.
+/// PT: Cria fixtures de funcoes DB2 com tabelas e sequences de exemplo.
+/// </remarks>
+public sealed class Db2FunctionTests(ITestOutputHelper helper)
+        : XUnitTestBase(helper)
 {
-    private readonly Db2ConnectionMock _connection;
-
-    /// <summary>
-    /// EN: Creates DB2 function fixtures with sample tables and sequences.
-    /// PT: Cria fixtures de funcoes DB2 com tabelas e sequences de exemplo.
-    /// </summary>
-    public Db2FunctionTests(ITestOutputHelper helper)
-        : base(helper)
-    {
-        _connection = CreateOpenConnection();
-    }
+    private readonly Db2ConnectionMock _connection = CreateOpenConnection();
 
     /// <summary>
     /// EN: Ensures DB2 executes the pragmatic scalar FUNCTION DDL subset end to end.

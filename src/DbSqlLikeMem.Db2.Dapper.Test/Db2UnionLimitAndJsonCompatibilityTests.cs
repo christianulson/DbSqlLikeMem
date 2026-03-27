@@ -4,13 +4,12 @@
 /// EN: Covers DB2 UNION, LIMIT, and JSON compatibility scenarios already supported by the in-memory mock.
 /// PT: Cobre cenarios de compatibilidade de UNION, LIMIT e JSON do DB2 que o mock em memoria ja suporta.
 /// </summary>
-public sealed class Db2UnionLimitAndJsonCompatibilityTests : DapperUnionLimitAndJsonCompatibilityTestsBase<Db2DbMock, Db2ConnectionMock>
+/// <remarks>
+/// EN: Creates the in-memory DB2 connection used by the UNION, LIMIT, and JSON compatibility tests.
+/// PT: Cria a conexao DB2 em memoria usada pelos testes de compatibilidade de UNION, LIMIT e JSON.
+/// </remarks>
+public sealed class Db2UnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : DapperUnionLimitAndJsonCompatibilityTestsBase<Db2DbMock, Db2ConnectionMock>(helper)
 {
-    /// <summary>
-    /// EN: Creates the in-memory DB2 connection used by the UNION, LIMIT, and JSON compatibility tests.
-    /// PT: Cria a conexao DB2 em memoria usada pelos testes de compatibilidade de UNION, LIMIT e JSON.
-    /// </summary>
-    public Db2UnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper) { }
 
     /// <inheritdoc />
     protected override Db2ConnectionMock CreateConnection(Db2DbMock db) => new(db);

@@ -28,21 +28,17 @@ namespace System.Runtime.CompilerServices
     /// <summary>
     /// CompilerFeatureRequiredAttribute - Compatibility
     /// </summary>
+    /// <remarks>
+    /// CompilerFeatureRequiredAttribute - Compatibility
+    /// </remarks>
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Constructor | AttributeTargets.Method, Inherited = false)]
-    public sealed class CompilerFeatureRequiredAttribute : Attribute
+    public sealed class CompilerFeatureRequiredAttribute(string featureName) : Attribute
     {
-        /// <summary>
-        /// CompilerFeatureRequiredAttribute - Compatibility
-        /// </summary>
-        public CompilerFeatureRequiredAttribute(string featureName)
-        {
-            FeatureName = featureName;
-        }
 
         /// <summary>
         /// FeatureName - Compatibility
         /// </summary>
-        public string FeatureName { get; }
+        public string FeatureName { get; } = featureName;
 
         /// <summary>
         /// IsOptional - Compatibility
@@ -124,22 +120,18 @@ namespace System.Diagnostics.CodeAnalysis
     /// <summary>
     /// MaybeNullWhenAttribute - Compatibility
     /// </summary>
+    /// <remarks>
+    /// MaybeNullWhenAttribute - Compatibility
+    /// </remarks>
+    /// <param name="returnValue"></param>
     [AttributeUsage(AttributeTargets.Parameter, Inherited = false)]
-    public sealed class MaybeNullWhenAttribute : Attribute
+    public sealed class MaybeNullWhenAttribute(bool returnValue) : Attribute
     {
-        /// <summary>
-        /// MaybeNullWhenAttribute - Compatibility
-        /// </summary>
-        /// <param name="returnValue"></param>
-        public MaybeNullWhenAttribute(bool returnValue)
-        {
-            ReturnValue = returnValue;
-        }
 
         /// <summary>
         /// ReturnValue - Compatibility
         /// </summary>
-        public bool ReturnValue { get; }
+        public bool ReturnValue { get; } = returnValue;
     }
 }
 #endif

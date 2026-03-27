@@ -59,15 +59,16 @@ internal static class SqlSharedScalarFunctionRegistry
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
 
         foreach (var name in NumericFunctions)
-            dialect.AddScalarFunction(name, "DOUBLE", AstQueryGeneralScalarFunctionEvaluator.TryEvaluate);
+            dialect.Functions.Add(DbFunctionDef.CreateScalar(
+                name, "DOUBLE", 
+                AstQueryGeneralScalarFunctionEvaluator.TryEvaluateGeneralScalarFunction));
 
-        dialect.AddScalarFunctions(
-            new DbScalarFunctionDef("CONCAT", "VARCHAR", [], SqlFunctionBodyFactory.Identity())
-            {
-                AstExecutor = TryEvalConcatFunction
-            },
-            "CONCAT",
-            "CONCAT_WS");
+        dialect.Functions.Add(DbFunctionDef.CreateScalar(
+            "CONCAT", "VARCHAR", 
+            QueryConcatFunctionHelper.TryEvalConcatFunctions));
+        dialect.Functions.Add(DbFunctionDef.CreateScalar(
+            "CONCAT_WS", "VARCHAR", 
+            QueryConcatFunctionHelper.TryEvalConcatFunctions));
 
         foreach (var name in StringFunctions)
         {
@@ -80,30 +81,16 @@ internal static class SqlSharedScalarFunctionRegistry
                     ? "VARBINARY"
                     : "VARCHAR";
 
-            dialect.AddScalarFunction(name, returnTypeSql, AstQueryGeneralScalarFunctionEvaluator.TryEvaluate);
+            dialect.Functions.Add(DbFunctionDef.CreateScalar(
+                name, returnTypeSql,
+                AstQueryGeneralScalarFunctionEvaluator.TryEvaluateGeneralScalarFunction));
         }
 
-        dialect.AddScalarFunctions(
-            new DbScalarFunctionDef("COALESCE", "VARCHAR", [], SqlFunctionBodyFactory.Identity())
-            {
-                AstExecutor = QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions
-            },
-            "COALESCE",
-            "NULLIF");
-    }
-
-    private static bool TryEvalConcatFunction(
-        FunctionCallExpr fn,
-        QueryExecutionContext context,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        result = QueryConcatFunctionHelper.TryEvalConcatFunctions(
-            fn,
-            evalArg,
-            context.Dialect.ConcatReturnsNullOnNullInput,
-            out var handled);
-
-        return handled;
+        dialect.Functions.Add(DbFunctionDef.CreateScalar(
+            "COALESCE", "VARCHAR",
+            QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions));
+        dialect.Functions.Add(DbFunctionDef.CreateScalar(
+            "NULLIF", "VARCHAR",
+            QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions));
     }
 }

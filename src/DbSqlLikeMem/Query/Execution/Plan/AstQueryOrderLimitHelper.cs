@@ -4,14 +4,14 @@ namespace DbSqlLikeMem;
 
 internal static class AstQueryOrderLimitHelper
 {
-    internal static TableResultMock Apply(
+    internal static TableResultMock ApplyQueryOrderLimit(
+        this QueryExecutionContext context,
         TableResultMock result,
         SqlSelectQuery query,
         IDictionary<string, Source> ctes,
         Func<string, SqlExpr> parseExpr,
         Func<SqlExpr, EvalRow, object?> evalExpression,
         Func<SqlExpr, IDictionary<string, Source>, int> evalLimitExpr,
-        Comparison<object?> compareSql,
         QueryDebugTraceBuilder? debugTrace = null)
     {
         if (query.OrderBy.Count == 0)
@@ -33,12 +33,11 @@ internal static class AstQueryOrderLimitHelper
 
         var sortStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
         var sortInput = result.Count;
-        var sorted = QueryOrderByHelper.TryApplyOrder(
+        var sorted = context.TryApplyOrder(
             result,
             query.OrderBy,
             parseExpr,
-            (expr, row) => evalExpression(expr, row),
-            (left, right) => compareSql(left, right));
+            (expr, row) => evalExpression(expr, row));
 
         if (!sorted)
         {

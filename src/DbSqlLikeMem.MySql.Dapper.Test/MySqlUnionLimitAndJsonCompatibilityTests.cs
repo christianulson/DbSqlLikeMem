@@ -4,15 +4,13 @@ namespace DbSqlLikeMem.MySql.Dapper.Test;
 /// EN: Covers MySQL UNION, LIMIT, and JSON compatibility scenarios already supported by the in-memory mock.
 /// PT: Cobre cenarios de compatibilidade de UNION, LIMIT e JSON do MySQL que o mock em memoria ja suporta.
 /// </summary>
-public sealed class MySqlUnionLimitAndJsonCompatibilityTests : DapperUnionLimitAndJsonCompatibilityTestsBase<MySqlDbMock, MySqlConnectionMock>
+/// <remarks>
+/// EN: Creates the in-memory MySQL connection used by the UNION, LIMIT, and JSON compatibility tests.
+/// PT: Cria a conexao MySQL em memoria usada pelos testes de compatibilidade de UNION, LIMIT e JSON.
+/// </remarks>
+public sealed class MySqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : DapperUnionLimitAndJsonCompatibilityTestsBase<MySqlDbMock, MySqlConnectionMock>(helper)
 {
     private const int MySqlJsonExtractMinVersion = 50;
-
-    /// <summary>
-    /// EN: Creates the in-memory MySQL connection used by the UNION, LIMIT, and JSON compatibility tests.
-    /// PT: Cria a conexao MySQL em memoria usada pelos testes de compatibilidade de UNION, LIMIT e JSON.
-    /// </summary>
-    public MySqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper) { }
 
     /// <inheritdoc />
     protected override MySqlDbMock CreateDb(int? version) => new(version);

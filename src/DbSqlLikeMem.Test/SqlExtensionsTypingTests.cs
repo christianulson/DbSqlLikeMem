@@ -217,7 +217,7 @@ public sealed class SqlExtensionsTypingTests(
         var dialect = new SqlExtensionsTestDialect(supportsImplicitNumericStringComparison: false);
 
         // Text compare: "10" < "2"
-        Assert.True(10.Compare("2", dialect) < 0);
+        Assert.True(dialect.Compare(10,"2") < 0);
     }
 
     /// <summary>
@@ -232,8 +232,8 @@ public sealed class SqlExtensionsTypingTests(
             supportsImplicitNumericStringComparison: true,
             likeDefaultEscapeCharacter: null);
 
-        Assert.True("Jo_n".Like("Jo#_%", dialect, "#"));
-        Assert.False("Joan".Like("Jo#_%", dialect, "#"));
+        Assert.True(dialect.Like("Jo_n","Jo#_%", "#"));
+        Assert.False(dialect.Like("Joan","Jo#_%", "#"));
     }
 
     /// <summary>
@@ -251,8 +251,8 @@ public sealed class SqlExtensionsTypingTests(
             supportsImplicitNumericStringComparison: true,
             likeDefaultEscapeCharacter: null);
 
-        Assert.True("Jo_n".Like(@"Jo\_%", mysqlLikeDialect));
-        Assert.False("Jo_n".Like(@"Jo\_%", ansiLikeDialect));
+        Assert.True(mysqlLikeDialect.Like("Jo_n",@"Jo\_%"));
+        Assert.False(ansiLikeDialect.Like("Jo_n",@"Jo\_%"));
     }
 
     /// <summary>
@@ -267,7 +267,7 @@ public sealed class SqlExtensionsTypingTests(
             supportsImplicitNumericStringComparison: true,
             likeDefaultEscapeCharacter: null);
 
-        var ex = Assert.Throws<InvalidOperationException>(() => "Jo_n".Like("Jo#_%", dialect, "##"));
+        var ex = Assert.Throws<InvalidOperationException>(() =>dialect .Like("Jo_n","Jo#_%", "##"));
 
         Assert.Contains("single character", ex.Message, StringComparison.OrdinalIgnoreCase);
     }

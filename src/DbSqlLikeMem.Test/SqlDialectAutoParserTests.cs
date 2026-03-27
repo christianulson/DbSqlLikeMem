@@ -425,8 +425,8 @@ public sealed class SqlDialectAutoParserTests(
             "CREATE FUNCTION fn_users() RETURNS INT AS BEGIN RETURN 40 + 2 END"));
 
         Assert.Equal("fn_users", create.Table?.Name, ignoreCase: true);
-        Assert.Equal("INT", create.ReturnTypeSql, ignoreCase: true);
-        Assert.IsType<BinaryExpr>(create.Body);
+        Assert.Equal("INT", create.Definition.ReturnTypeSql, ignoreCase: true);
+        Assert.IsType<BinaryExpr>(create.Definition.Body);
 
         var drop = Assert.IsType<SqlDropFunctionQuery>(SqlQueryParser.ParseAuto(
             "DROP FUNCTION IF EXISTS fn_users"));
@@ -789,16 +789,16 @@ public sealed class SqlDialectAutoParserTests(
     {
         var dialect = new AutoSqlDialect();
 
-        Assert.True(dialect.SupportsStringAggregateFunction("GROUP_CONCAT"));
-        Assert.True(dialect.SupportsStringAggregateFunction("STRING_AGG"));
-        Assert.True(dialect.SupportsStringAggregateFunction("LISTAGG"));
-        Assert.True(dialect.SupportsWithinGroupStringAggregateFunction("GROUP_CONCAT"));
-        Assert.True(dialect.SupportsWithinGroupStringAggregateFunction("STRING_AGG"));
-        Assert.True(dialect.SupportsWithinGroupStringAggregateFunction("LISTAGG"));
-        Assert.True(dialect.SupportsAggregateOrderByStringAggregateFunction("GROUP_CONCAT"));
-        Assert.True(dialect.SupportsAggregateOrderByStringAggregateFunction("STRING_AGG"));
-        Assert.True(dialect.SupportsAggregateOrderByStringAggregateFunction("LISTAGG"));
-        Assert.True(dialect.SupportsAggregateSeparatorKeywordStringAggregateFunction("GROUP_CONCAT"));
+        Assert.True(dialect.SupportsStringAggregateFunction(SqlConst.GROUP_CONCAT));
+        Assert.True(dialect.SupportsStringAggregateFunction(SqlConst.STRING_AGG));
+        Assert.True(dialect.SupportsStringAggregateFunction(SqlConst.LISTAGG));
+        Assert.True(dialect.SupportsWithinGroupStringAggregateFunction(SqlConst.GROUP_CONCAT));
+        Assert.True(dialect.SupportsWithinGroupStringAggregateFunction(SqlConst.STRING_AGG));
+        Assert.True(dialect.SupportsWithinGroupStringAggregateFunction(SqlConst.LISTAGG));
+        Assert.True(dialect.SupportsAggregateOrderByStringAggregateFunction(SqlConst.GROUP_CONCAT));
+        Assert.True(dialect.SupportsAggregateOrderByStringAggregateFunction(SqlConst.STRING_AGG));
+        Assert.True(dialect.SupportsAggregateOrderByStringAggregateFunction(SqlConst.LISTAGG));
+        Assert.True(dialect.SupportsAggregateSeparatorKeywordStringAggregateFunction(SqlConst.GROUP_CONCAT));
     }
 
     /// <summary>
@@ -957,9 +957,9 @@ public sealed class SqlDialectAutoParserTests(
         var stringAgg = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)"));
         var listAgg = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)"));
 
-        Assert.Equal("GROUP_CONCAT", groupConcat.Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("STRING_AGG", stringAgg.Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("LISTAGG", listAgg.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.GROUP_CONCAT, groupConcat.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.STRING_AGG, stringAgg.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.LISTAGG, listAgg.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Single(groupConcat.WithinGroupOrderBy!);
         Assert.Single(stringAgg.WithinGroupOrderBy!);
         Assert.Single(listAgg.WithinGroupOrderBy!);
@@ -1091,7 +1091,7 @@ public sealed class SqlDialectAutoParserTests(
         var pivot = source!.Pivot;
         Assert.NotNull(pivot);
 
-        Assert.Equal("COUNT", pivot!.AggregateFunction, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.COUNT, pivot!.AggregateFunction, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("tenantid", pivot.ForColumnRaw, StringComparer.OrdinalIgnoreCase);
         Assert.Equal(2, pivot.InItems.Count);
         Assert.Equal("t10", pivot.InItems[0].Alias, StringComparer.OrdinalIgnoreCase);

@@ -24,7 +24,7 @@ internal class Db2TableMock(
 
     /// <summary>
     /// EN: Resolves a SQL token to a typed value according to Db2 conversion rules.
-    /// PT: Resolve um token SQL para um valor tipado conforme as regras de conversão do Db2.
+    /// PT: ResolveRowsFrameRange um token SQL para um valor tipado conforme as regras de conversão do Db2.
     /// </summary>
     public override object? Resolve(
         string token,

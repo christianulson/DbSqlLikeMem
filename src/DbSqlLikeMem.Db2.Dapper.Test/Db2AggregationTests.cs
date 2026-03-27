@@ -4,16 +4,13 @@ namespace DbSqlLikeMem.Db2.Dapper.Test;
 /// EN: Runs shared aggregation/HAVING scenarios for DB2 and keeps DB2-specific coverage.
 /// PT: Executa cenários compartilhados de agregação/HAVING para DB2 e mantém cobertura específica de DB2.
 /// </summary>
-public sealed class Db2AggregationTests : AggregationHavingOrdinalTestsBase<Db2DbMock, Db2ConnectionMock>
+/// <remarks>
+/// EN: Creates the DB2 aggregation test suite helper.
+/// PT: Cria o helper da suite de testes de agregacao do DB2.
+/// </remarks>
+/// <param name="helper">EN: Output helper. PT: Helper de saída.</param>
+public sealed class Db2AggregationTests(ITestOutputHelper helper) : AggregationHavingOrdinalTestsBase<Db2DbMock, Db2ConnectionMock>(helper)
 {
-    /// <summary>
-    /// EN: Creates the DB2 aggregation test suite helper.
-    /// PT: Cria o helper da suite de testes de agregacao do DB2.
-    /// </summary>
-    /// <param name="helper">EN: Output helper. PT: Helper de saída.</param>
-    public Db2AggregationTests(ITestOutputHelper helper) : base(helper)
-    {
-    }
 
     /// <inheritdoc />
     protected override Db2DbMock CreateDb() => [];

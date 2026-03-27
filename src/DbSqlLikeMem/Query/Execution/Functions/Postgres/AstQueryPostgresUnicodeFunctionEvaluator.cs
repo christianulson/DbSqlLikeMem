@@ -5,8 +5,8 @@ using System.Collections.Generic;
 using System.Text;
 
 internal delegate bool AstQueryTryEvalPostgresUnicodeFunction(
-    FunctionCallExpr fn,
     QueryExecutionContext context,
+    FunctionCallExpr fn,
     Func<int, object?> evalArg,
     out object? result);
 
@@ -16,8 +16,8 @@ internal static class AstQueryPostgresUnicodeFunctionEvaluator
         CreateHandlers();
 
     internal static bool TryEvaluate(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -27,7 +27,7 @@ internal static class AstQueryPostgresUnicodeFunctionEvaluator
             return false;
         }
 
-        return handler(fn, context, evalArg, out result);
+        return handler(context,fn,  evalArg, out result);
     }
 
     private static IReadOnlyDictionary<string, AstQueryTryEvalPostgresUnicodeFunction> CreateHandlers()
@@ -48,8 +48,8 @@ internal static class AstQueryPostgresUnicodeFunctionEvaluator
     }
 
     private static bool TryEvalNormalizeFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -86,8 +86,8 @@ internal static class AstQueryPostgresUnicodeFunctionEvaluator
     }
 
     private static bool TryEvalToAsciiFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {

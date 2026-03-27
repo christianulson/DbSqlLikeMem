@@ -107,7 +107,7 @@ internal static class AstQuerySqlServerResolutionHelper
     }
 
     internal static object? TryResolveSqlServerDatabaseProperty(
-        QueryExecutionContext context,
+        this QueryExecutionContext context,
         string? databaseName,
         string? propertyName)
     {
@@ -128,7 +128,7 @@ internal static class AstQuerySqlServerResolutionHelper
     }
 
     internal static object? TryResolveSqlServerColumnProperty(
-        QueryExecutionContext context,
+        this QueryExecutionContext context,
         object? objectIdValue,
         string? columnName,
         string? propertyName)
@@ -138,8 +138,8 @@ internal static class AstQuerySqlServerResolutionHelper
 
         ITableMock? table = objectIdValue switch
         {
-            string objectName => TryResolveSqlServerTable(context, objectName, out var tableByName) ? tableByName : null,
-            _ => TryResolveSqlServerTableByObjectId(context, Convert.ToInt32(objectIdValue, CultureInfo.InvariantCulture))
+            string objectName => context.TryResolveSqlServerTable(objectName, out var tableByName) ? tableByName : null,
+            _ => context.TryResolveSqlServerTableByObjectId(Convert.ToInt32(objectIdValue, CultureInfo.InvariantCulture))
         };
 
         if (table is null)
@@ -156,11 +156,11 @@ internal static class AstQuerySqlServerResolutionHelper
     }
 
     internal static int? TryResolveSqlServerColumnLength(
-        QueryExecutionContext context,
+        this QueryExecutionContext context,
         string? objectName,
         string? columnName)
     {
-        if (!TryResolveSqlServerTable(context, objectName, out var table) || table is null || string.IsNullOrWhiteSpace(columnName))
+        if (!context.TryResolveSqlServerTable(objectName, out var table) || table is null || string.IsNullOrWhiteSpace(columnName))
             return null;
 
         var column = table.GetColumn(columnName!);
@@ -187,12 +187,12 @@ internal static class AstQuerySqlServerResolutionHelper
         };
     }
 
-    internal static string? TryResolveSqlServerColumnName(QueryExecutionContext context, object? objectIdValue, object? columnIdValue)
+    internal static string? TryResolveSqlServerColumnName(this QueryExecutionContext context, object? objectIdValue, object? columnIdValue)
     {
         if (AstQueryExecutorBase.IsNullish(objectIdValue) || AstQueryExecutorBase.IsNullish(columnIdValue))
             return null;
 
-        var table = TryResolveSqlServerTableByObjectId(context, Convert.ToInt32(objectIdValue, CultureInfo.InvariantCulture));
+        var table = context.TryResolveSqlServerTableByObjectId(Convert.ToInt32(objectIdValue, CultureInfo.InvariantCulture));
         if (table is null)
             return null;
 
@@ -206,7 +206,7 @@ internal static class AstQuerySqlServerResolutionHelper
     }
 
     internal static bool TryResolveSqlServerTable(
-        QueryExecutionContext context,
+        this QueryExecutionContext context,
         string? objectName,
         out ITableMock? table)
     {
@@ -227,7 +227,7 @@ internal static class AstQuerySqlServerResolutionHelper
         return context.Connection.TryGetTable(objectEntry[0].TableName, out table, objectEntry[0].SchemaName);
     }
 
-    internal static ITableMock? TryResolveSqlServerTableByObjectId(QueryExecutionContext context, int objectId)
+    internal static ITableMock? TryResolveSqlServerTableByObjectId(this QueryExecutionContext context, int objectId)
     {
         var objectEntry = EnumerateSqlServerObjects(context).FirstOrDefault(item => item.ObjectId == objectId);
         if (objectEntry == default)
@@ -238,7 +238,7 @@ internal static class AstQuerySqlServerResolutionHelper
             : null;
     }
 
-    internal static int? TryResolveSqlServerObjectId(QueryExecutionContext context, string? objectName)
+    internal static int? TryResolveSqlServerObjectId(this QueryExecutionContext context, string? objectName)
     {
         if (string.IsNullOrWhiteSpace(objectName))
             return null;
@@ -256,7 +256,7 @@ internal static class AstQuerySqlServerResolutionHelper
         return matches[0].ObjectId;
     }
 
-    internal static object? TryResolveSqlServerObjectProperty(QueryExecutionContext context, object? objectIdValue, string? propertyName)
+    internal static object? TryResolveSqlServerObjectProperty(this QueryExecutionContext context, object? objectIdValue, string? propertyName)
     {
         if (AstQueryExecutorBase.IsNullish(objectIdValue) || string.IsNullOrWhiteSpace(propertyName))
             return null;
@@ -274,7 +274,7 @@ internal static class AstQuerySqlServerResolutionHelper
         };
     }
 
-    internal static string? TryResolveSqlServerObjectName(QueryExecutionContext context, object? objectIdValue)
+    internal static string? TryResolveSqlServerObjectName(this QueryExecutionContext context, object? objectIdValue)
     {
         if (AstQueryExecutorBase.IsNullish(objectIdValue))
             return null;
@@ -285,7 +285,7 @@ internal static class AstQuerySqlServerResolutionHelper
         return match.ObjectId == 0 ? null : match.TableName;
     }
 
-    internal static string? TryResolveSqlServerObjectSchemaName(QueryExecutionContext context, object? objectIdValue)
+    internal static string? TryResolveSqlServerObjectSchemaName(this QueryExecutionContext context, object? objectIdValue)
     {
         if (AstQueryExecutorBase.IsNullish(objectIdValue))
             return null;

@@ -95,10 +95,15 @@ internal static class CommandReaderParsedQueryDispatcher
                 tables.Add(executor.ExecuteSelect(selectQ));
                 break;
             case SqlUnionQuery unionQ:
-                tables.Add(executor.ExecuteUnion(unionQ.Parts, unionQ.AllFlags, unionQ.OrderBy, unionQ.RowLimit, unionQ.RawSql));
+                tables.Add(executor.ExecuteUnion(
+                    unionQ.Parts, 
+                    unionQ.AllFlags,
+                    unionQ.OrderBy,
+                    unionQ.RowLimit,
+                    unionQ.RawSql));
                 break;
             default:
-                throw SqlUnsupported.ForCommandType(connection.ExecutionDialect, "ExecuteReader", query.GetType());
+                throw SqlUnsupported.NotSupportedCommandType(connection.ExecutionDialect, "ExecuteReader", query.GetType());
         }
     }
 
@@ -107,9 +112,8 @@ internal static class CommandReaderParsedQueryDispatcher
     /// PT: Despacha uma query parseada para o handler de leitura apropriado usando um contexto de execução pré-construído.
     /// </summary>
     public static void DispatchParsedReaderQuery(
-        this DbConnectionMockBase connection,
+        this QueryExecutionContext context,
         SqlQueryBase query,
-        QueryExecutionContext context,
         IAstQueryExecutor executor,
         ICollection<TableResultMock> tables,
         Func<SqlInsertQuery, TableResultMock?>? executeInsert = null,
@@ -117,6 +121,7 @@ internal static class CommandReaderParsedQueryDispatcher
         Func<SqlDeleteQuery, TableResultMock?>? executeDelete = null,
         Action<SqlMergeQuery>? executeMerge = null)
     {
+        var connection = context.Connection;
         if (context.MetricsEnabled)
             context.Metrics.IncrementReaderQueryTypeHit(query.GetType().Name);
 
@@ -198,7 +203,7 @@ internal static class CommandReaderParsedQueryDispatcher
                 tables.Add(executor.ExecuteUnion(unionQ.Parts, unionQ.AllFlags, unionQ.OrderBy, unionQ.RowLimit, unionQ.RawSql));
                 break;
             default:
-                throw SqlUnsupported.ForCommandType(context.Dialect, "ExecuteReader", query.GetType());
+                throw SqlUnsupported.NotSupportedCommandType(context.Dialect, "ExecuteReader", query.GetType());
         }
     }
 }

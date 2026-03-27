@@ -2,7 +2,7 @@ namespace DbSqlLikeMem;
 
 internal static class SqlFunctionParameterParserHelper
 {
-    internal static IReadOnlyList<ScalarFunctionParameterDef> ParseFunctionParameters(
+    internal static IReadOnlyList<DbFunctionParameterDef> ParseFunctionParameters(
         this SqlQueryParserContext ctx,
         string? rawParameterList,
         bool allowMissingParameterList)
@@ -32,7 +32,7 @@ internal static class SqlFunctionParameterParserHelper
         return parameters;
     }
 
-    private static ScalarFunctionParameterDef ParseFunctionParameter(
+    private static DbFunctionParameterDef ParseFunctionParameter(
         this SqlQueryParserContext ctx,
         string rawDefinition)
     {
@@ -68,7 +68,7 @@ internal static class SqlFunctionParameterParserHelper
         if (string.IsNullOrWhiteSpace(typeSql))
             throw new InvalidOperationException($"CREATE FUNCTION parameter '{nameToken.Text}' requires a type.");
 
-        return new ScalarFunctionParameterDef(nameToken.Text, typeSql);
+        return new DbFunctionParameterDef(nameToken.Text, typeSql);
     }
 
     private static bool IsFunctionParameterWord(SqlToken token, string word)

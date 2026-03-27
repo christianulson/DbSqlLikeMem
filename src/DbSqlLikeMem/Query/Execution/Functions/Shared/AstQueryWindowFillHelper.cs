@@ -5,8 +5,8 @@ namespace DbSqlLikeMem;
 internal static class AstQueryWindowFillHelper
 {
     internal static void FillFirstOrLastValue(
+        this WindowPartitionExecutionContext partitionContext,
         Dictionary<EvalRow, object?> map,
-        WindowPartitionExecutionContext partitionContext,
         WindowFunctionExpr windowFunctionExpr,
         IDictionary<string, Source> ctes,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
@@ -54,8 +54,8 @@ internal static class AstQueryWindowFillHelper
     }
 
     internal static void FillNthValue(
+        this WindowPartitionExecutionContext partitionContext,
         Dictionary<EvalRow, object?> map,
-        WindowPartitionExecutionContext partitionContext,
         WindowFunctionExpr windowFunctionExpr,
         IDictionary<string, Source> ctes,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
@@ -114,8 +114,8 @@ internal static class AstQueryWindowFillHelper
     }
 
     internal static void FillLagOrLead(
+        this WindowPartitionExecutionContext partitionContext,
         Dictionary<EvalRow, object?> map,
-        WindowPartitionExecutionContext partitionContext,
         WindowFunctionExpr windowFunctionExpr,
         IDictionary<string, Source> ctes,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
@@ -196,8 +196,8 @@ internal static class AstQueryWindowFillHelper
     }
 
     internal static void FillRankOrDenseRank(
+        this WindowPartitionExecutionContext partitionContext,
         Dictionary<EvalRow, object?> map,
-        WindowPartitionExecutionContext partitionContext,
         Func<object?, object?, int> compareSql,
         bool fillRank)
     {
@@ -239,13 +239,13 @@ internal static class AstQueryWindowFillHelper
             for (var frameIndex = frameRange.StartIndex; frameIndex <= frameRange.EndIndex; frameIndex++)
             {
                 var frameValues = orderValuesByRow[part[frameIndex]];
-                if (prevValues is not null && !WindowOrderValueHelper.WindowOrderValuesEqual(prevValues, frameValues, compareSql))
+                if (prevValues is not null && !partitionContext.WindowOrderValuesEqual(prevValues, frameValues))
                 {
                     rank = (frameIndex - frameRange.StartIndex) + 1;
                     denseRank++;
                 }
 
-                if (WindowOrderValueHelper.WindowOrderValuesEqual(frameValues, currentValues, compareSql))
+                if (partitionContext.WindowOrderValuesEqual(frameValues, currentValues))
                     break;
 
                 prevValues = frameValues;
@@ -256,9 +256,8 @@ internal static class AstQueryWindowFillHelper
     }
 
     internal static void FillPercentRankOrCumeDist(
+        this WindowPartitionExecutionContext partitionContext,
         Dictionary<EvalRow, object?> map,
-        WindowPartitionExecutionContext partitionContext,
-        Func<object?, object?, int> compareSql,
         bool fillPercentRank)
     {
         var part = partitionContext.Part;
@@ -301,7 +300,7 @@ internal static class AstQueryWindowFillHelper
             for (var frameIndex = frameRange.StartIndex; frameIndex <= frameRange.EndIndex; frameIndex++)
             {
                 var frameValues = orderValuesByRow[part[frameIndex]];
-                if (WindowOrderValueHelper.WindowOrderValuesEqual(frameValues, currentValues, compareSql))
+                if (partitionContext.WindowOrderValuesEqual(frameValues, currentValues))
                 {
                     peerCount++;
                     continue;
@@ -324,8 +323,8 @@ internal static class AstQueryWindowFillHelper
     }
 
     internal static void FillNtile(
+        this WindowPartitionExecutionContext partitionContext,
         Dictionary<EvalRow, object?> map,
-        WindowPartitionExecutionContext partitionContext,
         WindowFunctionExpr windowFunctionExpr,
         IDictionary<string, Source> ctes,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)

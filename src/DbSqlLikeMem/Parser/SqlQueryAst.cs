@@ -157,9 +157,7 @@ internal sealed record SqlDropSequenceQuery : SqlQueryBase
 internal sealed record SqlCreateFunctionQuery : SqlQueryBase
 {
     internal bool OrReplace { get; init; }
-    internal string ReturnTypeSql { get; init; } = "";
-    internal IReadOnlyList<ScalarFunctionParameterDef> Parameters { get; init; } = [];
-    internal SqlExpr Body { get; init; } = null!;
+    internal DbFunctionDef Definition { get; init; } = null!;
 }
 
 internal sealed record SqlCreateProcedureQuery : SqlQueryBase

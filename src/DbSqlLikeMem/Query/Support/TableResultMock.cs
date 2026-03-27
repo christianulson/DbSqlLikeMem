@@ -55,72 +55,62 @@ public class TableResultMock : List<Dictionary<int, object?>>
 /// EN: Describes metadata for a column inside a query result.
 /// PT: Describe metadados de uma coluna dentro de um resultado de consulta.
 /// </summary>
-public class TableResultColMock
-{
-    /// <summary>
-    /// EN: Initializes column metadata with alias, name, and type.
-    /// PT: Inicializa um metadado de coluna com alias, nome e tipo.
-    /// </summary>
-    /// <param name="tableAlias">EN: Table alias in the result. PT: Alias da tabela no resultado.</param>
-    /// <param name="columnAlias">EN: Column alias in the result. PT: Alias da coluna no resultado.</param>
-    /// <param name="columnName">EN: Real column name. PT: Nome real da coluna.</param>
-    /// <param name="columIndex">EN: Column position in the result. PT: Posição da coluna no resultado.</param>
-    /// <param name="dbType">EN: Data type in the result. PT: Tipo do dado no resultado.</param>
-    /// <param name="isNullable">EN: Whether the column accepts nulls. PT: Indica se a coluna aceita valores nulos.</param>
-    /// <param name="isJsonFragment">EN: Whether the column carries a JSON fragment that should remain raw during JSON serialization. PT: Indica se a coluna carrega um fragmento JSON que deve permanecer bruto durante a serializacao JSON.</param>
-    [SetsRequiredMembers]
-    public TableResultColMock(
-        string tableAlias,
-        string columnAlias,
-        string columnName,
-        int columIndex,
-        DbType dbType,
-        bool isNullable,
-        bool isJsonFragment = false
+/// <remarks>
+/// EN: Initializes column metadata with alias, name, and type.
+/// PT: Inicializa um metadado de coluna com alias, nome e tipo.
+/// </remarks>
+/// <param name="tableAlias">EN: Table alias in the result. PT: Alias da tabela no resultado.</param>
+/// <param name="columnAlias">EN: Column alias in the result. PT: Alias da coluna no resultado.</param>
+/// <param name="columnName">EN: Real column name. PT: Nome real da coluna.</param>
+/// <param name="columIndex">EN: Column position in the result. PT: Posição da coluna no resultado.</param>
+/// <param name="dbType">EN: Data type in the result. PT: Tipo do dado no resultado.</param>
+/// <param name="isNullable">EN: Whether the column accepts nulls. PT: Indica se a coluna aceita valores nulos.</param>
+/// <param name="isJsonFragment">EN: Whether the column carries a JSON fragment that should remain raw during JSON serialization. PT: Indica se a coluna carrega um fragmento JSON que deve permanecer bruto durante a serializacao JSON.</param>
+[method: SetsRequiredMembers]
+public class TableResultColMock(
+    string tableAlias,
+    string columnAlias,
+    string columnName,
+    int columIndex,
+    DbType dbType,
+    bool isNullable,
+    bool isJsonFragment = false
         )
-    {
-        TableAlias = tableAlias;
-        ColumnAlias = columnAlias;
-        ColumnName = columnName;
-        ColumIndex = columIndex;
-        DbType = dbType;
-        IsNullable = isNullable;
-        IsJsonFragment = isJsonFragment;
-    }
+{
 
     /// <summary>
     /// EN: Table alias associated with the column.
     /// PT: Alias da tabela associado à coluna.
     /// </summary>
-    public required string TableAlias { get; set; }
+    public required string TableAlias { get; set; } = tableAlias;
     /// <summary>
     /// EN: Column alias in the result.
     /// PT: Alias da coluna no resultado.
     /// </summary>
-    public required string ColumnAlias { get; set; }
+    public required string ColumnAlias { get; set; } = columnAlias;
     /// <summary>
     /// EN: Real column name in the source table.
     /// PT: Nome real da coluna na tabela de origem.
     /// </summary>
-    public required string ColumnName { get; set; }
+    public required string ColumnName { get; set; } = columnName;
     /// <summary>
     /// EN: Column index in the result set.
     /// PT: Índice da coluna no conjunto de resultados.
     /// </summary>
-    public int ColumIndex { get; set; }
+    public int ColumIndex { get; set; } = columIndex;
     /// <summary>
     /// EN: Data type returned by the column.
     /// PT: Tipo do dado retornado pela coluna.
     /// </summary>
-    public DbType DbType { get; set; }
+    public DbType DbType { get; set; } = dbType;
     /// <summary>
     /// EN: Indicates whether the column value can be null.
     /// PT: Indica se o valor da coluna pode ser nulo.
     /// </summary>
-    public bool IsNullable { get; set; }
+    public bool IsNullable { get; set; } = isNullable;
     /// <summary>
     /// EN: Indicates whether the column carries a JSON fragment that should remain unescaped in JSON serialization flows.
     /// PT: Indica se a coluna carrega um fragmento JSON que deve permanecer sem escape em fluxos de serializacao JSON.
     /// </summary>
-    public bool IsJsonFragment { get; set; }
+    public bool IsJsonFragment { get; set; } = isJsonFragment;
 }

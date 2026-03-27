@@ -103,12 +103,12 @@ internal sealed class AstQueryPivotHelper(
     private static DbType GetPivotAggregateResultDbType(string aggregateFunction, SqlExpr aggArgExpr, Source source, ISqlDialect dialect)
         => aggregateFunction.ToUpperInvariant() switch
         {
-            "COUNT" => DbType.Int32,
-            "COUNT_BIG" => DbType.Int64,
-            "STDEV" or "STDEVP" or "VAR" or "VARP" => DbType.Double,
-            "SUM" => PromotePivotSumResultDbType(TryGetPivotAggregateArgumentDbType(aggArgExpr, source) ?? DbType.Object),
-            "AVG" => PromotePivotAvgResultDbType(TryGetPivotAggregateArgumentDbType(aggArgExpr, source) ?? DbType.Object, dialect),
-            "MIN" or "MAX" => TryGetPivotAggregateArgumentDbType(aggArgExpr, source) ?? DbType.Object,
+            SqlConst.COUNT => DbType.Int32,
+            SqlConst.COUNT_BIG => DbType.Int64,
+            SqlConst.STDEV or SqlConst.STDEVP or SqlConst.VAR or SqlConst.VARP => DbType.Double,
+            SqlConst.SUM => PromotePivotSumResultDbType(TryGetPivotAggregateArgumentDbType(aggArgExpr, source) ?? DbType.Object),
+            SqlConst.AVG => PromotePivotAvgResultDbType(TryGetPivotAggregateArgumentDbType(aggArgExpr, source) ?? DbType.Object, dialect),
+            SqlConst.MIN or SqlConst.MAX => TryGetPivotAggregateArgumentDbType(aggArgExpr, source) ?? DbType.Object,
             _ => DbType.Object
         };
 
@@ -152,8 +152,8 @@ internal sealed class AstQueryPivotHelper(
         if (value is null)
             return null;
 
-        if (aggregateFunction.Equals("SUM", StringComparison.OrdinalIgnoreCase)
-            || aggregateFunction.Equals("AVG", StringComparison.OrdinalIgnoreCase))
+        if (aggregateFunction.Equals(SqlConst.SUM, StringComparison.OrdinalIgnoreCase)
+            || aggregateFunction.Equals(SqlConst.AVG, StringComparison.OrdinalIgnoreCase))
         {
             return targetDbType switch
             {
@@ -340,7 +340,7 @@ internal sealed class AstQueryPivotHelper(
 
     private object? AggregatePivotBucket(string aggregateFunction, SqlExpr aggArgExpr, List<EvalRow> rows, IDictionary<string, Source> ctes, ISqlDialect dialect)
     {
-        if (aggregateFunction.Equals("COUNT", StringComparison.OrdinalIgnoreCase))
+        if (aggregateFunction.Equals(SqlConst.COUNT, StringComparison.OrdinalIgnoreCase))
         {
             if (aggArgExpr is StarExpr)
                 return rows.Count;
@@ -356,7 +356,7 @@ internal sealed class AstQueryPivotHelper(
             return count;
         }
 
-        if (aggregateFunction.Equals("COUNT_BIG", StringComparison.OrdinalIgnoreCase))
+        if (aggregateFunction.Equals(SqlConst.COUNT_BIG, StringComparison.OrdinalIgnoreCase))
         {
             if (aggArgExpr is StarExpr)
                 return (long)rows.Count;
@@ -372,10 +372,10 @@ internal sealed class AstQueryPivotHelper(
             return count;
         }
 
-        if (aggregateFunction.Equals("SUM", StringComparison.OrdinalIgnoreCase)
-            || aggregateFunction.Equals("AVG", StringComparison.OrdinalIgnoreCase)
-            || aggregateFunction.Equals("MIN", StringComparison.OrdinalIgnoreCase)
-            || aggregateFunction.Equals("MAX", StringComparison.OrdinalIgnoreCase))
+        if (aggregateFunction.Equals(SqlConst.SUM, StringComparison.OrdinalIgnoreCase)
+            || aggregateFunction.Equals(SqlConst.AVG, StringComparison.OrdinalIgnoreCase)
+            || aggregateFunction.Equals(SqlConst.MIN, StringComparison.OrdinalIgnoreCase)
+            || aggregateFunction.Equals(SqlConst.MAX, StringComparison.OrdinalIgnoreCase))
         {
             var group = new EvalGroup(rows);
             var aggregateExpr = new FunctionCallExpr(aggregateFunction, [aggArgExpr])
@@ -383,16 +383,16 @@ internal sealed class AstQueryPivotHelper(
             return _eval(aggregateExpr, group.Rows[0], group, ctes);
         }
 
-        if (aggregateFunction.Equals("STDEV", StringComparison.OrdinalIgnoreCase))
+        if (aggregateFunction.Equals(SqlConst.STDEV, StringComparison.OrdinalIgnoreCase))
             return EvaluatePivotVarianceAggregate(rows, aggArgExpr, ctes, sample: true, squareRoot: true);
 
-        if (aggregateFunction.Equals("STDEVP", StringComparison.OrdinalIgnoreCase))
+        if (aggregateFunction.Equals(SqlConst.STDEVP, StringComparison.OrdinalIgnoreCase))
             return EvaluatePivotVarianceAggregate(rows, aggArgExpr, ctes, sample: false, squareRoot: true);
 
-        if (aggregateFunction.Equals("VAR", StringComparison.OrdinalIgnoreCase))
+        if (aggregateFunction.Equals(SqlConst.VAR, StringComparison.OrdinalIgnoreCase))
             return EvaluatePivotVarianceAggregate(rows, aggArgExpr, ctes, sample: true, squareRoot: false);
 
-        if (aggregateFunction.Equals("VARP", StringComparison.OrdinalIgnoreCase))
+        if (aggregateFunction.Equals(SqlConst.VARP, StringComparison.OrdinalIgnoreCase))
             return EvaluatePivotVarianceAggregate(rows, aggArgExpr, ctes, sample: false, squareRoot: false);
 
         throw new NotSupportedException($"PIVOT aggregate '{aggregateFunction}' not supported yet.");

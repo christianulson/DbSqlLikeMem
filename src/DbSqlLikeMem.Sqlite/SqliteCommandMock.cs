@@ -531,7 +531,7 @@ public class SqliteCommandMock(
 
     /// <summary>
     /// EN: Resolves command parameter value by SQL placeholder name.
-    /// PT: Resolve valor de parâmetro do comando pelo nome do placeholder SQL.
+    /// PT: ResolveRowsFrameRange valor de parâmetro do comando pelo nome do placeholder SQL.
     /// </summary>
     private object? ResolveParameterValue(string rawName)
     {

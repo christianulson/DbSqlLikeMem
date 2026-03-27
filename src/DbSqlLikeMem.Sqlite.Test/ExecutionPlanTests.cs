@@ -271,7 +271,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
         trace.Steps.Select(step => step.Operator).Should().Contain(["Group", "Having", "Project", "Distinct", "Sort"]);
         trace.Steps.First(step => step.Operator == "Group").Details.Should().Contain("items=Active");
-        trace.Steps.First(step => step.Operator == "Having").Details.Should().Contain("COUNT");
+        trace.Steps.First(step => step.Operator == "Having").Details.Should().Contain(SqlConst.COUNT);
         trace.Steps.First(step => step.Operator == "Project").Details.Should().Contain("COUNT(*) AS Total");
         trace.Steps.First(step => step.Operator == "Distinct").Details.Should().Be("columns=2");
         trace.Steps.First(step => step.Operator == "Sort").Details.Should().Contain("items=Active ASC");

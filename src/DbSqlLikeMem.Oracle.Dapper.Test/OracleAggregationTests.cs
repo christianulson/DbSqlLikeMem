@@ -4,16 +4,13 @@ namespace DbSqlLikeMem.Oracle.Test;
 /// EN: Runs shared aggregation/HAVING scenarios for Oracle and keeps Oracle-specific coverage.
 /// PT: Executa cenários compartilhados de agregação/HAVING para Oracle e mantém cobertura específica de Oracle.
 /// </summary>
-public sealed class OracleAggregationTests : AggregationHavingOrdinalTestsBase<OracleDbMock, OracleConnectionMock>
+/// <remarks>
+/// EN: Creates the Oracle aggregation test suite helper.
+/// PT: Cria o helper da suite de testes de agregacao do Oracle.
+/// </remarks>
+/// <param name="helper">EN: Output helper. PT: Helper de saída.</param>
+public sealed class OracleAggregationTests(ITestOutputHelper helper) : AggregationHavingOrdinalTestsBase<OracleDbMock, OracleConnectionMock>(helper)
 {
-    /// <summary>
-    /// EN: Creates the Oracle aggregation test suite helper.
-    /// PT: Cria o helper da suite de testes de agregacao do Oracle.
-    /// </summary>
-    /// <param name="helper">EN: Output helper. PT: Helper de saída.</param>
-    public OracleAggregationTests(ITestOutputHelper helper) : base(helper)
-    {
-    }
 
     /// <inheritdoc />
     protected override OracleDbMock CreateDb() => [];

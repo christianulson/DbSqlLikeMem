@@ -425,7 +425,7 @@ public class SqlServerCommandMock(
 
     /// <summary>
     /// EN: Resolves pseudo-table source for OUTPUT item.
-    /// PT: Resolve a fonte de pseudo-tabela para item de OUTPUT.
+    /// PT: ResolveRowsFrameRange a fonte de pseudo-tabela para item de OUTPUT.
     /// </summary>
     private static IReadOnlyDictionary<int, object?>? ResolveOutputSourceRow(
         SqlServerOutputQualifier qualifier,

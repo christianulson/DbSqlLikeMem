@@ -3,7 +3,7 @@ namespace DbSqlLikeMem;
 internal static class AstQueryOracleDb2IdentifierEvaluator
 {
     internal static bool TryResolveIdentifier(
-        QueryExecutionContext context,
+        this QueryExecutionContext context,
         IdentifierExpr identifier,
         out object? result)
     {

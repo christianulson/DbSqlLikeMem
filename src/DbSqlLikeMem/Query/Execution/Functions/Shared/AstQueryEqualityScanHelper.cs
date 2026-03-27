@@ -5,9 +5,9 @@ namespace DbSqlLikeMem;
 internal static class AstQueryEqualityScanHelper
 {
     internal static bool TryCountRows(
+        this QueryExecutionContext context,
         Source src,
         IReadOnlyDictionary<string, object?> equalities,
-        QueryExecutionContext context,
         out long count)
     {
         count = 0;

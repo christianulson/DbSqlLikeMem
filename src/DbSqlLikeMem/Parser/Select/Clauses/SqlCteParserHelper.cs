@@ -12,12 +12,12 @@ internal static class SqlCteParserHelper
 
         ctx.Consume();
         if (!ctx.Dialect.SupportsWithCte)
-            throw SqlUnsupported.ForDialect(ctx.Dialect, SqlConst.WITH_CTE);
+            throw SqlUnsupported.NotSupported(ctx.Dialect, SqlConst.WITH_CTE);
 
         if (ctx.IsWord( SqlConst.RECURSIVE))
         {
             if (!ctx.Dialect.SupportsWithRecursive)
-                throw SqlUnsupported.ForWithRecursive(ctx.Dialect);
+                throw SqlUnsupported.NotSupportedWithRecursive(ctx.Dialect);
             ctx.Consume();
         }
 
@@ -39,14 +39,14 @@ internal static class SqlCteParserHelper
             if (ctx.IsWord( SqlConst.NOT) && ctx.IsWord(1, SqlConst.MATERIALIZED))
             {
                 if (!ctx.Dialect.SupportsWithMaterializedHint)
-                    throw SqlUnsupported.ForDialect(ctx.Dialect, "WITH ... AS NOT MATERIALIZED");
+                    throw SqlUnsupported.NotSupported(ctx.Dialect, "WITH ... AS NOT MATERIALIZED");
                 ctx.Consume();
                 ctx.Consume();
             }
             else if (ctx.IsWord( SqlConst.MATERIALIZED))
             {
                 if (!ctx.Dialect.SupportsWithMaterializedHint)
-                    throw SqlUnsupported.ForDialect(ctx.Dialect, "WITH ... AS MATERIALIZED");
+                    throw SqlUnsupported.NotSupported(ctx.Dialect, "WITH ... AS MATERIALIZED");
                 ctx.Consume();
             }
 
@@ -83,12 +83,12 @@ internal static class SqlCteParserHelper
 
         consume();
         if (!dialect.SupportsWithCte)
-            throw SqlUnsupported.ForDialect(dialect, SqlConst.WITH_CTE);
+            throw SqlUnsupported.NotSupported(dialect, SqlConst.WITH_CTE);
 
         if (isWord(peek(0), SqlConst.RECURSIVE))
         {
             if (!dialect.SupportsWithRecursive)
-                throw SqlUnsupported.ForWithRecursive(dialect);
+                throw SqlUnsupported.NotSupportedWithRecursive(dialect);
             consume();
         }
 
@@ -110,14 +110,14 @@ internal static class SqlCteParserHelper
             if (isWord(peek(0), SqlConst.NOT) && isWord(peek(1), SqlConst.MATERIALIZED))
             {
                 if (!dialect.SupportsWithMaterializedHint)
-                    throw SqlUnsupported.ForDialect(dialect, "WITH ... AS NOT MATERIALIZED");
+                    throw SqlUnsupported.NotSupported(dialect, "WITH ... AS NOT MATERIALIZED");
                 consume();
                 consume();
             }
             else if (isWord(peek(0), SqlConst.MATERIALIZED))
             {
                 if (!dialect.SupportsWithMaterializedHint)
-                    throw SqlUnsupported.ForDialect(dialect, "WITH ... AS MATERIALIZED");
+                    throw SqlUnsupported.NotSupported(dialect, "WITH ... AS MATERIALIZED");
                 consume();
             }
 

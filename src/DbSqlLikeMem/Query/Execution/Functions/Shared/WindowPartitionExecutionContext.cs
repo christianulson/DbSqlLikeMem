@@ -3,21 +3,21 @@ using static DbSqlLikeMem.AstQueryExecutorBase;
 namespace DbSqlLikeMem;
 
 internal sealed class WindowPartitionExecutionContext(
+    QueryExecutionContext context,
     List<EvalRow> part,
     WindowSpec spec,
     IDictionary<string, Source> ctes,
     Dictionary<EvalRow, object?[]>? precomputedOrderValuesByRow,
-    Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
-    Func<object?, object?, int> compareSql)
+    Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
 {
     private readonly WindowSpec _spec = spec;
     private readonly IDictionary<string, Source> _ctes = ctes;
     private readonly Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> _eval = eval;
-    private readonly Func<object?, object?, int> _compareSql = compareSql;
     private Dictionary<EvalRow, object?[]>? _orderValuesByRow = precomputedOrderValuesByRow;
     private RowsFrameRange[]? _frameRangesByRow;
     private List<(int Start, int End)>? _peerGroups;
     private bool? _coversWholePartition;
+    internal QueryExecutionContext QueryExecutionContext => context;
 
     internal List<EvalRow> Part { get; } = part;
 
@@ -42,13 +42,13 @@ internal sealed class WindowPartitionExecutionContext(
             for (var i = 0; i < Part.Count; i++)
             {
                 _frameRangesByRow[i] = AstQueryWindowFrameHelper.ResolveWindowFrameRange(
+                    this,
                     _spec.Frame,
                     Part,
                     i,
                     _spec.OrderBy,
                     _ctes,
                     _eval,
-                    _compareSql,
                     orderValuesByRow);
             }
         }
@@ -98,10 +98,9 @@ internal sealed class WindowPartitionExecutionContext(
         for (var i = 1; i <= Part.Count; i++)
         {
             var isBoundary = i == Part.Count
-                || !WindowOrderValueHelper.WindowOrderValuesEqual(
+                || !this.WindowOrderValuesEqual(
                     orderValuesByRow[Part[i - 1]],
-                    orderValuesByRow[Part[i]],
-                    _compareSql);
+                    orderValuesByRow[Part[i]]);
             if (!isBoundary)
                 continue;
 

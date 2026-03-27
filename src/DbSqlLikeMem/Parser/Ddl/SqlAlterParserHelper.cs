@@ -17,7 +17,7 @@ internal static class SqlAlterParserHelper
         this SqlQueryParserContext ctx)
     {
         if (!ctx.Dialect.SupportsAlterTableAddColumn)
-            throw SqlUnsupported.ForDialect(ctx.Dialect, "ALTER TABLE ... ADD [COLUMN]");
+            throw ctx.NotSupported("ALTER TABLE ... ADD [COLUMN]");
 
         ctx.Consume(); // TABLE
         var table = ctx.ParseAlterTableName();

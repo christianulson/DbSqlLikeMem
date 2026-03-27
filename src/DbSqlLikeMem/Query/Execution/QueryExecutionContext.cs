@@ -134,4 +134,7 @@ internal sealed class QueryExecutionContext
     /// </summary>
     public IAstQueryExecutor CreateExecutor()
         => AstQueryExecutorFactory.Create(Dialect, Connection, Parameters);
+
+    public NotSupportedException NotSupported(string feature)
+        => Dialect.NotSupported(feature);
 }

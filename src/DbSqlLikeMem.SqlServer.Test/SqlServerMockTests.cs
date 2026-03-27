@@ -1290,10 +1290,10 @@ public sealed class SqlServerMockTests
             Assert.False(reader.Read());
         }
 
-        AssertPivotAggregate(_connection, "STDEV", Math.Sqrt(2d), Math.Sqrt(8d));
-        AssertPivotAggregate(_connection, "STDEVP", 1d, 2d);
-        AssertPivotAggregate(_connection, "VAR", 2d, 8d);
-        AssertPivotAggregate(_connection, "VARP", 1d, 4d);
+        AssertPivotAggregate(_connection, SqlConst.STDEV, Math.Sqrt(2d), Math.Sqrt(8d));
+        AssertPivotAggregate(_connection, SqlConst.STDEVP, 1d, 2d);
+        AssertPivotAggregate(_connection, SqlConst.VAR, 2d, 8d);
+        AssertPivotAggregate(_connection, SqlConst.VARP, 1d, 4d);
     }
 
     /// <summary>

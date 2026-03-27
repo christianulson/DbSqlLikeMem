@@ -647,7 +647,7 @@ public sealed class SqliteDialectFeatureParserTests
         Assert.True(dialect.RequiresOrderByInWindowFunction("ROW_NUMBER"));
         Assert.True(dialect.RequiresOrderByInWindowFunction("LAG"));
 
-        Assert.False(dialect.RequiresOrderByInWindowFunction("COUNT"));
+        Assert.False(dialect.RequiresOrderByInWindowFunction(SqlConst.COUNT));
     }
 
 
@@ -670,7 +670,7 @@ public sealed class SqliteDialectFeatureParserTests
         Assert.Equal(1, lagMin);
         Assert.Equal(3, lagMax);
 
-        Assert.False(dialect.TryGetWindowFunctionArgumentArity("COUNT", out _, out _));
+        Assert.False(dialect.TryGetWindowFunctionArgumentArity(SqlConst.COUNT, out _, out _));
     }
 
 
@@ -705,7 +705,7 @@ public sealed class SqliteDialectFeatureParserTests
         var expr = SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|' ORDER BY amount DESC, id ASC)", dialect);
         var call = Assert.IsType<CallExpr>(expr);
 
-        Assert.Equal("GROUP_CONCAT", call.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.GROUP_CONCAT, call.Name, StringComparer.OrdinalIgnoreCase);
         Assert.NotNull(call.WithinGroupOrderBy);
         Assert.Equal(2, call.WithinGroupOrderBy!.Count);
         Assert.True(call.WithinGroupOrderBy[0].Desc);
@@ -764,7 +764,7 @@ public sealed class SqliteDialectFeatureParserTests
             SqlQueryParser.Parse("SELECT GROUP_CONCAT(amount, '|' ORDER BY amount DESC) AS joined FROM orders", dialect));
 
         Assert.Single(parsed.SelectItems);
-        Assert.Contains("GROUP_CONCAT", parsed.SelectItems[0].Raw, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.GROUP_CONCAT, parsed.SelectItems[0].Raw, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

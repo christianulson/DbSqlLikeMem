@@ -7,14 +7,14 @@ internal delegate bool AstQueryTryEvalSessionContextFunction(
     out object? result);
 
 internal delegate bool AstQueryTryEvalGeneralJsonFunction(
-    FunctionCallExpr fn,
     QueryExecutionContext context,
+    FunctionCallExpr fn,
     Func<int, object?> evalArg,
     out object? result);
 
 internal delegate bool AstQueryTryEvalGeneralSystemAndJsonFunction(
-    FunctionCallExpr fn,
     QueryExecutionContext context,
+    FunctionCallExpr fn,
     Func<int, object?> evalArg,
     out object? result);
 
@@ -43,20 +43,20 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
     }
 
     internal bool TryEvaluate(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler)
-            && handler(fn, context, evalArg, out result))
+            && handler(context, fn, evalArg, out result))
         {
             return true;
         }
 
-        if (_tryEvalJsonUtilityFunctions(fn, context, evalArg, out result)
-            || _tryEvalSqliteSystemFunctions(fn, context, evalArg, out result)
-            || _tryEvalSqliteJsonFunctions(fn, context, evalArg, out result))
+        if (_tryEvalJsonUtilityFunctions(context, fn, evalArg, out result)
+            || _tryEvalSqliteSystemFunctions(context, fn, evalArg, out result)
+            || _tryEvalSqliteJsonFunctions(context, fn, evalArg, out result))
         {
             return true;
         }
@@ -101,8 +101,8 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
     }
 
     internal static bool TryEvalGetAnsiNullFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -114,8 +114,8 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
     }
 
     internal static bool TryEvalGroupingFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -131,8 +131,8 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
     }
 
     internal static bool TryEvalGroupingIdFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -148,8 +148,8 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
     }
 
     internal static bool TryEvalHostIdFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -161,8 +161,8 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
     }
 
     internal static bool TryEvalHostNameFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -174,8 +174,8 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
     }
 
     private bool TryEvalSessionContextFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -184,8 +184,8 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
     }
 
     internal static bool TryEvalIsDateFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -205,8 +205,8 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
     }
 
     internal static bool TryEvalIsJsonFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -233,8 +233,8 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
     }
 
     internal static bool TryEvalIsNumericFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -254,8 +254,8 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
     }
 
     private static bool TryEvalIpFunctions(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -317,8 +317,8 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
     }
 
     private static bool TryEvalIsUuidFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -339,8 +339,8 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
     }
 
     private static bool TryEvalJsonArrayFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -355,8 +355,8 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
     }
 
     private static bool TryEvalJsonDepthFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -411,21 +411,22 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
     }
 
     internal static bool TryEvalSessionUserFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = evalArg;
         _ = context;
+        _ = fn;
+        _ = evalArg;
 
         result = "dbo";
         return true;
     }
 
     internal static bool TryEvalSystemUserFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -437,8 +438,8 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
     }
 
     internal static bool TryEvalUserFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -450,8 +451,8 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
     }
 
     private static bool TryEvalUtcDateFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -463,8 +464,8 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
     }
 
     private static bool TryEvalUtcTimeFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -476,8 +477,8 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
     }
 
     private static bool TryEvalUtcTimestampFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -489,8 +490,8 @@ internal sealed class AstQueryGeneralSystemAndJsonFunctionEvaluator
     }
 
     private static bool TryEvalUuidShortFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {

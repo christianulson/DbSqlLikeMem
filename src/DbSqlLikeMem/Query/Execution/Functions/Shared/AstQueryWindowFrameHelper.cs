@@ -5,13 +5,13 @@ namespace DbSqlLikeMem;
 internal static class AstQueryWindowFrameHelper
 {
     internal static RowsFrameRange ResolveWindowFrameRange(
+        this WindowPartitionExecutionContext context,
         WindowFrameSpec? frame,
         List<EvalRow> part,
         int rowIndex,
         IReadOnlyList<WindowOrderItem> orderBy,
         IDictionary<string, Source> ctes,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
-        Func<object?, object?, int> compareSql,
         Dictionary<EvalRow, object?[]>? precomputedOrderValuesByRow = null)
     {
         if (part.Count == 0)
@@ -27,24 +27,23 @@ internal static class AstQueryWindowFrameHelper
             part,
             orderBy,
             (expr, row) => eval(expr, row, null, ctes));
-        return WindowFrameRangeResolver.Resolve(
+        return context.ResolveRowsFrameRange(
             frame,
             part,
             rowIndex,
             orderBy,
-            orderValuesByRow,
-            (left, right) => WindowOrderValueHelper.WindowOrderValuesEqual(left, right, compareSql));
+            orderValuesByRow
+            );
     }
 
     internal static Func<EvalRow, object?>? TryCreateWindowValueSelector(
+        this WindowPartitionExecutionContext context,
         SqlExpr valueExpr,
-        EvalRow sampleRow,
-        ISqlDialect? dialect)
+        EvalRow sampleRow)
     {
         if (valueExpr is IdentifierExpr identifier)
         {
-            if (dialect is null
-                || AstQueryReservedIdentifierHelper.IsReservedWindowValueIdentifier(dialect, identifier.Name)
+            if (context.IsReservedWindowValueIdentifier(identifier.Name)
                 || !sampleRow.TryGetSingleSource(out var singleSource)
                 || singleSource is null
                 || !singleSource.ContainsColumnName(identifier.Name))

@@ -9,7 +9,7 @@ internal static class SqlWindowExpressionParserHelper
         ArgumentNullExceptionCompatible.ThrowIfNull(ctx, nameof(ctx));
         if (!ctx.Dialect.SupportsWindowFunctions
             || !ctx.Dialect.TryGetWindowFunctionDefinition(functionName, out _))
-            throw ctx.ForDialect($"window functions ({functionName})");
+            throw ctx.NotSupported($"window functions ({functionName})");
     }
 
     internal static void EnsureWindowFunctionArguments(

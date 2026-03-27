@@ -341,7 +341,7 @@ public class OracleCommandMock(
 
     /// <summary>
     /// EN: Resolves parameter by name accepting Oracle prefixes.
-    /// PT: Resolve parâmetro por nome aceitando prefixes do Oracle.
+    /// PT: ResolveRowsFrameRange parâmetro por nome aceitando prefixes do Oracle.
     /// </summary>
     private DbParameter? ResolveParameter(string rawName)
     {

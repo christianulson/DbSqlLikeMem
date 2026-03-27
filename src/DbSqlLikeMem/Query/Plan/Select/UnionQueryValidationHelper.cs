@@ -3,11 +3,11 @@ namespace DbSqlLikeMem;
 internal static class UnionQueryValidationHelper
 {
     internal static void ValidateUnionColumnTypes(
+        this QueryExecutionContext context,
         IList<TableResultColMock> expected,
         IList<TableResultColMock> current,
         int currentIndex,
-        string? sqlContextForErrors,
-        QueryExecutionContext context)
+        string? sqlContextForErrors)
     {
         for (var i = 0; i < expected.Count; i++)
         {

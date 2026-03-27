@@ -9,8 +9,8 @@ internal delegate bool AstQueryTryParseCachedDateTimeOffset(string text, DateTim
 internal delegate bool AstQueryTryConvertNumericToDecimal(object? value, out decimal result);
 
 internal delegate bool AstQueryTryEvalSqlServerUtilityFunction(
-    FunctionCallExpr fn,
     QueryExecutionContext context,
+    FunctionCallExpr fn,
     Func<int, object?> evalArg,
     out object? result);
 
@@ -77,15 +77,15 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler(fn, context, evalArg, out result);
+            return handler(context, fn, evalArg, out result);
 
         result = null;
         return false;
     }
 
     internal static bool TryEvalAppNameFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -95,8 +95,8 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
     }
 
     internal static bool TryEvalCharIndexFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -127,8 +127,8 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
     }
 
     internal static bool TryEvalDataLengthFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -151,19 +151,27 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
     }
 
     internal bool TryEvalCurrentUserFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         out object? result)
-        => TryEvalCurrentUserFunction(fn, context, static _ => null, out result);
+    {
+        _ = context;
+        _ = fn;
+
+        result = "dbo";
+        return true;
+    }
 
     internal static bool TryEvalCurrentUserFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = evalArg;
         _ = context;
+        _ = fn;
+        _ = evalArg;
+
         result = "dbo";
         return true;
     }
@@ -190,8 +198,8 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
     }
 
     private static bool TryEvalSqlServerGuidFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -201,8 +209,8 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
     }
 
     private static bool TryEvalSqlServerLocalDateTimeFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -213,8 +221,8 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
     }
 
     private static bool TryEvalSqlServerUtcDateTimeFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -225,8 +233,8 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
     }
 
     private static bool TryEvalSqlServerDateTimeOffsetFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -237,8 +245,8 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
     }
 
     private bool TryEvalSqlServerStringEscapeFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -284,8 +292,8 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
     }
 
     internal static bool TryEvalSqlServerFormatFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -312,8 +320,8 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
     }
 
     internal static bool TryEvalSqlServerFormatMessageFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -327,8 +335,8 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
     }
 
     internal static bool TryEvalSqlServerCompressFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -354,8 +362,8 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
     }
 
     internal static bool TryEvalSqlServerDecompressFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -381,8 +389,8 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
     }
 
     internal static bool TryEvalSqlServerChecksumFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -421,8 +429,8 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
     }
 
     internal static bool TryEvalErrorFunctions(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -435,8 +443,8 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
     }
 
     private bool TryEvalSqlServerStrFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -476,8 +484,8 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
     }
 
     private bool TryEvalSqlServerToDateTimeOffsetFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -509,8 +517,8 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
     }
 
     private bool TryEvalSqlServerSwitchOffsetFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {

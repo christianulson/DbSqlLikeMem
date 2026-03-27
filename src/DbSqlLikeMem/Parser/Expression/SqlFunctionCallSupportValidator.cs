@@ -12,7 +12,7 @@ internal static class SqlFunctionCallSupportValidator
             if (definition is null || definition.AllowsCall)
                 return;
 
-            throw SqlUnsupported.ForDialect(ctx.Dialect, name.ToUpperInvariant());
+            throw ctx.NotSupported(name.ToUpperInvariant());
         }
 
         // EN: MATCH is a special predicate handled by SqlMatchAgainstExpressionParserHelper.
@@ -22,7 +22,7 @@ internal static class SqlFunctionCallSupportValidator
             if (ctx.Dialect.SupportsMatchAgainstPredicate)
                 return;
 
-            throw SqlUnsupported.ForDialect(ctx.Dialect, "MATCH ... AGAINST");
+            throw ctx.NotSupported("MATCH ... AGAINST");
         }
 
         // EN: Allow JSON_TABLE here so SqlSpecialFunctionCallParserHelper can throw a better error.
@@ -33,7 +33,7 @@ internal static class SqlFunctionCallSupportValidator
         if (ctx.CustomFunctionSupported?.Invoke(name) == true)
             return;
 
-        throw SqlUnsupported.ForDialect(ctx.Dialect, name.ToUpperInvariant());
+        throw ctx.NotSupported(name.ToUpperInvariant());
     }
 
 }

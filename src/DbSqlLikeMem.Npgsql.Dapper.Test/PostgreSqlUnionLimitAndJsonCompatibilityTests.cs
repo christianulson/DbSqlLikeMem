@@ -4,15 +4,13 @@ namespace DbSqlLikeMem.Npgsql.Test;
 /// EN: Covers PostgreSQL UNION, LIMIT, and JSON compatibility scenarios already supported by the in-memory mock.
 /// PT: Cobre cenarios de compatibilidade de UNION, LIMIT e JSON do PostgreSQL que o mock em memoria ja suporta.
 /// </summary>
-public sealed class PostgreSqlUnionLimitAndJsonCompatibilityTests : DapperUnionLimitAndJsonCompatibilityTestsBase<NpgsqlDbMock, NpgsqlConnectionMock>
+/// <remarks>
+/// EN: Creates the in-memory PostgreSQL connection used by the UNION, LIMIT, and JSON compatibility tests.
+/// PT: Cria a conexao PostgreSQL em memoria usada pelos testes de compatibilidade de UNION, LIMIT e JSON.
+/// </remarks>
+public sealed class PostgreSqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : DapperUnionLimitAndJsonCompatibilityTestsBase<NpgsqlDbMock, NpgsqlConnectionMock>(helper)
 {
     private const int PostgreSqlJsonbMinVersion = 9;
-
-    /// <summary>
-    /// EN: Creates the in-memory PostgreSQL connection used by the UNION, LIMIT, and JSON compatibility tests.
-    /// PT: Cria a conexao PostgreSQL em memoria usada pelos testes de compatibilidade de UNION, LIMIT e JSON.
-    /// </summary>
-    public PostgreSqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper) { }
 
     /// <inheritdoc />
     protected override NpgsqlDbMock CreateDb(int? version) => new(version);

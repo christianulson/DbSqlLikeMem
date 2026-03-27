@@ -275,8 +275,8 @@ internal static class SelectAliasParserHelper
         var span = text.TrimEnd();
         if (span.Length == 0)
         {
-            remainder = ReadOnlySpan<char>.Empty;
-            word = ReadOnlySpan<char>.Empty;
+            remainder = [];
+            word = [];
             return false;
         }
 

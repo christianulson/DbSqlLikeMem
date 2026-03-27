@@ -11,49 +11,48 @@ internal static class Db2ScalarFunctionRegistry
         SqlSharedScalarFunctionRegistry.Register(dialect);
         OracleDb2ScalarFunctionRegistry.Register(dialect);
 
-        var body = SqlFunctionBodyFactory.Identity();
-
-        RegisterConversionFunctions(dialect, body);
-        RegisterTemporalFunctions(dialect, body);
-        RegisterAnalyticsFunctions(dialect, body);
-        RegisterStringFunctions(dialect, version, body);
-        RegisterRowCountFunctions(dialect, body);
+        RegisterConversionFunctions(dialect);
+        RegisterTemporalFunctions(dialect);
+        RegisterAnalyticsFunctions(dialect);
+        RegisterStringFunctions(dialect, version);
+        RegisterRowCountFunctions(dialect);
     }
 
-    private static void RegisterConversionFunctions(ISqlDialect dialect, Func<SqlExpr, object> body)
+    private static void RegisterConversionFunctions(ISqlDialect dialect)
     {
-        dialect.AddScalarFunctions("VARCHAR", body,
+        dialect.AddScalarFunctions(
+            DbFunctionDef.CreateScalar("TO_CLOB", "VARCHAR"),
             "TO_CLOB",
             "TO_NCHAR",
             "TO_NCLOB");
     }
 
-    private static void RegisterTemporalFunctions(ISqlDialect dialect, Func<SqlExpr, object> body)
+    private static void RegisterTemporalFunctions(ISqlDialect dialect)
     {
-        dialect.AddScalarFunction("CURDATE", "DATE", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, SqlScalarFunctionUsageKind.Call, SqlTemporalFunctionKind.Date);
-        dialect.AddScalarFunction("CURRENT_DATE", "DATE", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.Date);
-        dialect.AddScalarFunction("CURRENT DATE", "DATE", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.Date);
-        dialect.AddScalarFunction("CURRENT_TIME", "TIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.Time);
-        dialect.AddScalarFunction("CURRENT TIME", "TIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.Time);
-        dialect.AddScalarFunction("CURRENT_TIMESTAMP", "DATETIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.DateTime);
-        dialect.AddScalarFunction("CURRENT TIMESTAMP", "DATETIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.DateTime);
-        dialect.AddScalarFunction("SYSTEMDATE", "DATETIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, SqlScalarFunctionUsageKind.Identifier, SqlTemporalFunctionKind.DateTime);
+        dialect.AddScalarFunction("CURDATE", "DATE", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, DbInvocationStyle.Call, SqlTemporalFunctionKind.Date);
+        dialect.AddScalarFunction("CURRENT_DATE", "DATE", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, DbInvocationStyle.Identifier, SqlTemporalFunctionKind.Date);
+        dialect.AddScalarFunction("CURRENT DATE", "DATE", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, DbInvocationStyle.Identifier, SqlTemporalFunctionKind.Date);
+        dialect.AddScalarFunction("CURRENT_TIME", "TIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, DbInvocationStyle.Identifier, SqlTemporalFunctionKind.Time);
+        dialect.AddScalarFunction("CURRENT TIME", "TIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, DbInvocationStyle.Identifier, SqlTemporalFunctionKind.Time);
+        dialect.AddScalarFunction("CURRENT_TIMESTAMP", "DATETIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, DbInvocationStyle.Identifier, SqlTemporalFunctionKind.DateTime);
+        dialect.AddScalarFunction("CURRENT TIMESTAMP", "DATETIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, DbInvocationStyle.Identifier, SqlTemporalFunctionKind.DateTime);
+        dialect.AddScalarFunction("SYSTEMDATE", "DATETIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, DbInvocationStyle.Identifier, SqlTemporalFunctionKind.DateTime);
 
-        dialect.AddScalarFunction("NEXT_DAY", "DATE", body);
-        dialect.AddScalarFunction("DATE_ADD", "DATE", body);
-        dialect.AddScalarFunction("TIMESTAMPADD", "DATE", body);
-        dialect.AddScalarFunction("EOMONTH", "DATE", body);
+        dialect.AddScalarFunction(DbFunctionDef.CreateScalar("NEXT_DAY", "DATE"));
+        dialect.AddScalarFunction(DbFunctionDef.CreateScalar("DATE_ADD", "DATE"));
+        dialect.AddScalarFunction(DbFunctionDef.CreateScalar("TIMESTAMPADD", "DATE"));
+        dialect.AddScalarFunction(DbFunctionDef.CreateScalar("EOMONTH", "DATE"));
     }
 
-    private static void RegisterAnalyticsFunctions(ISqlDialect dialect, Func<SqlExpr, object> body)
+    private static void RegisterAnalyticsFunctions(ISqlDialect dialect)
     {
-        dialect.AddScalarFunction("RATIO_TO_REPORT", "DOUBLE", body);
+        dialect.AddScalarFunction(DbFunctionDef.CreateScalar("RATIO_TO_REPORT", "DOUBLE"));
     }
 
-    private static void RegisterStringFunctions(ISqlDialect dialect, int version, Func<SqlExpr, object> body)
+    private static void RegisterStringFunctions(ISqlDialect dialect, int version)
     {
         dialect.AddScalarFunctions(
-            new DbScalarFunctionDef(Db2Const.VALUE, "VARCHAR", [], body)
+            DbFunctionDef.CreateScalar(Db2Const.VALUE, "VARCHAR") with
             {
                 AstExecutor = QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions
             },
@@ -62,33 +61,33 @@ internal static class Db2ScalarFunctionRegistry
             "NVL",
             "NVL2");
 
-        dialect.AddScalarFunctions("VARCHAR", body,
+        dialect.AddScalarFunctions(
+            DbFunctionDef.CreateScalar("BITAND", "VARCHAR"),
             "BITAND",
             "BITANDNOT",
             "BITNOT",
             "BITOR",
             "BITXOR",
-            "LISTAGG");
+            SqlConst.LISTAGG);
 
-        dialect.AddScalarFunctionsIf(
-            version >= Db2Dialect.JsonFunctionsMinVersion,
-            new DbScalarFunctionDef("JSON_QUERY", "VARCHAR", [], body)
-            {
-                AstExecutor = AstQueryGeneralScalarFunctionEvaluator.TryEvalJsonExtractionFunction
-            },
-            "JSON_QUERY",
-            "JSON_VALUE");
+        if (version >= Db2Dialect.JsonFunctionsMinVersion)
+        {
+            dialect.AddScalarFunctions(
+                DbFunctionDef.CreateScalar("JSON_QUERY", "VARCHAR") with
+                {
+                    AstExecutor = AstQueryGeneralScalarFunctionEvaluator.TryEvalJsonExtractionFunction
+                },
+                "JSON_QUERY",
+                "JSON_VALUE");
+        }
 
-        dialect.AddScalarFunctions("INT", body,
-            "GROUPING");
+        dialect.AddScalarFunction(DbFunctionDef.CreateScalar("GROUPING", "INT"));
 
-        dialect.AddScalarFunctions("VARCHAR", body,
-            "TRANSLATE");
+        dialect.AddScalarFunction(DbFunctionDef.CreateScalar("TRANSLATE", "VARCHAR"));
     }
 
-    private static void RegisterRowCountFunctions(ISqlDialect dialect, Func<SqlExpr, object> body)
+    private static void RegisterRowCountFunctions(ISqlDialect dialect)
     {
-        dialect.AddScalarFunctions("BIGINT", body,
-            "ROW_COUNT");
+        dialect.AddScalarFunction(DbFunctionDef.CreateScalar("ROW_COUNT", "BIGINT"));
     }
 }

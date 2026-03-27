@@ -114,11 +114,11 @@ public sealed class MySqlDialectFeatureParserTests
             dialect));
 
         Assert.Equal("fn_users", create.Table?.Name, ignoreCase: true);
-        Assert.Equal("INT", create.ReturnTypeSql, ignoreCase: true);
-        Assert.Equal(2, create.Parameters.Count);
-        Assert.Equal("baseValue", create.Parameters[0].Name, ignoreCase: true);
-        Assert.Equal("incrementValue", create.Parameters[1].Name, ignoreCase: true);
-        Assert.IsType<BinaryExpr>(create.Body);
+        Assert.Equal("INT", create.Definition.ReturnTypeSql, ignoreCase: true);
+        Assert.Equal(2, create.Definition.Parameters.Count);
+        Assert.Equal("baseValue", create.Definition.Parameters[0].Name, ignoreCase: true);
+        Assert.Equal("incrementValue", create.Definition.Parameters[1].Name, ignoreCase: true);
+        Assert.IsType<BinaryExpr>(create.Definition.Body);
 
         var drop = Assert.IsType<SqlDropFunctionQuery>(SqlQueryParser.Parse(
             "DROP FUNCTION IF EXISTS fn_users",
@@ -3572,7 +3572,7 @@ WHERE users.id = EXCLUDED.id";
         Assert.Equal(expected, dialect.RequiresOrderByInWindowFunction("ROW_NUMBER"));
         Assert.Equal(expected, dialect.RequiresOrderByInWindowFunction("LAG"));
 
-        Assert.False(dialect.RequiresOrderByInWindowFunction("COUNT"));
+        Assert.False(dialect.RequiresOrderByInWindowFunction(SqlConst.COUNT));
     }
 
 
@@ -3601,7 +3601,7 @@ WHERE users.id = EXCLUDED.id";
         Assert.Equal(1, lagMin);
         Assert.Equal(3, lagMax);
 
-        Assert.False(dialect.TryGetWindowFunctionArgumentArity("COUNT", out _, out _));
+        Assert.False(dialect.TryGetWindowFunctionArgumentArity(SqlConst.COUNT, out _, out _));
     }
 
 
@@ -3689,7 +3689,7 @@ WHERE users.id = EXCLUDED.id";
             SqlQueryParser.Parse("SELECT GROUP_CONCAT(amount ORDER BY amount DESC SEPARATOR '|') AS joined FROM orders", dialect));
 
         Assert.Single(parsed.SelectItems);
-        Assert.Contains("GROUP_CONCAT", parsed.SelectItems[0].Raw, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.GROUP_CONCAT, parsed.SelectItems[0].Raw, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3740,7 +3740,7 @@ WHERE users.id = EXCLUDED.id";
         var expr = SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount ORDER BY amount DESC, id ASC SEPARATOR '|')", dialect);
         var call = Assert.IsType<CallExpr>(expr);
 
-        Assert.Equal("GROUP_CONCAT", call.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.GROUP_CONCAT, call.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal(2, call.Args.Count);
         Assert.NotNull(call.WithinGroupOrderBy);
         Assert.Equal(2, call.WithinGroupOrderBy!.Count);

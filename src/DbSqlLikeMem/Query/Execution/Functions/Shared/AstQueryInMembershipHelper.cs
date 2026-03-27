@@ -7,11 +7,11 @@ internal static class AstQueryInMembershipHelper
     private readonly record struct InMembershipState(bool Matched, bool HasNullCandidate);
 
     internal static object? EvaluateIn(
+        this QueryExecutionContext context,
         InExpr expression,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        QueryExecutionContext context,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
         Func<SubqueryExpr, EvalRow, IDictionary<string, Source>, InSubqueryLookupState> getScalarLookup,
         Func<SubqueryExpr, EvalRow, IDictionary<string, Source>, InSubqueryLookupState> getRowLookup)
@@ -20,13 +20,12 @@ internal static class AstQueryInMembershipHelper
         if (IsInLeftOperandNullish(leftVal))
             return IsInExpressionEmpty(expression, leftVal, row, ctes, getScalarLookup, getRowLookup) ? false : null;
 
-        var membership = EvaluateInMembership(
+        var membership = context.EvaluateInMembership(
             expression,
             leftVal!,
             row,
             group,
             ctes,
-            context,
             eval,
             getScalarLookup,
             getRowLookup);
@@ -38,11 +37,11 @@ internal static class AstQueryInMembershipHelper
     }
 
     internal static object? EvaluateNotIn(
+        this QueryExecutionContext context,
         InExpr expression,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        QueryExecutionContext context,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
         Func<SubqueryExpr, EvalRow, IDictionary<string, Source>, InSubqueryLookupState> getScalarLookup,
         Func<SubqueryExpr, EvalRow, IDictionary<string, Source>, InSubqueryLookupState> getRowLookup)
@@ -51,13 +50,12 @@ internal static class AstQueryInMembershipHelper
         if (IsInLeftOperandNullish(leftVal))
             return IsInExpressionEmpty(expression, leftVal, row, ctes, getScalarLookup, getRowLookup) ? true : null;
 
-        var membership = EvaluateInMembership(
+        var membership = context.EvaluateInMembership(
             expression,
             leftVal!,
             row,
             group,
             ctes,
-            context,
             eval,
             getScalarLookup,
             getRowLookup);
@@ -98,25 +96,25 @@ internal static class AstQueryInMembershipHelper
     }
 
     private static InMembershipState EvaluateInMembership(
+        this QueryExecutionContext context,
         InExpr expression,
         object leftVal,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        QueryExecutionContext context,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
         Func<SubqueryExpr, EvalRow, IDictionary<string, Source>, InSubqueryLookupState> getScalarLookup,
         Func<SubqueryExpr, EvalRow, IDictionary<string, Source>, InSubqueryLookupState> getRowLookup)
     {
         var hasNullCandidate = false;
 
-        if (TryEvaluateInSubqueryMembership(expression, leftVal, row, ctes, context, eval, getScalarLookup, getRowLookup, ref hasNullCandidate, out var subqueryState))
+        if (context.TryEvaluateInSubqueryMembership(expression, leftVal, row, ctes, eval, getScalarLookup, getRowLookup, ref hasNullCandidate, out var subqueryState))
             return subqueryState;
 
         foreach (var item in expression.Items)
         {
             var candidate = eval(item, row, group, ctes);
-            if (TryEvaluateEnumerableMembership(leftVal, candidate, context, ref hasNullCandidate, out var enumerableState))
+            if (context.TryEvaluateEnumerableMembership(leftVal, candidate, ref hasNullCandidate, out var enumerableState))
             {
                 if (enumerableState.Matched)
                     return enumerableState;
@@ -124,7 +122,7 @@ internal static class AstQueryInMembershipHelper
                 continue;
             }
 
-            if (TryEvaluateCandidateMembership(leftVal, candidate, context, ref hasNullCandidate, out var candidateState))
+            if (context.TryEvaluateCandidateMembership(leftVal, candidate, ref hasNullCandidate, out var candidateState))
                 return candidateState;
         }
 
@@ -132,18 +130,17 @@ internal static class AstQueryInMembershipHelper
     }
 
     private static bool TryEvaluateInSubqueryMembership(
+        this QueryExecutionContext context,
         InExpr expression,
         object leftVal,
         EvalRow row,
         IDictionary<string, Source> ctes,
-        QueryExecutionContext context,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
         Func<SubqueryExpr, EvalRow, IDictionary<string, Source>, InSubqueryLookupState> getScalarLookup,
         Func<SubqueryExpr, EvalRow, IDictionary<string, Source>, InSubqueryLookupState> getRowLookup,
         ref bool hasNullCandidate,
         out InMembershipState state)
     {
-        _ = context;
         _ = eval;
         state = default;
         if (expression.Items.Count != 1 || expression.Items[0] is not SubqueryExpr subquery)
@@ -161,7 +158,7 @@ internal static class AstQueryInMembershipHelper
                 return true;
             }
 
-            state = EvaluateRowMembershipCandidates(leftRow, rowLookup.RowValues ?? [], context, ref hasNullCandidate);
+            state = context.EvaluateRowMembershipCandidates(leftRow, rowLookup.RowValues ?? [], ref hasNullCandidate);
             return true;
         }
 
@@ -175,35 +172,34 @@ internal static class AstQueryInMembershipHelper
             return true;
         }
 
-        state = EvaluateMembershipCandidates(leftVal, scalarLookup.Values, context, ref hasNullCandidate);
+        state = context.EvaluateMembershipCandidates(leftVal, scalarLookup.Values, ref hasNullCandidate);
         return true;
     }
 
     private static bool TryEvaluateEnumerableMembership(
+        this QueryExecutionContext context,
         object leftVal,
         object? candidateValue,
-        QueryExecutionContext context,
         ref bool hasNullCandidate,
         out InMembershipState state)
     {
-        _ = context;
         state = default;
         if (candidateValue is not IEnumerable enumerable || candidateValue is string)
             return false;
 
-        state = EvaluateMembershipCandidates(leftVal, enumerable, context, ref hasNullCandidate);
+        state = context.EvaluateMembershipCandidates(leftVal, enumerable, ref hasNullCandidate);
         return true;
     }
 
     private static InMembershipState EvaluateMembershipCandidates(
+        this QueryExecutionContext context,
         object leftVal,
         IEnumerable candidates,
-        QueryExecutionContext context,
         ref bool hasNullCandidate)
     {
         foreach (var candidate in candidates)
         {
-            if (TryEvaluateCandidateMembership(leftVal, candidate, context, ref hasNullCandidate, out var state))
+            if (context.TryEvaluateCandidateMembership(leftVal, candidate, ref hasNullCandidate, out var state))
                 return state;
         }
 
@@ -211,14 +207,14 @@ internal static class AstQueryInMembershipHelper
     }
 
     private static InMembershipState EvaluateRowMembershipCandidates(
+        this QueryExecutionContext context,
         object?[] leftRow,
         IEnumerable<object?[]> candidates,
-        QueryExecutionContext context,
         ref bool hasNullCandidate)
     {
         foreach (var candidate in candidates)
         {
-            if (TryEvaluateRowCandidateMembership(leftRow, candidate, context, ref hasNullCandidate, out var state)
+            if (context.TryEvaluateRowCandidateMembership(leftRow, candidate, ref hasNullCandidate, out var state)
                 && state.Matched)
             {
                 return state;
@@ -229,9 +225,9 @@ internal static class AstQueryInMembershipHelper
     }
 
     private static bool TryEvaluateCandidateMembership(
+        this QueryExecutionContext context,
         object leftVal,
         object? candidateValue,
-        QueryExecutionContext context,
         ref bool hasNullCandidate,
         out InMembershipState state)
     {
@@ -241,7 +237,7 @@ internal static class AstQueryInMembershipHelper
             return false;
         }
 
-        if (TryEvaluateRowCandidateMembership(leftVal, candidateValue, context, ref hasNullCandidate, out state))
+        if (context.TryEvaluateRowCandidateMembership(leftVal, candidateValue, ref hasNullCandidate, out state))
             return state.Matched;
 
         state = CreateMembershipState(leftVal.EqualsSql(candidateValue, context), hasNullCandidate);
@@ -249,9 +245,9 @@ internal static class AstQueryInMembershipHelper
     }
 
     private static bool TryEvaluateRowCandidateMembership(
+        this QueryExecutionContext context,
         object leftVal,
         object? candidateValue,
-        QueryExecutionContext context,
         ref bool hasNullCandidate,
         out InMembershipState state)
     {
@@ -265,7 +261,7 @@ internal static class AstQueryInMembershipHelper
             return true;
         }
 
-        state = CreateMembershipState(RowValuesMatch(leftRow, rightRow, context), hasNullCandidate);
+        state = CreateMembershipState(context.RowValuesMatch(leftRow, rightRow), hasNullCandidate);
         return true;
     }
 
@@ -278,7 +274,7 @@ internal static class AstQueryInMembershipHelper
     private static InMembershipState CreateMembershipState(bool matched, bool hasNullCandidate)
         => new(matched, hasNullCandidate);
 
-    private static bool RowValuesMatch(object?[] left, object?[] right, QueryExecutionContext context)
+    private static bool RowValuesMatch(this QueryExecutionContext context, object?[] left, object?[] right)
     {
         if (left.Length != right.Length)
             return false;

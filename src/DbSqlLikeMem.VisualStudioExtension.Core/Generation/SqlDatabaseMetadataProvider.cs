@@ -8,18 +8,12 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 /// Represents this public API type.
 /// Representa este tipo público da API.
 /// </summary>
-public sealed class SqlDatabaseMetadataProvider : IDatabaseMetadataProvider
+/// <remarks>
+/// Initializes a metadata provider backed by a SQL query executor.
+/// Inicializa um provedor de metadados baseado em um executor de consultas SQL.
+/// </remarks>
+public sealed class SqlDatabaseMetadataProvider(ISqlQueryExecutor queryExecutor) : IDatabaseMetadataProvider
 {
-    private readonly ISqlQueryExecutor queryExecutor;
-
-    /// <summary>
-    /// Initializes a metadata provider backed by a SQL query executor.
-    /// Inicializa um provedor de metadados baseado em um executor de consultas SQL.
-    /// </summary>
-    public SqlDatabaseMetadataProvider(ISqlQueryExecutor queryExecutor)
-    {
-        this.queryExecutor = queryExecutor;
-    }
     /// <inheritdoc/>
     public async Task<IReadOnlyCollection<DatabaseObjectReference>> ListObjectsAsync(
         ConnectionDefinition connection,

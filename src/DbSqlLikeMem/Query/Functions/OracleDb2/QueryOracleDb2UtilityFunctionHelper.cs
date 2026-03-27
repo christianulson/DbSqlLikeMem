@@ -3,8 +3,8 @@ namespace DbSqlLikeMem;
 internal static class QueryOracleDb2UtilityFunctionHelper
 {
     private delegate bool OracleDb2UtilityFunctionHandler(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result);
 
@@ -12,13 +12,13 @@ internal static class QueryOracleDb2UtilityFunctionHelper
         CreateHandlers();
 
     public static bool TryEvalUtilityFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler(fn, context, evalArg, out result);
+            return handler(context, fn, evalArg, out result);
 
         result = null;
         return false;
@@ -50,12 +50,12 @@ internal static class QueryOracleDb2UtilityFunctionHelper
     }
 
     private static bool TryEvalCardinalityFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        EnsureOracleDb2FunctionSupported(context, fn);
+        context.EnsureOracleDb2FunctionSupported(fn);
 
         var value = evalArg(0);
         if (IsNullish(value))
@@ -103,12 +103,12 @@ internal static class QueryOracleDb2UtilityFunctionHelper
     }
 
     private static bool TryEvalChrFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        EnsureOracleDb2FunctionSupported(context, fn);
+        context.EnsureOracleDb2FunctionSupported(fn);
 
         var value = evalArg(0);
         if (IsNullish(value))
@@ -137,12 +137,12 @@ internal static class QueryOracleDb2UtilityFunctionHelper
     }
 
     private static bool TryEvalComposeFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        EnsureOracleDb2FunctionSupported(context, fn);
+        context.EnsureOracleDb2FunctionSupported(fn);
 
         var value = evalArg(0);
         if (IsNullish(value))
@@ -156,25 +156,25 @@ internal static class QueryOracleDb2UtilityFunctionHelper
     }
 
     private static bool TryEvalDbTimeZoneFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = evalArg;
-        EnsureOracleDb2FunctionSupported(context, fn);
+        context.EnsureOracleDb2FunctionSupported(fn);
 
         result = "+00:00";
         return true;
     }
 
     private static bool TryEvalDecomposeFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        EnsureOracleDb2FunctionSupported(context, fn);
+        context.EnsureOracleDb2FunctionSupported(fn);
 
         var value = evalArg(0);
         if (IsNullish(value))
@@ -188,38 +188,38 @@ internal static class QueryOracleDb2UtilityFunctionHelper
     }
 
     private static bool TryEvalEmptyBlobFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = evalArg;
-        EnsureOracleDb2FunctionSupported(context, fn);
+        context.EnsureOracleDb2FunctionSupported(fn);
 
         result = Array.Empty<byte>();
         return true;
     }
 
     private static bool TryEvalEmptyClobFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         _ = evalArg;
-        EnsureOracleDb2FunctionSupported(context, fn);
+        context.EnsureOracleDb2FunctionSupported(fn);
 
         result = string.Empty;
         return true;
     }
 
     private static bool TryEvalInitCapFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        EnsureOracleDb2FunctionSupported(context, fn);
+        context.EnsureOracleDb2FunctionSupported(fn);
 
         var value = evalArg(0);
         if (IsNullish(value))
@@ -258,12 +258,12 @@ internal static class QueryOracleDb2UtilityFunctionHelper
     }
 
     private static bool TryEvalChartoRowidFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        EnsureOracleDb2FunctionSupported(context, fn);
+        context.EnsureOracleDb2FunctionSupported(fn);
 
         var value = evalArg(0);
         if (IsNullish(value))
@@ -277,19 +277,19 @@ internal static class QueryOracleDb2UtilityFunctionHelper
     }
 
     private static bool TryEvalClusterFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        EnsureOracleDb2FunctionSupported(context, fn);
+        context.EnsureOracleDb2FunctionSupported(fn);
         result = null;
         return true;
 
     }
 
     internal static void EnsureOracleDb2FunctionSupported(
-        QueryExecutionContext context,
+        this QueryExecutionContext context,
         FunctionCallExpr fn)
     {
         if (fn.ResolvedScalarFunction is { AllowsCall: true })
@@ -297,11 +297,11 @@ internal static class QueryOracleDb2UtilityFunctionHelper
             return;
         }
 
-        EnsureOracleDb2FunctionSupported(context, fn.Name);
+        context.EnsureOracleDb2FunctionSupported(fn.Name);
     }
 
     internal static void EnsureOracleDb2FunctionSupported(
-        QueryExecutionContext context,
+        this QueryExecutionContext context,
         string name)
     {
         if (context.Dialect.TryGetScalarFunctionDefinition(name, out var definition)
@@ -310,7 +310,7 @@ internal static class QueryOracleDb2UtilityFunctionHelper
             return;
         }
 
-        throw SqlUnsupported.ForDialect(context.Dialect, name);
+        throw SqlUnsupported.NotSupported(context.Dialect, name);
     }
 
     private static bool IsNullish(object? value) => value is null or DBNull;

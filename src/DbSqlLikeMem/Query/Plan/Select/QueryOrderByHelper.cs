@@ -3,11 +3,11 @@ namespace DbSqlLikeMem;
 internal static class QueryOrderByHelper
 {
     internal static bool TryApplyOrder(
+        this QueryExecutionContext context,
         TableResultMock result,
         IReadOnlyList<SqlOrderByItem> orderBy,
         Func<string, SqlExpr> parseExpression,
-        Func<SqlExpr, AstQueryExecutorBase.EvalRow, object?> evalExpression,
-        Func<object?, object?, int> compareSql)
+        Func<SqlExpr, AstQueryExecutorBase.EvalRow, object?> evalExpression)
     {
         Dictionary<Dictionary<int, object?>, Dictionary<string, object?>>? joinFieldsByRow = null;
         var keySelectors = BuildKeySelectors(
@@ -22,7 +22,7 @@ internal static class QueryOrderByHelper
         var sortedRows = new List<Dictionary<int, object?>>(result.Count);
         for (var i = 0; i < result.Count; i++)
             sortedRows.Add(result[i]);
-        sortedRows.Sort((left, right) => CompareRows(left, right, keySelectors, compareSql));
+        sortedRows.Sort((left, right) => context.CompareRows(left, right, keySelectors));
 
         if (result.JoinFields.Count > 0 && joinFieldsByRow is null)
             joinFieldsByRow = BuildJoinFieldsByRow(result);
@@ -187,16 +187,16 @@ internal static class QueryOrderByHelper
     }
 
     private static int CompareRows(
+        this QueryExecutionContext context,
         Dictionary<int, object?> left,
         Dictionary<int, object?> right,
-        List<OrderByKeySelector> keySelectors,
-        Func<object?, object?, int> compareSql)
+        List<OrderByKeySelector> keySelectors)
     {
         foreach (var selector in keySelectors)
         {
             var leftValue = selector.Get(left);
             var rightValue = selector.Get(right);
-            var comparison = CompareValues(leftValue, rightValue, selector.Desc, selector.NullsFirst, compareSql);
+            var comparison = context.CompareValues(leftValue, rightValue, selector.Desc, selector.NullsFirst);
             if (comparison != 0)
                 return comparison;
         }
@@ -205,11 +205,11 @@ internal static class QueryOrderByHelper
     }
 
     private static int CompareValues(
+        this QueryExecutionContext context,
         object? leftValue,
         object? rightValue,
         bool descending,
-        bool? nullsFirst,
-        Func<object?, object?, int> compareSql)
+        bool? nullsFirst)
     {
         var leftIsNull = IsNullish(leftValue);
         var rightIsNull = IsNullish(rightValue);
@@ -224,7 +224,7 @@ internal static class QueryOrderByHelper
             return leftIsNull ? (descending ? 1 : -1) : (descending ? -1 : 1);
         }
 
-        var comparison = compareSql(leftValue, rightValue);
+        var comparison = context.CompareSql(leftValue, rightValue);
         return descending ? -comparison : comparison;
     }
 

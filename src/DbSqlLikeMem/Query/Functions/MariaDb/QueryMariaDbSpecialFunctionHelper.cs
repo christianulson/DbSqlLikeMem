@@ -40,9 +40,9 @@ internal static class QueryMariaDbSpecialFunctionHelper
 
     private static readonly IReadOnlyDictionary<string, MariaDbSpecialFunctionHandler> _handlers = CreateHandlers();
 
-    public static bool TryEvalFunctions(
+    public static bool TryEvalSpecialFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {

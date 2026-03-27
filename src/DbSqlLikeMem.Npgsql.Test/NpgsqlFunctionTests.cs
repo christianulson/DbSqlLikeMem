@@ -4,20 +4,14 @@ namespace DbSqlLikeMem.Npgsql.Test;
 /// EN: Validates PostgreSQL function execution for common scalar and aggregate utilities.
 /// PT: Valida a execucao de funcoes PostgreSQL para utilitarios escalares e agregados comuns.
 /// </summary>
-public sealed class NpgsqlFunctionTests
-    : XUnitTestBase
+/// <remarks>
+/// EN: Creates the PostgreSQL function test fixtures with sample tables.
+/// PT: Cria os fixtures de testes de funcoes PostgreSQL com tabelas de exemplo.
+/// </remarks>
+public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
+        : XUnitTestBase(helper)
 {
-    private readonly NpgsqlConnectionMock _connection;
-
-    /// <summary>
-    /// EN: Creates the PostgreSQL function test fixtures with sample tables.
-    /// PT: Cria os fixtures de testes de funcoes PostgreSQL com tabelas de exemplo.
-    /// </summary>
-    public NpgsqlFunctionTests(ITestOutputHelper helper)
-        : base(helper)
-    {
-        _connection = CreateOpenConnection();
-    }
+    private readonly NpgsqlConnectionMock _connection = CreateOpenConnection();
 
     /// <summary>
     /// EN: Ensures PostgreSQL executes the pragmatic scalar FUNCTION DDL subset end to end.

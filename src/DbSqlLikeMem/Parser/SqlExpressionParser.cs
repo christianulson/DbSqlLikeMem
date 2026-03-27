@@ -130,7 +130,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
             if (token.Kind == SqlTokenKind.Operator
                 && (token.Text == "->" || token.Text == "->>" || token.Text == "#>" || token.Text == "#>>"))
             {
-                throw SqlUnsupported.ForDialect(dialect, "JSON -> / ->> / #> / #>> operators");
+                throw SqlUnsupported.NotSupported(dialect, "JSON -> / ->> / #> / #>> operators");
             }
         }
     }
@@ -470,7 +470,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         }
 
         if (caseInsensitive && !_context.Dialect.SupportsIlikeOperator)
-            throw SqlUnsupported.ForDialect(_context.Dialect, SqlConst.ILIKE);
+            throw SqlUnsupported.NotSupported(_context.Dialect, SqlConst.ILIKE);
 
         var expr = (SqlExpr)ParseLikeExpression(left, rbp, caseInsensitive);
         left = negate ? new UnaryExpr(SqlUnaryOp.Not, expr) : expr;
@@ -549,7 +549,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
             return false;
 
         if (!_context.Dialect.SupportsJsonArrowOperators && !_context.Dialect.AllowsParserCrossDialectJsonOperators)
-            throw SqlUnsupported.ForDialect(_context.Dialect, "JSON -> / ->> / #> / #>> operators");
+            throw SqlUnsupported.NotSupported(_context.Dialect, "JSON -> / ->> / #> / #>> operators");
 
         // MySQL: JSON extract operators bind tightly (treat like high precedence binary)
         const int lbp = 120;
@@ -724,7 +724,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
             || definition is null
             || !definition.AllowsCall)
         {
-            throw SqlUnsupported.ForDialect(_context.Dialect, "MEMBER OF");
+            throw SqlUnsupported.NotSupported(_context.Dialect, "MEMBER OF");
         }
 
         _context.Consume(); // MEMBER
@@ -1008,7 +1008,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
             return false;
 
         if (!_context.Dialect.SupportsNextValueForSequenceExpression)
-            throw SqlUnsupported.ForDialect(_context.Dialect, "NEXT VALUE FOR");
+            throw SqlUnsupported.NotSupported(_context.Dialect, "NEXT VALUE FOR");
 
         _context.Consume(); // NEXT
         _context.Consume(); // VALUE
@@ -1036,7 +1036,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
             return false;
 
         if (!_context.Dialect.SupportsPreviousValueForSequenceExpression)
-            throw SqlUnsupported.ForDialect(_context.Dialect, "PREVIOUS VALUE FOR");
+            throw SqlUnsupported.NotSupported(_context.Dialect, "PREVIOUS VALUE FOR");
 
         _context.Consume(); // PREVIOUS
         _context.Consume(); // VALUE
@@ -1449,7 +1449,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
                 && _context.IsKeywordOrIdentifierWord(SqlConst.RETURNING))
             {
                 if (!_context.Dialect.SupportsJsonValueReturningClause)
-                    throw SqlUnsupported.ForDialect(_context.Dialect, "JSON_VALUE ... RETURNING");
+                    throw SqlUnsupported.NotSupported(_context.Dialect, "JSON_VALUE ... RETURNING");
 
                 _context.Consume(); // RETURNING
 
@@ -1495,14 +1495,14 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
             return null;
 
         var normalizedName = functionName.ToUpperInvariant();
-        if (normalizedName is not "GROUP_CONCAT" and not "STRING_AGG" and not "LISTAGG")
-            throw SqlUnsupported.ForDialect(_context.Dialect, $"aggregate ORDER BY for function '{functionName}'");
+        if (normalizedName is not SqlConst.GROUP_CONCAT and not SqlConst.STRING_AGG and not SqlConst.LISTAGG)
+            throw SqlUnsupported.NotSupported(_context.Dialect, $"aggregate ORDER BY for function '{functionName}'");
 
         if (!_context.Dialect.SupportsAggregateOrderByForStringAggregates)
-            throw SqlUnsupported.ForDialect(_context.Dialect, "aggregate ORDER BY");
+            throw SqlUnsupported.NotSupported(_context.Dialect, "aggregate ORDER BY");
 
         if (!_context.Dialect.SupportsAggregateOrderByStringAggregateFunction(functionName))
-            throw SqlUnsupported.ForDialect(_context.Dialect, $"aggregate ORDER BY for function '{functionName}'");
+            throw SqlUnsupported.NotSupported(_context.Dialect, $"aggregate ORDER BY for function '{functionName}'");
 
         _context.Consume(); // ORDER
         if (!_context.IsKeywordOrIdentifierWord(SqlConst.BY))
@@ -1535,14 +1535,14 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
             return;
 
         var normalizedName = functionName.ToUpperInvariant();
-        if (normalizedName is not "GROUP_CONCAT" and not "STRING_AGG" and not "LISTAGG")
-            throw SqlUnsupported.ForDialect(_context.Dialect, $"aggregate separator keyword for function '{functionName}'");
+        if (normalizedName is not SqlConst.GROUP_CONCAT and not SqlConst.STRING_AGG and not SqlConst.LISTAGG)
+            throw SqlUnsupported.NotSupported(_context.Dialect, $"aggregate separator keyword for function '{functionName}'");
 
         if (!_context.Dialect.SupportsAggregateSeparatorKeywordForStringAggregates)
-            throw SqlUnsupported.ForDialect(_context.Dialect, "aggregate separator keyword");
+            throw SqlUnsupported.NotSupported(_context.Dialect, "aggregate separator keyword");
 
         if (!_context.Dialect.SupportsAggregateSeparatorKeywordStringAggregateFunction(functionName))
-            throw SqlUnsupported.ForDialect(_context.Dialect, $"aggregate separator keyword for function '{functionName}'");
+            throw SqlUnsupported.NotSupported(_context.Dialect, $"aggregate separator keyword for function '{functionName}'");
 
         _context.Consume(); // SEPARATOR
 
@@ -1623,18 +1623,18 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
             return call;
 
         var normalizedName = call.Name.ToUpperInvariant();
-        if (normalizedName is not "GROUP_CONCAT" and not "STRING_AGG" and not "LISTAGG")
+        if (normalizedName is not SqlConst.GROUP_CONCAT and not SqlConst.STRING_AGG and not SqlConst.LISTAGG)
         {
-            throw SqlUnsupported.ForDialect(
+            throw SqlUnsupported.NotSupported(
                 _context.Dialect,
                 $"ordered-set aggregate syntax WITHIN GROUP for function '{call.Name}'");
         }
 
         if (!_context.Dialect.SupportsWithinGroupForStringAggregates)
-            throw SqlUnsupported.ForDialect(_context.Dialect, "ordered-set aggregate syntax WITHIN GROUP");
+            throw SqlUnsupported.NotSupported(_context.Dialect, "ordered-set aggregate syntax WITHIN GROUP");
 
         if (!_context.Dialect.SupportsWithinGroupStringAggregateFunction(call.Name))
-            throw SqlUnsupported.ForDialect(_context.Dialect, $"ordered-set aggregate syntax WITHIN GROUP for function '{call.Name}'");
+            throw SqlUnsupported.NotSupported(_context.Dialect, $"ordered-set aggregate syntax WITHIN GROUP for function '{call.Name}'");
 
         _context.Consume(); // WITHIN
         _context.ExpectWord(SqlConst.GROUP);
@@ -1839,7 +1839,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
             && metadataDefinition is not null
             && !metadataDefinition.AllowsIdentifier)
         {
-            throw SqlUnsupported.ForDialect(_context.Dialect, parts[0].ToUpperInvariant());
+            throw SqlUnsupported.NotSupported(_context.Dialect, parts[0].ToUpperInvariant());
         }
 
         return parts.Count switch
@@ -1866,7 +1866,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         }
 
         if (!_context.Dialect.SupportsSequenceDotValueExpression(suffix))
-            throw SqlUnsupported.ForDialect(_context.Dialect, suffix.ToUpperInvariant());
+            throw SqlUnsupported.NotSupported(_context.Dialect, suffix.ToUpperInvariant());
 
         var targetParts = parts.Take(parts.Count - 1).ToArray();
         SqlExpr target = targetParts.Length switch

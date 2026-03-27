@@ -5,8 +5,8 @@ internal delegate bool TryCoerceDateTimeDelegate(object? value, out DateTime res
 internal static class QueryOracleDb2ScalarFunctionHelper
 {
     private delegate bool OracleDb2CoreFunctionHandler(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         TryCoerceDateTimeDelegate tryCoerceDateTime,
         out object? result);
@@ -15,26 +15,26 @@ internal static class QueryOracleDb2ScalarFunctionHelper
         CreateHandlers();
 
     public static bool TryEvalCoreFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
         => TryEvalCoreFunctions(
-            fn,
             context,
+            fn,
             evalArg,
             AstQueryExecutorBase.TryCoerceDateTime,
             out result);
 
     public static bool TryEvalCoreFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryCoerceDateTimeDelegate tryCoerceDateTime,
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler(fn, context, evalArg, tryCoerceDateTime, out result);
+            return handler(context, fn, evalArg, tryCoerceDateTime, out result);
 
         result = null;
         return false;
@@ -64,8 +64,8 @@ internal static class QueryOracleDb2ScalarFunctionHelper
     }
 
     private static bool TryEvalAddMonthsFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         TryCoerceDateTimeDelegate tryCoerceDateTime,
         out object? result)
@@ -101,8 +101,8 @@ internal static class QueryOracleDb2ScalarFunctionHelper
     }
 
     private static bool TryEvalAsciiStrFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         TryCoerceDateTimeDelegate? tryCoerceDateTime,
         out object? result)
@@ -134,8 +134,8 @@ internal static class QueryOracleDb2ScalarFunctionHelper
     }
 
     private static bool TryEvalBinToNumFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         TryCoerceDateTimeDelegate? tryCoerceDateTime,
         out object? result)
@@ -174,8 +174,8 @@ internal static class QueryOracleDb2ScalarFunctionHelper
     }
 
     private static bool TryEvalBitAndFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         TryCoerceDateTimeDelegate? tryCoerceDateTime,
         out object? result)
@@ -207,8 +207,8 @@ internal static class QueryOracleDb2ScalarFunctionHelper
     }
 
     private static bool TryEvalBitOrFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         TryCoerceDateTimeDelegate? tryCoerceDateTime,
         out object? result)
@@ -240,8 +240,8 @@ internal static class QueryOracleDb2ScalarFunctionHelper
     }
 
     private static bool TryEvalBitXorFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         TryCoerceDateTimeDelegate? tryCoerceDateTime,
         out object? result)
@@ -273,8 +273,8 @@ internal static class QueryOracleDb2ScalarFunctionHelper
     }
 
     private static bool TryEvalBitNotFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         TryCoerceDateTimeDelegate? tryCoerceDateTime,
         out object? result)
@@ -304,8 +304,8 @@ internal static class QueryOracleDb2ScalarFunctionHelper
     }
 
     private static bool TryEvalBitAndNotFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         TryCoerceDateTimeDelegate? tryCoerceDateTime,
         out object? result)

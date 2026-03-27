@@ -6,22 +6,18 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Services;
 /// Represents this public API type.
 /// Representa este tipo público da API.
 /// </summary>
-public sealed class TreeNode
+/// <remarks>
+/// Initializes a new instance of this API type.
+/// Inicializa uma nova instância deste tipo da API.
+/// </remarks>
+public sealed class TreeNode(string label)
 {
-    /// <summary>
-    /// Initializes a new instance of this API type.
-    /// Inicializa uma nova instância deste tipo da API.
-    /// </summary>
-    public TreeNode(string label)
-    {
-        Label = label;
-    }
 
     /// <summary>
     /// Gets this API value.
     /// Obtém este valor da API.
     /// </summary>
-    public string Label { get; }
+    public string Label { get; } = label;
 
     /// <summary>
     /// Gets this API value.

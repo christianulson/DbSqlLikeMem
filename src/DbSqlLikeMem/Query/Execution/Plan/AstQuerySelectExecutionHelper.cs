@@ -5,19 +5,17 @@ namespace DbSqlLikeMem;
 internal static class AstQuerySelectExecutionHelper
 {
     internal static SelectPlan BuildSelectPlan(
-        DbConnectionMockBase connection,
-        ISqlDialect? dialect,
+        this QueryExecutionContext context,
         SqlSelectQuery query,
         List<EvalRow> sampleRows,
         IDictionary<string, Source> ctes,
-        QueryExecutionContext context,
         Func<string, SqlExpr> parseScalarExpr,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> evalExpression,
         Func<string?, string, EvalRow, object?> resolveColumn)
     {
-        var cacheKey = ctes.Count == 0 ? BuildSelectPlanCacheKey(connection, dialect, query, sampleRows) : null;
+        var cacheKey = ctes.Count == 0 ? BuildSelectPlanCacheKey(context, query, sampleRows) : null;
         if (cacheKey is not null
-            && connection.TryGetCachedSelectPlan(cacheKey, out var cachedPlan)
+            && context.Connection.TryGetCachedSelectPlan(cacheKey, out var cachedPlan)
             && cachedPlan is not null)
         {
             return cachedPlan.CanBeCachedWithoutClone
@@ -35,29 +33,10 @@ internal static class AstQuerySelectExecutionHelper
             resolveColumn);
 
         if (cacheKey is not null)
-            connection.TryCacheSelectPlan(cacheKey, plan.CanBeCachedWithoutClone ? plan : plan.CloneForCache());
+            context.Connection.TryCacheSelectPlan(cacheKey, plan.CanBeCachedWithoutClone ? plan : plan.CloneForCache());
 
         return plan;
     }
-
-    internal static TableResultMock ApplyOrderAndLimit(
-        TableResultMock result,
-        SqlSelectQuery query,
-        IDictionary<string, Source> ctes,
-        Func<string, SqlExpr> parseExpr,
-        Func<SqlExpr, EvalRow, object?> evalExpression,
-        Func<SqlExpr, IDictionary<string, Source>, int> evalLimitExpr,
-        Comparison<object?> compareSql,
-        QueryDebugTraceBuilder? debugTrace = null)
-        => AstQueryOrderLimitHelper.Apply(
-            result,
-            query,
-            ctes,
-            parseExpr,
-            evalExpression,
-            evalLimitExpr,
-            compareSql,
-            debugTrace);
 
     internal static bool ContainsDistinctUnionFlag(IReadOnlyList<bool> allFlags)
     {
@@ -79,15 +58,14 @@ internal static class AstQuerySelectExecutionHelper
         };
 
     private static string? BuildSelectPlanCacheKey(
-        DbConnectionMockBase connection,
-        ISqlDialect? dialect,
+        this QueryExecutionContext context,
         SqlSelectQuery query,
         List<EvalRow> sampleRows)
     {
         if (string.IsNullOrWhiteSpace(query.RawSql))
             return null;
 
-        var cacheDialect = dialect ?? connection.ExecutionDialect;
+        var cacheDialect = context.Dialect ?? context.Connection.ExecutionDialect;
         var sb = new StringBuilder(query.RawSql.Length + 160);
         sb.Append(query.RawSql);
         sb.Append("|dialect:");
@@ -95,7 +73,7 @@ internal static class AstQuerySelectExecutionHelper
         sb.Append(':');
         sb.Append(cacheDialect.Version);
         sb.Append("|schema:");
-        sb.Append(connection.GetSelectPlanCacheGeneration());
+        sb.Append(context.Connection.GetSelectPlanCacheGeneration());
         sb.Append("|sources:");
         sb.Append(sampleRows.Count);
 

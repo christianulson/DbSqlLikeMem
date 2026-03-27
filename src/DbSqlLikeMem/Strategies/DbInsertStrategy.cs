@@ -928,8 +928,8 @@ internal static class DbInsertStrategy
             {
                 LiteralExpr lit => lit.Value,
                 ParameterExpr p when TryResolveParameterValue(context.DbParameters, p.Name, out var parameterValue) => parameterValue,
-                IdentifierExpr id when SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(context, id.Name, out var temporalIdentifierValue) => temporalIdentifierValue,
-                ColumnExpr c when SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(context, c.Name, out var temporalColumnValue) => temporalColumnValue,
+                IdentifierExpr id when context.TryEvaluateZeroArgIdentifier(id.Name, out var temporalIdentifierValue) => temporalIdentifierValue,
+                ColumnExpr c when context.TryEvaluateZeroArgIdentifier(c.Name, out var temporalColumnValue) => temporalColumnValue,
                 _ => null
             };
         }
@@ -1057,7 +1057,7 @@ internal static class DbInsertStrategy
         out object? value)
     {
         var trimmed = rawValue.Trim();
-        if (SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(context, trimmed, out value))
+        if (context.TryEvaluateZeroArgIdentifier(trimmed, out value))
             return true;
 
         var openParen = trimmed.IndexOf('(');
@@ -1070,7 +1070,7 @@ internal static class DbInsertStrategy
         if (argsRaw.Length > 0)
             return false;
 
-        return SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(context, functionName, out value);
+        return context.TryEvaluateZeroArgCall(functionName, out value);
     }
 
     private static void ApplyOnDuplicateUpdateAstInMemory(
@@ -1139,7 +1139,7 @@ internal static class DbInsertStrategy
                 ParameterExpr p => GetParamValue(p.Name),
                 IdentifierExpr id => TryGetExcludedValueFromName(id.Name, out var excluded)
                     ? excluded
-                    : SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(context, id.Name, out var temporalIdentifierValue)
+                    : context.TryEvaluateZeroArgIdentifier(id.Name, out var temporalIdentifierValue)
                         ? temporalIdentifierValue
                         : GetExistingColumnValue(id.Name.Contains('.') ? id.Name.Split('.').Last() : id.Name),
                 ColumnExpr c => string.Equals(c.Qualifier, "excluded", StringComparison.OrdinalIgnoreCase)
@@ -1393,7 +1393,7 @@ internal static class DbInsertStrategy
             if (SqlSequenceEvaluator.TryEvaluateCall(table, name, fn.Args, Eval, out var sequenceValue))
                 return sequenceValue;
 
-            if (fn.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(context, name, out var temporalValue))
+            if (fn.Args.Count == 0 && context.TryEvaluateZeroArgCall(name, out var temporalValue))
                 return temporalValue;
 
             if (name.Equals(SqlConst.VALUES, StringComparison.OrdinalIgnoreCase)
@@ -1434,7 +1434,7 @@ internal static class DbInsertStrategy
                 return GetInsertedColumnValue(col!);
             }
 
-            if (call.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(context, name, out var temporalValue))
+            if (call.Args.Count == 0 && context.TryEvaluateZeroArgCall(name, out var temporalValue))
                 return temporalValue;
 
             throw new InvalidOperationException($"CALL não suportado no ON DUPLICATE: {call.Name}");
@@ -1522,7 +1522,7 @@ internal static class DbInsertStrategy
                 var col = fn.Args[0] switch { IdentifierExpr id => id.Name, ColumnExpr c => c.Name, _ => null };
                 if (!string.IsNullOrWhiteSpace(col)) return GetInsertedColumnValue(col!);
             }
-            if (fn.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(context, fn.Name, out var temporal))
+            if (fn.Args.Count == 0 && context.TryEvaluateZeroArgCall(fn.Name, out var temporal))
                 return temporal;
             throw new InvalidOperationException($"Função não suportada no ON CONFLICT WHERE: {fn.Name}()");
         }
@@ -1538,7 +1538,7 @@ internal static class DbInsertStrategy
                 if (string.IsNullOrWhiteSpace(col)) throw new InvalidOperationException("VALUES() espera 1 coluna");
                 return GetInsertedColumnValue(col!);
             }
-            if (call.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(context, call.Name, out var temporal))
+            if (call.Args.Count == 0 && context.TryEvaluateZeroArgCall(call.Name, out var temporal))
                 return temporal;
             throw new InvalidOperationException($"CALL não suportado no ON CONFLICT WHERE: {call.Name}");
         }
@@ -1549,10 +1549,10 @@ internal static class DbInsertStrategy
             {
                 SqlBinaryOp.Eq => left.EqualsSql(right, context),
                 SqlBinaryOp.Neq => !left.EqualsSql(right, context),
-                SqlBinaryOp.Greater => left is not null && right is not null && left.Compare(right, context) > 0,
-                SqlBinaryOp.GreaterOrEqual => left is not null && right is not null && left.Compare(right, context) >= 0,
-                SqlBinaryOp.Less => left is not null && right is not null && left.Compare(right, context) < 0,
-                SqlBinaryOp.LessOrEqual => left is not null && right is not null && left.Compare(right, context) <= 0,
+                SqlBinaryOp.Greater => left is not null && right is not null &&context .Compare(left,right ) > 0,
+                SqlBinaryOp.GreaterOrEqual => left is not null && right is not null &&context .Compare(left,right ) >= 0,
+                SqlBinaryOp.Less => left is not null && right is not null && context.Compare(left, right) < 0,
+                SqlBinaryOp.LessOrEqual => left is not null && right is not null && context.Compare(left, right) <= 0,
                 _ => throw new InvalidOperationException($"Operador não suportado no ON CONFLICT WHERE: {op}")
             };
         }
@@ -1565,7 +1565,7 @@ internal static class DbInsertStrategy
                 ParameterExpr p => GetParamValue(p.Name),
                 IdentifierExpr id => TryGetExcludedValueFromName(id.Name, out var excluded)
                     ? excluded
-                    : SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(context, id.Name, out var temporalIdentifierValue)
+                    : context.TryEvaluateZeroArgIdentifier(id.Name, out var temporalIdentifierValue)
                         ? temporalIdentifierValue
                         : GetExistingColumnValue(id.Name.Contains('.') ? id.Name.Split('.').Last() : id.Name),
                 ColumnExpr c => string.Equals(c.Qualifier, "excluded", StringComparison.OrdinalIgnoreCase)

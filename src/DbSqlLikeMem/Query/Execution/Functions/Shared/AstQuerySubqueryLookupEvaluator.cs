@@ -195,7 +195,7 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
             return false;
         }
 
-        return AstQueryEqualityScanHelper.TryCountRows(src, equalsByColumn, _context, out count);
+        return _context.TryCountRows(src, equalsByColumn, out count);
     }
 
     private InSubqueryLookupState BuildInSubqueryLookupState(

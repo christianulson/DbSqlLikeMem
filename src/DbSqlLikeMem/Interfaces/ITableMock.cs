@@ -227,7 +227,7 @@ public interface ITableMock
 
     /// <summary>
     /// EN: Resolves an SQL token to its value in the table context.
-    /// PT: Resolve um token SQL para o valor correspondente no contexto da tabela.
+    /// PT: ResolveRowsFrameRange um token SQL para o valor correspondente no contexto da tabela.
     /// </summary>
     /// <param name="token">EN: Token to resolve. PT: Token a resolver.</param>
     /// <param name="dbType">EN: Expected token type. PT: Tipo esperado do token.</param>

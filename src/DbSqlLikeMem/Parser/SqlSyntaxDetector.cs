@@ -300,9 +300,9 @@ internal static class SqlSyntaxDetector
     private static bool IsStringAggregateMarker(IReadOnlyList<SqlToken> tokens, int index)
     {
         var token = tokens[index];
-        if (!token.Text.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase)
-            && !token.Text.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase)
-            && !token.Text.Equals("LISTAGG", StringComparison.OrdinalIgnoreCase))
+        if (!token.Text.Equals(SqlConst.GROUP_CONCAT, StringComparison.OrdinalIgnoreCase)
+            && !token.Text.Equals(SqlConst.STRING_AGG, StringComparison.OrdinalIgnoreCase)
+            && !token.Text.Equals(SqlConst.LISTAGG, StringComparison.OrdinalIgnoreCase))
             return false;
 
         var next = index + 1 < tokens.Count ? tokens[index + 1] : SqlToken.EOF;

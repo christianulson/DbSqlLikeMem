@@ -45,8 +45,8 @@ internal static class AstQueryPostgresJsonFunctionEvaluator
     private static readonly ConcurrentDictionary<string, JsonPathTokenCacheEntry> _postgresJsonPathTokenCache = new(StringComparer.Ordinal);
 
     internal static bool TryEvaluate(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -132,7 +132,7 @@ internal static class AstQueryPostgresJsonFunctionEvaluator
                 return true;
             }
 
-            result = BuildJsonArray(new object?[] { target });
+            result = BuildJsonArray([target]);
             return true;
         }
 

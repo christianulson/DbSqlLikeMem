@@ -7,8 +7,8 @@ using System.Linq;
 using System.Text.RegularExpressions;
 
 internal delegate bool AstQueryTryEvalPostgresRegexFunction(
-    FunctionCallExpr fn,
     QueryExecutionContext context,
+    FunctionCallExpr fn,
     Func<int, object?> evalArg,
     out object? result);
 
@@ -18,8 +18,8 @@ internal static class AstQueryPostgresRegexFunctionEvaluator
         CreateHandlers();
 
     internal static bool TryEvaluate(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -29,7 +29,7 @@ internal static class AstQueryPostgresRegexFunctionEvaluator
             return false;
         }
 
-        return handler(fn, context, evalArg, out result);
+        return handler(context,fn,  evalArg, out result);
     }
 
     private static IReadOnlyDictionary<string, AstQueryTryEvalPostgresRegexFunction> CreateHandlers()
@@ -55,59 +55,59 @@ internal static class AstQueryPostgresRegexFunctionEvaluator
     }
 
     private static bool TryEvalRegexCountFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
-        => TryEvalRegexCore(fn, context, evalArg, out result, static (_, _, _, _) => null, countMatches: true, returnsBool: false);
+        => TryEvalRegexFunction(context, fn, evalArg, out result, static (_, _, _, _) => null, countMatches: true, returnsBool: false);
 
     private static bool TryEvalRegexInstrFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
-        => TryEvalRegexCore(fn, context, evalArg, out result, static (_, _, _, _) => null, countMatches: false, returnsBool: false, returnIndex: true);
+        => TryEvalRegexFunction(context, fn, evalArg, out result, static (_, _, _, _) => null, countMatches: false, returnsBool: false, returnIndex: true);
 
     private static bool TryEvalRegexLikeFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
-        => TryEvalRegexCore(fn, context, evalArg, out result, static (_, _, _, _) => null, countMatches: false, returnsBool: true);
+        => TryEvalRegexFunction(context, fn, evalArg, out result, static (_, _, _, _) => null, countMatches: false, returnsBool: true);
 
     private static bool TryEvalRegexMatchFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
-        => TryEvalRegexCore(fn, context, evalArg, out result, static (_, match, _, _) => match.Groups.Count > 1
+        => TryEvalRegexFunction(context, fn, evalArg, out result, static (_, match, _, _) => match.Groups.Count > 1
             ? match.Groups.Cast<Group>().Skip(1).Select(static g => g.Value).ToArray()
             : [match.Value], countMatches: false, returnsBool: false, returnCapture: true);
 
     private static bool TryEvalRegexReplaceFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
-        => TryEvalRegexCore(fn, context, evalArg, out result, static (source, match, replacement, replaceAll) => null, countMatches: false, returnsBool: false, replace: true);
+        => TryEvalRegexFunction(context, fn, evalArg, out result, static (source, match, replacement, replaceAll) => null, countMatches: false, returnsBool: false, replace: true);
 
     private static bool TryEvalRegexSplitToArrayFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
-        => TryEvalRegexCore(fn, context, evalArg, out result, static (source, match, replacement, replaceAll) => null, countMatches: false, returnsBool: false, split: true);
+        => TryEvalRegexFunction(context, fn, evalArg, out result, static (source, match, replacement, replaceAll) => null, countMatches: false, returnsBool: false, split: true);
 
     private static bool TryEvalRegexSubstrFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
-        => TryEvalRegexCore(fn, context, evalArg, out result, static (_, match, _, _) => match.Value, countMatches: false, returnsBool: false, returnSubstring: true);
+        => TryEvalRegexFunction(context, fn, evalArg, out result, static (_, match, _, _) => match.Value, countMatches: false, returnsBool: false, returnSubstring: true);
 
-    private static bool TryEvalRegexCore(
+    private static bool TryEvalRegexFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result,
         Func<string, Match, string, bool, object?> projector,

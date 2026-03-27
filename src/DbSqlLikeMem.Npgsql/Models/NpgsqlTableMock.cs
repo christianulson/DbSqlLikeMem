@@ -23,7 +23,7 @@ internal class NpgsqlTableMock(
 
     /// <summary>
     /// EN: Resolves a SQL token to a typed value according to Npgsql conversion rules.
-    /// PT: Resolve um token SQL para um valor tipado conforme as regras de conversão do Npgsql.
+    /// PT: ResolveRowsFrameRange um token SQL para um valor tipado conforme as regras de conversão do Npgsql.
     /// </summary>
     public override object? Resolve(
         string token,

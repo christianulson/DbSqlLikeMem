@@ -10,7 +10,7 @@ internal static class SqlCreateObjectHelper
             throw new InvalidOperationException("CREATE OR REPLACE is only supported for VIEW and FUNCTION statements.");
 
         if (!ctx.Dialect.SupportsSequenceDdl)
-            throw SqlUnsupported.ForDialect(ctx.Dialect, "CREATE SEQUENCE");
+            throw SqlUnsupported.NotSupported(ctx.Dialect, "CREATE SEQUENCE");
 
         if (!ctx.IsWord(SqlConst.SEQUENCE))
             throw new InvalidOperationException("CREATE SEQUENCE requires SEQUENCE keyword.");

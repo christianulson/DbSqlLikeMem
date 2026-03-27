@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Resolves provider-specific connection strings for container-backed fidelity tests and benchmark sessions.
-/// PT: Resolve strings de conexao especificas do provedor para testes de fidelidade com container e sessoes de benchmark.
+/// PT: ResolveRowsFrameRange strings de conexao especificas do provedor para testes de fidelidade com container e sessoes de benchmark.
 /// </summary>
 public static class ProviderConnectionStringResolver
 {

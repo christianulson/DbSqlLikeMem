@@ -8,8 +8,8 @@ using System.Text;
 internal static class AstQueryOracleDb2LegacyFunctionEvaluator
 {
     private delegate bool OracleDb2LegacyFunctionHandler(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result);
 
@@ -42,7 +42,7 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Register(handlers, TryEvalCollationFunction, "COLLATION");
         Register(handlers, TryEvalConIdFunctions, "CON_DBID_TO_ID", "CON_GUID_TO_ID", "CON_NAME_TO_ID", "CON_UID_TO_ID");
         Register(handlers, TryEvalCubeTableFunction, "CUBE_TABLE");
-        Register(handlers, TryEvalCvFunction, "CV");
+        Register(handlers, TryEvalCvFunction, SqlConst.CV);
         Register(handlers, TryEvalDataObjToPartitionFunctions, "DATAOBJ_TO_MAT_PARTITION", "DATAOBJ_TO_PARTITION");
         Register(handlers, TryEvalDepthFunction, "DEPTH");
         Register(handlers, TryEvalDerefFunction, "DEREF");
@@ -85,18 +85,18 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     internal static bool TryEvaluate(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler)
-            && handler(fn, context, evalArg, out result))
+            && handler(context, fn, evalArg, out result))
         {
             return true;
         }
 
-        if (TryEvalDialectSpecificCastFunction(fn, context, evalArg, out result))
+        if (TryEvalDialectSpecificCastFunction(context, fn, evalArg, out result))
             return true;
 
         result = null;
@@ -104,8 +104,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalCollationFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -116,7 +116,7 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
             return false;
         }
 
-        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, name);
+        context.EnsureOracleDb2FunctionSupported(name);
 
         var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value))
@@ -130,8 +130,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalConIdFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -142,7 +142,7 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
             return false;
         }
 
-        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, name);
+        context.EnsureOracleDb2FunctionSupported(name);
 
         var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value))
@@ -164,8 +164,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     internal static bool TryEvalDialectSpecificCastFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -208,8 +208,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalCubeTableFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -224,12 +224,12 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalCvFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!string.Equals(fn.Name, "CV", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(fn.Name, SqlConst.CV, StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -240,8 +240,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalDataObjToPartitionFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -257,8 +257,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalDepthFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -280,8 +280,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalDerefFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -296,8 +296,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalDumpFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -320,8 +320,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalExistsNodeFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -343,8 +343,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalFromTzFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -382,8 +382,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalGroupIdFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -399,8 +399,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalHexToRawFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -440,8 +440,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalIterationNumberFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -457,8 +457,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalJsonDataGuideFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -480,8 +480,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalJsonTransformFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -492,7 +492,7 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
             return false;
         }
 
-        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, name);
+        context.EnsureOracleDb2FunctionSupported(name);
 
         var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value))
@@ -506,8 +506,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalLnnvlFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -529,8 +529,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalLocalTimestampFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -546,8 +546,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalLocalTimeFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -563,8 +563,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalLowerFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -588,8 +588,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalLtrimFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -613,8 +613,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalModFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -652,8 +652,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalDivFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -689,8 +689,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalMonthsBetweenFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -726,8 +726,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalMidnightSecondsFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -785,8 +785,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalNanvlFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -813,8 +813,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalNewTimeFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -854,8 +854,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalNextDayFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -898,8 +898,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalNlsFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -910,7 +910,7 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
             return false;
         }
 
-        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, name);
+        context.EnsureOracleDb2FunctionSupported(name);
 
         return name switch
         {
@@ -956,8 +956,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalNumIntervalFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -1004,8 +1004,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalMakeRefFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -1020,8 +1020,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalDb2DateTruncFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -1048,8 +1048,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
     }
 
     private static bool TryEvalTranslateFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {

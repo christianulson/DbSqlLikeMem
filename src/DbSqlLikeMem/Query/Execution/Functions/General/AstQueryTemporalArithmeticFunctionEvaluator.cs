@@ -5,8 +5,8 @@ namespace DbSqlLikeMem;
 internal static class AstQueryTemporalArithmeticFunctionEvaluator
 {
     private delegate bool AstQueryTryEvalTemporalArithmeticFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
@@ -19,8 +19,8 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
         CreateHandlers();
 
     internal static bool TryEvaluate(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
@@ -30,7 +30,7 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler)
-            && handler(fn, context, row, group, ctes, evalArg, evalExpr, getTemporalUnit, out result))
+            && handler(context, fn, row, group, ctes, evalArg, evalExpr, getTemporalUnit, out result))
         {
             return true;
         }
@@ -60,8 +60,8 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
     }
 
     private static bool TryEvalMySqlDateAddSubFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
@@ -103,8 +103,8 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
     }
 
     private static bool TryEvalTimestampAddStyleFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
@@ -150,8 +150,8 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
     }
 
     private static bool TryEvalDateDiffBigFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
@@ -181,8 +181,8 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
     }
 
     private static bool TryEvalTimestampDiffFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
@@ -212,8 +212,8 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
     }
 
     private static bool TryEvalDateDiffFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,

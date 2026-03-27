@@ -24,7 +24,7 @@ public abstract class XUnitTestBase : IDisposable
 
     /// <summary>
     /// EN: Resolves whether a suite-specific container comparison is enabled for the current provider.
-    /// PT: Resolve se uma comparacao com container especifica da suite esta habilitada para o provedor atual.
+    /// PT: ResolveRowsFrameRange se uma comparacao com container especifica da suite esta habilitada para o provedor atual.
     /// </summary>
     /// <param name="provider">EN: The provider being evaluated. PT: O provedor avaliado.</param>
     /// <param name="environmentVariableName">EN: The environment variable that enables the suite-specific comparison. PT: A variavel de ambiente que habilita a comparacao especifica da suite.</param>
@@ -38,7 +38,7 @@ public abstract class XUnitTestBase : IDisposable
 
     /// <summary>
     /// EN: Resolves whether the specified provider can run container comparisons in the current environment.
-    /// PT: Resolve se o provedor informado pode executar comparacoes com container no ambiente atual.
+    /// PT: ResolveRowsFrameRange se o provedor informado pode executar comparacoes com container no ambiente atual.
     /// </summary>
     /// <param name="provider">EN: The provider being evaluated. PT: O provedor avaliado.</param>
     /// <returns>EN: True when the provider is allowed to run container comparisons. PT: True quando o provedor pode executar comparacoes com container.</returns>
@@ -52,7 +52,7 @@ public abstract class XUnitTestBase : IDisposable
 
     /// <summary>
     /// EN: Resolves whether performance fidelity tests should also run against a container.
-    /// PT: Resolve se os testes de fidelidade de performance tambem devem rodar contra um container.
+    /// PT: ResolveRowsFrameRange se os testes de fidelidade de performance tambem devem rodar contra um container.
     /// </summary>
     /// <param name="provider">EN: The provider being evaluated. PT: O provedor avaliado.</param>
     /// <returns>EN: True when performance container comparison is enabled. PT: True quando a comparacao de performance com container esta habilitada.</returns>
@@ -61,7 +61,7 @@ public abstract class XUnitTestBase : IDisposable
 
     /// <summary>
     /// EN: Resolves whether temporary-table fidelity tests should also run against a container.
-    /// PT: Resolve se os testes de fidelidade de tabela temporaria tambem devem rodar contra um container.
+    /// PT: ResolveRowsFrameRange se os testes de fidelidade de tabela temporaria tambem devem rodar contra um container.
     /// </summary>
     /// <param name="provider">EN: The provider being evaluated. PT: O provedor avaliado.</param>
     /// <returns>EN: True when temporary-table container comparison is enabled. PT: True quando a comparacao de tabela temporaria com container esta habilitada.</returns>
@@ -70,7 +70,7 @@ public abstract class XUnitTestBase : IDisposable
 
     /// <summary>
     /// EN: Resolves whether DDL fidelity tests should also run against a container.
-    /// PT: Resolve se os testes de fidelidade DDL tambem devem rodar contra um container.
+    /// PT: ResolveRowsFrameRange se os testes de fidelidade DDL tambem devem rodar contra um container.
     /// </summary>
     /// <param name="provider">EN: The provider being evaluated. PT: O provedor avaliado.</param>
     /// <returns>EN: True when DDL container comparison is enabled. PT: True quando a comparacao DDL com container esta habilitada.</returns>
@@ -79,7 +79,7 @@ public abstract class XUnitTestBase : IDisposable
 
     /// <summary>
     /// EN: Resolves whether DML fidelity tests should also run against a container.
-    /// PT: Resolve se os testes de fidelidade DML tambem devem rodar contra um container.
+    /// PT: ResolveRowsFrameRange se os testes de fidelidade DML tambem devem rodar contra um container.
     /// </summary>
     /// <param name="provider">EN: The provider being evaluated. PT: O provedor avaliado.</param>
     /// <returns>EN: True when DML container comparison is enabled. PT: True quando a comparacao DML com container esta habilitada.</returns>
@@ -88,7 +88,7 @@ public abstract class XUnitTestBase : IDisposable
 
     /// <summary>
     /// EN: Resolves whether query fidelity tests should also run against a container.
-    /// PT: Resolve se os testes de fidelidade de query tambem devem rodar contra um container.
+    /// PT: ResolveRowsFrameRange se os testes de fidelidade de query tambem devem rodar contra um container.
     /// </summary>
     /// <param name="provider">EN: The provider being evaluated. PT: O provedor avaliado.</param>
     /// <returns>EN: True when query container comparison is enabled. PT: True quando a comparacao de query com container esta habilitada.</returns>
@@ -97,7 +97,7 @@ public abstract class XUnitTestBase : IDisposable
 
     /// <summary>
     /// EN: Resolves whether schema fidelity tests should also run against a container.
-    /// PT: Resolve se os testes de fidelidade de schema tambem devem rodar contra um container.
+    /// PT: ResolveRowsFrameRange se os testes de fidelidade de schema tambem devem rodar contra um container.
     /// </summary>
     /// <param name="provider">EN: The provider being evaluated. PT: O provedor avaliado.</param>
     /// <returns>EN: True when schema container comparison is enabled. PT: True quando a comparacao de schema com container esta habilitada.</returns>
@@ -106,7 +106,7 @@ public abstract class XUnitTestBase : IDisposable
 
     /// <summary>
     /// EN: Resolves whether transaction fidelity tests should also run against a container.
-    /// PT: Resolve se os testes de fidelidade de transacao tambem devem rodar contra um container.
+    /// PT: ResolveRowsFrameRange se os testes de fidelidade de transacao tambem devem rodar contra um container.
     /// </summary>
     /// <param name="provider">EN: The provider being evaluated. PT: O provedor avaliado.</param>
     /// <returns>EN: True when transaction container comparison is enabled. PT: True quando a comparacao de transacao com container esta habilitada.</returns>
@@ -115,7 +115,7 @@ public abstract class XUnitTestBase : IDisposable
 
     /// <summary>
     /// EN: Resolves a container connection string for the specified provider when one is available.
-    /// PT: Resolve uma string de conexao de container para o provedor informado quando houver uma disponivel.
+    /// PT: ResolveRowsFrameRange uma string de conexao de container para o provedor informado quando houver uma disponivel.
     /// </summary>
     /// <param name="provider">EN: The provider identifier used to select the environment variables. PT: O identificador do provedor usado para selecionar as variaveis de ambiente.</param>
     /// <param name="connectionString">EN: The resolved container connection string when available. PT: A string de conexao de container resolvida quando disponivel.</param>
@@ -161,7 +161,7 @@ public abstract class XUnitTestBase : IDisposable
 
     /// <summary>
     /// EN: Resolves the current test method name.
-    /// PT: Resolve o nome do método de teste atual.
+    /// PT: ResolveRowsFrameRange o nome do método de teste atual.
     /// </summary>
     /// <returns>EN: Test name. PT: Nome do teste.</returns>
     protected static string GetTestName()

@@ -57,21 +57,21 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
     }
 
     internal static bool TryEvaluate(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler(fn, context, evalArg, out result);
+            return handler( context,fn, evalArg, out result);
 
         result = null;
         return false;
     }
 
     private static bool TryEvalOracleBfilenameFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -81,7 +81,7 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
             return false;
         }
 
-        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, fn);
+        context.EnsureOracleDb2FunctionSupported(fn);
 
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("BFILENAME() espera diretorio e nome do arquivo.");
@@ -99,8 +99,8 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
     }
 
     private static bool TryEvalOracleHashFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -111,7 +111,7 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
             return false;
         }
 
-        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, name);
+        context.EnsureOracleDb2FunctionSupported(name);
 
         if (fn.Args.Count == 0)
         {
@@ -161,8 +161,8 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
     }
 
     private static bool TryEvalOracleRawFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -204,8 +204,8 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
     }
 
     private static bool TryEvalOracleRegexFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -284,8 +284,8 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
     }
 
     private static bool TryEvalOracleRemainderFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -319,8 +319,8 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
     }
 
     private static bool TryEvalOracleRowIdFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -331,7 +331,7 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
             return false;
         }
 
-        QueryOracleDb2UtilityFunctionHelper.EnsureOracleDb2FunctionSupported(context, name);
+        context.EnsureOracleDb2FunctionSupported(name);
 
         if (fn.Args.Count == 0)
         {
@@ -345,8 +345,8 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
     }
 
     private static bool TryEvalOracleHexToRawFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {

@@ -4,16 +4,14 @@ namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 /// EN: Covers SQL Server UNION, OFFSET/FETCH, and JSON compatibility scenarios already supported by the in-memory mock.
 /// PT: Cobre cenarios de compatibilidade de UNION, OFFSET/FETCH e JSON do SQL Server que o mock em memoria ja suporta.
 /// </summary>
-public sealed class SqlServerUnionLimitAndJsonCompatibilityTests : DapperUnionLimitAndJsonCompatibilityTestsBase<SqlServerDbMock, SqlServerConnectionMock>
+/// <remarks>
+/// EN: Creates the in-memory SQL Server connection used by the UNION, OFFSET/FETCH, and JSON compatibility tests.
+/// PT: Cria a conexao SQL Server em memoria usada pelos testes de compatibilidade de UNION, OFFSET/FETCH e JSON.
+/// </remarks>
+public sealed class SqlServerUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : DapperUnionLimitAndJsonCompatibilityTestsBase<SqlServerDbMock, SqlServerConnectionMock>(helper)
 {
     private const int SqlServerOffsetFetchMinVersion = 2012;
     private const int SqlServerJsonFunctionsMinVersion = 2016;
-
-    /// <summary>
-    /// EN: Creates the in-memory SQL Server connection used by the UNION, OFFSET/FETCH, and JSON compatibility tests.
-    /// PT: Cria a conexao SQL Server em memoria usada pelos testes de compatibilidade de UNION, OFFSET/FETCH e JSON.
-    /// </summary>
-    public SqlServerUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper) { }
 
     /// <inheritdoc />
     protected override SqlServerDbMock CreateDb(int? version) => new(version);

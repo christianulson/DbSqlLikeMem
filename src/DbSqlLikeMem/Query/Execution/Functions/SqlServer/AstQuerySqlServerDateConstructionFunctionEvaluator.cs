@@ -4,14 +4,14 @@ internal static class AstQuerySqlServerDateConstructionFunctionEvaluator
 {
     private static readonly Dictionary<string, AstQueryGeneralScalarFunctionHandler> _handlers = CreateHandlers();
 
-    internal static bool TryEvaluate(
+    internal static bool TryEvaluateSqlServerDateConstructionFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler(fn, context, evalArg, out result);
+            return handler(context, fn, evalArg, out result);
 
         result = null;
         return false;
@@ -41,8 +41,8 @@ internal static class AstQuerySqlServerDateConstructionFunctionEvaluator
     }
 
     private static bool TryEvalDateFromPartsFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -74,8 +74,8 @@ internal static class AstQuerySqlServerDateConstructionFunctionEvaluator
     }
 
     private static bool TryEvalDateTimeFromPartsFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -108,8 +108,8 @@ internal static class AstQuerySqlServerDateConstructionFunctionEvaluator
     }
 
     private static bool TryEvalDateTime2FromPartsFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -144,8 +144,8 @@ internal static class AstQuerySqlServerDateConstructionFunctionEvaluator
     }
 
     private static bool TryEvalDateTimeOffsetFromPartsFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -183,8 +183,8 @@ internal static class AstQuerySqlServerDateConstructionFunctionEvaluator
     }
 
     private static bool TryEvalTimeFromPartsFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -216,8 +216,8 @@ internal static class AstQuerySqlServerDateConstructionFunctionEvaluator
     }
 
     private static bool TryEvalSmallDateTimeFromPartsFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {

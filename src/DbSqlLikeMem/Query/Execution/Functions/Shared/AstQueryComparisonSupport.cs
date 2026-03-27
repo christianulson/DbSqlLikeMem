@@ -2,7 +2,7 @@ namespace DbSqlLikeMem;
 
 internal static class AstQueryComparisonSupport
 {
-    internal static int CompareSql(object? a, object? b, QueryExecutionContext context)
+    internal static int CompareSql(this QueryExecutionContext context, object? a, object? b)
     {
         if (AstQueryBinarySupportHelper.IsSqlNullLike(a) && AstQueryBinarySupportHelper.IsSqlNullLike(b))
             return 0;
@@ -13,7 +13,7 @@ internal static class AstQueryComparisonSupport
         if (AstQueryBinarySupportHelper.IsSqlNullLike(b))
             return 1;
 
-        return a!.Compare(b!, context);
+        return context.Compare(a, b);
     }
 
     internal static SqlBinaryOp ReverseComparisonOperator(SqlBinaryOp op)

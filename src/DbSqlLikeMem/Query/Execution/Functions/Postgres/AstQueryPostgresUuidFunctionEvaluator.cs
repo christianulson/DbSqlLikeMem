@@ -5,10 +5,11 @@ using System;
 internal static class AstQueryPostgresUuidFunctionEvaluator
 {
     internal static bool TryEvaluate(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         out object? result)
     {
+        _ = context;
         result = Guid.NewGuid().ToString("D");
         return true;
     }

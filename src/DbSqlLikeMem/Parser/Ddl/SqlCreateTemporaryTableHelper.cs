@@ -184,7 +184,7 @@ internal static class SqlCreateTemporaryTableHelper
         }
 
         if (!isTemporary)
-            throw SqlUnsupported.ForParser("CREATE sem TEMPORARY TABLE");
+            throw SqlUnsupported.NotSupportedParser("CREATE sem TEMPORARY TABLE");
 
         return new SqlCreateTemporaryTableQuery
         {

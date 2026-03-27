@@ -4,13 +4,12 @@ namespace DbSqlLikeMem.Oracle.Test;
 /// EN: Covers Oracle UNION, offset/fetch, and JSON compatibility scenarios already supported by the in-memory mock.
 /// PT: Cobre cenarios de compatibilidade de UNION, offset/fetch e JSON do Oracle que o mock em memoria ja suporta.
 /// </summary>
-public sealed class OracleUnionLimitAndJsonCompatibilityTests : DapperUnionLimitAndJsonCompatibilityTestsBase<OracleDbMock, OracleConnectionMock>
+/// <remarks>
+/// EN: Creates the in-memory Oracle connection used by the UNION, offset/fetch, and JSON compatibility tests.
+/// PT: Cria a conexao Oracle em memoria usada pelos testes de compatibilidade de UNION, offset/fetch e JSON.
+/// </remarks>
+public sealed class OracleUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : DapperUnionLimitAndJsonCompatibilityTestsBase<OracleDbMock, OracleConnectionMock>(helper)
 {
-    /// <summary>
-    /// EN: Creates the in-memory Oracle connection used by the UNION, offset/fetch, and JSON compatibility tests.
-    /// PT: Cria a conexao Oracle em memoria usada pelos testes de compatibilidade de UNION, offset/fetch e JSON.
-    /// </summary>
-    public OracleUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper) { }
 
     /// <inheritdoc />
     protected override OracleConnectionMock CreateConnection(OracleDbMock db) => new(db);

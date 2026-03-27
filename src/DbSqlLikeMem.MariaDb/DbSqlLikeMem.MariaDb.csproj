@@ -7,6 +7,7 @@
 		<ProjectReference Include="..\DbSqlLikeMem.MySql\DbSqlLikeMem.MySql.csproj" />
 	</ItemGroup>
 	<ItemGroup>
+		<InternalsVisibleTo Include="DbSqlLikeMem.Auto" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.MariaDb.Test" />
 	</ItemGroup>
 	<ItemGroup>

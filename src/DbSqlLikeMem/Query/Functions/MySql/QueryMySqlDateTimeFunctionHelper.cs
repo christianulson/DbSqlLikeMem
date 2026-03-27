@@ -10,8 +10,8 @@ internal static class QueryMySqlDateTimeFunctionHelper
     private static readonly ConcurrentDictionary<string, string> _dateFormatCache = new(StringComparer.Ordinal);
 
     private delegate bool MySqlDateTimeFunctionHandler(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -23,8 +23,8 @@ internal static class QueryMySqlDateTimeFunctionHelper
         CreateHandlers();
 
     public static bool TryEvalFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -34,8 +34,8 @@ internal static class QueryMySqlDateTimeFunctionHelper
     {
         if (_handlers.TryGetValue(fn.Name, out var handler))
             return handler(
-                fn,
                 context,
+                fn,
                 evalArg,
                 tryConvertNumericToDouble,
                 tryConvertNumericToInt64,
@@ -69,8 +69,8 @@ internal static class QueryMySqlDateTimeFunctionHelper
     }
 
     private static bool TryEvalMySqlDateFormatFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -97,8 +97,8 @@ internal static class QueryMySqlDateTimeFunctionHelper
     }
 
     private static bool TryEvalMySqlStrToDateFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -138,8 +138,8 @@ internal static class QueryMySqlDateTimeFunctionHelper
     }
 
     private static bool TryEvalMySqlFromUnixTimeFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -179,8 +179,8 @@ internal static class QueryMySqlDateTimeFunctionHelper
     }
 
     private static bool TryEvalMySqlFromDaysFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -206,8 +206,8 @@ internal static class QueryMySqlDateTimeFunctionHelper
     }
 
     private static bool TryEvalMySqlGetFormatFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -255,8 +255,8 @@ internal static class QueryMySqlDateTimeFunctionHelper
     }
 
     private static bool TryEvalMySqlConvertTzFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,

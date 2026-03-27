@@ -399,8 +399,8 @@ internal static class DbMergeStrategy
             BinaryExpr { Op: SqlBinaryOp.Concat } b => string.Concat(
                 EvaluateValuesSourceExpression(b.Left, context)?.ToString() ?? string.Empty,
                 EvaluateValuesSourceExpression(b.Right, context)?.ToString() ?? string.Empty),
-            CallExpr call when call.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(context, call.Name, out var temporal) => temporal,
-            FunctionCallExpr fn when fn.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(context, fn.Name, out var temporal) => temporal,
+            CallExpr call when call.Args.Count == 0 && context.TryEvaluateZeroArgCall(call.Name, out var temporal) => temporal,
+            FunctionCallExpr fn when fn.Args.Count == 0 && context.TryEvaluateZeroArgCall(fn.Name, out var temporal) => temporal,
             IdentifierExpr id when string.Equals(id.Name, SqlConst.NULL, StringComparison.OrdinalIgnoreCase) => null,
             IdentifierExpr id when string.Equals(id.Name, SqlConst.TRUE, StringComparison.OrdinalIgnoreCase) => true,
             IdentifierExpr id when string.Equals(id.Name, SqlConst.FALSE, StringComparison.OrdinalIgnoreCase) => false,

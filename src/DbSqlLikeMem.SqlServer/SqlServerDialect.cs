@@ -300,8 +300,8 @@ internal sealed class SqlServerDialect : SqlDialectBase
 
     private static readonly string[] SqlServerAggregateFunctionNames =
     [
-        "CHECKSUM_AGG",
-        "STRING_AGG",
+        SqlConst.CHECKSUM_AGG,
+        SqlConst.STRING_AGG,
         "APPROX_COUNT_DISTINCT",
         "MEDIAN",
         "PERCENTILE",

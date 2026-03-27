@@ -27,29 +27,24 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     /// Represents a selectable table option for test scenario extraction.
     /// Representa uma opção de tabela selecionável para extração de cenários de teste.
     /// </summary>
-    public sealed class ScenarioTableOption
+    /// <remarks>
+    /// Initializes a scenario table option.
+    /// Inicializa uma opção de tabela do cenário.
+    /// </remarks>
+    public sealed class ScenarioTableOption(string schema, string tableName)
     {
-        /// <summary>
-        /// Initializes a scenario table option.
-        /// Inicializa uma opção de tabela do cenário.
-        /// </summary>
-        public ScenarioTableOption(string schema, string tableName)
-        {
-            Schema = schema;
-            TableName = tableName;
-        }
 
         /// <summary>
         /// Gets the schema name.
         /// Obtém o nome do schema.
         /// </summary>
-        public string Schema { get; }
+        public string Schema { get; } = schema;
 
         /// <summary>
         /// Gets the table name.
         /// Obtém o nome da tabela.
         /// </summary>
-        public string TableName { get; }
+        public string TableName { get; } = tableName;
 
         /// <summary>
         /// Gets the display name combining schema and table.

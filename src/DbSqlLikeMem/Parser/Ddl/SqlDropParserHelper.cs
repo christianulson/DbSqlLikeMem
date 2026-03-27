@@ -68,7 +68,7 @@ internal static class SqlDropParserHelper
         this SqlQueryParserContext ctx)
     {
         if (!ctx.Dialect.SupportsSequenceDdl)
-            throw SqlUnsupported.ForDialect(ctx.Dialect, "DROP SEQUENCE");
+            throw ctx.NotSupported("DROP SEQUENCE");
 
         ctx.Consume(); // SEQUENCE
 
@@ -102,7 +102,7 @@ internal static class SqlDropParserHelper
         this SqlQueryParserContext ctx)
     {
         if (!ctx.Dialect.SupportsFunctionDdl)
-            throw SqlUnsupported.ForDialect(ctx.Dialect, "DROP FUNCTION");
+            throw ctx.NotSupported("DROP FUNCTION");
 
         ctx.Consume(); // FUNCTION
 
@@ -226,7 +226,7 @@ internal static class SqlDropParserHelper
 
             if (!string.Equals(ctx.Dialect.Name, "mysql", StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(ctx.Dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase))
-                throw SqlUnsupported.ForDialect(ctx.Dialect, "DROP INDEX ... ON <table>");
+                throw ctx.NotSupported("DROP INDEX ... ON <table>");
         }
 
         ctx.EnsureStatementEnd("DROP INDEX");

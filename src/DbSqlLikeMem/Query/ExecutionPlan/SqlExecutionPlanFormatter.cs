@@ -783,16 +783,16 @@ internal static class SqlExecutionPlanFormatter
             return 0;
 
         var cost = 0;
-        cost += CountSqlFunctionCalls(raw, "COUNT") * 2;
-        cost += CountSqlFunctionCalls(raw, "SUM") * 3;
-        cost += CountSqlFunctionCalls(raw, "AVG") * 4;
-        cost += CountSqlFunctionCalls(raw, "MIN") * 3;
-        cost += CountSqlFunctionCalls(raw, "MAX") * 3;
-        cost += CountDistinctAggregateCalls(raw, "COUNT") * 2;
-        cost += CountDistinctAggregateCalls(raw, "SUM") * 2;
-        cost += CountDistinctAggregateCalls(raw, "AVG") * 2;
-        cost += CountDistinctAggregateCalls(raw, "MIN") * 2;
-        cost += CountDistinctAggregateCalls(raw, "MAX") * 2;
+        cost += CountSqlFunctionCalls(raw, SqlConst.COUNT) * 2;
+        cost += CountSqlFunctionCalls(raw, SqlConst.SUM) * 3;
+        cost += CountSqlFunctionCalls(raw, SqlConst.AVG) * 4;
+        cost += CountSqlFunctionCalls(raw, SqlConst.MIN) * 3;
+        cost += CountSqlFunctionCalls(raw, SqlConst.MAX) * 3;
+        cost += CountDistinctAggregateCalls(raw, SqlConst.COUNT) * 2;
+        cost += CountDistinctAggregateCalls(raw, SqlConst.SUM) * 2;
+        cost += CountDistinctAggregateCalls(raw, SqlConst.AVG) * 2;
+        cost += CountDistinctAggregateCalls(raw, SqlConst.MIN) * 2;
+        cost += CountDistinctAggregateCalls(raw, SqlConst.MAX) * 2;
         return cost;
     }
 

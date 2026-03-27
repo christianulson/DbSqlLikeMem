@@ -2,8 +2,15 @@ namespace DbSqlLikeMem;
 
 internal static class AstQuerySqlServerIdentifierEvaluator
 {
-    internal static bool TryResolveIdentifier(
+    internal static bool TryResolveIdentifierCore(
         QueryExecutionContext context,
+        IdentifierExpr identifier,
+        DbConnectionMockBase connection,
+        out object? result)
+        => context.TryResolveIdentifier(identifier, connection, out result);
+
+    internal static bool TryResolveIdentifier(
+        this QueryExecutionContext context,
         IdentifierExpr identifier,
         DbConnectionMockBase connection,
         out object? result)

@@ -17,23 +17,23 @@ internal sealed class AstQueryCastStringAndDateTailEvaluator(
         tryEvalCastDateTail ?? throw new ArgumentNullException(nameof(tryEvalCastDateTail));
 
     internal bool TryEvaluate(
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (_tryEvalCastConversionFamily(fn, row, group, ctes, context, evalArg, out result)
-            || _tryEvalCastConcatAndStringTail(fn, row, group, ctes, context, evalArg, out result)
-            || _tryEvalCastDateTail(fn, row, group, ctes, context, evalArg, out result))
+        if (_tryEvalCastConversionFamily(context, fn, row, group, ctes, evalArg, out result)
+            || _tryEvalCastConcatAndStringTail(context,fn, row, group, ctes,  evalArg, out result)
+            || _tryEvalCastDateTail(context, fn, row, group, ctes, evalArg, out result))
         {
             return true;
         }
 
         if (fn.Args.Count == 0
-            && SqlTemporalFunctionEvaluator.IsKnownTemporalFunctionName(context, fn.Name))
+            && context.IsKnownTemporalFunctionName(fn.Name))
         {
             throw new InvalidOperationException($"Temporal function '{fn.Name}' is not supported for context.Dialect '{context.Dialect.Name}'.");
         }
@@ -43,11 +43,11 @@ internal sealed class AstQueryCastStringAndDateTailEvaluator(
     }
 
     internal static bool TryEvalCastConcatAndStringTail(
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -55,19 +55,18 @@ internal sealed class AstQueryCastStringAndDateTailEvaluator(
         _ = group;
         _ = ctes;
 
-        result = QueryConcatFunctionHelper.TryEvalConcatFunctions(
+         var handledConcat = context.TryEvalConcatFunctions(
             fn,
             evalArg,
-            context.Dialect.ConcatReturnsNullOnNullInput,
-            out var handledConcat);
+            out result);
         if (handledConcat)
             return true;
 
-        if (AstQueryGeneralScalarFunctionEvaluator.TryEvalCharFunction(fn, context, evalArg, out result)
-            || AstQueryOracleDb2LegacyFunctionEvaluator.TryEvalDialectSpecificCastFunction(fn, context, evalArg, out result)
+        if (context.TryEvalCharFunction(fn, evalArg, out result)
+            || context.TryEvalDialectSpecificCastFunction(fn, evalArg, out result)
             || AstQueryGeneralScalarFunctionEvaluator.TryEvalBasicStringFunction(fn, evalArg, out result)
             || AstQueryGeneralScalarFunctionEvaluator.TryEvalSubstringFunction(fn, evalArg, out result)
-            || AstQueryGeneralScalarFunctionEvaluator.TryEvalReplaceFunction(fn, context, evalArg, out result))
+            || AstQueryGeneralScalarFunctionEvaluator.TryEvalReplaceFunction(context, fn, evalArg, out result))
         {
             return true;
         }
@@ -77,22 +76,22 @@ internal sealed class AstQueryCastStringAndDateTailEvaluator(
     }
 
     internal static bool TryEvalCastDateTail(
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, TemporalUnit> getTemporalUnit,
         out object? result)
     {
-        if (AstQueryTemporalArithmeticFunctionEvaluator.TryEvaluate(fn, context, row, group, ctes, evalArg, eval, getTemporalUnit, out result))
+        if (context.TryEvaluate(fn, row, group, ctes, evalArg, eval, getTemporalUnit, out result))
         {
             return true;
         }
 
-        if (AstQueryGeneralDateFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)
+        if (AstQueryGeneralDateFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result)
             || AstQueryTemporalAccessorFunctionEvaluator.TryEvaluate(
                 fn,
                 row,
@@ -102,7 +101,7 @@ internal sealed class AstQueryCastStringAndDateTailEvaluator(
                 getTemporalUnit,
                 AstQueryExecutionRuntimeHelper.ResolveTemporalUnit,
                 out result)
-            || AstQueryGeneralScalarFunctionEvaluator.TryEvalFieldFunction(fn, context, evalArg, out result))
+            || AstQueryGeneralScalarFunctionEvaluator.TryEvalFieldFunction(context, fn, evalArg, out result))
         {
             return true;
         }

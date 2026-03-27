@@ -47,7 +47,7 @@ internal static class SqlDmlParserHelper
         if (ctx.IsJoinStart())
         {
             if (!ctx.Dialect.SupportsUpdateJoinFromSubquerySyntax)
-                throw SqlUnsupported.ForDialect(ctx.Dialect, "UPDATE ... JOIN (subquery)");
+                throw ctx.NotSupported("UPDATE ... JOIN (subquery)");
 
             hasJoin = true;
             ctx.SkipUntilTopLevelWord(SqlConst.SET);
@@ -164,14 +164,14 @@ internal static class SqlDmlParserHelper
                 && ctx.Peek().Kind == SqlTokenKind.Identifier
                 && SqlQueryParserContext.IsWord(ctx.PeekTokenFrom(1), SqlConst.FROM);
             if (!ctx.Dialect.SupportsDeleteWithoutFrom && !ctx.Dialect.AllowsParserDeleteWithoutFromCompatibility && !allowsTargetAlias)
-                throw SqlUnsupported.ForDeleteWithoutFrom(ctx.Dialect);
+                throw SqlUnsupported.NotSupportedDeleteWithoutFrom(ctx.Dialect);
 
             var first = ctx.ParseTableSource(consumeHints: false, false);
 
             if (ctx.IsWord(SqlConst.FROM))
             {
                 if (!ctx.Dialect.SupportsDeleteTargetAlias && !ctx.Dialect.AllowsParserDeleteWithoutFromCompatibility)
-                    throw SqlUnsupported.ForDeleteTargetAliasFrom(ctx.Dialect);
+                    throw SqlUnsupported.NotSupportedDeleteTargetAliasFrom(ctx.Dialect);
 
                 ctx.Consume(); // FROM
                 table = ctx.ParseTableSource(consumeHints: false, false);

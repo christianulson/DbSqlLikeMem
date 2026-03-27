@@ -5,8 +5,8 @@ namespace DbSqlLikeMem;
 internal static class AstQueryDb2DateFunctionEvaluator
 {
     private delegate bool AstQueryTryEvalDb2DateFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         Func<string, TemporalUnit> resolveTemporalUnit,
         out object? result);
@@ -14,15 +14,15 @@ internal static class AstQueryDb2DateFunctionEvaluator
     private static readonly IReadOnlyDictionary<string, AstQueryTryEvalDb2DateFunction> _handlers =
         CreateHandlers();
 
-    internal static bool TryEvaluate(
+    internal static bool TryEvaluateDb2DateFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         Func<string, TemporalUnit> resolveTemporalUnit,
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler)
-            && handler(fn, context, evalArg, resolveTemporalUnit, out result))
+            && handler(context,fn,  evalArg, resolveTemporalUnit, out result))
         {
             return true;
         }
@@ -49,8 +49,8 @@ internal static class AstQueryDb2DateFunctionEvaluator
     }
 
     private static bool TryEvalDb2DateAliasFunctionHandler(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         Func<string, TemporalUnit> resolveTemporalUnit,
         out object? result)
@@ -61,8 +61,8 @@ internal static class AstQueryDb2DateFunctionEvaluator
     }
 
     private static bool TryEvalDb2DateAddAliasFunctionHandler(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         Func<int, object?> evalArg,
         Func<string, TemporalUnit> resolveTemporalUnit,
         out object? result)

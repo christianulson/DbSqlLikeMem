@@ -51,11 +51,11 @@ public sealed class SqlAzureDialectFeatureParserTests
             dialect));
 
         Assert.Equal("fn_users", create.Table?.Name, ignoreCase: true);
-        Assert.Equal("INT", create.ReturnTypeSql, ignoreCase: true);
-        Assert.Equal(2, create.Parameters.Count);
-        Assert.Equal("@baseValue", create.Parameters[0].Name, ignoreCase: true);
-        Assert.Equal("@incrementValue", create.Parameters[1].Name, ignoreCase: true);
-        Assert.IsType<BinaryExpr>(create.Body);
+        Assert.Equal("INT", create.Definition.ReturnTypeSql, ignoreCase: true);
+        Assert.Equal(2, create.Definition.Parameters.Count);
+        Assert.Equal("@baseValue", create.Definition.Parameters[0].Name, ignoreCase: true);
+        Assert.Equal("@incrementValue", create.Definition.Parameters[1].Name, ignoreCase: true);
+        Assert.IsType<BinaryExpr>(create.Definition.Body);
 
         var drop = Assert.IsType<SqlDropFunctionQuery>(SqlQueryParser.Parse(
             "DROP FUNCTION IF EXISTS fn_users",
@@ -755,7 +755,7 @@ public sealed class SqlAzureDialectFeatureParserTests
             dialect);
 
         var call = Assert.IsType<CallExpr>(expr);
-        Assert.Equal("STRING_AGG", call.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.STRING_AGG, call.Name, StringComparer.OrdinalIgnoreCase);
         Assert.NotNull(call.WithinGroupOrderBy);
         Assert.Equal(2, call.WithinGroupOrderBy!.Count);
         Assert.True(call.WithinGroupOrderBy[0].Desc);
@@ -781,7 +781,7 @@ public sealed class SqlAzureDialectFeatureParserTests
                     "STRING_AGG(amount, '|') WITHIN GROUP (amount DESC)",
                     dialect));
 
-            Assert.Contains("STRING_AGG", gateEx.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SqlConst.STRING_AGG, gateEx.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -818,7 +818,7 @@ public sealed class SqlAzureDialectFeatureParserTests
             dialect));
 
         Assert.Single(parsed.SelectItems);
-        Assert.Contains("STRING_AGG", parsed.SelectItems[0].Raw, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.STRING_AGG, parsed.SelectItems[0].Raw, StringComparison.OrdinalIgnoreCase);
     }
 }
 

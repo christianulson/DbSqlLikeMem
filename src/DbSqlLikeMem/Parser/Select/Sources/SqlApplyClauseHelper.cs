@@ -15,24 +15,24 @@ internal static class SqlApplyClauseHelper
             if (functionName.Equals(SqlConst.OPENJSON, StringComparison.OrdinalIgnoreCase)
                 && (!ctx.Dialect.TryGetTableFunctionDefinition(SqlConst.OPENJSON, out var openJsonDefinition)
                     || openJsonDefinition is null))
-                return SqlUnsupported.ForDialect(ctx.Dialect, SqlConst.OPENJSON);
+                return ctx.NotSupported(SqlConst.OPENJSON);
 
             if (functionName.Equals(SqlConst.JSON_TABLE, StringComparison.OrdinalIgnoreCase)
                 && (!ctx.Dialect.TryGetTableFunctionDefinition(SqlConst.JSON_TABLE, out var jsonTableDefinition)
                     || jsonTableDefinition is null))
-                return SqlUnsupported.ForDialect(ctx.Dialect, SqlConst.JSON_TABLE);
+                return ctx.NotSupported(SqlConst.JSON_TABLE);
 
             if (functionName.Equals(SqlConst.STRING_SPLIT, StringComparison.OrdinalIgnoreCase))
             {
                 if (argCount == 3 && !ctx.Dialect.SupportsStringSplitOrdinalArgument)
-                    return SqlUnsupported.ForDialect(ctx.Dialect, "STRING_SPLIT enable_ordinal");
+                    return ctx.NotSupported("STRING_SPLIT enable_ordinal");
 
                 if (!ctx.Dialect.SupportsStringSplitFunction)
-                    return SqlUnsupported.ForDialect(ctx.Dialect, SqlConst.STRING_SPLIT);
+                    return ctx.NotSupported(SqlConst.STRING_SPLIT);
             }
         }
 
-        return SqlUnsupported.ForDialect(ctx.Dialect, clause);
+        return ctx.NotSupported(clause);
     }
 
     internal static (string Name, int ArgCount)? TryPeekApplyTableFunctionInfo(
@@ -52,7 +52,7 @@ internal static class SqlApplyClauseHelper
         if (parts.Count == 0)
             return null;
 
-        var names = ctx.Dialect.TableFunctions.Keys
+        var names = ctx.Dialect.Functions.TableFunctionNames
             .Where(static name => !string.IsNullOrWhiteSpace(name))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderByDescending(static name => name.Length)

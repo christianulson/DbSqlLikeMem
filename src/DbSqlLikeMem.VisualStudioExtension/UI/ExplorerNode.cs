@@ -56,29 +56,24 @@ public enum ExplorerNodeKind
 /// Represents an explorer tree node displayed in the UI.
 /// Representa um nó da árvore do explorador exibida na interface.
 /// </summary>
-public sealed class ExplorerNode
+/// <remarks>
+/// Initializes a new explorer node with a label and kind.
+/// Inicializa um novo nó do explorador com rótulo e tipo.
+/// </remarks>
+public sealed class ExplorerNode(string label, ExplorerNodeKind kind)
 {
-    /// <summary>
-    /// Initializes a new explorer node with a label and kind.
-    /// Inicializa um novo nó do explorador com rótulo e tipo.
-    /// </summary>
-    public ExplorerNode(string label, ExplorerNodeKind kind)
-    {
-        Label = label;
-        Kind = kind;
-    }
 
     /// <summary>
     /// Gets the display label of the node.
     /// Obtém o rótulo de exibição do nó.
     /// </summary>
-    public string Label { get; }
+    public string Label { get; } = label;
 
     /// <summary>
     /// Gets the category of this node.
     /// Obtém a categoria deste nó.
     /// </summary>
-    public ExplorerNodeKind Kind { get; }
+    public ExplorerNodeKind Kind { get; } = kind;
 
     /// <summary>
     /// Gets or sets the associated connection identifier.

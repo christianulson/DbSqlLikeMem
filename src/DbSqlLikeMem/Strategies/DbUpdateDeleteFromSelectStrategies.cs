@@ -128,10 +128,10 @@ internal static class DbUpdateDeleteFromSelectStrategies
             throw new InvalidOperationException(SqlExceptionMessages.UpdateJoinInvalid());
         var dialect = context.Dialect;
         if (!fromClause && !dialect.SupportsUpdateJoinFromSubquerySyntax)
-            throw SqlUnsupported.ForDialect(dialect, "UPDATE ... JOIN (subquery)");
+            throw SqlUnsupported.NotSupported(dialect, "UPDATE ... JOIN (subquery)");
 
         if (fromClause && !dialect.SupportsUpdateFromJoinSubquerySyntax)
-            throw SqlUnsupported.ForDialect(dialect, "UPDATE ... FROM ... JOIN (subquery)");
+            throw SqlUnsupported.NotSupported(dialect, "UPDATE ... FROM ... JOIN (subquery)");
 
         var tableName = m.Groups["table"].Value.NormalizeName();
         var aAlias = fromClause ? m.Groups["a2"].Value : m.Groups["a"].Value;
@@ -385,10 +385,10 @@ internal static class DbUpdateDeleteFromSelectStrategies
             throw new InvalidOperationException(SqlExceptionMessages.DeleteJoinInvalid());
 
         if (!usingSyntax && !dialect.SupportsDeleteTargetFromJoinSubquerySyntax)
-            throw SqlUnsupported.ForDialect(dialect, "DELETE <alvo> FROM ... JOIN (subquery)");
+            throw SqlUnsupported.NotSupported(dialect, "DELETE <alvo> FROM ... JOIN (subquery)");
 
         if (usingSyntax && !dialect.SupportsDeleteUsingSubquerySyntax)
-            throw SqlUnsupported.ForDialect(dialect, "DELETE FROM ... USING (subquery)");
+            throw SqlUnsupported.NotSupported(dialect, "DELETE FROM ... USING (subquery)");
 
         var tableName = m.Groups["table"].Value.NormalizeName();
         var aAlias = usingSyntax ? m.Groups["a"].Value : m.Groups["a2"].Value;

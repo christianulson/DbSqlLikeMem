@@ -5,8 +5,8 @@ namespace DbSqlLikeMem;
 internal static class AstQueryMySqlUtilityFunctionEvaluator
 {
     private delegate bool MySqlUtilityFunctionHandler(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -16,8 +16,8 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
     private static readonly Dictionary<string, MySqlUtilityFunctionHandler> _handlers = CreateHandlers();
 
     internal static bool TryEvaluate(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -27,7 +27,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         result = null;
 
         if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler(fn, context, row, evalArg, tryConvertNumericToInt64, tryConvertNumericToDouble, out result);
+            return handler(context, fn, row, evalArg, tryConvertNumericToInt64, tryConvertNumericToDouble, out result);
 
         return false;
     }
@@ -68,8 +68,8 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
     }
 
     private static bool TryEvalSetFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -166,8 +166,8 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
     }
 
     private static bool TryEvalHexFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -239,8 +239,8 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
     }
 
     private static bool TryEvalFormatFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -285,8 +285,8 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
     }
 
     private static bool TryEvalRandomBytesFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -329,8 +329,8 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
     }
 
     private static bool TryEvalSleepFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -359,8 +359,8 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
     }
 
     private static bool TryEvalCompressFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -419,8 +419,8 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
     }
 
     private static bool TryEvalFormatBytesFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -469,8 +469,8 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
     }
 
     private static bool TryEvalFormatPicoTimeFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -528,8 +528,8 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
     }
 
     private static bool TryEvalXmlFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -559,8 +559,8 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
     }
 
     private static bool TryEvalLastInsertIdFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -590,8 +590,8 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
     }
 
     private static bool TryEvalCryptoFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -747,8 +747,8 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
     }
 
     private static bool TryEvalDefaultFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -845,8 +845,8 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
     }
 
     private static bool TryEvalRegexFunctions(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -968,8 +968,8 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
     }
 
     private static bool TryEvalMemberOfFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -1020,8 +1020,8 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
     }
 
     private static bool TryEvalIsIpv4Function(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -1041,8 +1041,8 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
     }
 
     private static bool TryEvalIsIpv6Function(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -1062,8 +1062,8 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
     }
 
     private static bool TryEvalIsIpv4CompatFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
@@ -1081,8 +1081,8 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
     }
 
     private static bool TryEvalIsIpv4MappedFunction(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
-        QueryExecutionContext context,
         EvalRow row,
         Func<int, object?> evalArg,
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,

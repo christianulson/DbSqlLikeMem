@@ -7,7 +7,7 @@ internal static class WindowFunctionSupportValidator
         if (!(dialect?.SupportsWindowFunctions ?? true)
             || !(dialect?.TryGetWindowFunctionDefinition(windowFunction, out _) ?? true))
         {
-            throw SqlUnsupported.ForDialect(
+            throw SqlUnsupported.NotSupported(
                 dialect ?? throw new InvalidOperationException("Dialect is required for window function validation."),
                 $"window functions ({windowFunction.Name})");
         }

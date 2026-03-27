@@ -25,18 +25,18 @@ internal static class WindowFrameRangeResolver
         return new RowsFrameRange(startIndex, endIndex, IsEmpty: false);
     }
 
-    internal static RowsFrameRange Resolve<T>(
+    internal static RowsFrameRange ResolveRowsFrameRange<T>(
+        this WindowPartitionExecutionContext context,
         WindowFrameSpec frame,
         List<T> partition,
         int rowIndex,
         IReadOnlyList<WindowOrderItem> orderBy,
-        Dictionary<T, object?[]> orderValuesByRow,
-        Func<object?[], object?[], bool> windowOrderValuesEqual)
+        Dictionary<T, object?[]> orderValuesByRow)
         where T : notnull
         => frame.Unit switch
         {
-            WindowFrameUnit.Groups => ResolveGroupsFrameRange(frame, partition, rowIndex, orderValuesByRow, windowOrderValuesEqual),
-            WindowFrameUnit.Range => ResolveRangeFrameRange(frame, partition, rowIndex, orderValuesByRow, orderBy, windowOrderValuesEqual),
+            WindowFrameUnit.Groups => context.ResolveGroupsFrameRange(frame, partition, rowIndex, orderValuesByRow),
+            WindowFrameUnit.Range => context.ResolveRangeFrameRange(frame, partition, rowIndex, orderValuesByRow, orderBy),
             _ => ResolveRowsFrameRange(frame, partition.Count, rowIndex)
         };
 
@@ -55,14 +55,14 @@ internal static class WindowFrameRangeResolver
     }
 
     private static RowsFrameRange ResolveGroupsFrameRange<T>(
+        this WindowPartitionExecutionContext context,
         WindowFrameSpec frame,
         List<T> partition,
         int rowIndex,
-        Dictionary<T, object?[]> orderValuesByRow,
-        Func<object?[], object?[], bool> windowOrderValuesEqual)
+        Dictionary<T, object?[]> orderValuesByRow)
         where T : notnull
     {
-        var groups = BuildPeerGroups(partition, orderValuesByRow, windowOrderValuesEqual);
+        var groups = context.BuildPeerGroups(partition, orderValuesByRow);
         var currentGroupIndex = groups.FindIndex(group => rowIndex >= group.Start && rowIndex <= group.End);
         if (currentGroupIndex < 0)
             return RowsFrameRange.Empty;
@@ -76,12 +76,12 @@ internal static class WindowFrameRangeResolver
     }
 
     private static RowsFrameRange ResolveRangeFrameRange<T>(
+        this WindowPartitionExecutionContext context,
         WindowFrameSpec frame,
         List<T> partition,
         int rowIndex,
         Dictionary<T, object?[]> orderValuesByRow,
-        IReadOnlyList<WindowOrderItem> orderBy,
-        Func<object?[], object?[], bool> windowOrderValuesEqual)
+        IReadOnlyList<WindowOrderItem> orderBy)
         where T : notnull
     {
         var hasOffsetBound = frame.Start.Kind is WindowFrameBoundKind.Preceding or WindowFrameBoundKind.Following
@@ -89,7 +89,7 @@ internal static class WindowFrameRangeResolver
 
         ValidateRangeOffsetOrderBy(orderBy, hasOffsetBound);
 
-        var peerRange = ResolvePeerRange(partition, rowIndex, orderValuesByRow, windowOrderValuesEqual);
+        var peerRange = context.ResolvePeerRange(partition, rowIndex, orderValuesByRow);
 
         int startIndex;
         int endIndex;
@@ -122,9 +122,9 @@ internal static class WindowFrameRangeResolver
     }
 
     private static List<(int Start, int End)> BuildPeerGroups<T>(
+        this WindowPartitionExecutionContext context,
         List<T> partition,
-        Dictionary<T, object?[]> orderValuesByRow,
-        Func<object?[], object?[], bool> windowOrderValuesEqual)
+        Dictionary<T, object?[]> orderValuesByRow)
         where T : notnull
     {
         var groups = new List<(int Start, int End)>();
@@ -132,7 +132,7 @@ internal static class WindowFrameRangeResolver
         for (var i = 1; i <= partition.Count; i++)
         {
             var isBoundary = i == partition.Count
-                || !windowOrderValuesEqual(orderValuesByRow[partition[i - 1]], orderValuesByRow[partition[i]]);
+                || !context.WindowOrderValuesEqual(orderValuesByRow[partition[i - 1]], orderValuesByRow[partition[i]]);
             if (!isBoundary)
                 continue;
 
@@ -158,19 +158,19 @@ internal static class WindowFrameRangeResolver
     }
 
     private static (int Start, int End) ResolvePeerRange<T>(
+        this WindowPartitionExecutionContext context,
         List<T> partition,
         int rowIndex,
-        Dictionary<T, object?[]> orderValuesByRow,
-        Func<object?[], object?[], bool> windowOrderValuesEqual)
+        Dictionary<T, object?[]> orderValuesByRow)
         where T : notnull
     {
         var current = orderValuesByRow[partition[rowIndex]];
         var start = rowIndex;
-        while (start > 0 && windowOrderValuesEqual(orderValuesByRow[partition[start - 1]], current))
+        while (start > 0 && context.WindowOrderValuesEqual(orderValuesByRow[partition[start - 1]], current))
             start--;
 
         var end = rowIndex;
-        while (end < partition.Count - 1 && windowOrderValuesEqual(orderValuesByRow[partition[end + 1]], current))
+        while (end < partition.Count - 1 && context.WindowOrderValuesEqual(orderValuesByRow[partition[end + 1]], current))
             end++;
 
         return (start, end);

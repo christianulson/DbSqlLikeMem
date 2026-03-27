@@ -10,7 +10,7 @@ internal static class SqlPivotHelper
             return source;
 
         if (!ctx.Dialect.SupportsPivotClause)
-            throw SqlUnsupported.ForDialect(ctx.Dialect, SqlConst.PIVOT);
+            throw SqlUnsupported.NotSupported(ctx.Dialect, SqlConst.PIVOT);
 
         ctx.Consume();
         var raw = ctx.ReadBalancedParenRawTokens();
@@ -36,7 +36,7 @@ internal static class SqlPivotHelper
             return source;
 
         if (!dialect.SupportsPivotClause)
-            throw SqlUnsupported.ForDialect(dialect, SqlConst.PIVOT);
+            throw SqlUnsupported.NotSupported(dialect, SqlConst.PIVOT);
 
         consume();
         var raw = readBalancedParenRawTokens();
@@ -58,7 +58,7 @@ internal static class SqlPivotHelper
             return source;
 
         if (!ctx.Dialect.SupportsUnpivotClause)
-            throw SqlUnsupported.ForDialect(ctx.Dialect, SqlConst.UNPIVOT);
+            throw SqlUnsupported.NotSupported(ctx.Dialect, SqlConst.UNPIVOT);
 
         ctx.Consume();
         var raw = ctx.ReadBalancedParenRawTokens();
@@ -84,7 +84,7 @@ internal static class SqlPivotHelper
             return source;
 
         if (!dialect.SupportsUnpivotClause)
-            throw SqlUnsupported.ForDialect(dialect, SqlConst.UNPIVOT);
+            throw SqlUnsupported.NotSupported(dialect, SqlConst.UNPIVOT);
 
         consume();
         var raw = readBalancedParenRawTokens();

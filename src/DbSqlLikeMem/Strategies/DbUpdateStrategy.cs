@@ -279,7 +279,7 @@ internal static class DbUpdateStrategy
     private static bool TryResolveTemporalSetValue(string exprRaw, QueryExecutionContext context, out object? value)
     {
         var trimmed = exprRaw.Trim();
-        if (SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(context, trimmed, out value))
+        if (context.TryEvaluateZeroArgIdentifier(trimmed, out value))
             return true;
 
         var openParen = trimmed.IndexOf('(');
@@ -292,7 +292,7 @@ internal static class DbUpdateStrategy
         if (argsRaw.Length > 0)
             return false;
 
-        return SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(context, functionName, out value);
+        return context.TryEvaluateZeroArgCall(functionName, out value);
     }
 
     private static bool TryEvalArithmeticSetValue(

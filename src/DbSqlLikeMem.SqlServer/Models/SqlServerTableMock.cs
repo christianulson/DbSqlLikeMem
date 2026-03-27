@@ -22,7 +22,7 @@ public class SqlServerTableMock(
 
     /// <summary>
     /// EN: Resolves a SQL token to a typed value according to SQL Server conversion rules.
-    /// PT: Resolve um token SQL para um valor tipado conforme as regras de conversão do SQL Server.
+    /// PT: ResolveRowsFrameRange um token SQL para um valor tipado conforme as regras de conversão do SQL Server.
     /// </summary>
     public override object? Resolve(
         string token,

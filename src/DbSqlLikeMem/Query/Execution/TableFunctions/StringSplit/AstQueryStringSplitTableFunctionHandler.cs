@@ -16,7 +16,7 @@ internal sealed class AstQueryStringSplitTableFunctionHandler(
         var alias = tableSource.Alias ?? function.Name;
         var dialect = _context.Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para STRING_SPLIT.");
         if (!dialect.SupportsStringSplitFunction)
-            throw SqlUnsupported.ForDialect(dialect, SqlConst.STRING_SPLIT);
+            throw SqlUnsupported.NotSupported(dialect, SqlConst.STRING_SPLIT);
 
         if (function.Args.Count is < 2 or > 3)
             throw new NotSupportedException("STRING_SPLIT table source currently supports two or three arguments in the mock.");
@@ -28,7 +28,7 @@ internal sealed class AstQueryStringSplitTableFunctionHandler(
         if (function.Args.Count == 3)
         {
             if (!dialect.SupportsStringSplitOrdinalArgument)
-                throw SqlUnsupported.ForDialect(dialect, "STRING_SPLIT enable_ordinal");
+                throw SqlUnsupported.NotSupported(dialect, "STRING_SPLIT enable_ordinal");
 
             includeOrdinal = EvaluateStringSplitOrdinalFlag(
                 _evalExpression(function.Args[2], evalRow, null, ctes));

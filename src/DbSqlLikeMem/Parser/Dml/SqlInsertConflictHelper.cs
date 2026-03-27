@@ -18,7 +18,7 @@ internal static class SqlInsertConflictHelper
         {
             if (!ctx.Dialect.SupportsOnDuplicateKeyUpdate && !ctx.Dialect.AllowsParserInsertSelectUpsertSuffix)
             {
-                var gateException = SqlUnsupported.ForOnDuplicateKeyUpdateClause(ctx.Dialect);
+                var gateException = SqlUnsupported.NotSupportedOnDuplicateKeyUpdateClause(ctx.Dialect);
                 throw gateException;
             }
 
@@ -52,7 +52,7 @@ internal static class SqlInsertConflictHelper
         {
             if (!ctx.Dialect.SupportsOnConflictClause && !ctx.Dialect.AllowsParserInsertSelectUpsertSuffix)
             {
-                var gateException = SqlUnsupported.ForOnConflictClause(ctx.Dialect);
+                var gateException = SqlUnsupported.NotSupportedOnConflictClause(ctx.Dialect);
                 throw gateException;
             }
 

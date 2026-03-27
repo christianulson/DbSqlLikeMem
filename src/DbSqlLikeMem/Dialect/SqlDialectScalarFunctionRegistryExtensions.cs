@@ -2,238 +2,167 @@ namespace DbSqlLikeMem;
 
 internal static class SqlDialectScalarFunctionRegistryExtensions
 {
-    internal static bool TryGetScalarFunctionDefinition(
-        this ISqlDialect dialect,
-        string name,
-        out DbScalarFunctionDef? definition)
-    {
-        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
-        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(name, nameof(name));
-
-        return dialect.ScalarFunctions.TryGetValue(name, out definition)
-            && definition is not null;
-    }
-
-    internal static bool TryGetScalarFunctionDefinition(
-        this ISqlDialect dialect,
-        FunctionCallExpr call,
-        out DbScalarFunctionDef? definition)
-    {
-        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
-        ArgumentNullExceptionCompatible.ThrowIfNull(call, nameof(call));
-
-        if (call.ResolvedScalarFunction is not null)
-        {
-            definition = call.ResolvedScalarFunction;
-            return true;
-        }
-
-        return dialect.TryGetScalarFunctionDefinition(call.Name, out definition);
-    }
-
-    internal static bool TryGetScalarFunctionDefinition(
-        this ISqlDialect dialect,
-        CallExpr call,
-        out DbScalarFunctionDef? definition)
-    {
-        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
-        ArgumentNullExceptionCompatible.ThrowIfNull(call, nameof(call));
-
-        if (call.ResolvedScalarFunction is not null)
-        {
-            definition = call.ResolvedScalarFunction;
-            return true;
-        }
-
-        return dialect.TryGetScalarFunctionDefinition(call.Name, out definition);
-    }
-
-    internal static FunctionCallExpr BindScalarFunctionDefinition(
-        this FunctionCallExpr call,
-        DbScalarFunctionDef? definition)
-    {
-        ArgumentNullExceptionCompatible.ThrowIfNull(call, nameof(call));
-
-        return definition is null
-            ? call
-            : call with { ResolvedScalarFunction = definition };
-    }
-
-    internal static CallExpr BindScalarFunctionDefinition(
-        this CallExpr call,
-        DbScalarFunctionDef? definition)
-    {
-        ArgumentNullExceptionCompatible.ThrowIfNull(call, nameof(call));
-
-        return definition is null
-            ? call
-            : call with { ResolvedScalarFunction = definition };
-    }
-
-    internal static FunctionCallExpr BindScalarFunctionDefinition(
-        this FunctionCallExpr call,
-        ISqlDialect dialect)
-    {
-        ArgumentNullExceptionCompatible.ThrowIfNull(call, nameof(call));
-        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
-
-        return dialect.TryGetScalarFunctionDefinition(call.Name, out var definition)
-            ? call with { ResolvedScalarFunction = definition }
-            : call;
-    }
-
-    internal static CallExpr BindScalarFunctionDefinition(
-        this CallExpr call,
-        ISqlDialect dialect)
-    {
-        ArgumentNullExceptionCompatible.ThrowIfNull(call, nameof(call));
-        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
-
-        return dialect.TryGetScalarFunctionDefinition(call.Name, out var definition)
-            ? call with { ResolvedScalarFunction = definition }
-            : call;
-    }
-
-    internal static FunctionCallExpr BindTableFunctionDefinition(
-        this FunctionCallExpr call,
-        DbTableFunctionDef? definition)
-    {
-        ArgumentNullExceptionCompatible.ThrowIfNull(call, nameof(call));
-
-        return definition is null
-            ? call
-            : call with { ResolvedTableFunction = definition };
-    }
-
     internal static bool TryEvalZeroArgTemporalFunction(
-        FunctionCallExpr fn,
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
-        ArgumentNullExceptionCompatible.ThrowIfNull(fn, nameof(fn));
         ArgumentNullExceptionCompatible.ThrowIfNull(context, nameof(context));
+        ArgumentNullExceptionCompatible.ThrowIfNull(fn, nameof(fn));
         _ = evalArg;
 
         result = null;
         if (fn.Args.Count != 0)
             return false;
 
-        return SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(context, fn.Name, out result)
-            || SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(context, fn.Name, out result);
+        return context.TryEvaluateZeroArgCall(fn.Name, out result)
+            || context.TryEvaluateZeroArgIdentifier(fn.Name, out result);
     }
 
-    internal static bool AllowsTemporalIdentifier(
-        this ISqlDialect dialect,
-        string name)
+    internal static FunctionCallExpr BindScalarFunctionDefinition(
+        this FunctionCallExpr call,
+        DbFunctionDef? definition)
     {
-        if (dialect.TryGetScalarFunctionDefinition(name, out var definition)
-            && definition!.TemporalKind is not null)
-        {
-            return definition.AllowsIdentifier;
-        }
+        ArgumentNullExceptionCompatible.ThrowIfNull(call, nameof(call));
 
-        return dialect.TemporalFunctionIdentifierNames.Any(token => token.Equals(name, StringComparison.OrdinalIgnoreCase));
+        return definition is null
+            ? call
+            : call with { ResolvedScalarFunction = definition };
     }
 
-    internal static bool AllowsTemporalCall(
-        this ISqlDialect dialect,
-        string name)
+    internal static CallExpr BindScalarFunctionDefinition(
+        this CallExpr call,
+        DbFunctionDef? definition)
     {
-        if (dialect.TryGetScalarFunctionDefinition(name, out var definition)
-            && definition!.TemporalKind is not null)
-        {
-            return definition.AllowsCall;
-        }
+        ArgumentNullExceptionCompatible.ThrowIfNull(call, nameof(call));
 
-        return dialect.TemporalFunctionCallNames.Any(token => token.Equals(name, StringComparison.OrdinalIgnoreCase));
+        return definition is null
+            ? call
+            : call with { ResolvedScalarFunction = definition };
     }
 
-    internal static bool TryGetTemporalFunctionKind(
-        this ISqlDialect dialect,
-        string name,
-        out SqlTemporalFunctionKind kind)
+    internal static FunctionCallExpr BindScalarFunctionDefinition(
+        this FunctionCallExpr call,
+        ISqlDialect dialect)
     {
-        if (dialect.TryGetScalarFunctionDefinition(name, out var definition)
-            && definition!.TemporalKind is SqlTemporalFunctionKind registeredKind)
-        {
-            kind = registeredKind;
-            return true;
-        }
+        ArgumentNullExceptionCompatible.ThrowIfNull(call, nameof(call));
+        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
 
-        return dialect.TemporalFunctionNames.TryGetValue(name, out kind);
+        return dialect.TryGetScalarFunctionDefinition(call, out var definition)
+            ? call with { ResolvedScalarFunction = definition }
+            : call;
+    }
+
+    internal static CallExpr BindScalarFunctionDefinition(
+        this CallExpr call,
+        ISqlDialect dialect)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(call, nameof(call));
+        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
+
+        return dialect.TryGetScalarFunctionDefinition(call, out var definition)
+            ? call with { ResolvedScalarFunction = definition }
+            : call;
     }
 
     internal static void AddScalarFunction(
         this ISqlDialect dialect,
-        string name,
-        string returnTypeSql,
-        params DbScalarFunctionParameterDef[] parameters)
-        => dialect.AddScalarFunction(name, returnTypeSql, SqlFunctionBodyFactory.Identity(), parameters);
-
-    internal static void AddScalarFunction(
-        this ISqlDialect dialect,
-        DbScalarFunctionDef definition)
+        DbFunctionDef definition)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
         ArgumentNullExceptionCompatible.ThrowIfNull(definition, nameof(definition));
 
-        dialect.ScalarFunctions[definition.Name] = definition;
+        dialect.Functions.Add(definition);
     }
 
-    internal static void AddStringAggregateFunction(
+    internal static void AddScalarFunctions(
+        this ISqlDialect dialect,
+        DbFunctionDef definition,
+        params string[] names)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
+        ArgumentNullExceptionCompatible.ThrowIfNull(definition, nameof(definition));
+
+        dialect.AddScalarFunction(definition);
+        foreach (var name in names)
+            dialect.AddScalarFunction(definition with { Name = name });
+    }
+
+    private static DbFunctionDef CreateScalarFunctionDefinition(
+        string name,
+        string returnTypeSql,
+        DbInvocationStyle invocationStyle,
+        SqlTemporalFunctionKind? temporalKind = null)
+        => temporalKind is SqlTemporalFunctionKind temporal
+            ? DbFunctionDef.CreateTemporal(name, returnTypeSql.Trim(), temporal, invocationStyle)
+            : invocationStyle switch
+            {
+                DbInvocationStyle.Identifier => DbFunctionDef.CreateIdentifier(name, returnTypeSql.Trim()),
+                _ when invocationStyle == (DbInvocationStyle.Call | DbInvocationStyle.Identifier) => DbFunctionDef.CreateCallOrIdentifier(name, returnTypeSql.Trim()),
+                _ => DbFunctionDef.CreateScalar(name, returnTypeSql.Trim(), invocationStyle: invocationStyle)
+            };
+
+    private static DbFunctionDef WithScalarFunctionParameters(
+        DbFunctionDef definition,
+        params DbFunctionParameterDef[] parameters)
+        => definition with
+        {
+            Parameters = parameters
+        };
+
+    private static DbFunctionDef WithScalarFunctionExecutor(
+        DbFunctionDef definition,
+        AstQueryGeneralScalarFunctionHandler executionHandler,
+        params DbFunctionParameterDef[] parameters)
+        => definition with
+        {
+            Parameters = parameters,
+            AstExecutor = executionHandler
+        };
+
+    private static void AddScalarFunctionsCore(
+        ISqlDialect dialect,
+        Action<string> addFunction,
+        params string[] names)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
+        ArgumentNullExceptionCompatible.ThrowIfNull(addFunction, nameof(addFunction));
+
+        foreach (var name in names)
+            addFunction(name);
+    }
+
+    internal static void AddScalarFunction(
         this ISqlDialect dialect,
         string name,
         string returnTypeSql,
-        Func<SqlExpr, object>? fnBody = null)
-    {
-        dialect.AddScalarFunction(new DbScalarFunctionDef(
+        Func<SqlExpr, object> fnBody,
+        params DbFunctionParameterDef[] parameters)
+        => dialect.AddScalarFunctionWithBody(
             name,
             returnTypeSql,
-            [],
-            fnBody ?? SqlFunctionBodyFactory.Identity(),
-            SqlScalarFunctionUsageKind.Call,
+            fnBody,
+            DbInvocationStyle.Call,
             null,
-            true));
-    }
+            parameters);
 
-    internal static void AddScalarFunction(
+    private static void AddScalarFunctionWithBody(
         this ISqlDialect dialect,
         string name,
         string returnTypeSql,
         Func<SqlExpr, object> fnBody,
-        params DbScalarFunctionParameterDef[] parameters)
-        => dialect.AddScalarFunction(name, returnTypeSql, fnBody, SqlScalarFunctionUsageKind.Call, null, parameters);
-
-    internal static void AddScalarFunction(
-        this ISqlDialect dialect,
-        string name,
-        string returnTypeSql,
-        AstQueryGeneralScalarFunctionHandler executionHandler,
-        params DbScalarFunctionParameterDef[] parameters)
-        => dialect.AddScalarFunction(name, returnTypeSql, executionHandler, SqlScalarFunctionUsageKind.Call, null, parameters);
-
-    internal static void AddScalarFunction(
-        this ISqlDialect dialect,
-        string name,
-        string returnTypeSql,
-        Func<SqlExpr, object> fnBody,
-        SqlScalarFunctionUsageKind usageKind,
+        DbInvocationStyle invocationStyle,
         SqlTemporalFunctionKind? temporalKind,
-        params DbScalarFunctionParameterDef[] parameters)
+        params DbFunctionParameterDef[] parameters)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(name, nameof(name));
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(returnTypeSql, nameof(returnTypeSql));
         ArgumentNullExceptionCompatible.ThrowIfNull(fnBody, nameof(fnBody));
 
-        dialect.ScalarFunctions[name] = new DbScalarFunctionDef(
-            name,
-            returnTypeSql.Trim(),
-            parameters,
-            fnBody,
-            usageKind,
-            temporalKind);
+        var definition = CreateScalarFunctionDefinition(name, returnTypeSql, invocationStyle, temporalKind);
+        dialect.AddScalarFunction(WithScalarFunctionParameters(definition, parameters));
     }
 
     internal static void AddScalarFunction(
@@ -241,244 +170,144 @@ internal static class SqlDialectScalarFunctionRegistryExtensions
         string name,
         string returnTypeSql,
         AstQueryGeneralScalarFunctionHandler executionHandler,
-        SqlScalarFunctionUsageKind usageKind,
+        DbInvocationStyle invocationStyle,
         SqlTemporalFunctionKind? temporalKind,
-        params DbScalarFunctionParameterDef[] parameters)
+        params DbFunctionParameterDef[] parameters)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(name, nameof(name));
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(returnTypeSql, nameof(returnTypeSql));
         ArgumentNullExceptionCompatible.ThrowIfNull(executionHandler, nameof(executionHandler));
 
-        dialect.ScalarFunctions[name] = new DbScalarFunctionDef(
+        var definition = CreateScalarFunctionDefinition(name, returnTypeSql, invocationStyle, temporalKind);
+        dialect.AddScalarFunction(WithScalarFunctionExecutor(definition, executionHandler, parameters));
+    }
+
+    internal static void AddScalarFunctions(
+        this ISqlDialect dialect,
+        string? returnTypeSql,
+        Func<SqlExpr, object> fnBody,
+        DbInvocationStyle invocationStyle,
+        SqlTemporalFunctionKind? temporalKind,
+        params string[] names)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(fnBody, nameof(fnBody));
+
+        AddScalarFunctionsCore(
+            dialect,
+            name => dialect.AddScalarFunctionWithBody(name, returnTypeSql ?? string.Empty, fnBody, invocationStyle, temporalKind),
+            names);
+    }
+
+    internal static void AddScalarFunctions(
+        this ISqlDialect dialect,
+        string? returnTypeSql,
+        Func<SqlExpr, object> fnBody,
+        DbInvocationStyle invocationStyle,
+        params string[] names)
+        => dialect.AddScalarFunctions(
+            returnTypeSql,
+            fnBody,
+            invocationStyle,
+            null,
+            names);
+
+    internal static void AddScalarFunctions(
+        this ISqlDialect dialect,
+        string? returnTypeSql,
+        AstQueryGeneralScalarFunctionHandler executionHandler,
+        DbInvocationStyle invocationStyle,
+        SqlTemporalFunctionKind? temporalKind,
+        params string[] names)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(executionHandler, nameof(executionHandler));
+
+        AddScalarFunctionsCore(
+            dialect,
+            name => dialect.AddScalarFunctionWithHandler(name, returnTypeSql ?? string.Empty, executionHandler, invocationStyle, temporalKind),
+            names);
+    }
+
+    internal static void AddScalarFunctions(
+        this ISqlDialect dialect,
+        string? returnTypeSql,
+        AstQueryGeneralScalarFunctionHandler executionHandler,
+        DbInvocationStyle invocationStyle,
+        params string[] names)
+        => dialect.AddScalarFunctions(
+            returnTypeSql,
+            executionHandler,
+            invocationStyle,
+            null,
+            names);
+
+    internal static void AddScalarFunction(
+        this ISqlDialect dialect,
+        string name,
+        string returnTypeSql,
+        AstQueryGeneralScalarFunctionHandler executionHandler,
+        params DbFunctionParameterDef[] parameters)
+        => dialect.AddScalarFunctionWithHandler(
             name,
-            returnTypeSql.Trim(),
-            parameters,
-            SqlFunctionBodyFactory.Identity(),
-            usageKind,
-            temporalKind)
+            returnTypeSql,
+            executionHandler,
+            DbInvocationStyle.Call,
+            null,
+            parameters);
+
+    private static void AddScalarFunctionWithHandler(
+        this ISqlDialect dialect,
+        string name,
+        string returnTypeSql,
+        AstQueryGeneralScalarFunctionHandler executionHandler,
+        DbInvocationStyle invocationStyle,
+        SqlTemporalFunctionKind? temporalKind,
+        params DbFunctionParameterDef[] parameters)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(name, nameof(name));
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(returnTypeSql, nameof(returnTypeSql));
+        ArgumentNullExceptionCompatible.ThrowIfNull(executionHandler, nameof(executionHandler));
+
+        var definition = temporalKind is SqlTemporalFunctionKind temporal
+            ? DbFunctionDef.CreateTemporal(name, returnTypeSql.Trim(), temporal, invocationStyle)
+            : invocationStyle switch
+            {
+                DbInvocationStyle.Identifier => DbFunctionDef.CreateIdentifier(name, returnTypeSql.Trim()),
+                _ when invocationStyle == (DbInvocationStyle.Call | DbInvocationStyle.Identifier) => DbFunctionDef.CreateCallOrIdentifier(name, returnTypeSql.Trim()),
+                _ => DbFunctionDef.CreateScalar(name, returnTypeSql.Trim(), invocationStyle: invocationStyle)
+            };
+
+        dialect.AddScalarFunction(definition with
         {
+            Parameters = parameters,
             AstExecutor = executionHandler
-        };
+        });
     }
 
-    internal static void AddScalarFunctionIf(
+    internal static void AddScalarFunctions(
         this ISqlDialect dialect,
-        bool supported,
-        string name,
-        string returnTypeSql,
-        params DbScalarFunctionParameterDef[] parameters)
-    {
-        if (supported)
-            dialect.AddScalarFunction(name, returnTypeSql, parameters);
-    }
-
-    internal static void AddScalarFunctionIf(
-        this ISqlDialect dialect,
-        bool supported,
-        DbScalarFunctionDef definition)
-    {
-        if (supported)
-            dialect.AddScalarFunction(definition);
-    }
-
-    internal static void AddScalarFunctionIf(
-        this ISqlDialect dialect,
-        bool supported,
-        string name,
-        string returnTypeSql,
+        string? returnTypeSql,
         Func<SqlExpr, object> fnBody,
-        params DbScalarFunctionParameterDef[] parameters)
-    {
-        if (supported)
-            dialect.AddScalarFunction(name, returnTypeSql, fnBody, parameters);
-    }
-
-    internal static void AddScalarFunctionIf(
-        this ISqlDialect dialect,
-        bool supported,
-        string name,
-        string returnTypeSql,
-        AstQueryGeneralScalarFunctionHandler executionHandler,
-        params DbScalarFunctionParameterDef[] parameters)
-    {
-        if (supported)
-            dialect.AddScalarFunction(name, returnTypeSql, executionHandler, parameters);
-    }
-
-    internal static void AddScalarFunctionIf(
-        this ISqlDialect dialect,
-        bool supported,
-        string name,
-        string returnTypeSql,
-        Func<SqlExpr, object> fnBody,
-        SqlScalarFunctionUsageKind usageKind,
-        SqlTemporalFunctionKind? temporalKind,
-        params DbScalarFunctionParameterDef[] parameters)
-    {
-        if (supported)
-            dialect.AddScalarFunction(name, returnTypeSql, fnBody, usageKind, temporalKind, parameters);
-    }
-
-    internal static void AddScalarFunctionIf(
-        this ISqlDialect dialect,
-        bool supported,
-        string name,
-        string returnTypeSql,
-        AstQueryGeneralScalarFunctionHandler executionHandler,
-        SqlScalarFunctionUsageKind usageKind,
-        SqlTemporalFunctionKind? temporalKind,
-        params DbScalarFunctionParameterDef[] parameters)
-    {
-        if (supported)
-            dialect.AddScalarFunction(name, returnTypeSql, executionHandler, usageKind, temporalKind, parameters);
-    }
+        params string[] names)
+        => dialect.AddScalarFunctions(
+            returnTypeSql,
+            fnBody,
+            DbInvocationStyle.Call,
+            null,
+            names);
 
     internal static void AddScalarFunctions(
         this ISqlDialect dialect,
-        string returnTypeSql,
-        Func<SqlExpr, object>? fnBody,
+        string? returnTypeSql,
+        AstQueryGeneralScalarFunctionHandler executionHandler,
         params string[] names)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
-        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(returnTypeSql, nameof(returnTypeSql));
-        ArgumentNullExceptionCompatible.ThrowIfNull(names, nameof(names));
-
-        var body = fnBody ?? SqlFunctionBodyFactory.Identity();
-        foreach (var name in names)
-            dialect.AddScalarFunction(name, returnTypeSql, body);
-    }
-
-    internal static void AddScalarFunctions(
-        this ISqlDialect dialect,
-        string returnTypeSql,
-        AstQueryGeneralScalarFunctionHandler executionHandler,
-        params string[] names)
-        => dialect.AddScalarFunctions(returnTypeSql, executionHandler, SqlScalarFunctionUsageKind.Call, null, names);
-
-    internal static void AddScalarFunctions(
-        this ISqlDialect dialect,
-        string returnTypeSql,
-        Func<SqlExpr, object>? fnBody,
-        SqlScalarFunctionUsageKind usageKind,
-        SqlTemporalFunctionKind? temporalKind,
-        params string[] names)
-    {
-        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
-        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(returnTypeSql, nameof(returnTypeSql));
-        ArgumentNullExceptionCompatible.ThrowIfNull(names, nameof(names));
-
-        var body = fnBody ?? SqlFunctionBodyFactory.Identity();
-        foreach (var name in names)
-            dialect.AddScalarFunction(name, returnTypeSql, body, usageKind, temporalKind);
-    }
-
-    internal static void AddScalarFunctions(
-        this ISqlDialect dialect,
-        string returnTypeSql,
-        AstQueryGeneralScalarFunctionHandler executionHandler,
-        SqlScalarFunctionUsageKind usageKind,
-        SqlTemporalFunctionKind? temporalKind,
-        params string[] names)
-    {
-        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
-        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(returnTypeSql, nameof(returnTypeSql));
-        ArgumentNullExceptionCompatible.ThrowIfNull(names, nameof(names));
         ArgumentNullExceptionCompatible.ThrowIfNull(executionHandler, nameof(executionHandler));
 
         foreach (var name in names)
-            dialect.AddScalarFunction(name, returnTypeSql, executionHandler, usageKind, temporalKind);
+            dialect.AddScalarFunction(name, returnTypeSql ?? string.Empty, executionHandler);
     }
 
-    internal static void AddScalarFunctions(
-        this ISqlDialect dialect,
-        string returnTypeSql,
-        params string[] names)
-        => dialect.AddScalarFunctions(returnTypeSql, (Func<SqlExpr, object>?)null, names);
-
-    internal static void AddScalarFunctions(
-        this ISqlDialect dialect,
-        DbScalarFunctionDef definition,
-        params string[] names)
-    {
-        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
-        ArgumentNullExceptionCompatible.ThrowIfNull(definition, nameof(definition));
-        ArgumentNullExceptionCompatible.ThrowIfNull(names, nameof(names));
-
-        foreach (var name in names)
-        {
-            dialect.AddScalarFunction(
-                name.Equals(definition.Name, StringComparison.OrdinalIgnoreCase)
-                    ? definition
-                    : definition with { Name = name });
-        }
-    }
-
-    internal static void AddScalarFunctionsIf(
-        this ISqlDialect dialect,
-        bool supported,
-        string returnTypeSql,
-        Func<SqlExpr, object>? fnBody,
-        params string[] names)
-    {
-        if (supported)
-            dialect.AddScalarFunctions(returnTypeSql, fnBody, names);
-    }
-
-    internal static void AddScalarFunctionsIf(
-        this ISqlDialect dialect,
-        bool supported,
-        string returnTypeSql,
-        AstQueryGeneralScalarFunctionHandler executionHandler,
-        params string[] names)
-    {
-        if (supported)
-            dialect.AddScalarFunctions(returnTypeSql, executionHandler, names);
-    }
-
-    internal static void AddScalarFunctionsIf(
-        this ISqlDialect dialect,
-        bool supported,
-        string returnTypeSql,
-        Func<SqlExpr, object>? fnBody,
-        SqlScalarFunctionUsageKind usageKind,
-        SqlTemporalFunctionKind? temporalKind,
-        params string[] names)
-    {
-        if (supported)
-            dialect.AddScalarFunctions(returnTypeSql, fnBody, usageKind, temporalKind, names);
-    }
-
-    internal static void AddScalarFunctionsIf(
-        this ISqlDialect dialect,
-        bool supported,
-        string returnTypeSql,
-        AstQueryGeneralScalarFunctionHandler executionHandler,
-        SqlScalarFunctionUsageKind usageKind,
-        SqlTemporalFunctionKind? temporalKind,
-        params string[] names)
-    {
-        if (supported)
-            dialect.AddScalarFunctions(returnTypeSql, executionHandler, usageKind, temporalKind, names);
-    }
-
-    internal static void AddScalarFunctionsIf(
-        this ISqlDialect dialect,
-        bool supported,
-        string returnTypeSql,
-        params string[] names)
-    {
-        if (supported)
-            dialect.AddScalarFunctions(returnTypeSql, names);
-    }
-
-    internal static void AddScalarFunctionsIf(
-        this ISqlDialect dialect,
-        bool supported,
-        DbScalarFunctionDef definition,
-        params string[] names)
-    {
-        if (supported)
-            dialect.AddScalarFunctions(definition, names);
-    }
 }

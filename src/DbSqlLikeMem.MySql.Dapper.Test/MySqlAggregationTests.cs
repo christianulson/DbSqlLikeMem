@@ -4,16 +4,13 @@ namespace DbSqlLikeMem.MySql.Dapper.Test;
 /// EN: Runs shared aggregation/HAVING scenarios for MySQL and keeps MySQL-specific coverage.
 /// PT: Executa cenários compartilhados de agregação/HAVING para MySQL e mantém cobertura específica de MySQL.
 /// </summary>
-public sealed class MySqlAggregationTests : AggregationHavingOrdinalTestsBase<MySqlDbMock, MySqlConnectionMock>
+/// <remarks>
+/// EN: Creates the MySQL aggregation test suite helper.
+/// PT: Cria o helper da suite de testes de agregacao do MySQL.
+/// </remarks>
+/// <param name="helper">EN: Output helper. PT: Helper de saída.</param>
+public sealed class MySqlAggregationTests(ITestOutputHelper helper) : AggregationHavingOrdinalTestsBase<MySqlDbMock, MySqlConnectionMock>(helper)
 {
-    /// <summary>
-    /// EN: Creates the MySQL aggregation test suite helper.
-    /// PT: Cria o helper da suite de testes de agregacao do MySQL.
-    /// </summary>
-    /// <param name="helper">EN: Output helper. PT: Helper de saída.</param>
-    public MySqlAggregationTests(ITestOutputHelper helper) : base(helper)
-    {
-    }
 
     /// <inheritdoc />
     protected override MySqlDbMock CreateDb() => [];

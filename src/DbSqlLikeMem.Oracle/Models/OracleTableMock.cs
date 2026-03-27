@@ -17,8 +17,8 @@ internal class OracleTableMock(
     }
 
     /// <summary>
-    /// EN: Implements Resolve.
-    /// PT: Implementa Resolve.
+    /// EN: Implements ResolveRowsFrameRange.
+    /// PT: Implementa ResolveRowsFrameRange.
     /// </summary>
     public override object? Resolve(
         string token,

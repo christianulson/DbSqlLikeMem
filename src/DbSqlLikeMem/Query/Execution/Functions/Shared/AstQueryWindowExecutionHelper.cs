@@ -5,10 +5,8 @@ namespace DbSqlLikeMem;
 internal static class AstQueryWindowExecutionHelper
 {
     internal static void ComputeWindowSlots(
-        QueryExecutionContext context,
-        ISqlDialect? dialect,
+        this QueryExecutionContext context,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
-        Func<object?, object?, int> compareSql,
         List<WindowSlot> slots,
         List<EvalRow> rows,
         IDictionary<string, Source> ctes)
@@ -23,7 +21,7 @@ internal static class AstQueryWindowExecutionHelper
                 slotGroup[0].Expr,
                 rows,
                 (expr, row) => eval(expr, row, null, ctes),
-                value => QueryRowValueHelper.NormalizeDistinctKey(value, context));
+                context.NormalizeDistinctKey);
 
             foreach (var part in partitions.Values)
             {
@@ -31,13 +29,13 @@ internal static class AstQueryWindowExecutionHelper
                     part,
                     spec.OrderBy,
                     (expr, row) => eval(expr, row, null, ctes),
-                    compareSql);
-                var partitionContext = new WindowPartitionExecutionContext(part, spec, ctes, orderValuesByRow, eval, compareSql);
+                    context.CompareSql);
+                var partitionContext = new WindowPartitionExecutionContext(context, part, spec, ctes, orderValuesByRow, eval);
 
                 foreach (var slot in slotGroup)
                 {
                     var w = slot.Expr;
-                    var dialectInstance = dialect ?? throw new InvalidOperationException("Dialect is required for window function validation.");
+                    var dialectInstance = context.Dialect ?? throw new InvalidOperationException("Dialect is required for window function validation.");
                     var windowDefinition = w.ResolvedWindowFunction;
                     if (windowDefinition is null
                         && dialectInstance.TryGetWindowFunctionDefinition(w, out var resolvedWindowDefinition))
@@ -58,7 +56,7 @@ internal static class AstQueryWindowExecutionHelper
                     var isNthValue = w.Name.Equals("NTH_VALUE", StringComparison.OrdinalIgnoreCase);
 
                     var resolvedWindowDefinition2 = windowDefinition
-                        ?? throw SqlUnsupported.ForDialect(dialectInstance, $"window functions ({w.Name})");
+                        ?? throw SqlUnsupported.NotSupported(dialectInstance, $"window functions ({w.Name})");
 
                     if (resolvedWindowDefinition2.RequiresOrderBy && w.Spec.OrderBy.Count == 0)
                         throw new InvalidOperationException($"Window function '{w.Name}' requires ORDER BY in OVER clause.");
@@ -75,43 +73,42 @@ internal static class AstQueryWindowExecutionHelper
                     }
 
                     var valueSelector = part.Count > 0
-                        ? AstQueryWindowFrameHelper.TryCreateWindowValueSelector(
+                        ? partitionContext.TryCreateWindowValueSelector(
                             w.Args.Count > 0 ? w.Args[0] : null!,
-                            part[0],
-                            dialectInstance)
+                            part[0])
                         : null;
 
                     if (isNtile)
                     {
-                        AstQueryWindowFillHelper.FillNtile(slot.Map, partitionContext, w, ctes, eval);
+                        partitionContext.FillNtile(slot.Map, w, ctes, eval);
                         continue;
                     }
 
                     if (isPercentRank || isCumeDist)
                     {
-                        AstQueryWindowFillHelper.FillPercentRankOrCumeDist(slot.Map, partitionContext, compareSql, isPercentRank);
+                        partitionContext.FillPercentRankOrCumeDist(slot.Map, isPercentRank);
                         continue;
                     }
 
                     if (isLag || isLead)
                     {
-                        AstQueryWindowFillHelper.FillLagOrLead(slot.Map, partitionContext, w, ctes, eval, valueSelector, isLead);
+                        partitionContext.FillLagOrLead(slot.Map, w, ctes, eval, valueSelector, isLead);
                         continue;
                     }
 
                     if (isFirstValue || isLastValue)
                     {
-                        AstQueryWindowFillHelper.FillFirstOrLastValue(slot.Map, partitionContext, w, ctes, eval, valueSelector, isLastValue);
+                        partitionContext.FillFirstOrLastValue(slot.Map, w, ctes, eval, valueSelector, isLastValue);
                         continue;
                     }
 
                     if (isNthValue)
                     {
-                        AstQueryWindowFillHelper.FillNthValue(slot.Map, partitionContext, w, ctes, eval, valueSelector);
+                        partitionContext.FillNthValue(slot.Map, w, ctes, eval, valueSelector);
                         continue;
                     }
 
-                    AstQueryWindowFillHelper.FillRankOrDenseRank(slot.Map, partitionContext, compareSql, isRank);
+                    partitionContext.FillRankOrDenseRank(slot.Map, context.CompareSql, isRank);
                 }
             }
         }

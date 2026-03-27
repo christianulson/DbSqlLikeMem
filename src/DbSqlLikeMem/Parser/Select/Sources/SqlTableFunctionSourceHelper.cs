@@ -19,7 +19,7 @@ internal static class SqlTableFunctionSourceHelper
                 .Where(static arg => arg.Length > 0)
                 .Select(ctx.ParseScalar)]);
 
-        if (ctx.Dialect.TableFunctions.TryGetValue(functionName, out var functionDefinition))
+        if (ctx.Dialect.TryGetTableFunctionDefinition(functionName, out var functionDefinition))
             function = function.BindTableFunctionDefinition(functionDefinition);
 
         ValidateTableFunctionSource(function, ctx.Dialect);
@@ -77,7 +77,7 @@ internal static class SqlTableFunctionSourceHelper
                 .Where(static arg => arg.Length > 0)
                 .Select(ctx.ParseScalar)]);
 
-        if (ctx.Dialect.TableFunctions.TryGetValue(functionName, out var functionDefinition))
+        if (ctx.Dialect.TryGetTableFunctionDefinition(functionName, out var functionDefinition))
             function = function.BindTableFunctionDefinition(functionDefinition);
 
         ValidateTableFunctionSource(function, ctx.Dialect);
@@ -133,8 +133,8 @@ internal static class SqlTableFunctionSourceHelper
         if (parts.Count != 2)
             throw new NotSupportedException("JSON_TABLE table source currently supports json document plus path/COLUMNS clause in the mock.");
 
-        if (!ctx.Dialect.TableFunctions.ContainsKey(SqlConst.JSON_TABLE))
-            throw SqlUnsupported.ForDialect(ctx.Dialect, SqlConst.JSON_TABLE);
+        if (!ctx.Dialect.TryGetTableFunctionDefinition(SqlConst.JSON_TABLE, out _))
+            throw ctx.NotSupported(SqlConst.JSON_TABLE);
 
         var columnsKeywordIndex = SqlJsonTableHelper.IndexOfTopLevelKeyword(parts[1], SqlConst.COLUMNS);
         if (columnsKeywordIndex < 0)
@@ -158,7 +158,7 @@ internal static class SqlTableFunctionSourceHelper
                 ctx.ParseScalar(pathSql)
             ]);
 
-        if (ctx.Dialect.TableFunctions.TryGetValue(functionName, out var functionDefinition))
+        if (ctx.Dialect.TryGetTableFunctionDefinition(functionName, out var functionDefinition))
             function = function.BindTableFunctionDefinition(functionDefinition);
 
         ValidateTableFunctionSource(function, ctx.Dialect);
@@ -180,10 +180,7 @@ internal static class SqlTableFunctionSourceHelper
 
     private static void ValidateTableFunctionSource(FunctionCallExpr function, ISqlDialect dialect)
     {
-        var functionDefinition = function.ResolvedTableFunction;
-        if (functionDefinition is null
-            && !dialect.TableFunctions.TryGetValue(function.Name, out functionDefinition))
-            throw new NotSupportedException($"Table-valued function '{function.Name}' not supported yet in the mock.");
+        var functionDefinition = ResolveTableFunctionDefinition(function, dialect);
 
         if (function.Name.Equals(SqlConst.OPENJSON, StringComparison.OrdinalIgnoreCase))
         {
@@ -196,7 +193,7 @@ internal static class SqlTableFunctionSourceHelper
         if (function.Name.Equals(SqlConst.STRING_SPLIT, StringComparison.OrdinalIgnoreCase))
         {
             if (function.Args.Count == 3 && !dialect.SupportsStringSplitOrdinalArgument)
-                throw SqlUnsupported.ForDialect(dialect, "STRING_SPLIT enable_ordinal");
+                throw SqlUnsupported.NotSupported(dialect, "STRING_SPLIT enable_ordinal");
 
             if (!functionDefinition.AllowsArgumentCount(function.Args.Count))
                 throw new NotSupportedException("STRING_SPLIT table source currently supports two or three arguments in the mock.");
@@ -211,6 +208,18 @@ internal static class SqlTableFunctionSourceHelper
 
             return;
         }
+
+        throw new NotSupportedException($"Table-valued function '{function.Name}' not supported yet in the mock.");
+    }
+
+    private static DbFunctionDef ResolveTableFunctionDefinition(FunctionCallExpr function, ISqlDialect dialect)
+    {
+        if (function.ResolvedTableFunction is DbFunctionDef functionDefinition)
+            return functionDefinition;
+
+        if (dialect.TryGetTableFunctionDefinition(function.Name, out var dialectDefinition)
+            && dialectDefinition is not null)
+            return dialectDefinition;
 
         throw new NotSupportedException($"Table-valued function '{function.Name}' not supported yet in the mock.");
     }

@@ -1,4 +1,3 @@
-using System.Text;
 using static DbSqlLikeMem.AstQueryExecutorBase;
 
 namespace DbSqlLikeMem;

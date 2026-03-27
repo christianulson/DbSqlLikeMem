@@ -19,6 +19,7 @@
 		<ProjectReference Include="..\DbSqlLikeMem\DbSqlLikeMem.csproj" />
 	</ItemGroup>
 	<ItemGroup>
+		<InternalsVisibleTo Include="DbSqlLikeMem.Auto" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Npgsql.NHibernate" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Npgsql.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Npgsql.Dapper.Test" />

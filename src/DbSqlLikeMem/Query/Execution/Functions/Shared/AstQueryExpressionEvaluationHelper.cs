@@ -11,11 +11,11 @@ internal delegate bool AstQueryTryEvaluateCorrelatedCountComparisonFast(
 internal static class AstQueryExpressionEvaluationHelper
 {
     internal static object? EvalLike(
+        this QueryExecutionContext context,
         LikeExpr expression,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        QueryExecutionContext context,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
     {
         var left = eval(expression.Left, row, group, ctes)?.ToString() ?? string.Empty;
@@ -23,7 +23,7 @@ internal static class AstQueryExpressionEvaluationHelper
         var escape = expression.Escape is null
             ? null
             : eval(expression.Escape, row, group, ctes)?.ToString();
-        return left.Like(pattern, context, escape, expression.CaseInsensitive ? true : null);
+        return context.Like(left, pattern, escape, expression.CaseInsensitive ? true : null);
     }
 
     internal static object? EvalNot(
@@ -42,39 +42,37 @@ internal static class AstQueryExpressionEvaluationHelper
     }
 
     internal static object? EvalIn(
+        this QueryExecutionContext context,
         InExpr expression,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        QueryExecutionContext context,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
         Func<SubqueryExpr, EvalRow, IDictionary<string, Source>, InSubqueryLookupState> getScalarLookup,
         Func<SubqueryExpr, EvalRow, IDictionary<string, Source>, InSubqueryLookupState> getRowLookup)
-        => AstQueryInMembershipHelper.EvaluateIn(
+        => context.EvaluateIn(
             expression,
             row,
             group,
             ctes,
-            context,
             eval,
             getScalarLookup,
             getRowLookup);
 
     internal static object? EvalNotIn(
+        this QueryExecutionContext context,
         InExpr expression,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        QueryExecutionContext context,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
         Func<SubqueryExpr, EvalRow, IDictionary<string, Source>, InSubqueryLookupState> getScalarLookup,
         Func<SubqueryExpr, EvalRow, IDictionary<string, Source>, InSubqueryLookupState> getRowLookup)
-        => AstQueryInMembershipHelper.EvaluateNotIn(
+        => context.EvaluateNotIn(
             expression,
             row,
             group,
             ctes,
-            context,
             eval,
             getScalarLookup,
             getRowLookup);
@@ -118,12 +116,11 @@ internal static class AstQueryExpressionEvaluationHelper
     }
 
     internal static object? EvalBinary(
+        this QueryExecutionContext context,
         BinaryExpr expression,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        QueryExecutionContext context,
-        ISqlDialect? dialect,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
         AstQueryTryEvaluateCorrelatedCountComparisonFast tryEvaluateCorrelatedCountComparisonFast)
     {
@@ -136,19 +133,19 @@ internal static class AstQueryExpressionEvaluationHelper
         var left = eval(expression.Left, row, group, ctes);
         var right = eval(expression.Right, row, group, ctes);
 
-        if (AstQueryBinaryExpressionHelper.TryEvalConcatBinary(expression.Op, left, right, dialect, out var concatResult))
+        if (AstQueryBinaryExpressionHelper.TryEvalConcatBinary(expression.Op, left, right, context.Dialect, out var concatResult))
             return concatResult;
 
         if (AstQueryBinaryArithmeticHelper.TryEvalArithmeticBinary(expression.Op, left, right, out var arithmeticResult))
             return arithmeticResult;
 
-        if (AstQueryBinaryExpressionHelper.TryEvalNullSafeEqualityBinary(expression.Op, left, right, context, out var nullSafeEqualityResult))
+        if (context.TryEvalNullSafeEqualityBinary(expression.Op, left, right, out var nullSafeEqualityResult))
             return nullSafeEqualityResult;
 
         if (left is null || left is DBNull || right is null || right is DBNull)
             return false;
 
-        return AstQueryBinaryExpressionHelper.EvalComparisonBinary(expression.Op, left, right, context);
+        return context.EvalComparisonBinary(expression.Op, left, right);
     }
 
     internal static bool TryEvalLogicalBinary(

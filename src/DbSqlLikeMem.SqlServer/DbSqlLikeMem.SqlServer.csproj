@@ -15,6 +15,7 @@
 		<ProjectReference Include="..\DbSqlLikeMem\DbSqlLikeMem.csproj" />
 	</ItemGroup>
 	<ItemGroup>
+		<InternalsVisibleTo Include="DbSqlLikeMem.Auto" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.SqlAzure" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.SqlAzure.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.SqlServer.Dapper.Test" />

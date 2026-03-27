@@ -18,7 +18,7 @@ internal sealed class AstReadGuardNonQueryCommandHandler : INonQueryCommandHandl
             case SqlUnionQuery when context.Options.UnionUsesSelectMessage:
                 throw new InvalidOperationException(SqlExceptionMessages.UseExecuteReaderForSelectUnion());
             case SqlUnionQuery:
-                throw SqlUnsupported.ForCommandType(context.Connection.ExecutionDialect, "ExecuteNonQuery", query.GetType());
+                throw SqlUnsupported.NotSupportedCommandType(context.Connection.ExecutionDialect, "ExecuteNonQuery", query.GetType());
             default:
                 return false;
         }
