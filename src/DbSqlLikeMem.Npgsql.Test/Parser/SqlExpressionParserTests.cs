@@ -22,7 +22,7 @@ public sealed class SqlExpressionParserTests(
     {
         Console.WriteLine("Where: @\"" + whereExpr + "\"");
 
-        var ex = Record.Exception(() => SqlExpressionParser.ParseWhere(whereExpr, new NpgsqlDialect(version)));
+        var ex = Record.Exception(() => SqlExpressionParser.ParseWhere(whereExpr, GetDialect(version, v => new NpgsqlDialect(v))));
         Assert.Null(ex);
     }
 
@@ -98,7 +98,7 @@ public sealed class SqlExpressionParserTests(
     {
         Console.WriteLine("Where: @\"" + whereExpr + "\"");
 
-        var ex = Assert.ThrowsAny<Exception>(() => SqlExpressionParser.ParseWhere(whereExpr, new NpgsqlDialect(version)));
+        var ex = Assert.ThrowsAny<Exception>(() => SqlExpressionParser.ParseWhere(whereExpr, GetDialect(version, v => new NpgsqlDialect(v))));
         Assert.True(ex is InvalidOperationException or NotSupportedException);
     }
 
@@ -113,11 +113,11 @@ public sealed class SqlExpressionParserTests(
     public void SequenceDotValueExpressions_ShouldBeRejected(int version)
     {
         var nextEx = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("sales.seq_orders.NEXTVAL", new NpgsqlDialect(version)));
+            SqlExpressionParser.ParseScalar("sales.seq_orders.NEXTVAL", GetDialect(version, v => new NpgsqlDialect(v))));
         Assert.Contains(SqlConst.NEXTVAL, nextEx.Message, StringComparison.OrdinalIgnoreCase);
 
         var currEx = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("sales.seq_orders.CURRVAL", new NpgsqlDialect(version)));
+            SqlExpressionParser.ParseScalar("sales.seq_orders.CURRVAL", GetDialect(version, v => new NpgsqlDialect(v))));
         Assert.Contains(SqlConst.CURRVAL, currEx.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -153,7 +153,7 @@ public sealed class SqlExpressionParserTests(
     {
         // id = 1 OR id = 2 AND name = 'Bob'
         // esperado: OR( id=1 , AND(id=2, name='Bob') )
-        var ast = SqlExpressionParser.ParseWhere("id = 1 OR id = 2 AND name = 'Bob'", new NpgsqlDialect(version));
+        var ast = SqlExpressionParser.ParseWhere("id = 1 OR id = 2 AND name = 'Bob'", GetDialect(version, v => new NpgsqlDialect(v)));
 
         var or = Assert.IsType<BinaryExpr>(ast);
         Assert.Equal(SqlBinaryOp.Or, or.Op);
@@ -181,7 +181,7 @@ public sealed class SqlExpressionParserTests(
     public void Parentheses_ShouldOverridePrecedence(int version)
     {
         // (id = 1 OR id = 2) AND email IS NULL
-        var ast = SqlExpressionParser.ParseWhere("(id = 1 OR id = 2) AND email IS NULL", new NpgsqlDialect(version));
+        var ast = SqlExpressionParser.ParseWhere("(id = 1 OR id = 2) AND email IS NULL", GetDialect(version, v => new NpgsqlDialect(v)));
 
         var and = Assert.IsType<BinaryExpr>(ast);
         Assert.Equal(SqlBinaryOp.And, and.Op);
@@ -202,7 +202,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataNpgsqlVersion]
     public void Not_ShouldWork(int version)
     {
-        var ast = SqlExpressionParser.ParseWhere("NOT (id = 1 OR id = 2)", new NpgsqlDialect(version));
+        var ast = SqlExpressionParser.ParseWhere("NOT (id = 1 OR id = 2)", GetDialect(version, v => new NpgsqlDialect(v)));
 
         var not = Assert.IsType<UnaryExpr>(ast);
         Assert.Equal(SqlUnaryOp.Not, not.Op);
@@ -220,7 +220,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataNpgsqlVersion]
     public void IsNotNull_ShouldProduce_IsNullExpr_Negated(int version)
     {
-        var ast = SqlExpressionParser.ParseWhere("email IS NOT NULL", new NpgsqlDialect(version));
+        var ast = SqlExpressionParser.ParseWhere("email IS NOT NULL", GetDialect(version, v => new NpgsqlDialect(v)));
         var n = Assert.IsType<IsNullExpr>(ast);
         Assert.True(n.Negated);
     }
@@ -234,7 +234,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataNpgsqlVersion]
     public void In_ShouldParse_List(int version)
     {
-        var ast = SqlExpressionParser.ParseWhere("u.id IN (1,2,3)", new NpgsqlDialect(version));
+        var ast = SqlExpressionParser.ParseWhere("u.id IN (1,2,3)", GetDialect(version, v => new NpgsqlDialect(v)));
         var ins = Assert.IsType<InExpr>(ast);
         Assert.Equal(3, ins.Items.Count);
     }
@@ -248,7 +248,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataNpgsqlVersion]
     public void Like_ShouldParse(int version)
     {
-        var ast = SqlExpressionParser.ParseWhere("name LIKE '%oh%'", new NpgsqlDialect(version));
+        var ast = SqlExpressionParser.ParseWhere("name LIKE '%oh%'", GetDialect(version, v => new NpgsqlDialect(v)));
         var like = Assert.IsType<LikeExpr>(ast);
         Assert.NotNull(like.Pattern);
     }
@@ -262,7 +262,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataNpgsqlVersion]
     public void Identifier_WithAliasDotColumn_ShouldParse(int version)
     {
-        var ast = SqlExpressionParser.ParseWhere("u.id = o.userId", new NpgsqlDialect(version));
+        var ast = SqlExpressionParser.ParseWhere("u.id = o.userId", GetDialect(version, v => new NpgsqlDialect(v)));
         var eq = Assert.IsType<BinaryExpr>(ast);
         Assert.Equal(SqlBinaryOp.Eq, eq.Op);
 
@@ -285,7 +285,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataNpgsqlVersion]
     public void Parameter_Tokens_ShouldParse(int version)
     {
-        var d = new NpgsqlDialect(version);
+        var d = GetDialect(version, v => new NpgsqlDialect(v));
         Assert.NotNull(SqlExpressionParser.ParseWhere("a = @p", d));
         Assert.NotNull(SqlExpressionParser.ParseWhere("a = :p", d));
         Assert.NotNull(SqlExpressionParser.ParseWhere("a = ?", d));
@@ -300,7 +300,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataNpgsqlVersion]
     public void DoubleQuoted_Identifier_ShouldParse(int version)
     {
-        var ast = SqlExpressionParser.ParseWhere("\"DeletedDtt\" IS NULL", new NpgsqlDialect(version));
+        var ast = SqlExpressionParser.ParseWhere("\"DeletedDtt\" IS NULL", GetDialect(version, v => new NpgsqlDialect(v)));
         var n = Assert.IsType<IsNullExpr>(ast);
         var id = Assert.IsType<IdentifierExpr>(n.Expr);
         Assert.Equal("DeletedDtt", id.Name);
@@ -315,7 +315,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataNpgsqlVersion]
     public void SingleQuoted_String_ShouldParse(int version)
     {
-        var ast = SqlExpressionParser.ParseWhere("name = 'John'", new NpgsqlDialect(version));
+        var ast = SqlExpressionParser.ParseWhere("name = 'John'", GetDialect(version, v => new NpgsqlDialect(v)));
         var eq = Assert.IsType<BinaryExpr>(ast);
         var lit = Assert.IsType<LiteralExpr>(eq.Right);
         Assert.Equal("John", lit.Value);
@@ -330,7 +330,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataNpgsqlVersion]
     public void Printer_ShouldBeStable_ForSimpleExpression(int version)
     {
-        var ast = SqlExpressionParser.ParseWhere("a = 1 AND b = 2", new NpgsqlDialect(version));
+        var ast = SqlExpressionParser.ParseWhere("a = 1 AND b = 2", GetDialect(version, v => new NpgsqlDialect(v)));
         var s = SqlExprPrinter.Print(ast);
 
         // só uma checagem básica de que não está vazio e contém operadores esperados

@@ -59,7 +59,6 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Register(handlers, TryEvalLocalTimeFunction, "LOCALTIME");
         Register(handlers, TryEvalLowerFunction, "LOWER");
         Register(handlers, TryEvalLtrimFunction, "LTRIM");
-        Register(handlers, TryEvalModFunction, "MOD");
         Register(handlers, TryEvalDivFunction, "DIV");
         Register(handlers, TryEvalMonthsBetweenFunction, "MONTHS_BETWEEN");
         Register(handlers, TryEvalMidnightSecondsFunction, "MIDNIGHT_SECONDS");
@@ -610,45 +609,6 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
 
         result = value?.ToString()?.TrimStart();
         return true;
-    }
-
-    private static bool TryEvalModFunction(
-        this QueryExecutionContext context,
-        FunctionCallExpr fn,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        _ = context;
-
-        if (!string.Equals(fn.Name, "MOD", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (fn.Args.Count < 2)
-            throw new InvalidOperationException("MOD() espera 2 argumentos.");
-
-        var left = evalArg(0);
-        var right = evalArg(1);
-        if (AstQueryExecutorBase.IsNullish(left) || AstQueryExecutorBase.IsNullish(right))
-        {
-            result = null;
-            return true;
-        }
-
-        try
-        {
-            var l = Convert.ToDecimal(left, CultureInfo.InvariantCulture);
-            var r = Convert.ToDecimal(right, CultureInfo.InvariantCulture);
-            result = r == 0m ? null : l % r;
-            return true;
-        }
-        catch
-        {
-            result = null;
-            return true;
-        }
     }
 
     private static bool TryEvalDivFunction(

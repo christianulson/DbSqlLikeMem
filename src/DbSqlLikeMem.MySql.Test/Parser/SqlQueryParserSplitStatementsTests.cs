@@ -17,7 +17,7 @@ public sealed class SqlQueryParserSplitStatementsTests(
     [MemberDataMySqlVersion]
     public void SplitStatementsTopLevel_ShouldIgnoreSemicolonsInsideNestedContexts(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
         var sql = "SELECT ';' AS txt, CONCAT('a;', 'b') AS c FROM `semi;table`; SELECT 2;";
 
         var parts = SqlStatementSplitter.SplitStatementsTopLevel(sql, dialect);
@@ -36,7 +36,7 @@ public sealed class SqlQueryParserSplitStatementsTests(
     [MemberDataMySqlVersion]
     public void ParseInsertSelectWithOnDuplicate_ShouldRemainSingleStatement(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
         var sql = "INSERT INTO users (Id, Name)\n"
                 + "SELECT Id, Name FROM users_archive\n"
                 + "ON DUPLICATE KEY UPDATE Name = VALUES(Name);\n"

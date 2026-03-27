@@ -67,21 +67,30 @@ internal static class Db2ScalarFunctionRegistry
             "BITANDNOT",
             "BITNOT",
             "BITOR",
-            "BITXOR",
-            SqlConst.LISTAGG);
+            "BITXOR");
+
+        dialect.AddScalarFunction(
+            DbFunctionDef.CreateScalar(SqlConst.LISTAGG, "VARCHAR") with
+            {
+                IsStringAggregate = true
+            });
 
         if (version >= Db2Dialect.JsonFunctionsMinVersion)
         {
             dialect.AddScalarFunctions(
                 DbFunctionDef.CreateScalar("JSON_QUERY", "VARCHAR") with
                 {
-                    AstExecutor = AstQueryGeneralScalarFunctionEvaluator.TryEvalJsonExtractionFunction
+                    AstExecutor = AstQueryJsonExtractionFunctionEvaluator.TryEvalJsonExtractionFunction
                 },
                 "JSON_QUERY",
                 "JSON_VALUE");
         }
 
-        dialect.AddScalarFunction(DbFunctionDef.CreateScalar("GROUPING", "INT"));
+        dialect.AddScalarFunction(
+            DbFunctionDef.CreateScalar("GROUPING", "INT") with
+            {
+                AstExecutor = AstQueryGroupingFunctionEvaluator.TryEvaluate
+            });
 
         dialect.AddScalarFunction(DbFunctionDef.CreateScalar("TRANSLATE", "VARCHAR"));
     }

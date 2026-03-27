@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.MariaDb.Test.Parser;
 /// EN: Covers MariaDB-specific dialect gates layered on top of the shared MySQL family parser.
 /// PT: Cobre os gates de dialeto especificos do MariaDB sobre o parser compartilhado da familia MySQL.
 /// </summary>
-public sealed class MariaDbDialectFeatureParserTests
+public sealed class MariaDbDialectFeatureParserTests(
+    ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Ensures MariaDB exposes the expected provider name and version gates for the planned family expansion.
@@ -37,7 +39,7 @@ public sealed class MariaDbDialectFeatureParserTests
     public void ParseInsert_Returning_ShouldRespectMariaDbVersionGate(int version)
     {
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING id, name AS user_name";
-        var dialect = new MariaDbDialect(version);
+        var dialect = GetDialect(version, v => new MariaDbDialect(v));
 
         if (version < MariaDbDialect.ReturningMinVersion)
         {
@@ -326,7 +328,7 @@ public sealed class MariaDbDialectFeatureParserTests
     public void ParseInsert_OnDuplicateKeyUpdate_Returning_ShouldRespectMariaDbVersionGate(int version)
     {
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING id, name";
-        var dialect = new MariaDbDialect(version);
+        var dialect = GetDialect(version, v => new MariaDbDialect(v));
 
         if (version < MariaDbDialect.ReturningMinVersion)
         {
@@ -371,7 +373,7 @@ public sealed class MariaDbDialectFeatureParserTests
     public void ParseDelete_Returning_ShouldRespectMariaDbVersionGate(int version)
     {
         const string sql = "DELETE FROM users WHERE id = 1 RETURNING id";
-        var dialect = new MariaDbDialect(version);
+        var dialect = GetDialect(version, v => new MariaDbDialect(v));
 
         if (version < MariaDbDialect.ReturningMinVersion)
         {
@@ -411,7 +413,7 @@ public sealed class MariaDbDialectFeatureParserTests
     public void ParseReplace_Returning_ShouldRespectMariaDbVersionGate(int version)
     {
         const string sql = "REPLACE INTO users (id, name) VALUES (1, 'a') RETURNING id";
-        var dialect = new MariaDbDialect(version);
+        var dialect = GetDialect(version, v => new MariaDbDialect(v));
 
         if (version < MariaDbDialect.ReturningMinVersion)
         {
@@ -480,7 +482,7 @@ public sealed class MariaDbDialectFeatureParserTests
     {
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING id";
 
-        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new MariaDbDialect(version)));
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new MariaDbDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -511,7 +513,7 @@ public sealed class MariaDbDialectFeatureParserTests
     public void ParseCreateSequence_ShouldRespectMariaDbVersionGate(int version)
     {
         const string sql = "CREATE SEQUENCE seq_orders START WITH 1 INCREMENT BY 1";
-        var dialect = new MariaDbDialect(version);
+        var dialect = GetDialect(version, v => new MariaDbDialect(v));
 
         if (version < MariaDbDialect.SequenceMinVersion)
         {
@@ -535,7 +537,7 @@ public sealed class MariaDbDialectFeatureParserTests
     public void ParseScalar_NextValueFor_ShouldRespectMariaDbVersionGate(int version)
     {
         const string sql = "NEXT VALUE FOR seq_orders";
-        var dialect = new MariaDbDialect(version);
+        var dialect = GetDialect(version, v => new MariaDbDialect(v));
 
         if (version < MariaDbDialect.SequenceMinVersion)
         {
@@ -559,7 +561,7 @@ public sealed class MariaDbDialectFeatureParserTests
     public void ParseScalar_PreviousValueFor_ShouldRespectMariaDbVersionGate(int version)
     {
         const string sql = "PREVIOUS VALUE FOR seq_orders";
-        var dialect = new MariaDbDialect(version);
+        var dialect = GetDialect(version, v => new MariaDbDialect(v));
 
         if (version < MariaDbDialect.SequenceMinVersion)
         {
@@ -583,7 +585,7 @@ public sealed class MariaDbDialectFeatureParserTests
     public void ParseScalar_JsonTable_ShouldRemainUnsupported(int version)
     {
         const string sql = "JSON_TABLE(payload, '$[*]' COLUMNS(x INT PATH '$'))";
-        var dialect = new MariaDbDialect(version);
+        var dialect = GetDialect(version, v => new MariaDbDialect(v));
 
         var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, dialect));
         Assert.Contains(SqlConst.JSON_TABLE, ex.Message, StringComparison.OrdinalIgnoreCase);

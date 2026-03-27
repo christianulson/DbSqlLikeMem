@@ -3,20 +3,15 @@ namespace DbSqlLikeMem.Dialect;
 internal sealed class FunctionDictionaryProcess : DictionaryProcess<DbFunctionDef>
 {
     private readonly HashSet<string> _scalarFunctions = new(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<string> _aggregateFunctions = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _windowFunctions = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _tableFunctions = new(StringComparer.OrdinalIgnoreCase);
 
     internal IReadOnlyCollection<string> ScalarFunctionNames => _scalarFunctions;
-    internal IReadOnlyCollection<string> AggregateFunctionNames => _aggregateFunctions;
     internal IReadOnlyCollection<string> WindowFunctionNames => _windowFunctions;
     internal IReadOnlyCollection<string> TableFunctionNames => _tableFunctions;
 
     internal bool IsScalarFunction(string functionName)
         => _scalarFunctions.Contains(NormalizeKey(functionName));
-
-    internal bool IsAggregateFunction(string functionName)
-        => _aggregateFunctions.Contains(NormalizeKey(functionName));
 
     internal bool IsWindowFunction(string functionName)
         => _windowFunctions.Contains(NormalizeKey(functionName));
@@ -39,7 +34,6 @@ internal sealed class FunctionDictionaryProcess : DictionaryProcess<DbFunctionDe
     protected override void OnCleared()
     {
         _scalarFunctions.Clear();
-        _aggregateFunctions.Clear();
         _windowFunctions.Clear();
         _tableFunctions.Clear();
     }
@@ -47,40 +41,12 @@ internal sealed class FunctionDictionaryProcess : DictionaryProcess<DbFunctionDe
     public void Add(DbFunctionDef func)
         => Add(func.Name, func);
 
-    public void Add(
-        string? returnTypeSql,
-        AstQueryGeneralScalarFunctionHandler astExecutor,
-        params string[] names)
-    {
-        foreach (var name in names)
-            Add(DbFunctionDef.CreateScalar(
-                name,
-                returnTypeSql,
-                astExecutor));
-    }
-
-    public void Add(
-        string name,
-        string? returnTypeSql,
-        AstQueryGeneralScalarFunctionHandler astExecutor,
-        DbFunctionCategory category = DbFunctionCategory.General,
-        DbInvocationStyle invocationStyle = DbInvocationStyle.Call,
-        params DbFunctionSignature[] signatures)
-        => Add(DbFunctionDef.CreateScalar(
-            name,
-            returnTypeSql,
-            astExecutor,
-            category,
-            invocationStyle,
-            signatures));
-
     private void AddToGroups(string key, DbFunctionDef function)
     {
+        // Console.WriteLine($"{key}: {function.Category}: {function.AstExecutor?.GetType().Name}");
+        
         if (function.HasCapability(DbFunctionCapability.Scalar))
             _scalarFunctions.Add(key);
-
-        if (function.HasCapability(DbFunctionCapability.Aggregate))
-            _aggregateFunctions.Add(key);
 
         if (function.HasCapability(DbFunctionCapability.Window))
             _windowFunctions.Add(key);
@@ -93,9 +59,6 @@ internal sealed class FunctionDictionaryProcess : DictionaryProcess<DbFunctionDe
     {
         if (function.HasCapability(DbFunctionCapability.Scalar))
             _scalarFunctions.Remove(key);
-
-        if (function.HasCapability(DbFunctionCapability.Aggregate))
-            _aggregateFunctions.Remove(key);
 
         if (function.HasCapability(DbFunctionCapability.Window))
             _windowFunctions.Remove(key);

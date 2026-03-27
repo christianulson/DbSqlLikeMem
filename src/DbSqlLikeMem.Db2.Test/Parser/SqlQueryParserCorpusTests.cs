@@ -636,7 +636,7 @@ select id
     [MemberDataDb2Version]
     public void Parse_ShouldHandle_MultiStatementStrings_BySplitting(int version)
     {
-        var d = new Db2Dialect(version);
+        var d = GetDialect(version, v => new Db2Dialect(v));
         const string multi = "SELECT 1; SELECT 2 FROM t WHERE id = 1; INSERT INTO t(id) VALUES(1);";
         var stmts = SqlStatementSplitter.SplitStatementsTopLevel(multi, d);
 
@@ -667,7 +667,7 @@ select id
         Console.WriteLine("Query: @\"" + sql + "\"");
         ConsoleWriter.Flush();
 
-        var dialect = new Db2Dialect(version);
+        var dialect = GetDialect(version, v => new Db2Dialect(v));
 
         // regra: se precisa de minVersion e versão atual é menor, então é NotSupported (não é inválido)
         if (minVersion > 0

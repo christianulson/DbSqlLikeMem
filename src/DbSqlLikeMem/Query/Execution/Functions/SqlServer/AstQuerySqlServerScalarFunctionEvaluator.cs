@@ -27,6 +27,7 @@ internal static class AstQuerySqlServerScalarFunctionEvaluator
         Register(handlers, TryEvalSquareFunction, "SQUARE");
         Register(handlers, TryEvalStuffFunction, "STUFF");
         Register(handlers, TryEvalParsenameFunction, "PARSENAME");
+        Register(handlers, TryEvalPatIndexFunction, "PATINDEX");
 
         return handlers;
     }
@@ -190,6 +191,24 @@ internal static class AstQuerySqlServerScalarFunctionEvaluator
         result = indexFromEnd < parts.Length
             ? parts[^(indexFromEnd + 1)]
             : null;
+        return true;
+    }
+
+    private static bool TryEvalPatIndexFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var pattern = evalArg(0);
+        var value = evalArg(1);
+        if (AstQueryExecutorBase.IsNullish(pattern) || AstQueryExecutorBase.IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        result = value!.ToString()!.PatIndex(pattern!.ToString()!, context);
         return true;
     }
 }

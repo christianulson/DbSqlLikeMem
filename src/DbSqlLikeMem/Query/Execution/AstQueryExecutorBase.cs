@@ -1,4 +1,4 @@
-using static DbSqlLikeMem.AstQueryGeneralScalarFunctionEvaluator;
+using static DbSqlLikeMem.AstQueryJsonUnquoteFunctionEvaluator;
 
 namespace DbSqlLikeMem;
 
@@ -31,8 +31,6 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
     internal static readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTimeOffsetParseCacheEntry> _dateTimeOffsetParseCache = new(StringComparer.Ordinal);
     internal static readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTimeOffsetParseCacheEntry> _dateTimeOffsetExactParseCache = new(StringComparer.Ordinal);
     internal static readonly System.Collections.Concurrent.ConcurrentDictionary<string, TimeSpanParseCacheEntry> _timeSpanParseCache = new(StringComparer.Ordinal);
-    internal static readonly System.Collections.Concurrent.ConcurrentDictionary<string, JsonPathTokenCacheEntry> _jsonPathTokenCache = new(StringComparer.Ordinal);
-    internal static readonly System.Collections.Concurrent.ConcurrentDictionary<string, JsonPathTokenCacheEntry> _postgresJsonPathTokenCache = new(StringComparer.Ordinal);
     internal static readonly object _uuidShortCounterLock = new();
     internal static long _uuidShortCounter;
 
@@ -79,7 +77,6 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
     private AstQueryFunctionEvaluator? _functionEvaluator;
     private AstQueryCastConversionFamilyEvaluator? _castConversionFamilyEvaluator;
     private AstQueryCastStringAndDateTailEvaluator? _castStringAndDateTailEvaluator;
-    private AstQueryGeneralSystemAndJsonFunctionEvaluator? _generalSystemAndJsonFunctionEvaluator;
     private AstQuerySqlServerDatabaseFunctionEvaluator? _sqlServerDatabaseFunctionEvaluator;
     private AstQuerySqlServerIdentityFunctionEvaluator? _sqlServerIdentityFunctionEvaluator;
     private AstQuerySqlServerUtilityFunctionEvaluator? _sqlServerUtilityFunctionEvaluator;
@@ -309,7 +306,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         IDictionary<string, Source> ctes,
         Func<int, object?> evalArg,
         out object? result)
-        => context.TryEvaluate(fn, row, group, ctes, GeneralSystemAndJsonFunctionEvaluator.TryEvaluate, evalArg, Eval, ParseIntervalValue, out result);
+        => context.TryEvaluate(fn, row, group, ctes, AstQueryJsonObjectFunctionEvaluator.TryEvalJsonObjectFunction, evalArg, Eval, ParseIntervalValue, out result);
 
     private bool TryEvalCastStringAndDateTail(
         QueryExecutionContext context,
@@ -351,12 +348,12 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private AstQueryCastConversionFamilyEvaluator CastConversionFamilyEvaluator
         => _castConversionFamilyEvaluator ??= new AstQueryCastConversionFamilyEvaluator(
-            tryEvalJsonAccessShimFunction: AstQueryGeneralScalarFunctionEvaluator.TryEvalJsonAccessShimFunction,
-            tryEvalJsonExtractionFunction: AstQueryGeneralScalarFunctionEvaluator.TryEvalJsonExtractionFunction,
-            tryEvalSqlServerJsonModifyFunction: AstQueryGeneralScalarFunctionEvaluator.TryEvalSqlServerJsonModifyFunction,
-            tryEvalOpenJsonFunction: AstQueryGeneralScalarFunctionEvaluator.TryEvalOpenJsonFunction,
-            tryEvalJsonUnquoteFunction: AstQueryGeneralScalarFunctionEvaluator.TryEvalJsonUnquoteFunction,
-            tryEvalToNumberFunction: AstQueryGeneralScalarFunctionEvaluator.TryEvalToNumberFunction);
+            tryEvalJsonAccessShimFunction: AstQueryJsonExtractionFunctionEvaluator.TryEvalJsonAccessShimFunction,
+            tryEvalJsonExtractionFunction: AstQueryJsonExtractionFunctionEvaluator.TryEvalJsonExtractionFunction,
+            tryEvalSqlServerJsonModifyFunction: SqlServerUtilityFunctionEvaluator.TryEvalSqlServerJsonModifyFunction,
+            tryEvalOpenJsonFunction: SqlServerUtilityFunctionEvaluator.TryEvalOpenJsonFunction,
+            tryEvalJsonUnquoteFunction: AstQueryJsonUnquoteFunctionEvaluator.TryEvalJsonUnquoteFunction,
+            tryEvalToNumberFunction: AstQueryToNumberFunctionEvaluator.TryEvalToNumberFunction);
 
     private AstQueryCastStringAndDateTailEvaluator CastStringAndDateTailEvaluator
         => _castStringAndDateTailEvaluator ??= new AstQueryCastStringAndDateTailEvaluator(
@@ -379,13 +376,6 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
                     getTemporalUnit,
                     out result);
             });
-
-    private AstQueryGeneralSystemAndJsonFunctionEvaluator GeneralSystemAndJsonFunctionEvaluator
-        => _generalSystemAndJsonFunctionEvaluator ??= new AstQueryGeneralSystemAndJsonFunctionEvaluator(
-            tryEvalSessionContextFunction: SqlServerUtilityFunctionEvaluator.TryEvalSessionContextFunction,
-            tryEvalJsonUtilityFunctions: AstQueryGeneralScalarFunctionEvaluator.TryEvalJsonUtilityFunctions,
-            tryEvalSqliteSystemFunctions: AstQueryGeneralScalarFunctionEvaluator.TryEvalSqliteSystemFunctions,
-            tryEvalSqliteJsonFunctions: AstQueryGeneralScalarFunctionEvaluator.TryEvalSqliteJsonFunctions);
 
     private AstQuerySqlServerDatabaseFunctionEvaluator SqlServerDatabaseFunctionEvaluator
         => _sqlServerDatabaseFunctionEvaluator ??= new AstQuerySqlServerDatabaseFunctionEvaluator(
@@ -3106,8 +3096,3 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
            && !string.IsNullOrWhiteSpace(query.RawSql)
            && _sqlCalcFoundRowsRegex.IsMatch(query.RawSql);
 }
-
-
-
-
-

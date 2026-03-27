@@ -1,4 +1,3 @@
-using DbSqlLikeMem;
 using DbSqlLikeMem.Models;
 
 namespace DbSqlLikeMem.MySql;
@@ -12,13 +11,6 @@ internal partial class MySqlDialect
         var emptyUtilityRow = new AstQueryExecutorBase.EvalRow(
             new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase),
             new Dictionary<string, AstQueryExecutorBase.Source>(StringComparer.OrdinalIgnoreCase));
-
-        static bool TryEvalMySqlGeneralScalarFunction(
-            QueryExecutionContext context,
-            FunctionCallExpr fn,
-            Func<int, object?> evalArg,
-            out object? result)
-            => AstQueryGeneralScalarFunctionEvaluator.TryEvaluateGeneralScalarFunction(context, fn, evalArg, out result);
 
         bool TryEvalMySqlUtilityFunction(
             QueryExecutionContext context,
@@ -44,13 +36,6 @@ internal partial class MySqlDialect
                 evalArg,
                 AstQueryExecutorBase.TryConvertNumericToInt64,
                 out result);
-
-        bool TryEvalMySqlNumericFunction(
-            QueryExecutionContext context,
-            FunctionCallExpr fn,
-            Func<int, object?> evalArg,
-            out object? result)
-            => AstQueryGeneralScalarFunctionEvaluator.TryEvalNumericFunction(context, fn, evalArg, out result);
 
         bool TryEvalMySqlDateTimeFunction(
             QueryExecutionContext context,
@@ -106,57 +91,16 @@ internal partial class MySqlDialect
             return true;
         }
 
-        static bool TryEvalNoopSessionContextFunction(
-            QueryExecutionContext context,
-            FunctionCallExpr fn,
-            Func<int, object?> evalArg,
-            out object? result)
-        {
-            _ = context;
-            _ = fn;
-            _ = evalArg;
-            result = null;
-            return false;
-        }
-
-        static bool TryEvalNoopGeneralSystemAndJsonFunction(
-            QueryExecutionContext context,
-            FunctionCallExpr fn,
-            Func<int, object?> evalArg,
-            out object? result)
-        {
-            _ = fn;
-            _ = context;
-            _ = evalArg;
-            result = null;
-            return false;
-        }
-
-        var generalSystemAndJsonFunctionEvaluator = new AstQueryGeneralSystemAndJsonFunctionEvaluator(
-            TryEvalNoopSessionContextFunction,
-            TryEvalNoopGeneralSystemAndJsonFunction,
-            TryEvalNoopGeneralSystemAndJsonFunction,
-            TryEvalNoopGeneralSystemAndJsonFunction);
-
-        bool TryEvalMySqlGeneralSystemAndJsonFunction(
-            QueryExecutionContext context,
-            FunctionCallExpr fn,
-            Func<int, object?> evalArg,
-            out object? result)
-            => generalSystemAndJsonFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result);
-
-        var tryEvalMySqlGeneralScalarFunction = (AstQueryGeneralScalarFunctionHandler)TryEvalMySqlGeneralScalarFunction;
         var tryEvalMySqlUtilityFunction = (AstQueryGeneralScalarFunctionHandler)TryEvalMySqlUtilityFunction;
         var tryEvalMySqlQueryUtilityFunction = (AstQueryGeneralScalarFunctionHandler)TryEvalMySqlQueryUtilityFunction;
         var tryEvalMySqlDateTimeFunction = (AstQueryGeneralScalarFunctionHandler)TryEvalMySqlDateTimeFunction;
-        var tryEvalMySqlNumericFunction = (AstQueryGeneralScalarFunctionHandler)TryEvalMySqlNumericFunction;
-        var tryEvalMySqlGeneralSystemAndJsonFunction = (AstQueryGeneralScalarFunctionHandler)TryEvalMySqlGeneralSystemAndJsonFunction;
         var tryEvalMySqlConversionAndMetadataFunction = (AstQueryGeneralScalarFunctionHandler)AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate;
         var tryEvalConvertFunction = (AstQueryGeneralScalarFunctionHandler)AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate;
         var tryEvalDateFunction = (AstQueryGeneralScalarFunctionHandler)AstQueryGeneralDateFunctionEvaluator.TryEvaluate;
-        var tryEvalDateTimeFunction = (AstQueryGeneralScalarFunctionHandler)AstQueryGeneralDateTimeFunctionEvaluator.TryEvaluate;
-        var tryEvalJsonUtilityFunctions = (AstQueryGeneralScalarFunctionHandler)AstQueryGeneralScalarFunctionEvaluator.TryEvalJsonUtilityFunctions;
-        var tryEvalJsonExtractionFunction = (AstQueryGeneralScalarFunctionHandler)AstQueryGeneralScalarFunctionEvaluator.TryEvalJsonExtractionFunction;
+        var tryEvalMySqlDateFunction = (AstQueryGeneralScalarFunctionHandler)AstQueryMySqlDateFunctionEvaluator.TryEvaluate;
+        var tryEvalDateTimeFunction = (AstQueryGeneralScalarFunctionHandler)AstQueryMySqlDateTimeFunctionEvaluator.TryEvaluate;
+        var tryEvalJsonUtilityFunctions = (AstQueryGeneralScalarFunctionHandler)AstQueryMySqlJsonFunctionEvaluator.TryEvaluate;
+        var tryEvalJsonExtractionFunction = (AstQueryGeneralScalarFunctionHandler)AstQueryJsonExtractionFunctionEvaluator.TryEvalJsonExtractionFunction;
         var tryEvalFindInSetFunction = (AstQueryGeneralScalarFunctionHandler)TryEvalMySqlFindInSetFunction;
 
         this.AddScalarFunction(
@@ -175,7 +119,7 @@ internal partial class MySqlDialect
         this.AddScalarFunction(
             "FIELD",
             "INT",
-            executionHandler: tryEvalMySqlGeneralScalarFunction);
+            executionHandler: QueryMariaDbFunctionHelper.TryEvalFunctions);
         this.AddScalarFunctions(
             "VARCHAR",
             tryEvalMySqlConversionAndMetadataFunction,
@@ -301,18 +245,14 @@ internal partial class MySqlDialect
 
         this.AddScalarFunctions(
             "BIGINT",
-            tryEvalMySqlGeneralScalarFunction,
+            AstQuerySharedTextFunctionEvaluator.TryEvaluate,
             "CHAR_LENGTH",
             "CHARACTER_LENGTH");
         this.AddScalarFunctions(
             "INT",
-            tryEvalMySqlGeneralScalarFunction,
-            "BIT_LENGTH",
-            "BIT_COUNT");
-        this.AddScalarFunction(
-            "BIN",
-            "VARCHAR",
-            executionHandler: tryEvalMySqlNumericFunction);
+            AstQuerySharedTextFunctionEvaluator.TryEvaluate,
+            "BIT_LENGTH");
+        this.AddScalarFunction("BIN", "VARCHAR", AstQuerySharedNumericFunctionEvaluator.TryEvaluate);
         this.AddScalarFunction(
             "CRC32",
             "BIGINT",
@@ -406,26 +346,28 @@ internal partial class MySqlDialect
                 "DECODE",
                 "ENCRYPT");
         this.AddScalarFunction("DEFAULT", "VARCHAR", tryEvalMySqlUtilityFunction);
+        this.AddScalarFunction("NAME_CONST", "VARCHAR", tryEvalMySqlUtilityFunction);
         if (version >= 80)
             this.AddScalarFunction(
                 "MEMBER_OF",
                 "BOOLEAN",
                 tryEvalMySqlUtilityFunction);
         this.AddScalarFunctions("VARCHAR", tryEvalMySqlUtilityFunction, "EXTRACTVALUE", "UPDATEXML");
-        this.AddScalarFunction("LOG2", "DOUBLE", tryEvalMySqlGeneralScalarFunction);
-        this.AddScalarFunction("OCT", "VARCHAR", AstQueryGeneralScalarFunctionEvaluator.TryEvaluateGeneralScalarFunction);
-        this.AddScalarFunction("ORD", "INT", AstQueryGeneralScalarFunctionEvaluator.TryEvaluateGeneralScalarFunction);
+        this.AddScalarFunction("LOG2", "DOUBLE", tryEvalMySqlUtilityFunction);
+        this.AddScalarFunction("OCT", "VARCHAR", tryEvalMySqlUtilityFunction);
+        this.AddScalarFunction("ORD", "INT", tryEvalMySqlUtilityFunction);
+        this.AddScalarFunction("BIT_COUNT", "INT", tryEvalMySqlUtilityFunction);
         this.AddScalarFunctions(
             "VARCHAR",
-            AstQueryGeneralScalarFunctionEvaluator.TryEvaluateGeneralScalarFunction,
+            AstQuerySharedNumericFunctionEvaluator.TryEvaluate,
             DbInvocationStyle.Call | DbInvocationStyle.Identifier,
             "GREATEST",
             "LEAST");
-        this.AddScalarFunction("POSITION", "INT", AstQueryGeneralScalarFunctionEvaluator.TryEvaluateGeneralScalarFunction);
-        this.AddScalarFunction("RPAD", "VARCHAR", AstQueryGeneralScalarFunctionEvaluator.TryEvaluateGeneralScalarFunction);
+        this.AddScalarFunction("POSITION", "INT", AstQuerySharedTextFunctionEvaluator.TryEvaluate);
+        this.AddScalarFunction("RPAD", "VARCHAR", AstQuerySharedTextFunctionEvaluator.TryEvaluate);
         this.AddScalarFunction("SLEEP", "INT", tryEvalMySqlUtilityFunction);
-        this.AddScalarFunction("SUBSTRING_INDEX", "VARCHAR", AstQueryGeneralScalarFunctionEvaluator.TryEvaluateGeneralScalarFunction);
-        this.AddScalarFunction("OCTET_LENGTH", "INT", AstQueryGeneralScalarFunctionEvaluator.TryEvaluateGeneralScalarFunction);
+        this.AddScalarFunction("SUBSTRING_INDEX", "VARCHAR", tryEvalMySqlUtilityFunction);
+        this.AddScalarFunction("OCTET_LENGTH", "INT", AstQuerySharedTextFunctionEvaluator.TryEvaluate);
         this.AddScalarFunctions("VARBINARY", tryEvalMySqlUtilityFunction, "COMPRESS");
         this.AddScalarFunctions("VARBINARY", tryEvalMySqlUtilityFunction, "UNCOMPRESS");
         this.AddScalarFunction(
@@ -442,7 +384,7 @@ internal partial class MySqlDialect
             executionHandler: tryEvalDateTimeFunction);
         this.AddScalarFunctions(
             "VARCHAR",
-            tryEvalMySqlGeneralScalarFunction,
+            tryEvalMySqlUtilityFunction,
             "SHA",
             "SHA1",
             "SHA2");
@@ -510,6 +452,11 @@ internal partial class MySqlDialect
                 "VARCHAR",
                 tryEvalJsonUtilityFunctions);
 
+        this.AddScalarFunction(
+            "QUOTE",
+            "VARCHAR",
+            tryEvalMySqlUtilityFunction);
+
         if (version >= MySqlDialect.JsonArrowOperatorsMinVersion)
             this.AddScalarFunctions(
                 "INT",
@@ -524,7 +471,7 @@ internal partial class MySqlDialect
             this.AddScalarFunction(
                 "JSON_ARRAY",
                 "VARCHAR",
-                executionHandler: tryEvalMySqlGeneralSystemAndJsonFunction);
+                executionHandler: AstQueryJsonArrayFunctionEvaluator.TryEvalJsonArrayFunction);
 
         if (version >= 56)
             this.AddScalarFunction(DbFunctionDef.CreateScalar(SqlConst.JSON_ARRAYAGG, "VARCHAR"));
@@ -541,36 +488,35 @@ internal partial class MySqlDialect
             this.AddScalarFunction(
                 "JSON_DEPTH",
                 "INT",
-                executionHandler: tryEvalMySqlGeneralSystemAndJsonFunction);
+                executionHandler: AstQueryMySqlSystemAndJsonFunctionEvaluator.TryEvaluate);
 
         if (version >= 80)
             this.AddScalarFunction(
                 "IS_UUID",
                 "INT",
-                executionHandler: tryEvalMySqlGeneralSystemAndJsonFunction);
+                executionHandler: tryEvalMySqlUtilityFunction);
 
         if (version >= 80)
             this.AddScalarFunction(
                 "UUID_SHORT",
                 "BIGINT",
-                executionHandler: tryEvalMySqlGeneralSystemAndJsonFunction);
+                executionHandler: AstQueryMySqlSystemAndJsonFunctionEvaluator.TryEvaluate);
         if (version >= 80)
             this.AddScalarFunction(
                 "GROUPING",
                 "INT",
-                executionHandler: tryEvalMySqlGeneralSystemAndJsonFunction);
+                executionHandler: AstQueryGroupingFunctionEvaluator.TryEvaluate);
         if (version >= 80)
             this.AddScalarFunction(
                 "GROUPING_ID",
                 "INT",
-                executionHandler: tryEvalMySqlGeneralSystemAndJsonFunction);
+                executionHandler: AstQueryGroupingFunctionEvaluator.TryEvaluate);
         this.AddScalarFunctions(
             "DATETIME",
             AstQueryGeneralDateArithmeticFunctionEvaluator.TryEvaluate,
             "ADDDATE",
             "ADDTIME",
-            "LAST_DAY",
-            "EOMONTH",
+            "SUBDATE",
             "SUBTIME");
 
         this.AddScalarFunction(DbFunctionDef.CreateScalar("DATE_ADD", "DATETIME"));
@@ -587,13 +533,14 @@ internal partial class MySqlDialect
 
         this.AddScalarFunctions(
             "DATE",
-            tryEvalDateFunction,
+            tryEvalMySqlDateFunction,
             "MAKEDATE",
             "MAKETIME",
             "MICROSECOND",
             "MONTHNAME",
             "PERIOD_ADD",
             "PERIOD_DIFF",
+            "LAST_DAY",
             "QUARTER",
             "SEC_TO_TIME");
 

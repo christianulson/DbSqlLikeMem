@@ -2,7 +2,7 @@ using static DbSqlLikeMem.AstQueryExecutorBase;
 
 namespace DbSqlLikeMem;
 
-internal static class AstQueryGeneralDateTimeFunctionEvaluator
+internal static class AstQueryMySqlDateTimeFunctionEvaluator
 {
     private static readonly Dictionary<string, AstQueryGeneralScalarFunctionHandler> _handlers = CreateHandlers();
 
@@ -13,7 +13,7 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler(context,fn,  evalArg, out result);
+            return handler(context, fn, evalArg, out result);
 
         result = null;
         return false;
@@ -30,7 +30,6 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
         Register(handlers, TryEvalToSecondsFunction, "TO_SECONDS");
         Register(handlers, TryEvalTruncateFunction, "TRUNCATE");
         Register(handlers, TryEvalUnixTimestampFunction, "UNIX_TIMESTAMP");
-        Register(handlers, TryEvalUnixEpochFunction, "UNIXEPOCH");
         Register(handlers, TryEvalWeekFunction, "WEEK");
         Register(handlers, TryEvalWeekdayFunction, "WEEKDAY");
         Register(handlers, TryEvalWeekOfYearFunction, "WEEKOFYEAR");
@@ -49,7 +48,7 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
     }
 
     private static bool TryEvalTimeFormatFunction(
-        this QueryExecutionContext context,
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
@@ -118,7 +117,7 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
     }
 
     private static bool TryEvalTimeToSecFunction(
-        this QueryExecutionContext context,
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
@@ -147,7 +146,7 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
     }
 
     private static bool TryEvalTimeDiffFunction(
-        this QueryExecutionContext context,
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
@@ -176,10 +175,8 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
         return true;
     }
 
-
-
     private static bool TryEvalToDaysFunction(
-        this QueryExecutionContext context,
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
@@ -197,7 +194,7 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
     }
 
     private static bool TryEvalToSecondsFunction(
-        this QueryExecutionContext context,
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
@@ -215,7 +212,7 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
     }
 
     private static bool TryEvalTruncateFunction(
-        this QueryExecutionContext context,
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
@@ -244,7 +241,7 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
     }
 
     private static bool TryEvalUnixTimestampFunction(
-        this QueryExecutionContext context,
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
@@ -281,43 +278,36 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
         return true;
     }
 
-    private static bool TryEvalUnixEpochFunction(
-        this QueryExecutionContext context,
-        FunctionCallExpr fn,
-        Func<int, object?> evalArg,
-        out object? result)
-        => TryEvalUnixTimestampFunction(context, fn, evalArg, out result);
-
     private static bool TryEvalWeekFunction(
-        this QueryExecutionContext context,
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
         => TryEvalWeekFunctionImpl(context, fn, evalArg, WeekFunctionKind.Week, out result);
 
     private static bool TryEvalWeekdayFunction(
-        this QueryExecutionContext context,
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
         => TryEvalWeekFunctionImpl(context, fn, evalArg, WeekFunctionKind.Weekday, out result);
 
     private static bool TryEvalWeekOfYearFunction(
-        this QueryExecutionContext context,
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
         => TryEvalWeekFunctionImpl(context, fn, evalArg, WeekFunctionKind.WeekOfYear, out result);
 
     private static bool TryEvalYearWeekFunction(
-        this QueryExecutionContext context,
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
         => TryEvalWeekFunctionImpl(context, fn, evalArg, WeekFunctionKind.YearWeek, out result);
 
     private static bool TryEvalWeekFunctionImpl(
-        this QueryExecutionContext context,
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         WeekFunctionKind kind,
@@ -358,5 +348,4 @@ internal static class AstQueryGeneralDateTimeFunctionEvaluator
         WeekOfYear,
         YearWeek
     }
-
 }

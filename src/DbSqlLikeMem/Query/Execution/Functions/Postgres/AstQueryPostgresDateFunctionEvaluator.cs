@@ -22,17 +22,17 @@ internal static class AstQueryPostgresDateFunctionEvaluator
     internal static void CreateHandlers(
         this QueryExecutionContext context)
     {
-        var f = context.Dialect.Functions;
-        f.Add("DATE", TryEvalDateTruncFunction, "DATE_TRUNC");
-        f.Add("DATE", TryEvalDatePartFunction, "DATE_PART");
-        f.Add("AGE", TryEvalAgeFunction, "AGE");
-        f.Add("INTERVAL", TryEvalMakeIntervalFunction, "MAKE_INTERVAL");
-        f.Add("DATE", TryEvalMakeDateFunction, "MAKE_DATE");
-        f.Add("TIME", TryEvalMakeTimeFunction, "MAKE_TIME");
-        f.Add("TIMESTAMP", TryEvalMakeTimestampFunction, "MAKE_TIMESTAMP");
-        f.Add("TIMESTAMP", TryEvalMakeTimestamptzFunction, "MAKE_TIMESTAMPTZ");
-        f.Add("DATE", TryEvalToDateFunction, "TO_DATE");
-        f.Add("VARCHAR", TryEvalToCharFunction, "TO_CHAR");
+        var dialect = context.Dialect;
+        dialect.AddScalarFunctions("DATE", TryEvalDateTruncFunction, "DATE_TRUNC");
+        dialect.AddScalarFunctions("DATE", TryEvalDatePartFunction, "DATE_PART");
+        dialect.AddScalarFunctions("AGE", TryEvalAgeFunction, "AGE");
+        dialect.AddScalarFunctions("INTERVAL", TryEvalMakeIntervalFunction, "MAKE_INTERVAL");
+        dialect.AddScalarFunctions("DATE", TryEvalMakeDateFunction, "MAKE_DATE");
+        dialect.AddScalarFunctions("TIME", TryEvalMakeTimeFunction, "MAKE_TIME");
+        dialect.AddScalarFunctions("TIMESTAMP", TryEvalMakeTimestampFunction, "MAKE_TIMESTAMP");
+        dialect.AddScalarFunctions("TIMESTAMP", TryEvalMakeTimestamptzFunction, "MAKE_TIMESTAMPTZ");
+        dialect.AddScalarFunctions("DATE", TryEvalToDateFunction, "TO_DATE");
+        dialect.AddScalarFunctions("VARCHAR", TryEvalToCharFunction, "TO_CHAR");
     }
 
     private static bool TryEvalDateTruncFunction(

@@ -35,18 +35,6 @@ internal static class SqlDialectProcedureRegistryExtensions
         dialect.Procedures[procedureName.NormalizeName()] = procedure;
     }
 
-    internal static void AddProcedureIf(
-        this ISqlDialect dialect,
-        bool condition,
-        string procedureName,
-        ProcedureDef procedure)
-    {
-        if (!condition)
-            return;
-
-        dialect.AddProcedure(procedureName, procedure);
-    }
-
     internal static void AddProcedures(
         this ISqlDialect dialect,
         ProcedureDef procedure,
@@ -60,15 +48,4 @@ internal static class SqlDialectProcedureRegistryExtensions
             dialect.AddProcedure(procedureName, procedure);
     }
 
-    internal static void AddProceduresIf(
-        this ISqlDialect dialect,
-        bool condition,
-        ProcedureDef procedure,
-        params string[] procedureNames)
-    {
-        if (!condition)
-            return;
-
-        dialect.AddProcedures(procedure, procedureNames);
-    }
 }

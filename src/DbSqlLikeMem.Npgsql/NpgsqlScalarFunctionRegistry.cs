@@ -12,52 +12,14 @@ internal static class NpgsqlScalarFunctionRegistry
 
         SqlSharedScalarFunctionRegistry.Register(dialect);
 
-        static bool TryEvalNoopSessionContextFunction(
-            QueryExecutionContext context,
-            FunctionCallExpr fn,
-            Func<int, object?> evalArg,
-            out object? result)
-        {
-            _ = fn;
-            _ = context;
-            _ = evalArg;
-            result = null;
-            return false;
-        }
-
-        static bool TryEvalNoopGeneralJsonFunction(
-            QueryExecutionContext context,
-            FunctionCallExpr fn,
-            Func<int, object?> evalArg,
-            out object? result)
-        {
-            _ = fn;
-            _ = context;
-            _ = evalArg;
-            result = null;
-            return false;
-        }
-
-        var generalSystemAndJsonFunctionEvaluator = new AstQueryGeneralSystemAndJsonFunctionEvaluator(
-            TryEvalNoopSessionContextFunction,
-            TryEvalNoopGeneralJsonFunction,
-            TryEvalNoopGeneralJsonFunction,
-            TryEvalNoopGeneralJsonFunction);
-
-        bool TryEvalGeneralSystemAndJsonFunction(
-            QueryExecutionContext context,
-            FunctionCallExpr fn,
-            Func<int, object?> evalArg,
-            out object? result)
-            => generalSystemAndJsonFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result);
-
         RegisterSystemFunctions(dialect, AstQueryPostgresSystemFunctionEvaluator.TryEvaluatePostgresSystemFunction);
         RegisterDateFunctions(dialect, AstQueryPostgresDateFunctionEvaluator.TryEvaluatePostgresDateFunction);
-        RegisterNumericFunctions(dialect, AstQueryGeneralScalarFunctionEvaluator.TryEvaluateGeneralScalarFunction);
+        RegisterNumericFunctions(dialect);
         RegisterTextFunctions(dialect,
             AstQueryPostgresTextFunctionEvaluator.TryEvaluate,
             AstQueryPostgresUnicodeFunctionEvaluator.TryEvaluate,
-            AstQueryGeneralScalarFunctionEvaluator.TryEvaluateGeneralScalarFunction);
+            AstQuerySharedTextFunctionEvaluator.TryEvaluate,
+            AstQuerySharedNumericFunctionEvaluator.TryEvaluate);
         RegisterUtilityFunctions(dialect, AstQueryPostgresScalarUtilityFunctionEvaluator.TryEvaluatePostgresScalarUtilityFunction);
         RegisterNetworkFunctions(dialect, AstQueryPostgresNetworkFunctionEvaluator.TryEvaluate);
         RegisterBinaryFunctions(dialect);
@@ -65,7 +27,11 @@ internal static class NpgsqlScalarFunctionRegistry
         RegisterAggregateFunctions(dialect);
         RegisterPostgresCompatibilityFunctions(dialect);
 
-        dialect.AddScalarFunction(DbFunctionDef.CreateScalar(SqlConst.STRING_AGG, "VARCHAR"));
+        dialect.AddScalarFunction(
+            DbFunctionDef.CreateScalar(SqlConst.STRING_AGG, "VARCHAR") with
+            {
+                IsStringAggregate = true
+            });
         dialect.AddScalarFunction(DbFunctionDef.CreateScalar("ROW_COUNT", "BIGINT"));
         dialect.AddScalarFunctions(
             DbFunctionDef.CreateScalar(NpgsqlConst.NEXTVAL, "BIGINT", invocationStyle: DbInvocationStyle.Call),
@@ -77,10 +43,9 @@ internal static class NpgsqlScalarFunctionRegistry
         RegisterArrayFunctions(dialect, AstQueryPostgresArrayFunctionEvaluator.TryEvaluate);
         RegisterJsonFunctions(dialect,
             AstQueryPostgresJsonFunctionEvaluator.TryEvaluate,
-            TryEvalGeneralSystemAndJsonFunction);
+            AstQueryJsonArrayFunctionEvaluator.TryEvalJsonArrayFunction);
         RegisterRegexFunctions(dialect, AstQueryPostgresRegexFunctionEvaluator.TryEvaluate);
         RegisterUuidFunctions(dialect, AstQueryPostgresScalarFunctionEvaluator.TryEvaluateyPostgresScalarFunction);
-        RegisterGeneralFunctions(dialect, AstQueryGeneralScalarFunctionEvaluator.TryEvaluateGeneralScalarFunction);
     }
 
     private static void RegisterSystemFunctions(
@@ -131,7 +96,7 @@ internal static class NpgsqlScalarFunctionRegistry
             FunctionCallExpr fn,
             Func<int, object?> evalArg,
             out object? result)
-            => AstQueryGeneralScalarFunctionEvaluator.TryEvalToNumberFunction(fn, evalArg, out result);
+            => AstQueryPostgresNumberFunctionEvaluator.TryEvalToNumberFunction(fn, evalArg, out result);
 
         dialect.AddScalarFunction("DATE_TRUNC", "DATETIME", tryEvalPostgresDateFunction);
         dialect.AddScalarFunction("DATE_PART", "DOUBLE", tryEvalPostgresDateFunction);
@@ -151,9 +116,9 @@ internal static class NpgsqlScalarFunctionRegistry
         ISqlDialect dialect,
         AstQueryGeneralScalarFunctionHandler tryEvalPostgresTextFunction,
         AstQueryGeneralScalarFunctionHandler tryEvalPostgresUnicodeFunction,
-        AstQueryGeneralScalarFunctionHandler tryEvalGeneralScalarFunction)
+        AstQueryGeneralScalarFunctionHandler tryEvalSharedTextFunction,
+        AstQueryGeneralScalarFunctionHandler tryEvalSharedNumericFunction)
     {
-        var generalScalarFunction = tryEvalGeneralScalarFunction;
         var postgresqlTextFunction = tryEvalPostgresTextFunction;
         var postgresqlUnicodeFunction = tryEvalPostgresUnicodeFunction;
 
@@ -169,15 +134,15 @@ internal static class NpgsqlScalarFunctionRegistry
             "TRANSLATE");
         if (dialect.Version >= 11)
             dialect.AddScalarFunction("STARTS_WITH", "BOOLEAN", postgresqlTextFunction);
-        dialect.AddScalarFunctions("BIGINT", generalScalarFunction, "CHAR_LENGTH", "CHARACTER_LENGTH");
+        dialect.AddScalarFunctions("BIGINT", tryEvalSharedTextFunction, "CHAR_LENGTH", "CHARACTER_LENGTH");
         dialect.AddScalarFunctions(
             "VARCHAR",
-            generalScalarFunction,
+            tryEvalSharedNumericFunction,
             DbInvocationStyle.Call | DbInvocationStyle.Identifier,
             "GREATEST",
             "LEAST");
-        dialect.AddScalarFunctions("VARCHAR", generalScalarFunction, "SUBSTR", "RPAD");
-        dialect.AddScalarFunctions("INT", generalScalarFunction, "OCTET_LENGTH", "POSITION", "BIT_LENGTH");
+        dialect.AddScalarFunctions("VARCHAR", tryEvalSharedTextFunction, "SUBSTR", "RPAD");
+        dialect.AddScalarFunctions("INT", tryEvalSharedTextFunction, "OCTET_LENGTH", "POSITION", "BIT_LENGTH");
         dialect.AddScalarFunctions("VARCHAR", postgresqlUnicodeFunction, "NORMALIZE", "TO_ASCII");
     }
 
@@ -192,11 +157,44 @@ internal static class NpgsqlScalarFunctionRegistry
     }
 
     private static void RegisterNumericFunctions(
-        ISqlDialect dialect,
-        AstQueryGeneralScalarFunctionHandler tryEvalGeneralScalarFunction)
+        ISqlDialect dialect)
     {
-        var generalScalarFunction = tryEvalGeneralScalarFunction;
-        dialect.AddScalarFunction("CBRT", "DOUBLE", generalScalarFunction);
+        static bool TryEvalPostgresNumericFunction(
+            QueryExecutionContext context,
+            FunctionCallExpr fn,
+            Func<int, object?> evalArg,
+            out object? result)
+        {
+            _ = context;
+            if (!string.Equals(fn.Name, "CBRT", StringComparison.OrdinalIgnoreCase))
+            {
+                result = null;
+                return false;
+            }
+
+            var value = evalArg(0);
+            if (AstQueryExecutorBase.IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            try
+            {
+                var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+                result = number == 0d
+                    ? 0d
+                    : Math.Sign(number) * Math.Pow(Math.Abs(number), 1d / 3d);
+                return true;
+            }
+            catch
+            {
+                result = null;
+                return true;
+            }
+        }
+
+        dialect.AddScalarFunction("CBRT", "DOUBLE", TryEvalPostgresNumericFunction);
     }
 
     private static void RegisterPostgresCompatibilityFunctions(
@@ -263,10 +261,10 @@ internal static class NpgsqlScalarFunctionRegistry
     private static void RegisterJsonFunctions(
         ISqlDialect dialect,
         AstQueryGeneralScalarFunctionHandler tryEvalPostgresJsonFunction,
-        AstQueryGeneralScalarFunctionHandler tryEvalGeneralSystemAndJsonFunction)
+        AstQueryGeneralScalarFunctionHandler tryEvalJsonArrayFunction)
     {
         var jsonFunction = tryEvalPostgresJsonFunction;
-        var generalSystemAndJsonFunction = tryEvalGeneralSystemAndJsonFunction;
+        var jsonArrayFunction = tryEvalJsonArrayFunction;
 
         dialect.AddScalarFunction("TO_JSON", "VARCHAR", jsonFunction);
         dialect.AddScalarFunction("TO_JSONB", "VARCHAR", jsonFunction);
@@ -298,7 +296,7 @@ internal static class NpgsqlScalarFunctionRegistry
         dialect.AddScalarFunction("JSONB_ARRAY_LENGTH", "INT", jsonFunction);
         if (dialect.Version >= 12)
             dialect.AddScalarFunction("JSONB_PATH_EXISTS", "BOOLEAN", jsonFunction);
-        dialect.AddScalarFunction("JSON_ARRAY", "VARCHAR", generalSystemAndJsonFunction);
+        dialect.AddScalarFunction("JSON_ARRAY", "VARCHAR", jsonArrayFunction);
 
         dialect.AddScalarFunction(DbFunctionDef.CreateScalar(SqlConst.JSONB_AGG, "VARCHAR"));
         dialect.AddScalarFunction(DbFunctionDef.CreateScalar(SqlConst.JSONB_OBJECT_AGG, "VARCHAR"));
@@ -309,7 +307,11 @@ internal static class NpgsqlScalarFunctionRegistry
         dialect.AddScalarFunction(DbFunctionDef.CreateScalar(SqlConst.JSON_ARRAYAGG, "VARCHAR"));
         dialect.AddScalarFunction(DbFunctionDef.CreateScalar(SqlConst.JSON_OBJECT_AGG, "VARCHAR"));
         dialect.AddScalarFunction(DbFunctionDef.CreateScalar(SqlConst.JSON_OBJECTAGG, "VARCHAR"));
-        dialect.AddScalarFunction(DbFunctionDef.CreateScalar("JSON_OBJECT", "VARCHAR"));
+        dialect.AddScalarFunction(
+            DbFunctionDef.CreateScalar("JSON_OBJECT", "VARCHAR") with
+            {
+                AstExecutor = AstQueryJsonObjectFunctionEvaluator.TryEvalJsonObjectFunction
+            });
     }
 
     private static void RegisterRegexFunctions(
@@ -329,24 +331,6 @@ internal static class NpgsqlScalarFunctionRegistry
         AstQueryGeneralScalarFunctionHandler tryEvalPostgresUuidFunction)
     {
         dialect.AddScalarFunction("GEN_RANDOM_UUID", "VARCHAR", tryEvalPostgresUuidFunction);
-    }
-
-    private static void RegisterGeneralFunctions(
-        ISqlDialect dialect,
-        AstQueryGeneralScalarFunctionHandler tryEvalGeneralScalarFunction)
-    {
-        dialect.AddScalarFunctions("BIGINT", tryEvalGeneralScalarFunction, "CHAR_LENGTH", "CHARACTER_LENGTH");
-        dialect.AddScalarFunctions(
-            "VARCHAR",
-            tryEvalGeneralScalarFunction,
-            DbInvocationStyle.Call | DbInvocationStyle.Identifier,
-            "GREATEST",
-            "LEAST");
-        dialect.AddScalarFunction("SUBSTR", "VARCHAR", tryEvalGeneralScalarFunction);
-        dialect.AddScalarFunction("RPAD", "VARCHAR", tryEvalGeneralScalarFunction);
-        dialect.AddScalarFunction("OCTET_LENGTH", "INT", tryEvalGeneralScalarFunction);
-        dialect.AddScalarFunction("POSITION", "INT", tryEvalGeneralScalarFunction);
-        dialect.AddScalarFunction("BIT_LENGTH", "INT", tryEvalGeneralScalarFunction);
     }
 
     private static bool TryEvalPostgresLogFunction(

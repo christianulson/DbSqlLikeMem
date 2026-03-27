@@ -101,7 +101,31 @@ internal static class AstQueryPostgresUnicodeFunctionEvaluator
             return true;
         }
 
-        result = AstQueryGeneralScalarFunctionEvaluator.ConvertToAscii(value?.ToString() ?? string.Empty);
+        result = ConvertToAscii(value?.ToString() ?? string.Empty);
         return true;
+    }
+
+    private static string ConvertToAscii(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return text;
+
+        var decomposed = text.Normalize(NormalizationForm.FormD);
+        var builder = new StringBuilder(decomposed.Length);
+        foreach (var ch in decomposed)
+        {
+            var category = CharUnicodeInfo.GetUnicodeCategory(ch);
+            if (category is UnicodeCategory.NonSpacingMark
+                or UnicodeCategory.SpacingCombiningMark
+                or UnicodeCategory.EnclosingMark)
+            {
+                continue;
+            }
+
+            if (ch <= 0x7F)
+                builder.Append(ch);
+        }
+
+        return builder.ToString().Normalize(NormalizationForm.FormC);
     }
 }

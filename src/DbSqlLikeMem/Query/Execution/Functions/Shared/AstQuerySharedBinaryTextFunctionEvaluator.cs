@@ -1,0 +1,132 @@
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
+using static DbSqlLikeMem.AstQueryExecutorBase;
+
+namespace DbSqlLikeMem;
+
+internal static class AstQuerySharedBinaryTextFunctionEvaluator
+{
+    internal static bool TryEvaluate(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+
+        if (string.Equals(fn.Name, "MD5", StringComparison.OrdinalIgnoreCase))
+            return TryEvalMd5Function(fn, evalArg, out result);
+
+        if (string.Equals(fn.Name, "HEX", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "UNHEX", StringComparison.OrdinalIgnoreCase))
+            return TryEvalHexFunctions(fn, evalArg, out result);
+
+        result = null;
+        return false;
+    }
+
+    private static bool TryEvalMd5Function(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!string.Equals(fn.Name, "MD5", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = value?.ToString() ?? string.Empty;
+        var bytes = Encoding.UTF8.GetBytes(text);
+        using var md5 = MD5.Create();
+        var hash = ComputeHash(md5, bytes);
+        result = ToHexString(hash);
+        return true;
+    }
+
+    private static bool TryEvalHexFunctions(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (fn.Args.Count == 0)
+            throw new InvalidOperationException($"{fn.Name.ToUpperInvariant()}() espera ao menos um argumento.");
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (string.Equals(fn.Name, "HEX", StringComparison.OrdinalIgnoreCase))
+        {
+            if (value is byte[] bytes)
+            {
+                result = ToHexString(bytes);
+                return true;
+            }
+
+            if (value is string text)
+            {
+                result = ToHexString(Encoding.UTF8.GetBytes(text));
+                return true;
+            }
+
+            try
+            {
+                var number = Convert.ToInt64(value, CultureInfo.InvariantCulture);
+                result = number.ToString("X", CultureInfo.InvariantCulture);
+                return true;
+            }
+            catch
+            {
+                result = null;
+                return true;
+            }
+        }
+
+        var payload = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        if (payload.Length == 0)
+        {
+            result = Array.Empty<byte>();
+            return true;
+        }
+
+        if (payload.Length % 2 == 1)
+            payload = "0" + payload;
+
+        var output = new byte[payload.Length / 2];
+        for (var i = 0; i < output.Length; i++)
+        {
+            var slice = payload.Substring(i * 2, 2);
+            if (!byte.TryParse(slice, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var parsed))
+            {
+                result = null;
+                return true;
+            }
+
+            output[i] = parsed;
+        }
+
+        result = output;
+        return true;
+    }
+
+    private static string ToHexString(byte[] bytes)
+    {
+        var sb = new StringBuilder(bytes.Length * 2);
+        foreach (var b in bytes)
+            sb.Append(b.ToString("x2", CultureInfo.InvariantCulture));
+
+        return sb.ToString();
+    }
+}

@@ -16,7 +16,7 @@ public sealed class SqlExprPrinterTest(
     [MemberDataByNpgsqlVersion(nameof(Expressions))]
     public void ExprPrinter_ShouldAllow_Roundtrip_Parse_Print_Parse(string expr, int version)
     {
-        var d = new NpgsqlDialect(version);
+        var d = GetDialect(version, v => new NpgsqlDialect(v));
         var ast1 = SqlExpressionParser.ParseWhere(expr, d);
         var printed = SqlExprPrinter.Print(ast1);
 

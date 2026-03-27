@@ -41,7 +41,7 @@ internal sealed class AstQuerySqlServerCompatibilityFunctionEvaluator(
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (context.TryEvalNumericFunction(fn, evalArg, out result)
+        if (AstQuerySharedNumericFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result)
             || _sqlServerUtilityFunctionEvaluator.TryEvalCurrentUserFunction(context, fn, out result)
             || _sqlServerUtilityFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result))
         {
@@ -57,9 +57,10 @@ internal sealed class AstQuerySqlServerCompatibilityFunctionEvaluator(
             || _sqlServerIdentityFunctionEvaluator.TryEvaluate(fn, evalArg, out result)
             || _sqlServerUtilityFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)
             || context.TryEvaluateSqlServerDateConstructionFunction(fn, evalArg, out result)
+            || AstQuerySqlServerTemporalAccessorFunctionEvaluator.TryEvaluate(fn, row, group, ctes, evalArg, _getTemporalUnit, _resolveTemporalUnit, out result)
             || AstQueryTemporalAccessorFunctionEvaluator.TryEvaluate(fn, row, group, ctes, evalArg, _getTemporalUnit, _resolveTemporalUnit, out result)
             || context.TryEvaluateDb2DateFunction(fn, evalArg, _resolveTemporalUnit, out result)
-            || AstQueryGeneralScalarFunctionEvaluator.TryEvalDegreesFunction(context, fn, evalArg, out result)
+            || AstQuerySharedNumericFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result)
             || context.TryEvaluate(fn, row, group, ctes, evalArg, _eval, _getTemporalUnit, out result))
         {
             return true;
@@ -74,10 +75,13 @@ internal sealed class AstQuerySqlServerCompatibilityFunctionEvaluator(
             throw SqlUnsupported.NotSupported(context.Dialect, "EOMONTH");
         }
 
+        if (string.Equals(fn.Name, "EOMONTH", StringComparison.OrdinalIgnoreCase)
+            && TryEvalEomonthFunction(fn, evalArg, out result))
+        {
+            return true;
+        }
+
         if (AstQueryGeneralDateArithmeticFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result)
-            || AstQueryGeneralScalarFunctionEvaluator.TryEvalDifferenceFunction(context, fn, evalArg, out result)
-            || AstQueryGeneralScalarFunctionEvaluator.TryEvalExpFunction(context, fn, evalArg, out result)
-            || AstQueryGeneralScalarFunctionEvaluator.TryEvalFloorFunction(context, fn, evalArg, out result)
             || _sqlServerUtilityFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result))
         {
             return true;
@@ -85,5 +89,32 @@ internal sealed class AstQuerySqlServerCompatibilityFunctionEvaluator(
 
         result = null;
         return false;
+    }
+
+    private static bool TryEvalEomonthFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var value = evalArg(0);
+        if (IsNullish(value) || !TryCoerceDateTime(value, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        if (fn.Args.Count > 1)
+        {
+            var offsetValue = evalArg(1);
+            if (!IsNullish(offsetValue))
+            {
+                var offset = Convert.ToInt32(offsetValue.ToDec(), CultureInfo.InvariantCulture);
+                dateTime = dateTime.AddMonths(offset);
+            }
+        }
+
+        var lastDay = DateTime.DaysInMonth(dateTime.Year, dateTime.Month);
+        result = new DateTime(dateTime.Year, dateTime.Month, lastDay, dateTime.Hour, dateTime.Minute, dateTime.Second, dateTime.Kind);
+        return true;
     }
 }

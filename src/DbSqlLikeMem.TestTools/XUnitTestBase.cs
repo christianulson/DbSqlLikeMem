@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 
 namespace DbSqlLikeMem.TestTools;
 
@@ -173,6 +174,24 @@ public abstract class XUnitTestBase : IDisposable
         return testMethod?.Name ?? "UnknownTest";
     }
 
+
+    private static readonly ConcurrentDictionary<string, object> DialectCache = [];
+    /// <summary>
+    /// Retrieves a cached dialect instance for the specified version, or creates and caches a new instance if one does
+    /// not exist.
+    /// </summary>
+    /// <remarks>This method uses an internal cache to store and retrieve dialect instances by type and
+    /// version. If a dialect for the given version does not exist in the cache, the provided creation function is used
+    /// to instantiate and cache it. This approach improves performance by avoiding redundant instantiations.</remarks>
+    /// <typeparam name="T">The type of the dialect to retrieve or create.</typeparam>
+    /// <param name="version">The version number used to identify the dialect instance.</param>
+    /// <param name="fnCreate">A function that creates a new dialect instance for the specified version if one is not already cached.</param>
+    /// <returns>A dialect instance of type T corresponding to the specified version.</returns>
+    protected static T GetDialect<T>(int version, Func<int,T> fnCreate)
+        => (T)DialectCache.GetOrAdd($"{typeof(T).FullName}_v{version}", _=> fnCreate(version)!);
+
+    #region Dispose
+
     /// <summary>
     /// EN: Disposes managed resources when requested.
     /// PT: Descarta recursos gerenciados quando solicitado.
@@ -214,4 +233,6 @@ public abstract class XUnitTestBase : IDisposable
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }
+
+    #endregion
 }

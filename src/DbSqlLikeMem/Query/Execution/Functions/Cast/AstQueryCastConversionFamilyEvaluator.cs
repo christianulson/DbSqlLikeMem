@@ -30,6 +30,7 @@ internal delegate bool AstQueryTryEvalOpenJsonFunction(
     out object? result);
 
 internal delegate bool AstQueryTryEvalJsonUnquoteFunction(
+    QueryExecutionContext context,
     FunctionCallExpr fn,
     Func<int, object?> evalArg,
     out object? result);
@@ -83,7 +84,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
         if (_tryEvalOpenJsonFunction(context, fn, evalArg, out result))
             return true;
 
-        if (_tryEvalJsonUnquoteFunction(fn, evalArg, out result))
+        if (_tryEvalJsonUnquoteFunction(context, fn, evalArg, out result))
             return true;
 
         if (_tryEvalToNumberFunction(fn, evalArg, out result))

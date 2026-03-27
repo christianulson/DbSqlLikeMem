@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.Oracle.Test.TemporaryTable;
 /// EN: Covers CREATE TEMPORARY TABLE parsing scenarios in the Oracle dialect.
 /// PT: Cobre cenarios de parsing de CREATE TEMPORARY TABLE no dialeto Oracle.
 /// </summary>
-public sealed class OracleTemporaryTableParserTests
+public sealed class OracleTemporaryTableParserTests(
+    ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Verifies that CREATE TEMPORARY TABLE followed by SELECT is parsed as two statements.
@@ -22,7 +24,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
 SELECT * FROM tmp_users;
 ";
 
-        var queries = SqlQueryParser.ParseMulti(sql, new OracleDialect(version)).ToList();
+        var queries = SqlQueryParser.ParseMulti(sql, GetDialect(version, v => new OracleDialect(v))).ToList();
 
         // TDD contract: the parser must accept the batch and produce 2 statements.
         Assert.Equal(2, queries.Count);
@@ -72,7 +74,7 @@ WHERE tenantid = 10",
     public void Parse_ShouldAccept_CreateTemporaryTable_Variants(string sql, int version)
     {
         // TDD contract: these statements must parse without throwing.
-        var q = SqlQueryParser.Parse(sql, new OracleDialect(version));
+        var q = SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v)));
         Assert.NotNull(q);
         Assert.Contains(SqlConst.CREATE, q.RawSql, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(SqlConst.TEMPORARY, q.RawSql, StringComparison.OrdinalIgnoreCase);
@@ -87,7 +89,7 @@ WHERE tenantid = 10",
     [MemberDataOracleVersion]
     public void Parse_ShouldAccept_GlobalTemporaryTable(int version)
     {
-        var dialect = new OracleDialect(version);
+        var dialect = GetDialect(version, v => new OracleDialect(v));
         var q = Assert.IsType<SqlCreateTemporaryTableQuery>(
             SqlQueryParser.Parse("CREATE GLOBAL TEMPORARY TABLE tmp_users AS SELECT id FROM users", dialect));
 
@@ -104,7 +106,7 @@ WHERE tenantid = 10",
     public void Parse_CreateOrReplaceTable_ShouldThrow(int version)
     {
         const string sql = "CREATE OR REPLACE TABLE tmp_users AS SELECT id FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
     }
 
     /// <summary>
@@ -117,7 +119,7 @@ WHERE tenantid = 10",
     public void Parse_ShouldAccept_DropTable_IfExists(int version)
     {
         var q = Assert.IsType<SqlDropTableQuery>(
-            SqlQueryParser.Parse("DROP TABLE IF EXISTS tmp_users", new OracleDialect(version)));
+            SqlQueryParser.Parse("DROP TABLE IF EXISTS tmp_users", GetDialect(version, v => new OracleDialect(v))));
 
         Assert.True(q.IfExists);
         Assert.NotNull(q.Table);
@@ -134,7 +136,7 @@ WHERE tenantid = 10",
     public void Parse_ShouldAccept_DropGlobalTemporaryTable_IfExists(int version)
     {
         var q = Assert.IsType<SqlDropTableQuery>(
-            SqlQueryParser.Parse("DROP GLOBAL TEMPORARY TABLE IF EXISTS tmp_users", new OracleDialect(version)));
+            SqlQueryParser.Parse("DROP GLOBAL TEMPORARY TABLE IF EXISTS tmp_users", GetDialect(version, v => new OracleDialect(v))));
 
         Assert.True(q.IfExists);
         Assert.True(q.Temporary);
@@ -151,7 +153,7 @@ WHERE tenantid = 10",
     public void Parse_DropGlobalTable_WithoutTemporaryKeyword_ShouldThrow(int version)
     {
         const string sql = "DROP GLOBAL TABLE IF EXISTS tmp_users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
     }
 
 
@@ -165,7 +167,7 @@ WHERE tenantid = 10",
     public void Parse_DropTable_WithoutName_ShouldThrow(int version)
     {
         const string sql = "DROP TABLE IF EXISTS ;";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
     }
 
     /// <summary>
@@ -178,7 +180,7 @@ WHERE tenantid = 10",
     public void Parse_DropTable_WithUnexpectedSecondStatement_ShouldThrow(int version)
     {
         const string sql = "DROP TABLE IF EXISTS tmp_users; SELECT 1";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
     }
 
     /// <summary>
@@ -191,7 +193,7 @@ WHERE tenantid = 10",
     public void Parse_CreateGlobalTable_WithoutTemporaryKeyword_ShouldThrow(int version)
     {
         const string sql = "CREATE GLOBAL TABLE tmp_users AS SELECT id FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
     }
 
     /// <summary>
@@ -204,7 +206,7 @@ WHERE tenantid = 10",
     public void Parse_CreateTemporaryTable_WithUnexpectedSecondStatementInBody_ShouldThrow(int version)
     {
         const string sql = "CREATE TEMPORARY TABLE tmp_users AS SELECT id FROM users; SELECT 1";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
     }
 
     /// <summary>
@@ -217,7 +219,7 @@ WHERE tenantid = 10",
     public void Parse_CreateTemporaryTable_WithMissingBodyAfterAs_ShouldThrow(int version)
     {
         const string sql = "CREATE TEMPORARY TABLE tmp_users AS ;";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
     }
 
     /// <summary>
@@ -230,7 +232,7 @@ WHERE tenantid = 10",
     public void Parse_CreateTemporaryTable_WithEmptyColumnList_ShouldThrow(int version)
     {
         const string sql = "CREATE TEMPORARY TABLE tmp_users () AS SELECT id FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
     }
 
     /// <summary>
@@ -243,7 +245,7 @@ WHERE tenantid = 10",
     public void Parse_CreateTemporaryTable_WithTrailingCommaInColumnList_ShouldThrow(int version)
     {
         const string sql = "CREATE TEMPORARY TABLE tmp_users (id INT,) AS SELECT id FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
     }
 
     /// <summary>
@@ -256,7 +258,7 @@ WHERE tenantid = 10",
     public void Parse_CreateTemporaryTable_WithLeadingCommaInColumnList_ShouldThrow(int version)
     {
         const string sql = "CREATE TEMPORARY TABLE tmp_users (,id INT) AS SELECT id FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
     }
 
     /// <summary>
@@ -269,7 +271,7 @@ WHERE tenantid = 10",
     public void Parse_CreateTemporaryTable_WithUnclosedColumnList_ShouldThrow(int version)
     {
         const string sql = "CREATE TEMPORARY TABLE tmp_users (id INT AS SELECT id FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
     }
 
     /// <summary>
@@ -282,7 +284,7 @@ WHERE tenantid = 10",
     public void Parse_CreateTemporaryTable_WithMissingCommaBetweenColumns_ShouldThrow(int version)
     {
         const string sql = "CREATE TEMPORARY TABLE tmp_users (id INT name VARCHAR(50)) AS SELECT id, name FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
     }
 
     /// <summary>
@@ -295,7 +297,7 @@ WHERE tenantid = 10",
     public void Parse_CreateTemporaryTable_WithMissingCommaAfterParenthesizedType_ShouldThrow(int version)
     {
         const string sql = "CREATE TEMPORARY TABLE tmp_users (id INT, name VARCHAR(50) age INT) AS SELECT id, name, age FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
     }
 
     /// <summary>
@@ -308,7 +310,7 @@ WHERE tenantid = 10",
     public void Parse_CreateTemporaryTable_WithDoubleCommaInColumnList_ShouldThrow(int version)
     {
         const string sql = "CREATE TEMPORARY TABLE tmp_users (id INT,,name VARCHAR(50)) AS SELECT id, name FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
     }
 
     /// <summary>
@@ -321,7 +323,7 @@ WHERE tenantid = 10",
     public void Parse_CreateTemporaryTable_WithIfExistsInsteadOfIfNotExists_ShouldThrow(int version)
     {
         const string sql = "CREATE TEMPORARY TABLE IF EXISTS tmp_users AS SELECT id FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
     }
 }
 

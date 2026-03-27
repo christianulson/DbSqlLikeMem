@@ -19,39 +19,24 @@ internal static class AutoSqlServerScalarFunctionRegistry
             return true;
         }
 
-        dialect.AddScalarFunctions("DOUBLE", AstQueryGeneralScalarFunctionEvaluator.TryEvaluateGeneralScalarFunction,
-            "COT",
-            "DEGREES",
-            "EXP",
-            "FLOOR",
-            "LOG",
-            "LOG10",
-            "PI",
-            "POWER",
-            "RADIANS",
-            "RAND",
-            "ROUND",
-            "SIN",
-            "TAN",
-            "SQRT");
-
         var squareFunction = DbFunctionDef.CreateScalar("SQUARE", "DOUBLE") with
         {
             AstExecutor = AstQuerySqlServerScalarFunctionEvaluator.TryEvaluate
         };
         dialect.AddScalarFunction(squareFunction);
 
-        dialect.AddScalarFunctions("INT", AstQueryGeneralScalarFunctionEvaluator.TryEvaluateGeneralScalarFunction,
-            "DIFFERENCE",
-            "LEN",
-            "UNICODE");
+        dialect.AddScalarFunctions("INT", AstQuerySharedTextFunctionEvaluator.TryEvaluate,
+            "LEN");
+        dialect.AddScalarFunction("UNICODE", "INT", AstQuerySharedTextFunctionEvaluator.TryEvaluate);
+        dialect.AddScalarFunction("DIFFERENCE", "INT", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalDifferenceFunction);
 
-        dialect.AddScalarFunctions("VARCHAR", AstQueryGeneralScalarFunctionEvaluator.TryEvaluateGeneralScalarFunction,
+        dialect.AddScalarFunctions("VARCHAR", AstQuerySharedTextFunctionEvaluator.TryEvaluate,
             "LTRIM",
             "REVERSE",
-            "RTRIM",
-            "SOUNDEX",
-            "SPACE");
+            "RTRIM");
+        dialect.AddScalarFunction("SPACE", "VARCHAR", AstQuerySharedTextFunctionEvaluator.TryEvaluate);
+
+        dialect.AddScalarFunction("SOUNDEX", "VARCHAR", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSoundexFunction);
 
         var parsenameFunction = DbFunctionDef.CreateScalar("PARSENAME", "VARCHAR") with
         {
@@ -90,12 +75,12 @@ internal static class AutoSqlServerScalarFunctionRegistry
         dialect.AddScalarFunction(currentUserFunction);
         var sessionUserFunction = DbFunctionDef.CreateIdentifier("SESSION_USER", "VARCHAR") with
         {
-            AstExecutor = AstQueryGeneralSystemAndJsonFunctionEvaluator.TryEvalSessionUserFunction
+            AstExecutor = AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSessionUserFunction
         };
         dialect.AddScalarFunction(sessionUserFunction);
         var systemUserFunction = DbFunctionDef.CreateIdentifier("SYSTEM_USER", "VARCHAR") with
         {
-            AstExecutor = AstQueryGeneralSystemAndJsonFunctionEvaluator.TryEvalSystemUserFunction
+            AstExecutor = AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSystemUserFunction
         };
         dialect.AddScalarFunction(systemUserFunction);
 

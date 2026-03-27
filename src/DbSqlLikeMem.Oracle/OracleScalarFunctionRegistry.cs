@@ -266,7 +266,7 @@ internal static class OracleScalarFunctionRegistry
 
         if (version >= OracleDialect.OracleJsonSqlFunctionMinVersion)
             dialect.AddScalarFunctions(
-                CreateScalarDefinition("JSON_QUERY", "VARCHAR", AstQueryGeneralScalarFunctionEvaluator.TryEvalJsonExtractionFunction),
+                CreateScalarDefinition("JSON_QUERY", "VARCHAR", AstQueryJsonExtractionFunctionEvaluator.TryEvalJsonExtractionFunction),
                 "JSON_QUERY",
                 "JSON_VALUE");
     }
@@ -331,7 +331,11 @@ internal static class OracleScalarFunctionRegistry
     {
         if (version >= OracleDialect.WindowFunctionsMinVersion)
         {
-            dialect.AddScalarFunction(DbFunctionDef.CreateScalar(SqlConst.LISTAGG, "VARCHAR"));
+            dialect.AddScalarFunction(
+                DbFunctionDef.CreateScalar(SqlConst.LISTAGG, "VARCHAR") with
+                {
+                    IsStringAggregate = true
+                });
         }
     }
 }

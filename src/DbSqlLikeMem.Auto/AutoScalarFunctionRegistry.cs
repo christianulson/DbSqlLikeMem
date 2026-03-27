@@ -18,7 +18,7 @@ internal static class AutoScalarFunctionRegistry
         dialect.AddScalarFunction("SYSDATETIME", "DATETIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, DbInvocationStyle.Call, SqlTemporalFunctionKind.DateTime);
         dialect.AddScalarFunction("SYSTIMESTAMP", "DATETIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, DbInvocationStyle.Call, SqlTemporalFunctionKind.DateTime);
         dialect.AddScalarFunctions(
-            DbFunctionDef.CreateScalar("IF", "VARCHAR") with
+            DbFunctionDef.CreateScalar("IIF", "VARCHAR") with
             {
                 AstExecutor = QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions
             },
@@ -54,7 +54,7 @@ internal static class AutoScalarFunctionRegistry
         dialect.AddScalarFunctions(
             DbFunctionDef.CreateScalar("JSON_EXTRACT", "VARCHAR") with
             {
-                AstExecutor = AstQueryGeneralScalarFunctionEvaluator.TryEvalJsonExtractionFunction
+                AstExecutor = AstQueryJsonExtractionFunctionEvaluator.TryEvalJsonExtractionFunction
             },
             "JSON_EXTRACT",
             "JSON_QUERY",
@@ -62,7 +62,10 @@ internal static class AutoScalarFunctionRegistry
         dialect.AddScalarFunction(DbFunctionDef.CreateScalar("JSON_UNQUOTE", "VARCHAR"));
 
         dialect.AddScalarFunctions(
-            DbFunctionDef.CreateScalar(SqlConst.GROUP_CONCAT, "VARCHAR"),
+            DbFunctionDef.CreateScalar(SqlConst.GROUP_CONCAT, "VARCHAR") with
+            {
+                IsStringAggregate = true
+            },
             SqlConst.GROUP_CONCAT,
             SqlConst.STRING_AGG,
             SqlConst.LISTAGG);

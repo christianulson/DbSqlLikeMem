@@ -22,7 +22,7 @@ internal static class AstQueryDb2DateFunctionEvaluator
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler)
-            && handler(context,fn,  evalArg, resolveTemporalUnit, out result))
+            && handler(context, fn, evalArg, resolveTemporalUnit, out result))
         {
             return true;
         }

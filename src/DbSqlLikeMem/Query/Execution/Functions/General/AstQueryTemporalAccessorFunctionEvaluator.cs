@@ -43,12 +43,8 @@ internal static class AstQueryTemporalAccessorFunctionEvaluator
             "DAYS");
         Register(
             handlers,
-            TryEvalDateNameFunction,
-            "DATENAME");
-        Register(
-            handlers,
             TryEvalDatePartFunction,
-            "DATEPART", "DAY", "MONTH", SqlConst.YEAR, "HOUR", "MINUTE", "SECOND");
+            "DAY", "MONTH", SqlConst.YEAR, "HOUR", "MINUTE", "SECOND");
         Register(
             handlers,
             TryEvalExtractFunction,
@@ -94,41 +90,6 @@ internal static class AstQueryTemporalAccessorFunctionEvaluator
         return true;
     }
 
-    private static bool TryEvalDateNameFunction(
-        FunctionCallExpr fn,
-        EvalRow row,
-        EvalGroup? group,
-        IDictionary<string, Source> ctes,
-        Func<int, object?> evalArg,
-        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, TemporalUnit> getTemporalUnit,
-        Func<string, TemporalUnit> resolveTemporalUnit,
-        out object? result)
-    {
-        _ = resolveTemporalUnit;
-        if (fn.Args.Count < 2)
-            throw new InvalidOperationException("DATENAME() espera 2 argumentos.");
-
-        var unit = getTemporalUnit(fn.Args[0], row, group, ctes);
-        var value = evalArg(1);
-        if (AstQueryExecutorBase.IsNullish(value) || !AstQueryExecutorBase.TryCoerceDateTime(value, out var dateTime))
-        {
-            result = null;
-            return true;
-        }
-
-        result = unit switch
-        {
-            TemporalUnit.Year => dateTime.Year.ToString(CultureInfo.InvariantCulture),
-            TemporalUnit.Month => dateTime.ToString("MMMM", CultureInfo.InvariantCulture),
-            TemporalUnit.Day => dateTime.Day.ToString(CultureInfo.InvariantCulture),
-            TemporalUnit.Hour => dateTime.Hour.ToString(CultureInfo.InvariantCulture),
-            TemporalUnit.Minute => dateTime.Minute.ToString(CultureInfo.InvariantCulture),
-            TemporalUnit.Second => dateTime.Second.ToString(CultureInfo.InvariantCulture),
-            _ => null
-        };
-        return true;
-    }
-
     private static bool TryEvalDatePartFunction(
         FunctionCallExpr fn,
         EvalRow row,
@@ -139,26 +100,28 @@ internal static class AstQueryTemporalAccessorFunctionEvaluator
         Func<string, TemporalUnit> resolveTemporalUnit,
         out object? result)
     {
-        var name = fn.Name.ToUpperInvariant();
-        if (name == "DATEPART" && fn.Args.Count < 2)
-            throw new InvalidOperationException("DATEPART() espera 2 argumentos.");
+        _ = row;
+        _ = group;
+        _ = ctes;
+        _ = getTemporalUnit;
+        _ = resolveTemporalUnit;
 
-        var unit = name == "DATEPART" ? getTemporalUnit(fn.Args[0], row, group, ctes) : resolveTemporalUnit(name);
-        var value = evalArg(name == "DATEPART" ? 1 : 0);
+        var name = fn.Name.ToUpperInvariant();
+        var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value) || !AstQueryExecutorBase.TryCoerceDateTime(value, out var dateTime))
         {
             result = null;
             return true;
         }
 
-        result = unit switch
+        result = name switch
         {
-            TemporalUnit.Year => dateTime.Year,
-            TemporalUnit.Month => dateTime.Month,
-            TemporalUnit.Day => dateTime.Day,
-            TemporalUnit.Hour => dateTime.Hour,
-            TemporalUnit.Minute => dateTime.Minute,
-            TemporalUnit.Second => dateTime.Second,
+            "DAY" => dateTime.Day,
+            "MONTH" => dateTime.Month,
+            "YEAR" => dateTime.Year,
+            "HOUR" => dateTime.Hour,
+            "MINUTE" => dateTime.Minute,
+            "SECOND" => dateTime.Second,
             _ => null
         };
         return true;

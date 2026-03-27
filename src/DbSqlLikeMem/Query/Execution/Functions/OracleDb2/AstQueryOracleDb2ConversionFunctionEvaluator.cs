@@ -129,19 +129,7 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
         out object? result)
     {
         _ = context;
-        var value = evalArg(0);
-        if (value is string numberText)
-        {
-            var mask = fn.Args.Count > 1 ? evalArg(1)?.ToString() : null;
-            if (AstQueryFormatFunctionHelper.TryParseOracleNumber(numberText, mask, out var parsedNumber))
-            {
-                result = parsedNumber;
-                return true;
-            }
-        }
-
-        result = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
-        return true;
+        return AstQueryToNumberFunctionEvaluator.TryEvalToNumberFunction(fn, evalArg, out result);
     }
 
     private static bool TryEvalToCharFunction(

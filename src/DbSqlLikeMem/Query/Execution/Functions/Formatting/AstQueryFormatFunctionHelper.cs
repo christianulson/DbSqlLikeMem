@@ -221,6 +221,43 @@ internal static class AstQueryFormatFunctionHelper
             : $"{sign}{integerDigits}";
     }
 
+    internal static string FormatPrintf(string format, IReadOnlyList<object?> args)
+    {
+        var builder = new StringBuilder();
+        var argIndex = 0;
+        for (var i = 0; i < format.Length; i++)
+        {
+            var ch = format[i];
+            if (ch != '%' || i + 1 >= format.Length)
+            {
+                builder.Append(ch);
+                continue;
+            }
+
+            var token = format[++i];
+            if (token == '%')
+            {
+                builder.Append('%');
+                continue;
+            }
+
+            var value = argIndex < args.Count ? args[argIndex++] : null;
+            var text = token switch
+            {
+                'd' or 'i' => AstQueryExecutorBase.IsNullish(value) ? "0" : Convert.ToInt64(value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture),
+                'f' => AstQueryExecutorBase.IsNullish(value) ? "0" : Convert.ToDouble(value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture),
+                's' => value?.ToString() ?? string.Empty,
+                'x' => AstQueryExecutorBase.IsNullish(value) ? "0" : Convert.ToInt64(value, CultureInfo.InvariantCulture).ToString("x", CultureInfo.InvariantCulture),
+                'X' => AstQueryExecutorBase.IsNullish(value) ? "0" : Convert.ToInt64(value, CultureInfo.InvariantCulture).ToString("X", CultureInfo.InvariantCulture),
+                _ => value?.ToString() ?? string.Empty
+            };
+
+            builder.Append(text);
+        }
+
+        return builder.ToString();
+    }
+
     private static string ReplaceInsensitive(string value, string oldValue, string newValue)
     {
         if (string.IsNullOrEmpty(value) || string.IsNullOrEmpty(oldValue))

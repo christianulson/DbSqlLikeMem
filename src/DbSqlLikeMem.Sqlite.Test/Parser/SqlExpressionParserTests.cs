@@ -26,7 +26,7 @@ public sealed class SqlExpressionParserTests(
     {
         Console.WriteLine("Where: @\"" + whereExpr + "\"");
 
-        var ex = Record.Exception(() => SqlExpressionParser.ParseWhere(whereExpr, new SqliteDialect(version)));
+        var ex = Record.Exception(() => SqlExpressionParser.ParseWhere(whereExpr, GetDialect(version, v => new SqliteDialect(v))));
         Assert.Null(ex);
     }
 
@@ -106,7 +106,7 @@ public sealed class SqlExpressionParserTests(
     {
         Console.WriteLine("Where: @\"" + whereExpr + "\"");
 
-        var ex = Assert.ThrowsAny<Exception>(() => SqlExpressionParser.ParseWhere(whereExpr, new SqliteDialect(version)));
+        var ex = Assert.ThrowsAny<Exception>(() => SqlExpressionParser.ParseWhere(whereExpr, GetDialect(version, v => new SqliteDialect(v))));
         Assert.True(ex is InvalidOperationException or NotSupportedException);
     }
 
@@ -147,7 +147,7 @@ public sealed class SqlExpressionParserTests(
     {
         // id = 1 OR id = 2 AND name = 'Bob'
         // esperado: OR( id=1 , AND(id=2, name='Bob') )
-        var ast = SqlExpressionParser.ParseWhere("id = 1 OR id = 2 AND name = 'Bob'", new SqliteDialect(version));
+        var ast = SqlExpressionParser.ParseWhere("id = 1 OR id = 2 AND name = 'Bob'", GetDialect(version, v => new SqliteDialect(v)));
 
         var or = Assert.IsType<BinaryExpr>(ast);
         Assert.Equal(SqlBinaryOp.Or, or.Op);
@@ -179,7 +179,7 @@ public sealed class SqlExpressionParserTests(
     public void Parentheses_ShouldOverridePrecedence(int version)
     {
         // (id = 1 OR id = 2) AND email IS NULL
-        var ast = SqlExpressionParser.ParseWhere("(id = 1 OR id = 2) AND email IS NULL", new SqliteDialect(version));
+        var ast = SqlExpressionParser.ParseWhere("(id = 1 OR id = 2) AND email IS NULL", GetDialect(version, v => new SqliteDialect(v)));
 
         var and = Assert.IsType<BinaryExpr>(ast);
         Assert.Equal(SqlBinaryOp.And, and.Op);
@@ -204,7 +204,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataSqliteVersion]
     public void Not_ShouldWork(int version)
     {
-        var ast = SqlExpressionParser.ParseWhere("NOT (id = 1 OR id = 2)", new SqliteDialect(version));
+        var ast = SqlExpressionParser.ParseWhere("NOT (id = 1 OR id = 2)", GetDialect(version, v => new SqliteDialect(v)));
 
         var not = Assert.IsType<UnaryExpr>(ast);
         Assert.Equal(SqlUnaryOp.Not, not.Op);
@@ -226,7 +226,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataSqliteVersion]
     public void IsNotNull_ShouldProduce_IsNullExpr_Negated(int version)
     {
-        var ast = SqlExpressionParser.ParseWhere("email IS NOT NULL", new SqliteDialect(version));
+        var ast = SqlExpressionParser.ParseWhere("email IS NOT NULL", GetDialect(version, v => new SqliteDialect(v)));
         var n = Assert.IsType<IsNullExpr>(ast);
         Assert.True(n.Negated);
     }
@@ -244,7 +244,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataSqliteVersion]
     public void In_ShouldParse_List(int version)
     {
-        var ast = SqlExpressionParser.ParseWhere("u.id IN (1,2,3)", new SqliteDialect(version));
+        var ast = SqlExpressionParser.ParseWhere("u.id IN (1,2,3)", GetDialect(version, v => new SqliteDialect(v)));
         var ins = Assert.IsType<InExpr>(ast);
         Assert.Equal(3, ins.Items.Count);
     }
@@ -262,7 +262,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataSqliteVersion]
     public void Like_ShouldParse(int version)
     {
-        var ast = SqlExpressionParser.ParseWhere("name LIKE '%oh%'", new SqliteDialect(version));
+        var ast = SqlExpressionParser.ParseWhere("name LIKE '%oh%'", GetDialect(version, v => new SqliteDialect(v)));
         var like = Assert.IsType<LikeExpr>(ast);
         Assert.NotNull(like.Pattern);
     }
@@ -280,7 +280,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataSqliteVersion]
     public void Identifier_WithAliasDotColumn_ShouldParse(int version)
     {
-        var ast = SqlExpressionParser.ParseWhere("u.id = o.userId", new SqliteDialect(version));
+        var ast = SqlExpressionParser.ParseWhere("u.id = o.userId", GetDialect(version, v => new SqliteDialect(v)));
         var eq = Assert.IsType<BinaryExpr>(ast);
         Assert.Equal(SqlBinaryOp.Eq, eq.Op);
 
@@ -307,7 +307,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataSqliteVersion]
     public void Parameter_Tokens_ShouldParse(int version)
     {
-        var d = new SqliteDialect(version);
+        var d = GetDialect(version, v => new SqliteDialect(v));
         Assert.NotNull(SqlExpressionParser.ParseWhere("a = @p", d));
         Assert.NotNull(SqlExpressionParser.ParseWhere("a = :p", d));
         Assert.NotNull(SqlExpressionParser.ParseWhere("a = ?", d));
@@ -326,7 +326,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataSqliteVersion]
     public void Backtick_Identifier_ShouldParse(int version)
     {
-        var ast = SqlExpressionParser.ParseWhere("`DeletedDtt` IS NULL", new SqliteDialect(version));
+        var ast = SqlExpressionParser.ParseWhere("`DeletedDtt` IS NULL", GetDialect(version, v => new SqliteDialect(v)));
         var n = Assert.IsType<IsNullExpr>(ast);
         var id = Assert.IsType<IdentifierExpr>(n.Expr);
         Assert.Equal("DeletedDtt", id.Name);
@@ -345,7 +345,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataSqliteVersion]
     public void DoubleQuoted_String_ShouldParse(int version)
     {
-        var ast = SqlExpressionParser.ParseWhere("name = \"John\"", new SqliteDialect(version));
+        var ast = SqlExpressionParser.ParseWhere("name = 'John'", GetDialect(version, v => new SqliteDialect(v)));
         var eq = Assert.IsType<BinaryExpr>(ast);
         var lit = Assert.IsType<LiteralExpr>(eq.Right);
         Assert.Equal("John", lit.Value);
@@ -360,7 +360,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataSqliteVersion]
     public void NullSafe_Operator_ShouldParse(int version)
     {
-        var ast = SqlExpressionParser.ParseWhere("a <=> b", new SqliteDialect(version));
+        var ast = SqlExpressionParser.ParseWhere("a <=> b", GetDialect(version, v => new SqliteDialect(v)));
         var eq = Assert.IsType<BinaryExpr>(ast);
         Assert.Equal(SqlBinaryOp.NullSafeEq, eq.Op);
     }
@@ -378,7 +378,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataSqliteVersion]
     public void Printer_ShouldBeStable_ForSimpleExpression(int version)
     {
-        var ast = SqlExpressionParser.ParseWhere("a = 1 AND b = 2", new SqliteDialect(version));
+        var ast = SqlExpressionParser.ParseWhere("a = 1 AND b = 2", GetDialect(version, v => new SqliteDialect(v)));
         var s = SqlExprPrinter.Print(ast);
 
         // só uma checagem básica de que não está vazio e contém operadores esperados

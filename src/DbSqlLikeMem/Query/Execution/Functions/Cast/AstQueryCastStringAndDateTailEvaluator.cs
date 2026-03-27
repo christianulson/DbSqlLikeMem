@@ -55,18 +55,15 @@ internal sealed class AstQueryCastStringAndDateTailEvaluator(
         _ = group;
         _ = ctes;
 
-         var handledConcat = context.TryEvalConcatFunctions(
+        var handledConcat = context.TryEvalConcatFunctions(
             fn,
             evalArg,
             out result);
         if (handledConcat)
             return true;
 
-        if (context.TryEvalCharFunction(fn, evalArg, out result)
-            || context.TryEvalDialectSpecificCastFunction(fn, evalArg, out result)
-            || AstQueryGeneralScalarFunctionEvaluator.TryEvalBasicStringFunction(fn, evalArg, out result)
-            || AstQueryGeneralScalarFunctionEvaluator.TryEvalSubstringFunction(fn, evalArg, out result)
-            || AstQueryGeneralScalarFunctionEvaluator.TryEvalReplaceFunction(context, fn, evalArg, out result))
+        if (AstQuerySharedTextFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result)
+            || context.TryEvalDialectSpecificCastFunction(fn, evalArg, out result))
         {
             return true;
         }
@@ -92,6 +89,15 @@ internal sealed class AstQueryCastStringAndDateTailEvaluator(
         }
 
         if (AstQueryGeneralDateFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result)
+            || AstQuerySqlServerTemporalAccessorFunctionEvaluator.TryEvaluate(
+                fn,
+                row,
+                group,
+                ctes,
+                evalArg,
+                getTemporalUnit,
+                AstQueryExecutionRuntimeHelper.ResolveTemporalUnit,
+                out result)
             || AstQueryTemporalAccessorFunctionEvaluator.TryEvaluate(
                 fn,
                 row,
@@ -101,7 +107,7 @@ internal sealed class AstQueryCastStringAndDateTailEvaluator(
                 getTemporalUnit,
                 AstQueryExecutionRuntimeHelper.ResolveTemporalUnit,
                 out result)
-            || AstQueryGeneralScalarFunctionEvaluator.TryEvalFieldFunction(context, fn, evalArg, out result))
+            || QueryMariaDbFunctionHelper.TryEvalFunctions(context, fn, evalArg, out result))
         {
             return true;
         }

@@ -1,5 +1,4 @@
 using static DbSqlLikeMem.AstQueryExecutorBase;
-using static DbSqlLikeMem.AstQueryGeneralScalarFunctionEvaluator;
 
 namespace DbSqlLikeMem;
 
@@ -259,7 +258,7 @@ internal static class AstQueryAggregateEvaluator
 
             var key = keyValue?.ToString() ?? string.Empty;
             var value = eval(fn.Args[1], row, null, ctes);
-            obj[key] = CreateJsonNodeFromValue(value);
+            obj[key] = AstQueryJsonPathFunctionEvaluator.CreateJsonNodeFromValue(value);
         }
 
         return obj.ToJsonString();
@@ -571,7 +570,7 @@ internal static class AstQueryAggregateEvaluator
         if (values.Count == 0)
             return null;
 
-        return BuildJsonArray(values);
+        return AstQueryJsonSharedFunctionEvaluator.BuildJsonArray(values);
     }
 
     private static object? AggregateCollect(IReadOnlyList<object?> values)

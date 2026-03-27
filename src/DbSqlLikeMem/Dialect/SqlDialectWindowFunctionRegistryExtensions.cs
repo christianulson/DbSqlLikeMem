@@ -35,16 +35,6 @@ internal static class SqlDialectWindowFunctionRegistryExtensions
         dialect.Functions.Add(definition);
     }
 
-    internal static void AddWindowFunction(
-        this ISqlDialect dialect,
-        string name,
-        int minArguments,
-        int maxArguments,
-        bool requiresOver = true,
-        bool requiresOrderBy = false)
-        => dialect.AddWindowFunction(
-            new DbFunctionDef(name, minArguments, maxArguments, requiresOver, requiresOrderBy));
-
     internal static void AddWindowFunctions(
         this ISqlDialect dialect,
         params DbFunctionDef[] definitions)
@@ -56,12 +46,4 @@ internal static class SqlDialectWindowFunctionRegistryExtensions
             dialect.AddWindowFunction(definition);
     }
 
-    internal static void AddWindowFunctionsIf(
-        this ISqlDialect dialect,
-        bool supported,
-        params DbFunctionDef[] definitions)
-    {
-        if (supported)
-            dialect.AddWindowFunctions(definitions);
-    }
 }

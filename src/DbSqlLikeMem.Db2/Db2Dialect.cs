@@ -27,10 +27,10 @@ internal sealed class Db2Dialect : SqlDialectBase, ISqlDialect
             ">=", "<=", "<>", "!=",
             "||"
         ])
-    {
+        {
         Db2ScalarFunctionRegistry.Register(this, version);
         SqlSharedWindowFunctionRegistry.Register(this);
-        global::DbSqlLikeMem.SqlDialectWindowFunctionRegistryExtensions.AddWindowFunction(this, "ROWNUMBER", 0, 0, requiresOrderBy: true);
+        Db2WindowFunctionRegistry.Register(this);
         Db2TableFunctionRegistry.Register(this, version);
     }
 

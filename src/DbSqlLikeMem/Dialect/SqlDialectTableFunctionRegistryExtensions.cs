@@ -35,23 +35,6 @@ internal static class SqlDialectTableFunctionRegistryExtensions
         dialect.Functions.Add(definition);
     }
 
-    internal static void AddTableFunction(
-        this ISqlDialect dialect,
-        string name,
-        int minArguments,
-        int maxArguments,
-        AstQueryTableFunctionHandler? astExecutor = null)
-    {
-        var definition = DbFunctionDef.CreateTable(
-            name,
-            signatures: new DbFunctionSignature([], minArguments, maxArguments)) with
-        {
-            TableExecutor = astExecutor
-        };
-
-        dialect.AddTableFunction(definition);
-    }
-
     internal static void AddTableFunctions(
         this ISqlDialect dialect,
         params DbFunctionDef[] definitions)
@@ -61,14 +44,5 @@ internal static class SqlDialectTableFunctionRegistryExtensions
 
         foreach (var definition in definitions)
             dialect.AddTableFunction(definition);
-    }
-
-    internal static void AddTableFunctionsIf(
-        this ISqlDialect dialect,
-        bool supported,
-        params DbFunctionDef[] definitions)
-    {
-        if (supported)
-            dialect.AddTableFunctions(definitions);
     }
 }

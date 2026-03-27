@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.MySql.Test.Parser;
 /// EN: Covers MySQL-specific parser feature behavior.
 /// PT: Cobre o comportamento de recursos de parser específicos do MySQL.
 /// </summary>
-public sealed class MySqlDialectFeatureParserTests
+public sealed class MySqlDialectFeatureParserTests(
+    ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Ensures MySQL preserves binary column size metadata in the pragmatic ALTER TABLE ... ADD subset.
@@ -18,7 +20,7 @@ public sealed class MySqlDialectFeatureParserTests
     {
         var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
             "ALTER TABLE users ADD payload VARBINARY(16) NULL",
-            new MySqlDialect(version)));
+            GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Equal(DbType.Binary, parsed.ColumnType);
         Assert.Equal(16, parsed.Size);
@@ -37,7 +39,7 @@ public sealed class MySqlDialectFeatureParserTests
     {
         var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
             "ALTER TABLE users ADD amount DECIMAL(10, 4) NOT NULL DEFAULT 0",
-            new MySqlDialect(version)));
+            GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Equal(DbType.Decimal, parsed.ColumnType);
         Assert.Equal(10, parsed.Size);
@@ -58,7 +60,7 @@ public sealed class MySqlDialectFeatureParserTests
     {
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "ALTER TABLE users ADD status VARCHAR(20) NOT NULL DEFAULT NULL",
-            new MySqlDialect(version)));
+            GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("default null", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -75,7 +77,7 @@ public sealed class MySqlDialectFeatureParserTests
     {
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "ALTER TABLE users u ADD age INT",
-            new MySqlDialect(version)));
+            GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("alias", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -92,7 +94,7 @@ public sealed class MySqlDialectFeatureParserTests
     {
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "ALTER TABLE (SELECT * FROM users) u ADD age INT",
-            new MySqlDialect(version)));
+            GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("concrete table name", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -107,7 +109,7 @@ public sealed class MySqlDialectFeatureParserTests
     [MemberDataMySqlVersion]
     public void ParseScalarFunctionDdlSubset_ShouldParse(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         var create = Assert.IsType<SqlCreateFunctionQuery>(SqlQueryParser.Parse(
             "CREATE FUNCTION fn_users(baseValue INT, incrementValue INT) RETURNS INT RETURN baseValue + incrementValue",
@@ -140,7 +142,7 @@ public sealed class MySqlDialectFeatureParserTests
     {
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "CREATE OR REPLACE FUNCTION fn_users(baseValue INT, incrementValue INT) RETURNS INT RETURN baseValue + incrementValue",
-            new MySqlDialect(version)));
+            GetDialect(version, v => new MySqlDialect(v))));
         Assert.Contains("CREATE OR REPLACE FUNCTION", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -167,7 +169,7 @@ public sealed class MySqlDialectFeatureParserTests
             ) jt
             """;
 
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
         if (version < MySqlDialect.JsonArrowOperatorsMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
@@ -198,7 +200,7 @@ public sealed class MySqlDialectFeatureParserTests
     [MemberDataMySqlVersion]
     public void MatchAgainstCapability_ShouldBeEnabled(int version)
     {
-        Assert.True(new MySqlDialect(version).SupportsMatchAgainstPredicate);
+        Assert.True(GetDialect(version, v => new MySqlDialect(v)).SupportsMatchAgainstPredicate);
     }
 
     /// <summary>
@@ -211,7 +213,7 @@ public sealed class MySqlDialectFeatureParserTests
     [MemberDataMySqlVersion]
     public void LastFoundRowsCapability_ShouldExposeMySqlFunctions(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         Assert.True(dialect.SupportsLastFoundRowsFunction("FOUND_ROWS"));
         Assert.True(dialect.SupportsLastFoundRowsFunction("ROW_COUNT"));
@@ -228,7 +230,7 @@ public sealed class MySqlDialectFeatureParserTests
     [MemberDataMySqlVersion]
     public void MutationCapabilities_ShouldExposeMySqlContract(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         Assert.True(dialect.SupportsUpdateJoinFromSubquerySyntax);
         Assert.False(dialect.SupportsUpdateFromJoinSubquerySyntax);
@@ -249,7 +251,7 @@ public sealed class MySqlDialectFeatureParserTests
     public void ParseSelect_SqlCalcFoundRows_ShouldParse(int version)
     {
         var parsed = Assert.IsType<SqlSelectQuery>(
-            SqlQueryParser.Parse("SELECT SQL_CALC_FOUND_ROWS name FROM users LIMIT 1", new MySqlDialect(version)));
+            SqlQueryParser.Parse("SELECT SQL_CALC_FOUND_ROWS name FROM users LIMIT 1", GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Equal("SELECT SQL_CALC_FOUND_ROWS name FROM users LIMIT 1", parsed.RawSql);
     }
@@ -264,7 +266,7 @@ public sealed class MySqlDialectFeatureParserTests
     [MemberDataMySqlVersion]
     public void ParseScalar_LastFoundRowsFunctions_ShouldFollowDialectCapability(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         Assert.Equal("FOUND_ROWS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("FOUND_ROWS()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("ROW_COUNT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROW_COUNT()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
@@ -283,7 +285,7 @@ public sealed class MySqlDialectFeatureParserTests
     [MemberDataMySqlVersion]
     public void TemporalFunctions_ShouldExposeCurDateAndCurTime(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         Assert.True(dialect.TemporalFunctionNames.ContainsKey("CURDATE"));
         Assert.True(dialect.TemporalFunctionNames.ContainsKey("CURTIME"));
@@ -304,7 +306,7 @@ public sealed class MySqlDialectFeatureParserTests
     [MemberDataMySqlVersion]
     public void ParseScalar_SystemRowCountIdentifier_ShouldBeRejected(int version)
     {
-        Assert.Throws<InvalidOperationException>(() => SqlExpressionParser.ParseScalar("@@ROWCOUNT", new MySqlDialect(version)));
+        Assert.Throws<InvalidOperationException>(() => SqlExpressionParser.ParseScalar("@@ROWCOUNT", GetDialect(version, v => new MySqlDialect(v))));
     }
 
     /// <summary>
@@ -318,7 +320,7 @@ public sealed class MySqlDialectFeatureParserTests
     public void ParseCreateSequence_ShouldRespectDialectRule(int version)
     {
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse("CREATE SEQUENCE seq_orders START WITH 1 INCREMENT BY 1", new MySqlDialect(version)));
+            SqlQueryParser.Parse("CREATE SEQUENCE seq_orders START WITH 1 INCREMENT BY 1", GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("CREATE SEQUENCE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -335,7 +337,7 @@ public sealed class MySqlDialectFeatureParserTests
     {
         var sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING";
 
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -352,7 +354,7 @@ public sealed class MySqlDialectFeatureParserTests
     {
         var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(
             "INSERT INTO archive_events PARTITION (p2024, pmax) VALUES (1, 10, '2025-01-01')",
-            new MySqlDialect(version)));
+            GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Equal(2, parsed.PartitionNames.Count);
         Assert.Equal("p2024", parsed.PartitionNames[0], StringComparer.OrdinalIgnoreCase);
@@ -371,7 +373,7 @@ public sealed class MySqlDialectFeatureParserTests
     {
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT Id FROM archive_events PARTITION (p2024) ORDER BY Id",
-            new MySqlDialect(version)));
+            GetDialect(version, v => new MySqlDialect(v))));
 
         var table = parsed.Table;
         Assert.NotNull(table);
@@ -393,7 +395,7 @@ public sealed class MySqlDialectFeatureParserTests
     {
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT Id FROM archive_events PARTITION (pmax) ORDER BY Id",
-            new MySqlDialect(version)));
+            GetDialect(version, v => new MySqlDialect(v))));
 
         var table = parsed.Table;
         Assert.NotNull(table);
@@ -415,7 +417,7 @@ public sealed class MySqlDialectFeatureParserTests
     {
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT Id FROM archive_events WHERE EXTRACT(YEAR FROM CreatedAt) IN (2024, 2026) ORDER BY Id",
-            new MySqlDialect(version)));
+            GetDialect(version, v => new MySqlDialect(v))));
 
         var where = Assert.IsType<InExpr>(parsed.Where);
         var extract = Assert.IsType<CallExpr>(where.Left);
@@ -439,7 +441,7 @@ public sealed class MySqlDialectFeatureParserTests
     {
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT Id FROM archive_events WHERE EXTRACT(YEAR FROM CreatedAt) BETWEEN 2024 AND 2026 ORDER BY Id",
-            new MySqlDialect(version)));
+            GetDialect(version, v => new MySqlDialect(v))));
 
         var where = Assert.IsType<BetweenExpr>(parsed.Where);
         var extract = Assert.IsType<CallExpr>(where.Expr);
@@ -462,7 +464,7 @@ public sealed class MySqlDialectFeatureParserTests
     {
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT Id FROM archive_events WHERE EXTRACT(YEAR FROM CreatedAt) >= 2024 AND EXTRACT(YEAR FROM CreatedAt) < 2025 ORDER BY Id",
-            new MySqlDialect(version)));
+            GetDialect(version, v => new MySqlDialect(v))));
 
         var andExpr = Assert.IsType<BinaryExpr>(parsed.Where);
         var left = Assert.IsType<BinaryExpr>(andExpr.Left);
@@ -485,7 +487,7 @@ public sealed class MySqlDialectFeatureParserTests
     {
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT Id FROM archive_events WHERE 2025 > EXTRACT(YEAR FROM CreatedAt) AND 2024 <= EXTRACT(YEAR FROM CreatedAt) ORDER BY Id",
-            new MySqlDialect(version)));
+            GetDialect(version, v => new MySqlDialect(v))));
 
         var andExpr = Assert.IsType<BinaryExpr>(parsed.Where);
         var left = Assert.IsType<BinaryExpr>(andExpr.Left);
@@ -510,7 +512,7 @@ public sealed class MySqlDialectFeatureParserTests
     {
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT Id FROM archive_events WHERE EXTRACT(YEAR FROM CreatedAt) = 2024 OR EXTRACT(YEAR FROM CreatedAt) = 2026 ORDER BY Id",
-            new MySqlDialect(version)));
+            GetDialect(version, v => new MySqlDialect(v))));
 
         var orExpr = Assert.IsType<BinaryExpr>(parsed.Where);
         Assert.Equal(SqlBinaryOp.Or, orExpr.Op);
@@ -530,7 +532,7 @@ public sealed class MySqlDialectFeatureParserTests
     {
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT Id FROM archive_events WHERE EXTRACT(YEAR FROM CreatedAt) BETWEEN 2024 AND 2024 OR EXTRACT(YEAR FROM CreatedAt) BETWEEN 2026 AND 2026 ORDER BY Id",
-            new MySqlDialect(version)));
+            GetDialect(version, v => new MySqlDialect(v))));
 
         var orExpr = Assert.IsType<BinaryExpr>(parsed.Where);
         Assert.Equal(SqlBinaryOp.Or, orExpr.Op);
@@ -550,7 +552,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -567,7 +569,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING id +";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -584,7 +586,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING (id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -601,7 +603,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -617,7 +619,7 @@ public sealed class MySqlDialectFeatureParserTests
     public void ParseScalar_JsonExtract_ShouldFollowMySqlVersionSupport(int version)
     {
         const string sql = "JSON_EXTRACT(payload, '$.name')";
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         if (version < MySqlDialect.JsonArrowOperatorsMinVersion)
         {
@@ -643,7 +645,7 @@ public sealed class MySqlDialectFeatureParserTests
     [MemberDataMySqlVersion]
     public void ParseScalar_DateAddFamily_ShouldRespectMySqlDialectRule(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         var dateAddExpr = SqlExpressionParser.ParseScalar("DATE_ADD(created_at, INTERVAL 1 DAY)", dialect);
         Assert.Equal("DATE_ADD", Assert.IsType<CallExpr>(dateAddExpr).Name, StringComparer.OrdinalIgnoreCase);
@@ -669,7 +671,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -686,7 +688,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE DO NOTHING";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -703,7 +705,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE; DO NOTHING";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -720,7 +722,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id = DO NOTHING";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -737,7 +739,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -754,7 +756,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING RETURNING id +";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -771,7 +773,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING RETURNING (id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -788,7 +790,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING RETURNING;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -805,7 +807,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING EXTRA";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -822,7 +824,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING FROM users";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -839,7 +841,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING USING users";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -856,7 +858,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING SET name = 'b'";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -873,7 +875,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING UPDATE SET name = 'b'";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -890,7 +892,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING WHERE id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -907,7 +909,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -924,7 +926,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING RETURNING id +";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -941,7 +943,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING RETURNING (id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -958,7 +960,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING RETURNING;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -975,7 +977,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0 DO NOTHING";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -992,7 +994,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0 DO NOTHING RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1009,7 +1011,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0 DO NOTHING RETURNING id +";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1026,7 +1028,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0 DO NOTHING RETURNING (id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1043,7 +1045,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0 DO NOTHING RETURNING;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1060,7 +1062,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING FROM users";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1077,7 +1079,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING USING users";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1094,7 +1096,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING SET name = 'b'";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1111,7 +1113,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING UPDATE SET name = 'b'";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1128,7 +1130,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING WHERE id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1145,7 +1147,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING EXTRA";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1162,7 +1164,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1179,7 +1181,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name RETURNING id +";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1196,7 +1198,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name RETURNING (id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1213,7 +1215,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name RETURNING;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1230,7 +1232,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name FROM users";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1247,7 +1249,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name USING users";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1264,7 +1266,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET FROM users";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1281,7 +1283,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET USING users";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1298,7 +1300,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1315,7 +1317,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT DO NOTHING";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1332,7 +1334,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1349,7 +1351,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO SKIP";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1366,7 +1368,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1383,7 +1385,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1400,7 +1402,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET , name = EXCLUDED.name";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1417,7 +1419,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name,";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1434,7 +1436,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name updated_at = NOW()";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1451,7 +1453,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET SET name = EXCLUDED.name";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1468,7 +1470,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name EXCLUDED.name";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1485,7 +1487,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = (EXCLUDED.name";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1502,7 +1504,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1519,7 +1521,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING id +";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1536,7 +1538,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING (id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1553,7 +1555,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1570,7 +1572,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE; RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1587,7 +1589,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1604,7 +1606,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1621,7 +1623,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE id = RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1638,7 +1640,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING id +";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1655,7 +1657,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING (id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1672,7 +1674,7 @@ public sealed class MySqlDialectFeatureParserTests
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1694,7 +1696,7 @@ WHERE users.id = EXCLUDED.id
 RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1716,7 +1718,7 @@ WHERE users.id = EXCLUDED.id
 RETURNING id +";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1738,7 +1740,7 @@ WHERE users.id = EXCLUDED.id
 RETURNING (id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1760,7 +1762,7 @@ WHERE users.id = EXCLUDED.id
 RETURNING;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1781,7 +1783,7 @@ DO UPDATE SET name = EXCLUDED.name
 WHERE users.id = EXCLUDED.id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1803,7 +1805,7 @@ WHERE users.id = EXCLUDED.id
 RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1825,7 +1827,7 @@ WHERE users.id = EXCLUDED.id
 RETURNING id +";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1847,7 +1849,7 @@ WHERE users.id = EXCLUDED.id
 RETURNING (id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1869,7 +1871,7 @@ WHERE users.id = EXCLUDED.id
 RETURNING;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1890,7 +1892,7 @@ DO UPDATE SET name = EXCLUDED.name
 WHERE users.id = EXCLUDED.id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1907,7 +1909,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE DO NOTHING";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1924,7 +1926,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE; DO NOTHING";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1941,7 +1943,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id = DO NOTHING";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1958,7 +1960,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE; RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1975,7 +1977,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1992,7 +1994,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2009,7 +2011,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE id = RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2026,7 +2028,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING id +";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2043,7 +2045,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING (id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2060,7 +2062,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2076,7 +2078,7 @@ WHERE users.id = EXCLUDED.id";
     {
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name), updated_at = NOW()";
 
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.True(parsed.HasOnDuplicateKeyUpdate);
         Assert.Equal(2, parsed.OnDupAssignsParsed.Count);
@@ -2095,7 +2097,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2112,7 +2114,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING;";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2129,7 +2131,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2146,7 +2148,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING id +";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2163,7 +2165,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING;";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2180,7 +2182,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING (id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2197,7 +2199,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING, id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2214,7 +2216,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING id,";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2231,7 +2233,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2248,7 +2250,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING;";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2265,7 +2267,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "DELETE FROM users WHERE id = 1 RETURNING id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2282,7 +2284,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "DELETE FROM users WHERE id = 1 RETURNING;";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2299,7 +2301,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING id +";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2316,7 +2318,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING, id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2333,7 +2335,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING id,";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2350,7 +2352,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING (id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2367,7 +2369,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING AS user_id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2384,7 +2386,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING id +";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2401,7 +2403,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING, id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2418,7 +2420,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING id,";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2435,7 +2437,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING (id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2452,7 +2454,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING AS user_id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2469,7 +2471,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "UPDATE users SET name 'b' WHERE id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("requires '=' between column and expression", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2486,7 +2488,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "UPDATE users SET WHERE id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'WHERE'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2504,7 +2506,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "UPDATE users SET SET name = 'b' WHERE id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("must not repeat SET keyword", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'SET'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2522,7 +2524,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "UPDATE users SET , name = 'b' WHERE id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("unexpected comma before assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ','", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2540,7 +2542,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "UPDATE users SET name = 'b', WHERE id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("trailing comma without assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'WHERE'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2558,7 +2560,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "UPDATE users SET name = 'b' WHERE";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2576,7 +2578,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "UPDATE users SET name = 'b' WHERE;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2594,7 +2596,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "DELETE FROM users WHERE id = 1 RETURNING id +";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2611,7 +2613,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "DELETE FROM users WHERE id = 1 RETURNING, id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2628,7 +2630,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "DELETE FROM users WHERE id = 1 RETURNING id,";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2645,7 +2647,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "DELETE FROM users WHERE id = 1 RETURNING (id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2662,7 +2664,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "DELETE FROM users WHERE id = 1 RETURNING AS user_id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2679,7 +2681,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "DELETE FROM users WHERE";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2697,7 +2699,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "DELETE FROM users WHERE;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2715,7 +2717,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) updated_at = NOW()";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("must separate assignments with commas", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2732,7 +2734,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = (VALUES(name)";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("assignment for 'name' has an invalid expression", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2749,7 +2751,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name),";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2767,7 +2769,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2785,7 +2787,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'RETURNING'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2803,7 +2805,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE RETURNING;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'RETURNING'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2821,7 +2823,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2839,7 +2841,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE RETURNING (id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'RETURNING'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2857,7 +2859,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE WHERE id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("does not support a WHERE clause", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'WHERE'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2875,7 +2877,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE FROM users";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'FROM'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2893,7 +2895,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE USING users";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'USING'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2911,7 +2913,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE SET name = VALUES(name)";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("must not include SET keyword", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'SET'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2929,7 +2931,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name VALUES(name)";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("requires '=' between column and expression", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2946,7 +2948,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE , name = VALUES(name)";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ','", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2964,7 +2966,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) WHERE id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("does not support a WHERE clause", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'WHERE'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2982,7 +2984,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) FROM users";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'FROM'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3000,7 +3002,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) USING users";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'USING'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3018,7 +3020,7 @@ WHERE users.id = EXCLUDED.id";
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a'), (2 +, 'b')";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("row 2 expression 1 is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3037,11 +3039,11 @@ WHERE users.id = EXCLUDED.id";
 
         if (version < MySqlDialect.WithCteMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
             return;
         }
 
-        var parsed = SqlQueryParser.Parse(sql, new MySqlDialect(version));
+        var parsed = SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v)));
         Assert.IsType<SqlSelectQuery>(parsed);
     }
 
@@ -3058,7 +3060,7 @@ WHERE users.id = EXCLUDED.id";
     public void ParseSelect_WithRecursive_UnsupportedVersion_ShouldProvideActionableMessage(int version)
     {
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse("WITH RECURSIVE cte(n) AS (SELECT 1) SELECT n FROM cte", new MySqlDialect(version)));
+            SqlQueryParser.Parse("WITH RECURSIVE cte(n) AS (SELECT 1) SELECT n FROM cte", GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.WITH_CTE, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3075,7 +3077,7 @@ WHERE users.id = EXCLUDED.id";
     {
         var sql = "SELECT u.id FROM users AS u USE INDEX (idx_users_id) IGNORE KEY FOR ORDER BY (idx_users_name)";
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
         Assert.NotNull(parsed.Table);
         Assert.Equal(2, parsed.Table!.MySqlIndexHints?.Count ?? 0);
     }
@@ -3095,7 +3097,7 @@ WHERE users.id = EXCLUDED.id";
     {
         var sql = "SELECT u.id FROM users u IGNORE INDEX FOR ORDER BY (idx_users_name) ORDER BY u.name";
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.NotNull(parsed.Table);
         var hint = Assert.Single(parsed.Table!.MySqlIndexHints ?? []);
@@ -3116,7 +3118,7 @@ WHERE users.id = EXCLUDED.id";
     {
         var sql = "SELECT u.id FROM users u FORCE INDEX FOR GROUP BY (idx_users_id) WHERE u.id > 0";
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.NotNull(parsed.Table);
         var hint = Assert.Single(parsed.Table!.MySqlIndexHints ?? []);
@@ -3137,7 +3139,7 @@ WHERE users.id = EXCLUDED.id";
     {
         var sql = "SELECT u.id FROM users u FORCE INDEX FOR JOIN (PRIMARY, idx_users_id) WHERE u.id > 0";
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.NotNull(parsed.Table);
         var hint = Assert.Single(parsed.Table!.MySqlIndexHints ?? []);
@@ -3158,7 +3160,7 @@ WHERE users.id = EXCLUDED.id";
     {
         var sql = "SELECT id FROM users USE INDEX ()";
 
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("lista de índices vazia", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3175,7 +3177,7 @@ WHERE users.id = EXCLUDED.id";
     {
         var sql = "SELECT id FROM users USE INDEX (idx_users_id, )";
 
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("item vazio", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3192,7 +3194,7 @@ WHERE users.id = EXCLUDED.id";
     {
         var sql = "SELECT id FROM users USE INDEX (idx$users, `idx``quoted`)";
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.NotNull(parsed.Table);
         var hint = Assert.Single(parsed.Table!.MySqlIndexHints ?? []);
@@ -3213,7 +3215,7 @@ WHERE users.id = EXCLUDED.id";
     {
         var sql = "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY";
 
-        var parsed = SqlQueryParser.Parse(sql, new MySqlDialect(version));
+        var parsed = SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v)));
         Assert.IsType<SqlSelectQuery>(parsed);
     }
 
@@ -3228,7 +3230,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void ParseSelect_PaginationSyntaxes_ShouldNormalizeRowLimitAst(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         var limitOffset = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT id FROM users ORDER BY id LIMIT 2 OFFSET 1",
@@ -3258,7 +3260,7 @@ WHERE users.id = EXCLUDED.id";
     public void ParseSelect_FetchFirst_ShouldProvidePaginationHint(int version)
     {
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse("SELECT id FROM users ORDER BY id FETCH FIRST 5 ROWS ONLY", new MySqlDialect(version)));
+            SqlQueryParser.Parse("SELECT id FROM users ORDER BY id FETCH FIRST 5 ROWS ONLY", GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.FETCH_FIRST_NEXT, ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(SqlConst.LIMIT, ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3276,7 +3278,7 @@ WHERE users.id = EXCLUDED.id";
     {
         var sql = "SELECT t10 FROM (SELECT tenantid, id FROM users) src PIVOT (COUNT(id) FOR tenantid IN (10 AS t10)) p";
 
-        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.PIVOT, ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("mysql", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3292,7 +3294,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void RuntimeDialectRules_ShouldRemainStable(int version)
     {
-        var d = new MySqlDialect(version);
+        var d = GetDialect(version, v => new MySqlDialect(v));
 
         Assert.True(d.AreUnionColumnTypesCompatible(DbType.Int32, DbType.Decimal));
         Assert.True(d.AreUnionColumnTypesCompatible(DbType.String, DbType.AnsiString));
@@ -3317,7 +3319,7 @@ WHERE users.id = EXCLUDED.id";
     public void ParseUnsupportedTopLevelStatement_ShouldUseActionableMessage(int version)
     {
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse("UPSERT INTO users VALUES (1)", new MySqlDialect(version)));
+            SqlQueryParser.Parse("UPSERT INTO users VALUES (1)", GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("token inicial", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("SELECT/INSERT/UPDATE/DELETE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3334,7 +3336,7 @@ WHERE users.id = EXCLUDED.id";
     public void ParseUnsupportedSql_ShouldUseStandardNotSupportedMessage(int version)
     {
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse("MERGE INTO users u USING users s ON u.id = s.id WHEN MATCHED THEN UPDATE SET name = 'x'", new MySqlDialect(version)));
+            SqlQueryParser.Parse("MERGE INTO users u USING users s ON u.id = s.id WHEN MATCHED THEN UPDATE SET name = 'x'", GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.Ordinal);
         Assert.Contains("MySQL", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3352,7 +3354,7 @@ WHERE users.id = EXCLUDED.id";
     {
         var sql = "SELECT id FROM users OPTION (MAXDOP 1)";
 
-        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
         Assert.Contains("OPTION(query hints)", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("USE/IGNORE/FORCE INDEX", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3369,7 +3371,7 @@ WHERE users.id = EXCLUDED.id";
     public void ParseSelect_WithBracketQuotedAlias_ShouldProvideActionableMessage(int version)
     {
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse("SELECT name [User Name] FROM users", new MySqlDialect(version)));
+            SqlQueryParser.Parse("SELECT name [User Name] FROM users", GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains("alias/identificadores", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("'['", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3387,7 +3389,7 @@ WHERE users.id = EXCLUDED.id";
     {
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT name `User Name` FROM users",
-            new MySqlDialect(version)));
+            GetDialect(version, v => new MySqlDialect(v))));
 
         var item = Assert.Single(parsed.SelectItems);
         Assert.Equal("User Name", item.Alias);
@@ -3405,7 +3407,7 @@ WHERE users.id = EXCLUDED.id";
     {
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT name `User``Name` FROM users",
-            new MySqlDialect(version)));
+            GetDialect(version, v => new MySqlDialect(v))));
 
         var item = Assert.Single(parsed.SelectItems);
         Assert.Equal("User`Name", item.Alias);
@@ -3424,7 +3426,7 @@ WHERE users.id = EXCLUDED.id";
     public void ParseMerge_UnsupportedDialect_ShouldProvideActionableMessage(int version)
     {
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse("MERGE INTO users u USING users s ON u.id = s.id WHEN MATCHED THEN UPDATE SET name = 'x'", new MySqlDialect(version)));
+            SqlQueryParser.Parse("MERGE INTO users u USING users s ON u.id = s.id WHEN MATCHED THEN UPDATE SET name = 'x'", GetDialect(version, v => new MySqlDialect(v))));
 
         Assert.Contains(SqlConst.MERGE, ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3439,7 +3441,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void WindowFunctionCapability_ShouldRespectVersionAndKnownFunctions(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         var expected = version >= MySqlDialect.WindowFunctionsMinVersion;
         Assert.Equal(expected, dialect.SupportsWindowFunction("ROW_NUMBER"));
@@ -3458,7 +3460,7 @@ WHERE users.id = EXCLUDED.id";
     {
         var supported = "ROW_NUMBER() OVER (ORDER BY id)";
         var unsupported = "PERCENTILE_CONT(0.5) OVER (ORDER BY id)";
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         if (version < MySqlDialect.WindowFunctionsMinVersion)
         {
@@ -3481,7 +3483,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void ParseScalar_WindowFunctionWithoutOrderBy_ShouldRespectDialectRules(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         if (version < MySqlDialect.WindowFunctionsMinVersion)
         {
@@ -3505,7 +3507,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void ParseScalar_WindowFunctionArguments_ShouldValidateArity(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         if (version < MySqlDialect.WindowFunctionsMinVersion)
         {
@@ -3536,7 +3538,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void ParseScalar_WindowFunctionLiteralArguments_ShouldValidateSemanticRange(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
         if (version < MySqlDialect.WindowFunctionsMinVersion)
         {
             Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("NTILE(0) OVER (ORDER BY id)", dialect));
@@ -3566,7 +3568,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void WindowFunctionOrderByRequirementHook_ShouldRespectVersion(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         var expected = version >= MySqlDialect.WindowFunctionsMinVersion;
         Assert.Equal(expected, dialect.RequiresOrderByInWindowFunction("ROW_NUMBER"));
@@ -3585,7 +3587,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void WindowFunctionArgumentArityHook_ShouldRespectVersion(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         if (version < MySqlDialect.WindowFunctionsMinVersion)
         {
@@ -3614,7 +3616,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void ParseScalar_WindowFrameClause_ShouldRespectDialectCapabilities(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         if (version < MySqlDialect.WindowFunctionsMinVersion)
         {
@@ -3643,7 +3645,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void ParseScalar_WindowFrameClauseInvalidBounds_ShouldBeRejected(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         if (version < MySqlDialect.WindowFunctionsMinVersion)
         {
@@ -3666,7 +3668,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void ParseSelect_StringAggregateWithinGroup_ShouldThrowNotSupported(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse("SELECT GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC) AS joined FROM orders", dialect));
@@ -3683,7 +3685,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void ParseSelect_StringAggregateOrderByInsideCall_ShouldParse(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         var parsed = Assert.IsType<SqlSelectQuery>(
             SqlQueryParser.Parse("SELECT GROUP_CONCAT(amount ORDER BY amount DESC SEPARATOR '|') AS joined FROM orders", dialect));
@@ -3701,7 +3703,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void ParseScalar_CallOnlyTemporalIdentifierWithoutParentheses_ShouldThrowClearError(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlExpressionParser.ParseScalar("NOW", dialect));
@@ -3718,7 +3720,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void ParseScalar_TokenOnlyTemporalIdentifierCalledWithParentheses_ShouldThrowClearError(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlExpressionParser.ParseScalar("CURRENT_DATE()", dialect));
@@ -3735,7 +3737,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void ParseScalar_GroupConcatOrderByInsideCall_ShouldParse(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         var expr = SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount ORDER BY amount DESC, id ASC SEPARATOR '|')", dialect);
         var call = Assert.IsType<CallExpr>(expr);
@@ -3757,7 +3759,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void ParseScalar_GroupConcatDistinctOrderByInsideCall_ShouldParse(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         var expr = SqlExpressionParser.ParseScalar("GROUP_CONCAT(DISTINCT amount ORDER BY amount DESC SEPARATOR '|')", dialect);
         var call = Assert.IsType<CallExpr>(expr);
@@ -3778,7 +3780,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void ParseScalar_GroupConcatDistinctMultipleOrderByInsideCall_ShouldParse(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         var expr = SqlExpressionParser.ParseScalar("GROUP_CONCAT(DISTINCT val ORDER BY ord1 ASC, ord2 ASC SEPARATOR '|')", dialect);
         var call = Assert.IsType<CallExpr>(expr);
@@ -3800,7 +3802,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void ParseScalar_GroupConcatSeparatorWithoutExpression_ShouldThrowActionableError(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount ORDER BY amount DESC SEPARATOR)", dialect));
@@ -3817,7 +3819,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void ParseScalar_StringAggregateWithinGroup_ShouldThrowNotSupported(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
@@ -3834,7 +3836,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void ParseScalar_StringAggregateWithinGroupMalformed_ShouldThrowNotSupported(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (amount DESC)", dialect));
@@ -3852,7 +3854,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void ParseScalar_StringAggregateWithinGroupTrailingComma_ShouldThrowNotSupported(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC,)", dialect));
@@ -3869,7 +3871,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void ParseScalar_StringAggregateWithinGroupOrderByEmptyList_ShouldThrowNotSupported(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY)", dialect));
@@ -3886,7 +3888,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void ParseScalar_StringAggregateWithinGroupOrderByLeadingComma_ShouldThrowNotSupported(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY, amount DESC)", dialect));
@@ -3904,7 +3906,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void ParseScalar_StringAggregateWithinGroupOrderByMissingCommaBetweenExpressions_ShouldThrowNotSupported(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC id ASC)", dialect));
@@ -3921,7 +3923,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void ParseScalar_MatchAgainst_ShouldParseAsInternalCall(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         var expr = SqlExpressionParser.ParseScalar("MATCH(title, body) AGAINST ('hello world')", dialect);
         var call = Assert.IsType<CallExpr>(expr);
@@ -3942,7 +3944,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void ParseScalar_MatchAgainstWithBooleanMode_ShouldParseAndCaptureMode(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         var expr = SqlExpressionParser.ParseScalar("MATCH(title) AGAINST ('+mysql -oracle' IN BOOLEAN MODE)", dialect);
         var call = Assert.IsType<CallExpr>(expr);
@@ -3963,7 +3965,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void ParseScalar_MatchAgainstWithNaturalLanguageAndQueryExpansion_ShouldParse(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         var expr = SqlExpressionParser.ParseScalar(
             "MATCH(title) AGAINST ('database indexing' IN NATURAL LANGUAGE MODE WITH QUERY EXPANSION)",
@@ -3985,7 +3987,7 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataMySqlVersion]
     public void ParseScalar_MatchAgainstWithInvalidMode_ShouldThrowActionableError(int version)
     {
-        var dialect = new MySqlDialect(version);
+        var dialect = GetDialect(version, v => new MySqlDialect(v));
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlExpressionParser.ParseScalar("MATCH(title) AGAINST ('john' IN BOOLEAN)", dialect));

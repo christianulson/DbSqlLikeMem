@@ -15,7 +15,7 @@ internal static class AutoScalarFunctionRegistry
         dialect.AddScalarFunction("GETUTCDATE", "DATETIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, DbInvocationStyle.Call, SqlTemporalFunctionKind.DateTime);
         dialect.AddScalarFunction("SYSDATETIME", "DATETIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, DbInvocationStyle.Call, SqlTemporalFunctionKind.DateTime);
         dialect.AddScalarFunction("SYSTIMESTAMP", "DATETIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, DbInvocationStyle.Call, SqlTemporalFunctionKind.DateTime);
-        var conditionalNullFunction = DbFunctionDef.CreateScalar("IF", "VARCHAR") with
+        var conditionalNullFunction = DbFunctionDef.CreateScalar("IIF", "VARCHAR") with
         {
             AstExecutor = QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions
         };
@@ -52,7 +52,7 @@ internal static class AutoScalarFunctionRegistry
         dialect.AddScalarFunction(eomonthFunction);
         var jsonExtractFunction = DbFunctionDef.CreateScalar("JSON_EXTRACT", "VARCHAR") with
         {
-            AstExecutor = AstQueryGeneralScalarFunctionEvaluator.TryEvalJsonExtractionFunction
+            AstExecutor = AstQueryJsonExtractionFunctionEvaluator.TryEvalJsonExtractionFunction
         };
         dialect.AddScalarFunctions(
             jsonExtractFunction,
@@ -60,6 +60,11 @@ internal static class AutoScalarFunctionRegistry
             "JSON_QUERY",
             "JSON_VALUE");
         dialect.AddScalarFunction(DbFunctionDef.CreateScalar("JSON_UNQUOTE", "VARCHAR"));
+        dialect.AddScalarFunction(
+            DbFunctionDef.CreateScalar("JSON_OBJECT", "VARCHAR") with
+            {
+                AstExecutor = AstQueryJsonObjectFunctionEvaluator.TryEvalJsonObjectFunction
+            });
 
         dialect.AddScalarFunctions(
             DbFunctionDef.CreateScalar(SqlConst.GROUP_CONCAT, "VARCHAR"),

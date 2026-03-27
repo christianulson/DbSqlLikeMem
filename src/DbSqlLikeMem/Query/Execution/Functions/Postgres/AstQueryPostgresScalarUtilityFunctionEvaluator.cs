@@ -19,12 +19,12 @@ internal static class AstQueryPostgresScalarUtilityFunctionEvaluator
     internal static void CreateHandlers(
         this QueryExecutionContext context)
     {
-        var f = context.Dialect.Functions;
-        f.Add("INT", TryEvalNumNullsFunction, "NUM_NULLS");
-        f.Add("INT", TryEvalNumNonNullsFunction, "NUM_NONNULLS");
-        f.Add("BIGINT", TryEvalLcmFunction, "LCM");
-        f.Add("INT", TryEvalMinScaleFunction, "MIN_SCALE");
-        f.Add("STRING_ARRAY", TryEvalParseIdentFunction, "PARSE_IDENT");
+        var dialect = context.Dialect;
+        dialect.AddScalarFunctions("INT", TryEvalNumNullsFunction, "NUM_NULLS");
+        dialect.AddScalarFunctions("INT", TryEvalNumNonNullsFunction, "NUM_NONNULLS");
+        dialect.AddScalarFunctions("BIGINT", TryEvalLcmFunction, "LCM");
+        dialect.AddScalarFunctions("INT", TryEvalMinScaleFunction, "MIN_SCALE");
+        dialect.AddScalarFunctions("STRING_ARRAY", TryEvalParseIdentFunction, "PARSE_IDENT");
     }
 
     private static bool TryEvalNumNullsFunction(
@@ -78,7 +78,7 @@ internal static class AstQueryPostgresScalarUtilityFunctionEvaluator
             return true;
         }
 
-        result = checked((left / AstQueryGeneralScalarFunctionEvaluator.ComputeGreatestCommonDivisor(left, right)) * right);
+        result = checked((left / ComputeGreatestCommonDivisor(left, right)) * right);
         return true;
     }
 
@@ -102,7 +102,7 @@ internal static class AstQueryPostgresScalarUtilityFunctionEvaluator
             return true;
         }
 
-        result = AstQueryGeneralScalarFunctionEvaluator.GetMinimumNumericScale(value!);
+        result = GetMinimumNumericScale(value!);
         return true;
     }
 
@@ -127,7 +127,7 @@ internal static class AstQueryPostgresScalarUtilityFunctionEvaluator
         }
 
         var text = value?.ToString() ?? string.Empty;
-        if (!AstQueryGeneralScalarFunctionEvaluator.TryParsePostgresIdentifierParts(text, out var parts))
+        if (!TryParsePostgresIdentifierParts(text, out var parts))
         {
             result = null;
             return true;
@@ -135,5 +135,97 @@ internal static class AstQueryPostgresScalarUtilityFunctionEvaluator
 
         result = parts.ToArray();
         return true;
+    }
+
+    private static long ComputeGreatestCommonDivisor(long left, long right)
+    {
+        while (right != 0)
+        {
+            var remainder = left % right;
+            left = right;
+            right = remainder;
+        }
+
+        return Math.Abs(left);
+    }
+
+    private static int GetMinimumNumericScale(object value)
+    {
+        var text = value switch
+        {
+            decimal dec => dec.ToString(CultureInfo.InvariantCulture),
+            double dbl => dbl.ToString("G17", CultureInfo.InvariantCulture),
+            float flt => flt.ToString("G9", CultureInfo.InvariantCulture),
+            _ => value.ToString() ?? string.Empty
+        };
+
+        var exponentIndex = text.IndexOfAny(['e', 'E']);
+        if (exponentIndex >= 0)
+        {
+            if (decimal.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedDecimal))
+                text = parsedDecimal.ToString(CultureInfo.InvariantCulture);
+            else
+                text = text[..exponentIndex];
+        }
+
+        var decimalIndex = text.IndexOf('.');
+        if (decimalIndex < 0)
+            return 0;
+
+        var fractional = text[(decimalIndex + 1)..].TrimEnd('0');
+        return fractional.Length;
+    }
+
+    private static bool TryParsePostgresIdentifierParts(string text, out List<string> parts)
+    {
+        parts = [];
+        if (string.IsNullOrWhiteSpace(text))
+            return false;
+
+        var current = new StringBuilder();
+        var insideQuotes = false;
+        for (var i = 0; i < text.Length; i++)
+        {
+            var ch = text[i];
+            if (insideQuotes)
+            {
+                if (ch == '"')
+                {
+                    if (i + 1 < text.Length && text[i + 1] == '"')
+                    {
+                        current.Append('"');
+                        i++;
+                        continue;
+                    }
+
+                    insideQuotes = false;
+                    continue;
+                }
+
+                current.Append(ch);
+                continue;
+            }
+
+            if (ch == '"')
+            {
+                insideQuotes = true;
+                continue;
+            }
+
+            if (ch == '.')
+            {
+                parts.Add(current.ToString().Trim());
+                current.Clear();
+                continue;
+            }
+
+            current.Append(ch);
+        }
+
+        if (insideQuotes)
+            return false;
+
+        parts.Add(current.ToString().Trim());
+        return parts.Count > 0 && parts.All(static part => part.Length > 0);
     }
 }

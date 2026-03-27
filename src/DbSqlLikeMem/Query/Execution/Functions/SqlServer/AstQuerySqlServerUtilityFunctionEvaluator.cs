@@ -42,15 +42,25 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
     {
         var handlers = new Dictionary<string, AstQueryTryEvalSqlServerUtilityFunction>(StringComparer.OrdinalIgnoreCase);
         Register(handlers, TryEvalAppNameFunction, "APP_NAME");
+        Register(handlers, TryEvalGetAnsiNullFunction, "GETANSINULL");
         Register(handlers, TryEvalCharIndexFunction, "CHARINDEX");
         Register(handlers, TryEvalDataLengthFunction, "DATALENGTH");
         Register(handlers, TryEvalErrorFunctions, "ERROR_LINE", "ERROR_MESSAGE", "ERROR_NUMBER", "ERROR_PROCEDURE", "ERROR_SEVERITY", "ERROR_STATE");
+        Register(handlers, TryEvalHostIdFunction, "HOST_ID");
+        Register(handlers, TryEvalHostNameFunction, "HOST_NAME");
         Register(handlers, TryEvalSqlServerGuidFunction, "NEWID", "NEWSEQUENTIALID");
         Register(handlers, TryEvalSqlServerLocalDateTimeFunction, "CURRENT_TIMESTAMP", "GETDATE", "SYSTEMDATE", "SYSDATETIME");
         Register(handlers, TryEvalSqlServerUtcDateTimeFunction, "SYSUTCDATETIME", "GETUTCDATE");
         Register(handlers, TryEvalSqlServerDateTimeOffsetFunction, "SYSDATETIMEOFFSET");
+        Register(handlers, TryEvalSessionUserFunction, "SESSION_USER");
+        Register(handlers, TryEvalSystemUserFunction, "SYSTEM_USER");
+        Register(handlers, TryEvalIsDateFunction, "ISDATE");
+        Register(handlers, TryEvalIsJsonFunction, "ISJSON");
+        Register(handlers, TryEvalIsNumericFunction, "ISNUMERIC");
         Register(handlers, TryEvalSqlServerStringEscapeFunction, "STRING_ESCAPE");
         Register(handlers, TryEvalSqlServerStrFunction, "STR");
+        Register(handlers, TryEvalSoundexFunction, "SOUNDEX");
+        Register(handlers, TryEvalDifferenceFunction, "DIFFERENCE");
         Register(handlers, TryEvalSqlServerToDateTimeOffsetFunction, "TODATETIMEOFFSET");
         Register(handlers, TryEvalSqlServerSwitchOffsetFunction, "SWITCHOFFSET");
         Register(handlers, TryEvalSqlServerFormatFunction, "FORMAT");
@@ -150,6 +160,194 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         return true;
     }
 
+    internal static bool TryEvalGetAnsiNullFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+        _ = fn;
+        _ = evalArg;
+
+        result = 1;
+        return true;
+    }
+
+    internal static bool TryEvalHostIdFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = context;
+        _ = evalArg;
+        result = 1;
+        return true;
+    }
+
+    internal static bool TryEvalHostNameFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = context;
+        _ = evalArg;
+        result = "localhost";
+        return true;
+    }
+
+    internal static bool TryEvalDifferenceFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+        _ = fn;
+
+        var first = evalArg(0)?.ToString() ?? string.Empty;
+        var second = evalArg(1)?.ToString() ?? string.Empty;
+        var soundex1 = AstQuerySqlServerResolutionHelper.ComputeSoundex(first);
+        var soundex2 = AstQuerySqlServerResolutionHelper.ComputeSoundex(second);
+        var score = 0;
+        for (var i = 0; i < Math.Min(soundex1.Length, soundex2.Length); i++)
+        {
+            if (soundex1[i] == soundex2[i])
+                score++;
+        }
+
+        result = score;
+        return true;
+    }
+
+    internal static bool TryEvalSoundexFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!string.Equals(fn.Name, "SOUNDEX", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        result = AstQuerySqlServerResolutionHelper.ComputeSoundex(value?.ToString() ?? string.Empty);
+        return true;
+    }
+
+    internal static bool TryEvalSessionUserFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+        _ = fn;
+        _ = evalArg;
+
+        result = "dbo";
+        return true;
+    }
+
+    internal static bool TryEvalSystemUserFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+        _ = fn;
+        _ = evalArg;
+
+        result = "dbo";
+        return true;
+    }
+
+    internal static bool TryEvalIsDateFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+        _ = fn;
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = 0;
+            return true;
+        }
+
+        result = AstQueryExecutorBase.TryCoerceDateTime(value, out _)
+            ? 1
+            : 0;
+        return true;
+    }
+
+    internal static bool TryEvalIsJsonFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+        _ = fn;
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = 0;
+            return true;
+        }
+
+        try
+        {
+            QueryJsonFunctionHelper.TryGetJsonRootElement(value!, out _);
+            result = 1;
+        }
+        catch
+        {
+            result = 0;
+        }
+
+        return true;
+    }
+
+    internal static bool TryEvalIsNumericFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+        _ = fn;
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = 0;
+            return true;
+        }
+
+        result = double.TryParse(value?.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out _)
+            ? 1
+            : 0;
+        return true;
+    }
+
     internal bool TryEvalCurrentUserFunction(
         QueryExecutionContext context,
         FunctionCallExpr fn,
@@ -194,6 +392,124 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         }
 
         context.Connection.TryGetSessionContextValue(key!, out result);
+        return true;
+    }
+
+    internal bool TryEvalSqlServerJsonModifyFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!string.Equals(fn.Name, "JSON_MODIFY", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var definition = fn.ResolvedScalarFunction;
+        if (definition is not null
+            && !definition.AllowsCall)
+        {
+            throw context.NotSupported("JSON_MODIFY");
+        }
+
+        if (definition is null)
+            throw context.NotSupported("JSON_MODIFY");
+
+        if (fn.Args.Count < 3)
+            throw new InvalidOperationException("JSON_MODIFY() espera JSON, path e novo valor.");
+
+        var json = evalArg(0);
+        var pathValue = evalArg(1)?.ToString();
+        var newValue = evalArg(2);
+        if (AstQueryExecutorBase.IsNullish(json) || string.IsNullOrWhiteSpace(pathValue) || !AstQueryJsonPathFunctionEvaluator.TryParseJsonNode(json!, out var root) || root is null)
+        {
+            result = null;
+            return true;
+        }
+
+        if (!AstQueryJsonPathFunctionEvaluator.TryParseSqlServerJsonModifyPath(pathValue!, out var tokens, out var append, out var strict))
+        {
+            result = null;
+            return true;
+        }
+
+        var exists = AstQueryJsonPathFunctionEvaluator.TryGetJsonNodeAtPath(root, tokens, out var existingNode);
+        if (append)
+        {
+            var array = existingNode as System.Text.Json.Nodes.JsonArray;
+            if (!exists || array is null)
+            {
+                if (strict)
+                    throw new InvalidOperationException($"JSON_MODIFY strict path '{pathValue}' was not found in the JSON payload.");
+
+                result = root.ToJsonString();
+                return true;
+            }
+
+            array.Add(AstQueryJsonPathFunctionEvaluator.CreateJsonNodeFromValue(newValue));
+            result = root.ToJsonString();
+            return true;
+        }
+
+        if (AstQueryExecutorBase.IsNullish(newValue))
+        {
+            if (strict)
+            {
+                if (!exists)
+                    throw new InvalidOperationException($"JSON_MODIFY strict path '{pathValue}' was not found in the JSON payload.");
+
+                if (!AstQueryJsonPathFunctionEvaluator.TrySetJsonPathValue(ref root, tokens, null))
+                {
+                    result = null;
+                    return true;
+                }
+            }
+            else if (exists)
+            {
+                AstQueryJsonPathFunctionEvaluator.TryRemoveJsonPathValue(root, tokens);
+            }
+
+            result = root.ToJsonString();
+            return true;
+        }
+
+        if (strict && !exists)
+            throw new InvalidOperationException($"JSON_MODIFY strict path '{pathValue}' was not found in the JSON payload.");
+
+        if (!AstQueryJsonPathFunctionEvaluator.TrySetJsonPathValue(ref root, tokens, newValue))
+        {
+            if (strict)
+                throw new InvalidOperationException($"JSON_MODIFY strict path '{pathValue}' was not found in the JSON payload.");
+
+            result = root.ToJsonString();
+            return true;
+        }
+
+        result = root.ToJsonString();
+        return true;
+    }
+
+    internal bool TryEvalOpenJsonFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var dialect = context.Dialect;
+        if (!string.Equals(fn.Name, SqlConst.OPENJSON, StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.TryGetTableFunctionDefinition(SqlConst.OPENJSON, out var openJsonDefinition)
+            || openJsonDefinition is null)
+            throw context.NotSupported(SqlConst.OPENJSON);
+
+        var json = evalArg(0);
+        result = AstQueryExecutorBase.IsNullish(json) ? null : json?.ToString();
         return true;
     }
 
@@ -328,7 +644,7 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         if (fn.Args.Count == 0)
             throw new InvalidOperationException("FORMATMESSAGE() espera ao menos a mensagem.");
 
-        result = AstQueryGeneralScalarFunctionEvaluator.FormatPrintf(
+        result = AstQueryFormatFunctionHelper.FormatPrintf(
             evalArg(0)?.ToString() ?? string.Empty,
             [.. Enumerable.Range(1, Math.Max(0, fn.Args.Count - 1)).Select(evalArg)]);
         return true;

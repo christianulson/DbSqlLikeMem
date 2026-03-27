@@ -38,16 +38,24 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
         Register(handlers, TryEvalSetFunctions, "ELT", "MAKE_SET", "EXPORT_SET");
         Register(handlers, TryEvalHexFunctions, "HEX", "UNHEX");
+        Register(handlers, TryEvalOctFunction, "OCT");
+        Register(handlers, TryEvalOrdFunction, "ORD");
+        Register(handlers, TryEvalBitCountFunction, "BIT_COUNT");
+        Register(handlers, TryEvalLog2Function, "LOG2");
         Register(handlers, TryEvalFormatFunction, "FORMAT");
         Register(handlers, TryEvalRandomBytesFunction, "RANDOM_BYTES");
         Register(handlers, TryEvalSleepFunction, "SLEEP");
         Register(handlers, TryEvalLastInsertIdFunction, "LAST_INSERT_ID");
+        Register(handlers, TryEvalNameConstFunction, "NAME_CONST");
         Register(handlers, TryEvalCompressFunctions, "COMPRESS", "UNCOMPRESS", "UNCOMPRESSED_LENGTH");
         Register(handlers, TryEvalFormatBytesFunction, "FORMAT_BYTES");
         Register(handlers, TryEvalFormatPicoTimeFunction, "FORMAT_PICO_TIME");
         Register(handlers, TryEvalXmlFunctions, "EXTRACTVALUE", "UPDATEXML");
         Register(handlers, TryEvalCryptoFunctions, "AES_ENCRYPT", "AES_DECRYPT", "DES_ENCRYPT", "DES_DECRYPT", "ENCODE", "DECODE", "ENCRYPT");
         Register(handlers, TryEvalDefaultFunction, SqlConst.DEFAULT);
+        Register(handlers, TryEvalQuoteFunction, "QUOTE");
+        Register(handlers, TryEvalSubstringIndexFunction, "SUBSTRING_INDEX");
+        Register(handlers, TryEvalIsUuidFunction, "IS_UUID");
         Register(handlers, TryEvalMemberOfFunction, "MEMBER_OF");
         Register(handlers, TryEvalIsIpv4Function, "IS_IPV4");
         Register(handlers, TryEvalIsIpv4CompatFunction, "IS_IPV4_COMPAT");
@@ -173,9 +181,60 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
         TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
         out object? result)
+        => AstQuerySharedBinaryTextFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result);
+
+    private static bool TryEvalQuoteFunction(
+        this QueryExecutionContext context,
+        FunctionCallExpr fn,
+        EvalRow row,
+        Func<int, object?> evalArg,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        out object? result)
     {
-        if (fn.Args.Count == 0)
-            throw new InvalidOperationException($"{fn.Name.ToUpperInvariant()}() espera ao menos um argumento.");
+        _ = context;
+        _ = row;
+        _ = tryConvertNumericToInt64;
+        _ = tryConvertNumericToDouble;
+
+        if (!string.Equals(fn.Name, "QUOTE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = SqlConst.NULL;
+            return true;
+        }
+
+        var text = value?.ToString() ?? string.Empty;
+        var escaped = text.Replace("\\", "\\\\").Replace("'", "\\'");
+        result = $"'{escaped}'";
+        return true;
+    }
+
+    private static bool TryEvalOctFunction(
+        this QueryExecutionContext context,
+        FunctionCallExpr fn,
+        EvalRow row,
+        Func<int, object?> evalArg,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        out object? result)
+    {
+        _ = context;
+        _ = row;
+        _ = tryConvertNumericToInt64;
+        _ = tryConvertNumericToDouble;
+
+        if (!string.Equals(fn.Name, "OCT", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
 
         var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value))
@@ -184,57 +243,199 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
             return true;
         }
 
-        if (string.Equals(fn.Name, "HEX", StringComparison.OrdinalIgnoreCase))
+        try
         {
-            if (value is byte[] bytes)
-            {
-                result = ToHexString(bytes);
-                return true;
-            }
+            var number = Convert.ToInt64(value, CultureInfo.InvariantCulture);
+            result = Convert.ToString(number, 8);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
 
-            if (value is string text)
-            {
-                result = ToHexString(Encoding.UTF8.GetBytes(text));
-                return true;
-            }
+    private static bool TryEvalOrdFunction(
+        this QueryExecutionContext context,
+        FunctionCallExpr fn,
+        EvalRow row,
+        Func<int, object?> evalArg,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        out object? result)
+    {
+        _ = context;
+        _ = row;
+        _ = tryConvertNumericToInt64;
+        _ = tryConvertNumericToDouble;
 
-            try
-            {
-                var number = Convert.ToInt64(value, CultureInfo.InvariantCulture);
-                result = number.ToString("X", CultureInfo.InvariantCulture);
-                return true;
-            }
-            catch
-            {
-                result = null;
-                return true;
-            }
+        if (!string.Equals(fn.Name, "ORD", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
         }
 
-        var payload = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
-        if (payload.Length == 0)
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
         {
-            result = Array.Empty<byte>();
+            result = null;
             return true;
         }
 
-        if (payload.Length % 2 == 1)
-            payload = "0" + payload;
-
-        var output = new byte[payload.Length / 2];
-        for (var i = 0; i < output.Length; i++)
+        var text = value?.ToString() ?? string.Empty;
+        if (text.Length == 0)
         {
-            var slice = payload.Substring(i * 2, 2);
-            if (!byte.TryParse(slice, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var parsed))
-            {
-                result = null;
-                return true;
-            }
-
-            output[i] = parsed;
+            result = 0;
+            return true;
         }
 
-        result = output;
+        var bytes = Encoding.UTF8.GetBytes(text);
+        result = bytes[0];
+        return true;
+    }
+
+    private static bool TryEvalBitCountFunction(
+        this QueryExecutionContext context,
+        FunctionCallExpr fn,
+        EvalRow row,
+        Func<int, object?> evalArg,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        out object? result)
+    {
+        _ = context;
+        _ = row;
+        _ = tryConvertNumericToInt64;
+        _ = tryConvertNumericToDouble;
+
+        if (!string.Equals(fn.Name, "BIT_COUNT", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var number = Convert.ToInt64(value, CultureInfo.InvariantCulture);
+            var bits = unchecked((ulong)number);
+            var count = 0;
+            while (bits != 0)
+            {
+                count += (int)(bits & 1UL);
+                bits >>= 1;
+            }
+
+            result = count;
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalLog2Function(
+        this QueryExecutionContext context,
+        FunctionCallExpr fn,
+        EvalRow row,
+        Func<int, object?> evalArg,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        out object? result)
+    {
+        _ = context;
+        _ = row;
+        _ = tryConvertNumericToInt64;
+        _ = tryConvertNumericToDouble;
+
+        if (!string.Equals(fn.Name, "LOG2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            result = Math.Log(number, 2d);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalSubstringIndexFunction(
+        this QueryExecutionContext context,
+        FunctionCallExpr fn,
+        EvalRow row,
+        Func<int, object?> evalArg,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        out object? result)
+    {
+        _ = context;
+        _ = row;
+        _ = tryConvertNumericToInt64;
+        _ = tryConvertNumericToDouble;
+
+        if (!string.Equals(fn.Name, "SUBSTRING_INDEX", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var textValue = evalArg(0);
+        var delimValue = evalArg(1);
+        var countValue = evalArg(2);
+        if (AstQueryExecutorBase.IsNullish(textValue) || AstQueryExecutorBase.IsNullish(delimValue) || AstQueryExecutorBase.IsNullish(countValue))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = textValue?.ToString() ?? string.Empty;
+        var delim = delimValue?.ToString() ?? string.Empty;
+        var count = Convert.ToInt32(countValue.ToDec());
+        if (count == 0 || delim.Length == 0)
+        {
+            result = string.Empty;
+            return true;
+        }
+
+        var parts = text.Split([delim], StringSplitOptions.None);
+        if (Math.Abs(count) >= parts.Length)
+        {
+            result = text;
+            return true;
+        }
+
+        if (count > 0)
+        {
+            result = string.Join(delim, parts.Take(count));
+            return true;
+        }
+
+        var take = Math.Abs(count);
+        result = string.Join(delim, parts.Skip(parts.Length - take));
         return true;
     }
 
@@ -804,6 +1005,33 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         return true;
     }
 
+    private static bool TryEvalNameConstFunction(
+        this QueryExecutionContext context,
+        FunctionCallExpr fn,
+        EvalRow row,
+        Func<int, object?> evalArg,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        out object? result)
+    {
+        _ = context;
+        _ = fn;
+        _ = row;
+        _ = tryConvertNumericToInt64;
+        _ = tryConvertNumericToDouble;
+
+        var nameValue = evalArg(0);
+        var value = evalArg(1);
+        if (AstQueryExecutorBase.IsNullish(nameValue))
+        {
+            result = null;
+            return true;
+        }
+
+        result = value;
+        return true;
+    }
+
     private static bool TryResolveDefaultValue(
         EvalRow row,
         string? qualifier,
@@ -1016,6 +1244,34 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         }
 
         result = 0;
+        return true;
+    }
+
+    private static bool TryEvalIsUuidFunction(
+        this QueryExecutionContext context,
+        FunctionCallExpr fn,
+        EvalRow row,
+        Func<int, object?> evalArg,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        out object? result)
+    {
+        _ = context;
+        _ = fn;
+        _ = row;
+        _ = tryConvertNumericToInt64;
+        _ = tryConvertNumericToDouble;
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = 0;
+            return true;
+        }
+
+        result = Guid.TryParse(value?.ToString(), out _)
+            ? 1
+            : 0;
         return true;
     }
 

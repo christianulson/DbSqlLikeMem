@@ -22,7 +22,6 @@ internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
         var handlers = new Dictionary<string, AstQueryGeneralScalarFunctionHandler>(StringComparer.OrdinalIgnoreCase);
         Register(handlers, TryEvalAddDateFunction, "ADDDATE");
         Register(handlers, TryEvalAddTimeFunction, "ADDTIME");
-        Register(handlers, TryEvalLastDayFunction, "LAST_DAY", "EOMONTH");
         Register(handlers, TryEvalSubTimeFunction, "SUBTIME");
         return handlers;
     }
@@ -101,34 +100,6 @@ internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
         }
 
         result = null;
-        return true;
-    }
-
-    private static bool TryEvalLastDayFunction(
-        QueryExecutionContext context,
-        FunctionCallExpr fn,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        var value = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(value) || !AstQueryExecutorBase.TryCoerceDateTime(value, out var dateTime))
-        {
-            result = null;
-            return true;
-        }
-
-        if (string.Equals(fn.Name, "EOMONTH", StringComparison.OrdinalIgnoreCase) && fn.Args.Count > 1)
-        {
-            var offsetValue = evalArg(1);
-            if (!AstQueryExecutorBase.IsNullish(offsetValue))
-            {
-                var offset = Convert.ToInt32(offsetValue.ToDec(), CultureInfo.InvariantCulture);
-                dateTime = dateTime.AddMonths(offset);
-            }
-        }
-
-        var lastDay = DateTime.DaysInMonth(dateTime.Year, dateTime.Month);
-        result = new DateTime(dateTime.Year, dateTime.Month, lastDay, dateTime.Hour, dateTime.Minute, dateTime.Second, dateTime.Kind);
         return true;
     }
 

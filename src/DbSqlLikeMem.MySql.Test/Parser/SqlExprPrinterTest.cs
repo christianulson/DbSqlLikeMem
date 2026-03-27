@@ -20,7 +20,7 @@ public sealed class SqlExprPrinterTest(
         if (version < minVersion)
             return;
 
-        var d = new MySqlDialect(version);
+        var d = GetDialect(version, v => new MySqlDialect(v));
         var ast1 = SqlExpressionParser.ParseWhere(expr, d);
         var printed = SqlExprPrinter.Print(ast1);
 

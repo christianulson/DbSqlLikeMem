@@ -10,7 +10,7 @@ internal static class AstQueryGeneralScalarFunctionFamilyEvaluator
         EvalGroup? group,
         IDictionary<string, Source> ctes,
         QueryExecutionContext context,
-        AstQueryTryEvalGeneralSystemAndJsonFunction tryEvalGeneralSystemAndJsonFunction,
+        AstQueryGeneralScalarFunctionHandler tryEvalJsonObjectFunction,
         Func<int, object?> evalArg,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
         Func<CallExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, IntervalValue?> parseIntervalValue,
@@ -20,7 +20,7 @@ internal static class AstQueryGeneralScalarFunctionFamilyEvaluator
             row,
             group,
             ctes,
-            tryEvalGeneralSystemAndJsonFunction,
+            tryEvalJsonObjectFunction,
             evalArg,
             eval,
             parseIntervalValue,
@@ -32,15 +32,14 @@ internal static class AstQueryGeneralScalarFunctionFamilyEvaluator
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
-        AstQueryTryEvalGeneralSystemAndJsonFunction tryEvalGeneralSystemAndJsonFunction,
+        AstQueryGeneralScalarFunctionHandler tryEvalJsonObjectFunction,
         Func<int, object?> evalArg,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
         Func<CallExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, IntervalValue?> parseIntervalValue,
         out object? result)
     {
-        if (tryEvalGeneralSystemAndJsonFunction(context, fn, evalArg, out result)
-            || AstQueryGeneralScalarFunctionEvaluator.TryEvaluateGeneralScalarFunction(context, fn, evalArg, out result)
-            || TryEvalGeneralDateAndTimeFunctions(fn, row, group, ctes, context, evalArg, parseIntervalValue, out result))
+        if (tryEvalJsonObjectFunction(context, fn, evalArg, out result)
+            || TryEvalGeneralDateArithmeticFunctions(context, fn, evalArg, out result))
         {
             return true;
         }
@@ -56,26 +55,10 @@ internal static class AstQueryGeneralScalarFunctionFamilyEvaluator
         return false;
     }
 
-    private static bool TryEvalGeneralDateAndTimeFunctions(
-        FunctionCallExpr fn,
-        EvalRow row,
-        EvalGroup? group,
-        IDictionary<string, Source> ctes,
+    private static bool TryEvalGeneralDateArithmeticFunctions(
         QueryExecutionContext context,
+        FunctionCallExpr fn,
         Func<int, object?> evalArg,
-        Func<CallExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, IntervalValue?> parseIntervalValue,
         out object? result)
-    {
-        if (AstQueryGeneralDateArithmeticFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result))
-        {
-            return true;
-        }
-
-        if (AstQueryGeneralScalarFunctionEvaluator.TryEvalSubDateFunction(fn, row, group, ctes, parseIntervalValue, evalArg, out result))
-        {
-            return true;
-        }
-
-        return AstQueryGeneralDateTimeFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result);
-    }
+        => AstQueryGeneralDateArithmeticFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result);
 }

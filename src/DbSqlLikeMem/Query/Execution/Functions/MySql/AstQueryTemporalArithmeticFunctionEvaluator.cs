@@ -258,35 +258,29 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
     }
 
     private static int DiffMonths(DateTime start, DateTime end)
-    {
-        var months = (end.Year - start.Year) * 12 + (end.Month - start.Month);
-        if (end.Day < start.Day)
-            months -= 1;
-        return months;
-    }
+        => (end.Year - start.Year) * 12 + end.Month - start.Month;
 
-    private static int DiffYears(DateTime start, DateTime end)
-    {
-        var years = end.Year - start.Year;
-        if (end.Month < start.Month || (end.Month == start.Month && end.Day < start.Day))
-            years -= 1;
-        return years;
-    }
-
-    private static long? GetTemporalDifference(DateTime start, DateTime end, TemporalUnit unit) => unit switch
-    {
-        TemporalUnit.Day => (long)(end.Date - start.Date).TotalDays,
-        TemporalUnit.Hour => (long)(end - start).TotalHours,
-        TemporalUnit.Minute => (long)(end - start).TotalMinutes,
-        TemporalUnit.Second => (long)(end - start).TotalSeconds,
-        TemporalUnit.Month => DiffMonths(start, end),
-        TemporalUnit.Year => DiffYears(start, end),
-        _ => null
-    };
+    private static int GetTemporalDifference(DateTime start, DateTime end, TemporalUnit unit)
+        => unit switch
+        {
+            TemporalUnit.Year => end.Year - start.Year,
+            TemporalUnit.Month => DiffMonths(start, end),
+            TemporalUnit.Day => (int)(end.Date - start.Date).TotalDays,
+            TemporalUnit.Hour => (int)(end - start).TotalHours,
+            TemporalUnit.Minute => (int)(end - start).TotalMinutes,
+            TemporalUnit.Second => (int)(end - start).TotalSeconds,
+            _ => (int)(end - start).TotalSeconds
+        };
 
     private static int? GetTemporalDifferenceOrNull(DateTime start, DateTime end, TemporalUnit unit)
-    {
-        var difference = GetTemporalDifference(start, end, unit);
-        return difference is null ? null : (int)difference.Value;
-    }
+        => unit switch
+        {
+            TemporalUnit.Year => end.Year - start.Year,
+            TemporalUnit.Month => DiffMonths(start, end),
+            TemporalUnit.Day => (int)(end.Date - start.Date).TotalDays,
+            TemporalUnit.Hour => (int)(end - start).TotalHours,
+            TemporalUnit.Minute => (int)(end - start).TotalMinutes,
+            TemporalUnit.Second => (int)(end - start).TotalSeconds,
+            _ => null
+        };
 }

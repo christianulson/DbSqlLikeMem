@@ -1,13 +1,17 @@
+using DbSqlLikeMem.SqlServer;
+
 namespace DbSqlLikeMem.SqlAzure.Test.Parser;
 
 /// <summary>
 /// EN: Covers SQL Azure parser features gated by compatibility levels.
 /// PT: Cobre recursos de parser do SQL Azure controlados por nivel de compatibilidade.
 /// </summary>
-public sealed class SqlAzureDialectFeatureParserTests
+public sealed class SqlAzureDialectFeatureParserTests(
+    ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
-    private static SqlDialectBase CreateDialect(int compatibilityLevel)
-        => new SqlAzureDbMock(compatibilityLevel).Dialect;
+    private SqlDialectBase CreateDialect(int compatibilityLevel)
+        => GetDialect(compatibilityLevel, v => new SqlServerDialect(SqlAzureDbCompatibilityLevels.ToSqlServerDialectVersion(v)));
 
     /// <summary>
     /// EN: Verifies CREATE SEQUENCE follows SQL Azure compatibility-level rules.

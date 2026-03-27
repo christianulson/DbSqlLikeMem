@@ -441,25 +441,6 @@ public sealed record DbFunctionDef(
         Signatures = signatures ?? [];
     }
 
-    internal DbFunctionDef(
-        string name,
-        string? returnTypeSql,
-        AstQueryGeneralScalarFunctionHandler astExecutor,
-        DbFunctionCapability capabilities,
-        DbFunctionCategory category,
-        DbInvocationStyle invocationStyle,
-        SqlTemporalFunctionKind? temporalKind,
-        bool isStringAggregate,
-        params DbFunctionSignature[] signatures)
-    : this(name, returnTypeSql, capabilities, category)
-    {
-        InvocationStyle = invocationStyle;
-        TemporalKind = temporalKind;
-        IsStringAggregate = isStringAggregate;
-        Signatures = signatures ?? [];
-        AstExecutor = astExecutor;
-    }
-
     /// <summary>
     /// EN: Checks whether the function exposes the specified capability flag.
     /// PT: Verifica se a funcao expõe a flag de capacidade informada.
@@ -545,16 +526,22 @@ public sealed record DbFunctionDef(
         DbFunctionCategory category = DbFunctionCategory.General,
         DbInvocationStyle invocationStyle = DbInvocationStyle.Call,
         params DbFunctionSignature[] signatures)
-        => new(
+    {
+        var definition = new DbFunctionDef(
             name,
             returnTypeSql,
-            AstExecutor,
             DbFunctionCapability.Scalar,
             category,
             invocationStyle,
             null,
             false,
-            signatures);
+            signatures)
+        {
+            AstExecutor = AstExecutor
+        };
+
+        return definition;
+    }
 
     internal static DbFunctionDef CreateUserDefined(
         string name,
@@ -570,49 +557,6 @@ public sealed record DbFunctionDef(
             Parameters = parameters ?? [],
             Body = body
         };
-
-    /// <summary>
-    /// EN: Creates an aggregate function definition with the provided signatures.
-    /// PT: Cria uma definicao de funcao agregada com as assinaturas fornecidas.
-    /// </summary>
-    public static DbFunctionDef CreateAggregate(
-        string name,
-        string? returnTypeSql,
-        DbFunctionCategory category = DbFunctionCategory.General,
-        bool supportsOver = false,
-        bool isStringAggregate = false,
-        params DbFunctionSignature[] signatures)
-        => new(
-            name,
-            returnTypeSql,
-            DbFunctionCapability.Aggregate
-            | (supportsOver ? DbFunctionCapability.Window | DbFunctionCapability.SupportsOver : DbFunctionCapability.None),
-            category,
-            DbInvocationStyle.Call,
-            null,
-            isStringAggregate,
-            signatures);
-
-    /// <summary>
-    /// EN: Creates a window function definition with the provided signatures.
-    /// PT: Cria uma definicao de funcao de janela com as assinaturas fornecidas.
-    /// </summary>
-    public static DbFunctionDef CreateWindow(
-        string name,
-        string? returnTypeSql,
-        DbFunctionCategory category = DbFunctionCategory.Analytic,
-        bool requiresOver = true,
-        params DbFunctionSignature[] signatures)
-        => new(
-            name,
-            returnTypeSql,
-            DbFunctionCapability.Window
-            | (requiresOver ? DbFunctionCapability.RequiresOver : DbFunctionCapability.None),
-            category,
-            DbInvocationStyle.Call,
-            null,
-            false,
-            signatures);
 
     /// <summary>
     /// EN: Creates a table function definition with the provided signatures.

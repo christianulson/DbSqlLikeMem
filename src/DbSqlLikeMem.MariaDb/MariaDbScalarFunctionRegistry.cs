@@ -1,5 +1,3 @@
-using DbSqlLikeMem;
-
 namespace DbSqlLikeMem.MariaDb;
 
 internal static class MariaDbScalarFunctionRegistry

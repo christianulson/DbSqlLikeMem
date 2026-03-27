@@ -19,16 +19,15 @@ internal static class AstQueryPostgresSystemFunctionEvaluator
     internal static void CreateHandlers(
         this ISqlDialect dialect)
     {
-        var f = dialect.Functions;
-        f.Add("VARCHAR", TryEvalCurrentDatabaseFunction, "CURRENT_DATABASE", "CURRENT_CATALOG");
-        f.Add("VARCHAR", TryEvalCurrentSchemaFunction, "CURRENT_SCHEMA");
-        f.Add("VARCHAR", TryEvalCurrentUserFunction, "CURRENT_ROLE");
-        f.Add("VARCHAR", TryEvalCurrentUserFunction, "CURRENT_USER", "CURRENT_ROLE");
-        f.Add("VARCHAR", TryEvalVersionFunction, "VERSION");
-        f.Add("STRING_ARRAY", TryEvalCurrentSchemasFunction, "CURRENT_SCHEMAS");
-        f.Add("VARCHAR", TryEvalCurrentSettingFunction, "CURRENT_SETTING");
-        f.Add("VARCHAR", TryEvalCurrentQueryFunction, "CURRENT_QUERY");
-        f.Add("DATETIME", TryEvalCurrentTimestampFunction, "CLOCK_TIMESTAMP", "STATEMENT_TIMESTAMP", "TRANSACTION_TIMESTAMP");
+        dialect.AddScalarFunctions("VARCHAR", TryEvalCurrentDatabaseFunction, "CURRENT_DATABASE", "CURRENT_CATALOG");
+        dialect.AddScalarFunctions("VARCHAR", TryEvalCurrentSchemaFunction, "CURRENT_SCHEMA");
+        dialect.AddScalarFunctions("VARCHAR", TryEvalCurrentUserFunction, "CURRENT_ROLE");
+        dialect.AddScalarFunctions("VARCHAR", TryEvalCurrentUserFunction, "CURRENT_USER");
+        dialect.AddScalarFunctions("VARCHAR", TryEvalVersionFunction, "VERSION");
+        dialect.AddScalarFunctions("STRING_ARRAY", TryEvalCurrentSchemasFunction, "CURRENT_SCHEMAS");
+        dialect.AddScalarFunctions("VARCHAR", TryEvalCurrentSettingFunction, "CURRENT_SETTING");
+        dialect.AddScalarFunctions("VARCHAR", TryEvalCurrentQueryFunction, "CURRENT_QUERY");
+        dialect.AddScalarFunctions("DATETIME", TryEvalCurrentTimestampFunction, "CLOCK_TIMESTAMP", "STATEMENT_TIMESTAMP", "TRANSACTION_TIMESTAMP");
     }
 
     private static bool TryEvalCurrentDatabaseFunction(

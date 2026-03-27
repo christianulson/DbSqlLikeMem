@@ -277,8 +277,8 @@ internal static class AstQueryPostgresJsonFunctionEvaluator
                 return true;
             }
 
-            var normalized = CloneJsonNode(root);
-            StripJsonNullProperties(normalized);
+            var normalized = AstQueryJsonSharedFunctionEvaluator.CloneJsonNode(root);
+            AstQueryJsonSharedFunctionEvaluator.StripJsonNullProperties(normalized);
             result = normalized.ToJsonString();
             return true;
         }
@@ -770,40 +770,6 @@ internal static class AstQueryPostgresJsonFunctionEvaluator
             cache.Clear();
 
         cache[key] = entry;
-    }
-
-    private static JsonNode CloneJsonNode(JsonNode node)
-        => JsonNode.Parse(node.ToJsonString())!;
-
-    private static void StripJsonNullProperties(JsonNode node)
-    {
-        if (node is JsonObject obj)
-        {
-            var toRemove = obj
-                .Where(pair => pair.Value is null)
-                .Select(pair => pair.Key)
-                .ToArray();
-
-            foreach (var key in toRemove)
-                obj.Remove(key);
-
-            foreach (var pair in obj)
-            {
-                if (pair.Value is not null)
-                    StripJsonNullProperties(pair.Value);
-            }
-
-            return;
-        }
-
-        if (node is JsonArray array)
-        {
-            foreach (var item in array)
-            {
-                if (item is not null)
-                    StripJsonNullProperties(item);
-            }
-        }
     }
 
     private static JsonNode CreateJsonNodeFromValue(object? value)

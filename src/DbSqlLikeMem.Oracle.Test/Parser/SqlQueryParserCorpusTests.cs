@@ -631,7 +631,7 @@ select id
     [MemberDataOracleVersion]
     public void Parse_ShouldHandle_MultiStatementStrings_BySplitting(int version)
     {
-        var d = new OracleDialect(version);
+        var d = GetDialect(version, v => new OracleDialect(v));
         const string multi = "SELECT 1; SELECT 2 FROM t WHERE id = 1; INSERT INTO t(id) VALUES(1);";
         var stmts = SqlStatementSplitter.SplitStatementsTopLevel(multi, d);
 
@@ -662,7 +662,7 @@ select id
         Console.WriteLine("Query: @\"" + sql + "\"");
         ConsoleWriter.Flush();
 
-        var dialect = new OracleDialect(version);
+        var dialect = GetDialect(version, v => new OracleDialect(v));
         var trimmed = sql.TrimStart();
         if (minVersion == 0
             && (trimmed.Contains("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
