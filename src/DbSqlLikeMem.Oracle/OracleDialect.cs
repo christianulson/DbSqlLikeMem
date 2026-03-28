@@ -28,8 +28,9 @@ internal sealed class OracleDialect : SqlDialectBase, ISqlDialect
         ])
     {
         OracleScalarFunctionRegistry.Register(this, version);
-        SqlSharedWindowFunctionRegistry.Register(this);
+        OracleDb2ScalarFunctionRegistry.Register(this);
         OracleTableFunctionRegistry.Register(this, version);
+        SqlSharedWindowFunctionRegistry.Register(this);
     }
 
 
@@ -129,6 +130,7 @@ internal sealed class OracleDialect : SqlDialectBase, ISqlDialect
     /// PT: Obtém se há suporte a with recursive.
     /// </summary>
     public override bool SupportsWithRecursive => false;
+    public override bool SupportsReturning => Version >= 8;
     public override bool SupportsJsonValueReturningClause => Version >= OracleJsonSqlFunctionMinVersion;
     /// <summary>
     /// EN: Gets whether merge is supported.
@@ -158,7 +160,37 @@ internal sealed class OracleDialect : SqlDialectBase, ISqlDialect
 
     /// <inheritdoc />
     public override bool SupportsOracleSpecificConversionFunction(string functionName)
-        => functionName.Equals("CONVERT", StringComparison.OrdinalIgnoreCase);
+    {
+        if (string.IsNullOrWhiteSpace(functionName))
+            return false;
+
+        var normalized = functionName.Trim();
+
+        if (normalized.Equals("CONVERT", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (normalized.Equals("TO_BINARY_DOUBLE", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("TO_BINARY_FLOAT", StringComparison.OrdinalIgnoreCase))
+            return Version >= OracleBinaryConversionMinVersion;
+
+        if (normalized.Equals("TO_BLOB", StringComparison.OrdinalIgnoreCase))
+            return Version >= OracleBlobConversionMinVersion;
+
+        if (normalized.Equals("TO_CLOB", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("TO_DSINTERVAL", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("TO_NCHAR", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("TO_NCLOB", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("TO_TIMESTAMP_TZ", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("TO_YMINTERVAL", StringComparison.OrdinalIgnoreCase))
+            return Version >= OracleTextConversionMinVersion;
+
+        if (normalized.Equals("TO_LOB", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("TO_MULTI_BYTE", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("TO_SINGLE_BYTE", StringComparison.OrdinalIgnoreCase))
+            return Version >= 7;
+
+        return false;
+    }
 
     /// <inheritdoc />
     public override bool SupportsOracleReservedIdentifier(string identifier)

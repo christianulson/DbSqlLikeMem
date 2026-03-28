@@ -29,9 +29,9 @@ internal sealed class Db2Dialect : SqlDialectBase, ISqlDialect
         ])
         {
         Db2ScalarFunctionRegistry.Register(this, version);
-        SqlSharedWindowFunctionRegistry.Register(this);
         Db2WindowFunctionRegistry.Register(this);
         Db2TableFunctionRegistry.Register(this, version);
+        SqlSharedWindowFunctionRegistry.Register(this);
     }
 
  

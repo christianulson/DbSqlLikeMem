@@ -9,7 +9,7 @@ internal static class Db2ScalarFunctionRegistry
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
 
         SqlSharedScalarFunctionRegistry.Register(dialect);
-        OracleDb2ScalarFunctionRegistry.Register(dialect);
+        Db2OracleDb2ScalarFunctionRegistry.Register(dialect);
 
         RegisterConversionFunctions(dialect);
         RegisterTemporalFunctions(dialect);
@@ -57,17 +57,7 @@ internal static class Db2ScalarFunctionRegistry
                 AstExecutor = QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions
             },
             Db2Const.VALUE,
-            "IFNULL",
-            "NVL",
-            "NVL2");
-
-        dialect.AddScalarFunctions(
-            DbFunctionDef.CreateScalar("BITAND", "VARCHAR"),
-            "BITAND",
-            "BITANDNOT",
-            "BITNOT",
-            "BITOR",
-            "BITXOR");
+            "IFNULL");
 
         dialect.AddScalarFunction(
             DbFunctionDef.CreateScalar(SqlConst.LISTAGG, "VARCHAR") with
@@ -92,7 +82,6 @@ internal static class Db2ScalarFunctionRegistry
                 AstExecutor = AstQueryGroupingFunctionEvaluator.TryEvaluate
             });
 
-        dialect.AddScalarFunction(DbFunctionDef.CreateScalar("TRANSLATE", "VARCHAR"));
     }
 
     private static void RegisterRowCountFunctions(ISqlDialect dialect)

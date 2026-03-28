@@ -78,7 +78,6 @@ public sealed class SqlExpressionParserTests(
         yield return new object[] { "u.id = o.userId AND o.status = 'paid'" };
         yield return new object[] { "EXISTS (SELECT 1 FROM orders o WHERE o.UserId = u.Id)" };
         yield return new object[] { "NOT EXISTS (SELECT 1 FROM orders o WHERE o.UserId = u.Id)" };
-        yield return new object[] { "FIND_IN_SET('b', tags)" };
         yield return new object[] { "(a,b) in (@rows)" };
         yield return new object[] { "(a) in ((SELECT 1 WHERE 0))" };
         yield return new object[] { "a in ((SELECT 1 WHERE 0))" };
@@ -136,6 +135,7 @@ public sealed class SqlExpressionParserTests(
         yield return new object[] { "aIS NULL)" };
         yield return new object[] { "aIS NULL, b=2" };
         yield return new object[] { "id <= 2)" };
+        yield return new object[] { "FIND_IN_SET('b', tags)" };
         yield return new object[] { "MATCH(title) AGAINST('x' IN BOOLEAN MODE)" };
         yield return new object[] { "JSON_TABLE(col, '$[*]' COLUMNS(x INT PATH '$'))" };
     }

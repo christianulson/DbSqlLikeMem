@@ -83,16 +83,14 @@ internal class DictionaryProcess<T> : IDictionaryProcess<T>
             throw new ArgumentNullException(nameof(value));
 
         var normalizedKey = NormalizeKey(key);
+        if (_inner.ContainsKey(normalizedKey))
+        {
+            Console.WriteLine("Duplicate key detected: " + normalizedKey);
+            return;
+        }
 
         OnItemAdding(normalizedKey, value);
-        //try
-        //{
             _inner.Add(normalizedKey, value);
-        //}
-        //catch (ArgumentException ex) when (ex.Message.Contains("An item with the same key has already been added", StringComparison.OrdinalIgnoreCase))
-        //{
-        //    throw new ArgumentException($"An item with the key '{normalizedKey}' already exists.", ex);
-        //}
         OnItemAdded(normalizedKey, value);
     }
 

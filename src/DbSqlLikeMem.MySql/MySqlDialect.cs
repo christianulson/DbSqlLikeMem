@@ -58,8 +58,8 @@ internal partial class MySqlDialect : SqlDialectBase
         ])
     {
         RegisterScalarFunctions(version);
-        SqlSharedWindowFunctionRegistry.Register(this);
         RegisterTableFunctions(version);
+        SqlSharedWindowFunctionRegistry.Register(this);
     }
 
     partial void RegisterScalarFunctions(int version);
@@ -69,6 +69,7 @@ internal partial class MySqlDialect : SqlDialectBase
     internal const int WithCteMinVersion = 80;
     internal const int MergeMinVersion = int.MaxValue;
     internal const int WindowFunctionsMinVersion = 80;
+    internal const int JsonFunctionsMinVersion = 57;
     internal const int JsonArrowOperatorsMinVersion = 57;
     /// <summary>
     /// EN: Gets or sets AllowsBacktickIdentifiers.

@@ -30,6 +30,18 @@ internal static class SqlFunctionCallSupportValidator
         if (name.Equals(SqlConst.JSON_TABLE, StringComparison.OrdinalIgnoreCase))
             return;
 
+        if (name.Equals("CAST", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        if (name.Equals("EXTRACT", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        if (ctx.Dialect.SupportsWindowFunction(name))
+            return;
+
+        if (AggregateFunctionCatalog.Contains(name))
+            return;
+
         if (ctx.CustomFunctionSupported?.Invoke(name) == true)
             return;
 

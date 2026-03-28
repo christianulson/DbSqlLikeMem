@@ -10,7 +10,7 @@ namespace DbSqlLikeMem.MySql.Dapper.Test;
 /// </remarks>
 public sealed class MySqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : DapperUnionLimitAndJsonCompatibilityTestsBase<MySqlDbMock, MySqlConnectionMock>(helper)
 {
-    private const int MySqlJsonExtractMinVersion = 50;
+    private const int MySqlJsonExtractMinVersion = 57;
 
     /// <inheritdoc />
     protected override MySqlDbMock CreateDb(int? version) => new(version);

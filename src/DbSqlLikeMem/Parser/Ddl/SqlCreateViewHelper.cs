@@ -20,7 +20,7 @@ internal static class SqlCreateViewHelper
         if (SqlQueryParserContext.IsEnd(viewNameToken) || SqlQueryParserContext.IsSymbol(viewNameToken, ";"))
             throw new InvalidOperationException("CREATE VIEW requires a view name.");
 
-        var viewName = ctx.ParseTableSource(consumeHints: false);
+        var viewName = ctx.ParseTableSource(consumeHints: false, allowFunctionSource: false);
 
         var columnNames = new List<string>();
         if (ctx.IsSymbol("("))

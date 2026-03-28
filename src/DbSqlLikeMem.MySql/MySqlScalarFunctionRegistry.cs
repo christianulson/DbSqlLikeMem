@@ -150,6 +150,7 @@ internal partial class MySqlDialect
             DbFunctionDef.CreateScalar("FOUND_ROWS", "BIGINT"),
             "FOUND_ROWS",
             "ROW_COUNT");
+        this.AddScalarFunction(DbFunctionDef.CreateScalar(SqlConst.VALUES, "VARCHAR"));
         this.AddScalarFunction(DbFunctionDef.CreateScalar("LAST_INSERT_ID", "BIGINT"));
         var groupConcatFunction = DbFunctionDef.CreateScalar(SqlConst.GROUP_CONCAT, "VARCHAR") with
         {
@@ -242,17 +243,16 @@ internal partial class MySqlDialect
             "DATE",
             "TIME",
             "TIMESTAMP");
+        this.AddScalarFunction(
+            "DATETIME",
+            "DATETIME",
+            tryEvalDateFunction);
 
         this.AddScalarFunctions(
             "BIGINT",
             AstQuerySharedTextFunctionEvaluator.TryEvaluate,
             "CHAR_LENGTH",
             "CHARACTER_LENGTH");
-        this.AddScalarFunctions(
-            "INT",
-            AstQuerySharedTextFunctionEvaluator.TryEvaluate,
-            "BIT_LENGTH");
-        this.AddScalarFunction("BIN", "VARCHAR", AstQuerySharedNumericFunctionEvaluator.TryEvaluate);
         this.AddScalarFunction(
             "CRC32",
             "BIGINT",
@@ -357,17 +357,8 @@ internal partial class MySqlDialect
         this.AddScalarFunction("OCT", "VARCHAR", tryEvalMySqlUtilityFunction);
         this.AddScalarFunction("ORD", "INT", tryEvalMySqlUtilityFunction);
         this.AddScalarFunction("BIT_COUNT", "INT", tryEvalMySqlUtilityFunction);
-        this.AddScalarFunctions(
-            "VARCHAR",
-            AstQuerySharedNumericFunctionEvaluator.TryEvaluate,
-            DbInvocationStyle.Call | DbInvocationStyle.Identifier,
-            "GREATEST",
-            "LEAST");
-        this.AddScalarFunction("POSITION", "INT", AstQuerySharedTextFunctionEvaluator.TryEvaluate);
-        this.AddScalarFunction("RPAD", "VARCHAR", AstQuerySharedTextFunctionEvaluator.TryEvaluate);
         this.AddScalarFunction("SLEEP", "INT", tryEvalMySqlUtilityFunction);
         this.AddScalarFunction("SUBSTRING_INDEX", "VARCHAR", tryEvalMySqlUtilityFunction);
-        this.AddScalarFunction("OCTET_LENGTH", "INT", AstQuerySharedTextFunctionEvaluator.TryEvaluate);
         this.AddScalarFunctions("VARBINARY", tryEvalMySqlUtilityFunction, "COMPRESS");
         this.AddScalarFunctions("VARBINARY", tryEvalMySqlUtilityFunction, "UNCOMPRESS");
         this.AddScalarFunction(
@@ -397,14 +388,6 @@ internal partial class MySqlDialect
             "VARCHAR",
             tryEvalMySqlUtilityFunction);
         this.AddScalarFunction(
-            "HEX",
-            "VARCHAR",
-            tryEvalMySqlUtilityFunction);
-        this.AddScalarFunction(
-            "UNHEX",
-            "VARBINARY",
-            tryEvalMySqlUtilityFunction);
-        this.AddScalarFunction(
             "WEIGHT_STRING",
             "VARBINARY",
             executionHandler: global::DbSqlLikeMem.QueryMariaDbFunctionHelper.TryEvalFunctions);
@@ -416,7 +399,7 @@ internal partial class MySqlDialect
                 "REGEXP_REPLACE",
                 "REGEXP_SUBSTR",
                 "REGEXP_LIKE");
-        if (version >= MySqlDialect.JsonArrowOperatorsMinVersion)
+        if (version >= MySqlDialect.JsonFunctionsMinVersion)
             this.AddScalarFunctions(
                 "VARCHAR",
                 tryEvalJsonExtractionFunction,
@@ -424,7 +407,7 @@ internal partial class MySqlDialect
                 "JSON_QUERY",
                 "JSON_VALUE");
 
-        if (version >= MySqlDialect.JsonArrowOperatorsMinVersion)
+        if (version >= MySqlDialect.JsonFunctionsMinVersion)
             this.AddScalarFunctions(
                 "VARCHAR",
                 tryEvalJsonUtilityFunctions,
@@ -435,8 +418,6 @@ internal partial class MySqlDialect
                 "JSON_KEYS",
                 "JSON_SET",
                 "JSON_REMOVE",
-                "JSON_CONTAINS",
-                "JSON_CONTAINS_PATH",
                 "JSON_SEARCH",
                 "JSON_INSERT",
                 "JSON_REPLACE",
@@ -446,7 +427,7 @@ internal partial class MySqlDialect
                 "JSON_MERGE_PRESERVE",
                 "JSON_MERGE_PATCH");
 
-        if (version >= MySqlDialect.JsonArrowOperatorsMinVersion)
+        if (version >= MySqlDialect.JsonFunctionsMinVersion)
             this.AddScalarFunction(
                 "JSON_TYPE",
                 "VARCHAR",
@@ -457,7 +438,7 @@ internal partial class MySqlDialect
             "VARCHAR",
             tryEvalMySqlUtilityFunction);
 
-        if (version >= MySqlDialect.JsonArrowOperatorsMinVersion)
+        if (version >= MySqlDialect.JsonFunctionsMinVersion)
             this.AddScalarFunctions(
                 "INT",
                 tryEvalJsonUtilityFunctions,
@@ -467,7 +448,7 @@ internal partial class MySqlDialect
                 "JSON_CONTAINS_PATH",
                 "JSON_OVERLAPS");
 
-        if (version >= MySqlDialect.JsonArrowOperatorsMinVersion)
+        if (version >= MySqlDialect.JsonFunctionsMinVersion)
             this.AddScalarFunction(
                 "JSON_ARRAY",
                 "VARCHAR",
@@ -489,6 +470,10 @@ internal partial class MySqlDialect
                 "JSON_DEPTH",
                 "INT",
                 executionHandler: AstQueryMySqlSystemAndJsonFunctionEvaluator.TryEvaluate);
+        this.AddScalarFunction(
+            "STRCMP",
+            "INT",
+            executionHandler: tryEvalMySqlQueryUtilityFunction);
 
         if (version >= 80)
             this.AddScalarFunction(
@@ -552,7 +537,6 @@ internal partial class MySqlDialect
             "TIMEDIFF",
             "TO_DAYS",
             "TO_SECONDS",
-            "TRUNCATE",
             "WEEK",
             "WEEKDAY",
             "WEEKOFYEAR",

@@ -41,6 +41,7 @@ internal sealed class SqliteDialect : SqlDialectBase
     internal const int ReturningMinVersion = 335;
     internal const int WithMaterializedHintMinVersion = 335;
     internal const int JsonArrowOperatorsMinVersion = 338;
+    internal const int WindowFunctionsMinVersion = 325;
     internal const int OrderByNullsModifierMinVersion = 330;
     internal const int AggregateOrderByMinVersion = 330;
     internal const int MergeMinVersion = int.MaxValue;
@@ -115,6 +116,12 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsWithMaterializedHint => Version >= WithMaterializedHintMinVersion;
 
+    /// <inheritdoc />
+    public override bool SupportsWindowFunctions => Version >= WindowFunctionsMinVersion;
+
+    /// <inheritdoc />
+    public override bool SupportsWindowFrameClause => Version >= WindowFunctionsMinVersion;
+
     /// <summary>
     /// EN: Gets or sets null substitute function names.
     /// PT: Obtém ou define null substitute function names.
@@ -124,7 +131,7 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// EN: Gets or sets concat returns null on null input.
     /// PT: Obtém ou define concat returns null on null input.
     /// </summary>
-    public override bool ConcatReturnsNullOnNullInput => false;
+    public override bool ConcatReturnsNullOnNullInput => true;
     /// <summary>
     /// EN: Gets whether json arrow operators is supported.
     /// PT: Obtém se há suporte a json arrow operators.
@@ -134,7 +141,7 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// EN: Gets or sets text comparison.
     /// PT: Obtém ou define text comparison.
     /// </summary>
-    public override StringComparison TextComparison => StringComparison.OrdinalIgnoreCase; // evoluir para collation-sensitive com base na versão e configuração do banco de dados
+    public override StringComparison TextComparison => StringComparison.Ordinal;
 
     public override bool SupportsAggregateOrderByForStringAggregates => Version >= AggregateOrderByMinVersion;
 

@@ -130,19 +130,10 @@ internal static class NpgsqlScalarFunctionRegistry
             "SPLIT_PART",
             "QUOTE_LITERAL",
             "QUOTE_IDENT",
-            "TO_HEX",
-            "TRANSLATE");
+            "TO_HEX");
         if (dialect.Version >= 11)
             dialect.AddScalarFunction("STARTS_WITH", "BOOLEAN", postgresqlTextFunction);
         dialect.AddScalarFunctions("BIGINT", tryEvalSharedTextFunction, "CHAR_LENGTH", "CHARACTER_LENGTH");
-        dialect.AddScalarFunctions(
-            "VARCHAR",
-            tryEvalSharedNumericFunction,
-            DbInvocationStyle.Call | DbInvocationStyle.Identifier,
-            "GREATEST",
-            "LEAST");
-        dialect.AddScalarFunctions("VARCHAR", tryEvalSharedTextFunction, "SUBSTR", "RPAD");
-        dialect.AddScalarFunctions("INT", tryEvalSharedTextFunction, "OCTET_LENGTH", "POSITION", "BIT_LENGTH");
         dialect.AddScalarFunctions("VARCHAR", postgresqlUnicodeFunction, "NORMALIZE", "TO_ASCII");
     }
 
@@ -200,7 +191,6 @@ internal static class NpgsqlScalarFunctionRegistry
     private static void RegisterPostgresCompatibilityFunctions(
         ISqlDialect dialect)
     {
-        dialect.AddScalarFunction("LOG", "DOUBLE", TryEvalPostgresLogFunction);
         dialect.AddScalarFunction("FORMAT", "VARCHAR", TryEvalPostgresFormatFunction);
         dialect.AddScalarFunction("RANDOM", "DOUBLE", TryEvalPostgresRandomFunction);
     }

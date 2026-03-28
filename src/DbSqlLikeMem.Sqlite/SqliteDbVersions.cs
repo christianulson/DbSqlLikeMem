@@ -7,6 +7,12 @@
 public static class SqliteDbVersions
 {
     /// <summary>
+    /// EN: Default SQLite version used by the mock when none is specified.
+    /// PT: Versao padrao do SQLite usada pelo mock quando nenhuma eh informada.
+    /// </summary>
+    public const int Default = 340;
+
+    /// <summary>
     /// EN: Returns Sqlite versions supported by this provider mock.
     /// PT: Retorna as versões do Sqlite suportadas por este mock de provedor.
     /// </summary>

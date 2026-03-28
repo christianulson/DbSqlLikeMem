@@ -292,18 +292,6 @@ internal static class SqlServerScalarFunctionRegistry
         AstQueryGeneralScalarFunctionHandler tryEvalSqlServerUtilityFunction,
         AstQueryGeneralScalarFunctionHandler tryEvalSqlServerSessionContextFunction)
     {
-        dialect.AddScalarFunctions("DOUBLE", AstQuerySharedNumericFunctionEvaluator.TryEvaluate,
-            "ABS",
-            "ACOS",
-            "ASIN",
-            "ATAN",
-            "ATN2",
-            "CEILING",
-            "COS",
-            "COT");
-
-        dialect.AddScalarFunction("ASCII", "INT", AstQuerySharedNumericFunctionEvaluator.TryEvaluate);
-
         dialect.AddScalarFunction("CHARINDEX", "INT", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalCharIndexFunction);
 
         dialect.AddScalarFunctions("INT", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSqlServerChecksumFunction,
@@ -330,11 +318,7 @@ internal static class SqlServerScalarFunctionRegistry
             DbFunctionDef.CreateScalar("ROWCOUNT_BIG", "BIGINT"),
             "ROWCOUNT_BIG");
 
-        dialect.AddScalarFunction("CHAR", "VARCHAR", AstQuerySharedTextFunctionEvaluator.TryEvaluate);
-
         dialect.AddScalarFunction("FORMATMESSAGE", "VARCHAR", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSqlServerFormatMessageFunction);
-
-        dialect.AddScalarFunction("NCHAR", "VARCHAR", AstQuerySharedTextFunctionEvaluator.TryEvaluate);
 
         dialect.AddScalarFunctions("VARCHAR", AstQuerySqlServerScalarFunctionEvaluator.TryEvaluate,
             "QUOTENAME",
@@ -371,9 +355,6 @@ internal static class SqlServerScalarFunctionRegistry
             dialect.AddScalarFunction("JSON_VALUE", "VARCHAR", AstQueryJsonExtractionFunctionEvaluator.TryEvalJsonExtractionFunction);
         }
 
-        if (version >= SqlServerDialect.TranslateMinVersion)
-            dialect.AddScalarFunction("TRANSLATE", "VARCHAR", AstQuerySharedTextFunctionEvaluator.TryEvaluate);
-
         RegisterGeneralScalarFunctions(dialect);
 
     }
@@ -381,40 +362,9 @@ internal static class SqlServerScalarFunctionRegistry
     private static void RegisterGeneralScalarFunctions(
         SqlServerDialect dialect)
     {
-        dialect.AddScalarFunctions("VARCHAR", AstQuerySharedTextFunctionEvaluator.TryEvaluate,
-            "LOWER",
-            "UPPER",
-            "LTRIM",
-            "RTRIM",
-            "TRIM",
-            "LEFT",
-            "RIGHT",
-            "REVERSE",
-            "SPACE");
-
         dialect.AddScalarFunction("SOUNDEX", "VARCHAR", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSoundexFunction);
-
-        dialect.AddScalarFunction("LEN", "INT", AstQuerySharedTextFunctionEvaluator.TryEvaluate);
-        dialect.AddScalarFunction("SUBSTRING", "VARCHAR", AstQuerySharedTextFunctionEvaluator.TryEvaluate);
         dialect.AddScalarFunction("PATINDEX", "INT", AstQuerySqlServerScalarFunctionEvaluator.TryEvaluate);
-        dialect.AddScalarFunction("DEGREES", "DOUBLE", AstQuerySharedNumericFunctionEvaluator.TryEvaluate);
         dialect.AddScalarFunction("DIFFERENCE", "INT", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalDifferenceFunction);
-        dialect.AddScalarFunction("EXP", "DOUBLE", AstQuerySharedNumericFunctionEvaluator.TryEvaluate);
-        dialect.AddScalarFunction("FLOOR", "DOUBLE", AstQuerySharedNumericFunctionEvaluator.TryEvaluate);
-        dialect.AddScalarFunction("REPLACE", "VARCHAR", AstQuerySharedTextFunctionEvaluator.TryEvaluate);
-        dialect.AddScalarFunction("UNICODE", "INT", AstQuerySharedTextFunctionEvaluator.TryEvaluate);
-
-        dialect.AddScalarFunctions("DOUBLE", AstQuerySharedNumericFunctionEvaluator.TryEvaluate,
-            "LOG",
-            "LOG10",
-            "PI",
-            "POWER",
-            "RADIANS",
-            "RAND",
-            "ROUND",
-            "SIN",
-            "SQRT",
-            "TAN");
     }
 
     private static void RegisterAggregateFunctions(SqlServerDialect dialect, int version)

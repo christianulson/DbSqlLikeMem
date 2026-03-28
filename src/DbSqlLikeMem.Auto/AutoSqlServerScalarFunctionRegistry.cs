@@ -1,4 +1,6 @@
-namespace DbSqlLikeMem;
+using DbSqlLikeMem.Models;
+
+namespace DbSqlLikeMem.Auto;
 
 internal static class AutoSqlServerScalarFunctionRegistry
 {

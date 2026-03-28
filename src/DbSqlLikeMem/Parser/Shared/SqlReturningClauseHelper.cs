@@ -30,6 +30,9 @@ internal static class SqlReturningClauseHelper
         this SqlQueryParserContext ctx,
         bool supportsReturning)
     {
+        if (!ctx.IsWord(SqlConst.RETURNING))
+            return [];
+
         if (!supportsReturning)
             throw ctx.NotSupported(SqlConst.RETURNING);
 

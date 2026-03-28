@@ -713,7 +713,7 @@ public sealed class NpgsqlDialectFeatureParserTests(
     /// <param name="version">EN: Npgsql dialect version under test. PT: Versão do dialeto Npgsql em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
-    [MemberDataNpgsqlVersion]
+    [MemberDataNpgsqlVersion(VersionGraterOrEqual = 12)]
     public void ParseWithCte_AsMaterialized_ShouldParse(int version)
     {
         var sql = "WITH x AS MATERIALIZED (SELECT 1 AS id) SELECT id FROM x";
@@ -721,6 +721,24 @@ public sealed class NpgsqlDialectFeatureParserTests(
         var parsed = SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v)));
 
         Assert.IsType<SqlSelectQuery>(parsed);
+    }
+
+    /// <summary>
+    /// EN: Ensures MATERIALIZED CTE syntax is rejected before PostgreSQL 12.
+    /// PT: Garante que a sintaxe de CTE MATERIALIZED seja rejeitada antes do PostgreSQL 12.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versão do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion(VersionLowerThan = 12)]
+    public void ParseWithCte_AsMaterialized_BeforeMinVersion_ShouldThrowNotSupported(int version)
+    {
+        var sql = "WITH x AS MATERIALIZED (SELECT 1 AS id) SELECT id FROM x";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+
+        Assert.Contains("WITH ... AS MATERIALIZED", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

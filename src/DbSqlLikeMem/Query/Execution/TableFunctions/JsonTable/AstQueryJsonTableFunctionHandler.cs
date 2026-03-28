@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace DbSqlLikeMem;
 
 internal sealed class AstQueryJsonTableFunctionHandler(
@@ -290,12 +292,28 @@ internal sealed class AstQueryJsonTableFunctionHandler(
         if (!lookup.Success)
         {
             if (lookup.Failure == QueryJsonFunctionHelper.JsonPathLookupFailure.InvalidPath)
+            {
+                if (column.OnError is not null)
+                    return ResolveJsonTableFallback(column, column.OnError, lookupPath);
+
                 throw new InvalidOperationException($"JSON_TABLE column path '{lookupPath}' is invalid in the mock.");
+            }
 
             if (lookup.Mode == QueryJsonFunctionHelper.JsonPathMode.Strict)
-                throw new InvalidOperationException($"JSON_TABLE strict column path '{lookupPath}' was not found in the JSON payload.");
+            {
+                if (column.OnError is not null)
+                    return ResolveJsonTableFallback(column, column.OnError, lookupPath);
 
-            return column.ExistsPath ? 0 : null;
+                throw new InvalidOperationException($"JSON_TABLE strict column path '{lookupPath}' was not found in the JSON payload.");
+            }
+
+            if (column.ExistsPath)
+                return 0;
+
+            if (column.OnEmpty is not null)
+                return ResolveJsonTableFallback(column, column.OnEmpty, lookupPath);
+
+            return null;
         }
 
         if (column.ExistsPath)
@@ -306,6 +324,60 @@ internal sealed class AstQueryJsonTableFunctionHandler(
             return value.GetRawText();
 
         return ConvertJsonTableValue(value, column);
+    }
+
+    private static object? ResolveJsonTableFallback(
+        SqlJsonTableColumn column,
+        SqlJsonTableColumnFallback fallback,
+        string lookupPath)
+    {
+        switch (fallback.Kind)
+        {
+            case SqlJsonTableColumnFallbackKind.Null:
+                return null;
+            case SqlJsonTableColumnFallbackKind.Error:
+                throw new InvalidOperationException($"JSON_TABLE column path '{lookupPath}' failed with ERROR fallback.");
+            case SqlJsonTableColumnFallbackKind.Default:
+                return ConvertJsonTableFallbackValue(column, fallback.DefaultValueRaw);
+            default:
+                return null;
+        }
+    }
+
+    private static object? ConvertJsonTableFallbackValue(SqlJsonTableColumn column, string? rawValue)
+    {
+        if (string.IsNullOrWhiteSpace(rawValue))
+            return null;
+
+        var trimmed = rawValue!.Trim();
+        switch (column.DbType)
+        {
+            case DbType.Int16:
+            case DbType.Int32:
+            case DbType.Int64:
+            case DbType.UInt16:
+            case DbType.UInt32:
+            case DbType.UInt64:
+                return long.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out var intValue)
+                    ? intValue
+                    : trimmed;
+            case DbType.Decimal:
+            case DbType.Double:
+            case DbType.Single:
+                return decimal.TryParse(trimmed, NumberStyles.Any, CultureInfo.InvariantCulture, out var decValue)
+                    ? decValue
+                    : trimmed;
+            case DbType.Boolean:
+                return bool.TryParse(trimmed, out var boolValue) ? boolValue : trimmed;
+            case DbType.Date:
+            case DbType.DateTime:
+            case DbType.DateTime2:
+                return DateTime.TryParse(trimmed, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dtValue)
+                    ? dtValue
+                    : trimmed;
+            default:
+                return trimmed;
+        }
     }
 
     private static object? ConvertJsonTableValue(

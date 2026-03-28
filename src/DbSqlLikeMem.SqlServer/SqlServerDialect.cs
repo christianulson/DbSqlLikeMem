@@ -365,7 +365,9 @@ internal sealed class SqlServerDialect : SqlDialectBase
         => IsRegisteredSqlServerCall(functionName)
             && SqlServerScalarFunctionNames.Contains(functionName, StringComparer.OrdinalIgnoreCase)
             && (!functionName.Equals("ISJSON", StringComparison.OrdinalIgnoreCase)
-                || Version >= JsonFunctionsMinVersion);
+                || Version >= JsonFunctionsMinVersion)
+            && (!functionName.Equals("TRANSLATE", StringComparison.OrdinalIgnoreCase)
+                || Version >= TranslateMinVersion);
 
     /// <summary>
     /// EN: Checks whether a SQL Server date function is supported by this dialect.

@@ -70,6 +70,10 @@ public sealed class SqlQueryParserCorpusTests(
               SELECT JSON_EXTRACT(data, '$.on_duplicate') FROM src",
             "unsupported: INSERT INTO ... SELECT with JSON_EXTRACT and JSON path containing on_duplicate",
             SqlCaseExpectation.ThrowNotSupported);
+        yield return Case(
+            "SELECT id FROM users WHERE FIND_IN_SET('b', tags)",
+            "unsupported: FIND_IN_SET function",
+            SqlCaseExpectation.ThrowNotSupported);
         // Inválidas (ThrowInvalid)
         foreach (var row in InvalidSelectStatements())
         {
@@ -143,7 +147,6 @@ public sealed class SqlQueryParserCorpusTests(
         yield return new object[] { "SELECT id FROM users WHERE id IN (1,3)", "IN list (id)" };
         yield return new object[] { "SELECT * FROM t WHERE name LIKE 'a%'", "LIKE pattern prefix" };
         yield return new object[] { "SELECT id FROM users WHERE name LIKE '%oh%'", "LIKE pattern contains" };
-        yield return new object[] { "SELECT id FROM users WHERE FIND_IN_SET('b', tags)", "function call in WHERE" };
 
         // SELECT list aliasing (including MySQL 'name `alias`' style)
         yield return new object[] { "SELECT name \"User Name\" FROM users", "alias without AS using backtick string" };

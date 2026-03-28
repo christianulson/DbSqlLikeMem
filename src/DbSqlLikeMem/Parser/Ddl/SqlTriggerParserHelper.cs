@@ -9,9 +9,6 @@ internal static class SqlTriggerParserHelper
         if (!ctx.Dialect.SupportsDb2TriggerDdl)
             throw ctx.NotSupported("CREATE TRIGGER");
 
-        if (orReplace)
-            throw new InvalidOperationException("CREATE OR REPLACE is not supported for TRIGGER statements in the mock.");
-
         if (ctx.Peek().Kind is not (SqlTokenKind.Identifier or SqlTokenKind.Keyword)
             || !ctx.Peek().Text.Equals(SqlConst.TRIGGER, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("CREATE TRIGGER requires TRIGGER keyword.");

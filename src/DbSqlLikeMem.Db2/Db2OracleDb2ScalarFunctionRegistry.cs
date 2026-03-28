@@ -1,6 +1,8 @@
-namespace DbSqlLikeMem;
+using DbSqlLikeMem.Models;
 
-internal static class OracleDb2ScalarFunctionRegistry
+namespace DbSqlLikeMem.Db2;
+
+internal static class Db2OracleDb2ScalarFunctionRegistry
 {
     internal static void Register(ISqlDialect dialect)
     {
@@ -189,5 +191,4 @@ internal static class OracleDb2ScalarFunctionRegistry
             "VARCHAR",
             QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions);
     }
-
 }

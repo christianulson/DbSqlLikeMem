@@ -112,6 +112,15 @@ internal sealed class NpgsqlDialect : SqlDialectBase, ISqlDialect
 
     public override bool SupportsSequenceDdl => true;
     /// <summary>
+    /// EN: Gets whether sequence dot value expressions are supported.
+    /// PT: Obtém se há suporte a expressões de sequence com ponto.
+    /// </summary>
+    public override bool SupportsSequenceDotValueExpression(string suffix)
+    {
+        _ = suffix;
+        return false;
+    }
+    /// <summary>
     /// EN: Gets whether delete target alias is supported.
     /// PT: Obtém se há suporte a delete target alias.
     /// </summary>
