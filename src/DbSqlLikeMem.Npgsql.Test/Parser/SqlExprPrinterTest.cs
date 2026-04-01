@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.Npgsql.Test.Parser;
 /// <summary>
 /// EN: Covers round-trip SQL expression printing in the Npgsql parser.
@@ -16,14 +18,22 @@ public sealed class SqlExprPrinterTest(
     [MemberDataByNpgsqlVersion(nameof(Expressions))]
     public void ExprPrinter_ShouldAllow_Roundtrip_Parse_Print_Parse(string expr, int version)
     {
-        var d = GetDialect(version, v => new NpgsqlDialect(v));
-        var ast1 = SqlExpressionParser.ParseWhere(expr, d);
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
+        if (version < NpgsqlDialect.JsonbMinVersion && (expr.Contains("->", StringComparison.Ordinal) || expr.Contains("#>", StringComparison.Ordinal)))
+        {
+            FluentActions.Invoking(() => SqlExpressionParser.ParseWhere(expr, db, d))
+                .Should().Throw<NotSupportedException>();
+            return;
+        }
+
+        var ast1 = SqlExpressionParser.ParseWhere(expr, db, d);
         var printed = SqlExprPrinter.Print(ast1);
 
-        var ast2 = SqlExpressionParser.ParseWhere(printed, d);
+        var ast2 = SqlExpressionParser.ParseWhere(printed, db, d);
 
         // não compara árvore (chato), compara “print normalizado”
-        Assert.Equal(SqlExprPrinter.Print(ast1), SqlExprPrinter.Print(ast2));
+        SqlExprPrinter.Print(ast1).Should().Be(SqlExprPrinter.Print(ast2));
     }
 
     /// <summary>

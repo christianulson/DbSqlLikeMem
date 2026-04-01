@@ -16,12 +16,12 @@ public sealed class PostgreSqlMergeUpsertTests(ITestOutputHelper helper) : XUnit
     [MemberDataNpgsqlVersion]
     public void Merge_ShouldFollowDialectVersionSupport(int version)
     {
-        var db = new NpgsqlDbMock(version);
+        var db = Get(version, v => new NpgsqlDbMock(v));
 
         if (version < NpgsqlDialect.MergeMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(() =>
-                SqlQueryParser.Parse("MERGE INTO users t USING (SELECT 1 AS Id) s ON t.Id = s.Id WHEN MATCHED THEN UPDATE SET Name = 'x'", db.Dialect));
+                SqlQueryParser.Parse("MERGE INTO users t USING (SELECT 1 AS Id) s ON t.Id = s.Id WHEN MATCHED THEN UPDATE SET Name = 'x'", db, db.Dialect));
 
             Assert.Contains(SqlConst.MERGE, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
@@ -29,6 +29,7 @@ public sealed class PostgreSqlMergeUpsertTests(ITestOutputHelper helper) : XUnit
 
         var parsed = SqlQueryParser.Parse(
             "MERGE INTO users t USING (SELECT 1 AS Id) s ON t.Id = s.Id WHEN MATCHED THEN UPDATE SET Name = 'x'",
+            db,
             db.Dialect);
 
         Assert.IsType<SqlMergeQuery>(parsed);

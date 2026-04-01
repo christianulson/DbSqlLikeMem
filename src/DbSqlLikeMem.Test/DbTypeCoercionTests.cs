@@ -18,8 +18,8 @@ public sealed class DbTypeCoercionTests(
     {
         var parsed = DbType.Time.Parse("'13:45:12'");
 
-        var value = Assert.IsType<TimeSpan>(parsed);
-        Assert.Equal(new TimeSpan(13, 45, 12), value);
+        var value = parsed.Should().BeOfType<TimeSpan>().Which;
+        value.Should().Be(new TimeSpan(13, 45, 12));
     }
 
     /// <summary>
@@ -36,7 +36,7 @@ public sealed class DbTypeCoercionTests(
     {
         var parsed = DbType.Boolean.Parse(literal);
 
-        Assert.Equal(expected, Assert.IsType<bool>(parsed));
+        parsed.Should().BeOfType<bool>().Which.Should().Be(expected);
     }
 
     /// <summary>
@@ -47,8 +47,8 @@ public sealed class DbTypeCoercionTests(
     [Trait("Category", "Core")]
     public void DbTypeExtension_DateTimeOffsetMapping_ShouldRoundTrip()
     {
-        Assert.Equal(typeof(DateTimeOffset), DbType.DateTimeOffset.ConvertDbTypeToType());
-        Assert.Equal(DbType.DateTimeOffset, typeof(DateTimeOffset).ConvertTypeToDbType());
+        DbType.DateTimeOffset.ConvertDbTypeToType().Should().Be(typeof(DateTimeOffset));
+        typeof(DateTimeOffset).ConvertTypeToDbType().Should().Be(DbType.DateTimeOffset);
     }
 
     /// <summary>
@@ -59,8 +59,8 @@ public sealed class DbTypeCoercionTests(
     [Trait("Category", "Core")]
     public void DbTypeExtension_NullableType_ShouldMapFromUnderlyingType()
     {
-        Assert.Equal(DbType.Int32, typeof(int?).ConvertTypeToDbType());
-        Assert.Equal(DbType.DateTimeOffset, typeof(DateTimeOffset?).ConvertTypeToDbType());
+        typeof(int?).ConvertTypeToDbType().Should().Be(DbType.Int32);
+        typeof(DateTimeOffset?).ConvertTypeToDbType().Should().Be(DbType.DateTimeOffset);
     }
 
     /// <summary>
@@ -71,8 +71,8 @@ public sealed class DbTypeCoercionTests(
     [Trait("Category", "Core")]
     public void DbTypeExtension_EnumType_ShouldMapFromUnderlyingIntegralType()
     {
-        Assert.Equal(DbType.Int16, typeof(SqlExtensionsEnumShort).ConvertTypeToDbType());
-        Assert.Equal(DbType.Int32, typeof(SqlExtensionsEnumInt).ConvertTypeToDbType());
+        typeof(SqlExtensionsEnumShort).ConvertTypeToDbType().Should().Be(DbType.Int16);
+        typeof(SqlExtensionsEnumInt).ConvertTypeToDbType().Should().Be(DbType.Int32);
     }
 
     /// <summary>
@@ -83,8 +83,8 @@ public sealed class DbTypeCoercionTests(
     [Trait("Category", "Core")]
     public void DbTypeParser_ByteAndSByte_ShouldParse()
     {
-        Assert.Equal((byte)255, Assert.IsType<byte>(DbType.Byte.Parse("255")));
-        Assert.Equal((sbyte)-12, Assert.IsType<sbyte>(DbType.SByte.Parse("-12")));
+        DbType.Byte.Parse("255").Should().BeOfType<byte>().Which.Should().Be((byte)255);
+        DbType.SByte.Parse("-12").Should().BeOfType<sbyte>().Which.Should().Be((sbyte)-12);
     }
 
     /// <summary>
@@ -95,8 +95,8 @@ public sealed class DbTypeCoercionTests(
     [Trait("Category", "Core")]
     public void DbTypeParser_AnsiAndFixedString_ShouldParseAsString()
     {
-        Assert.Equal("abc", Assert.IsType<string>(DbType.AnsiString.Parse("'abc'")));
-        Assert.Equal("xyz", Assert.IsType<string>(DbType.StringFixedLength.Parse("'xyz'")));
+        DbType.AnsiString.Parse("'abc'").Should().BeOfType<string>().Which.Should().Be("abc");
+        DbType.StringFixedLength.Parse("'xyz'").Should().BeOfType<string>().Which.Should().Be("xyz");
     }
 
     /// <summary>
@@ -107,10 +107,10 @@ public sealed class DbTypeCoercionTests(
     [Trait("Category", "Core")]
     public void DbTypeExtension_IntegralFamilies_ShouldMapToClrTypes()
     {
-        Assert.Equal(typeof(sbyte), DbType.SByte.ConvertDbTypeToType());
-        Assert.Equal(typeof(ushort), DbType.UInt16.ConvertDbTypeToType());
-        Assert.Equal(typeof(uint), DbType.UInt32.ConvertDbTypeToType());
-        Assert.Equal(typeof(ulong), DbType.UInt64.ConvertDbTypeToType());
+        DbType.SByte.ConvertDbTypeToType().Should().Be(typeof(sbyte));
+        DbType.UInt16.ConvertDbTypeToType().Should().Be(typeof(ushort));
+        DbType.UInt32.ConvertDbTypeToType().Should().Be(typeof(uint));
+        DbType.UInt64.ConvertDbTypeToType().Should().Be(typeof(ulong));
     }
 
     /// <summary>
@@ -121,8 +121,8 @@ public sealed class DbTypeCoercionTests(
     [Trait("Category", "Core")]
     public void DbTypeExtension_AndParser_VarNumeric_ShouldRemainNumeric()
     {
-        Assert.Equal(typeof(decimal), DbType.VarNumeric.ConvertDbTypeToType());
-        Assert.Equal(123.45m, Assert.IsType<decimal>(DbType.VarNumeric.Parse("123.45")));
+        DbType.VarNumeric.ConvertDbTypeToType().Should().Be(typeof(decimal));
+        DbType.VarNumeric.Parse("123.45").Should().BeOfType<decimal>().Which.Should().Be(123.45m);
     }
 
     /// <summary>
@@ -138,10 +138,10 @@ public sealed class DbTypeCoercionTests(
         var number = DbType.Object.Parse("12.5");
         var text = DbType.Object.Parse("'hello'");
 
-        Assert.IsType<JsonDocument>(json);
-        Assert.True(Assert.IsType<bool>(boolean));
-        Assert.Equal(12.5m, Assert.IsType<decimal>(number));
-        Assert.Equal("hello", Assert.IsType<string>(text));
+        json.Should().BeOfType<JsonDocument>();
+        boolean.Should().BeOfType<bool>().Which.Should().BeTrue();
+        number.Should().BeOfType<decimal>().Which.Should().Be(12.5m);
+        text.Should().BeOfType<string>().Which.Should().Be("hello");
     }
 
     /// <summary>
@@ -152,9 +152,8 @@ public sealed class DbTypeCoercionTests(
     [Trait("Category", "Core")]
     public void DbTypeParser_BinaryHexLiteral_ShouldParseBytes()
     {
-        var parsed = Assert.IsType<byte[]>(DbType.Binary.Parse("0x0A0B0C"));
-
-        Assert.Equal([0x0A, 0x0B, 0x0C], parsed);
+        var parsed = DbType.Binary.Parse("0x0A0B0C").Should().BeOfType<byte[]>().Which;
+        parsed.Should().Equal([0x0A, 0x0B, 0x0C]);
     }
 
     /// <summary>
@@ -165,11 +164,11 @@ public sealed class DbTypeCoercionTests(
     [Trait("Category", "Core")]
     public void DbTypeParser_BinaryQuotedHexLiteral_ShouldParseBytes()
     {
-        var parsedUpper = Assert.IsType<byte[]>(DbType.Binary.Parse("X'0A0B0C'"));
-        var parsedLower = Assert.IsType<byte[]>(DbType.Binary.Parse("x'0A0B0C'"));
+        var parsedUpper = DbType.Binary.Parse("X'0A0B0C'").Should().BeOfType<byte[]>().Which;
+        var parsedLower = DbType.Binary.Parse("x'0A0B0C'").Should().BeOfType<byte[]>().Which;
 
-        Assert.Equal([0x0A, 0x0B, 0x0C], parsedUpper);
-        Assert.Equal([0x0A, 0x0B, 0x0C], parsedLower);
+        parsedUpper.Should().Equal([0x0A, 0x0B, 0x0C]);
+        parsedLower.Should().Equal([0x0A, 0x0B, 0x0C]);
     }
 
     /// <summary>
@@ -180,9 +179,9 @@ public sealed class DbTypeCoercionTests(
     [Trait("Category", "Core")]
     public void DbTypeParser_BinaryPostgreSqlHexLiteral_ShouldParseBytes()
     {
-        var parsed = Assert.IsType<byte[]>(DbType.Binary.Parse("\\x0A0B0C"));
+        var parsed = DbType.Binary.Parse("\\x0A0B0C").Should().BeOfType<byte[]>().Which;
 
-        Assert.Equal([0x0A, 0x0B, 0x0C], parsed);
+        parsed.Should().Equal([0x0A, 0x0B, 0x0C]);
     }
 
     /// <summary>
@@ -199,8 +198,8 @@ public sealed class DbTypeCoercionTests(
         var guidParsed = DbType.Object.Parse(guidText);
         var dateParsed = DbType.Object.Parse(dateText);
 
-        Assert.Equal(Guid.Parse(guidText), Assert.IsType<Guid>(guidParsed));
-        Assert.Equal(DateTimeOffset.Parse(dateText, CultureInfo.InvariantCulture), Assert.IsType<DateTimeOffset>(dateParsed));
+        guidParsed.Should().BeOfType<Guid>().Which.Should().Be(Guid.Parse(guidText));
+        dateParsed.Should().BeOfType<DateTimeOffset>().Which.Should().Be(DateTimeOffset.Parse(dateText, CultureInfo.InvariantCulture));
     }
 
     /// <summary>
@@ -217,8 +216,8 @@ public sealed class DbTypeCoercionTests(
         var dateParsed = DbType.Object.Parse(dateText);
         var spanParsed = DbType.Object.Parse(spanText);
 
-        Assert.Equal(DateTime.Parse(dateText, CultureInfo.InvariantCulture), Assert.IsType<DateTime>(dateParsed));
-        Assert.Equal(TimeSpan.Parse(spanText, CultureInfo.InvariantCulture), Assert.IsType<TimeSpan>(spanParsed));
+        dateParsed.Should().BeOfType<DateTime>().Which.Should().Be(DateTime.Parse(dateText, CultureInfo.InvariantCulture));
+        spanParsed.Should().BeOfType<TimeSpan>().Which.Should().Be(TimeSpan.Parse(spanText, CultureInfo.InvariantCulture));
     }
 
     /// <summary>
@@ -229,8 +228,8 @@ public sealed class DbTypeCoercionTests(
     [Trait("Category", "Core")]
     public void DbTypeParser_Object_QuotedNull_ShouldReturnNull()
     {
-        Assert.Null(DbType.Object.Parse("'null'"));
-        Assert.Null(DbType.Object.Parse("\"NULL\""));
+        DbType.Object.Parse("'null'").Should().BeNull();
+        DbType.Object.Parse("\"NULL\"").Should().BeNull();
     }
 
     /// <summary>
@@ -241,8 +240,8 @@ public sealed class DbTypeCoercionTests(
     [Trait("Category", "Core")]
     public void DbTypeParser_String_QuotedNull_ShouldRemainText()
     {
-        Assert.Equal("null", DbType.String.Parse("'null'"));
-        Assert.Equal(SqlConst.NULL, DbType.AnsiString.Parse("\"NULL\""));
+        DbType.String.Parse("'null'").Should().Be("null");
+        DbType.AnsiString.Parse("\"NULL\"").Should().Be(SqlConst.NULL);
     }
 
     /// <summary>
@@ -259,7 +258,7 @@ public sealed class DbTypeCoercionTests(
     {
         var parsed = DbType.Boolean.Parse(literal);
 
-        Assert.Equal(expected, Assert.IsType<bool>(parsed));
+        parsed.Should().BeOfType<bool>().Which.Should().Be(expected);
     }
 
     private enum SqlExtensionsEnumShort : short

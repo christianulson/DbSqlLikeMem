@@ -296,7 +296,7 @@ internal sealed class AstQueryJsonTableFunctionHandler(
                 if (column.OnError is not null)
                     return ResolveJsonTableFallback(column, column.OnError, lookupPath);
 
-                throw new InvalidOperationException($"JSON_TABLE column path '{lookupPath}' is invalid in the mock.");
+                throw new InvalidOperationException($"JSON_TABLE column '{column.Name}' path '{lookupPath}' is invalid in the mock.");
             }
 
             if (lookup.Mode == QueryJsonFunctionHelper.JsonPathMode.Strict)
@@ -304,7 +304,7 @@ internal sealed class AstQueryJsonTableFunctionHandler(
                 if (column.OnError is not null)
                     return ResolveJsonTableFallback(column, column.OnError, lookupPath);
 
-                throw new InvalidOperationException($"JSON_TABLE strict column path '{lookupPath}' was not found in the JSON payload.");
+                throw new InvalidOperationException($"JSON_TABLE column '{column.Name}' strict path '{lookupPath}' was not found in the JSON payload.");
             }
 
             if (column.ExistsPath)
@@ -323,7 +323,21 @@ internal sealed class AstQueryJsonTableFunctionHandler(
         if (string.Equals(column.SqlType, "JSON", StringComparison.OrdinalIgnoreCase))
             return value.GetRawText();
 
-        return ConvertJsonTableValue(value, column);
+        if (value.ValueKind is JsonValueKind.Object or JsonValueKind.Array)
+        {
+            if (column.OnError is not null)
+                return ResolveJsonTableFallback(column, column.OnError, lookupPath);
+
+            throw new InvalidOperationException($"JSON_TABLE column '{column.Name}' path '{lookupPath}' resolved to a non-scalar JSON value.");
+        }
+
+        if (TryConvertJsonTableScalarValue(value, column, out var convertedValue))
+            return convertedValue;
+
+        if (column.OnError is not null)
+            return ResolveJsonTableFallback(column, column.OnError, lookupPath);
+
+        throw new InvalidOperationException($"JSON_TABLE column '{column.Name}' path '{lookupPath}' could not be converted to {column.SqlType}.");
     }
 
     private static object? ResolveJsonTableFallback(
@@ -336,7 +350,7 @@ internal sealed class AstQueryJsonTableFunctionHandler(
             case SqlJsonTableColumnFallbackKind.Null:
                 return null;
             case SqlJsonTableColumnFallbackKind.Error:
-                throw new InvalidOperationException($"JSON_TABLE column path '{lookupPath}' failed with ERROR fallback.");
+                throw new InvalidOperationException($"JSON_TABLE column '{column.Name}' path '{lookupPath}' failed with ERROR fallback.");
             case SqlJsonTableColumnFallbackKind.Default:
                 return ConvertJsonTableFallbackValue(column, fallback.DefaultValueRaw);
             default:
@@ -380,19 +394,117 @@ internal sealed class AstQueryJsonTableFunctionHandler(
         }
     }
 
-    private static object? ConvertJsonTableValue(
+    private static bool TryConvertJsonTableScalarValue(
         JsonElement value,
-        SqlJsonTableColumn column)
+        SqlJsonTableColumn column,
+        out object? convertedValue)
     {
-        return value.ValueKind switch
+        convertedValue = null;
+
+        switch (value.ValueKind)
         {
-            JsonValueKind.Null => null,
-            JsonValueKind.String => value.GetString(),
-            JsonValueKind.Number => ConvertJsonNumber(value, column),
-            JsonValueKind.True or JsonValueKind.False => value.GetBoolean(),
-            JsonValueKind.Object or JsonValueKind.Array => value.GetRawText(),
-            _ => value.ToString()
-        };
+            case JsonValueKind.Null:
+                convertedValue = null;
+                return true;
+            case JsonValueKind.String:
+                return TryConvertJsonString(value.GetString(), column, out convertedValue);
+            case JsonValueKind.Number:
+                convertedValue = ConvertJsonNumber(value, column);
+                return true;
+            case JsonValueKind.True:
+            case JsonValueKind.False:
+                return TryConvertJsonBoolean(value.GetBoolean(), column, out convertedValue);
+            default:
+                return false;
+        }
+    }
+
+    private static bool TryConvertJsonString(string? rawValue, SqlJsonTableColumn column, out object? convertedValue)
+    {
+        convertedValue = null;
+        if (rawValue is null)
+            return true;
+
+        switch (column.DbType)
+        {
+            case DbType.Int16:
+            case DbType.Int32:
+            case DbType.Int64:
+            case DbType.UInt16:
+            case DbType.UInt32:
+            case DbType.UInt64:
+                if (long.TryParse(rawValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var intValue))
+                {
+                    convertedValue = intValue;
+                    return true;
+                }
+
+                return false;
+            case DbType.Decimal:
+            case DbType.Double:
+            case DbType.Single:
+                if (decimal.TryParse(rawValue, NumberStyles.Any, CultureInfo.InvariantCulture, out var decValue))
+                {
+                    convertedValue = decValue;
+                    return true;
+                }
+
+                return false;
+            case DbType.Boolean:
+                if (bool.TryParse(rawValue, out var boolValue))
+                {
+                    convertedValue = boolValue;
+                    return true;
+                }
+
+                return false;
+            case DbType.Date:
+            case DbType.DateTime:
+            case DbType.DateTime2:
+                if (DateTime.TryParse(rawValue, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dtValue))
+                {
+                    convertedValue = dtValue;
+                    return true;
+                }
+
+                return false;
+            case DbType.Guid:
+                if (Guid.TryParse(rawValue, out var guidValue))
+                {
+                    convertedValue = guidValue;
+                    return true;
+                }
+
+                return false;
+            default:
+                convertedValue = rawValue;
+                return true;
+        }
+    }
+
+    private static bool TryConvertJsonBoolean(bool rawValue, SqlJsonTableColumn column, out object? convertedValue)
+    {
+        convertedValue = null;
+        switch (column.DbType)
+        {
+            case DbType.Boolean:
+                convertedValue = rawValue;
+                return true;
+            case DbType.String:
+            case DbType.StringFixedLength:
+                convertedValue = rawValue ? "true" : "false";
+                return true;
+            case DbType.Int16:
+            case DbType.Int32:
+            case DbType.Int64:
+            case DbType.UInt16:
+            case DbType.UInt32:
+            case DbType.UInt64:
+                convertedValue = rawValue ? 1L : 0L;
+                return true;
+            default:
+                return false;
+        }
     }
 
     private static object? ConvertJsonNumber(JsonElement value, SqlJsonTableColumn column)

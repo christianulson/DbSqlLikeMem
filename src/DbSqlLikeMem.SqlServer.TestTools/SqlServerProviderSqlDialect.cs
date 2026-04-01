@@ -194,11 +194,11 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name);";
 
     /// <inheritdoc />
     public override string StringLengthExpression(string expression) =>
-        $"LEN({expression})";
+        $"(DATALENGTH({expression}) / 2)";
 
     /// <inheritdoc />
     public override string TemporalDateAdd() =>
-        "SELECT DATEADD(day, 1, CAST('2024-01-01T00:00:00' AS datetime2))";
+        "SELECT DATEADD(day, 1, CURRENT_TIMESTAMP)";
 
     /// <inheritdoc />
     public override string TemporalCurrentTimestampExpression() => "CURRENT_TIMESTAMP";
@@ -213,7 +213,7 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name);";
 
     /// <inheritdoc />
     public override string TemporalNowOrderBy(string tableName) =>
-        $"SELECT TOP (1) Name FROM {tableName} ORDER BY CURRENT_TIMESTAMP, Name";
+        $"SELECT TOP (1) Name FROM {tableName} ORDER BY Name, CURRENT_TIMESTAMP";
 
     /// <inheritdoc />
     public override string CrossApplyProjection(string usersTable, string ordersTable) =>

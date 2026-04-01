@@ -24,9 +24,13 @@ internal sealed class SqlQueryParser
     /// PT: Cria um parser para o SQL informado e o dialeto informado sem parametros de comando.
     /// </summary>
     /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
+    /// <param name="db"></param>
     /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
-    public SqlQueryParser(string sql, ISqlDialect dialect)
-        : this(sql, dialect, null)
+    public SqlQueryParser(
+        string sql,
+        DbMock db,
+        ISqlDialect dialect)
+        : this(sql, db, dialect, null)
     {
     }
 
@@ -35,10 +39,15 @@ internal sealed class SqlQueryParser
     /// PT: Cria um parser para o SQL informado, o dialeto informado e os parametros de comando.
     /// </summary>
     /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
+    /// <param name="db"></param>
     /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
     /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized numeric values. PT: Parâmetros de comando opcionais usados por caminhos do parser que resolvem valores numéricos parametrizados.</param>
-    public SqlQueryParser(string sql, ISqlDialect dialect, IDataParameterCollection? parameters)
-        : this(sql, dialect, parameters, null)
+    public SqlQueryParser(
+        string sql,
+        DbMock db,
+        ISqlDialect dialect,
+        IDataParameterCollection? parameters)
+        : this(sql, db, dialect, parameters, null)
     {
     }
 
@@ -47,11 +56,13 @@ internal sealed class SqlQueryParser
     /// PT: Cria um parser para o SQL informado, o dialeto informado, os parametros e um resolvedor opcional de funcoes customizadas.
     /// </summary>
     /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
+    /// <param name="db"></param>
     /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
     /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized numeric values. PT: Parâmetros de comando opcionais usados por caminhos do parser que resolvem valores numéricos parametrizados.</param>
     /// <param name="customFunctionSupported">EN: Optional custom function resolver used to accept schema-defined functions during validation. PT: Resolver opcional de funcoes customizadas usado para aceitar funcoes definidas no schema durante a validacao.</param>
     public SqlQueryParser(
         string sql,
+        DbMock db,
         ISqlDialect dialect,
         IDataParameterCollection? parameters,
         Func<string, bool>? customFunctionSupported)
@@ -61,17 +72,19 @@ internal sealed class SqlQueryParser
         var prelude = GetPrelude(sql, dialect);
         _ctx = new SqlQueryParserContext(
             prelude.Tokens,
+            db,
             dialect,
             parameters,
             customFunctionSupported,
             prelude.AutoSyntaxFeatures,
-            innerSql => Parse(innerSql, dialect, null, customFunctionSupported),
-            expr => SqlExpressionParser.ParseScalar(expr, dialect, parameters, customFunctionSupported),
-            txt => SqlExpressionParser.ParseWhere(txt, dialect, parameters, customFunctionSupported));
+            innerSql => Parse(innerSql, db, dialect, null, customFunctionSupported),
+            expr => SqlExpressionParser.ParseScalar(expr, db, dialect, parameters, customFunctionSupported),
+            txt => SqlExpressionParser.ParseWhere(txt, db, dialect, parameters, customFunctionSupported));
     }
 
     private SqlQueryParser(
         IReadOnlyList<SqlToken> toks,
+        DbMock db,
         ISqlDialect dialect,
         IDataParameterCollection? parameters,
         AutoSqlSyntaxFeatures autoSyntaxFeatures,
@@ -81,13 +94,13 @@ internal sealed class SqlQueryParser
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
         _ctx = new SqlQueryParserContext(
             toks,
-            dialect,
+            db, dialect,
             parameters,
             customFunctionSupported,
             autoSyntaxFeatures,
-            innerSql => Parse(innerSql, dialect, null, customFunctionSupported),
-            expr => SqlExpressionParser.ParseScalar(expr, dialect, parameters, customFunctionSupported),
-            txt => SqlExpressionParser.ParseWhere(txt, dialect, parameters, customFunctionSupported));
+            innerSql => Parse(innerSql, db, dialect, null, customFunctionSupported),
+            expr => SqlExpressionParser.ParseScalar(expr, db, dialect, parameters, customFunctionSupported),
+            txt => SqlExpressionParser.ParseWhere(txt, db, dialect, parameters, customFunctionSupported));
     }
 
     /// <summary>
@@ -95,46 +108,34 @@ internal sealed class SqlQueryParser
     /// PT: Faz o parsing de um statement SQL para a raiz da AST usando opções padrão do parser e sem coleção de parâmetros.
     /// </summary>
     /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
+    /// <param name="db">EN: Database. PT: Banco.</param>
     /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
     /// <returns>EN: Parsed query AST root. PT: Raiz da AST da query parseada.</returns>
-    public static SqlQueryBase Parse(string sql, ISqlDialect dialect)
-        => Parse(sql, dialect, null);
-
-    /// <summary>
-    /// EN: Parses one SQL statement using the automatic dialect compatibility mode.
-    /// PT: Faz o parsing de um statement SQL usando o modo de compatibilidade automatica de dialeto.
-    /// </summary>
-    /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
-    /// <returns>EN: Parsed query AST root. PT: Raiz da AST da query parseada.</returns>
-    public static SqlQueryBase ParseAuto(string sql)
-        => Parse(sql, AutoDialectFactory.Create(), null);
-
-    /// <summary>
-    /// EN: Parses one SQL statement using the automatic dialect compatibility mode and optional parameters.
-    /// PT: Faz o parsing de um statement SQL usando o modo de compatibilidade automatica de dialeto e parametros opcionais.
-    /// </summary>
-    /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
-    /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized numeric values. PT: Parametros de comando opcionais usados por caminhos do parser que resolvem valores numericos parametrizados.</param>
-    /// <returns>EN: Parsed query AST root. PT: Raiz da AST da query parseada.</returns>
-    public static SqlQueryBase ParseAuto(string sql, IDataParameterCollection? parameters)
-        => Parse(sql, AutoDialectFactory.Create(), parameters);
+    public static SqlQueryBase Parse(
+        string sql,
+        DbMock db,
+        ISqlDialect dialect)
+        => Parse(sql, db, dialect, null);
 
     /// <summary>
     /// EN: Parses one SQL statement into an AST root using dialect capabilities and optional command parameters.
     /// PT: Faz o parsing de um statement SQL para a raiz da AST usando capacidades do dialeto e parâmetros de comando opcionais.
     /// </summary>
     /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
+    /// <param name="db"></param>
     /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
     /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized numeric values. PT: Parâmetros de comando opcionais usados por caminhos do parser que resolvem valores numéricos parametrizados.</param>
     /// <param name="customFunctionSupported">EN: Optional custom function resolver used to accept schema-defined functions during validation. PT: Resolver opcional de funcoes customizadas usado para aceitar funcoes definidas no schema durante a validacao.</param>
     /// <returns>EN: Parsed query AST root. PT: Raiz da AST da query parseada.</returns>
     public static SqlQueryBase Parse(
         string sql,
+        DbMock db,
         ISqlDialect dialect,
         IDataParameterCollection? parameters,
         Func<string, bool>? customFunctionSupported = null)
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sql, nameof(sql));
+        ArgumentNullExceptionCompatible.ThrowIfNull(db, nameof(db));
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
         var metrics = DbMetrics.Current;
         long startedAt = 0;
@@ -146,8 +147,6 @@ internal sealed class SqlQueryParser
 
         try
         {
-
-
             // Fast feature gate before cache lookup to avoid serving incompatible ASTs for version-gated commands.
             var (preludeTokens, autoSyntaxFeatures) = GetPrelude(sql, dialect);
             var first = preludeTokens.Count > 0 ? preludeTokens[0] : default;
@@ -156,7 +155,7 @@ internal sealed class SqlQueryParser
 
             if (customFunctionSupported is not null)
             {
-                var parsedWithoutCache = ParseUncached(preludeTokens, dialect, parameters, autoSyntaxFeatures, customFunctionSupported);
+                var parsedWithoutCache = ParseUncached(preludeTokens, db, dialect, parameters, autoSyntaxFeatures, customFunctionSupported);
                 EnsureDialectSupport(parsedWithoutCache, dialect);
                 return parsedWithoutCache with { RawSql = sql };
             }
@@ -173,12 +172,12 @@ internal sealed class SqlQueryParser
             // DDL statements are cheap to parse and benefit from deterministic no-cache behavior in tests.
             if (IsWord(first, SqlConst.CREATE) || IsWord(first, SqlConst.ALTER) || IsWord(first, SqlConst.DROP))
             {
-                var uncached = ParseUncached(preludeTokens, dialect, null, autoSyntaxFeatures);
+                var uncached = ParseUncached(preludeTokens, db, dialect, null, autoSyntaxFeatures);
                 EnsureDialectSupport(uncached, dialect);
                 return uncached with { RawSql = sql };
             }
 
-            var parsed = ParseUncached(preludeTokens, dialect, parameters, autoSyntaxFeatures);
+            var parsed = ParseUncached(preludeTokens, db, dialect, parameters, autoSyntaxFeatures);
             EnsureDialectSupport(parsed, dialect);
             _astCache.Set(cacheKey, parsed);
 
@@ -274,12 +273,13 @@ internal sealed class SqlQueryParser
 
     private static SqlQueryBase ParseUncached(
         IReadOnlyList<SqlToken> tokens,
+        DbMock db,
         ISqlDialect dialect,
         IDataParameterCollection? parameters,
         AutoSqlSyntaxFeatures autoSyntaxFeatures,
         Func<string, bool>? customFunctionSupported = null)
     {
-        var q = new SqlQueryParser(tokens, dialect, parameters, autoSyntaxFeatures, customFunctionSupported);
+        var q = new SqlQueryParser(tokens, db, dialect, parameters, autoSyntaxFeatures, customFunctionSupported);
         var first = q.Peek();
 
         SqlQueryBase? result;
@@ -319,44 +319,27 @@ internal sealed class SqlQueryParser
     /// PT: Faz o parsing de um lote SQL e retorna raízes de AST para cada statement top-level usando opções padrão do parser.
     /// </summary>
     /// <param name="sql">EN: SQL batch text. PT: Texto SQL em lote.</param>
+    /// <param name="db"></param>
     /// <param name="dialect">EN: Dialect used to split and parse each statement. PT: Dialeto usado para separar e parsear cada statement.</param>
     /// <returns>EN: Sequence of parsed AST roots. PT: Sequência de raízes de AST parseadas.</returns>
     public static IEnumerable<SqlQueryBase> ParseMulti(
         string sql,
+        DbMock db,
         ISqlDialect dialect)
-        => ParseMulti(sql, dialect, null);
-
-    /// <summary>
-    /// EN: Parses a SQL batch using the automatic dialect compatibility mode.
-    /// PT: Faz o parsing de um lote SQL usando o modo de compatibilidade automatica de dialeto.
-    /// </summary>
-    /// <param name="sql">EN: SQL batch text. PT: Texto SQL em lote.</param>
-    /// <returns>EN: Sequence of parsed AST roots. PT: Sequencia de raizes de AST parseadas.</returns>
-    public static IEnumerable<SqlQueryBase> ParseMultiAuto(string sql)
-        => ParseMulti(sql, AutoDialectFactory.Create(), null);
-
-    /// <summary>
-    /// EN: Parses a SQL batch using the automatic dialect compatibility mode and optional parameters.
-    /// PT: Faz o parsing de um lote SQL usando o modo de compatibilidade automatica de dialeto e parametros opcionais.
-    /// </summary>
-    /// <param name="sql">EN: SQL batch text. PT: Texto SQL em lote.</param>
-    /// <param name="parameters">EN: Optional parameters forwarded to each statement parse. PT: Parametros opcionais repassados para o parse de cada statement.</param>
-    /// <returns>EN: Sequence of parsed AST roots. PT: Sequencia de raizes de AST parseadas.</returns>
-    public static IEnumerable<SqlQueryBase> ParseMultiAuto(
-        string sql,
-        IDataParameterCollection? parameters)
-        => ParseMulti(sql, AutoDialectFactory.Create(), parameters);
+        => ParseMulti(sql, db, dialect, null);
 
     /// <summary>
     /// EN: Parses a SQL batch and yields AST roots for each top-level statement split by semicolon boundaries.
     /// PT: Faz o parsing de um lote SQL e retorna raízes de AST para cada statement top-level separado por fronteiras de ponto e vírgula.
     /// </summary>
     /// <param name="sql">EN: SQL batch text. PT: Texto SQL em lote.</param>
+    /// <param name="db"></param>
     /// <param name="dialect">EN: Dialect used to split and parse each statement. PT: Dialeto usado para separar e parsear cada statement.</param>
     /// <param name="parameters">EN: Optional parameters forwarded to each statement parse. PT: Parâmetros opcionais repassados para o parse de cada statement.</param>
     /// <returns>EN: Sequence of parsed AST roots. PT: Sequência de raízes de AST parseadas.</returns>
     public static IEnumerable<SqlQueryBase> ParseMulti(
         string sql,
+        DbMock db,
         ISqlDialect dialect,
         IDataParameterCollection? parameters)
     {
@@ -364,9 +347,12 @@ internal sealed class SqlQueryParser
         foreach (var s in SqlStatementSplitter.SplitStatementsTopLevel(sql, dialect))
         {
             if (string.IsNullOrWhiteSpace(s)) continue;
-            yield return Parse(s, dialect, parameters);
+            yield return Parse(s, db, dialect, parameters);
         }
     }
+
+    internal static void ClearAstCache()
+        => _astCache.Clear();
 
     /// <summary>
     /// EN: Splits a SQL batch into top-level statements preserving dialect string/comment rules.
@@ -379,15 +365,6 @@ internal sealed class SqlQueryParser
         string sql,
         ISqlDialect dialect)
         => SqlStatementSplitter.SplitStatementsTopLevel(sql, dialect);
-
-    /// <summary>
-    /// EN: Splits a SQL batch into top-level statements using the automatic dialect compatibility mode.
-    /// PT: Separa um lote SQL em statements de topo usando o modo de compatibilidade automatica de dialeto.
-    /// </summary>
-    /// <param name="sql">EN: SQL batch text. PT: Texto SQL em lote.</param>
-    /// <returns>EN: Top-level SQL statements. PT: Statements SQL de topo.</returns>
-    public static IEnumerable<string> SplitStatementsAuto(string sql)
-        => SqlStatementSplitter.SplitStatementsTopLevel(sql, AutoDialectFactory.Create());
 
     // Mantido para compatibilidade com lógica de Union
     /// <summary>
@@ -406,11 +383,15 @@ internal sealed class SqlQueryParser
     /// PT: Faz o parsing de SQL para um contrato normalizado de cadeia UNION usado por chamadores que esperam metadados de UNION mesmo para SELECT único.
     /// </summary>
     /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
+    /// <param name="db"></param>
     /// <param name="dialect">EN: Dialect used for parsing. PT: Dialeto usado no parsing.</param>
     /// <returns>EN: Normalized UNION chain representation. PT: Representação normalizada de cadeia UNION.</returns>
-    public static UnionChain ParseUnionChain(string sql, ISqlDialect dialect)
+    public static UnionChain ParseUnionChain(
+        string sql,
+        DbMock db,
+        ISqlDialect dialect)
     {
-        var parsed = Parse(sql, dialect);
+        var parsed = Parse(sql, db, dialect);
         if (parsed is SqlUnionQuery uq)
             return new UnionChain(uq.Parts, uq.AllFlags, uq.OrderBy, uq.RowLimit);
 
@@ -425,9 +406,10 @@ internal sealed class SqlQueryParser
     /// PT: Faz o parsing de SQL para uma cadeia UNION normalizada usando o modo de compatibilidade automatica de dialeto.
     /// </summary>
     /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
+    /// <param name="db"></param>
     /// <returns>EN: Normalized UNION chain representation. PT: Representacao normalizada de cadeia UNION.</returns>
-    public static UnionChain ParseUnionChainAuto(string sql)
-        => ParseUnionChain(sql, AutoDialectFactory.Create());
+    public static UnionChain ParseUnionChainAuto(string sql, DbMock db)
+        => ParseUnionChain(sql, db, AutoDialectFactory.Create());
 
     // ------------------------------------------------------------
     // NOVAS IMPLEMENTAÃ‡Ã•ES DE INSERT / UPDATE / DELETE VIA TOKENS
@@ -479,7 +461,7 @@ internal sealed class SqlQueryParser
         else
         {
             // Colunas opcionais: (col1, col2)
-            hasExplicitColumnList = _ctx.IsSymbol( "(");
+            hasExplicitColumnList = _ctx.IsSymbol("(");
             cols = ParseCols();
         }
 
@@ -491,10 +473,7 @@ internal sealed class SqlQueryParser
         }
         else if (valuesRaw.Count == 0 && (_ctx.IsWord(SqlConst.SELECT) || _ctx.IsWord(SqlConst.WITH)))
         {
-            _allowInsertSelectSuffixBoundary = _dialect.SupportsOnDuplicateKeyUpdate
-                || _dialect.SupportsOnConflictClause
-                || _dialect.SupportsReturning
-                || _dialect.AllowsParserInsertSelectUpsertSuffix;
+            _allowInsertSelectSuffixBoundary = true;
             insertSelect = ParseSelectQuery();
             _allowInsertSelectSuffixBoundary = false;
         }
@@ -598,7 +577,7 @@ internal sealed class SqlQueryParser
 
     private List<string> ParseCols()
     {
-        if (!_ctx.IsSymbol( "("))
+        if (!_ctx.IsSymbol("("))
             return [];
 
         var cols = new List<string>();
@@ -609,31 +588,31 @@ internal sealed class SqlQueryParser
             if (_ctx.IsEnd() || _ctx.IsSymbol(";"))
                 throw new InvalidOperationException("INSERT column list was not closed correctly.");
 
-            if (_ctx.IsSymbol( ")"))
+            if (_ctx.IsSymbol(")"))
             {
                 _ctx.Consume();
                 return cols;
             }
 
-            if (_ctx.IsSymbol( ","))
+            if (_ctx.IsSymbol(","))
                 throw new InvalidOperationException("INSERT column list has an unexpected comma before column.");
 
             cols.Add(_ctx.ExpectIdentifier());
 
-            if (_ctx.IsSymbol( ","))
+            if (_ctx.IsSymbol(","))
             {
                 _ctx.Consume();
 
-                if (_ctx.IsSymbol( ")"))
+                if (_ctx.IsSymbol(")"))
                     throw new InvalidOperationException("INSERT column list has a trailing comma without column.");
 
                 continue;
             }
 
-            if (_ctx.IsEnd() || _ctx.IsSymbol( ";"))
+            if (_ctx.IsEnd() || _ctx.IsSymbol(";"))
                 throw new InvalidOperationException("INSERT column list was not closed correctly.");
 
-            if (!_ctx.IsSymbol( ")"))
+            if (!_ctx.IsSymbol(")"))
                 throw new InvalidOperationException("INSERT column list must separate columns with commas.");
         }
     }
@@ -714,11 +693,12 @@ internal sealed class SqlQueryParser
                 SqlConst.FETCH,
                 SqlConst.UNION,
                 SqlConst.FOR),
-            _dialect,
+            _ctx.Db,
+            _ctx.Dialect,
             _customFunctionSupported);
         var table = ParseFromOrDual();
         var joins = ParseJoins(table);
-        while (_ctx.IsSymbol( ","))
+        while (_ctx.IsSymbol(","))
         {
             _ctx.Consume();
             var commaTable = TryParseTableTransforms(ParseTableSource());
@@ -891,7 +871,7 @@ internal sealed class SqlQueryParser
         _ctx.Consume(); // TOP
 
         // TOP pode vir como (N) ou N
-        if (_ctx.IsSymbol( "("))
+        if (_ctx.IsSymbol("("))
         {
             _ctx.Consume();
             var n = _ctx.ExpectRowLimitExpr();
@@ -924,7 +904,7 @@ internal sealed class SqlQueryParser
         if (from is null) return joins;
         while (true)
         {
-            if (_ctx.IsSymbol( ","))
+            if (_ctx.IsSymbol(","))
             {
                 _ctx.Consume();
                 var commaTable = TryParseTableTransforms(ParseTableSource());
@@ -963,7 +943,7 @@ internal sealed class SqlQueryParser
         if (!_ctx.IsWord(SqlConst.GROUP)) return list;
         _ctx.Consume();
         _ctx.ExpectWord(SqlConst.BY);
-        list.AddRange(_ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.HAVING, SqlConst.ORDER, SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING));
+        list.AddRange(_ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.HAVING, SqlConst.ORDER, SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING, SqlConst.ON));
         if (list.Count == 0)
             throw new InvalidOperationException("GROUP BY sem expressões.");
         return list;
@@ -973,7 +953,7 @@ internal sealed class SqlQueryParser
     {
         if (!_ctx.IsWord(SqlConst.HAVING)) return null;
         _ctx.Consume();
-        var txt = _ctx.ReadClauseTextUntilTopLevelStop(SqlConst.ORDER, SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING);
+        var txt = _ctx.ReadClauseTextUntilTopLevelStop(SqlConst.ORDER, SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING, SqlConst.ON);
         return _ctx.ParseWhere(txt);
     }
 
@@ -1007,15 +987,17 @@ internal sealed class SqlQueryParser
     /// <param name="sql">EN: SQL fragment to parse as subquery. PT: Fragmento SQL para parsear como subquery.</param>
     /// <param name="t">EN: Current token used for contextual error composition. PT: Token atual usado para composição contextual de erro.</param>
     /// <param name="ctx">EN: Context label appended to validation error messages. PT: Rótulo de contexto anexado Ã s mensagens de erro de validação.</param>
+    /// <param name="db"></param>
     /// <param name="dialect">EN: Dialect used for parsing. PT: Dialeto usado no parsing.</param>
     /// <returns>EN: Parsed subquery expression node. PT: Nó de expressão de subquery parseado.</returns>
     public static SubqueryExpr ParseSubqueryExprOrThrow(
         string sql,
         SqlToken t,
         string ctx,
+        DbMock db,
         ISqlDialect dialect)
     {
-        var q = Parse(sql, dialect);
+        var q = Parse(sql, db, dialect);
         if (q is SqlSelectQuery sq) return new SubqueryExpr(sql, sq);
         throw new InvalidOperationException("Subquery deve ser SELECT " + ctx + " | " + t.Text);
     }

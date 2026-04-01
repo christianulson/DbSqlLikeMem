@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using static DbSqlLikeMem.AstQueryExecutorBase;
 
 namespace DbSqlLikeMem;
@@ -38,6 +41,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
         Register(handlers, TryEvalSetFunctions, "ELT", "MAKE_SET", "EXPORT_SET");
         Register(handlers, TryEvalHexFunctions, "HEX", "UNHEX");
+        Register(handlers, TryEvalShaFunctions, "SHA", "SHA1", "SHA2");
         Register(handlers, TryEvalOctFunction, "OCT");
         Register(handlers, TryEvalOrdFunction, "ORD");
         Register(handlers, TryEvalBitCountFunction, "BIT_COUNT");
@@ -214,6 +218,165 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         var escaped = text.Replace("\\", "\\\\").Replace("'", "\\'");
         result = $"'{escaped}'";
         return true;
+    }
+
+    private static bool TryEvalSoundexFunction(
+        this QueryExecutionContext context,
+        FunctionCallExpr fn,
+        EvalRow row,
+        Func<int, object?> evalArg,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        out object? result)
+    {
+        _ = context;
+        _ = row;
+        _ = tryConvertNumericToInt64;
+        _ = tryConvertNumericToDouble;
+
+        if (!string.Equals(fn.Name, "SOUNDEX", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        result = ComputeSoundex(value?.ToString() ?? string.Empty);
+        return true;
+    }
+
+    private static bool TryEvalShaFunctions(
+        this QueryExecutionContext context,
+        FunctionCallExpr fn,
+        EvalRow row,
+        Func<int, object?> evalArg,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        out object? result)
+    {
+        _ = context;
+        _ = row;
+        _ = tryConvertNumericToDouble;
+
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not "SHA" and not "SHA1" and not "SHA2")
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count == 0)
+            throw new InvalidOperationException($"{name}() espera texto.");
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        var payload = Encoding.UTF8.GetBytes(text);
+
+        byte[] hashBytes;
+        if (name is "SHA" or "SHA1")
+        {
+            using var sha1 = SHA1.Create();
+            hashBytes = sha1.ComputeHash(payload);
+        }
+        else
+        {
+            if (fn.Args.Count < 2)
+                throw new InvalidOperationException("SHA2() espera texto e comprimento do hash.");
+
+            var lengthValue = evalArg(1);
+            if (IsNullish(lengthValue) || !tryConvertNumericToInt64(lengthValue!, out var hashLength))
+            {
+                result = null;
+                return true;
+            }
+
+            hashLength = hashLength == 0 ? 256 : hashLength;
+            using HashAlgorithm? sha = hashLength switch
+            {
+                224 => SHA256.Create(),
+                256 => SHA256.Create(),
+                384 => SHA384.Create(),
+                512 => SHA512.Create(),
+                _ => null
+            };
+
+            if (sha is null)
+            {
+                result = null;
+                return true;
+            }
+
+            hashBytes = sha.ComputeHash(payload);
+            if (hashLength == 224)
+            {
+                var truncated = new byte[28];
+                Buffer.BlockCopy(hashBytes, 0, truncated, 0, truncated.Length);
+                hashBytes = truncated;
+            }
+        }
+
+        var sb = new StringBuilder(hashBytes.Length * 2);
+        foreach (var b in hashBytes)
+            sb.Append(b.ToString("x2", CultureInfo.InvariantCulture));
+
+        result = sb.ToString();
+        return true;
+    }
+
+    private static string ComputeSoundex(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        var firstLetter = char.ToUpperInvariant(value[0]);
+        var codes = new StringBuilder();
+
+        int? lastCode = null;
+        foreach (var ch in value.Skip(1))
+        {
+            var code = GetSoundexCode(ch);
+            if (code is null)
+            {
+                lastCode = null;
+                continue;
+            }
+
+            if (lastCode.HasValue && lastCode.Value == code.Value)
+                continue;
+
+            codes.Append(code.Value);
+            lastCode = code.Value;
+        }
+
+        var result = firstLetter + codes.ToString();
+        return result.PadRight(4, '0')[..4];
+    }
+
+    private static int? GetSoundexCode(char c)
+    {
+        c = char.ToUpperInvariant(c);
+        return c switch
+        {
+            'B' or 'F' or 'P' or 'V' => 1,
+            'C' or 'G' or 'J' or 'K' or 'Q' or 'S' or 'X' or 'Z' => 2,
+            'D' or 'T' => 3,
+            'L' => 4,
+            'M' or 'N' => 5,
+            'R' => 6,
+            _ => null
+        };
     }
 
     private static bool TryEvalOctFunction(
@@ -995,7 +1158,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
             return true;
         }
 
-        if (TryResolveDefaultValue(row, qualifier, columnName!, out var defaultValue))
+        if (TryResolveDefaultValue(context, row, qualifier, columnName!, out var defaultValue))
         {
             result = defaultValue;
             return true;
@@ -1033,40 +1196,87 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
     }
 
     private static bool TryResolveDefaultValue(
+        QueryExecutionContext context,
         EvalRow row,
         string? qualifier,
         string columnName,
         out object? defaultValue)
     {
         defaultValue = null;
-        if (row.Sources.Count == 0)
-            return false;
 
-        if (!string.IsNullOrWhiteSpace(qualifier))
+        if (row.Sources.Count > 0)
         {
-            if (!row.Sources.TryGetValue(qualifier!, out var source))
-                return false;
-
-            if (source.Physical is null)
-                return false;
-
-            if (!source.Physical.Columns.TryGetValue(columnName, out var column))
-                return false;
-
-            defaultValue = column.DefaultValue;
-            return true;
-        }
-
-        foreach (var source in row.Sources.Values)
-        {
-            if (source.Physical is null)
-                continue;
-
-            if (source.Physical.Columns.TryGetValue(columnName, out var column))
+            if (!string.IsNullOrWhiteSpace(qualifier))
             {
+                if (!row.Sources.TryGetValue(qualifier!, out var source))
+                    return false;
+
+                if (source.Physical is null)
+                    return false;
+
+                if (!source.Physical.Columns.TryGetValue(columnName, out var column))
+                    return false;
+
                 defaultValue = column.DefaultValue;
                 return true;
             }
+
+            foreach (var source in row.Sources.Values)
+            {
+                if (source.Physical is null)
+                    continue;
+
+                if (source.Physical.Columns.TryGetValue(columnName, out var column))
+                {
+                    defaultValue = column.DefaultValue;
+                    return true;
+                }
+            }
+        }
+
+        if (TryResolveDefaultValueFromDatabase(context, qualifier, columnName, out defaultValue))
+            return true;
+
+        return false;
+    }
+
+    private static bool TryResolveDefaultValueFromDatabase(
+        QueryExecutionContext context,
+        string? qualifier,
+        string columnName,
+        out object? defaultValue)
+    {
+        defaultValue = null;
+
+        var matchingColumns = new List<object?>();
+        foreach (var schema in context.Database.Values)
+        {
+            foreach (var table in schema.Tables.Values)
+            {
+                if (!string.IsNullOrWhiteSpace(qualifier)
+                    && !table.TableName.Equals(qualifier, StringComparison.OrdinalIgnoreCase)
+                    && !table.Schema.SchemaName.Equals(qualifier, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (!table.Columns.TryGetValue(columnName, out var column))
+                    continue;
+
+                if (!string.IsNullOrWhiteSpace(qualifier))
+                {
+                    defaultValue = column.DefaultValue;
+                    return true;
+                }
+
+                matchingColumns.Add(column.DefaultValue);
+            }
+        }
+
+        if (matchingColumns.Count == 1)
+        {
+            defaultValue = matchingColumns[0];
+            return true;
         }
 
         return false;

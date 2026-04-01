@@ -68,14 +68,14 @@ WHERE u.tenantid = 10";
 
         var affected = ExecuteNonQuery(db, sql);
 
-        Assert.Equal(0, affected);
-        Assert.True(db.TryGetTable("active_users", out var active));
-        Assert.NotNull(active);
-        Assert.Equal(2, active!.Count);
-        Assert.True(active.Columns.ContainsKey("id"));
-        Assert.True(active.Columns.ContainsKey("name"));
-        Assert.Equal(1, (int)active[0][0]!);
-        Assert.Equal("A", active[0][1]);
+        affected.Should().Be(0);
+        db.TryGetTable("active_users", out var active).Should().BeTrue();
+        active.Should().NotBeNull();
+        active!.Count.Should().Be(2);
+        active.Columns.ContainsKey("id").Should().BeTrue();
+        active.Columns.ContainsKey("name").Should().BeTrue();
+        ((int)active[0][0]!).Should().Be(1);
+        active[0][1].Should().Be("A");
     }
 
     /// <summary>
@@ -99,13 +99,13 @@ WHERE u.tenantid = 10";
 
         var affected = ExecuteNonQuery(db, sql);
 
-        Assert.Equal(0, affected);
-        Assert.True(db.TryGetTable("active_users", out var active));
-        Assert.NotNull(active);
-        Assert.Equal(2, active!.Count);
-        Assert.True(active.Columns.ContainsKey("name"));
-        Assert.Equal("A", (string)active[0][0]!);
-        Assert.Equal("B", (string)active[1][0]!);
+        affected.Should().Be(0);
+        db.TryGetTable("active_users", out var active).Should().BeTrue();
+        active.Should().NotBeNull();
+        active!.Count.Should().Be(2);
+        active.Columns.ContainsKey("name").Should().BeTrue();
+        ((string)active[0][0]!).Should().Be("A");
+        ((string)active[1][0]!).Should().Be("B");
     }
 
     /// <summary>
@@ -132,10 +132,10 @@ WHERE u.tenantid = 10";
 
         var inserted = ExecuteNonQuery(db, sql);
 
-        Assert.Equal(1, inserted);
-        Assert.Single(audit);
-        Assert.Equal(1, (int)audit[0][0]!);
-        Assert.Equal("A", audit[0][1]);
+        inserted.Should().Be(1);
+        audit.Should().ContainSingle();
+        ((int)audit[0][0]!).Should().Be(1);
+        audit[0][1].Should().Be("A");
     }
 
     /// <summary>
@@ -162,10 +162,10 @@ WHERE u.tenantid = 10";
 
         var inserted = ExecuteNonQuery(db, sql);
 
-        Assert.Equal(2, inserted);
-        Assert.Equal(2, audit.Count);
-        Assert.Equal("A", (string)audit[0][0]!);
-        Assert.Equal("B", (string)audit[1][0]!);
+        inserted.Should().Be(2);
+        audit.Count.Should().Be(2);
+        ((string)audit[0][0]!).Should().Be("A");
+        ((string)audit[1][0]!).Should().Be("B");
     }
 
     /// <summary>
@@ -193,12 +193,12 @@ WHERE u.tenantid = 10";
 
         var inserted = ExecuteNonQuery(db, sql);
 
-        Assert.Equal(2, inserted);
-        Assert.Equal(2, summary.Count);
-        Assert.Equal(10, (int)summary[0][0]!);
-        Assert.Equal(2, (int)summary[0][1]!);
-        Assert.Equal(20, (int)summary[1][0]!);
-        Assert.Equal(1, (int)summary[1][1]!);
+        inserted.Should().Be(2);
+        summary.Count.Should().Be(2);
+        Convert.ToInt32(summary[0][0]).Should().Be(10);
+        Convert.ToInt32(summary[0][1]).Should().Be(2);
+        Convert.ToInt32(summary[1][0]).Should().Be(20);
+        Convert.ToInt32(summary[1][1]).Should().Be(1);
     }
 
     /// <summary>
@@ -229,18 +229,19 @@ WHERE u.tenantid = 10";
 
         if (!SupportsUpdateDeleteJoinRuntime)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => ExecuteNonQuery(db, sql));
-            Assert.Contains(SqlConst.UPDATE, ex.Message, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains(SqlConst.JOIN, ex.Message, StringComparison.OrdinalIgnoreCase);
+            var action = () => ExecuteNonQuery(db, sql);
+            var ex = action.Should().Throw<NotSupportedException>().Which;
+            ex.Message.Should().Contain(SqlConst.UPDATE);
+            ex.Message.Should().Contain(SqlConst.JOIN);
             return;
         }
 
         var updated = ExecuteNonQuery(db, sql);
 
-        Assert.Equal(2, updated);
-        Assert.Equal(15m, users[0][2]);
-        Assert.Equal(7m, users[1][2]);
-        Assert.Null(users[2][2]);
+        updated.Should().Be(2);
+        users[0][2].Should().Be(15m);
+        users[1][2].Should().Be(7m);
+        users[2][2].Should().BeNull();
     }
 
     /// <summary>
@@ -261,16 +262,17 @@ WHERE u.tenantid = 10";
 
         if (!SupportsUpdateDeleteJoinRuntime)
         {
-            var ex = Assert.Throws<InvalidOperationException>(() => ExecuteNonQuery(db, DeleteJoinDerivedSelectSql));
-            Assert.Contains(SqlConst.DELETE, ex.Message, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains(SqlConst.FROM, ex.Message, StringComparison.OrdinalIgnoreCase);
+            var action = () => ExecuteNonQuery(db, DeleteJoinDerivedSelectSql);
+            var ex = action.Should().Throw<InvalidOperationException>().Which;
+            ex.Message.Should().Contain(SqlConst.DELETE);
+            ex.Message.Should().Contain(SqlConst.FROM);
             return;
         }
 
         var deleted = ExecuteNonQuery(db, DeleteJoinDerivedSelectSql);
 
-        Assert.Equal(2, deleted);
-        Assert.Single(users);
-        Assert.Equal(3, (int)users[0][0]!);
+        deleted.Should().Be(2);
+        users.Should().ContainSingle();
+        ((int)users[0][0]!).Should().Be(3);
     }
 }

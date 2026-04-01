@@ -300,6 +300,13 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(tableName)} (
         $"LENGTH({expression})";
 
     /// <summary>
+    /// EN: Returns the SQL expression used to cast a value to text for fidelity checks.
+    /// PT: Retorna a expressao SQL usada para converter um valor em texto nos testes de fidelidade.
+    /// </summary>
+    public virtual string StringCastExpression(string expression, int length = 10) =>
+        $"CAST({expression} AS CHAR({length}))";
+
+    /// <summary>
     /// EN: Returns the SQL statement used for the current timestamp benchmark.
     /// PT: Retorna a instrucao SQL usada no benchmark de timestamp atual.
     /// </summary>

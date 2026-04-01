@@ -6,4 +6,9 @@ namespace DbSqlLikeMem.Db2.LinqToDb.Test;
 /// </summary>
 public sealed class LinqToDbSmokeTests(
     ITestOutputHelper helper
-) : LinqToDbSmokeTestsBase(helper, static () => new Db2LinqToDbConnectionFactory());
+) : LinqToDbSmokeTestsBase(helper, static () => new Db2LinqToDbConnectionFactory())
+{
+    /// <inheritdoc />
+    protected override DbSqlLikeMem.TestTools.ProviderSqlDialect Dialect { get; } =
+        new DbSqlLikeMem.Db2.TestTools.Db2ProviderSqlDialect();
+}

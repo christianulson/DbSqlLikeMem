@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.Sqlite.Test;
 
 /// <summary>
@@ -20,15 +22,15 @@ public sealed class SequenceRegistrationTests(
 
         var sequence = db.AddSequence("seq_orders", startValue: 100, incrementBy: 5, currentValue: 115, schemaName: "app");
 
-        Assert.True(db.TryGetSequence("seq_orders", out var found, "app"));
-        Assert.NotNull(found);
-        Assert.Same(sequence, found);
-        Assert.Equal(100, found!.StartValue);
-        Assert.Equal(5, found.IncrementBy);
-        Assert.Equal(115, found.CurrentValue);
+        db.TryGetSequence("seq_orders", out var found, "app").Should().BeTrue();
+        found.Should().NotBeNull();
+        found.Should().BeSameAs(sequence);
+        found!.StartValue.Should().Be(100);
+        found.IncrementBy.Should().Be(5);
+        found.CurrentValue.Should().Be(115);
 
-        var schema = Assert.IsAssignableFrom<ISchemaMock>(((IReadOnlyDictionary<string, ISchemaMock>)db)["app"]);
-        Assert.True(schema.Sequences.ContainsKey("seq_orders"));
+        var schema = ((IReadOnlyDictionary<string, ISchemaMock>)db)["app"];
+        schema.Sequences.ContainsKey("seq_orders").Should().BeTrue();
     }
 
     /// <summary>
@@ -44,11 +46,11 @@ public sealed class SequenceRegistrationTests(
 
         var sequence = connection.AddSequence("seq_users", startValue: 10, incrementBy: 2);
 
-        Assert.True(connection.TryGetSequence("seq_users", out var found));
-        Assert.NotNull(found);
-        Assert.Same(sequence, found);
-        Assert.Equal(10, found!.StartValue);
-        Assert.Equal(2, found.IncrementBy);
-        Assert.Null(found.CurrentValue);
+        connection.TryGetSequence("seq_users", out var found).Should().BeTrue();
+        found.Should().NotBeNull();
+        found.Should().BeSameAs(sequence);
+        found!.StartValue.Should().Be(10);
+        found.IncrementBy.Should().Be(2);
+        found.CurrentValue.Should().BeNull();
     }
 }

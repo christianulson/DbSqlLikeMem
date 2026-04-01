@@ -623,7 +623,7 @@ ORDER BY id").ToList();
     [Trait("Category", "SqlServerAdvancedSqlGap")]
     public void Cast_StringToInt_ShouldWork()
     {
-        var rows = _cnn.Query<dynamic>("SELECT CAST('42' AS INT) AS v").ToList();
+        var rows = _cnn.Query<dynamic>("SELECT CAST('42' AS INTEGER) AS v").ToList();
         Assert.Single(rows);
         Assert.Equal(42, (int)rows[0].v);
     }

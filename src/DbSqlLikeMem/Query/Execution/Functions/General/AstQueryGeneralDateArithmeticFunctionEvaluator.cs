@@ -20,7 +20,7 @@ internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
     private static Dictionary<string, AstQueryGeneralScalarFunctionHandler> CreateHandlers()
     {
         var handlers = new Dictionary<string, AstQueryGeneralScalarFunctionHandler>(StringComparer.OrdinalIgnoreCase);
-        Register(handlers, TryEvalAddDateFunction, "ADDDATE");
+        Register(handlers, TryEvalAddDateFunction, "ADDDATE", "DATE_ADD", "DATE_SUB", "SUBDATE");
         Register(handlers, TryEvalAddTimeFunction, "ADDTIME");
         Register(handlers, TryEvalSubTimeFunction, "SUBTIME");
         return handlers;
@@ -52,15 +52,21 @@ internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
         }
 
         var addValue = evalArg(1);
+        var isSubtraction = fn.Name.Equals("DATE_SUB", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("SUBDATE", StringComparison.OrdinalIgnoreCase);
         if (addValue is IntervalValue interval)
         {
-            result = dateTime.Add(interval.Span);
+            result = isSubtraction
+                ? dateTime.Subtract(interval.Span)
+                : dateTime.Add(interval.Span);
             return true;
         }
 
         if (AstQueryExecutorBase.TryConvertNumericToDouble(addValue, out var dayOffset))
         {
-            result = dateTime.AddDays(dayOffset);
+            result = isSubtraction
+                ? dateTime.AddDays(-dayOffset)
+                : dateTime.AddDays(dayOffset);
             return true;
         }
 

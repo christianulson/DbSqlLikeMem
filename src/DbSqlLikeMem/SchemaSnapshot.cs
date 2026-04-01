@@ -456,6 +456,7 @@ public sealed record SchemaSnapshot
             {
                 var parsed = SqlQueryParser.Parse(
                     viewSnapshot.SelectSql,
+                    db,
                     db.Dialect,
                     null,
                     SqlCustomFunctionResolverFactory.Create(db, schemaSnapshot.Name));

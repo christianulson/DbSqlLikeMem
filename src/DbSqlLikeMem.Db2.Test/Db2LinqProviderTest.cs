@@ -1,4 +1,6 @@
-﻿namespace DbSqlLikeMem.Db2.Test;
+using FluentAssertions;
+
+namespace DbSqlLikeMem.Db2.Test;
 /// <summary>
 /// EN: Verifies LINQ query translation and provider metadata behavior for Db2 connections.
 /// PT: Verifica a traducao de consultas LINQ e o comportamento de metadados do provedor para conexoes Db2.
@@ -45,8 +47,8 @@ public sealed class Db2LinqProviderTest(
                       .Where(u => u.Id == 2)
                       .ToList();
 
-        Assert.Single(list);
-        Assert.Equal("B", list[0].Name);
+        list.Should().ContainSingle();
+        list[0].Name.Should().Be("B");
     }
 
 }

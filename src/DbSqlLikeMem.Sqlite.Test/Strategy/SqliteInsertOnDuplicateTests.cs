@@ -1,4 +1,6 @@
-﻿namespace DbSqlLikeMem.Sqlite.Test.Strategy;
+using FluentAssertions;
+
+namespace DbSqlLikeMem.Sqlite.Test.Strategy;
 
 /// <summary>
 /// EN: Covers INSERT ... ON DUPLICATE scenarios in the Sqlite mock.
@@ -9,8 +11,8 @@ public class SqliteInsertOnDuplicateTests(
     ) : XUnitTestBase(helper)
 {
     /// <summary>
-    /// EN: Verifies INSERT ... ON DUPLICATE KEY inserts a new row when no matching key exists.
-    /// PT: Verifica se INSERT ... ON DUPLICATE KEY insere uma nova linha quando nao existe chave correspondente.
+    /// EN: Verifies SQLite rejects MySQL-style INSERT ... ON DUPLICATE KEY syntax.
+    /// PT: Verifica se o SQLite rejeita a sintaxe MySQL-style INSERT ... ON DUPLICATE KEY.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -26,17 +28,19 @@ public class SqliteInsertOnDuplicateTests(
         using var cnn = new SqliteConnectionMock(db);
 
         const string sql = "INSERT INTO users (Id, Name) VALUES (1, 'A') ON DUPLICATE KEY UPDATE Name = VALUES(Name)";
-        var q = SqlQueryParser.Parse(sql, db.Dialect);
-        var affected = cnn.ExecuteInsert((SqlInsertQuery)q, new SqliteDataParameterCollectionMock(), db.Dialect);
+        Action act = () =>
+        {
+            var q = SqlQueryParser.Parse(sql, db, db.Dialect);
+            cnn.ExecuteInsert((SqlInsertQuery)q, new SqliteDataParameterCollectionMock(), db.Dialect);
+        };
 
-        Assert.Equal(1, affected.AffectedRows);
-        Assert.Single(t);
-        Assert.Equal("A", t[0][1]);
+        act.Should().Throw<NotSupportedException>()
+            .Which.Message.Should().Contain("ON DUPLICATE KEY UPDATE");
     }
 
     /// <summary>
-    /// EN: Verifies INSERT ... ON DUPLICATE KEY updates the existing primary-key row with VALUES().
-    /// PT: Verifica se INSERT ... ON DUPLICATE KEY atualiza a linha existente da chave primaria com VALUES().
+    /// EN: Verifies SQLite rejects MySQL-style INSERT ... ON DUPLICATE KEY updates with VALUES().
+    /// PT: Verifica se o SQLite rejeita atualizacoes MySQL-style INSERT ... ON DUPLICATE KEY com VALUES().
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -54,17 +58,19 @@ public class SqliteInsertOnDuplicateTests(
         using var cnn = new SqliteConnectionMock(db);
 
         const string sql = "INSERT INTO users (Id, Name) VALUES (1, 'NEW') ON DUPLICATE KEY UPDATE Name = VALUES(Name)";
-        var q = SqlQueryParser.Parse(sql, db.Dialect);
-        var affected = cnn.ExecuteInsert((SqlInsertQuery)q, new SqliteDataParameterCollectionMock(), db.Dialect);
+        Action act = () =>
+        {
+            var q = SqlQueryParser.Parse(sql, db, db.Dialect);
+            cnn.ExecuteInsert((SqlInsertQuery)q, new SqliteDataParameterCollectionMock(), db.Dialect);
+        };
 
-        // SQLite real pode retornar 2 dependendo flags; no mock mantenha 1 ou 2, mas seja consistente.
-        Assert.Equal("NEW", t[0][1]);
-        Assert.Single(t);
+        act.Should().Throw<NotSupportedException>()
+            .Which.Message.Should().Contain("ON DUPLICATE KEY UPDATE");
     }
 
     /// <summary>
-    /// EN: Verifies INSERT ... ON DUPLICATE KEY updates the row matched by a unique index.
-    /// PT: Verifica se INSERT ... ON DUPLICATE KEY atualiza a linha encontrada por um indice unico.
+    /// EN: Verifies SQLite rejects MySQL-style INSERT ... ON DUPLICATE KEY updates matched by a unique index.
+    /// PT: Verifica se o SQLite rejeita atualizacoes MySQL-style INSERT ... ON DUPLICATE KEY encontradas por um indice unico.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -85,17 +91,19 @@ public class SqliteInsertOnDuplicateTests(
 
         const string sql = "INSERT INTO users (Id, Email, Name) VALUES (2, 'a@a.com', 'B') " +
                   "ON DUPLICATE KEY UPDATE Name = VALUES(Name)";
-        var q = SqlQueryParser.Parse(sql, db.Dialect);
-        cnn.ExecuteInsert((SqlInsertQuery)q, new SqliteDataParameterCollectionMock(), db.Dialect);
+        Action act = () =>
+        {
+            var q = SqlQueryParser.Parse(sql, db, db.Dialect);
+            cnn.ExecuteInsert((SqlInsertQuery)q, new SqliteDataParameterCollectionMock(), db.Dialect);
+        };
 
-        Assert.Single(t);
-        Assert.Equal(1, t[0][0]);          // Id original preservado
-        Assert.Equal("B", t[0][2]);        // atualizado
+        act.Should().Throw<NotSupportedException>()
+            .Which.Message.Should().Contain("ON DUPLICATE KEY UPDATE");
     }
 
     /// <summary>
-    /// EN: Verifies the update branch can mix literal values and parameters.
-    /// PT: Verifica se a ramificacao de update pode combinar valores literais e parametros.
+    /// EN: Verifies SQLite rejects MySQL-style INSERT ... ON DUPLICATE KEY updates with mixed literals and parameters.
+    /// PT: Verifica se o SQLite rejeita atualizacoes MySQL-style INSERT ... ON DUPLICATE KEY com literais e parametros mistos.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -121,14 +129,15 @@ public class SqliteInsertOnDuplicateTests(
         cmd.Parameters.Add(new SqliteParameter("p0", 1));
         cmd.Parameters.Add(new SqliteParameter("p1", "NEW"));
 
-        var rows = cmd.ExecuteNonQuery(); // tem que chamar ExecuteInsert internamente
+        Action act = () => cmd.ExecuteNonQuery();
 
-        Assert.Equal("FORCED", t[0][1]);
+        act.Should().Throw<NotSupportedException>()
+            .Which.Message.Should().Contain("ON DUPLICATE KEY UPDATE");
     }
 
     /// <summary>
-    /// EN: Verifies the update branch can aggregate the existing and incoming values.
-    /// PT: Verifica se a ramificacao de update pode agregar os valores existentes e recebidos.
+    /// EN: Verifies SQLite rejects MySQL-style INSERT ... ON DUPLICATE KEY updates that aggregate existing and incoming values.
+    /// PT: Verifica se o SQLite rejeita atualizacoes MySQL-style INSERT ... ON DUPLICATE KEY que agregam valores existentes e recebidos.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -155,9 +164,10 @@ INSERT INTO users (Id, Qtd) VALUES (@p0, @p1)
         cmd.Parameters.Add(new SqliteParameter("p0", 1));
         cmd.Parameters.Add(new SqliteParameter("p1", 1));
 
-        var rows = cmd.ExecuteNonQuery(); // tem que chamar ExecuteInsert internamente
+        Action act = () => cmd.ExecuteNonQuery();
 
-        Assert.Equal(2, t[0][1]);
+        act.Should().Throw<NotSupportedException>()
+            .Which.Message.Should().Contain("ON DUPLICATE KEY UPDATE");
     }
 
     /// <summary>
@@ -179,12 +189,12 @@ INSERT INTO users (Id, Qtd) VALUES (@p0, @p1)
         using var cnn = new SqliteConnectionMock(db);
 
         const string sql = "INSERT INTO users (Id, Name) VALUES (1, 'NEW') ON CONFLICT (Id) DO NOTHING";
-        var q = SqlQueryParser.Parse(sql, db.Dialect);
+        var q = SqlQueryParser.Parse(sql, db, db.Dialect);
         var affected = cnn.ExecuteInsert((SqlInsertQuery)q, new SqliteDataParameterCollectionMock(), db.Dialect);
 
-        Assert.Equal(0, affected.AffectedRows);
-        Assert.Single(t);
-        Assert.Equal("OLD", t[0][1]);
+        affected.AffectedRows.Should().Be(0);
+        t.Should().ContainSingle();
+        t[0][1].Should().Be("OLD");
     }
 
     /// <summary>
@@ -206,12 +216,12 @@ INSERT INTO users (Id, Qtd) VALUES (@p0, @p1)
         using var cnn = new SqliteConnectionMock(db);
 
         const string sql = "INSERT INTO users (Id, Name) VALUES (1, 'NEW') ON CONFLICT (Id) DO UPDATE SET Name = EXCLUDED.Name WHERE 1 = 0";
-        var q = SqlQueryParser.Parse(sql, db.Dialect);
+        var q = SqlQueryParser.Parse(sql, db, db.Dialect);
         var affected = cnn.ExecuteInsert((SqlInsertQuery)q, new SqliteDataParameterCollectionMock(), db.Dialect);
 
-        Assert.Equal(0, affected.AffectedRows);
-        Assert.Single(t);
-        Assert.Equal("OLD", t[0][1]);
+        affected.AffectedRows.Should().Be(0);
+        t.Should().ContainSingle();
+        t[0][1].Should().Be("OLD");
     }
 
     /// <summary>
@@ -233,11 +243,11 @@ INSERT INTO users (Id, Qtd) VALUES (@p0, @p1)
         using var cnn = new SqliteConnectionMock(db);
 
         const string sql = "INSERT INTO users (Id, Name) VALUES (1, 'NEW') ON CONFLICT (Id) DO UPDATE SET Name = EXCLUDED.Name WHERE users.id = EXCLUDED.id";
-        var q = SqlQueryParser.Parse(sql, db.Dialect);
+        var q = SqlQueryParser.Parse(sql, db, db.Dialect);
         var affected = cnn.ExecuteInsert((SqlInsertQuery)q, new SqliteDataParameterCollectionMock(), db.Dialect);
 
-        Assert.Equal(1, affected.AffectedRows);
-        Assert.Single(t);
-        Assert.Equal("NEW", t[0][1]);
+        affected.AffectedRows.Should().Be(1);
+        t.Should().ContainSingle();
+        t[0][1].Should().Be("NEW");
     }
 }

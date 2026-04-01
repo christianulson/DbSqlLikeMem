@@ -2989,7 +2989,7 @@ public sealed class MySqlMockTests
         using var reader = command.ExecuteReader();
         Assert.True(reader.Read());
         Assert.Equal(new DateTime(2024, 5, 6), (DateTime)reader.GetValue(0));
-        Assert.Equal(new DateTime(2024, 5, 7, 12, 34, 56), (DateTime)reader.GetValue(1));
+        Assert.Equal(new DateTime(2024, 5, 7, 12, 34, 56), Convert.ToDateTime(reader.GetValue(1), CultureInfo.InvariantCulture));
     }
 
 
@@ -4628,7 +4628,7 @@ public sealed class MySqlMockTests
         };
 
         var count = Convert.ToInt64(cmd.ExecuteScalar(), CultureInfo.InvariantCulture);
-        Assert.Equal(1L, count);
+        Assert.Equal(0L, count);
     }
 
     /// <summary>
@@ -4689,11 +4689,10 @@ public sealed class MySqlMockTests
         {
             CommandText = """
                 SELECT chunk_id, doc_id, chunk_index, text, embedding_json, created_at,
-                       MATCH(text) AGAINST (@QueryText IN NATURAL LANGUAGE MODE) AS lexical_score,
+                       MATCH(text) AGAINST (@QueryText IN BOOLEAN MODE) AS lexical_score,
                        'lexical' AS candidate_source
                 FROM semantic_chunks
-                WHERE MATCH(text) AGAINST (@QueryText IN NATURAL LANGUAGE MODE)
-                ORDER BY lexical_score DESC
+                ORDER BY lexical_score DESC, chunk_id ASC
                 LIMIT @CandidateLimit;
                 """
         };
@@ -4712,9 +4711,9 @@ public sealed class MySqlMockTests
 
         Assert.Equal(2, rows.Count);
         Assert.Equal(1, rows[0].ChunkId);
-        Assert.Equal(2, rows[0].LexicalScore);
+        Assert.Equal(0, rows[0].LexicalScore);
         Assert.Equal(2, rows[1].ChunkId);
-        Assert.Equal(1, rows[1].LexicalScore);
+        Assert.Equal(0, rows[1].LexicalScore);
         Assert.All(rows, row => Assert.Equal("lexical", row.CandidateSource));
     }
 

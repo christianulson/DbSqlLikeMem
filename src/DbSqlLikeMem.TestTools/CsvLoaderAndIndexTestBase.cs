@@ -37,8 +37,8 @@ public abstract class CsvLoaderAndIndexTestBase<TDbMock, TSqlMockException>(
 
         db.LoadCsv(tmp, "users");
 
-        Assert.Equal(2, db.GetTable("users").Count);
-        Assert.Equal("John", tb[0][1]);
+        db.GetTable("users").Count.Should().Be(2);
+        tb[0][1].Should().Be("John");
     }
 
     /// <summary>
@@ -53,8 +53,8 @@ public abstract class CsvLoaderAndIndexTestBase<TDbMock, TSqlMockException>(
         var tb = db.AddTable("users");
         tb.AddColumn("id", DbType.Int32, false);
 
-        var ex = Assert.Throws<TSqlMockException>(() => tb.GetColumn("nope"));
-        Assert.Equal(1054, ex.ErrorCode);
+        var ex = FluentActions.Invoking(() => tb.GetColumn("nope")).Should().Throw<TSqlMockException>().Which;
+        ex.ErrorCode.Should().Be(1054);
     }
 
     /// <summary>
@@ -77,7 +77,7 @@ public abstract class CsvLoaderAndIndexTestBase<TDbMock, TSqlMockException>(
         var idxDef = tb.CreateIndex("ix_name", ["name"]);
 
         var ix = tb.Lookup(idxDef, new IndexKey("John"));
-        Assert.Equal([0, 1], [.. ix!.Select(_ => _.Key).OrderBy(_ => _)]);
+        ix!.Select(_ => _.Key).OrderBy(_ => _).Should().Equal(0, 1);
     }
 
     /// <summary>
@@ -99,6 +99,6 @@ public abstract class CsvLoaderAndIndexTestBase<TDbMock, TSqlMockException>(
         tb.UpdateRowColumn(0, 1, "Hacked");
         tb.Restore();
 
-        Assert.Equal("John", tb[0][1]);
+        tb[0][1].Should().Be("John");
     }
 }

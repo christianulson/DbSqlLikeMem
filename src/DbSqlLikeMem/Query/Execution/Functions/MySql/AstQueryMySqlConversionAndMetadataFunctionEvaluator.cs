@@ -24,6 +24,7 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     private static Dictionary<string, AstQueryGeneralScalarFunctionHandler> CreateHandlers()
     {
         var handlers = new Dictionary<string, AstQueryGeneralScalarFunctionHandler>(StringComparer.OrdinalIgnoreCase);
+        Register(handlers, TryEvalMySqlConvertFunction, "CONVERT");
         Register(handlers, TryEvalMySqlConvFunction, "CONV");
         Register(handlers, TryEvalMySqlDayNameFunction, "DAYNAME");
         Register(handlers, TryEvalMySqlDayOfMonthFunction, "DAYOFMONTH");
@@ -47,6 +48,30 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
         Register(handlers, TryEvalMySqlCollationFunction, "COLLATION");
         Register(handlers, TryEvalMySqlCoercibilityFunction, "COERCIBILITY");
         return handlers;
+    }
+
+    private static bool TryEvalMySqlConvertFunction(
+        this QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+        _ = fn;
+
+        if (fn.Args.Count == 0)
+        {
+            result = null;
+            return true;
+        }
+
+        var value = evalArg(0);
+        result = AstQueryExecutorBase.IsNullish(value)
+            ? null
+            : value is string textValue
+                ? textValue
+                : value!.ToString();
+        return true;
     }
 
     private static void Register(
@@ -526,6 +551,6 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
             chars.Add('-');
 
         chars.Reverse();
-        return new string(chars.ToArray());
+        return new string([.. chars]);
     }
 }

@@ -97,6 +97,12 @@ public sealed class SqlQueryParserCorpusTests(
 
             yield return Case(sql, why, SqlCaseExpectation.ThrowInvalid, minVersion);
         }
+
+        // Recursos não suportados pelo dialeto
+        yield return Case(
+            "SELECT id FROM users WHERE FIND_IN_SET('b', tags)",
+            "unsupported: MySQL-only function in WHERE",
+            SqlCaseExpectation.ThrowNotSupported);
     }
 
     // -----------------------------------------------------------------
@@ -142,7 +148,7 @@ public sealed class SqlQueryParserCorpusTests(
         yield return new object[] { "SELECT id FROM users WHERE id IN (1,3)", "IN list (id)" };
         yield return new object[] { "SELECT * FROM t WHERE name LIKE 'a%'", "LIKE pattern prefix" };
         yield return new object[] { "SELECT id FROM users WHERE name LIKE '%oh%'", "LIKE pattern contains" };
-        yield return new object[] { "SELECT id FROM users WHERE FIND_IN_SET('b', tags)", "function call in WHERE" };
+        // MySQL-only functions are covered in provider-specific corpora.
 
         // SELECT list aliasing (including MySQL 'name `alias`' style)
         yield return new object[] { "SELECT name [User Name] FROM users", "alias without AS using backtick string" };
@@ -627,15 +633,16 @@ select id
     [MemberDataSqlServerVersion]
     public void Parse_ShouldHandle_MultiStatementStrings_BySplitting(int version)
     {
-        var d = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string multi = "SELECT 1; SELECT 2 FROM t WHERE id = 1; INSERT INTO t(id) VALUES(1);";
         var stmts = SqlStatementSplitter.SplitStatementsTopLevel(multi, d);
 
         Assert.Equal(3, stmts.Count);
 
-        Assert.NotNull(SqlQueryParser.Parse(stmts[0], d));
-        Assert.NotNull(SqlQueryParser.Parse(stmts[1], d));
-        var q3 = SqlQueryParser.Parse(stmts[2], d);
+        Assert.NotNull(SqlQueryParser.Parse(stmts[0], db, d));
+        Assert.NotNull(SqlQueryParser.Parse(stmts[1], db, d));
+        var q3 = SqlQueryParser.Parse(stmts[2], db, d);
         Assert.NotNull(q3);
 
         // exemplo (ajuste pro seu modelo):
@@ -658,7 +665,9 @@ select id
         Console.WriteLine("Query: @\"" + sql + "\"");
         ConsoleWriter.Flush();
 
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
 
         // regra: se precisa de minVersion e versão atual é menor, então é NotSupported (não é inválido)
         if (minVersion > 0
@@ -670,7 +679,7 @@ select id
 #pragma warning disable CA1031 // Do not catch general exception types
         try
         {
-            var parsed = SqlQueryParser.ParseMulti(sql, dialect).ToList();
+            var parsed = SqlQueryParser.ParseMulti(sql, db, d).ToList();
 
             Assert.True(expectation == SqlCaseExpectation.ParseOk,
                 $"Esperava {expectation} mas parseou. Why={why}. Version={version}");

@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.Sqlite.Test;
 
 /// <summary>
@@ -18,8 +20,8 @@ public sealed class SqliteProviderSurfaceMocksTests(
         using var connection = new SqliteConnectionMock(new SqliteDbMock());
         var adapter = new SqliteDataAdapterMock("SELECT 1", connection);
 
-        Assert.NotNull(adapter.SelectCommand);
-        Assert.Equal("SELECT 1", adapter.SelectCommand!.CommandText);
+        adapter.SelectCommand.Should().NotBeNull();
+        adapter.SelectCommand!.CommandText.Should().Be("SELECT 1");
     }
 
     /// <summary>
@@ -35,7 +37,7 @@ public sealed class SqliteProviderSurfaceMocksTests(
 #else
         using var connection = source.CreateDbConnection();
 #endif
-        Assert.IsType<SqliteConnectionMock>(connection);
+        connection.Should().BeOfType<SqliteConnectionMock>();
     }
 
 #if NET8_0_OR_GREATER
@@ -61,8 +63,8 @@ public sealed class SqliteProviderSurfaceMocksTests(
 
         var affected = batch.ExecuteNonQuery();
 
-        Assert.Equal(2, affected);
-        Assert.Equal(2, connection.GetTable("users").Count);
+        affected.Should().Be(2);
+        connection.GetTable("users").Count.Should().Be(2);
     }
 
     /// <summary>
@@ -93,7 +95,7 @@ public sealed class SqliteProviderSurfaceMocksTests(
 
         var result = batch.ExecuteScalar();
 
-        Assert.Equal("Ana", result);
+        result.Should().Be("Ana");
     }
 
     /// <summary>
@@ -123,12 +125,12 @@ public sealed class SqliteProviderSurfaceMocksTests(
         batch.BatchCommands.Add(new SqliteBatchCommandMock { CommandText = "SELECT id FROM users WHERE id = 1" });
 
         using var reader = batch.ExecuteReader();
-        Assert.True(reader.Read());
-        Assert.Equal("Ana", reader.GetString(0));
+        reader.Read().Should().BeTrue();
+        reader.GetString(0).Should().Be("Ana");
 
-        Assert.True(reader.NextResult());
-        Assert.True(reader.Read());
-        Assert.Equal(1, reader.GetInt32(0));
+        reader.NextResult().Should().BeTrue();
+        reader.Read().Should().BeTrue();
+        reader.GetInt32(0).Should().Be(1);
     }
 
     /// <summary>
@@ -152,8 +154,8 @@ public sealed class SqliteProviderSurfaceMocksTests(
         batch.BatchCommands.Add(new SqliteBatchCommandMock { CommandText = "SELECT name FROM users WHERE id = 10" });
 
         using var reader = batch.ExecuteReader();
-        Assert.True(reader.Read());
-        Assert.Equal("Caio", reader.GetString(0));
+        reader.Read().Should().BeTrue();
+        reader.GetString(0).Should().Be("Caio");
     }
 #endif
 }

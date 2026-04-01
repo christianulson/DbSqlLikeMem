@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.Sqlite.Test.Strategy;
 
 /// <summary>
@@ -19,14 +21,14 @@ public sealed class SqliteTriggerStrategyTests
         table.AddColumn("id", DbType.Int32, false);
 
         var calls = 0;
-        var triggerTable = Assert.IsAssignableFrom<TableMock>(table);
+        var triggerTable = table.Should().BeAssignableTo<SqliteTableMock>().Which;
         triggerTable.AddTrigger(TableTriggerEvent.AfterInsert, _ => calls++);
 
         using var connection = new SqliteConnectionMock(db);
         using var cmd = new SqliteCommandMock(connection) { CommandText = "INSERT INTO users (id) VALUES (1)" };
         cmd.ExecuteNonQuery();
 
-        Assert.Equal(1, calls);
+        calls.Should().Be(1);
     }
 
     /// <summary>
@@ -44,12 +46,12 @@ public sealed class SqliteTriggerStrategyTests
         table.AddColumn("id", DbType.Int32, false);
 
         var calls = 0;
-        var triggerTable = Assert.IsAssignableFrom<TableMock>(table);
+        var triggerTable = table.Should().BeAssignableTo<SqliteTableMock>().Which;
         triggerTable.AddTrigger(TableTriggerEvent.AfterInsert, _ => calls++);
 
         using var cmd = new SqliteCommandMock(connection) { CommandText = "INSERT INTO temp_users (id) VALUES (1)" };
         cmd.ExecuteNonQuery();
 
-        Assert.Equal(0, calls);
+        calls.Should().Be(0);
     }
 }

@@ -71,6 +71,10 @@ public sealed class SqlQueryParserCorpusTests(
             "unsupported: JSON_EXTRACT function call",
             SqlCaseExpectation.ThrowNotSupported);
         yield return Case(
+            "SELECT id FROM users WHERE FIND_IN_SET('b', tags)",
+            "unsupported: FIND_IN_SET function",
+            SqlCaseExpectation.ThrowNotSupported);
+        yield return Case(
             @"INSERT INTO t (a)
               SELECT JSON_EXTRACT(data, '$.on_duplicate') FROM src",
             "unsupported: INSERT INTO ... SELECT with JSON_EXTRACT and JSON path containing on_duplicate",
@@ -150,8 +154,6 @@ public sealed class SqlQueryParserCorpusTests(
         yield return new object[] { "SELECT id FROM users WHERE id IN (1,3)", "IN list (id)" };
         yield return new object[] { "SELECT * FROM t WHERE name LIKE 'a%'", "LIKE pattern prefix" };
         yield return new object[] { "SELECT id FROM users WHERE name LIKE '%oh%'", "LIKE pattern contains" };
-        yield return new object[] { "SELECT id FROM users WHERE FIND_IN_SET('b', tags)", "function call in WHERE" };
-
         // SELECT list aliasing (including DB2 'name `alias`' style)
         yield return new object[] { "SELECT name AS \"User Name\" FROM users", "alias with AS using double quotes" };
         yield return new object[] { "SELECT u.id AS uid, o.id AS oid FROM users u", "multiple select item aliases" };
@@ -169,13 +171,11 @@ public sealed class SqlQueryParserCorpusTests(
         yield return new object[] { "SELECT id, id + 1 AS x FROM users ORDER BY x DESC", "ORDER BY select-item alias" };
         yield return new object[] { "SELECT id, name FROM users ORDER BY 2 ASC, 1 DESC", "ORDER BY ordinal positions" };
 
-        // CASE/COALESCE/CONCAT/IF/IFNULL/IIF
+        // CASE/COALESCE/CONCAT/IFNULL
         yield return new object[] { "SELECT id, CASE WHEN email IS NULL THEN 0 ELSE 1 END AS hasEmail FROM users ORDER BY id", "CASE WHEN expression" };
         yield return new object[] { "SELECT id, COALESCE(email, 'none') AS em FROM users ORDER BY id", "COALESCE function" };
         yield return new object[] { "SELECT id, CONCAT(name, '#', id) AS tag FROM users ORDER BY id", "CONCAT function with mixed args" };
-        yield return new object[] { "SELECT id, IF(email IS NULL, 'no', 'yes') AS flag FROM users ORDER BY id", "IF(cond, a, b)" };
         yield return new object[] { "SELECT id, IFNULL(email, 'none') AS em FROM users ORDER BY id", "IFNULL(a,b)" };
-        yield return new object[] { "SELECT id, IIF(email IS NULL, 0, 1) AS hasEmail FROM users ORDER BY id", "IIF(cond,a,b)" };
 
         // JOINs
         yield return new object[] { @"SELECT U.*, UT.TenantId 
@@ -636,15 +636,16 @@ select id
     [MemberDataDb2Version]
     public void Parse_ShouldHandle_MultiStatementStrings_BySplitting(int version)
     {
-        var d = GetDialect(version, v => new Db2Dialect(v));
+        var d = Get(version, v => new Db2Dialect(v));
+        var db = new Db2DbMock();
         const string multi = "SELECT 1; SELECT 2 FROM t WHERE id = 1; INSERT INTO t(id) VALUES(1);";
         var stmts = SqlStatementSplitter.SplitStatementsTopLevel(multi, d);
 
         Assert.Equal(3, stmts.Count);
 
-        Assert.NotNull(SqlQueryParser.Parse(stmts[0], d));
-        Assert.NotNull(SqlQueryParser.Parse(stmts[1], d));
-        var q3 = SqlQueryParser.Parse(stmts[2], d);
+        Assert.NotNull(SqlQueryParser.Parse(stmts[0], db, d));
+        Assert.NotNull(SqlQueryParser.Parse(stmts[1], db, d));
+        var q3 = SqlQueryParser.Parse(stmts[2], db, d);
         Assert.NotNull(q3);
 
         // exemplo (ajuste pro seu modelo):
@@ -667,7 +668,8 @@ select id
         Console.WriteLine("Query: @\"" + sql + "\"");
         ConsoleWriter.Flush();
 
-        var dialect = GetDialect(version, v => new Db2Dialect(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
+        var db = new Db2DbMock();
 
         // regra: se precisa de minVersion e versão atual é menor, então é NotSupported (não é inválido)
         if (minVersion > 0
@@ -679,7 +681,7 @@ select id
 #pragma warning disable CA1031 // Do not catch general exception types
         try
         {
-            var parsed = SqlQueryParser.ParseMulti(sql, dialect).ToList();
+            var parsed = SqlQueryParser.ParseMulti(sql, db, dialect).ToList();
 
             Assert.True(expectation == SqlCaseExpectation.ParseOk,
                 $"Esperava {expectation} mas parseou.");

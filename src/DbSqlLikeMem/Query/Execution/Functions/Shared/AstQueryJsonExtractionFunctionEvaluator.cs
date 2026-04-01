@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Linq;
 using System.Text.Json;
 using static DbSqlLikeMem.AstQueryExecutorBase;
 
@@ -23,10 +25,73 @@ internal static class AstQueryJsonExtractionFunctionEvaluator
             return true;
         }
 
-        var value = QueryJsonFunctionHelper.TryReadJsonPathValue(json!, path!);
+        var normalizedPath = NormalizeJsonPath(path!);
+        var value = QueryJsonFunctionHelper.TryReadJsonPathValue(json!, normalizedPath);
+        if (value is JsonElement element && element.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+        {
+            result = null;
+            return true;
+        }
+
         result = string.Equals(fn.Name, "__JSON_ACCESS_TEXT", StringComparison.OrdinalIgnoreCase)
             ? value?.ToString()
             : value;
+        return true;
+    }
+
+    private static string NormalizeJsonPath(string path)
+    {
+        var trimmed = path.Trim();
+        if (trimmed.Length == 0)
+            return trimmed;
+
+        if (trimmed[0] == '$'
+            || trimmed.StartsWith("lax ", StringComparison.OrdinalIgnoreCase)
+            || trimmed.StartsWith("strict ", StringComparison.OrdinalIgnoreCase))
+            return trimmed;
+
+        if (trimmed.StartsWith("{", StringComparison.Ordinal) && trimmed.EndsWith("}", StringComparison.Ordinal))
+        {
+            var inner = trimmed[1..^1];
+            if (!string.IsNullOrWhiteSpace(inner))
+            {
+                var parts = inner
+                    .Split(',')
+                    .Select(part => part.Trim())
+                    .Where(part => part.Length > 0)
+                    .Select(part => part.Trim('"'))
+                    .Where(part => part.Length > 0)
+                    .ToArray();
+
+                if (parts.Length > 0)
+                    return "$." + string.Join(".", parts);
+            }
+        }
+
+        if (int.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out var index) && index >= 0)
+            return $"$[{index}]";
+
+        if (IsSimpleJsonPropertyName(trimmed))
+            return "$." + trimmed;
+
+        return trimmed;
+    }
+
+    private static bool IsSimpleJsonPropertyName(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+
+        if (!(char.IsLetter(value[0]) || value[0] == '_'))
+            return false;
+
+        for (var i = 1; i < value.Length; i++)
+        {
+            var ch = value[i];
+            if (!(char.IsLetterOrDigit(ch) || ch == '_'))
+                return false;
+        }
+
         return true;
     }
 

@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.Sqlite.Test;
+namespace DbSqlLikeMem.Sqlite.Test;
 /// <summary>
 /// EN: Verifies LINQ query translation and provider metadata behavior for SQLite connections.
 /// PT: Verifica a traducao de consultas LINQ e o comportamento de metadados do provedor para conexoes SQLite.
@@ -44,8 +44,8 @@ public sealed class SqliteLinqProviderTest(
                       .Where(u => u.Id == 2)
                       .ToList();
 
-        Assert.Single(list);
-        Assert.Equal("B", list[0].Name);
+        list.Should().ContainSingle();
+        list[0].Name.Should().Be("B");
     }
 
 }

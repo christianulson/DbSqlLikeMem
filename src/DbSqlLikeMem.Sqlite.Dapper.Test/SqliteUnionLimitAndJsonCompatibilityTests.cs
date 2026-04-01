@@ -79,15 +79,15 @@ public sealed class SqliteUnionLimitAndJsonCompatibilityTests : DapperUnionLimit
 
 
     /// <summary>
-    /// EN: Verifies unsupported JSON functions throw the expected exception.
-    /// PT: Verifica se funcoes JSON sem suporte lancam a excecao esperada.
+    /// EN: Verifies JSON_VALUE returns the expected values.
+    /// PT: Verifica se JSON_VALUE retorna os valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteUnionLimitAndJsonCompatibility")]
-    public void JsonFunction_ShouldThrow_WhenNotSupportedByDialect()
+    public void JsonValue_SimpleObjectPath_ShouldWork()
     {
-        Assert.Throws<NotSupportedException>(() =>
-            Connection.Query<dynamic>("SELECT JSON_VALUE(payload, '$.a.b') AS v FROM t").ToList());
+        var rows = Connection.Query<dynamic>("SELECT id, JSON_VALUE(payload, '$.a.b') AS v FROM t ORDER BY id").ToList();
+        Assert.Equal([123m, 456m, null], [.. rows.Select(r => (object?)r.v)]);
     }
 
     /// <summary>

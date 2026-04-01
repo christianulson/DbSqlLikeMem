@@ -1,3 +1,4 @@
+using FluentAssertions;
 using System.Reflection;
 
 namespace DbSqlLikeMem.MySql.Test;
@@ -98,16 +99,16 @@ public sealed class MySqlBatchMockCoverageTests(
             CommandType = CommandType.StoredProcedure
         });
 
-        await Assert.ThrowsAsync<NotSupportedException>(() => invalidPrepare.PrepareAsync());
+        await FluentActions.Awaiting(() => invalidPrepare.PrepareAsync()).Should().ThrowAsync<NotSupportedException>();
 
         using var validBatch = new MySqlBatchMock(connection);
         validBatch.BatchCommands.Add(new MySqlBatchCommandMock("SELECT 1"));
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => validBatch.ExecuteNonQueryAsync(cts.Token));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => validBatch.ExecuteScalarAsync(cts.Token));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => validBatch.ExecuteReaderAsync(cts.Token));
+        await FluentActions.Awaiting(() => validBatch.ExecuteNonQueryAsync(cts.Token)).Should().ThrowAsync<OperationCanceledException>();
+        await FluentActions.Awaiting(() => validBatch.ExecuteScalarAsync(cts.Token)).Should().ThrowAsync<OperationCanceledException>();
+        await FluentActions.Awaiting(() => validBatch.ExecuteReaderAsync(cts.Token)).Should().ThrowAsync<OperationCanceledException>();
     }
 #pragma warning restore xUnit1051
 
@@ -160,7 +161,7 @@ public sealed class MySqlBatchMockCoverageTests(
         ((DbCommand)executable).Transaction.Should().BeSameAs(transaction);
         executable.CommandText.Should().Be(insert.CommandText);
         executable.CommandTimeout.Should().Be(15);
-        Assert.Equal(2, executable.Parameters.Count);
+        executable.Parameters.Count.Should().Be(2);
         ((MySqlParameter)executable.Parameters[0]).Value.Should().Be(1);
         ((MySqlParameter)executable.Parameters[1]).Value.Should().Be("Ana");
     }

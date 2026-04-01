@@ -86,7 +86,11 @@ internal static class SqlOpenJsonHelper
 
     internal static DbType ParseOpenJsonColumnDbType(string sqlType)
     {
-        var normalized = sqlType.Trim().NormalizeName().ToUpperInvariant().Split(' ')[0];
+        var normalized = sqlType
+            .Trim()
+            .NormalizeName()
+            .ToUpperInvariant()
+            .Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)[0];
         return fnDtType.TryGetValue(normalized, out var dt)
             ? dt
             : DbType.String;

@@ -138,7 +138,7 @@ internal sealed class NpgsqlDialect : SqlDialectBase, ISqlDialect
     /// EN: Gets or sets allows parser cross dialect json operators.
     /// PT: Obtém ou define allows parser cross dialect json operators.
     /// </summary>
-    public override bool AllowsParserCrossDialectJsonOperators => true;
+    public override bool AllowsParserCrossDialectJsonOperators => Version >= JsonbMinVersion;
 
     /// <summary>
     /// EN: Gets whether with cte is supported.

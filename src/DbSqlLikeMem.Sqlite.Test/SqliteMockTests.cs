@@ -1,3 +1,7 @@
+using FluentAssertions;
+
+using FluentAssertions;
+
 namespace DbSqlLikeMem.Sqlite.Test;
 
 /// <summary>
@@ -46,8 +50,8 @@ public sealed class SqliteMockTests
             CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'John Doe', 'john@example.com')"
         };
         var rowsAffected = command.ExecuteNonQuery();
-        Assert.Equal(1, rowsAffected);
-        Assert.Equal("John Doe", _connection.GetTable("users")[0][1]);
+        rowsAffected.Should().Be(1);
+        _connection.GetTable("users")[0][1].Should().Be("John Doe");
     }
 
     /// <summary>
@@ -75,11 +79,11 @@ public sealed class SqliteMockTests
         name.Value = "Bia";
         var secondRowsAffected = command.ExecuteNonQuery();
 
-        Assert.Equal(1, firstRowsAffected);
-        Assert.Equal(1, secondRowsAffected);
-        Assert.Equal(2, _connection.GetTable("users").Count);
-        Assert.Equal("Ana", _connection.GetTable("users")[0][1]);
-        Assert.Equal("Bia", _connection.GetTable("users")[1][1]);
+        firstRowsAffected.Should().Be(1);
+        secondRowsAffected.Should().Be(1);
+        _connection.GetTable("users").Count.Should().Be(2);
+        _connection.GetTable("users")[0][1].Should().Be("Ana");
+        _connection.GetTable("users")[1][1].Should().Be("Bia");
     }
 
     /// <summary>
@@ -107,8 +111,8 @@ public sealed class SqliteMockTests
         };
 
         using var reader = command.ExecuteReader();
-        Assert.True(reader.Read());
-        Assert.Equal("Ana", reader.GetString(0));
+        reader.Read().Should().BeTrue();
+        reader.GetString(0).Should().Be("Ana");
     }
 
     /// <summary>
@@ -136,8 +140,8 @@ public sealed class SqliteMockTests
         };
 
         using var reader = command.ExecuteReader();
-        Assert.True(reader.Read());
-        Assert.Equal("Ana", reader.GetString(0));
+        reader.Read().Should().BeTrue();
+        reader.GetString(0).Should().Be("Ana");
     }
 
     /// <summary>
@@ -159,13 +163,13 @@ public sealed class SqliteMockTests
             CommandText = "SELECT Name FROM Users WHERE Id = 1"
         };
 
-        Assert.Equal("Ana", warmup.ExecuteScalar());
+        warmup.ExecuteScalar().Should().Be("Ana");
 
         var generationBefore = _connection.GetSelectPlanCacheGeneration();
         _connection.ChangeDatabase(_connection.Database);
         var generationAfter = _connection.GetSelectPlanCacheGeneration();
 
-        Assert.Equal(generationBefore, generationAfter);
+        generationAfter.Should().Be(generationBefore);
     }
 
     /// <summary>
@@ -199,9 +203,9 @@ public sealed class SqliteMockTests
 
         var rowsAffected = command.ExecuteNonQuery();
 
-        Assert.Equal(1, rowsAffected);
-        Assert.Equal(3, _connection.GetTable("users").Count);
-        Assert.Equal("Ana", _connection.GetTable("users")[2][1]);
+        rowsAffected.Should().Be(1);
+        _connection.GetTable("users").Count.Should().Be(3);
+        _connection.GetTable("users")[2][1].Should().Be("Ana");
     }
 
     /// <summary>
@@ -234,14 +238,14 @@ public sealed class SqliteMockTests
         };
 
         using var reader = command.ExecuteReader();
-        Assert.True(reader.Read());
-        Assert.Equal("Ana", reader.GetString(0));
-        Assert.True(reader.NextResult());
-        Assert.True(reader.Read());
-        Assert.Equal("Ana", reader.GetString(0));
-        Assert.True(reader.NextResult());
-        Assert.True(reader.Read());
-        Assert.Equal("Ana", reader.GetString(0));
+        reader.Read().Should().BeTrue();
+        reader.GetString(0).Should().Be("Ana");
+        reader.NextResult().Should().BeTrue();
+        reader.Read().Should().BeTrue();
+        reader.GetString(0).Should().Be("Ana");
+        reader.NextResult().Should().BeTrue();
+        reader.Read().Should().BeTrue();
+        reader.GetString(0).Should().Be("Ana");
     }
 
     /// <summary>
@@ -282,10 +286,10 @@ public sealed class SqliteMockTests
         var fetch = ReadSingleColumn(_connection, "SELECT Name FROM Users ORDER BY Id FETCH FIRST 2 ROWS ONLY");
         var rownum = ReadSingleColumn(_connection, "SELECT Name FROM Users WHERE ROWNUM <= 2 ORDER BY Id");
 
-        Assert.Equal(new[] { "Ana", "Bia" }, top);
-        Assert.Equal(top, limit);
-        Assert.Equal(top, fetch);
-        Assert.Equal(top, rownum);
+        top.Should().Equal(["Ana", "Bia"]);
+        limit.Should().Equal(top);
+        fetch.Should().Equal(top);
+        rownum.Should().Equal(top);
     }
 
     /// <summary>
@@ -302,19 +306,19 @@ public sealed class SqliteMockTests
         {
             CommandText = "CREATE SEQUENCE seq_users START WITH 10 INCREMENT BY 2"
         };
-        Assert.Equal(0, command.ExecuteNonQuery());
+        command.ExecuteNonQuery().Should().Be(0);
 
         command.CommandText = "SELECT NEXT VALUE FOR seq_users";
-        Assert.Equal(10L, Convert.ToInt64(command.ExecuteScalar()));
+        Convert.ToInt64(command.ExecuteScalar()).Should().Be(10L);
 
         command.CommandText = "SELECT seq_users.NEXTVAL";
-        Assert.Equal(12L, Convert.ToInt64(command.ExecuteScalar()));
+        Convert.ToInt64(command.ExecuteScalar()).Should().Be(12L);
 
         command.CommandText = "SELECT CURRVAL('seq_users')";
-        Assert.Equal(12L, Convert.ToInt64(command.ExecuteScalar()));
+        Convert.ToInt64(command.ExecuteScalar()).Should().Be(12L);
 
         command.CommandText = "SELECT LASTVAL()";
-        Assert.Equal(12L, Convert.ToInt64(command.ExecuteScalar()));
+        Convert.ToInt64(command.ExecuteScalar()).Should().Be(12L);
     }
 
     /// <summary>
@@ -337,13 +341,13 @@ public sealed class SqliteMockTests
                 """
         };
 
-        Assert.Equal(3, command.ExecuteNonQuery());
+        command.ExecuteNonQuery().Should().Be(3);
 
         var users = _connection.GetTable("users");
-        Assert.Equal(3, users.Count);
-        Assert.Equal(20, Convert.ToInt32(users[0][0]));
-        Assert.Equal(25, Convert.ToInt32(users[1][0]));
-        Assert.Equal(30, Convert.ToInt32(users[2][0]));
+        users.Count.Should().Be(3);
+        Convert.ToInt32(users[0][0]).Should().Be(20);
+        Convert.ToInt32(users[1][0]).Should().Be(25);
+        Convert.ToInt32(users[2][0]).Should().Be(30);
     }
 
     /// <summary>
@@ -360,17 +364,17 @@ public sealed class SqliteMockTests
         {
             CommandText = "CREATE SEQUENCE seq_runtime START WITH 7 INCREMENT BY 3"
         };
-        Assert.Equal(0, command.ExecuteNonQuery());
+        command.ExecuteNonQuery().Should().Be(0);
 
         command.CommandText = "SELECT NEXT VALUE FOR seq_runtime";
-        Assert.Equal(7L, Convert.ToInt64(command.ExecuteScalar()));
+        Convert.ToInt64(command.ExecuteScalar()).Should().Be(7L);
 
         command.CommandText = "SELECT PREVIOUS VALUE FOR seq_runtime";
-        Assert.Equal(7L, Convert.ToInt64(command.ExecuteScalar()));
+        Convert.ToInt64(command.ExecuteScalar()).Should().Be(7L);
 
         command.CommandText = "DROP SEQUENCE IF EXISTS seq_runtime";
-        Assert.Equal(0, command.ExecuteNonQuery());
-        Assert.False(_connection.TryGetSequence("seq_runtime", out _));
+        command.ExecuteNonQuery().Should().Be(0);
+        _connection.TryGetSequence("seq_runtime", out _).Should().BeFalse();
     }
 
     /// <summary>
@@ -390,11 +394,11 @@ public sealed class SqliteMockTests
         command.ExecuteNonQuery();
 
         command.CommandText = "ALTER TABLE Users ADD COLUMN NickName VARCHAR(30) DEFAULT 'guest'";
-        Assert.Equal(0, command.ExecuteNonQuery());
+        command.ExecuteNonQuery().Should().Be(0);
 
         var users = _connection.GetTable("users");
-        Assert.True(users.Columns.ContainsKey("nickname"));
-        Assert.Equal("guest", users[0][users.Columns["nickname"].Index]);
+        users.Columns.ContainsKey("nickname").Should().BeTrue();
+        users[0][users.Columns["nickname"].Index].Should().Be("guest");
     }
 
     /// <summary>
@@ -417,14 +421,14 @@ public sealed class SqliteMockTests
         {
             warmup.CommandText = "SELECT * FROM Users ORDER BY Id";
             using var warmReader = warmup.ExecuteReader();
-            Assert.True(warmReader.Read());
-            Assert.Equal(3, warmReader.FieldCount);
+            warmReader.Read().Should().BeTrue();
+            warmReader.FieldCount.Should().Be(3);
         }
 
         using (var alter = new SqliteCommandMock(_connection))
         {
             alter.CommandText = "ALTER TABLE Users ADD COLUMN NickName VARCHAR(30) DEFAULT 'guest'";
-            Assert.Equal(0, alter.ExecuteNonQuery());
+            alter.ExecuteNonQuery().Should().Be(0);
         }
 
         using var command = new SqliteCommandMock(_connection)
@@ -434,10 +438,10 @@ public sealed class SqliteMockTests
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        Assert.Equal(4, reader.FieldCount);
-        Assert.Equal("guest", Convert.ToString(reader.GetValue(3)));
-        Assert.False(reader.Read());
+        reader.Read().Should().BeTrue();
+        reader.FieldCount.Should().Be(4);
+        Convert.ToString(reader.GetValue(3)).Should().Be("guest");
+        reader.Read().Should().BeFalse();
     }
 
     /// <summary>
@@ -456,14 +460,14 @@ public sealed class SqliteMockTests
         };
         command.ExecuteNonQuery();
 
-        var ex = Assert.ThrowsAny<Exception>(() =>
+        var ex = FluentActions.Invoking(() =>
         {
             command.CommandText = "ALTER TABLE Users ADD COLUMN Status VARCHAR(20) NOT NULL";
             command.ExecuteNonQuery();
-        });
+        }).Should().Throw<Exception>().Which;
 
-        Assert.Contains("status", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.False(_connection.GetTable("users").Columns.ContainsKey("status"));
+        ex.Message.Contains("status", StringComparison.OrdinalIgnoreCase).Should().BeTrue();
+        _connection.GetTable("users").Columns.ContainsKey("status").Should().BeFalse();
     }
 
     /// <summary>
@@ -481,10 +485,10 @@ public sealed class SqliteMockTests
             CommandText = "SELECT '{\"tenant\":\"acme\",\"region\":\"us\"}'->>'$.tenant'"
         };
 
-        Assert.Equal("acme", Convert.ToString(command.ExecuteScalar()));
+        Convert.ToString(command.ExecuteScalar()).Should().Be("acme");
 
         command.CommandText = "SELECT '{\"tenant\":\"acme\",\"region\":\"us\"}'->>'$.region'";
-        Assert.Equal("us", Convert.ToString(command.ExecuteScalar()));
+        Convert.ToString(command.ExecuteScalar()).Should().Be("us");
     }
 
     /// <summary>
@@ -502,13 +506,13 @@ public sealed class SqliteMockTests
             CommandText = "SELECT JSON_EXTRACT('{\"tenant\":\"acme\",\"region\":\"us\"}', '$.tenant')"
         };
 
-        Assert.Equal("acme", Convert.ToString(command.ExecuteScalar()));
+        Convert.ToString(command.ExecuteScalar()).Should().Be("acme");
 
         command.CommandText = "SELECT JSON_VALUE('{\"tenant\":\"acme\",\"region\":\"us\"}', '$.region')";
-        Assert.Equal("us", Convert.ToString(command.ExecuteScalar()));
+        Convert.ToString(command.ExecuteScalar()).Should().Be("us");
 
         command.CommandText = "SELECT JSON_VALUE('{\"tenantId\":42}', '$.tenantId' RETURNING NUMBER)";
-        Assert.Equal(42m, Convert.ToDecimal(command.ExecuteScalar()));
+        Convert.ToDecimal(command.ExecuteScalar()).Should().Be(42m);
     }
 
     /// <summary>
@@ -526,16 +530,16 @@ public sealed class SqliteMockTests
             CommandText = "SELECT NOW()"
         };
 
-        Assert.IsType<DateTime>(command.ExecuteScalar());
+        command.ExecuteScalar().Should().BeOfType<DateTime>();
 
         command.CommandText = "SELECT GETDATE()";
-        Assert.IsType<DateTime>(command.ExecuteScalar());
+        command.ExecuteScalar().Should().BeOfType<DateTime>();
 
         command.CommandText = "SELECT CURRENT_DATE";
-        Assert.IsType<DateTime>(command.ExecuteScalar());
+        command.ExecuteScalar().Should().BeOfType<DateTime>();
 
         command.CommandText = "SELECT SYSTEMDATE";
-        Assert.IsType<DateTime>(command.ExecuteScalar());
+        command.ExecuteScalar().Should().BeOfType<DateTime>();
     }
 
     /// <summary>
@@ -553,13 +557,13 @@ public sealed class SqliteMockTests
             CommandText = "SELECT DATE_ADD('2024-01-10', INTERVAL 2 DAY)"
         };
 
-        Assert.Equal(new DateTime(2024, 1, 12), Assert.IsType<DateTime>(command.ExecuteScalar()));
+        Convert.ToDateTime(command.ExecuteScalar()).Should().Be(new DateTime(2024, 1, 12));
 
         command.CommandText = "SELECT DATEADD(DAY, 2, '2024-01-10')";
-        Assert.Equal(new DateTime(2024, 1, 12), Assert.IsType<DateTime>(command.ExecuteScalar()));
+        Convert.ToDateTime(command.ExecuteScalar()).Should().Be(new DateTime(2024, 1, 12));
 
         command.CommandText = "SELECT TIMESTAMPADD(DAY, 2, '2024-01-10')";
-        Assert.Equal(new DateTime(2024, 1, 12), Assert.IsType<DateTime>(command.ExecuteScalar()));
+        Convert.ToDateTime(command.ExecuteScalar()).Should().Be(new DateTime(2024, 1, 12));
     }
 
     /// <summary>
@@ -587,16 +591,16 @@ public sealed class SqliteMockTests
             CommandText = "SELECT GROUP_CONCAT(Name, '|') FROM Users"
         };
 
-        Assert.Equal("Ana|Bia|Caio", Convert.ToString(command.ExecuteScalar()));
+        Convert.ToString(command.ExecuteScalar()).Should().Be("Ana|Bia|Caio");
 
         command.CommandText = "SELECT GROUP_CONCAT(DISTINCT Name, '|') FROM Users";
-        Assert.Equal("Ana|Bia|Caio", Convert.ToString(command.ExecuteScalar()));
+        Convert.ToString(command.ExecuteScalar()).Should().Be("Ana|Bia|Caio");
 
         command.CommandText = "SELECT STRING_AGG(Name, '|') FROM Users";
-        Assert.Equal("Ana|Bia|Caio", Convert.ToString(command.ExecuteScalar()));
+        Convert.ToString(command.ExecuteScalar()).Should().Be("Ana|Bia|Caio");
 
         command.CommandText = "SELECT LISTAGG(Name, '|') WITHIN GROUP (ORDER BY Name DESC) FROM Users";
-        Assert.Equal("Caio|Bia|Ana", Convert.ToString(command.ExecuteScalar()));
+        Convert.ToString(command.ExecuteScalar()).Should().Be("Caio|Bia|Ana");
     }
 
     /// <summary>
@@ -629,7 +633,7 @@ public sealed class SqliteMockTests
                 """
         };
 
-        Assert.Equal(6L, Convert.ToInt64(command.ExecuteScalar()));
+        Convert.ToInt64(command.ExecuteScalar()).Should().Be(6L);
     }
 
     /// <summary>
@@ -663,7 +667,7 @@ public sealed class SqliteMockTests
                 """
         };
 
-        Assert.Equal(6L, Convert.ToInt64(command.ExecuteScalar()));
+        Convert.ToInt64(command.ExecuteScalar()).Should().Be(6L);
     }
 
     /// <summary>
@@ -697,7 +701,7 @@ public sealed class SqliteMockTests
                 """
         };
 
-        Assert.Equal(6L, Convert.ToInt64(command.ExecuteScalar()));
+        Convert.ToInt64(command.ExecuteScalar()).Should().Be(6L);
     }
 
     /// <summary>
@@ -735,7 +739,7 @@ public sealed class SqliteMockTests
         while (reader.Read())
             values.Add(reader.GetString(0));
 
-        Assert.Equal(["Ana", "Bia"], values);
+        values.Should().Equal(["Ana", "Bia"]);
     }
 
     /// <summary>
@@ -776,7 +780,7 @@ public sealed class SqliteMockTests
         while (reader.Read())
             values.Add(reader.GetString(0));
 
-        Assert.Equal(["Bia"], values);
+        values.Should().Equal(["Bia"]);
     }
 
     /// <summary>
@@ -796,19 +800,19 @@ public sealed class SqliteMockTests
         command.ExecuteNonQuery();
 
         command.CommandText = "SELECT CHANGES()";
-        Assert.Equal(0L, Convert.ToInt64(command.ExecuteScalar()));
+        Convert.ToInt64(command.ExecuteScalar()).Should().Be(0L);
 
         command.CommandText = "SELECT ROW_COUNT()";
-        Assert.Equal(0L, Convert.ToInt64(command.ExecuteScalar()));
+        Convert.ToInt64(command.ExecuteScalar()).Should().Be(0L);
 
         command.CommandText = "SELECT FOUND_ROWS()";
-        Assert.Equal(0L, Convert.ToInt64(command.ExecuteScalar()));
+        Convert.ToInt64(command.ExecuteScalar()).Should().Be(0L);
 
         command.CommandText = "SELECT ROWCOUNT()";
-        Assert.Equal(0L, Convert.ToInt64(command.ExecuteScalar()));
+        Convert.ToInt64(command.ExecuteScalar()).Should().Be(0L);
 
         command.CommandText = "SELECT @@ROWCOUNT";
-        Assert.Equal(0L, Convert.ToInt64(command.ExecuteScalar()));
+        Convert.ToInt64(command.ExecuteScalar()).Should().Be(0L);
     }
 
     /// <summary>
@@ -836,12 +840,9 @@ public sealed class SqliteMockTests
             CommandText = "SELECT SQL_CALC_FOUND_ROWS Name FROM Users ORDER BY Id LIMIT 1; SELECT FOUND_ROWS();"
         };
 
-        using var reader = command.ExecuteReader();
-        Assert.True(reader.Read());
-        Assert.Equal("Ana", reader.GetString(0));
-        Assert.True(reader.NextResult());
-        Assert.True(reader.Read());
-        Assert.Equal(3L, Convert.ToInt64(reader.GetValue(0)));
+        Action act = () => command.ExecuteReader();
+        act.Should().Throw<NotSupportedException>()
+            .Which.Message.Should().Contain("SQL_CALC_FOUND_ROWS");
     }
 
     /// <summary>
@@ -859,10 +860,10 @@ public sealed class SqliteMockTests
             CommandText = "SELECT NULL <=> NULL"
         };
 
-        Assert.True(Convert.ToBoolean(command.ExecuteScalar()));
+        Convert.ToBoolean(command.ExecuteScalar()).Should().BeTrue();
 
         command.CommandText = "SELECT NULL <=> 1";
-        Assert.False(Convert.ToBoolean(command.ExecuteScalar()));
+        Convert.ToBoolean(command.ExecuteScalar()).Should().BeFalse();
     }
 
     /// <summary>
@@ -880,10 +881,10 @@ public sealed class SqliteMockTests
             CommandText = "SELECT 'John' ILIKE 'jo%'"
         };
 
-        Assert.True(Convert.ToBoolean(command.ExecuteScalar()));
+        Convert.ToBoolean(command.ExecuteScalar()).Should().BeTrue();
 
         command.CommandText = "SELECT 'John' ILIKE 'ma%'";
-        Assert.False(Convert.ToBoolean(command.ExecuteScalar()));
+        Convert.ToBoolean(command.ExecuteScalar()).Should().BeFalse();
     }
 
     /// <summary>
@@ -901,10 +902,10 @@ public sealed class SqliteMockTests
             CommandText = "SELECT MATCH('john doe', 'john') AGAINST ('john' IN BOOLEAN MODE)"
         };
 
-        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar()));
+        Convert.ToInt32(command.ExecuteScalar()).Should().Be(1);
 
         command.CommandText = "SELECT MATCH('john doe', 'john') AGAINST ('+maria -john' IN BOOLEAN MODE)";
-        Assert.Equal(0, Convert.ToInt32(command.ExecuteScalar()));
+        Convert.ToInt32(command.ExecuteScalar()).Should().Be(0);
     }
 
     /// <summary>
@@ -922,25 +923,25 @@ public sealed class SqliteMockTests
             CommandText = "SELECT IF(1 = 1, 'yes', 'no')"
         };
 
-        Assert.Equal("yes", Convert.ToString(command.ExecuteScalar()));
+        Convert.ToString(command.ExecuteScalar()).Should().Be("yes");
 
         command.CommandText = "SELECT IIF(1 = 0, 'yes', 'no')";
-        Assert.Equal("no", Convert.ToString(command.ExecuteScalar()));
+        Convert.ToString(command.ExecuteScalar()).Should().Be("no");
 
         command.CommandText = "SELECT IFNULL(NULL, 'fallback')";
-        Assert.Equal("fallback", Convert.ToString(command.ExecuteScalar()));
+        Convert.ToString(command.ExecuteScalar()).Should().Be("fallback");
 
         command.CommandText = "SELECT ISNULL(NULL, 'fallback')";
-        Assert.Equal("fallback", Convert.ToString(command.ExecuteScalar()));
+        Convert.ToString(command.ExecuteScalar()).Should().Be("fallback");
 
         command.CommandText = "SELECT NVL(NULL, 'fallback')";
-        Assert.Equal("fallback", Convert.ToString(command.ExecuteScalar()));
+        Convert.ToString(command.ExecuteScalar()).Should().Be("fallback");
 
         command.CommandText = "SELECT COALESCE(NULL, 'fallback')";
-        Assert.Equal("fallback", Convert.ToString(command.ExecuteScalar()));
+        Convert.ToString(command.ExecuteScalar()).Should().Be("fallback");
 
         command.CommandText = "SELECT NULLIF('same', 'same')";
-        Assert.Equal(DBNull.Value, command.ExecuteScalar());
+        command.ExecuteScalar().Should().Be(DBNull.Value);
     }
 
     /// <summary>
@@ -958,10 +959,10 @@ public sealed class SqliteMockTests
             CommandText = """SELECT OPENJSON('{"tenant":"acme","region":"sa"}')"""
         };
 
-        Assert.Equal("""{"tenant":"acme","region":"sa"}""", Convert.ToString(command.ExecuteScalar()));
+        Convert.ToString(command.ExecuteScalar()).Should().Be("""{"tenant":"acme","region":"sa"}""");
 
         command.CommandText = "SELECT OPENJSON(NULL)";
-        Assert.Equal(DBNull.Value, command.ExecuteScalar());
+        command.ExecuteScalar().Should().Be(DBNull.Value);
     }
 
     /// <summary>
@@ -998,22 +999,22 @@ public sealed class SqliteMockTests
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        Assert.Equal(1, reader.GetInt32(0));
-        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(1)));
-        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(2)));
+        reader.Read().Should().BeTrue();
+        reader.GetInt32(0).Should().Be(1);
+        Convert.ToInt64(reader.GetValue(1)).Should().Be(1L);
+        Convert.ToInt64(reader.GetValue(2)).Should().Be(0L);
 
-        Assert.True(reader.Read());
-        Assert.Equal(2, reader.GetInt32(0));
-        Assert.Equal(2L, Convert.ToInt64(reader.GetValue(1)));
-        Assert.Equal(1, Convert.ToInt32(reader.GetValue(2)));
+        reader.Read().Should().BeTrue();
+        reader.GetInt32(0).Should().Be(2);
+        Convert.ToInt64(reader.GetValue(1)).Should().Be(2L);
+        Convert.ToInt32(reader.GetValue(2)).Should().Be(1);
 
-        Assert.True(reader.Read());
-        Assert.Equal(3, reader.GetInt32(0));
-        Assert.Equal(3L, Convert.ToInt64(reader.GetValue(1)));
-        Assert.Equal(2, Convert.ToInt32(reader.GetValue(2)));
+        reader.Read().Should().BeTrue();
+        reader.GetInt32(0).Should().Be(3);
+        Convert.ToInt64(reader.GetValue(1)).Should().Be(3L);
+        Convert.ToInt32(reader.GetValue(2)).Should().Be(2);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
     }
 
     /// <summary>
@@ -1049,19 +1050,19 @@ public sealed class SqliteMockTests
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        Assert.Equal(1, reader.GetInt32(0));
-        Assert.Equal(1, Convert.ToInt32(reader.GetValue(1)));
+        reader.Read().Should().BeTrue();
+        reader.GetInt32(0).Should().Be(1);
+        Convert.ToInt32(reader.GetValue(1)).Should().Be(1);
 
-        Assert.True(reader.Read());
-        Assert.Equal(2, reader.GetInt32(0));
-        Assert.Equal(2, Convert.ToInt32(reader.GetValue(1)));
+        reader.Read().Should().BeTrue();
+        reader.GetInt32(0).Should().Be(2);
+        Convert.ToInt32(reader.GetValue(1)).Should().Be(2);
 
-        Assert.True(reader.Read());
-        Assert.Equal(3, reader.GetInt32(0));
-        Assert.Equal(3, Convert.ToInt32(reader.GetValue(1)));
+        reader.Read().Should().BeTrue();
+        reader.GetInt32(0).Should().Be(3);
+        Convert.ToInt32(reader.GetValue(1)).Should().Be(3);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
     }
 
     /// <summary>
@@ -1099,25 +1100,25 @@ public sealed class SqliteMockTests
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        Assert.Equal(1, reader.GetInt32(0));
-        Assert.Equal(1, Convert.ToInt32(reader.GetValue(1)));
-        Assert.Equal(3, Convert.ToInt32(reader.GetValue(2)));
-        Assert.Equal(2, Convert.ToInt32(reader.GetValue(3)));
+        reader.Read().Should().BeTrue();
+        reader.GetInt32(0).Should().Be(1);
+        Convert.ToInt32(reader.GetValue(1)).Should().Be(1);
+        Convert.ToInt32(reader.GetValue(2)).Should().Be(3);
+        Convert.ToInt32(reader.GetValue(3)).Should().Be(2);
 
-        Assert.True(reader.Read());
-        Assert.Equal(2, reader.GetInt32(0));
-        Assert.Equal(1, Convert.ToInt32(reader.GetValue(1)));
-        Assert.Equal(3, Convert.ToInt32(reader.GetValue(2)));
-        Assert.Equal(2, Convert.ToInt32(reader.GetValue(3)));
+        reader.Read().Should().BeTrue();
+        reader.GetInt32(0).Should().Be(2);
+        Convert.ToInt32(reader.GetValue(1)).Should().Be(1);
+        Convert.ToInt32(reader.GetValue(2)).Should().Be(3);
+        Convert.ToInt32(reader.GetValue(3)).Should().Be(2);
 
-        Assert.True(reader.Read());
-        Assert.Equal(3, reader.GetInt32(0));
-        Assert.Equal(1, Convert.ToInt32(reader.GetValue(1)));
-        Assert.Equal(3, Convert.ToInt32(reader.GetValue(2)));
-        Assert.Equal(2, Convert.ToInt32(reader.GetValue(3)));
+        reader.Read().Should().BeTrue();
+        reader.GetInt32(0).Should().Be(3);
+        Convert.ToInt32(reader.GetValue(1)).Should().Be(1);
+        Convert.ToInt32(reader.GetValue(2)).Should().Be(3);
+        Convert.ToInt32(reader.GetValue(3)).Should().Be(2);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
     }
 
     /// <summary>
@@ -1147,7 +1148,7 @@ public sealed class SqliteMockTests
                 """
         };
 
-        Assert.Equal(2, Convert.ToInt32(command.ExecuteScalar()));
+        Convert.ToInt32(command.ExecuteScalar()).Should().Be(2);
     }
 
     /// <summary>
@@ -1180,7 +1181,7 @@ public sealed class SqliteMockTests
                 """
         };
 
-        Assert.Equal(3, Convert.ToInt32(command.ExecuteScalar()));
+        Convert.ToInt32(command.ExecuteScalar()).Should().Be(3);
     }
 
     /// <summary>
@@ -1210,7 +1211,7 @@ public sealed class SqliteMockTests
                 """
         };
 
-        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar()));
+        Convert.ToInt32(command.ExecuteScalar()).Should().Be(1);
     }
 
     /// <summary>
@@ -1243,7 +1244,7 @@ public sealed class SqliteMockTests
                 """
         };
 
-        Assert.Equal(2, Convert.ToInt32(command.ExecuteScalar()));
+        Convert.ToInt32(command.ExecuteScalar()).Should().Be(2);
     }
 
     /// <summary>
@@ -1296,8 +1297,8 @@ public sealed class SqliteMockTests
         var firstPass = ReadRows();
         var secondPass = ReadRows();
 
-        Assert.Equal(firstPass, secondPass);
-        Assert.Equal([(1, 1L, 0), (2, 2L, 1), (3, 3L, 2)], firstPass);
+        secondPass.Should().Equal(firstPass);
+        firstPass.Should().Equal([(1, 1L, 0), (2, 2L, 1), (3, 3L, 2)]);
     }
 
     /// <summary>
@@ -1335,27 +1336,27 @@ public sealed class SqliteMockTests
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        Assert.Equal(1, reader.GetInt32(0));
-        Assert.Equal(10, reader.GetInt32(1));
-        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(2)));
+        reader.Read().Should().BeTrue();
+        reader.GetInt32(0).Should().Be(1);
+        reader.GetInt32(1).Should().Be(10);
+        Convert.ToInt64(reader.GetValue(2)).Should().Be(1L);
 
-        Assert.True(reader.Read());
-        Assert.Equal(2, reader.GetInt32(0));
-        Assert.Equal(10, reader.GetInt32(1));
-        Assert.Equal(2L, Convert.ToInt64(reader.GetValue(2)));
+        reader.Read().Should().BeTrue();
+        reader.GetInt32(0).Should().Be(2);
+        reader.GetInt32(1).Should().Be(10);
+        Convert.ToInt64(reader.GetValue(2)).Should().Be(2L);
 
-        Assert.True(reader.Read());
-        Assert.Equal(3, reader.GetInt32(0));
-        Assert.Equal(20, reader.GetInt32(1));
-        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(2)));
+        reader.Read().Should().BeTrue();
+        reader.GetInt32(0).Should().Be(3);
+        reader.GetInt32(1).Should().Be(20);
+        Convert.ToInt64(reader.GetValue(2)).Should().Be(1L);
 
-        Assert.True(reader.Read());
-        Assert.Equal(4, reader.GetInt32(0));
-        Assert.Equal(20, reader.GetInt32(1));
-        Assert.Equal(2L, Convert.ToInt64(reader.GetValue(2)));
+        reader.Read().Should().BeTrue();
+        reader.GetInt32(0).Should().Be(4);
+        reader.GetInt32(1).Should().Be(20);
+        Convert.ToInt64(reader.GetValue(2)).Should().Be(2L);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
     }
 
     /// <summary>
@@ -1387,12 +1388,9 @@ public sealed class SqliteMockTests
                 """
         };
 
-        using var reader = command.ExecuteReader();
-
-        Assert.True(reader.Read());
-        Assert.Equal(2, Convert.ToInt32(reader.GetValue(0)));
-        Assert.Equal(1, Convert.ToInt32(reader.GetValue(1)));
-        Assert.False(reader.Read());
+        Action act = () => command.ExecuteReader();
+        act.Should().Throw<NotSupportedException>()
+            .Which.Message.Should().Contain("PIVOT");
     }
 
     /// <summary>
@@ -1430,11 +1428,11 @@ public sealed class SqliteMockTests
         };
 
         using var reader = command.ExecuteReader();
-        Assert.True(reader.Read());
-        Assert.Equal("Ana", reader.GetString(0));
-        Assert.True(reader.Read());
-        Assert.Equal("Bia", reader.GetString(0));
-        Assert.False(reader.Read());
+        reader.Read().Should().BeTrue();
+        reader.GetString(0).Should().Be("Ana");
+        reader.Read().Should().BeTrue();
+        reader.GetString(0).Should().Be("Bia");
+        reader.Read().Should().BeFalse();
     }
 
     /// <summary>
@@ -1454,27 +1452,27 @@ public sealed class SqliteMockTests
 
         using (var reader = command.ExecuteReader())
         {
-            Assert.True(reader.Read());
-            Assert.Equal(701, reader.GetInt32(0));
-            Assert.Equal("Returning Auto", reader.GetString(1));
-            Assert.False(reader.Read());
+            reader.Read().Should().BeTrue();
+            reader.GetInt32(0).Should().Be(701);
+            reader.GetString(1).Should().Be("Returning Auto");
+            reader.Read().Should().BeFalse();
         }
 
         command.CommandText = "UPDATE Users SET Name = 'Returning Updated' WHERE Id = 701 RETURNING Id, Name";
         using (var reader = command.ExecuteReader())
         {
-            Assert.True(reader.Read());
-            Assert.Equal(701, reader.GetInt32(0));
-            Assert.Equal("Returning Updated", reader.GetString(1));
-            Assert.False(reader.Read());
+            reader.Read().Should().BeTrue();
+            reader.GetInt32(0).Should().Be(701);
+            reader.GetString(1).Should().Be("Returning Updated");
+            reader.Read().Should().BeFalse();
         }
 
         command.CommandText = "DELETE FROM Users WHERE Id = 701 RETURNING Id";
         using (var reader = command.ExecuteReader())
         {
-            Assert.True(reader.Read());
-            Assert.Equal(701, reader.GetInt32(0));
-            Assert.False(reader.Read());
+            reader.Read().Should().BeTrue();
+            reader.GetInt32(0).Should().Be(701);
+            reader.Read().Should().BeFalse();
         }
     }
 
@@ -1505,25 +1503,25 @@ public sealed class SqliteMockTests
 
         using (var reader = command.ExecuteReader())
         {
-            Assert.True(reader.Read());
-            Assert.Equal("Ana", reader.GetString(0));
-            Assert.True(reader.Read());
-            Assert.Equal("Caio", reader.GetString(0));
-            Assert.True(reader.Read());
-            Assert.Equal("Bia", reader.GetString(0));
-            Assert.False(reader.Read());
+            reader.Read().Should().BeTrue();
+            reader.GetString(0).Should().Be("Ana");
+            reader.Read().Should().BeTrue();
+            reader.GetString(0).Should().Be("Caio");
+            reader.Read().Should().BeTrue();
+            reader.GetString(0).Should().Be("Bia");
+            reader.Read().Should().BeFalse();
         }
 
         command.CommandText = "SELECT Name FROM Users ORDER BY Email NULLS LAST, Id";
         using (var reader = command.ExecuteReader())
         {
-            Assert.True(reader.Read());
-            Assert.Equal("Bia", reader.GetString(0));
-            Assert.True(reader.Read());
-            Assert.Equal("Ana", reader.GetString(0));
-            Assert.True(reader.Read());
-            Assert.Equal("Caio", reader.GetString(0));
-            Assert.False(reader.Read());
+            reader.Read().Should().BeTrue();
+            reader.GetString(0).Should().Be("Bia");
+            reader.Read().Should().BeTrue();
+            reader.GetString(0).Should().Be("Ana");
+            reader.Read().Should().BeTrue();
+            reader.GetString(0).Should().Be("Caio");
+            reader.Read().Should().BeFalse();
         }
     }
 
@@ -1546,12 +1544,12 @@ public sealed class SqliteMockTests
 
         var rowsAffected = command.ExecuteNonQuery();
 
-        Assert.Equal(3, rowsAffected);
+        rowsAffected.Should().Be(3);
         var users = _connection.GetTable("users");
-        Assert.Equal(3, users.Count);
-        Assert.Equal("Ana", users[0][1]);
-        Assert.Equal("Bia", users[1][1]);
-        Assert.Equal("Caio", users[2][1]);
+        users.Should().HaveCount(3);
+        users[0][1].Should().Be("Ana");
+        users[1][1].Should().Be("Bia");
+        users[2][1].Should().Be("Caio");
     }
 
     /// <summary>
@@ -1570,8 +1568,8 @@ public sealed class SqliteMockTests
 
         command.CommandText = "UPDATE Users SET Name = 'Jane Doe' WHERE Id = 1";
         var rowsAffected = command.ExecuteNonQuery();
-        Assert.Equal(1, rowsAffected);
-        Assert.Equal("Jane Doe", _connection.GetTable("users")[0][1]);
+        rowsAffected.Should().Be(1);
+        _connection.GetTable("users")[0][1].Should().Be("Jane Doe");
     }
 
     /// <summary>
@@ -1590,8 +1588,8 @@ public sealed class SqliteMockTests
 
         command.CommandText = "DELETE FROM Users WHERE Id = 1";
         var rowsAffected = command.ExecuteNonQuery();
-        Assert.Equal(1, rowsAffected);
-        Assert.Empty(_connection.GetTable("users"));
+        rowsAffected.Should().Be(1);
+        _connection.GetTable("users").Should().BeEmpty();
     }
 
     /// <summary>
@@ -1627,7 +1625,7 @@ public sealed class SqliteMockTests
             }
             users.Add(user);
         }
-        Assert.Single(users);
+        users.Should().ContainSingle();
     }
 
     /// <summary>
@@ -1650,7 +1648,7 @@ public sealed class SqliteMockTests
         cmd.CommandText = "SELECT name FROM users WHERE id = 1";
         var name = (string?)cmd.ExecuteScalar();
 
-        Assert.Equal("Bob", name);
+        name.Should().Be("Bob");
     }
 
     /// <summary>
@@ -1686,7 +1684,7 @@ public sealed class SqliteMockTests
             }
             users.Add(user);
         }
-        Assert.Empty(users);
+        users.Should().BeEmpty();
     }
 
     /// <summary>
@@ -1717,9 +1715,10 @@ public sealed class SqliteMockTests
         command.ExecuteNonQuery();
 
         command.CommandText = "SELECT Name FROM Users ORDER BY Id LIMIT 1; SELECT FOUND_ROWS();";
-        var ex = Assert.Throws<NotSupportedException>(command.ExecuteReader);
+        var act = () => command.ExecuteReader();
+        var ex = act.Should().Throw<NotSupportedException>().Which;
 
-        Assert.Contains("FOUND_ROWS", ex.Message, StringComparison.OrdinalIgnoreCase);
+        ex.Message.Should().Contain("FOUND_ROWS");
     }
 
 
@@ -1740,8 +1739,8 @@ public sealed class SqliteMockTests
         command.CommandText = "UPDATE Users SET Name = 'Updated User' WHERE Id = 150; SELECT CHANGES();";
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0)));
+        reader.Read().Should().BeTrue();
+        Convert.ToInt64(reader.GetValue(0)).Should().Be(1L);
     }
 
 
@@ -1760,7 +1759,7 @@ public sealed class SqliteMockTests
         command.ExecuteNonQuery();
 
         command.CommandText = "SELECT CHANGES();";
-        Assert.Equal(0L, Convert.ToInt64(command.ExecuteScalar()));
+        Convert.ToInt64(command.ExecuteScalar()).Should().Be(0L);
     }
 
 
@@ -1780,8 +1779,8 @@ public sealed class SqliteMockTests
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+        reader.Read().Should().BeTrue();
+        Convert.ToInt64(reader.GetValue(0)).Should().Be(0L);
     }
 
     /// <summary>
@@ -1801,8 +1800,8 @@ public sealed class SqliteMockTests
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+        reader.Read().Should().BeTrue();
+        Convert.ToInt64(reader.GetValue(0)).Should().Be(0L);
     }
 
     /// <summary>
@@ -1820,8 +1819,8 @@ public sealed class SqliteMockTests
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+        reader.Read().Should().BeTrue();
+        Convert.ToInt64(reader.GetValue(0)).Should().Be(0L);
     }
 
 
@@ -1840,8 +1839,8 @@ public sealed class SqliteMockTests
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+        reader.Read().Should().BeTrue();
+        Convert.ToInt64(reader.GetValue(0)).Should().Be(0L);
     }
 
     /// <summary>
@@ -1859,8 +1858,8 @@ public sealed class SqliteMockTests
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+        reader.Read().Should().BeTrue();
+        Convert.ToInt64(reader.GetValue(0)).Should().Be(0L);
     }
 
 
@@ -1885,10 +1884,10 @@ public sealed class SqliteMockTests
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        Assert.True(reader.NextResult());
-        Assert.True(reader.Read());
-        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0)));
+        reader.Read().Should().BeTrue();
+        reader.NextResult().Should().BeTrue();
+        reader.Read().Should().BeTrue();
+        Convert.ToInt64(reader.GetValue(0)).Should().Be(1L);
     }
 
 
@@ -1909,8 +1908,8 @@ public sealed class SqliteMockTests
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+        reader.Read().Should().BeTrue();
+        Convert.ToInt64(reader.GetValue(0)).Should().Be(0L);
     }
 
 
@@ -1939,11 +1938,11 @@ public sealed class SqliteMockTests
 
         var rows = 0;
         while (reader.Read()) rows++;
-        Assert.Equal(2, rows);
+        rows.Should().Be(2);
 
-        Assert.True(reader.NextResult());
-        Assert.True(reader.Read());
-        Assert.Equal(2L, Convert.ToInt64(reader.GetValue(0)));
+        reader.NextResult().Should().BeTrue();
+        reader.Read().Should().BeTrue();
+        Convert.ToInt64(reader.GetValue(0)).Should().Be(2L);
     }
 
     /// <summary>
@@ -1961,10 +1960,10 @@ public sealed class SqliteMockTests
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        Assert.Equal(601, reader.GetInt32(reader.GetOrdinal("Id")));
-        Assert.Equal("Returning Insert", reader.GetString(reader.GetOrdinal("user_name")));
-        Assert.False(reader.Read());
+        reader.Read().Should().BeTrue();
+        reader.GetInt32(reader.GetOrdinal("Id")).Should().Be(601);
+        reader.GetString(reader.GetOrdinal("user_name")).Should().Be("Returning Insert");
+        reader.Read().Should().BeFalse();
     }
 
     /// <summary>
@@ -1988,10 +1987,10 @@ public sealed class SqliteMockTests
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        Assert.Equal(602, reader.GetInt32(reader.GetOrdinal("Id")));
-        Assert.Equal("After Update", reader.GetString(reader.GetOrdinal("Name")));
-        Assert.False(reader.Read());
+        reader.Read().Should().BeTrue();
+        reader.GetInt32(reader.GetOrdinal("Id")).Should().Be(602);
+        reader.GetString(reader.GetOrdinal("Name")).Should().Be("After Update");
+        reader.Read().Should().BeFalse();
     }
 
     /// <summary>
@@ -2015,11 +2014,11 @@ public sealed class SqliteMockTests
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        Assert.Equal(603, reader.GetInt32(reader.GetOrdinal("Id")));
-        Assert.Equal("To Delete", reader.GetString(reader.GetOrdinal("Name")));
-        Assert.False(reader.Read());
-        Assert.DoesNotContain(_connection.GetTable("users"), r => Convert.ToInt32(r[0]) == 603);
+        reader.Read().Should().BeTrue();
+        reader.GetInt32(reader.GetOrdinal("Id")).Should().Be(603);
+        reader.GetString(reader.GetOrdinal("Name")).Should().Be("To Delete");
+        reader.Read().Should().BeFalse();
+        _connection.GetTable("users").Should().NotContain(r => Convert.ToInt32(r[0]) == 603);
     }
 
     /// <summary>
@@ -2051,11 +2050,11 @@ public sealed class SqliteMockTests
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        Assert.Equal(1611, reader.GetInt32(0));
-        Assert.True(reader.Read());
-        Assert.Equal(1612, reader.GetInt32(0));
-        Assert.False(reader.Read());
+        reader.Read().Should().BeTrue();
+        reader.GetInt32(0).Should().Be(1611);
+        reader.Read().Should().BeTrue();
+        reader.GetInt32(0).Should().Be(1612);
+        reader.Read().Should().BeFalse();
     }
 
     /// <summary>
@@ -2079,11 +2078,11 @@ public sealed class SqliteMockTests
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        Assert.Equal(613, reader.GetInt32(reader.GetOrdinal("Id")));
-        Assert.Equal("After", reader.GetString(reader.GetOrdinal("Name")));
-        Assert.Equal("before613@test.local", reader.GetString(reader.GetOrdinal("Email")));
-        Assert.False(reader.Read());
+        reader.Read().Should().BeTrue();
+        reader.GetInt32(reader.GetOrdinal("Id")).Should().Be(613);
+        reader.GetString(reader.GetOrdinal("Name")).Should().Be("After");
+        reader.GetString(reader.GetOrdinal("Email")).Should().Be("before613@test.local");
+        reader.Read().Should().BeFalse();
     }
 
 }

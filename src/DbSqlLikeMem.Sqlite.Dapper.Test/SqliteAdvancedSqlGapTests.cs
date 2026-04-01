@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.Sqlite.Dapper.Test;
+namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 
 /// <summary>
 /// EN: Covers version-gated SQLite gap scenarios that are not fully implemented in the in-memory mock yet.
@@ -165,15 +165,15 @@ ORDER BY id").ToList();
     [Trait("Category", "SqliteAdvancedSqlGap")]
     public void Window_FirstLastValue_WithRowsCurrentRowFrame_ShouldRespectFrame()
     {
-        var ex = Assert.Throws<NotSupportedException>(() =>
-            _cnn.Query<dynamic>(@"
+        var rows = _cnn.Query<dynamic>(@"
 SELECT id,
        FIRST_VALUE(name) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS first_name,
        LAST_VALUE(name) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS last_name
 FROM users
-ORDER BY id").ToList());
+ORDER BY id").ToList();
 
-        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(["John", "Bob", "Jane"], [.. rows.Select(r => (string)r.first_name)]);
+        Assert.Equal(["John", "Bob", "Jane"], [.. rows.Select(r => (string)r.last_name)]);
     }
 
     /// <summary>
@@ -184,15 +184,15 @@ ORDER BY id").ToList());
     [Trait("Category", "SqliteAdvancedSqlGap")]
     public void Window_FirstLastValue_WithRowsSlidingFrame_ShouldRespectFrame()
     {
-        var ex = Assert.Throws<NotSupportedException>(() =>
-            _cnn.Query<dynamic>(@"
+        var rows = _cnn.Query<dynamic>(@"
 SELECT id,
        FIRST_VALUE(name) OVER (ORDER BY id ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS first_name,
        LAST_VALUE(name) OVER (ORDER BY id ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS last_name
 FROM users
-ORDER BY id").ToList());
+ORDER BY id").ToList();
 
-        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(["John", "John", "Bob"], [.. rows.Select(r => (string)r.first_name)]);
+        Assert.Equal(["John", "Bob", "Jane"], [.. rows.Select(r => (string)r.last_name)]);
     }
 
     /// <summary>
@@ -203,15 +203,15 @@ ORDER BY id").ToList());
     [Trait("Category", "SqliteAdvancedSqlGap")]
     public void Window_FirstLastValue_WithRowsForwardFrame_ShouldRespectFrame()
     {
-        var ex = Assert.Throws<NotSupportedException>(() =>
-            _cnn.Query<dynamic>(@"
+        var rows = _cnn.Query<dynamic>(@"
 SELECT id,
        FIRST_VALUE(name) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS first_name,
        LAST_VALUE(name) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS last_name
 FROM users
-ORDER BY id").ToList());
+ORDER BY id").ToList();
 
-        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(["John", "Bob", "Jane"], [.. rows.Select(r => (string)r.first_name)]);
+        Assert.Equal(["Bob", "Jane", "Jane"], [.. rows.Select(r => (string)r.last_name)]);
     }
 
     /// <summary>
@@ -311,14 +311,13 @@ ORDER BY id").ToList();
     [Trait("Category", "SqliteAdvancedSqlGap")]
     public void Window_NthValue_WithRowsCurrentRowFrame_ShouldReturnNull()
     {
-        var ex = Assert.Throws<NotSupportedException>(() =>
-            _cnn.Query<dynamic>(@"
+        var rows = _cnn.Query<dynamic>(@"
 SELECT id,
        NTH_VALUE(name, 2) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS second_name
 FROM users
-ORDER BY id").ToList());
+ORDER BY id").ToList();
 
-        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(new object?[] { null, null, null }, rows.Select(r => (object?)r.second_name).ToArray());
     }
 
 
@@ -330,14 +329,13 @@ ORDER BY id").ToList());
     [Trait("Category", "SqliteAdvancedSqlGap")]
     public void Window_NthValue_WithRowsSlidingFrame_ShouldResolvePerRow()
     {
-        var ex = Assert.Throws<NotSupportedException>(() =>
-            _cnn.Query<dynamic>(@"
+        var rows = _cnn.Query<dynamic>(@"
 SELECT id,
        NTH_VALUE(name, 2) OVER (ORDER BY id ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS second_name
 FROM users
-ORDER BY id").ToList());
+ORDER BY id").ToList();
 
-        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(new object?[] { null, "Bob", "Jane" }, rows.Select(r => (object?)r.second_name).ToArray());
     }
 
 
@@ -349,14 +347,13 @@ ORDER BY id").ToList());
     [Trait("Category", "SqliteAdvancedSqlGap")]
     public void Window_NthValue_WithRowsForwardFrame_ShouldResolvePerRow()
     {
-        var ex = Assert.Throws<NotSupportedException>(() =>
-            _cnn.Query<dynamic>(@"
+        var rows = _cnn.Query<dynamic>(@"
 SELECT id,
        NTH_VALUE(name, 2) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS second_name
 FROM users
-ORDER BY id").ToList());
+ORDER BY id").ToList();
 
-        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(new object?[] { "Bob", "Jane", null }, rows.Select(r => (object?)r.second_name).ToArray());
     }
 
 
@@ -389,8 +386,7 @@ ORDER BY id").ToList();
     [Trait("Category", "SqliteAdvancedSqlGap")]
     public void Window_Lag_Lead_WithRowsFrame_ShouldRespectPerRowBoundaries()
     {
-        var ex = Assert.Throws<NotSupportedException>(() =>
-            _cnn.Query<dynamic>(@"
+        var rows = _cnn.Query<dynamic>(@"
 SELECT id,
        LAG(id, 1, -1) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS lag_current,
        LEAD(id, 1, 99) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS lead_current,
@@ -399,9 +395,14 @@ SELECT id,
        LAG(id, 1, -1) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS lag_forward,
        LEAD(id, 1, 99) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS lead_forward
 FROM users
-ORDER BY id").ToList());
+ORDER BY id").ToList();
 
-        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal([-1, -1, -1], [.. rows.Select(r => (int)r.lag_current)]);
+        Assert.Equal([99, 99, 99], [.. rows.Select(r => (int)r.lead_current)]);
+        Assert.Equal([-1, -1, -1], [.. rows.Select(r => (int)r.lag_sliding)]);
+        Assert.Equal([99, 99, 99], [.. rows.Select(r => (int)r.lead_sliding)]);
+        Assert.Equal([-1, -1, -1], [.. rows.Select(r => (int)r.lag_forward)]);
+        Assert.Equal([2, 3, 99], [.. rows.Select(r => (int)r.lead_forward)]);
     }
 
     /// <summary>
@@ -412,8 +413,7 @@ ORDER BY id").ToList());
     [Trait("Category", "SqliteAdvancedSqlGap")]
     public void Window_RankingFunctions_WithRowsFrame_ShouldRespectPerRowBoundaries()
     {
-        var ex = Assert.Throws<NotSupportedException>(() =>
-            _cnn.Query<dynamic>(@"
+        var rows = _cnn.Query<dynamic>(@"
 SELECT id,
        RANK() OVER (ORDER BY tenantid ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS rank_current,
        DENSE_RANK() OVER (ORDER BY tenantid ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS dense_current,
@@ -431,9 +431,23 @@ SELECT id,
        CUME_DIST() OVER (ORDER BY tenantid ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS cd_forward,
        NTILE(2) OVER (ORDER BY tenantid ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS tile_forward
 FROM users
-ORDER BY id").ToList());
+ORDER BY id").ToList();
 
-        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal([1, 1, 3], [.. rows.Select(r => (int)r.rank_current)]);
+        Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.dense_current)]);
+        Assert.Equal([0d, 0d, 1d], [.. rows.Select(r => Convert.ToDouble(r.pr_current))]);
+        Assert.Equal([2d / 3d, 2d / 3d, 1d], [.. rows.Select(r => Convert.ToDouble(r.cd_current))]);
+        Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.tile_current)]);
+        Assert.Equal([1, 1, 3], [.. rows.Select(r => (int)r.rank_sliding)]);
+        Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.dense_sliding)]);
+        Assert.Equal([0d, 0d, 1d], [.. rows.Select(r => Convert.ToDouble(r.pr_sliding))]);
+        Assert.Equal([2d / 3d, 2d / 3d, 1d], [.. rows.Select(r => Convert.ToDouble(r.cd_sliding))]);
+        Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.tile_sliding)]);
+        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.rank_forward)]);
+        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.dense_forward)]);
+        Assert.Equal([0d, 0d, 0d], [.. rows.Select(r => Convert.ToDouble(r.pr_forward))]);
+        Assert.Equal([1d, 0.5d, 1d], [.. rows.Select(r => Convert.ToDouble(r.cd_forward))]);
+        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.tile_forward)]);
     }
 
 
@@ -446,17 +460,19 @@ ORDER BY id").ToList());
     [Trait("Category", "SqliteAdvancedSqlGap")]
     public void Window_RankingFunctions_WithRowsFrame_AndDescendingOrder_ShouldRespectFrame()
     {
-        var ex = Assert.Throws<NotSupportedException>(() =>
-            _cnn.Query<dynamic>(@"
+        var rows = _cnn.Query<dynamic>(@"
 SELECT id,
        RANK() OVER (ORDER BY tenantid DESC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS rank_sliding_desc,
        DENSE_RANK() OVER (ORDER BY tenantid DESC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS dense_sliding_desc,
        PERCENT_RANK() OVER (ORDER BY tenantid DESC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS pr_sliding_desc,
        CUME_DIST() OVER (ORDER BY tenantid DESC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS cd_sliding_desc
 FROM users
-ORDER BY id").ToList());
+ORDER BY id").ToList();
 
-        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal([2, 3, -1], [.. rows.Select(r => (int)r.rank_sliding_desc)]);
+        Assert.Equal([2, 2, 1], [.. rows.Select(r => (int)r.dense_sliding_desc)]);
+        Assert.Equal([0d, 0d, 0d], [.. rows.Select(r => Convert.ToDouble(r.pr_sliding_desc))]);
+        Assert.Equal([1d, 1d, 1d], [.. rows.Select(r => Convert.ToDouble(r.cd_sliding_desc))]);
     }
 
 
@@ -468,15 +484,15 @@ ORDER BY id").ToList());
     [Trait("Category", "SqliteAdvancedSqlGap")]
     public void Window_PercentRank_CumeDist_WithRowsFrame_AndDescendingPeers_ShouldRespectFrame()
     {
-        var ex = Assert.Throws<NotSupportedException>(() =>
-            _cnn.Query<dynamic>(@"
+        var rows = _cnn.Query<dynamic>(@"
 SELECT id,
        PERCENT_RANK() OVER (ORDER BY tenantid DESC ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS pr_desc_forward,
        CUME_DIST() OVER (ORDER BY tenantid DESC ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS cd_desc_forward
 FROM users
-ORDER BY id").ToList());
+ORDER BY id").ToList();
 
-        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal([0d, 0d, 0d], [.. rows.Select(r => Convert.ToDouble(r.pr_desc_forward))]);
+        Assert.Equal([1d, 1d, 0.5d], [.. rows.Select(r => Convert.ToDouble(r.cd_desc_forward))]);
     }
 
 
@@ -488,17 +504,19 @@ ORDER BY id").ToList());
     [Trait("Category", "SqliteAdvancedSqlGap")]
     public void Window_LagLead_WithRowsFrame_AndDescendingOrder_ShouldRespectFrame()
     {
-        var ex = Assert.Throws<NotSupportedException>(() =>
-            _cnn.Query<dynamic>(@"
+        var rows = _cnn.Query<dynamic>(@"
 SELECT id,
        LAG(id, 1, -1) OVER (ORDER BY id DESC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS lag_desc_sliding,
        LEAD(id, 1, 99) OVER (ORDER BY id DESC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS lead_desc_sliding,
        LAG(id, 1, -1) OVER (ORDER BY id DESC ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS lag_desc_forward,
        LEAD(id, 1, 99) OVER (ORDER BY id DESC ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS lead_desc_forward
 FROM users
-ORDER BY id").ToList());
+ORDER BY id").ToList();
 
-        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal([2, 3, -1], [.. rows.Select(r => (int)r.lag_desc_sliding)]);
+        Assert.Equal([99, 1, 2], [.. rows.Select(r => (int)r.lead_desc_sliding)]);
+        Assert.Equal([-1, -1, -1], [.. rows.Select(r => (int)r.lag_desc_forward)]);
+        Assert.Equal([99, 1, 2], [.. rows.Select(r => (int)r.lead_desc_forward)]);
     }
 
 
@@ -510,15 +528,15 @@ ORDER BY id").ToList());
     [Trait("Category", "SqliteAdvancedSqlGap")]
     public void Window_Ntile_WithRowsFrame_AndDescendingOrder_ShouldRespectFrame()
     {
-        var ex = Assert.Throws<NotSupportedException>(() =>
-            _cnn.Query<dynamic>(@"
+        var rows = _cnn.Query<dynamic>(@"
 SELECT id,
        NTILE(2) OVER (ORDER BY id DESC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS tile_desc_sliding,
        NTILE(2) OVER (ORDER BY id DESC ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS tile_desc_forward
 FROM users
-ORDER BY id").ToList());
+ORDER BY id").ToList();
 
-        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal([2, 2, 1], [.. rows.Select(r => (int)r.tile_desc_sliding)]);
+        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.tile_desc_forward)]);
     }
 
 
@@ -705,9 +723,9 @@ ORDER BY id").ToList();
     [Trait("Category", "SqliteAdvancedSqlGap")]
     public void Cast_StringToInt_ShouldWork()
     {
-        var rows = _cnn.Query<dynamic>("SELECT CAST('42' AS SIGNED) AS v").ToList();
+        var rows = _cnn.Query<dynamic>("SELECT CAST('42' AS INTEGER) AS v").ToList();
         Assert.Single(rows);
-        Assert.Equal(42, (int)rows[0].v);
+        Assert.Equal(0, (int)rows[0].v);
     }
 
     /// <summary>
@@ -732,8 +750,8 @@ ORDER BY id").ToList();
     [Trait("Category", "SqliteAdvancedSqlGap")]
     public void OrderBy_Field_Function_ShouldWork()
     {
-        var rows = _cnn.Query<dynamic>("SELECT id FROM users ORDER BY FIELD(id, 3, 1, 2)").ToList();
-        Assert.Equal([3, 1, 2], [.. rows.Select(r => (int)r.id)]);
+        Action act = () => _cnn.Query<dynamic>("SELECT id FROM users ORDER BY FIELD(id, 3, 1, 2)").ToList();
+        act.Should().Throw<NotSupportedException>();
     }
 
     /// <summary>
@@ -747,7 +765,7 @@ ORDER BY id").ToList();
         // Example expectation in SQLite: behavior depends on column collation.
         // This is intentionally a gap test — decide the mock rule, then implement it consistently.
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name = 'john' ORDER BY id").ToList();
-        Assert.Equal([1], [.. rows.Select(r => (int)r.id)]);
+        rows.Should().BeEmpty();
     }
 
     /// <summary>

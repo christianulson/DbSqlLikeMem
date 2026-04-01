@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Diagnostics.CodeAnalysis;
 
 namespace DbSqlLikeMem;
@@ -60,7 +61,8 @@ public abstract class DbConnectionMockBase(
         TransactionViewState? ViewState = null,
         TransactionSequenceState? SequenceState = null,
         TransactionFunctionState? FunctionState = null,
-        TransactionProcedureState? ProcedureState = null);
+        TransactionProcedureState? ProcedureState = null,
+        Dictionary<int, object?>? NewRowSnapshot = null);
 
     private sealed record TransactionViewState(
         string SchemaName,
@@ -92,6 +94,7 @@ public abstract class DbConnectionMockBase(
     private readonly HashSet<TableMock> _journalObservedTables = [];
     private int _transactionBeginJournalPosition;
     private bool _isReplayingTransactionJournal;
+    private static readonly System.Threading.AsyncLocal<DbConnectionMockBase?> _ambientMutationConnection = new();
 
     /// <summary>
     /// EN: In-memory database associated with this connection.
@@ -140,7 +143,10 @@ public abstract class DbConnectionMockBase(
     private int _selectPlanCacheGeneration;
     private long _lastFoundRows;
     private object? _lastInsertId;
-    private readonly ISqlDialect _autoSqlDialect = AutoDialectFactory.Create();
+    private readonly ISqlDialect _providerSqlDialect = db.Dialect;
+    private readonly ISqlDialect _autoSqlDialect = AutoDialectFactory.Create(db.Version);
+    private readonly HashSet<string> _runtimeFunctions = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, DbFunctionDef> _runtimeFunctionDefinitions = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, long> _sessionSequenceValues =
         new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, object?> _sessionContextValues =
@@ -203,11 +209,24 @@ public abstract class DbConnectionMockBase(
     /// </summary>
     public IReadOnlyList<QueryDebugTrace> LastDebugTraces => _lastDebugTraces;
 
+    private bool _useAutoSqlDialect;
+
     /// <summary>
     /// EN: Enables automatic SQL dialect compatibility mode for parsing and execution on this connection.
     /// PT: Habilita o modo automatico de compatibilidade de dialeto SQL para parsing e execucao nesta conexao.
     /// </summary>
-    public bool UseAutoSqlDialect { get; set; }
+    public bool UseAutoSqlDialect
+    {
+        get => _useAutoSqlDialect;
+        set
+        {
+            if (_useAutoSqlDialect == value)
+                return;
+
+            _useAutoSqlDialect = value;
+            Db.Dialect = (SqlDialectBase)(value ? _autoSqlDialect : _providerSqlDialect);
+        }
+    }
 
     /// <summary>
     /// EN: Maximum number of runtime debug traces retained in connection history.
@@ -236,7 +255,9 @@ public abstract class DbConnectionMockBase(
 
     internal bool IsDebugTraceCaptureEnabled => _debugTraceCaptureDepth > 0;
 
-    internal ISqlDialect ExecutionDialect => UseAutoSqlDialect ? _autoSqlDialect : Db.Dialect;
+    internal ISqlDialect ExecutionDialect => UseAutoSqlDialect ? _autoSqlDialect : _providerSqlDialect;
+
+    internal ISqlDialect ProviderExecutionDialect => _providerSqlDialect;
 
     internal IDisposable BeginDebugTraceCapture()
     {
@@ -601,12 +622,15 @@ public abstract class DbConnectionMockBase(
     {
         private DbConnectionMockBase? _connection;
         private readonly string? _previousQueryText;
+        private readonly DbConnectionMockBase? _previousMutationConnection;
 
         public CurrentQueryScope(DbConnectionMockBase connection, string? sql)
         {
             _connection = connection;
             _previousQueryText = connection._currentQueryText;
+            _previousMutationConnection = _ambientMutationConnection.Value;
             connection._currentQueryText = sql;
+            _ambientMutationConnection.Value = connection;
         }
 
         public void Dispose()
@@ -615,6 +639,7 @@ public abstract class DbConnectionMockBase(
                 return;
 
             _connection._currentQueryText = _previousQueryText;
+            _ambientMutationConnection.Value = _previousMutationConnection;
             _connection = null;
         }
     }
@@ -1404,7 +1429,66 @@ public abstract class DbConnectionMockBase(
         => Db.TryGetFunction(
             functionName,
             out function,
-            schemaName ?? Database);
+            schemaName);
+
+    internal bool ContainsRuntimeFunction(string functionName)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
+        return _runtimeFunctions.Contains(functionName.NormalizeName());
+    }
+
+    internal bool TryGetRuntimeFunction(
+        string functionName,
+        out DbFunctionDef? function)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
+        return _runtimeFunctionDefinitions.TryGetValue(functionName.NormalizeName(), out function)
+            && function is not null;
+    }
+
+    private void SyncRuntimeFunctionDefinition(
+        DbFunctionDef? definition,
+        string functionName)
+    {
+        var runtimeDefinition = definition;
+        if (runtimeDefinition is null
+            && !Db.TryGetFunction(functionName, out runtimeDefinition, null))
+        {
+            runtimeDefinition = null;
+        }
+
+        if (runtimeDefinition is null)
+        {
+            _runtimeFunctions.Remove(functionName.NormalizeName());
+            _runtimeFunctionDefinitions.Remove(functionName.NormalizeName());
+        }
+        else
+        {
+            _runtimeFunctions.Add(functionName.NormalizeName());
+            _runtimeFunctionDefinitions[functionName.NormalizeName()] = runtimeDefinition;
+        }
+
+        SyncRuntimeFunctionDefinition(Db.Dialect, functionName, runtimeDefinition);
+        SyncRuntimeFunctionDefinition(_providerSqlDialect, functionName, runtimeDefinition);
+        SyncRuntimeFunctionDefinition(_autoSqlDialect, functionName, runtimeDefinition);
+    }
+
+    private static void SyncRuntimeFunctionDefinition(
+        ISqlDialect dialect,
+        string functionName,
+        DbFunctionDef? definition)
+    {
+        if (dialect is not SqlDialectBase sqlDialect)
+            return;
+
+        if (definition is null)
+        {
+            sqlDialect.Functions.Remove(functionName);
+            return;
+        }
+
+        sqlDialect.Functions.Add(definition);
+    }
 
     internal void CreateFunction(
         DbFunctionDef definition,
@@ -1419,6 +1503,8 @@ public abstract class DbConnectionMockBase(
         Db.TryGetFunction(definition.Name, out previousDefinition, targetSchema);
 
         Db.CreateFunction(definition, orReplace, targetSchema);
+        SyncRuntimeFunctionDefinition(definition, definition.Name);
+        SqlQueryParser.ClearAstCache();
 
         if (CurrentTransaction == null)
             return;
@@ -1464,6 +1550,8 @@ public abstract class DbConnectionMockBase(
         }
 
         Db.DropFunction(functionName, ifExists, targetSchema);
+        SyncRuntimeFunctionDefinition(null, functionName);
+        SqlQueryParser.ClearAstCache();
     }
 
     internal void CreateProcedure(
@@ -2073,7 +2161,9 @@ public abstract class DbConnectionMockBase(
 
     private void OnTableMutationApplied(TableMutationNotification mutation)
     {
-        if (_isReplayingTransactionJournal || CurrentTransaction == null)
+        if (_isReplayingTransactionJournal
+            || CurrentTransaction == null
+            || !ReferenceEquals(_ambientMutationConnection.Value, this))
             return;
 
         _transactionJournal.Add(new TransactionJournalEntry(
@@ -2089,7 +2179,8 @@ public abstract class DbConnectionMockBase(
             mutation.OldRowSnapshot,
             mutation.PreviousNextIdentity,
             GetRegistrationKind(mutation.Table),
-            GetRegistrationKey(mutation.Table)));
+            GetRegistrationKey(mutation.Table),
+            NewRowSnapshot: mutation.Kind == TableMutationKind.Update ? TableMock.CloneRow(mutation.Row) : null));
     }
 
     private void RollbackJournalTo(int journalPosition)
@@ -2113,9 +2204,21 @@ public abstract class DbConnectionMockBase(
                         entry.Table.NextIdentity = entry.PreviousNextIdentity;
                         break;
                     case TransactionJournalEntryKind.Update:
-                        entry.Table!.RestoreRowSnapshot(
-                            entry.Row!,
-                            entry.OldRowSnapshot ?? new Dictionary<int, object?>());
+                        if (entry.NewRowSnapshot is not null && entry.OldRowSnapshot is not null)
+                        {
+                            entry.Table!.RestoreRowSnapshot(
+                                entry.Row!,
+                                MergeConcurrentUpdateRollback(
+                                    entry.Row!,
+                                    entry.OldRowSnapshot,
+                                    entry.NewRowSnapshot));
+                        }
+                        else
+                        {
+                            entry.Table!.RestoreRowSnapshot(
+                                entry.Row!,
+                                entry.OldRowSnapshot ?? new Dictionary<int, object?>());
+                        }
                         break;
                     case TransactionJournalEntryKind.Delete:
                         entry.Table!.InsertRestoredRow(entry.RowIndex, entry.Row!);
@@ -2302,6 +2405,85 @@ public abstract class DbConnectionMockBase(
         _transactionBeginJournalPosition = 0;
         _isReplayingTransactionJournal = false;
     }
+
+    private static IReadOnlyDictionary<int, object?> MergeConcurrentUpdateRollback(
+        IDictionary<int, object?> currentRow,
+        IReadOnlyDictionary<int, object?> oldSnapshot,
+        IReadOnlyDictionary<int, object?> newSnapshot)
+    {
+        var merged = new Dictionary<int, object?>(oldSnapshot.Count);
+        foreach (var entry in oldSnapshot)
+        {
+            var columnIndex = entry.Key;
+            var oldValue = entry.Value;
+            newSnapshot.TryGetValue(columnIndex, out var newValue);
+            currentRow.TryGetValue(columnIndex, out var currentValue);
+
+            if (TryRestoreConcurrentNumericValue(oldValue, newValue, currentValue, out var restoredValue))
+            {
+                merged[columnIndex] = restoredValue;
+                continue;
+            }
+
+            merged[columnIndex] = oldValue;
+        }
+
+        return merged;
+    }
+
+    private static bool TryRestoreConcurrentNumericValue(
+        object? oldValue,
+        object? newValue,
+        object? currentValue,
+        out object? restoredValue)
+    {
+        restoredValue = null;
+        if (oldValue is null || newValue is null || currentValue is null)
+            return false;
+
+        if (!TryConvertToDecimal(oldValue, out var oldDecimal)
+            || !TryConvertToDecimal(newValue, out var newDecimal)
+            || !TryConvertToDecimal(currentValue, out var currentDecimal))
+        {
+            return false;
+        }
+
+        var delta = newDecimal - oldDecimal;
+        var restoredDecimal = currentDecimal - delta;
+        restoredValue = ConvertDecimalLikeValue(restoredDecimal, currentValue);
+        return true;
+    }
+
+    private static bool TryConvertToDecimal(object value, out decimal decimalValue)
+    {
+        try
+        {
+            decimalValue = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+            return true;
+        }
+        catch
+        {
+            decimalValue = default;
+            return false;
+        }
+    }
+
+    private static object ConvertDecimalLikeValue(decimal value, object sample)
+        => sample switch
+        {
+            decimal => value,
+            int => (int)value,
+            long => (long)value,
+            short => (short)value,
+            byte => (byte)value,
+            sbyte => (sbyte)value,
+            uint => (uint)value,
+            ulong => (ulong)value,
+            ushort => (ushort)value,
+            double => (double)value,
+            float => (float)value,
+            _ => Convert.ChangeType(value, sample.GetType(), CultureInfo.InvariantCulture)
+        };
 
     private void ResetAllVolatileDataCore()
     {

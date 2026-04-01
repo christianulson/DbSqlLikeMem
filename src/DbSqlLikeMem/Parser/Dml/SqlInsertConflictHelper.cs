@@ -17,10 +17,7 @@ internal static class SqlInsertConflictHelper
         if (SqlQueryParserContext.IsWord(next, SqlConst.DUPLICATE))
         {
             if (!ctx.Dialect.SupportsOnDuplicateKeyUpdate && !ctx.Dialect.AllowsParserInsertSelectUpsertSuffix)
-            {
-                var gateException = SqlUnsupported.NotSupportedOnDuplicateKeyUpdateClause(ctx.Dialect);
-                throw gateException;
-            }
+                throw ctx.NotSupported("ON DUPLICATE KEY UPDATE");
 
             ctx.Consume(); // ON
             ctx.ExpectWord(SqlConst.DUPLICATE);
@@ -205,7 +202,7 @@ internal static class SqlInsertConflictHelper
 
             if (ctx.IsWord(SqlConst.SET))
                 throw new InvalidOperationException(
-                    $"{clauseLabel} must not include SET keyword twice (found '{ctx.DescribeFoundToken()}').");
+                    $"{clauseLabel} must not repeat SET keyword (found '{ctx.DescribeFoundToken()}').");
 
             var col = ctx.ExpectIdentifierWithDots();
             ctx.ExpectAssignmentEquals(clauseLabel, col);
@@ -217,7 +214,7 @@ internal static class SqlInsertConflictHelper
             SqlExpr expr;
             try
             {
-                expr = SqlExpressionParser.ParseScalar(exprRaw, ctx.Dialect);
+                expr = SqlExpressionParser.ParseScalar(exprRaw, ctx.Db, ctx.Dialect);
             }
             catch (InvalidOperationException ex) when (IsTrailingTokenInWherePredicate(ex))
             {
@@ -313,7 +310,7 @@ internal static class SqlInsertConflictHelper
 
         try
         {
-            var expr = SqlExpressionParser.ParseWhere(normalized, ctx.Dialect);
+            var expr = SqlExpressionParser.ParseWhere(normalized, ctx.Db, ctx.Dialect);
             return (normalized, expr);
         }
         catch (InvalidOperationException ex)
@@ -361,7 +358,7 @@ internal static class SqlInsertConflictHelper
 
             try
             {
-                _ = SqlExpressionParser.ParseScalar(raw, ctx.Dialect);
+                _ = SqlExpressionParser.ParseScalar(raw, ctx.Db, ctx.Dialect);
             }
             catch (InvalidOperationException ex)
             {

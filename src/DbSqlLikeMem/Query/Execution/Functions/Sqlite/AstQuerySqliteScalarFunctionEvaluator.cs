@@ -56,7 +56,13 @@ internal static class AstQuerySqliteScalarFunctionEvaluator
             return true;
         }
 
-        if (name is "SQLITE3_CHANGES64" or "SQLITE3_TOTAL_CHANGES64" or "TOTAL_CHANGES")
+        if (name is "CHANGES"
+            or "FOUND_ROWS"
+            or "ROW_COUNT"
+            or "ROWCOUNT"
+            or "SQLITE3_CHANGES64"
+            or "SQLITE3_TOTAL_CHANGES64"
+            or "TOTAL_CHANGES")
         {
             result = context.Connection.GetLastFoundRows();
             return true;

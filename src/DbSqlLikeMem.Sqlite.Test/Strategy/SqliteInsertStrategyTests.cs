@@ -1,4 +1,6 @@
-﻿namespace DbSqlLikeMem.Sqlite.Test.Strategy;
+using FluentAssertions;
+
+namespace DbSqlLikeMem.Sqlite.Test.Strategy;
 /// <summary>
 /// EN: Covers single-row INSERT execution in the Sqlite mock.
 /// PT: Cobre execucao de INSERT de uma linha no mock Sqlite.
@@ -31,9 +33,9 @@ public sealed class SqliteInsertStrategyTests(
         var rowsAffected = command.ExecuteNonQuery();
 
         // Assert
-        Assert.Equal(1, rowsAffected);
-        Assert.Single(table);
-        Assert.Equal(1, table[0][0]);
-        Assert.Equal("John Doe", table[0][1]);
+        rowsAffected.Should().Be(1);
+        table.Should().ContainSingle();
+        table[0][0].Should().Be(1);
+        table[0][1].Should().Be("John Doe");
     }
 }

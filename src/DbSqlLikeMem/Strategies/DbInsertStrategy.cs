@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace DbSqlLikeMem;
 
 internal static class DbInsertStrategy
@@ -1121,7 +1123,7 @@ internal static class DbInsertStrategy
                     DbType.Int64 => Convert.ToInt64(value),
                     DbType.Byte => Convert.ToByte(value),
                     DbType.Boolean => value is bool b ? b : Convert.ToInt32(value) != 0,
-                    DbType.Decimal => Convert.ToDecimal(value),
+                    DbType.Decimal => Convert.ToDecimal(value, CultureInfo.InvariantCulture),
                     DbType.Double => Convert.ToDouble(value),
                     DbType.Single => Convert.ToSingle(value),
                     DbType.DateTime => value is DateTime dt ? dt : Convert.ToDateTime(value),
@@ -1252,6 +1254,7 @@ internal static class DbInsertStrategy
             if (colInfo.GetGenValue != null) continue;
             var expr = assignment.ValueExpr ?? SqlExpressionParser.ParseScalar(
                 assignment.ValueRaw,
+                context.Connection.Db,
                 context.Dialect,
                 null,
                 SqlCustomFunctionResolverFactory.Create(table.Schema.Db, table.Schema.SchemaName));
@@ -1309,7 +1312,7 @@ internal static class DbInsertStrategy
                     DbType.Int64 => Convert.ToInt64(value),
                     DbType.Byte => Convert.ToByte(value),
                     DbType.Boolean => value is bool b ? b : Convert.ToInt32(value) != 0,
-                    DbType.Decimal => Convert.ToDecimal(value),
+                    DbType.Decimal => Convert.ToDecimal(value, CultureInfo.InvariantCulture),
                     DbType.Double => Convert.ToDouble(value),
                     DbType.Single => Convert.ToSingle(value),
                     DbType.DateTime => value is DateTime dt ? dt : Convert.ToDateTime(value),
@@ -1447,6 +1450,7 @@ internal static class DbInsertStrategy
 
             var ast = assignment.ValueExpr ?? SqlExpressionParser.ParseScalar(
                 assignment.ValueRaw,
+                context.Connection.Db,
                 context.Dialect,
                 null,
                 SqlCustomFunctionResolverFactory.Create(table.Schema.Db, table.Schema.SchemaName));

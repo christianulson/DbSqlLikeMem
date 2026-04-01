@@ -6,4 +6,13 @@ namespace DbSqlLikeMem.Npgsql.EfCore.Test;
 /// </summary>
 public sealed class EfCoreSmokeTests(
     ITestOutputHelper helper
-) : EfCoreSmokeTestsBase(helper, static () => new NpgsqlEfCoreConnectionFactory());
+) : EfCoreSmokeTestsBase(helper, static () => new NpgsqlEfCoreConnectionFactory())
+{
+    /// <inheritdoc />
+    protected override DbSqlLikeMem.TestTools.ProviderSqlDialect Dialect { get; } =
+        new DbSqlLikeMem.Npgsql.TestTools.NpgsqlProviderSqlDialect();
+
+    /// <inheritdoc />
+    protected override string BuildPaginationQuery(string tableName, string orderByClause, int offset, int fetch) =>
+        $"SELECT id FROM {tableName} ORDER BY {orderByClause} LIMIT {fetch} OFFSET {offset}";
+}

@@ -1,3 +1,4 @@
+using System.Globalization;
 using DbSqlLikeMem.Models;
 using System.Text;
 
@@ -32,9 +33,16 @@ internal static class NpgsqlScalarFunctionRegistry
             {
                 IsStringAggregate = true
             });
-        dialect.AddScalarFunction(DbFunctionDef.CreateScalar("ROW_COUNT", "BIGINT"));
+        dialect.AddScalarFunction(
+            DbFunctionDef.CreateScalar("ROW_COUNT", "BIGINT", invocationStyle: DbInvocationStyle.Call) with
+            {
+                AstExecutor = TryEvalPostgresRowCountFunction
+            });
         dialect.AddScalarFunctions(
-            DbFunctionDef.CreateScalar(NpgsqlConst.NEXTVAL, "BIGINT", invocationStyle: DbInvocationStyle.Call),
+            DbFunctionDef.CreateScalar(NpgsqlConst.NEXTVAL, "BIGINT", invocationStyle: DbInvocationStyle.Call) with
+            {
+                AstExecutor = TryEvalPostgresSequenceFunction
+            },
             NpgsqlConst.NEXTVAL,
             NpgsqlConst.CURRVAL,
             NpgsqlConst.SETVAL,
@@ -100,8 +108,16 @@ internal static class NpgsqlScalarFunctionRegistry
 
         dialect.AddScalarFunction("DATE_TRUNC", "DATETIME", tryEvalPostgresDateFunction);
         dialect.AddScalarFunction("DATE_PART", "DOUBLE", tryEvalPostgresDateFunction);
-        dialect.AddScalarFunction(DbFunctionDef.CreateScalar("EXTRACT", "DOUBLE"));
-        dialect.AddScalarFunction("AGE", "INTERVAL", tryEvalPostgresDateFunction);
+        dialect.AddScalarFunction(
+            DbFunctionDef.CreateScalar("EXTRACT", "DOUBLE") with
+            {
+                AstExecutor = TryEvalPostgresExtractFunction
+            });
+        dialect.AddScalarFunction(
+            DbFunctionDef.CreateScalar("AGE", "INTERVAL", invocationStyle: DbInvocationStyle.Call | DbInvocationStyle.Identifier) with
+            {
+                AstExecutor = tryEvalPostgresDateFunction
+            });
         dialect.AddScalarFunction("MAKE_DATE", "DATE", tryEvalPostgresDateFunction);
         dialect.AddScalarFunction("MAKE_TIME", "TIME", tryEvalPostgresDateFunction);
         dialect.AddScalarFunction("MAKE_TIMESTAMP", "DATETIME", tryEvalPostgresDateFunction);
@@ -110,6 +126,111 @@ internal static class NpgsqlScalarFunctionRegistry
         dialect.AddScalarFunction("TO_DATE", "DATE", tryEvalPostgresDateFunction);
         dialect.AddScalarFunction("TO_CHAR", "VARCHAR", tryEvalPostgresDateFunction);
         dialect.AddScalarFunction("TO_NUMBER", "DECIMAL", TryEvalPostgresToNumberFunction);
+    }
+
+    private static bool TryEvalPostgresExtractFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+        if (fn.Args.Count < 2)
+        {
+            result = null;
+            return false;
+        }
+
+        var unitText = fn.Args[0] is RawSqlExpr rawUnit
+            ? rawUnit.Sql
+            : evalArg(0)?.ToString() ?? string.Empty;
+        var unit = AstQueryExecutionRuntimeHelper.ResolveTemporalUnit(unitText);
+        var value = evalArg(1);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (AstQueryExecutorBase.TryCoerceDateTime(value, out var dateTime))
+        {
+            result = unit switch
+            {
+                AstQueryExecutorBase.TemporalUnit.Day => dateTime.Day,
+                AstQueryExecutorBase.TemporalUnit.Month => dateTime.Month,
+                AstQueryExecutorBase.TemporalUnit.Year => dateTime.Year,
+                AstQueryExecutorBase.TemporalUnit.Hour => dateTime.Hour,
+                AstQueryExecutorBase.TemporalUnit.Minute => dateTime.Minute,
+                AstQueryExecutorBase.TemporalUnit.Second => dateTime.Second,
+                _ => (int?)null
+            } is int partValue ? (double)partValue : null;
+            return true;
+        }
+
+        if (AstQueryExecutorBase.TryConvertNumericToDouble(value, out var numeric))
+        {
+            result = unit == AstQueryExecutorBase.TemporalUnit.Day
+                ? (int)Math.Truncate(numeric)
+                : null;
+            return true;
+        }
+
+        result = null;
+        return true;
+    }
+
+    private static bool TryEvalPostgresSequenceFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (SqlSequenceEvaluator.TryEvaluateCall(context.Connection, fn.Name, fn.Args, expr => ResolveSequenceArgValue(fn.Args, expr, evalArg), out result))
+            return true;
+
+        result = null;
+        return false;
+    }
+
+    private static bool TryEvalPostgresRowCountFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = evalArg;
+        result = context.Connection.GetLastFoundRows();
+        return true;
+    }
+
+    private static object? ResolveSequenceArgValue(
+        IReadOnlyList<SqlExpr> args,
+        SqlExpr expr,
+        Func<int, object?> evalArg)
+    {
+        return expr switch
+        {
+            LiteralExpr lit => lit.Value,
+            RawSqlExpr raw => raw.Sql,
+            IdentifierExpr id => id.Name,
+            ColumnExpr col => string.IsNullOrWhiteSpace(col.Qualifier) ? col.Name : col.Qualifier + "." + col.Name,
+            _ => ResolveSequenceArgValueByReference(args, expr, evalArg)
+        };
+    }
+
+    private static object? ResolveSequenceArgValueByReference(
+        IReadOnlyList<SqlExpr> args,
+        SqlExpr expr,
+        Func<int, object?> evalArg)
+    {
+        for (var i = 0; i < args.Count; i++)
+        {
+            if (ReferenceEquals(args[i], expr))
+                return evalArg(i);
+        }
+
+        return null;
     }
 
     private static void RegisterTextFunctions(
@@ -126,6 +247,7 @@ internal static class NpgsqlScalarFunctionRegistry
             "VARCHAR",
             postgresqlTextFunction,
             "BTRIM",
+            "CHR",
             "INITCAP",
             "SPLIT_PART",
             "QUOTE_LITERAL",
@@ -192,6 +314,8 @@ internal static class NpgsqlScalarFunctionRegistry
         ISqlDialect dialect)
     {
         dialect.AddScalarFunction("FORMAT", "VARCHAR", TryEvalPostgresFormatFunction);
+        dialect.AddScalarFunction("LOG", "DOUBLE", TryEvalPostgresLogFunction);
+        dialect.AddScalarFunction("LOG10", "DOUBLE", TryEvalPostgresLogFunction);
         dialect.AddScalarFunction("RANDOM", "DOUBLE", TryEvalPostgresRandomFunction);
     }
 
@@ -267,6 +391,8 @@ internal static class NpgsqlScalarFunctionRegistry
 
         if (dialect.Version >= 12)
             dialect.AddScalarFunction("JSONB_PATH_QUERY_ARRAY", "VARCHAR", jsonFunction);
+        dialect.AddScalarFunction("JSON_BUILD_ARRAY", "VARCHAR", jsonFunction);
+        dialect.AddScalarFunction("JSON_BUILD_OBJECT", "VARCHAR", jsonFunction);
         dialect.AddScalarFunction("JSONB_BUILD_ARRAY", "VARCHAR", jsonFunction);
         dialect.AddScalarFunction("JSONB_BUILD_OBJECT", "VARCHAR", jsonFunction);
         dialect.AddScalarFunction("JSONB_OBJECT", "VARCHAR", jsonFunction);

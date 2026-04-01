@@ -160,6 +160,27 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         return true;
     }
 
+    internal static bool TryEvalLenFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+        _ = fn;
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = value?.ToString() ?? string.Empty;
+        result = text.TrimEnd().Length;
+        return true;
+    }
+
     internal static bool TryEvalGetAnsiNullFunction(
         QueryExecutionContext context,
         FunctionCallExpr fn,
@@ -395,7 +416,7 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         return true;
     }
 
-    internal bool TryEvalSqlServerJsonModifyFunction(
+    internal static bool TryEvalSqlServerJsonModifyFunction(
         QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,

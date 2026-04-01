@@ -17,4 +17,16 @@ public sealed class StoredProcedureSignatureTests(
     /// PT: Cria uma conexão simulada de Oracle usada pelos testes de assinatura de procedure.
     /// </summary>
     protected override DbConnectionMockBase CreateConnection() => new OracleConnectionMock();
+
+    /// <summary>
+    /// EN: Indicates that the Oracle mock does not support Guid input-output parameters in stored procedure signatures.
+    /// PT: Indica que o mock Oracle não suporta parâmetros input-output Guid em assinaturas de procedure.
+    /// </summary>
+    protected override bool SupportsGuidInputOutputParameters => false;
+
+    /// <summary>
+    /// EN: Indicates that the Oracle mock supports DateTimeOffset input-output parameters in stored procedure signatures.
+    /// PT: Indica que o mock Oracle suporta parâmetros input-output DateTimeOffset em assinaturas de procedure.
+    /// </summary>
+    protected override bool SupportsDateTimeOffsetInputOutputParameters => true;
 }

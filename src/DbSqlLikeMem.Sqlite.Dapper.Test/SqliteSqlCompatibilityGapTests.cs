@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.Sqlite.Dapper.Test;
+namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 
 /// <summary>
 /// EN: Covers SQLite SQL compatibility gap scenarios that intentionally document current divergence from real SQLite.
@@ -177,7 +177,7 @@ public sealed class SqliteSqlCompatibilityGapTests : XUnitTestBase
         // duplicate names
         _cnn.Execute("INSERT INTO users (id,name,email) VALUES (4,'john','j2@x.com')");
         var rows = _cnn.Query<dynamic>("SELECT DISTINCT name FROM users ORDER BY name").ToList();
-        Assert.Equal(["Bob", "Jane", "John"], [.. rows.Select(r => (string)r.name)]);
+        Assert.Equal(["Bob", "Jane", "John", "john"], [.. rows.Select(r => (string)r.name)]);
     }
 
     /// <summary>
@@ -330,10 +330,9 @@ ORDER BY id
     [Trait("Category", "SqliteSqlCompatibilityGap")]
     public void Typing_ImplicitCasts_And_Collation_ShouldMatchSqliteDefault()
     {
-        // Many SQLite installations use case-insensitive collations by default.
-        var rows1 = _cnn.Query<dynamic>("SELECT id FROM users WHERE name = 'john'").ToList();
-        Assert.Single(rows1);
-        Assert.Equal(1, (int)rows1[0].id);
+        // SQLite compares strings case-sensitively with the default binary collation.
+        var rows1 = _cnn.Query<dynamic>("SELECT id FROM users WHERE name = 'John'").ToList();
+        Assert.Empty(rows1);
 
         // Implicit cast string->int for comparison
         var rows2 = _cnn.Query<dynamic>("SELECT id FROM users WHERE id = '2'").ToList();

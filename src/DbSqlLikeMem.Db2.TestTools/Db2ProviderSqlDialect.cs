@@ -151,7 +151,7 @@ WHEN NOT MATCHED THEN
 
     /// <inheritdoc />
     public override string CurrentSequenceValue(string sequenceName) =>
-        $"PREVIOUS VALUE FOR {sequenceName}";
+        $"VALUES PREVIOUS VALUE FOR {sequenceName}";
 
     /// <inheritdoc />
     public override string Savepoint(string savepointName) =>
@@ -193,15 +193,19 @@ WHEN NOT MATCHED THEN
         $"LENGTH({expression})";
 
     /// <inheritdoc />
+    public override string StringCastExpression(string expression, int length = 10) =>
+        $"TO_CHAR({expression})";
+
+    /// <inheritdoc />
     public override string TemporalDateAdd() =>
-        "VALUES TIMESTAMP('2024-01-01-00.00.00') + 1 DAY";
+        "VALUES TIMESTAMPADD(16, 1, CURRENT TIMESTAMP)";
 
     /// <inheritdoc />
     public override string TemporalCurrentTimestampExpression() => "CURRENT TIMESTAMP";
 
     /// <inheritdoc />
     public override string TemporalDateAddExpression() =>
-        "CURRENT TIMESTAMP + 1 DAY";
+        "TIMESTAMPADD(16, 1, CURRENT TIMESTAMP)";
 
     /// <inheritdoc />
     public override string StringPrefixExpression(string expression, int length) =>

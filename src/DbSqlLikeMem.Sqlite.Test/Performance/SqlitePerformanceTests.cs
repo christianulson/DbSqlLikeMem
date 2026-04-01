@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+using FluentAssertions;
+using System.Diagnostics;
 
 namespace DbSqlLikeMem.Sqlite.Test.Performance;
 
@@ -77,7 +78,7 @@ public sealed class SqlitePerformanceTests : XUnitTestBase
                 insertedRows += command.ExecuteNonQuery();
             }
         });
-        Assert.Equal(totalRows, insertedRows);
+        insertedRows.Should().Be(totalRows);
 
         var successfulReads = 0;
         var readElapsedMs = Measure(() =>
@@ -90,7 +91,7 @@ public sealed class SqlitePerformanceTests : XUnitTestBase
                     successfulReads++;
             }
         });
-        Assert.Equal(sampledReads, successfulReads);
+        successfulReads.Should().Be(sampledReads);
 
         var updatedRows = 0;
         var updateElapsedMs = Measure(() =>
@@ -101,7 +102,7 @@ public sealed class SqlitePerformanceTests : XUnitTestBase
                 updatedRows += command.ExecuteNonQuery();
             }
         });
-        Assert.Equal(totalRows, updatedRows);
+        updatedRows.Should().Be(totalRows);
 
         var deletedRows = 0;
         var deleteElapsedMs = Measure(() =>
@@ -112,14 +113,14 @@ public sealed class SqlitePerformanceTests : XUnitTestBase
                 deletedRows += command.ExecuteNonQuery();
             }
         });
-        Assert.Equal(totalRows, deletedRows);
+        deletedRows.Should().Be(totalRows);
 
         Console.WriteLine($"[Sqlite][Performance] Inserts: {totalRows} in {insertElapsedMs}ms ({OpsPerSecond(totalRows, insertElapsedMs):F2} ops/s, {OpsAVG(totalRows, insertElapsedMs):F2} ms/avg)");
         Console.WriteLine($"[Sqlite][Performance] Reads: {sampledReads} in {readElapsedMs}ms ({OpsPerSecond(sampledReads, readElapsedMs):F2} ops/s, {OpsAVG(sampledReads, readElapsedMs):F2} ms/avg)");
         Console.WriteLine($"[Sqlite][Performance] Updates: {totalRows} in {updateElapsedMs}ms ({OpsPerSecond(totalRows, updateElapsedMs):F2} ops/s, {OpsAVG(totalRows, updateElapsedMs):F2} ms/avg)");
         Console.WriteLine($"[Sqlite][Performance] Deletes: {totalRows} in {deleteElapsedMs}ms ({OpsPerSecond(totalRows, deleteElapsedMs):F2} ops/s, {OpsAVG(totalRows, deleteElapsedMs):F2} ms/avg)");
 
-        Assert.Empty(_connection.GetTable("users"));
+        _connection.GetTable("users").Should().BeEmpty();
     }
 
     private static long Measure(Action action)

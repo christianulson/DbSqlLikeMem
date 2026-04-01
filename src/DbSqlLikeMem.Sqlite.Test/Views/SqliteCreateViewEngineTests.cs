@@ -1,4 +1,6 @@
-﻿namespace DbSqlLikeMem.Sqlite.Test.Views;
+using FluentAssertions;
+
+namespace DbSqlLikeMem.Sqlite.Test.Views;
 
 /// <summary>
 /// EN: Covers view execution scenarios in the Sqlite mock.
@@ -50,8 +52,8 @@ SELECT id, name FROM users WHERE tenantid = 10;
 ");
 
         var rows = _cnn.QueryRows("SELECT id, name FROM v10 ORDER BY id");
-        Assert.Equal([1, 2], [.. rows.Select(r => (int)r["id"]!)]);
-        Assert.Equal(["John", "Bob" ], [.. rows.Select(r => (string)r["name"]!)]);
+        rows.Select(r => (int)r["id"]!).Should().Equal([1, 2]);
+        rows.Select(r => (string)r["name"]!).Should().Equal(["John", "Bob"]);
     }
 
     /// <summary>
@@ -68,7 +70,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
         _users.Add(new Dictionary<int, object?> { [0] = 4, [1] = "Zoe", [2] = 10 });
 
         var rows = _cnn.QueryRows("SELECT id FROM v_all ORDER BY id");
-        Assert.Equal([1, 2, 3, 4], [.. rows.Select(r => (int)r["id"]!)]);
+        rows.Select(r => (int)r["id"]!).Should().Equal([1, 2, 3, 4]);
     }
 
     /// <summary>
@@ -81,11 +83,11 @@ SELECT id, name FROM users WHERE tenantid = 10;
     {
         _cnn.ExecNonQuery("CREATE VIEW v AS SELECT id FROM users WHERE tenantid = 10;");
         var r1 = _cnn.QueryRows("SELECT id FROM v ORDER BY id");
-        Assert.Equal([1, 2], [.. r1.Select(x => (int)x["id"]!)]);
+        r1.Select(x => (int)x["id"]!).Should().Equal([1, 2]);
 
         _cnn.ExecNonQuery("CREATE OR REPLACE VIEW v AS SELECT id FROM users WHERE tenantid = 20;");
         var r2 = _cnn.QueryRows("SELECT id FROM v ORDER BY id");
-        Assert.Equal([3], [.. r2.Select(x => (int)x["id"]!)]);
+        r2.Select(x => (int)x["id"]!).Should().Equal([3]);
     }
 
     /// <summary>
@@ -106,8 +108,8 @@ SELECT id, name FROM users WHERE tenantid = 10;
         _cnn.ExecNonQuery("CREATE VIEW vshadow AS SELECT id FROM users WHERE id = 1;");
 
         var rows = _cnn.QueryRows("SELECT id FROM vshadow");
-        Assert.Single(rows);
-        Assert.Equal(1, (int)rows[0]["id"]!);
+        rows.Should().ContainSingle();
+        rows[0]["id"]!.Should().Be(1);
     }
 
     /// <summary>
@@ -122,7 +124,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
         _cnn.ExecNonQuery("CREATE VIEW v2 AS SELECT id FROM v1 WHERE id > 1;");
 
         var rows = _cnn.QueryRows("SELECT id FROM v2 ORDER BY id");
-        Assert.Equal([2], [.. rows.Select(r => (int)r["id"]!)]);
+        rows.Select(r => (int)r["id"]!).Should().Equal([2]);
     }
 
     /// <summary>
@@ -142,12 +144,12 @@ GROUP BY u.id;
 ");
 
         var rows = _cnn.QueryRows("SELECT id, total FROM user_totals ORDER BY id");
-        Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r["id"]!)]);
+        rows.Select(r => (int)r["id"]!).Should().Equal([1, 2, 3]);
 
         // user 1: 15, user 2: 7, user 3: sem orders -> NULL (SQLite)
-        Assert.Equal(15m, (decimal)rows[0]["total"]!);
-        Assert.Equal(7m, (decimal)rows[1]["total"]!);
-        Assert.True(rows[2]["total"] is null);
+        rows[0]["total"]!.Should().Be(15m);
+        rows[1]["total"]!.Should().Be(7m);
+        rows[2]["total"].Should().BeNull();
     }
 
     /// <summary>
@@ -159,7 +161,8 @@ GROUP BY u.id;
     public void CreateView_ExistingNameWithoutOrReplace_ShouldThrow()
     {
         _cnn.ExecNonQuery("CREATE VIEW vdup AS SELECT 1 AS x FROM DUAL;");
-        Assert.ThrowsAny<Exception>(() => _cnn.ExecNonQuery("CREATE VIEW vdup AS SELECT 2 AS x FROM DUAL;"));
+        Action act = () => _cnn.ExecNonQuery("CREATE VIEW vdup AS SELECT 2 AS x FROM DUAL;");
+        act.Should().Throw<Exception>();
     }
 
     /// <summary>
@@ -172,7 +175,8 @@ GROUP BY u.id;
     {
         _cnn.ExecNonQuery("CREATE VIEW vdrop AS SELECT id FROM users;");
         _cnn.ExecNonQuery("DROP VIEW vdrop;");
-        Assert.ThrowsAny<Exception>(() => _cnn.QueryRows("SELECT * FROM vdrop"));
+        Action act = () => _cnn.QueryRows("SELECT * FROM vdrop");
+        act.Should().Throw<Exception>();
     }
 
     /// <summary>

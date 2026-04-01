@@ -1,4 +1,5 @@
 using Dapper;
+using FluentAssertions;
 
 namespace DbSqlLikeMem.TestTools;
 
@@ -44,7 +45,7 @@ public abstract class DapperTransactionConcurrencyTestsBase(
         transaction.Commit();
 
         var ids = connection.Query<int>("SELECT Id FROM Users ORDER BY Id").ToList();
-        Assert.Equal([1], ids);
+        ids.Should().Equal(new[] { 1 });
     }
 
     /// <summary>
@@ -57,8 +58,8 @@ public abstract class DapperTransactionConcurrencyTestsBase(
         using var connection = openConnection();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
 
-        Assert.Equal(IsolationLevel.Serializable, transaction.IsolationLevel);
-        Assert.Equal(IsolationLevel.Serializable, connection.CurrentIsolationLevel);
+        transaction.IsolationLevel.Should().Be(IsolationLevel.Serializable);
+        connection.CurrentIsolationLevel.Should().Be(IsolationLevel.Serializable);
     }
 
     /// <summary>
@@ -78,8 +79,8 @@ public abstract class DapperTransactionConcurrencyTestsBase(
             return;
         }
 
-        var ex = Assert.Throws<NotSupportedException>(() => connection.ReleaseSavepoint("sp_release"));
-        Assert.Contains("RELEASE SAVEPOINT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        var ex = FluentActions.Invoking(() => connection.ReleaseSavepoint("sp_release")).Should().Throw<NotSupportedException>().Which;
+        ex.Message.Contains("RELEASE SAVEPOINT", StringComparison.OrdinalIgnoreCase).Should().BeTrue();
     }
 
     /// <summary>
@@ -99,8 +100,8 @@ public abstract class DapperTransactionConcurrencyTestsBase(
         });
 
         var ids = setupConnection.Query<int>("SELECT Id FROM Users").ToList();
-        Assert.Equal(40, ids.Count);
-        Assert.Equal(40, ids.Distinct().Count());
+        ids.Count.Should().Be(40);
+        ids.Distinct().Count().Should().Be(40);
     }
 
     /// <summary>
@@ -114,9 +115,9 @@ public abstract class DapperTransactionConcurrencyTestsBase(
         using var first = openConnection();
         using var second = openConnection();
 
-        first.Execute("CREATE TABLE tx_concurrency_state (id INT PRIMARY KEY, value INT)");
+        first.Execute("CREATE TABLE tx_concurrency_state (id INT PRIMARY KEY, amount INT)");
         first.Execute("CREATE TABLE tx_concurrency_audit (id INT PRIMARY KEY, source VARCHAR(20))");
-        first.Execute("INSERT INTO tx_concurrency_state (id, value) VALUES (1, 0)");
+        first.Execute("INSERT INTO tx_concurrency_state (id, amount) VALUES (1, 0)");
 
         using var sync = new Barrier(2);
         using var rollbackCompleted = new ManualResetEventSlim(false);
@@ -126,7 +127,7 @@ public abstract class DapperTransactionConcurrencyTestsBase(
             using var tx = first.BeginTransaction();
             sync.SignalAndWait();
             rollbackCompleted.Wait();
-            first.Execute("UPDATE tx_concurrency_state SET value = value + 10 WHERE id = 1", transaction: tx);
+            first.Execute("UPDATE tx_concurrency_state SET amount = amount + 10 WHERE id = 1", transaction: tx);
             first.Execute("INSERT INTO tx_concurrency_audit (id, source) VALUES (1, 'commit')", transaction: tx);
             tx.Commit();
         });
@@ -134,7 +135,7 @@ public abstract class DapperTransactionConcurrencyTestsBase(
         var rollbackTask = Task.Run(() =>
         {
             using var tx = second.BeginTransaction();
-            second.Execute("UPDATE tx_concurrency_state SET value = value + 100 WHERE id = 1", transaction: tx);
+            second.Execute("UPDATE tx_concurrency_state SET amount = amount + 100 WHERE id = 1", transaction: tx);
             second.Execute("INSERT INTO tx_concurrency_audit (id, source) VALUES (2, 'rollback')", transaction: tx);
             sync.SignalAndWait();
             tx.Rollback();
@@ -143,12 +144,11 @@ public abstract class DapperTransactionConcurrencyTestsBase(
 
         Task.WaitAll(commitTask, rollbackTask);
 
-        var finalValue = first.ExecuteScalar<int>("SELECT value FROM tx_concurrency_state WHERE id = 1");
+        var finalValue = first.ExecuteScalar<int>("SELECT amount FROM tx_concurrency_state WHERE id = 1");
         var auditRows = first.Query<(int id, string source)>("SELECT id, source FROM tx_concurrency_audit ORDER BY id").ToList();
 
-        Assert.Equal(10, finalValue);
-        Assert.Single(auditRows);
-        Assert.Equal((1, "commit"), auditRows[0]);
+        finalValue.Should().Be(10);
+        auditRows.Should().ContainSingle().Which.Should().Be((1, "commit"));
     }
 
     /// <summary>
@@ -162,15 +162,15 @@ public abstract class DapperTransactionConcurrencyTestsBase(
         using var first = openConnection();
         using var second = openConnection();
 
-        first.Execute("CREATE TABLE tx_concurrency_commit (id INT PRIMARY KEY, value INT)");
-        first.Execute("INSERT INTO tx_concurrency_commit (id, value) VALUES (1, 0)");
+        first.Execute("CREATE TABLE tx_concurrency_commit (id INT PRIMARY KEY, amount INT)");
+        first.Execute("INSERT INTO tx_concurrency_commit (id, amount) VALUES (1, 0)");
 
         using var sync = new Barrier(2);
 
         var txFirstTask = Task.Run(() =>
         {
             using var tx = first.BeginTransaction();
-            first.Execute("UPDATE tx_concurrency_commit SET value = value + 10 WHERE id = 1", transaction: tx);
+            first.Execute("UPDATE tx_concurrency_commit SET amount = amount + 10 WHERE id = 1", transaction: tx);
             sync.SignalAndWait();
             tx.Commit();
         });
@@ -178,15 +178,15 @@ public abstract class DapperTransactionConcurrencyTestsBase(
         var txSecondTask = Task.Run(() =>
         {
             using var tx = second.BeginTransaction();
-            second.Execute("UPDATE tx_concurrency_commit SET value = value + 100 WHERE id = 1", transaction: tx);
+            second.Execute("UPDATE tx_concurrency_commit SET amount = amount + 100 WHERE id = 1", transaction: tx);
             sync.SignalAndWait();
             tx.Commit();
         });
 
         Task.WaitAll(txFirstTask, txSecondTask);
 
-        var finalValue = first.ExecuteScalar<int>("SELECT value FROM tx_concurrency_commit WHERE id = 1");
-        Assert.Equal(110, finalValue);
+        var finalValue = first.ExecuteScalar<int>("SELECT amount FROM tx_concurrency_commit WHERE id = 1");
+        finalValue.Should().Be(110);
     }
 }
 

@@ -7,6 +7,11 @@ internal static class SqlSharedWindowFunctionRegistry
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
 
         dialect.AddWindowFunctions(
+            new DbFunctionDef("COUNT", 1, 1),
+            new DbFunctionDef(SqlConst.SUM, 1, 1),
+            new DbFunctionDef(SqlConst.AVG, 1, 1),
+            new DbFunctionDef(SqlConst.MIN, 1, 1),
+            new DbFunctionDef(SqlConst.MAX, 1, 1),
             new DbFunctionDef("ROW_NUMBER", 0, 0, requiresOrderBy: true),
             new DbFunctionDef("RANK", 0, 0, requiresOrderBy: true),
             new DbFunctionDef("DENSE_RANK", 0, 0, requiresOrderBy: true),

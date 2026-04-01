@@ -1,3 +1,5 @@
+using DbSqlLikeMem.Oracle.TestTools;
+
 namespace DbSqlLikeMem.Oracle.EfCore.Test;
 
 /// <summary>
@@ -8,6 +10,10 @@ public sealed class EfCoreSmokeTests(
     ITestOutputHelper helper
 ) : EfCoreSupportTestsBase(helper)
 {
+    /// <inheritdoc />
+    protected override ProviderSqlDialect Dialect { get; } =
+        new OracleProviderSqlDialect();
+
     /// <summary>
     /// EN: Creates the Oracle EF Core connection factory used by the shared contract tests.
     /// PT: Cria a fábrica de conexão EF Core de Oracle usada pelos testes de contrato compartilhados.

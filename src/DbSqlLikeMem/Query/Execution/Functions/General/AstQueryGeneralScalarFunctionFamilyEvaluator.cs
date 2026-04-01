@@ -38,7 +38,9 @@ internal static class AstQueryGeneralScalarFunctionFamilyEvaluator
         Func<CallExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, IntervalValue?> parseIntervalValue,
         out object? result)
     {
-        if (tryEvalJsonObjectFunction(context, fn, evalArg, out result)
+        if (AstQuerySharedTextFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result)
+            || AstQuerySharedBinaryTextFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result)
+            || tryEvalJsonObjectFunction(context, fn, evalArg, out result)
             || TryEvalGeneralDateArithmeticFunctions(context, fn, evalArg, out result))
         {
             return true;

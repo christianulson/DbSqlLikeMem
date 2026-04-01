@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.MySql.Test.Strategy;
 /// <summary>
 /// EN: Covers transaction commit and rollback scenarios in the MySql mock.
@@ -37,9 +39,9 @@ public sealed class MySqlTransactionTests(
         transaction.Commit();
 
         // Assert
-        Assert.Single(table);
-        Assert.Equal(1, table[0][0]);
-        Assert.Equal("John Doe", table[0][1]);
+        table.Should().ContainSingle();
+        table[0][0].Should().Be(1);
+        table[0][1].Should().Be("John Doe");
     }
 
     /// <summary>
@@ -71,7 +73,7 @@ public sealed class MySqlTransactionTests(
         transaction.Rollback();
 
         // Assert
-        Assert.Empty(table);
+        table.Should().BeEmpty();
     }
 
     /// <summary>
@@ -87,13 +89,13 @@ public sealed class MySqlTransactionTests(
         connection.Open();
 
         using var tx = connection.BeginTransaction(IsolationLevel.Serializable);
-        Assert.Equal(IsolationLevel.Serializable, connection.CurrentIsolationLevel);
-        Assert.Equal(IsolationLevel.Serializable, tx.IsolationLevel);
+        connection.CurrentIsolationLevel.Should().Be(IsolationLevel.Serializable);
+        tx.IsolationLevel.Should().Be(IsolationLevel.Serializable);
 
         connection.CommitTransaction();
 
-        Assert.Equal(IsolationLevel.Unspecified, connection.CurrentIsolationLevel);
-        Assert.False(connection.HasActiveTransaction);
+        connection.CurrentIsolationLevel.Should().Be(IsolationLevel.Unspecified);
+        connection.HasActiveTransaction.Should().BeFalse();
     }
 
     /// <summary>
@@ -109,12 +111,12 @@ public sealed class MySqlTransactionTests(
         connection.Open();
 
         using var tx = connection.BeginTransaction(IsolationLevel.RepeatableRead);
-        Assert.Equal(IsolationLevel.RepeatableRead, connection.CurrentIsolationLevel);
+        connection.CurrentIsolationLevel.Should().Be(IsolationLevel.RepeatableRead);
 
         connection.RollbackTransaction();
 
-        Assert.Equal(IsolationLevel.Unspecified, connection.CurrentIsolationLevel);
-        Assert.False(connection.HasActiveTransaction);
+        connection.CurrentIsolationLevel.Should().Be(IsolationLevel.Unspecified);
+        connection.HasActiveTransaction.Should().BeFalse();
     }
 
     /// <summary>
@@ -141,10 +143,10 @@ public sealed class MySqlTransactionTests(
         tempB.AddColumn("name", DbType.String, false);
         tempB.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Bob" });
 
-        Assert.Single(tempA);
-        Assert.Single(tempB);
-        Assert.Equal("Ana", tempA[0][1]);
-        Assert.Equal("Bob", tempB[0][1]);
+        tempA.Should().ContainSingle();
+        tempB.Should().ContainSingle();
+        tempA[0][1].Should().Be("Ana");
+        tempB[0][1].Should().Be("Bob");
     }
 
     /// <summary>
@@ -169,13 +171,14 @@ public sealed class MySqlTransactionTests(
 
         connection.Close();
 
-        Assert.Equal(ConnectionState.Closed, connection.State);
-        Assert.False(connection.HasActiveTransaction);
-        Assert.Equal(IsolationLevel.Unspecified, connection.CurrentIsolationLevel);
-        Assert.False(connection.TryGetTemporaryTable("temp_users", out var _));
+        connection.State.Should().Be(ConnectionState.Closed);
+        connection.HasActiveTransaction.Should().BeFalse();
+        connection.CurrentIsolationLevel.Should().Be(IsolationLevel.Unspecified);
+        connection.TryGetTemporaryTable("temp_users", out var _).Should().BeFalse();
 
-        var ex = Assert.Throws<InvalidOperationException>(() => connection.RollbackTransaction("sp_close"));
-        Assert.Contains("No active transaction", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Action act = () => connection.RollbackTransaction("sp_close");
+        act.Should().Throw<InvalidOperationException>()
+            .Which.Message.Should().Contain("No active transaction");
     }
 
     /// <summary>
@@ -210,10 +213,10 @@ public sealed class MySqlTransactionTests(
 
         connA.Close();
 
-        Assert.Single(users);
+        users.Should().ContainSingle();
         var globalTempFromConnB = connB.GetTable("gtmp_users");
-        Assert.Single(globalTempFromConnB);
-        Assert.False(connA.TryGetTemporaryTable("temp_users", out var _));
+        globalTempFromConnB.Should().ContainSingle();
+        connA.TryGetTemporaryTable("temp_users", out var _).Should().BeFalse();
     }
 
     /// <summary>
@@ -241,15 +244,15 @@ public sealed class MySqlTransactionTests(
         connection.Close();
         connection.Open();
 
-        Assert.Equal(ConnectionState.Open, connection.State);
-        Assert.False(connection.HasActiveTransaction);
-        Assert.False(connection.TryGetTemporaryTable("temp_users", out var _));
-        Assert.Single(users);
+        connection.State.Should().Be(ConnectionState.Open);
+        connection.HasActiveTransaction.Should().BeFalse();
+        connection.TryGetTemporaryTable("temp_users", out var _).Should().BeFalse();
+        users.Should().ContainSingle();
 
         var tempNew = connection.AddTemporaryTable("temp_users");
         tempNew.AddColumn("id", DbType.Int32, false);
         tempNew.AddColumn("name", DbType.String, false);
-        Assert.Empty(tempNew);
+        tempNew.Should().BeEmpty();
     }
 
     /// <summary>
@@ -284,14 +287,14 @@ public sealed class MySqlTransactionTests(
         update.ExecuteNonQuery();
 
         ((MySqlTransactionMock)transaction).Rollback("sp_users");
-        Assert.Equal("Ana", users.Single()[1]);
+        users.Single()[1].Should().Be("Ana");
 
         ((MySqlTransactionMock)transaction).Save("sp_release");
         ((MySqlTransactionMock)transaction).Release("sp_release");
         transaction.Commit();
 
-        Assert.False(connection.HasActiveTransaction);
-        Assert.Equal(IsolationLevel.Unspecified, connection.CurrentIsolationLevel);
+        connection.HasActiveTransaction.Should().BeFalse();
+        connection.CurrentIsolationLevel.Should().Be(IsolationLevel.Unspecified);
     }
 
     /// <summary>
@@ -326,10 +329,10 @@ public sealed class MySqlTransactionTests(
 
         transaction.Rollback();
 
-        Assert.Empty(users);
-        Assert.Empty(orders);
-        Assert.False(connection.HasActiveTransaction);
-        Assert.Equal(IsolationLevel.Unspecified, connection.CurrentIsolationLevel);
+        users.Should().BeEmpty();
+        orders.Should().BeEmpty();
+        connection.HasActiveTransaction.Should().BeFalse();
+        connection.CurrentIsolationLevel.Should().Be(IsolationLevel.Unspecified);
     }
 
     /// <summary>
@@ -360,7 +363,7 @@ public sealed class MySqlTransactionTests(
         transaction.Rollback();
 
         // Assert
-        Assert.Empty(temp);
+        temp.Should().BeEmpty();
     }
 
     /// <summary>
@@ -400,9 +403,9 @@ public sealed class MySqlTransactionTests(
         transaction.Commit();
 
         // Assert
-        Assert.Single(temp);
-        Assert.Equal(1, temp[0][0]);
-        Assert.Equal("Ana", temp[0][1]);
+        temp.Should().ContainSingle();
+        temp[0][0].Should().Be(1);
+        temp[0][1].Should().Be("Ana");
     }
 
     /// <summary>
@@ -437,12 +440,12 @@ public sealed class MySqlTransactionTests(
         connection.ResetAllVolatileData();
 
         // Assert
-        Assert.False(connection.HasActiveTransaction);
-        Assert.Empty(users);
-        Assert.Equal(1, users.NextIdentity);
-        Assert.Empty(temp);
-        Assert.Equal(1, temp.NextIdentity);
-        Assert.False(connection.TryGetTemporaryTable("temp_users", out var _));
+        connection.HasActiveTransaction.Should().BeFalse();
+        users.Should().BeEmpty();
+        users.NextIdentity.Should().Be(1);
+        temp.Should().BeEmpty();
+        temp.NextIdentity.Should().Be(1);
+        connection.TryGetTemporaryTable("temp_users", out var _).Should().BeFalse();
     }
 
     /// <summary>
@@ -470,14 +473,14 @@ public sealed class MySqlTransactionTests(
         createGlobalTemp.ExecuteNonQuery();
 
         var globalTemp = connection.GetTable("gtmp_users");
-        Assert.Single(globalTemp);
+        globalTemp.Should().ContainSingle();
 
         // Act
         connection.ResetAllVolatileData();
 
         // Assert
-        Assert.Empty(globalTemp);
-        Assert.Equal(2, globalTemp.Columns.Count);
+        globalTemp.Should().BeEmpty();
+        globalTemp.Columns.Count.Should().Be(2);
     }
 
     /// <summary>
@@ -500,9 +503,10 @@ public sealed class MySqlTransactionTests(
         connection.ResetAllVolatileData();
 
         // Assert
-        Assert.False(connection.HasActiveTransaction);
-        var ex = Assert.Throws<InvalidOperationException>(() => connection.RollbackTransaction("sp_reset"));
-        Assert.Contains("No active transaction", ex.Message, StringComparison.OrdinalIgnoreCase);
+        connection.HasActiveTransaction.Should().BeFalse();
+        Action act = () => connection.RollbackTransaction("sp_reset");
+        act.Should().Throw<InvalidOperationException>()
+            .Which.Message.Should().Contain("No active transaction" );
     }
 
     /// <summary>
@@ -526,10 +530,10 @@ public sealed class MySqlTransactionTests(
         db.ResetVolatileData();
 
         // Assert
-        Assert.True(db.ContainsTable("users"));
-        Assert.Equal(2, users.Columns.Count);
-        Assert.Empty(users);
-        Assert.Equal(1, users.NextIdentity);
+        db.ContainsTable("users").Should().BeTrue();
+        users.Columns.Count.Should().Be(2);
+        users.Should().BeEmpty();
+        users.NextIdentity.Should().Be(1);
     }
 
     /// <summary>
@@ -554,9 +558,9 @@ public sealed class MySqlTransactionTests(
         db.ResetVolatileData(includeGlobalTemporaryTables: true);
 
         // Assert
-        Assert.True(connection.TryGetTemporaryTable("temp_users", out var tempAfter));
-        Assert.Single(tempAfter!);
-        Assert.Equal("Tmp-A", tempAfter![0][1]);
+        connection.TryGetTemporaryTable("temp_users", out var tempAfter).Should().BeTrue();
+        tempAfter.Should().ContainSingle();
+        tempAfter![0][1].Should().Be("Tmp-A");
     }
 
     /// <summary>
@@ -584,20 +588,20 @@ public sealed class MySqlTransactionTests(
         createGlobalTemp.ExecuteNonQuery();
 
         var globalTemp = connection.GetTable("gtmp_users");
-        Assert.Single(globalTemp);
+        globalTemp.Should().ContainSingle();
 
         // Act 1: preserve global temporary rows
         db.ResetVolatileData(includeGlobalTemporaryTables: false);
 
         // Assert 1
-        Assert.Empty(users);
-        Assert.Single(globalTemp);
+        users.Should().BeEmpty();
+        globalTemp.Should().ContainSingle();
 
         // Act 2: clear global temporary rows
         db.ResetVolatileData(includeGlobalTemporaryTables: true);
 
         // Assert 2
-        Assert.Empty(globalTemp);
-        Assert.Equal(2, globalTemp.Columns.Count);
+        globalTemp.Should().BeEmpty();
+        globalTemp.Columns.Count.Should().Be(2);
     }
 }

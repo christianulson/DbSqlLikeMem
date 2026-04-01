@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.MySql.Test;
 
 /// <summary>
@@ -69,8 +71,9 @@ SET u.total = s.total
 FROM users u
 JOIN (SELECT userid, SUM(amount) AS total FROM orders GROUP BY userid) s ON s.userid = u.id";
 
-        var ex = Assert.Throws<NotSupportedException>(() => ExecuteNonQuery(db, sql));
-        Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("UPDATE ... FROM ... JOIN", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Action act = () => ExecuteNonQuery(db, sql);
+        var ex = act.Should().Throw<NotSupportedException>().Which;
+        ex.Message.Should().Contain("SQL não suportado para dialeto");
+        ex.Message.Should().Contain("UPDATE ... FROM ... JOIN");
     }
 }

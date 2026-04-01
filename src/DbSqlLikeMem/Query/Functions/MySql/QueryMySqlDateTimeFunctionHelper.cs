@@ -222,27 +222,19 @@ internal static class QueryMySqlDateTimeFunctionHelper
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("GET_FORMAT() espera tipo e formato.");
 
-        var typeValue = evalArg(0)?.ToString();
-        if (string.IsNullOrWhiteSpace(typeValue))
+        var typeValue = fn.Args[0] switch
         {
-            typeValue = fn.Args[0] switch
-            {
-                IdentifierExpr id => id.Name,
-                RawSqlExpr raw => raw.Sql,
-                _ => null
-            };
-        }
+            IdentifierExpr id => id.Name,
+            RawSqlExpr raw => raw.Sql,
+            _ => evalArg(0)?.ToString()
+        };
 
-        var formatValue = evalArg(1)?.ToString();
-        if (string.IsNullOrWhiteSpace(formatValue))
+        var formatValue = fn.Args[1] switch
         {
-            formatValue = fn.Args[1] switch
-            {
-                IdentifierExpr id => id.Name,
-                RawSqlExpr raw => raw.Sql,
-                _ => null
-            };
-        }
+            IdentifierExpr id => id.Name,
+            RawSqlExpr raw => raw.Sql,
+            _ => evalArg(1)?.ToString()
+        };
 
         if (string.IsNullOrWhiteSpace(typeValue) || string.IsNullOrWhiteSpace(formatValue))
         {

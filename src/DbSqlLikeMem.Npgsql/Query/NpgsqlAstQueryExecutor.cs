@@ -44,19 +44,54 @@ internal sealed class NpgsqlAstQueryExecutor(QueryExecutionContext context)
     private static string? ConvertPostgresJsonPath(string raw)
     {
         var trimmed = raw.Trim();
-        if (!trimmed.StartsWith("{", StringComparison.Ordinal) || !trimmed.EndsWith("}", StringComparison.Ordinal))
+        if (string.IsNullOrWhiteSpace(trimmed))
             return null;
 
-        var inner = trimmed[1..^1];
-        if (string.IsNullOrWhiteSpace(inner))
-            return null;
+        if (trimmed.StartsWith("$", StringComparison.Ordinal)
+            || trimmed.StartsWith("lax ", StringComparison.OrdinalIgnoreCase)
+            || trimmed.StartsWith("strict ", StringComparison.OrdinalIgnoreCase))
+            return trimmed;
 
-        var parts = inner
-            .Split(',').Select(_ => _.Trim()).Where(_ => !string.IsNullOrWhiteSpace(_))
-            .Select(p => p.Trim('"'))
-            .Where(p => p.Length > 0)
-            .ToArray();
+        if (trimmed.StartsWith("{", StringComparison.Ordinal) && trimmed.EndsWith("}", StringComparison.Ordinal))
+        {
+            var inner = trimmed[1..^1];
+            if (string.IsNullOrWhiteSpace(inner))
+                return null;
 
-        return parts.Length == 0 ? null : "$." + string.Join(".", parts);
+            var parts = inner
+                .Split(',').Select(_ => _.Trim()).Where(_ => !string.IsNullOrWhiteSpace(_))
+                .Select(p => p.Trim('"'))
+                .Where(p => p.Length > 0)
+                .ToArray();
+
+            return parts.Length == 0 ? null : "$." + string.Join(".", parts);
+        }
+
+        if (int.TryParse(trimmed, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var index)
+            && index >= 0)
+            return $"$[{index}]";
+
+        if (IsSimpleJsonPropertyName(trimmed))
+            return "$." + trimmed;
+
+        return "$.\"" + trimmed.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+    }
+
+    private static bool IsSimpleJsonPropertyName(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+
+        if (!(char.IsLetter(value[0]) || value[0] == '_'))
+            return false;
+
+        for (var i = 1; i < value.Length; i++)
+        {
+            var ch = value[i];
+            if (!(char.IsLetterOrDigit(ch) || ch == '_'))
+                return false;
+        }
+
+        return true;
     }
 }

@@ -1,4 +1,4 @@
-namespace DbSqlLikeMem.TestTools.Query;
+﻿namespace DbSqlLikeMem.TestTools.Query;
 
 public partial class QueryServiceTest<T>
 {
@@ -205,7 +205,7 @@ public partial class QueryServiceTest<T>
 
         var users = (string)pars[0];
         using var command = Connection.CreateCommand();
-        command.CommandText = $"""
+        command.CommandText = NormalizeScenarioSql($"""
 SELECT
     CASE WHEN Name = 'Bob' THEN 'B' ELSE 'Other' END AS NameGroup,
     COUNT(*) AS TotalCount,
@@ -215,17 +215,17 @@ SELECT
 FROM {users}
 GROUP BY CASE WHEN Name = 'Bob' THEN 'B' ELSE 'Other' END
 ORDER BY NameGroup
-""";
+""");
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateStringAggregateGroupCaseRow(reader, "B", 2, 1, "Bob", "Bob");
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateStringAggregateGroupCaseRow(reader, "Other", 3, 3, "Alice", "Delta");
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(users);
         return 2;
     }
@@ -240,7 +240,7 @@ ORDER BY NameGroup
         var initialExpr = $"UPPER({Dialect.StringPrefixExpression("Name", 1)})";
 
         using var command = Connection.CreateCommand();
-        command.CommandText = $"""
+        command.CommandText = NormalizeScenarioSql($"""
 SELECT
     {initialExpr} AS NameInitial,
     COUNT(*) AS TotalCount,
@@ -254,20 +254,20 @@ FROM {users}
 GROUP BY {initialExpr}
 HAVING COUNT(*) >= 2
 ORDER BY {initialExpr}
-""";
+""");
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateGroupByNameInitialRow(reader, "A", 3, 2, 2, 0, "Adam", "Alice", 1);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateGroupByNameInitialRow(reader, "B", 3, 2, 0, 2, "Bob", "Brian", 1);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateGroupByNameInitialRow(reader, "C", 2, 2, 0, 0, "Carla", "Chris", 1);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(users);
         return 3;
     }
@@ -281,7 +281,7 @@ ORDER BY {initialExpr}
         var users = (string)pars[0];
 
         using var command = Connection.CreateCommand();
-        command.CommandText = $"""
+        command.CommandText = NormalizeScenarioSql($"""
 SELECT
     Name,
     COUNT(*) AS TotalCount
@@ -289,19 +289,19 @@ FROM {users}
 GROUP BY Name
 HAVING COUNT(*) >= 2
 ORDER BY Name
-""";
+""");
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        Assert.Equal("Alice", Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(2, Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture));
+        reader.Read().Should().BeTrue();
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Alice");
+        Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(2);
 
-        Assert.True(reader.Read());
-        Assert.Equal("Bob", Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(3, Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture));
+        reader.Read().Should().BeTrue();
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Bob");
+        Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(3);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(users);
         return 2;
     }
@@ -316,7 +316,7 @@ ORDER BY Name
         var initialExpr = $"UPPER({Dialect.StringPrefixExpression("Name", 1)})";
 
         using var command = Connection.CreateCommand();
-        command.CommandText = $"""
+        command.CommandText = NormalizeScenarioSql($"""
 SELECT
     {initialExpr} AS NameInitial,
     COUNT(*) AS TotalCount
@@ -324,23 +324,23 @@ FROM {users}
 GROUP BY 1
 HAVING COUNT(*) >= 2
 ORDER BY 1
-""";
+""");
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        Assert.Equal("A", Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(3, Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture));
+        reader.Read().Should().BeTrue();
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("A");
+        Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(3);
 
-        Assert.True(reader.Read());
-        Assert.Equal("B", Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(3, Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture));
+        reader.Read().Should().BeTrue();
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("B");
+        Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(3);
 
-        Assert.True(reader.Read());
-        Assert.Equal("C", Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(2, Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture));
+        reader.Read().Should().BeTrue();
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("C");
+        Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(2);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(users);
         return 3;
     }
@@ -354,29 +354,29 @@ ORDER BY 1
         var users = (string)pars[0];
 
         using var command = Connection.CreateCommand();
-        command.CommandText = $"""
+        command.CommandText = NormalizeScenarioSql($"""
 SELECT
     Name,
     Id
 FROM {users}
 ORDER BY 2 DESC
-""";
+""");
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        Assert.Equal("Charlie", Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(3, Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture));
+        reader.Read().Should().BeTrue();
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Charlie");
+        Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(3);
 
-        Assert.True(reader.Read());
-        Assert.Equal("Bravo", Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(2, Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture));
+        reader.Read().Should().BeTrue();
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Bravo");
+        Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(2);
 
-        Assert.True(reader.Read());
-        Assert.Equal("Alpha", Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(1, Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture));
+        reader.Read().Should().BeTrue();
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Alpha");
+        Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(1);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(users);
         return 3;
     }
@@ -390,28 +390,28 @@ ORDER BY 2 DESC
         var users = (string)pars[0];
 
         using var command = Connection.CreateCommand();
-        command.CommandText = $"""
+        command.CommandText = NormalizeScenarioSql($"""
 SELECT DISTINCT
     Name
 FROM {users}
 ORDER BY 1
-""";
+""");
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        Assert.Equal("Alice", Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
+        reader.Read().Should().BeTrue();
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Alice");
 
-        Assert.True(reader.Read());
-        Assert.Equal("Bob", Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
+        reader.Read().Should().BeTrue();
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Bob");
 
-        Assert.True(reader.Read());
-        Assert.Equal("Charlie", Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
+        reader.Read().Should().BeTrue();
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Charlie");
 
-        Assert.True(reader.Read());
-        Assert.Equal("Delta", Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
+        reader.Read().Should().BeTrue();
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Delta");
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(users);
         return 4;
     }
@@ -425,26 +425,26 @@ ORDER BY 1
         var users = (string)pars[0];
 
         using var command = Connection.CreateCommand();
-        command.CommandText = $"""
+        command.CommandText = NormalizeScenarioSql($"""
 SELECT DISTINCT
     UPPER(Name)
 FROM {users}
 WHERE UPPER(Name) LIKE '%A%'
 ORDER BY 1
-""";
+""");
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        Assert.Equal("ALICE", Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
+        reader.Read().Should().BeTrue();
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("ALICE");
 
-        Assert.True(reader.Read());
-        Assert.Equal("CHARLIE", Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
+        reader.Read().Should().BeTrue();
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("CHARLIE");
 
-        Assert.True(reader.Read());
-        Assert.Equal("DELTA", Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
+        reader.Read().Should().BeTrue();
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("DELTA");
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(users);
         return 3;
     }
@@ -463,7 +463,7 @@ FROM {users}
 WHERE Name IN ('Alice', 'Charlie')
 """), CultureInfo.InvariantCulture);
 
-        Assert.Equal(2, value);
+        value.Should().Be(2);
         GC.KeepAlive(users);
         return value;
     }
@@ -482,7 +482,7 @@ FROM {users}
 WHERE Id BETWEEN 2 AND 4
 """), CultureInfo.InvariantCulture);
 
-        Assert.Equal(3, value);
+        value.Should().Be(3);
         GC.KeepAlive(users);
         return value;
     }
@@ -501,7 +501,7 @@ FROM {users}
 WHERE Name LIKE 'A%'
 """), CultureInfo.InvariantCulture);
 
-        Assert.Equal(1, value);
+        value.Should().Be(1);
         GC.KeepAlive(users);
         return value;
     }
@@ -515,23 +515,23 @@ WHERE Name LIKE 'A%'
         var users = (string)pars[0];
 
         using var command = Connection.CreateCommand();
-        command.CommandText = $"""
+        command.CommandText = NormalizeScenarioSql($"""
 SELECT Name
 FROM {users}
 WHERE Id BETWEEN 1 AND 4
   AND Name LIKE 'A%'
 ORDER BY Name
-""";
+""");
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        Assert.Equal("Aaron", Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
+        reader.Read().Should().BeTrue();
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Aaron");
 
-        Assert.True(reader.Read());
-        Assert.Equal("Alice", Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
+        reader.Read().Should().BeTrue();
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Alice");
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(users);
         return 2;
     }
@@ -550,7 +550,7 @@ FROM {users}
 WHERE Name NOT LIKE 'A%'
 """), CultureInfo.InvariantCulture);
 
-        Assert.Equal(4, value);
+        value.Should().Be(4);
         GC.KeepAlive(users);
         return value;
     }
@@ -569,7 +569,7 @@ FROM {users}
 WHERE Name <> 'Bob'
 """), CultureInfo.InvariantCulture);
 
-        Assert.Equal(4, value);
+        value.Should().Be(4);
         GC.KeepAlive(users);
         return value;
     }
@@ -588,7 +588,7 @@ FROM {users}
 WHERE Name = 'Bob'
 """), CultureInfo.InvariantCulture);
 
-        Assert.Equal(1, value);
+        value.Should().Be(1);
         GC.KeepAlive(users);
         return value;
     }
@@ -603,11 +603,11 @@ WHERE Name = 'Bob'
         var name = (string)pars[1];
 
         using var command = Connection.CreateCommand();
-        command.CommandText = $"""
+        command.CommandText = NormalizeScenarioSql($"""
 SELECT Name
 FROM {users}
 WHERE Name = {Dialect.Parameter("name")}
-""";
+""");
 
         var parameter = command.CreateParameter();
         parameter.ParameterName = "name";
@@ -616,7 +616,7 @@ WHERE Name = {Dialect.Parameter("name")}
         command.Parameters.Add(parameter);
 
         var result = Convert.ToString(command.ExecuteScalar(), CultureInfo.InvariantCulture);
-        Assert.Equal(name, result);
+        result.Should().Be(name);
         GC.KeepAlive(result);
         GC.KeepAlive(users);
         GC.KeepAlive(name);
@@ -634,11 +634,11 @@ WHERE Name = {Dialect.Parameter("name")}
         var expectedName = (string)pars[2];
 
         using var command = Connection.CreateCommand();
-        command.CommandText = $"""
+        command.CommandText = NormalizeScenarioSql($"""
 SELECT Name
 FROM {users}
 WHERE Id = {Dialect.Parameter("id")}
-""";
+""");
 
         var parameter = command.CreateParameter();
         parameter.ParameterName = "id";
@@ -647,7 +647,7 @@ WHERE Id = {Dialect.Parameter("id")}
         command.Parameters.Add(parameter);
 
         var result = Convert.ToString(command.ExecuteScalar(), CultureInfo.InvariantCulture);
-        Assert.Equal(expectedName, result);
+        result.Should().Be(expectedName);
         GC.KeepAlive(result);
         GC.KeepAlive(users);
         GC.KeepAlive(id);
@@ -663,19 +663,19 @@ WHERE Id = {Dialect.Parameter("id")}
     {
         var users = (string)pars[0];
         var uId = (string)pars[1];
-        var tableName = $"{users}_{uId}";
+        var tableName = ResolveScenarioTableName(users);
         var id = (int)pars[2];
         var name = (string)pars[3];
-        var email = (string?)pars[4];
+        var email = pars[4] is DBNull ? null : (string?)pars[4];
         var isActive = (bool)pars[5];
         var age = (short)pars[6];
         var balance = (decimal)pars[7];
         var createdAt = (DateTime)pars[8];
         var updatedAt = pars[9] is DBNull ? (DateTime?)null : (DateTime)pars[9];
-        var profileJson = (string?)pars[10];
+        var profileJson = pars[10] is DBNull ? null : (string?)pars[10];
 
         using var insertCommand = Connection.CreateCommand();
-        insertCommand.CommandText = $"""
+        insertCommand.CommandText = NormalizeScenarioSql($"""
 INSERT INTO {tableName} (
     Id,
     Name,
@@ -697,7 +697,7 @@ INSERT INTO {tableName} (
     {Dialect.Parameter("updatedAt")},
     {Dialect.Parameter("profileJson")}
 )
-""";
+""");
 
         AddParameter(insertCommand, "id", DbType.Int32, id);
         AddParameter(insertCommand, "name", DbType.String, name);
@@ -709,10 +709,10 @@ INSERT INTO {tableName} (
         AddParameter(insertCommand, "updatedAt", DbType.DateTime, updatedAt is null ? DBNull.Value : updatedAt.Value);
         AddParameter(insertCommand, "profileJson", DbType.String, profileJson is null ? DBNull.Value : profileJson);
 
-        Assert.Equal(1, insertCommand.ExecuteNonQuery());
+        insertCommand.ExecuteNonQuery().Should().Be(1);
 
         using var selectCommand = Connection.CreateCommand();
-        selectCommand.CommandText = $"""
+        selectCommand.CommandText = NormalizeScenarioSql($"""
 SELECT
     Name,
     Email,
@@ -724,29 +724,28 @@ SELECT
     ProfileJson
 FROM {tableName}
 WHERE Id = {Dialect.Parameter("id")}
-""";
+""");
 
         AddParameter(selectCommand, "id", DbType.Int32, id);
 
         using var reader = selectCommand.ExecuteReader();
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
 
-        Assert.Equal(name, Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(email, reader.IsDBNull(1) ? null : Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(isActive, Convert.ToBoolean(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(age, Convert.ToInt16(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(balance, Convert.ToDecimal(reader.GetValue(4), CultureInfo.InvariantCulture));
-        Assert.Equal(
-            createdAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
-            Convert.ToDateTime(reader.GetValue(5), CultureInfo.InvariantCulture).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(name);
+        (reader.IsDBNull(1) ? null : Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture)).Should().Be(email);
+        Convert.ToBoolean(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(isActive);
+        Convert.ToInt16(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(age);
+        Convert.ToDecimal(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(balance);
+        Convert.ToDateTime(reader.GetValue(5), CultureInfo.InvariantCulture).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+            .Should().Be(createdAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
 
         var updatedAtText = reader.IsDBNull(6)
             ? null
             : Convert.ToDateTime(reader.GetValue(6), CultureInfo.InvariantCulture).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
-        Assert.Equal(updatedAt is null ? null : updatedAt.Value.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture), updatedAtText);
-        Assert.Equal(profileJson, reader.IsDBNull(7) ? null : Convert.ToString(reader.GetValue(7), CultureInfo.InvariantCulture));
+        (updatedAt is null ? null : updatedAt.Value.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)).Should().Be(updatedAtText);
+        (reader.IsDBNull(7) ? null : Convert.ToString(reader.GetValue(7), CultureInfo.InvariantCulture)).Should().Be(profileJson);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
 
         GC.KeepAlive(tableName);
         GC.KeepAlive(id);
@@ -785,7 +784,6 @@ WHERE Id = {Dialect.Parameter("id")}
 
         using var command = Connection.CreateCommand();
         command.CommandText = Dialect.SelectParameterProjection($"""
-SELECT
     {Dialect.Parameter("text")} AS TextValue,
     {Dialect.Parameter("ansiText")} AS AnsiTextValue,
     {Dialect.Parameter("ansiFixedText")} AS AnsiFixedTextValue,
@@ -820,29 +818,26 @@ SELECT
         AddParameter(command, "binaryValue", DbType.Binary, binaryValue);
 
         using var reader = command.ExecuteReader();
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
 
-        Assert.Equal(text, Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(ansiText, Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(ansiFixedText, Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture)?.TrimEnd());
-        Assert.Equal(fixedText, Convert.ToString(reader.GetValue(3), CultureInfo.InvariantCulture)?.TrimEnd());
-        Assert.Equal(int16Value, Convert.ToInt16(reader.GetValue(4), CultureInfo.InvariantCulture));
-        Assert.Equal(int32Value, Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture));
-        Assert.Equal(int64Value, Convert.ToInt64(reader.GetValue(6), CultureInfo.InvariantCulture));
-        Assert.Equal(boolValue, Convert.ToBoolean(reader.GetValue(7), CultureInfo.InvariantCulture));
-        Assert.Equal(decimalValue, Convert.ToDecimal(reader.GetValue(8), CultureInfo.InvariantCulture));
-        Assert.Equal(doubleValue, Convert.ToDouble(reader.GetValue(9), CultureInfo.InvariantCulture));
-        Assert.Equal(
-            timeSpanValue,
-            NormalizeTimeSpanValue(reader.GetValue(10)));
-        Assert.Equal(dateTimeOffsetValue, NormalizeDateTimeOffsetValue(reader.GetValue(11)));
-        Assert.Equal(
-            dateTimeValue.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
-            Convert.ToDateTime(reader.GetValue(12), CultureInfo.InvariantCulture).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
-        Assert.Equal(guidValue, NormalizeGuidValue(reader.GetValue(13)));
-        Assert.True(binaryValue.AsSpan().SequenceEqual(NormalizeBinaryValue(reader.GetValue(14))));
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(text);
+        Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(ansiText);
+        Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture)?.TrimEnd().Should().Be(ansiFixedText);
+        Convert.ToString(reader.GetValue(3), CultureInfo.InvariantCulture)?.TrimEnd().Should().Be(fixedText);
+        Convert.ToInt16(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(int16Value);
+        Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(int32Value);
+        Convert.ToInt64(reader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(int64Value);
+        Convert.ToBoolean(reader.GetValue(7), CultureInfo.InvariantCulture).Should().Be(boolValue);
+        Convert.ToDecimal(reader.GetValue(8), CultureInfo.InvariantCulture).Should().Be(decimalValue);
+        Convert.ToDouble(reader.GetValue(9), CultureInfo.InvariantCulture).Should().Be(doubleValue);
+        NormalizeTimeSpanValue(reader.GetValue(10)).Should().Be(timeSpanValue);
+        NormalizeDateTimeOffsetValue(reader.GetValue(11)).Should().Be(dateTimeOffsetValue);
+        Convert.ToDateTime(reader.GetValue(12), CultureInfo.InvariantCulture).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+            .Should().Be(dateTimeValue.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
+        NormalizeGuidValue(reader.GetValue(13)).Should().Be(guidValue);
+        NormalizeBinaryValue(reader.GetValue(14)).Should().Equal(binaryValue);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
 
         GC.KeepAlive(text);
         GC.KeepAlive(ansiText);
@@ -873,7 +868,6 @@ SELECT
 
         using var command = Connection.CreateCommand();
         command.CommandText = Dialect.SelectParameterProjection($"""
-SELECT
     {Dialect.Parameter("dateValue")} AS DateValue,
     {Dialect.Parameter("currencyValue")} AS CurrencyValue
 """);
@@ -882,14 +876,13 @@ SELECT
         AddParameter(command, "currencyValue", DbType.Currency, currencyValue);
 
         using var reader = command.ExecuteReader();
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
 
-        Assert.Equal(
-            dateValue.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-            Convert.ToDateTime(reader.GetValue(0), CultureInfo.InvariantCulture).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
-        Assert.Equal(currencyValue, Convert.ToDecimal(reader.GetValue(1), CultureInfo.InvariantCulture));
+        Convert.ToDateTime(reader.GetValue(0), CultureInfo.InvariantCulture).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+            .Should().Be(dateValue.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+        Convert.ToDecimal(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(currencyValue);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(dateValue);
         GC.KeepAlive(currencyValue);
         return 1;
@@ -899,7 +892,16 @@ SELECT
     {
         var parameter = command.CreateParameter();
         parameter.ParameterName = name;
-        parameter.DbType = dbType;
+        if (parameter.GetType().FullName == "Oracle.ManagedDataAccess.Client.OracleParameter"
+            || (parameter.GetType().FullName == "IBM.Data.Db2.DB2Parameter" && dbType == DbType.Guid))
+        {
+            // ODP.NET and DB2 parameters can reject some DbType assignments in this mock flow.
+            // Keep the default DbType and rely on the value payload for this shared test helper.
+        }
+        else
+        {
+            parameter.DbType = dbType;
+        }
         parameter.Value = value ?? DBNull.Value;
         command.Parameters.Add(parameter);
     }
@@ -966,7 +968,7 @@ FROM {users}
 WHERE Id > 3
 """), CultureInfo.InvariantCulture);
 
-        Assert.Equal(2, value);
+        value.Should().Be(2);
         GC.KeepAlive(users);
         return value;
     }
@@ -985,7 +987,7 @@ FROM {users}
 WHERE Id < 3
 """), CultureInfo.InvariantCulture);
 
-        Assert.Equal(2, value);
+        value.Should().Be(2);
         GC.KeepAlive(users);
         return value;
     }
@@ -1004,7 +1006,7 @@ FROM {users}
 WHERE Id >= 3
 """), CultureInfo.InvariantCulture);
 
-        Assert.Equal(3, value);
+        value.Should().Be(3);
         GC.KeepAlive(users);
         return value;
     }
@@ -1023,7 +1025,7 @@ FROM {users}
 WHERE Id <= 3
 """), CultureInfo.InvariantCulture);
 
-        Assert.Equal(3, value);
+        value.Should().Be(3);
         GC.KeepAlive(users);
         return value;
     }
@@ -1037,24 +1039,24 @@ WHERE Id <= 3
         var users = (string)pars[0];
 
         using var command = Connection.CreateCommand();
-        command.CommandText = $"""
+        command.CommandText = NormalizeScenarioSql($"""
 SELECT Name
 FROM {users}
 ORDER BY Name
-""";
+""");
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        Assert.Equal("Alice", Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
+        reader.Read().Should().BeTrue();
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Alice");
 
-        Assert.True(reader.Read());
-        Assert.Equal("Bob", Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
+        reader.Read().Should().BeTrue();
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Bob");
 
-        Assert.True(reader.Read());
-        Assert.Equal("Charlie", Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
+        reader.Read().Should().BeTrue();
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Charlie");
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(users);
         return 3;
     }
@@ -1068,24 +1070,24 @@ ORDER BY Name
         var users = (string)pars[0];
 
         using var command = Connection.CreateCommand();
-        command.CommandText = $"""
+        command.CommandText = NormalizeScenarioSql($"""
 SELECT Name
 FROM {users}
 ORDER BY Name DESC
-""";
+""");
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        Assert.Equal("Charlie", Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
+        reader.Read().Should().BeTrue();
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Charlie");
 
-        Assert.True(reader.Read());
-        Assert.Equal("Bob", Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
+        reader.Read().Should().BeTrue();
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Bob");
 
-        Assert.True(reader.Read());
-        Assert.Equal("Alice", Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
+        reader.Read().Should().BeTrue();
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Alice");
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(users);
         return 3;
     }
@@ -1099,7 +1101,7 @@ ORDER BY Name DESC
         var users = (string)pars[0];
 
         using var command = Connection.CreateCommand();
-        command.CommandText = $"""
+        command.CommandText = NormalizeScenarioSql($"""
 SELECT Name
 FROM (
     SELECT Name, ROW_NUMBER() OVER (ORDER BY Name) AS rn
@@ -1107,20 +1109,20 @@ FROM (
 ) q
 WHERE rn BETWEEN 2 AND 4
 ORDER BY rn
-""";
+""");
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateNamePaginationRow(reader, "Bravo");
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateNamePaginationRow(reader, "Charlie");
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateNamePaginationRow(reader, "Delta");
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(users);
         return 3;
     }
@@ -1134,17 +1136,17 @@ ORDER BY rn
         var users = (string)pars[0];
 
         using var command = Connection.CreateCommand();
-        command.CommandText = Dialect.PagedNameProjection(users, 1, 2);
+        command.CommandText = NormalizeScenarioSql(Dialect.PagedNameProjection(users, 1, 2));
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateNamePaginationRow(reader, "Bravo");
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateNamePaginationRow(reader, "Charlie");
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(users);
         return 2;
     }
@@ -1181,11 +1183,11 @@ ORDER BY rn
         string expectedFirstName,
         string expectedLastName)
     {
-        Assert.Equal(expectedNameGroup, Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedTotalCount, Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedDistinctCount, Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedFirstName, Convert.ToString(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedLastName, Convert.ToString(reader.GetValue(4), CultureInfo.InvariantCulture));
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedNameGroup);
+        Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedTotalCount);
+        Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedDistinctCount);
+        Convert.ToString(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedFirstName);
+        Convert.ToString(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(expectedLastName);
     }
 
     private static void ValidateGroupByNameInitialRow(
@@ -1199,18 +1201,18 @@ ORDER BY rn
         string expectedLastName,
         int expectedHasAtLeastTwo)
     {
-        Assert.Equal(expectedNameInitial, Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedTotalCount, Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedDistinctCount, Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedAliceCount, Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedBobCount, Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedFirstName, Convert.ToString(reader.GetValue(5), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedLastName, Convert.ToString(reader.GetValue(6), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedHasAtLeastTwo, Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture));
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedNameInitial);
+        Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedTotalCount);
+        Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedDistinctCount);
+        Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedAliceCount);
+        Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(expectedBobCount);
+        Convert.ToString(reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(expectedFirstName);
+        Convert.ToString(reader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(expectedLastName);
+        Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture).Should().Be(expectedHasAtLeastTwo);
     }
 
     private static void ValidateNamePaginationRow(DbDataReader reader, string expectedName)
     {
-        Assert.Equal(expectedName, Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedName);
     }
 }

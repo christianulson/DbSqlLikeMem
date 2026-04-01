@@ -523,6 +523,13 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
                 """
         };
 
+        if (version < SqlServerDialect.WithCteMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(command.ExecuteReader);
+            Assert.Contains("CROSS APPLY", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
         if (version < SqlServerDialect.JsonFunctionsMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(command.ExecuteReader);

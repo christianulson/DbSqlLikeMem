@@ -70,6 +70,8 @@ internal partial class MySqlDialect : SqlDialectBase
     internal const int MergeMinVersion = int.MaxValue;
     internal const int WindowFunctionsMinVersion = 80;
     internal const int JsonFunctionsMinVersion = 57;
+    internal const int JsonArrayFunctionsMinVersion = 56;
+    internal const int JsonOverlapsMinVersion = 80;
     internal const int JsonArrowOperatorsMinVersion = 57;
     /// <summary>
     /// EN: Gets or sets AllowsBacktickIdentifiers.
@@ -184,6 +186,12 @@ internal partial class MySqlDialect : SqlDialectBase
     /// PT: Obtém ou define SupportsNullSafeEq.
     /// </summary>
     public override bool SupportsNullSafeEq => true;
+
+    /// <summary>
+    /// EN: Indicates whether IIF(...) is supported by the configured MySQL version.
+    /// PT: Indica se IIF(...) e suportada pela versao configurada do MySQL.
+    /// </summary>
+    public override bool SupportsIifFunction => true;
 
     /// <summary>
     /// EN: Gets the null-substitution function names recognized by this dialect.

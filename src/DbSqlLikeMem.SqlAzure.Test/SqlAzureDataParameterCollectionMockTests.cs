@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.SqlAzure.Test;
 
 /// <summary>
@@ -18,7 +20,7 @@ public sealed class SqlAzureDataParameterCollectionMockTests(
         var pars = new SqlAzureDataParameterCollectionMock();
         pars.AddWithValue("@Id", 1);
 
-        Assert.Throws<ArgumentException>(() => pars.AddWithValue("@id", 2));
+        FluentActions.Invoking(() => pars.AddWithValue("@id", 2)).Should().Throw<ArgumentException>();
     }
 
     /// <summary>

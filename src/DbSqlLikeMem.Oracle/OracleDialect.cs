@@ -28,7 +28,6 @@ internal sealed class OracleDialect : SqlDialectBase, ISqlDialect
         ])
     {
         OracleScalarFunctionRegistry.Register(this, version);
-        OracleDb2ScalarFunctionRegistry.Register(this);
         OracleTableFunctionRegistry.Register(this, version);
         SqlSharedWindowFunctionRegistry.Register(this);
     }
@@ -132,6 +131,37 @@ internal sealed class OracleDialect : SqlDialectBase, ISqlDialect
     public override bool SupportsWithRecursive => false;
     public override bool SupportsReturning => Version >= 8;
     public override bool SupportsJsonValueReturningClause => Version >= OracleJsonSqlFunctionMinVersion;
+    /// <inheritdoc />
+    public override bool SupportsApproximateAggregateFunction(string functionName)
+    {
+        if (string.IsNullOrWhiteSpace(functionName))
+            return false;
+
+        var normalized = functionName.Trim();
+
+        if (normalized.Equals("APPROX_COUNT_DISTINCT", StringComparison.OrdinalIgnoreCase))
+            return Version >= ApproxCountDistinctMinVersion;
+
+        if (normalized.Equals("APPROX_COUNT_DISTINCT_AGG", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("APPROX_COUNT_DISTINCT_DETAIL", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("APPROX_MEDIAN", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("APPROX_PERCENTILE", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("APPROX_PERCENTILE_AGG", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("APPROX_PERCENTILE_DETAIL", StringComparison.OrdinalIgnoreCase))
+        {
+            return Version >= ApproximateAnalyticsMinVersion;
+        }
+
+        return false;
+    }
+
+    /// <inheritdoc />
+    public override bool SupportsApproximateScalarFunction(string functionName)
+        => !string.IsNullOrWhiteSpace(functionName)
+            && (
+                functionName.Equals("TO_APPROX_COUNT_DISTINCT", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("TO_APPROX_PERCENTILE", StringComparison.OrdinalIgnoreCase))
+            && Version >= ApproximateAnalyticsMinVersion;
     /// <summary>
     /// EN: Gets whether merge is supported.
     /// PT: Obtém se há suporte a merge.
@@ -218,3 +248,4 @@ internal sealed class OracleDialect : SqlDialectBase, ISqlDialect
             || typeName.StartsWith("NUMBER", StringComparison.OrdinalIgnoreCase);
 
 }
+

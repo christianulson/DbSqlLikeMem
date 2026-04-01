@@ -66,7 +66,7 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
         Register(handlers, TryEvalConvertFunction, "CONVERT");
         Register(handlers, TryEvalToBinaryDoubleFunction, "TO_BINARY_DOUBLE");
         Register(handlers, TryEvalToBinaryFloatFunction, "TO_BINARY_FLOAT");
-        Register(handlers, TryEvalToNumberFunction, "TO_NUMBER");
+        Register(handlers, TryEvalToNumberFunction, "TO_NUMBER", "DEC");
         Register(handlers, TryEvalToCharFunction, "TO_CHAR");
         Register(handlers, TryEvalToDateFunction, "TO_DATE");
         Register(handlers, TryEvalToTimestampFunction, "TO_TIMESTAMP");

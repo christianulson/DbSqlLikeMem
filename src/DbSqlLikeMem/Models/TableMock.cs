@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Collections.ObjectModel;
 using System.Collections.Concurrent;
 using System.Linq.Expressions;
@@ -257,8 +258,32 @@ public abstract class TableMock
             case int intValue:
                 year = intValue;
                 return true;
+            case short shortValue:
+                year = shortValue;
+                return true;
+            case sbyte sbyteValue:
+                year = sbyteValue;
+                return true;
+            case byte byteValue:
+                year = byteValue;
+                return true;
             case long longValue when longValue >= int.MinValue && longValue <= int.MaxValue:
                 year = (int)longValue;
+                return true;
+            case uint uintValue when uintValue <= int.MaxValue:
+                year = (int)uintValue;
+                return true;
+            case ulong ulongValue when ulongValue <= int.MaxValue:
+                year = (int)ulongValue;
+                return true;
+            case decimal decimalValue when decimalValue >= int.MinValue && decimalValue <= int.MaxValue:
+                year = (int)decimalValue;
+                return true;
+            case double doubleValue when doubleValue >= int.MinValue && doubleValue <= int.MaxValue:
+                year = (int)doubleValue;
+                return true;
+            case float floatValue when floatValue >= int.MinValue && floatValue <= int.MaxValue:
+                year = (int)floatValue;
                 return true;
             case string text when DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var parsedDate):
                 year = parsedDate.Year;
@@ -1323,12 +1348,13 @@ public abstract class TableMock
         foreach (var it in Columns)
         {
             var col = it.Value;
-            if (!value.ContainsKey(col.Index))
+            var hasExplicitValue = value.ContainsKey(col.Index);
+            if (!hasExplicitValue)
                 value[col.Index] = null;
 
             if (!col.Identity)
             {
-                if (col.DefaultValue != null && value[col.Index] == null)
+                if (col.DefaultValue != null && !hasExplicitValue && value[col.Index] == null)
                     value[col.Index] = col.DefaultValue;
             }
             else if (AllowIdentityInsert && value[col.Index] is not null)
@@ -1960,7 +1986,9 @@ public abstract class TableMock
         {
             try
             {
-                value = DbTypeParser.Parse(targetInfo.DbType, value.ToString()!);
+                var text = value as string ?? Convert.ToString(value, CultureInfo.InvariantCulture);
+                if (text is not null)
+                    value = DbTypeParser.Parse(targetInfo.DbType, text);
             }
             catch
             {
@@ -2432,8 +2460,32 @@ public abstract class TableMock
                 case int intValue:
                     year = intValue;
                     return true;
+                case short shortValue:
+                    year = shortValue;
+                    return true;
+                case sbyte sbyteValue:
+                    year = sbyteValue;
+                    return true;
+                case byte byteValue:
+                    year = byteValue;
+                    return true;
                 case long longValue when longValue >= int.MinValue && longValue <= int.MaxValue:
                     year = (int)longValue;
+                    return true;
+                case uint uintValue when uintValue <= int.MaxValue:
+                    year = (int)uintValue;
+                    return true;
+                case ulong ulongValue when ulongValue <= int.MaxValue:
+                    year = (int)ulongValue;
+                    return true;
+                case decimal decimalValue when decimalValue >= int.MinValue && decimalValue <= int.MaxValue:
+                    year = (int)decimalValue;
+                    return true;
+                case double doubleValue when doubleValue >= int.MinValue && doubleValue <= int.MaxValue:
+                    year = (int)doubleValue;
+                    return true;
+                case float floatValue when floatValue >= int.MinValue && floatValue <= int.MaxValue:
+                    year = (int)floatValue;
                     return true;
                 case string text when DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var parsedDate):
                     year = parsedDate.Year;

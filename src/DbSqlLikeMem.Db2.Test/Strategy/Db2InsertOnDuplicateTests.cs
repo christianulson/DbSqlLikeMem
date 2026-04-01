@@ -1,4 +1,6 @@
-﻿namespace DbSqlLikeMem.Db2.Test.Strategy;
+using FluentAssertions;
+
+namespace DbSqlLikeMem.Db2.Test.Strategy;
 
 /// <summary>
 /// EN: Covers INSERT ... ON DUPLICATE scenarios in the Db2 mock.
@@ -19,11 +21,12 @@ public class Db2InsertOnDuplicateTests(
     {
         var db = new Db2DbMock(version);
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = FluentActions.Invoking(() =>
             SqlQueryParser.Parse(
                 "INSERT INTO users (Id, Name) VALUES (1, 'A') ON DUPLICATE KEY UPDATE Name = VALUES(Name)",
-                db.Dialect));
+                db,
+                db.Dialect)).Should().Throw<NotSupportedException>().Which;
 
-        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+        ex.Message.Should().Contain("ON DUPLICATE KEY UPDATE");
     }
 }

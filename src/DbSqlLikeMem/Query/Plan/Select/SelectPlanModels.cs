@@ -10,9 +10,11 @@ internal sealed class SelectPlan
 
     public required List<WindowSlot> WindowSlots { get; init; }
 
+    public bool HasNestedWindowExpressions { get; init; }
+
     public bool HasWindowFunctions => WindowSlots.Count > 0;
 
-    public bool CanBeCachedWithoutClone => !HasWindowFunctions;
+    public bool CanBeCachedWithoutClone => !HasWindowFunctions && !HasNestedWindowExpressions;
 
     internal SelectPlan CloneForCache()
         => new()
@@ -20,7 +22,8 @@ internal sealed class SelectPlan
             Columns = Columns,
             Evaluators = Evaluators,
             WindowSlotIndexes = WindowSlotIndexes,
-            WindowSlots = CloneWindowSlots(forExecution: false)
+            WindowSlots = CloneWindowSlots(forExecution: false),
+            HasNestedWindowExpressions = HasNestedWindowExpressions
         };
 
     internal SelectPlan CloneForExecution()
@@ -31,7 +34,8 @@ internal sealed class SelectPlan
             Columns = Columns,
             Evaluators = CloneEvaluatorsForExecution(clonedWindowSlots),
             WindowSlotIndexes = WindowSlotIndexes,
-            WindowSlots = clonedWindowSlots
+            WindowSlots = clonedWindowSlots,
+            HasNestedWindowExpressions = HasNestedWindowExpressions
         };
     }
 

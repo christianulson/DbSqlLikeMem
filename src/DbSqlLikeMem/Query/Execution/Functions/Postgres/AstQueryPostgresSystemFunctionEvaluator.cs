@@ -2,21 +2,37 @@ namespace DbSqlLikeMem;
 
 internal static class AstQueryPostgresSystemFunctionEvaluator
 {
+    private static readonly IReadOnlyDictionary<string, AstQueryGeneralScalarFunctionHandler> _handlers =
+        CreateHandlers();
+
     internal static bool TryEvaluatePostgresSystemFunction(
         this QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
-        result = null;
-        if (context.Dialect.Functions.TryGetValue(fn.Name, out var handler)
-            && handler.AstExecutor != null)
-            return handler.AstExecutor(context, fn, evalArg, out result);
+        if (_handlers.TryGetValue(fn.Name, out var handler))
+            return handler(context, fn, evalArg, out result);
 
+        result = null;
         return false;
     }
 
-    internal static void CreateHandlers(
+    private static IReadOnlyDictionary<string, AstQueryGeneralScalarFunctionHandler> CreateHandlers()
+    {
+        var handlers = new Dictionary<string, AstQueryGeneralScalarFunctionHandler>(StringComparer.OrdinalIgnoreCase);
+        Register(handlers, TryEvalCurrentDatabaseFunction, "CURRENT_DATABASE", "CURRENT_CATALOG");
+        Register(handlers, TryEvalCurrentSchemaFunction, "CURRENT_SCHEMA");
+        Register(handlers, TryEvalCurrentUserFunction, "CURRENT_ROLE", "CURRENT_USER");
+        Register(handlers, TryEvalVersionFunction, "VERSION");
+        Register(handlers, TryEvalCurrentSchemasFunction, "CURRENT_SCHEMAS");
+        Register(handlers, TryEvalCurrentSettingFunction, "CURRENT_SETTING");
+        Register(handlers, TryEvalCurrentQueryFunction, "CURRENT_QUERY");
+        Register(handlers, TryEvalCurrentTimestampFunction, "CLOCK_TIMESTAMP", "STATEMENT_TIMESTAMP", "TRANSACTION_TIMESTAMP");
+        return handlers;
+    }
+
+    internal static void RegisterHandlers(
         this ISqlDialect dialect)
     {
         dialect.AddScalarFunctions("VARCHAR", TryEvalCurrentDatabaseFunction, "CURRENT_DATABASE", "CURRENT_CATALOG");
@@ -28,6 +44,15 @@ internal static class AstQueryPostgresSystemFunctionEvaluator
         dialect.AddScalarFunctions("VARCHAR", TryEvalCurrentSettingFunction, "CURRENT_SETTING");
         dialect.AddScalarFunctions("VARCHAR", TryEvalCurrentQueryFunction, "CURRENT_QUERY");
         dialect.AddScalarFunctions("DATETIME", TryEvalCurrentTimestampFunction, "CLOCK_TIMESTAMP", "STATEMENT_TIMESTAMP", "TRANSACTION_TIMESTAMP");
+    }
+
+    private static void Register(
+        IDictionary<string, AstQueryGeneralScalarFunctionHandler> handlers,
+        AstQueryGeneralScalarFunctionHandler handler,
+        params string[] names)
+    {
+        foreach (var name in names)
+            handlers[name] = handler;
     }
 
     private static bool TryEvalCurrentDatabaseFunction(

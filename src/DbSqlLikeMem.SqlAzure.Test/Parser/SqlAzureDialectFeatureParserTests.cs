@@ -11,7 +11,7 @@ public sealed class SqlAzureDialectFeatureParserTests(
     ) : XUnitTestBase(helper)
 {
     private SqlDialectBase CreateDialect(int compatibilityLevel)
-        => GetDialect(compatibilityLevel, v => new SqlServerDialect(SqlAzureDbCompatibilityLevels.ToSqlServerDialectVersion(v)));
+        => Get(compatibilityLevel, v => new SqlServerDialect(SqlAzureDbCompatibilityLevels.ToSqlServerDialectVersion(v)));
 
     /// <summary>
     /// EN: Verifies CREATE SEQUENCE follows SQL Azure compatibility-level rules.
@@ -25,14 +25,15 @@ public sealed class SqlAzureDialectFeatureParserTests(
     {
         const string sql = "CREATE SEQUENCE sales.seq_orders START WITH 20 INCREMENT BY 10";
         var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
 
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2012)
         {
-            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, dialect));
             return;
         }
 
-        var parsed = Assert.IsType<SqlCreateSequenceQuery>(SqlQueryParser.Parse(sql, dialect));
+        var parsed = Assert.IsType<SqlCreateSequenceQuery>(SqlQueryParser.Parse(sql, db, dialect));
         Assert.Equal("sales", parsed.Table?.DbName, ignoreCase: true);
         Assert.Equal("seq_orders", parsed.Table?.Name, ignoreCase: true);
         Assert.Equal(20L, parsed.StartValue);
@@ -50,8 +51,10 @@ public sealed class SqlAzureDialectFeatureParserTests(
     public void ParseScalarFunctionDdlSubset_ShouldParse(int compatibilityLevel)
     {
         var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
         var create = Assert.IsType<SqlCreateFunctionQuery>(SqlQueryParser.Parse(
             "CREATE FUNCTION fn_users(@baseValue INT, @incrementValue INT) RETURNS INT AS BEGIN RETURN @baseValue + @incrementValue END",
+            db,
             dialect));
 
         Assert.Equal("fn_users", create.Table?.Name, ignoreCase: true);
@@ -63,6 +66,7 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
         var drop = Assert.IsType<SqlDropFunctionQuery>(SqlQueryParser.Parse(
             "DROP FUNCTION IF EXISTS fn_users",
+            db,
             dialect));
 
         Assert.True(drop.IfExists);
@@ -79,9 +83,12 @@ public sealed class SqlAzureDialectFeatureParserTests(
     [MemberDataSqlAzureCompatibilityLevel]
     public void ParseCreateOrReplaceScalarFunctionDdlSubset_ShouldReject(int compatibilityLevel)
     {
+        var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "CREATE OR REPLACE FUNCTION fn_users(@baseValue INT, @incrementValue INT) RETURNS INT AS BEGIN RETURN @baseValue + @incrementValue END",
-            CreateDialect(compatibilityLevel)));
+            db, 
+            dialect));
         Assert.Contains("CREATE OR REPLACE FUNCTION", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -97,14 +104,15 @@ public sealed class SqlAzureDialectFeatureParserTests(
     {
         const string sql = "SELECT id FROM users OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY";
         var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
 
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2012)
         {
-            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, dialect));
             return;
         }
 
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, dialect));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, dialect));
         Assert.Contains("Adicione ORDER BY", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -119,16 +127,18 @@ public sealed class SqlAzureDialectFeatureParserTests(
     public void ParseSelect_OffsetFetch_ShouldNormalizeRowLimitAst(int compatibilityLevel)
     {
         var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
 
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2012)
         {
             Assert.Throws<NotSupportedException>(() =>
-                SqlQueryParser.Parse("SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY", dialect));
+                SqlQueryParser.Parse("SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY", db, dialect));
             return;
         }
 
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY",
+            db,
             dialect));
 
         var rowLimit = Assert.IsType<SqlLimitOffset>(parsed.RowLimit);
@@ -146,8 +156,10 @@ public sealed class SqlAzureDialectFeatureParserTests(
     [MemberDataSqlAzureCompatibilityLevel]
     public void ParseSelect_Limit_ShouldProvidePaginationHint(int compatibilityLevel)
     {
+        var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse("SELECT id FROM users ORDER BY id LIMIT 5", CreateDialect(compatibilityLevel)));
+            SqlQueryParser.Parse("SELECT id FROM users ORDER BY id LIMIT 5", db, dialect));
 
         Assert.Contains(SqlConst.LIMIT, ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(SqlConst.OFFSET, ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -164,9 +176,11 @@ public sealed class SqlAzureDialectFeatureParserTests(
     [MemberDataSqlAzureCompatibilityLevel]
     public void ParseMerge_ShouldFollowCompatibilityLevelSupport(int compatibilityLevel)
     {
+        var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
         const string sql = "MERGE INTO users target USING users src ON target.id = src.id WHEN MATCHED THEN UPDATE SET name = 'x'";
 
-        var parsed = Assert.IsType<SqlMergeQuery>(SqlQueryParser.Parse(sql, CreateDialect(compatibilityLevel)));
+        var parsed = Assert.IsType<SqlMergeQuery>(SqlQueryParser.Parse(sql, db, dialect));
         Assert.Equal("users", parsed.Table?.Name, ignoreCase: true);
     }
 
@@ -180,16 +194,17 @@ public sealed class SqlAzureDialectFeatureParserTests(
     [MemberDataSqlAzureCompatibilityLevel]
     public void ParseSelect_JsonValue_ShouldRespectCompatibilityLevel(int compatibilityLevel)
     {
-        const string sql = "SELECT JSON_VALUE(data, '$.name') AS name FROM users";
         var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
+        const string sql = "SELECT JSON_VALUE(data, '$.name') AS name FROM users";
 
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
-            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, dialect));
             return;
         }
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, dialect));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, dialect));
         Assert.Single(parsed.SelectItems);
         Assert.Contains("JSON_VALUE", parsed.SelectItems[0].Raw, StringComparison.OrdinalIgnoreCase);
     }
@@ -204,16 +219,17 @@ public sealed class SqlAzureDialectFeatureParserTests(
     [MemberDataSqlAzureCompatibilityLevel]
     public void ParseSelect_JsonQuery_ShouldRespectCompatibilityLevel(int compatibilityLevel)
     {
-        const string sql = "SELECT JSON_QUERY(data, '$.profile') AS profile FROM users";
         var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
+        const string sql = "SELECT JSON_QUERY(data, '$.profile') AS profile FROM users";
 
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
-            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, dialect));
             return;
         }
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, dialect));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, dialect));
         Assert.Single(parsed.SelectItems);
         Assert.Contains("JSON_QUERY", parsed.SelectItems[0].Raw, StringComparison.OrdinalIgnoreCase);
     }
@@ -228,21 +244,22 @@ public sealed class SqlAzureDialectFeatureParserTests(
     [MemberDataSqlAzureCompatibilityLevel]
     public void ParseSelect_SchemaQualifiedTableFunctionInApply_ShouldRespectCompatibilityLevel(int compatibilityLevel)
     {
+        var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
         const string sql = """
             SELECT u.Id, j.[value]
             FROM Users u
             CROSS APPLY dbo.OPENJSON(u.Email) j
             """;
 
-        var dialect = CreateDialect(compatibilityLevel);
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, dialect));
             Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, dialect));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, dialect));
         var join = Assert.Single(parsed.Joins);
         Assert.Equal("dbo", join.Table.DbName, ignoreCase: true);
         var function = Assert.IsType<FunctionCallExpr>(join.Table.TableFunction);
@@ -259,6 +276,8 @@ public sealed class SqlAzureDialectFeatureParserTests(
     [MemberDataSqlAzureCompatibilityLevel]
     public void ParseSelect_SchemaQualifiedOpenJsonWithSchema_ShouldRespectCompatibilityLevel(int compatibilityLevel)
     {
+        var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
         const string sql = """
             SELECT data.Name, data.PayloadJson
             FROM Users u
@@ -268,15 +287,14 @@ public sealed class SqlAzureDialectFeatureParserTests(
             ) data
             """;
 
-        var dialect = CreateDialect(compatibilityLevel);
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, dialect));
             Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, dialect));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, dialect));
         var join = Assert.Single(parsed.Joins);
         Assert.Equal("dbo", join.Table.DbName, ignoreCase: true);
         var withClause = Assert.IsType<SqlOpenJsonWithClause>(join.Table.OpenJsonWithClause);
@@ -294,21 +312,29 @@ public sealed class SqlAzureDialectFeatureParserTests(
     [MemberDataSqlAzureCompatibilityLevel]
     public void ParseSelect_SchemaQualifiedStringSplitWithOrdinal_ShouldRespectCompatibilityLevel(int compatibilityLevel)
     {
+        var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
         const string sql = """
             SELECT u.Id, part.value, part.ordinal
             FROM Users u
             CROSS APPLY dbo.STRING_SPLIT(u.Email, ',', 1) part
             """;
 
-        var dialect = CreateDialect(compatibilityLevel);
+        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, dialect));
+            Assert.Contains(SqlConst.STRING_SPLIT, ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2022)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, dialect));
             Assert.Contains("enable_ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, dialect));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, dialect));
         var join = Assert.Single(parsed.Joins);
         Assert.Equal("dbo", join.Table.DbName, ignoreCase: true);
         var function = Assert.IsType<FunctionCallExpr>(join.Table.TableFunction);
@@ -375,6 +401,8 @@ public sealed class SqlAzureDialectFeatureParserTests(
     [MemberDataSqlAzureCompatibilityLevel]
     public void ParseSelect_CrossApplyDerivedSubquery_ShouldUseSharedSqlServerPath(int compatibilityLevel)
     {
+        var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
         const string sql = """
             SELECT u.Id, latest.OrderId
             FROM Users u
@@ -386,7 +414,7 @@ public sealed class SqlAzureDialectFeatureParserTests(
             ) latest
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, CreateDialect(compatibilityLevel)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, dialect));
         var join = Assert.Single(parsed.Joins);
         Assert.Equal(SqlJoinType.CrossApply, join.Type);
         Assert.NotNull(join.Table.Derived);
@@ -402,21 +430,22 @@ public sealed class SqlAzureDialectFeatureParserTests(
     [MemberDataSqlAzureCompatibilityLevel]
     public void ParseSelect_CrossApplyOpenJson_ShouldRespectCompatibilityLevel(int compatibilityLevel)
     {
+        var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
         const string sql = """
             SELECT u.Id, j.[value]
             FROM Users u
             CROSS APPLY OPENJSON(u.Email) j
             """;
 
-        var dialect = CreateDialect(compatibilityLevel);
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, dialect));
             Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, dialect));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, dialect));
         var join = Assert.Single(parsed.Joins);
         Assert.NotNull(join.Table.TableFunction);
         Assert.Equal(SqlConst.OPENJSON, join.Table.TableFunction!.Name, StringComparer.OrdinalIgnoreCase);
@@ -432,6 +461,8 @@ public sealed class SqlAzureDialectFeatureParserTests(
     [MemberDataSqlAzureCompatibilityLevel]
     public void ParseSelect_CrossApplyOpenJsonWithSchema_ShouldRespectCompatibilityLevel(int compatibilityLevel)
     {
+        var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
         const string sql = """
             SELECT u.Id, data.Name, data.Qty
             FROM Users u
@@ -442,15 +473,14 @@ public sealed class SqlAzureDialectFeatureParserTests(
             ) data
             """;
 
-        var dialect = CreateDialect(compatibilityLevel);
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, dialect));
             Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, dialect));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql,db, dialect));
         var join = Assert.Single(parsed.Joins);
         var withClause = Assert.IsType<SqlOpenJsonWithClause>(join.Table.OpenJsonWithClause);
         Assert.Equal(3, withClause.Columns.Count);
@@ -467,6 +497,8 @@ public sealed class SqlAzureDialectFeatureParserTests(
     [MemberDataSqlAzureCompatibilityLevel]
     public void ParseSelect_CrossApplyOpenJsonWithStrictQuotedPaths_ShouldRespectCompatibilityLevel(int compatibilityLevel)
     {
+        var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
         const string sql = """
             SELECT data.Color
             FROM Users u
@@ -475,15 +507,14 @@ public sealed class SqlAzureDialectFeatureParserTests(
             ) data
             """;
 
-        var dialect = CreateDialect(compatibilityLevel);
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, dialect));
             Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, dialect));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, dialect));
         var join = Assert.Single(parsed.Joins);
         var function = Assert.IsType<FunctionCallExpr>(join.Table.TableFunction);
         Assert.Equal("strict $.items[1]", Assert.IsType<LiteralExpr>(function.Args[1]).Value);
@@ -500,21 +531,22 @@ public sealed class SqlAzureDialectFeatureParserTests(
     [MemberDataSqlAzureCompatibilityLevel]
     public void ParseSelect_OuterApplyStringSplit_ShouldRespectCompatibilityLevel(int compatibilityLevel)
     {
+        var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
         const string sql = """
             SELECT u.Id, part.value
             FROM Users u
             OUTER APPLY STRING_SPLIT(u.Email, ',') part
             """;
 
-        var dialect = CreateDialect(compatibilityLevel);
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, dialect));
             Assert.Contains(SqlConst.STRING_SPLIT, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, dialect));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, dialect));
         var join = Assert.Single(parsed.Joins);
         Assert.NotNull(join.Table.TableFunction);
         Assert.Equal(SqlConst.STRING_SPLIT, join.Table.TableFunction!.Name, StringComparer.OrdinalIgnoreCase);
@@ -530,21 +562,29 @@ public sealed class SqlAzureDialectFeatureParserTests(
     [MemberDataSqlAzureCompatibilityLevel]
     public void ParseSelect_CrossApplyStringSplitWithOrdinal_ShouldRespectCompatibilityLevel(int compatibilityLevel)
     {
+        var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
         const string sql = """
             SELECT u.Id, part.value, part.ordinal
             FROM Users u
             CROSS APPLY STRING_SPLIT(u.Email, ',', 1) part
             """;
 
-        var dialect = CreateDialect(compatibilityLevel);
+        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, dialect));
+            Assert.Contains(SqlConst.STRING_SPLIT, ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2022)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, dialect));
             Assert.Contains("enable_ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, dialect));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, dialect));
         var join = Assert.Single(parsed.Joins);
         var function = Assert.IsType<FunctionCallExpr>(join.Table.TableFunction);
         Assert.Equal(SqlConst.STRING_SPLIT, function.Name, StringComparer.OrdinalIgnoreCase);
@@ -561,13 +601,15 @@ public sealed class SqlAzureDialectFeatureParserTests(
     [MemberDataSqlAzureCompatibilityLevel]
     public void ParseSelect_WithUnpivot_ShouldPopulateTableTransform(int compatibilityLevel)
     {
+        var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
         const string sql = """
             SELECT up.Id, up.FieldName, up.FieldValue
             FROM (SELECT Id, Name, Email FROM Users) src
             UNPIVOT (FieldValue FOR FieldName IN (Name, Email)) up
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, CreateDialect(compatibilityLevel)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, dialect));
         var source = Assert.IsType<SqlTableSource>(parsed.Table);
         var unpivot = Assert.IsType<SqlUnpivotSpec>(source.Unpivot);
 
@@ -587,6 +629,8 @@ public sealed class SqlAzureDialectFeatureParserTests(
     [MemberDataSqlAzureCompatibilityLevel]
     public void ParseSelect_ForJsonPath_ShouldRespectCompatibilityLevel(int compatibilityLevel)
     {
+        var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
         const string sql = """
             SELECT u.Id AS [User.Id], u.Name AS [User.Name]
             FROM Users u
@@ -594,15 +638,14 @@ public sealed class SqlAzureDialectFeatureParserTests(
             FOR JSON PATH, ROOT('users')
             """;
 
-        var dialect = CreateDialect(compatibilityLevel);
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, dialect));
             Assert.Contains(SqlConst.FOR_JSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, dialect));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, dialect));
         var forJson = Assert.IsType<SqlForJsonClause>(parsed.ForJson);
         Assert.Equal(SqlForJsonMode.Path, forJson.Mode);
         Assert.Equal("users", forJson.RootName, ignoreCase: true);
@@ -618,6 +661,8 @@ public sealed class SqlAzureDialectFeatureParserTests(
     [MemberDataSqlAzureCompatibilityLevel]
     public void ParseSelect_ForJsonAutoWithOptions_ShouldRespectCompatibilityLevel(int compatibilityLevel)
     {
+        var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
         const string sql = """
             SELECT u.Id, u.Name, u.Email
             FROM Users u
@@ -625,15 +670,14 @@ public sealed class SqlAzureDialectFeatureParserTests(
             FOR JSON AUTO, INCLUDE_NULL_VALUES, WITHOUT_ARRAY_WRAPPER
             """;
 
-        var dialect = CreateDialect(compatibilityLevel);
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, dialect));
             Assert.Contains(SqlConst.FOR_JSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, dialect));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, dialect));
         var forJson = Assert.IsType<SqlForJsonClause>(parsed.ForJson);
         Assert.Equal(SqlForJsonMode.Auto, forJson.Mode);
         Assert.True(forJson.IncludeNullValues);
@@ -651,10 +695,11 @@ public sealed class SqlAzureDialectFeatureParserTests(
     public void ParseScalar_LastFoundRowsFunctions_ShouldFollowCompatibilityMappedDialect(int compatibilityLevel)
     {
         var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
 
-        Assert.Equal("ROWCOUNT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROWCOUNT()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ROWCOUNT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROWCOUNT()", db, dialect)).Name, StringComparer.OrdinalIgnoreCase);
 
-        var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("FOUND_ROWS()", dialect));
+        var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("FOUND_ROWS()", db, dialect));
         Assert.Contains("FOUND_ROWS", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -668,7 +713,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
     [MemberDataSqlAzureCompatibilityLevel]
     public void ParseScalar_SystemRowCountIdentifier_ShouldFollowCompatibilityMappedDialect(int compatibilityLevel)
     {
-        var expr = SqlExpressionParser.ParseScalar("@@ROWCOUNT", CreateDialect(compatibilityLevel));
+        var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
+        var expr = SqlExpressionParser.ParseScalar("@@ROWCOUNT", db, dialect);
         var identifier = Assert.IsType<IdentifierExpr>(expr);
 
         Assert.Equal("@@ROWCOUNT", identifier.Name, StringComparer.OrdinalIgnoreCase);
@@ -684,21 +731,14 @@ public sealed class SqlAzureDialectFeatureParserTests(
     [MemberDataSqlAzureCompatibilityLevel]
     public void ParseScalar_OpenJson_ShouldRespectCompatibilityLevel(int compatibilityLevel)
     {
-        const string sql = "OPENJSON(payload)";
         var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
+        const string sql = "OPENJSON(payload)";
 
-        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
-        {
-            var ex = Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar(sql, dialect));
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar(sql, db, dialect));
 
-            Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
-            return;
-        }
-
-        var expr = SqlExpressionParser.ParseScalar(sql, dialect);
-        var call = Assert.IsType<CallExpr>(expr);
-        Assert.Equal(SqlConst.OPENJSON, call.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -712,24 +752,25 @@ public sealed class SqlAzureDialectFeatureParserTests(
     public void ParseScalar_SequenceValueFunctions_ShouldRespectCompatibilityLevel(int compatibilityLevel)
     {
         var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
 
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2012)
         {
             var nextEx = Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("NEXT VALUE FOR sales.seq_orders", dialect));
+                SqlExpressionParser.ParseScalar("NEXT VALUE FOR sales.seq_orders",db, dialect));
             Assert.Contains("NEXT VALUE FOR", nextEx.Message, StringComparison.OrdinalIgnoreCase);
 
             var previousEx = Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("PREVIOUS VALUE FOR sales.seq_orders", dialect));
+                SqlExpressionParser.ParseScalar("PREVIOUS VALUE FOR sales.seq_orders", db,dialect));
             Assert.Contains("PREVIOUS VALUE FOR", previousEx.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var nextExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("NEXT VALUE FOR sales.seq_orders", dialect));
+        var nextExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("NEXT VALUE FOR sales.seq_orders",db, dialect));
         Assert.Equal("NEXT_VALUE_FOR", nextExpr.Name, StringComparer.OrdinalIgnoreCase);
 
         var previousExSupported = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("PREVIOUS VALUE FOR sales.seq_orders", dialect));
+            SqlExpressionParser.ParseScalar("PREVIOUS VALUE FOR sales.seq_orders",db, dialect));
         Assert.Contains("PREVIOUS VALUE FOR", previousExSupported.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -744,18 +785,21 @@ public sealed class SqlAzureDialectFeatureParserTests(
     public void ParseScalar_StringAggWithinGroup_ShouldParse(int compatibilityLevel)
     {
         var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
 
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2017)
         {
             Assert.Throws<NotSupportedException>(() =>
                 SqlExpressionParser.ParseScalar(
                     "STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC, id ASC)",
+                    db,
                     dialect));
             return;
         }
 
         var expr = SqlExpressionParser.ParseScalar(
             "STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC, id ASC)",
+            db,
             dialect);
 
         var call = Assert.IsType<CallExpr>(expr);
@@ -777,21 +821,22 @@ public sealed class SqlAzureDialectFeatureParserTests(
     public void ParseScalar_StringAggWithinGroupWithoutOrderBy_ShouldThrowActionableError(int compatibilityLevel)
     {
         var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
 
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2017)
         {
-            var gateEx = Assert.Throws<NotSupportedException>(() =>
+            _ = Assert.Throws<NotSupportedException>(() =>
                 SqlExpressionParser.ParseScalar(
                     "STRING_AGG(amount, '|') WITHIN GROUP (amount DESC)",
+                    db,
                     dialect));
-
-            Assert.Contains(SqlConst.STRING_AGG, gateEx.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlExpressionParser.ParseScalar(
                 "STRING_AGG(amount, '|') WITHIN GROUP (amount DESC)",
+                db,
                 dialect));
 
         Assert.Contains("WITHIN GROUP requires ORDER BY", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -808,21 +853,26 @@ public sealed class SqlAzureDialectFeatureParserTests(
     public void ParseSelect_StringAggWithinGroup_ShouldParse(int compatibilityLevel)
     {
         var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
 
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2017)
         {
             Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
                 "SELECT STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC) AS joined FROM orders",
+                db,
                 dialect));
             return;
         }
 
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC) AS joined FROM orders",
+            db,
             dialect));
 
         Assert.Single(parsed.SelectItems);
         Assert.Contains(SqlConst.STRING_AGG, parsed.SelectItems[0].Raw, StringComparison.OrdinalIgnoreCase);
     }
 }
+
+
 

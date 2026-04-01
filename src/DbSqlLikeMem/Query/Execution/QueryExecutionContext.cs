@@ -85,6 +85,12 @@ internal sealed class QueryExecutionContext
     public double DropProbability { get; }
 
     /// <summary>
+    /// EN: Indicates whether a transaction was active when this execution context was created.
+    /// PT: Indica se havia uma transacao ativa quando este contexto de execucao foi criado.
+    /// </summary>
+    public bool HasActiveTransaction { get; }
+
+    /// <summary>
     /// EN: Creates a query execution context from a connection, dialect, and parameter collection.
     /// PT: Cria um contexto de execução de query a partir de uma conexão, dialeto e coleção de parâmetros.
     /// </summary>
@@ -110,6 +116,7 @@ internal sealed class QueryExecutionContext
         CurrentQueryText = connection.GetCurrentQueryText();
         SimulatedLatencyMs = connection.SimulatedLatencyMs;
         DropProbability = connection.DropProbability;
+        HasActiveTransaction = connection.HasActiveTransaction;
     }
 
     /// <summary>

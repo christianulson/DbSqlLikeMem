@@ -175,8 +175,12 @@ CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (Order
         $"LENGTH({expression})";
 
     /// <inheritdoc />
+    public override string StringCastExpression(string expression, int length = 10) =>
+        $"PRINTF('%s', {expression})";
+
+    /// <inheritdoc />
     public override string TemporalDateAdd() =>
-        "SELECT datetime('2024-01-01 00:00:00', '+1 day')";
+        "SELECT datetime(CURRENT_TIMESTAMP, '+1 day')";
 
     /// <inheritdoc />
     public override string TemporalCurrentTimestampExpression() => "CURRENT_TIMESTAMP";
@@ -195,7 +199,7 @@ CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (Order
 
     /// <inheritdoc />
     public override string TemporalNowOrderBy(string tableName) =>
-        $"SELECT Name FROM {tableName} ORDER BY CURRENT_TIMESTAMP, Name LIMIT 1";
+        $"SELECT Name FROM {tableName} ORDER BY Name, CURRENT_TIMESTAMP LIMIT 1";
 
     /// <inheritdoc />
     public override string PagedNameProjection(string tableName, int offset, int fetch) =>

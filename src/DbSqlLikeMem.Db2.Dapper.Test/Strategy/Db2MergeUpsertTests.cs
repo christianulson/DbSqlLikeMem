@@ -21,7 +21,7 @@ public sealed class Db2MergeUpsertTests(ITestOutputHelper helper) : XUnitTestBas
         if (version < Db2Dialect.MergeMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(() =>
-                SqlQueryParser.Parse("MERGE INTO users t USING (SELECT 1 AS Id) s ON t.Id = s.Id WHEN MATCHED THEN UPDATE SET t.Id = s.Id", db.Dialect));
+                SqlQueryParser.Parse("MERGE INTO users t USING (SELECT 1 AS Id) s ON t.Id = s.Id WHEN MATCHED THEN UPDATE SET t.Id = s.Id", db, db.Dialect));
 
             Assert.Contains(SqlConst.MERGE, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
@@ -29,6 +29,7 @@ public sealed class Db2MergeUpsertTests(ITestOutputHelper helper) : XUnitTestBas
 
         var parsed = SqlQueryParser.Parse(
             "MERGE INTO users t USING (SELECT 1 AS Id) s ON t.Id = s.Id WHEN MATCHED THEN UPDATE SET t.Id = s.Id",
+            db,
             db.Dialect);
 
         Assert.IsType<SqlMergeQuery>(parsed);

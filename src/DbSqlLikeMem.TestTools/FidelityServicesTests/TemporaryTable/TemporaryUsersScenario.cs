@@ -7,6 +7,22 @@ namespace DbSqlLikeMem.TestTools.TemporaryTable;
 public sealed class TemporaryUsersScenario<T>(ProviderSqlDialect dialect) : ITestScenario<T>
     where T : DbConnection
 {
+    private static string ResolveTemporaryUsersTableName(
+        ProviderSqlDialect dialect,
+        BaseServiceTest<T> service,
+        string rawTableName)
+    {
+        // NOTE: The tokenizer does not treat '#' as an identifier start, so mock flows must avoid it.
+        // Real SQL Server / Azure SQL temp tables still use '#...' in container comparisons.
+        if ((dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure)
+            && service.Connection is DbConnectionMockBase)
+        {
+            return rawTableName;
+        }
+
+        return dialect.TemporaryUsersTableName(rawTableName);
+    }
+
     /// <summary>
     /// EN: Creates the temporary users table required by the workflow.
     /// PT: Cria a tabela temporaria de usuarios exigida pelo fluxo.
@@ -17,7 +33,8 @@ public sealed class TemporaryUsersScenario<T>(ProviderSqlDialect dialect) : ITes
         BaseServiceTest<T> service,
         params object[] pars)
     {
-        var tableName = dialect.TemporaryUsersTableName((string)pars[0]);
+        var rawTableName = (string)pars[0];
+        var tableName = ResolveTemporaryUsersTableName(dialect, service, rawTableName);
         if ((dialect.Provider == ProviderId.Sqlite
             || dialect.Provider == ProviderId.Oracle
             || dialect.Provider == ProviderId.Npgsql
@@ -42,7 +59,7 @@ CREATE GLOBAL TEMPORARY TABLE {tableName} (
                 service.ExecuteNonQuery(oracleCreateSql);
                 return;
             }
-            var createSql = dialect.CreateTemporaryUsersTable(tableName);
+            var createSql = dialect.CreateTemporaryUsersTable(rawTableName);
             service.ExecuteNonQuery(createSql);
         }
     }
@@ -57,7 +74,8 @@ CREATE GLOBAL TEMPORARY TABLE {tableName} (
         BaseServiceTest<T> service,
         params object[] pars)
     {
-        var tableName = dialect.TemporaryUsersTableName((string)pars[0]);
+        var rawTableName = (string)pars[0];
+        var tableName = ResolveTemporaryUsersTableName(dialect, service, rawTableName);
         try
         {
             if (dialect.Provider == ProviderId.Db2
@@ -70,6 +88,11 @@ CREATE GLOBAL TEMPORARY TABLE {tableName} (
                 // EN: Declared global temporary tables are session-scoped and are dropped when the session ends.
                 // PT: Tabelas temporarias globais declaradas sao dependentes da sessao e sao removidas ao final da sessao.
                 return;
+            }
+            else if ((dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure)
+                && service.Connection is DbConnectionMockBase)
+            {
+                service.ExecuteNonQuery($"DROP TABLE {tableName}");
             }
             else
             {

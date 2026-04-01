@@ -310,7 +310,7 @@ internal static class DbMergeStrategy
     {
         var executor = context.CreateExecutor();
         var customFunctionSupported = SqlCustomFunctionResolverFactory.Create(context);
-        var parsedSource = SqlQueryParser.Parse(selectSql, context.Dialect, null, customFunctionSupported) as SqlSelectQuery
+        var parsedSource = SqlQueryParser.Parse(selectSql, context.Connection.Db,context.Dialect, null, customFunctionSupported) as SqlSelectQuery
             ?? throw new InvalidOperationException(SqlExceptionMessages.MergeSourceSelectInvalid());
 
         return executor.ExecuteSelect(parsedSource);
@@ -369,7 +369,7 @@ internal static class DbMergeStrategy
             var row = new Dictionary<int, object?>(columnNames.Count);
             for (var columnIndex = 0; columnIndex < items.Count; columnIndex++)
             {
-                var expr = SqlExpressionParser.ParseScalar(items[columnIndex], context.Dialect, context.Parameters);
+                var expr = SqlExpressionParser.ParseScalar(items[columnIndex], context.Connection.Db, context.Dialect, context.Parameters);
                 row[columnIndex] = EvaluateValuesSourceExpression(expr, context);
             }
 

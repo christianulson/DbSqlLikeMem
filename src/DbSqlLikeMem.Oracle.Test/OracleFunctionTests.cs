@@ -447,22 +447,22 @@ public sealed class OracleFunctionTests
     {
         using var connection = CreateOpenConnection(version);
 
-        AssertOracleAnalyticsExecution(version, connection, "SELECT FEATURE_COMPARE('x') FROM Users WHERE Id = 1", "FEATURE_COMPARE", 18);
-        AssertOracleAnalyticsExecution(version, connection, "SELECT FEATURE_DETAILS('x') FROM Users WHERE Id = 1", "FEATURE_DETAILS", 12);
-        AssertOracleAnalyticsExecution(version, connection, "SELECT FEATURE_ID('x') FROM Users WHERE Id = 1", "FEATURE_ID", 10);
-        AssertOracleAnalyticsExecution(version, connection, "SELECT FEATURE_SET('x') FROM Users WHERE Id = 1", "FEATURE_SET", 10);
-        AssertOracleAnalyticsExecution(version, connection, "SELECT FEATURE_VALUE('x') FROM Users WHERE Id = 1", "FEATURE_VALUE", 10);
-        AssertOracleAnalyticsExecution(version, connection, "SELECT NCGR(1) FROM Users WHERE Id = 1", "NCGR", 18);
-        AssertOracleAnalyticsExecution(version, connection, "SELECT POWERMULTISET(1, 1) FROM Users WHERE Id = 1", "POWERMULTISET", 10);
-        AssertOracleAnalyticsExecution(version, connection, "SELECT POWERMULTISET_BY_CARDINALITY(1, 1) FROM Users WHERE Id = 1", "POWERMULTISET_BY_CARDINALITY", 10);
-        AssertOracleAnalyticsExecution(version, connection, "SELECT PREDICTION('x') FROM Users WHERE Id = 1", "PREDICTION", 10);
-        AssertOracleAnalyticsExecution(version, connection, "SELECT PREDICTION_BOUNDS('x') FROM Users WHERE Id = 1", "PREDICTION_BOUNDS", 11);
-        AssertOracleAnalyticsExecution(version, connection, "SELECT PREDICTION_COST('x') FROM Users WHERE Id = 1", "PREDICTION_COST", 10);
-        AssertOracleAnalyticsExecution(version, connection, "SELECT PREDICTION_DETAILS('x') FROM Users WHERE Id = 1", "PREDICTION_DETAILS", 10);
-        AssertOracleAnalyticsExecution(version, connection, "SELECT PREDICTION_PROBABILITY('x') FROM Users WHERE Id = 1", "PREDICTION_PROBABILITY", 10);
-        AssertOracleAnalyticsExecution(version, connection, "SELECT PREDICTION_SET('x') FROM Users WHERE Id = 1", "PREDICTION_SET", 10);
-        AssertOracleAnalyticsExecution(version, connection, "SELECT PRESENTNNV('x') FROM Users WHERE Id = 1", "PRESENTNNV", 10);
-        AssertOracleAnalyticsExecution(version, connection, "SELECT PRESENTV('x') FROM Users WHERE Id = 1", "PRESENTV", 10);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT FEATURE_COMPARE('x') FROM Users WHERE Id = 1", "FEATURE_COMPARE", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT FEATURE_DETAILS('x') FROM Users WHERE Id = 1", "FEATURE_DETAILS", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT FEATURE_ID('x') FROM Users WHERE Id = 1", "FEATURE_ID", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT FEATURE_SET('x') FROM Users WHERE Id = 1", "FEATURE_SET", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT FEATURE_VALUE('x') FROM Users WHERE Id = 1", "FEATURE_VALUE", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT NCGR(1) FROM Users WHERE Id = 1", "NCGR", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT POWERMULTISET(1, 1) FROM Users WHERE Id = 1", "POWERMULTISET", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT POWERMULTISET_BY_CARDINALITY(1, 1) FROM Users WHERE Id = 1", "POWERMULTISET_BY_CARDINALITY", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT PREDICTION('x') FROM Users WHERE Id = 1", "PREDICTION", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT PREDICTION_BOUNDS('x') FROM Users WHERE Id = 1", "PREDICTION_BOUNDS", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT PREDICTION_COST('x') FROM Users WHERE Id = 1", "PREDICTION_COST", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT PREDICTION_DETAILS('x') FROM Users WHERE Id = 1", "PREDICTION_DETAILS", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT PREDICTION_PROBABILITY('x') FROM Users WHERE Id = 1", "PREDICTION_PROBABILITY", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT PREDICTION_SET('x') FROM Users WHERE Id = 1", "PREDICTION_SET", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT PRESENTNNV('x') FROM Users WHERE Id = 1", "PRESENTNNV", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT PRESENTV('x') FROM Users WHERE Id = 1", "PRESENTV", OracleDialect.ApproximateAnalyticsMinVersion);
         AssertOracleAnalyticsExecution(version, connection, "SELECT RATIO_TO_REPORT(1) FROM Users WHERE Id = 1", "RATIO_TO_REPORT", 8);
     }
 
@@ -502,7 +502,7 @@ public sealed class OracleFunctionTests
         AssertOracleVersionedExecution(version, connection, "SELECT CON_GUID_TO_ID(8) FROM Users WHERE Id = 1", "CON_GUID_TO_ID", OracleDialect.OracleContainerFunctionMinVersion, static value => Assert.Equal(8L, value));
         AssertOracleVersionedExecution(version, connection, "SELECT CON_NAME_TO_ID(9) FROM Users WHERE Id = 1", "CON_NAME_TO_ID", OracleDialect.OracleContainerFunctionMinVersion, static value => Assert.Equal(9L, value));
         AssertOracleVersionedExecution(version, connection, "SELECT ROWIDTOCHAR('AA') FROM Users WHERE Id = 1", "ROWIDTOCHAR", 7, static value => Assert.Equal("AA", value));
-        AssertOracleVersionedExecution(version, connection, "SELECT ROWTONCHAR('BB') FROM Users WHERE Id = 1", "ROWTONCHAR", OracleDialect.OracleRowToNCharFunctionMinVersion, static value => Assert.Equal("BB", value));
+        AssertOracleVersionedExecution(version, connection, "SELECT ROWTONCHAR('BB') FROM Users WHERE Id = 1", "ROWTONCHAR", 0, static value => Assert.Equal("BB", value));
     }
 
     /// <summary>
@@ -802,7 +802,6 @@ public sealed class OracleFunctionTests
         yield return new object[] { "SELECT FEATURE_SET('x') FROM Users WHERE Id = 1" };
         yield return new object[] { "SELECT FEATURE_VALUE('x') FROM Users WHERE Id = 1" };
         yield return new object[] { "SELECT JSON_DATAGUIDE('{\"a\":1}') FROM Users WHERE Id = 1" };
-        yield return new object[] { "SELECT JSON_TRANSFORM('{\"a\":1}') FROM Users WHERE Id = 1" };
         yield return new object[] { "SELECT MAKE_REF(1) FROM Users WHERE Id = 1" };
         yield return new object[] { "SELECT NCGR(1) FROM Users WHERE Id = 1" };
         yield return new object[] { "SELECT ORA_DM_PARTITION_NAME(1) FROM Users WHERE Id = 1" };

@@ -27,7 +27,7 @@ public sealed class ReadOnlyHashSetTests(
 
         set.GetObjectData(info, context);
 
-        Assert.True(info.MemberCount > 0);
+        info.MemberCount.Should().BeGreaterThan(0);
     }
 
     /// <summary>
@@ -41,7 +41,8 @@ public sealed class ReadOnlyHashSetTests(
         var set = new ReadOnlyHashSet<int>([1, 2, 3]);
 
 #pragma warning disable SYSLIB0050 // Formatter-based serialization is obsolete and should not be used.
-        Assert.Throws<ArgumentNullException>(() => set.GetObjectData(null!, new StreamingContext(StreamingContextStates.All)));
+        FluentActions.Invoking(() => set.GetObjectData(null!, new StreamingContext(StreamingContextStates.All)))
+            .Should().Throw<ArgumentNullException>();
 #pragma warning restore SYSLIB0050 // Formatter-based serialization is obsolete and should not be used.
     }
 }

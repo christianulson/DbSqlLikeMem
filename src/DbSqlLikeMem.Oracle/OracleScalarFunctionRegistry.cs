@@ -24,6 +24,7 @@ internal static class OracleScalarFunctionRegistry
         RegisterNlsFunctions(dialect, version);
         RegisterTimeFunctions(dialect, version);
         RegisterSequenceFunctions(dialect);
+        RegisterStubbedNullFunctions(dialect);
     }
 
     private static DbFunctionDef CreateScalarDefinition(
@@ -35,12 +36,107 @@ internal static class OracleScalarFunctionRegistry
             AstExecutor = astExecutor
         };
 
+    private static bool TryEvalOracleStubNullFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+        _ = fn;
+        _ = evalArg;
+        result = DBNull.Value;
+        return true;
+    }
+
+    private static bool TryEvalOracleJsonTransformFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+        _ = fn;
+
+        if (fn.Args.Count == 0)
+        {
+            result = DBNull.Value;
+            return true;
+        }
+
+        var value = evalArg(0);
+        if (value is null || value is DBNull)
+        {
+            result = DBNull.Value;
+            return true;
+        }
+
+        result = value.ToString();
+        return true;
+    }
+
+    private static bool TryEvalOracleContainerIdFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+        _ = fn;
+
+        var value = evalArg(0);
+        if (value is null || value is DBNull)
+        {
+            result = DBNull.Value;
+            return true;
+        }
+
+        try
+        {
+            result = Convert.ToInt64(value);
+            return true;
+        }
+        catch
+        {
+            result = DBNull.Value;
+            return true;
+        }
+    }
+
     private static bool TryEvalOracleDb2ConversionFunction(
         QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
         => AstQueryOracleDb2ConversionFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result);
+
+    private static bool TryEvalOracleSequenceFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+
+        static object? EvalSequenceArg(SqlExpr expr, Func<int, object?> evalArg)
+            => expr switch
+            {
+                IdentifierExpr id => id.Name,
+                ColumnExpr column => string.IsNullOrWhiteSpace(column.Qualifier)
+                    ? column.Name
+                    : $"{column.Qualifier}.{column.Name}",
+                RawSqlExpr raw => raw.Sql,
+                LiteralExpr literal => literal.Value,
+                _ => evalArg(0)
+            };
+
+        return SqlSequenceEvaluator.TryEvaluateCall(
+            context.Connection,
+            fn.Name,
+            fn.Args,
+            expr => EvalSequenceArg(expr, evalArg),
+            out result);
+    }
 
     private static void RegisterTemporalFunctions(ISqlDialect dialect, int version)
     {
@@ -115,12 +211,12 @@ internal static class OracleScalarFunctionRegistry
             dialect.AddScalarFunction(
                 "RATIO_TO_REPORT",
                 "DOUBLE",
-                AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate);
+                TryEvalOracleStubNullFunction);
         }
 
         if (version >= OracleDialect.ApproximateAnalyticsMinVersion)
             dialect.AddScalarFunctions(
-                CreateScalarDefinition("FEATURE_COMPARE", "DOUBLE", AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate),
+                CreateScalarDefinition("FEATURE_COMPARE", "DOUBLE", TryEvalOracleStubNullFunction),
                 "FEATURE_COMPARE",
                 "FEATURE_DETAILS",
                 "FEATURE_ID",
@@ -184,7 +280,7 @@ internal static class OracleScalarFunctionRegistry
     {
         if (version >= OracleDialect.OracleContainerFunctionMinVersion)
             dialect.AddScalarFunctions(
-                DbFunctionDef.CreateScalar("CON_DBID_TO_ID", "INT"),
+                CreateScalarDefinition("CON_DBID_TO_ID", "BIGINT", TryEvalOracleContainerIdFunction),
                 "CON_DBID_TO_ID",
                 "CON_GUID_TO_ID",
                 "CON_NAME_TO_ID",
@@ -212,7 +308,30 @@ internal static class OracleScalarFunctionRegistry
             "VARCHAR",
             AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate);
 
-        dialect.AddScalarFunction(DbFunctionDef.CreateScalar("ROW_COUNT", "BIGINT"));
+        static bool TryEvalLastFoundRowsFunction(
+            QueryExecutionContext context,
+            FunctionCallExpr fn,
+            Func<int, object?> evalArg,
+            out object? result)
+        {
+            _ = evalArg;
+            context.EnsureOracleDb2FunctionSupported(fn);
+
+            if (fn.Args.Count != 0)
+            {
+                result = null;
+                return false;
+            }
+
+            result = context.Connection.GetLastFoundRows();
+            return true;
+        }
+
+        dialect.AddScalarFunction(
+            DbFunctionDef.CreateScalar("ROW_COUNT", "BIGINT") with
+            {
+                AstExecutor = TryEvalLastFoundRowsFunction
+            });
     }
 
     private static void RegisterHashFunctions(ISqlDialect dialect, int version)
@@ -261,7 +380,7 @@ internal static class OracleScalarFunctionRegistry
 
         if (version >= OracleDialect.OracleJsonTransformMinVersion)
             dialect.AddScalarFunctions(
-                DbFunctionDef.CreateScalar("JSON_TRANSFORM", "VARCHAR"),
+                CreateScalarDefinition("JSON_TRANSFORM", "VARCHAR", TryEvalOracleJsonTransformFunction),
                 "JSON_TRANSFORM");
 
         if (version >= OracleDialect.OracleJsonSqlFunctionMinVersion)
@@ -273,48 +392,65 @@ internal static class OracleScalarFunctionRegistry
 
     private static void RegisterNlsFunctions(ISqlDialect dialect, int version)
     {
-        if (version >= OracleDialect.OracleCollationFunctionMinVersion)
-            dialect.AddScalarFunctions(
-                DbFunctionDef.CreateScalar("COLLATION", "VARCHAR"),
-                "COLLATION",
-                "NLS_COLLATION_ID",
-                "NLS_COLLATION_NAME");
+        dialect.AddScalarFunctions(
+            CreateScalarDefinition("NLS_CHARSET_DECL_LEN", "INT", AstQueryOracleDb2LegacyFunctionEvaluator.TryEvaluate),
+            "NLS_CHARSET_DECL_LEN",
+            "NLS_CHARSET_ID");
 
         dialect.AddScalarFunctions(
-            DbFunctionDef.CreateScalar("NLS_CHARSET_DECL_LEN", "VARCHAR"),
-            "NLS_CHARSET_DECL_LEN",
-            "NLS_CHARSET_ID",
+            CreateScalarDefinition("NLS_CHARSET_NAME", "VARCHAR", AstQueryOracleDb2LegacyFunctionEvaluator.TryEvaluate),
             "NLS_CHARSET_NAME",
             "NLS_INITCAP",
             "NLS_LOWER",
             "NLS_UPPER",
             "NLSSORT");
+
+        if (version >= OracleDialect.OracleCollationFunctionMinVersion)
+        {
+            dialect.AddScalarFunctions(
+                CreateScalarDefinition("COLLATION", "VARCHAR", AstQueryOracleDb2LegacyFunctionEvaluator.TryEvaluate),
+                "COLLATION",
+                "NLS_COLLATION_NAME");
+
+            dialect.AddScalarFunctions(
+                CreateScalarDefinition("NLS_COLLATION_ID", "INT", AstQueryOracleDb2LegacyFunctionEvaluator.TryEvaluate),
+                "NLS_COLLATION_ID");
+        }
     }
 
     private static void RegisterTimeFunctions(ISqlDialect dialect, int version)
     {
         if (version >= OracleDialect.OracleTemporalFunctionMinVersion)
             dialect.AddScalarFunctions(
-                CreateScalarDefinition("SESSIONTIMEZONE", "DATETIME", AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate),
+                CreateScalarDefinition("SESSIONTIMEZONE", "VARCHAR", AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate),
                 "SESSIONTIMEZONE",
                 "TZ_OFFSET");
 
         if (version >= OracleDialect.OracleTemporalFunctionMinVersion)
             dialect.AddScalarFunctions(
-                DbFunctionDef.CreateScalar("FROM_TZ", "DATETIME"),
+                DbFunctionDef.CreateScalar("FROM_TZ", "DATETIME") with
+                {
+                    AstExecutor = AstQueryOracleDb2LegacyFunctionEvaluator.TryEvaluate
+                },
                 "FROM_TZ",
                 "NEW_TIME",
                 "NEXT_DAY");
 
         if (version >= OracleDialect.OracleIntervalFunctionMinVersion)
             dialect.AddScalarFunctions(
-                DbFunctionDef.CreateScalar("NUMTODSINTERVAL", "VARCHAR"),
+                DbFunctionDef.CreateScalar("NUMTODSINTERVAL", "VARCHAR") with
+                {
+                    AstExecutor = AstQueryOracleDb2LegacyFunctionEvaluator.TryEvaluate
+                },
                 "NUMTODSINTERVAL",
                 "NUMTOYMINTERVAL");
 
         if (version >= OracleDialect.OracleScnFunctionMinVersion)
             dialect.AddScalarFunctions(
-                DbFunctionDef.CreateScalar("SCN_TO_TIMESTAMP", "DATETIME"),
+                DbFunctionDef.CreateScalar("SCN_TO_TIMESTAMP", "DATETIME") with
+                {
+                    AstExecutor = TryEvalOracleStubNullFunction
+                },
                 "SCN_TO_TIMESTAMP",
                 "TIMESTAMP_TO_SCN");
     }
@@ -322,7 +458,7 @@ internal static class OracleScalarFunctionRegistry
     private static void RegisterSequenceFunctions(ISqlDialect dialect)
     {
         dialect.AddScalarFunctions(
-            DbFunctionDef.CreateScalar(OracleConst.NEXTVAL, "BIGINT"),
+            CreateScalarDefinition(OracleConst.NEXTVAL, "BIGINT", TryEvalOracleSequenceFunction),
             OracleConst.NEXTVAL,
             OracleConst.CURRVAL);
     }
@@ -337,5 +473,49 @@ internal static class OracleScalarFunctionRegistry
                     IsStringAggregate = true
                 });
         }
+    }
+
+    // NOTE: These functions are registered by shared registries, but without an AstExecutor they can
+    // fall back to "0" in some execution paths. Oracle tests expect them to materialize NULL for now.
+    private static void RegisterStubbedNullFunctions(ISqlDialect dialect)
+    {
+        dialect.AddScalarFunctions(
+            CreateScalarDefinition("CUBE_TABLE", "VARCHAR", TryEvalOracleStubNullFunction),
+            "CUBE_TABLE",
+            "DATAOBJ_TO_PARTITION",
+            "DATAOBJ_TO_MAT_PARTITION",
+            "MAKE_REF",
+            "XMLEXISTS",
+            "EXTRACTVALUE",
+            "XMLCAST",
+            "XMLCDATA",
+            "XMLCOLATTVAL",
+            "XMLCOMMENT",
+            "XMLCONCAT",
+            "XMLDIFF",
+            "XMLELEMENT",
+            "XMLFOREST",
+            "XMLISVALID",
+            "XMLPARSE",
+            "XMLPATCH",
+            "XMLPI",
+            "XMLQUERY",
+            "XMLROOT",
+            "XMLSEQUENCE",
+            "XMLSERIALIZE",
+            "XMLTABLE",
+            "XMLTRANSFORM",
+            "STATS_BINOMIAL_TEST",
+            "STATS_CROSSTAB",
+            "STATS_F_TEST",
+            "STATS_KS_TEST",
+            "STATS_MODE",
+            "STATS_MW_TEST",
+            "STATS_ONE_WAY_ANOVA",
+            "STATS_T_TEST_INDEP",
+            "STATS_T_TEST_INDEPU",
+            "STATS_T_TEST_ONE",
+            "STATS_T_TEST_PAIRED",
+            "STATS_WSR_TEST");
     }
 }

@@ -1,3 +1,4 @@
+using FluentAssertions;
 using System.Text.Json;
 
 namespace DbSqlLikeMem.Sqlite.Test;
@@ -33,29 +34,29 @@ public sealed class SchemaSnapshotTests(
 
         var snapshot = SchemaSnapshot.Export(connection);
 
-        Assert.Equal("sqlite", snapshot.DialectName, ignoreCase: true);
-        Assert.Equal(db.Version, snapshot.Version);
+        snapshot.DialectName.Should().BeEquivalentTo("sqlite");
+        snapshot.Version.Should().Be(db.Version);
 
-        var schema = Assert.Single(snapshot.Schemas);
-        Assert.Equal("DefaultSchema", schema.Name, ignoreCase: true);
+        var schema = snapshot.Schemas.Should().ContainSingle().Subject;
+        schema.Name.Should().BeEquivalentTo("DefaultSchema");
 
-        var exportedTable = Assert.Single(schema.Tables);
-        Assert.Equal("users", exportedTable.Name, ignoreCase: true);
-        Assert.Equal(42, exportedTable.NextIdentity);
-        Assert.Equal(4, exportedTable.Columns.Count);
+        var exportedTable = schema.Tables.Should().ContainSingle().Subject;
+        exportedTable.Name.Should().BeEquivalentTo("users");
+        exportedTable.NextIdentity.Should().Be(42);
+        exportedTable.Columns.Count.Should().Be(4);
 
         var id = exportedTable.Columns[0];
-        Assert.Equal("Id", id.Name, ignoreCase: true);
-        Assert.True(id.Identity);
-        Assert.Equal(DbType.Int32, id.DbType);
+        id.Name.Should().BeEquivalentTo("Id");
+        id.Identity.Should().BeTrue();
+        id.DbType.Should().Be(DbType.Int32);
 
         var amount = exportedTable.Columns[2];
-        Assert.Equal(DbType.Decimal, amount.DbType);
-        Assert.Equal(2, amount.DecimalPlaces);
-        Assert.True(amount.DefaultValue.HasValue);
+        amount.DbType.Should().Be(DbType.Decimal);
+        amount.DecimalPlaces.Should().Be(2);
+        amount.DefaultValue.Should().NotBeNull();
 
         var status = exportedTable.Columns[3];
-        Assert.Equal(["done", "new"], status.EnumValues);
+        status.EnumValues.Should().Equal(["done", "new"]);
     }
 
     /// <summary>
@@ -78,24 +79,24 @@ public sealed class SchemaSnapshotTests(
         var json = SchemaSnapshot.Export(sourceConnection).ToJson();
 
         using var document = JsonDocument.Parse(json);
-        Assert.True(document.RootElement.TryGetProperty("schemas", out var schemasProperty));
-        Assert.Equal(1, schemasProperty.GetArrayLength());
+        document.RootElement.TryGetProperty("schemas", out var schemasProperty).Should().BeTrue();
+        schemasProperty.GetArrayLength().Should().Be(1);
 
         var targetDb = new SqliteDbMock();
         targetDb.AddTable("Legacy", [new("ObsoleteId", DbType.Int32, false)]);
 
         SchemaSnapshot.Load(json, targetDb);
 
-        Assert.False(targetDb.TryGetTable("Legacy", out _));
-        Assert.True(targetDb.TryGetTable("Users", out var usersTable));
-        Assert.NotNull(usersTable);
-        Assert.Equal(3, usersTable!.Columns.Count);
-        Assert.Equal(17, usersTable.NextIdentity);
-        Assert.True(usersTable.Columns["Id"].Identity);
-        Assert.Equal(50, usersTable.Columns["Name"].Size);
-        Assert.Equal("anonymous", usersTable.Columns["Name"].DefaultValue);
-        Assert.Equal(2, usersTable.Columns["Amount"].DecimalPlaces);
-        Assert.Equal(10.5m, usersTable.Columns["Amount"].DefaultValue);
+        targetDb.TryGetTable("Legacy", out _).Should().BeFalse();
+        targetDb.TryGetTable("Users", out var usersTable).Should().BeTrue();
+        usersTable.Should().NotBeNull();
+        usersTable!.Columns.Count.Should().Be(3);
+        usersTable.NextIdentity.Should().Be(17);
+        usersTable.Columns["Id"].Identity.Should().BeTrue();
+        usersTable.Columns["Name"].Size.Should().Be(50);
+        usersTable.Columns["Name"].DefaultValue.Should().Be("anonymous");
+        usersTable.Columns["Amount"].DecimalPlaces.Should().Be(2);
+        usersTable.Columns["Amount"].DefaultValue.Should().Be(10.5m);
     }
 
     /// <summary>
@@ -113,36 +114,37 @@ public sealed class SchemaSnapshotTests(
         ]);
         sourceDb.AddSequence("seq_users", startValue: 10, incrementBy: 5, currentValue: 20);
 
-        var viewQuery = Assert.IsType<SqlCreateViewQuery>(SqlQueryParser.Parse(
+        var viewQuery = SqlQueryParser.Parse(
             "CREATE VIEW active_users AS SELECT Id, Name FROM Users WHERE Id > 0",
-            sourceDb.Dialect));
+            sourceDb,
+            sourceDb.Dialect).Should().BeOfType<SqlCreateViewQuery>().Subject;
         sourceDb.AddView(viewQuery);
 
         using var sourceConnection = new SqliteConnectionMock(sourceDb);
         var snapshot = SchemaSnapshot.Export(sourceConnection);
-        var schema = Assert.Single(snapshot.Schemas);
-        var exportedView = Assert.Single(schema.Views);
-        var exportedSequence = Assert.Single(schema.Sequences);
+        var schema = snapshot.Schemas.Should().ContainSingle().Subject;
+        var exportedView = schema.Views.Should().ContainSingle().Subject;
+        var exportedSequence = schema.Sequences.Should().ContainSingle().Subject;
 
-        Assert.Equal("active_users", exportedView.Name, ignoreCase: true);
-        Assert.Contains("SELECT Id, Name FROM Users WHERE Id > 0", exportedView.SelectSql, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal("seq_users", exportedSequence.Name, ignoreCase: true);
-        Assert.Equal(10, exportedSequence.StartValue);
-        Assert.Equal(5, exportedSequence.IncrementBy);
-        Assert.Equal(20, exportedSequence.CurrentValue);
+        exportedView.Name.Should().BeEquivalentTo("active_users");
+        exportedView.SelectSql.Should().Contain("SELECT Id, Name FROM Users WHERE Id > 0");
+        exportedSequence.Name.Should().BeEquivalentTo("seq_users");
+        exportedSequence.StartValue.Should().Be(10);
+        exportedSequence.IncrementBy.Should().Be(5);
+        exportedSequence.CurrentValue.Should().Be(20);
 
         var targetDb = new SqliteDbMock();
         SchemaSnapshot.Load(snapshot.ToJson(), targetDb);
 
-        Assert.True(targetDb.TryGetView("active_users", out var replayedView));
-        Assert.NotNull(replayedView);
-        Assert.Contains("SELECT Id, Name FROM Users WHERE Id > 0", replayedView!.RawSql, StringComparison.OrdinalIgnoreCase);
+        targetDb.TryGetView("active_users", out var replayedView).Should().BeTrue();
+        replayedView.Should().NotBeNull();
+        replayedView!.RawSql.Should().Contain("SELECT Id, Name FROM Users WHERE Id > 0");
 
-        Assert.True(targetDb.TryGetSequence("seq_users", out var replayedSequence));
-        Assert.NotNull(replayedSequence);
-        Assert.Equal(10, replayedSequence!.StartValue);
-        Assert.Equal(5, replayedSequence.IncrementBy);
-        Assert.Equal(20, replayedSequence.CurrentValue);
+        targetDb.TryGetSequence("seq_users", out var replayedSequence).Should().BeTrue();
+        replayedSequence.Should().NotBeNull();
+        replayedSequence!.StartValue.Should().Be(10);
+        replayedSequence.IncrementBy.Should().Be(5);
+        replayedSequence.CurrentValue.Should().Be(20);
     }
 
     /// <summary>
@@ -171,27 +173,27 @@ public sealed class SchemaSnapshotTests(
         orders.CreateForeignKey("fk_orders_users", "Users", [("UserId", "Id")]);
 
         var snapshot = SchemaSnapshot.Export(sourceDb);
-        var schema = Assert.Single(snapshot.Schemas);
-        var exportedUsers = Assert.Single(schema.Tables, table => table.Name.Equals("users", StringComparison.OrdinalIgnoreCase));
-        var exportedOrders = Assert.Single(schema.Tables, table => table.Name.Equals("orders", StringComparison.OrdinalIgnoreCase));
+        var schema = snapshot.Schemas.Should().ContainSingle().Subject;
+        var exportedUsers = schema.Tables.Should().ContainSingle(table => table.Name.Equals("users", StringComparison.OrdinalIgnoreCase)).Subject;
+        var exportedOrders = schema.Tables.Should().ContainSingle(table => table.Name.Equals("orders", StringComparison.OrdinalIgnoreCase)).Subject;
 
-        Assert.Equal(["Id"], exportedUsers.PrimaryKeyColumns);
-        var usersIndex = Assert.Single(exportedUsers.Indexes);
-        Assert.Equal("ix_users_email", usersIndex.Name, ignoreCase: true);
-        Assert.True(usersIndex.Unique);
-        Assert.Equal(["Email"], usersIndex.KeyColumns);
+        exportedUsers.PrimaryKeyColumns.Should().Equal(["Id"]);
+        var usersIndex = exportedUsers.Indexes.Should().ContainSingle().Subject;
+        usersIndex.Name.Should().BeEquivalentTo("ix_users_email");
+        usersIndex.Unique.Should().BeTrue();
+        usersIndex.KeyColumns.Should().Equal(["Email"]);
 
-        Assert.Equal(["OrderId"], exportedOrders.PrimaryKeyColumns);
-        var ordersIndex = Assert.Single(exportedOrders.Indexes);
-        Assert.Equal(["UserId"], ordersIndex.KeyColumns);
-        Assert.Equal(["Amount"], ordersIndex.IncludeColumns);
+        exportedOrders.PrimaryKeyColumns.Should().Equal(["OrderId"]);
+        var ordersIndex = exportedOrders.Indexes.Should().ContainSingle().Subject;
+        ordersIndex.KeyColumns.Should().Equal(["UserId"]);
+        ordersIndex.IncludeColumns.Should().Equal(["Amount"]);
 
-        var foreignKey = Assert.Single(exportedOrders.ForeignKeys);
-        Assert.Equal("fk_orders_users", foreignKey.Name, ignoreCase: true);
-        Assert.Equal("users", foreignKey.RefTableName, ignoreCase: true);
-        var reference = Assert.Single(foreignKey.References);
-        Assert.Equal("UserId", reference.ColumnName, ignoreCase: true);
-        Assert.Equal("Id", reference.RefColumnName, ignoreCase: true);
+        var foreignKey = exportedOrders.ForeignKeys.Should().ContainSingle().Subject;
+        foreignKey.Name.Should().BeEquivalentTo("fk_orders_users");
+        foreignKey.RefTableName.Should().BeEquivalentTo("users");
+        var reference = foreignKey.References.Should().ContainSingle().Subject;
+        reference.ColumnName.Should().BeEquivalentTo("UserId");
+        reference.RefColumnName.Should().BeEquivalentTo("Id");
 
         var targetDb = new SqliteDbMock();
         SchemaSnapshot.Load(snapshot.ToJson(), targetDb);
@@ -199,23 +201,23 @@ public sealed class SchemaSnapshotTests(
         var replayedUsers = targetDb.GetTable("Users");
         var replayedOrders = targetDb.GetTable("Orders");
 
-        Assert.Single(replayedUsers.PrimaryKeyIndexes);
-        Assert.Contains(replayedUsers.Columns["Id"].Index, replayedUsers.PrimaryKeyIndexes);
-        Assert.True(replayedUsers.Indexes.ContainsKey("ix_users_email"));
-        Assert.True(replayedUsers.Indexes["ix_users_email"].Unique);
+        replayedUsers.PrimaryKeyIndexes.Should().ContainSingle();
+        replayedUsers.PrimaryKeyIndexes.Should().Contain(replayedUsers.Columns["Id"].Index);
+        replayedUsers.Indexes.ContainsKey("ix_users_email").Should().BeTrue();
+        replayedUsers.Indexes["ix_users_email"].Unique.Should().BeTrue();
 
-        Assert.Single(replayedOrders.PrimaryKeyIndexes);
-        Assert.Contains(replayedOrders.Columns["OrderId"].Index, replayedOrders.PrimaryKeyIndexes);
-        Assert.True(replayedOrders.Indexes.ContainsKey("ix_orders_user_amount"));
-        Assert.Equal(["UserId"], replayedOrders.Indexes["ix_orders_user_amount"].KeyCols);
-        Assert.Equal(["Amount"], replayedOrders.Indexes["ix_orders_user_amount"].Include);
-        Assert.True(replayedOrders.ForeignKeys.ContainsKey("fk_orders_users"));
+        replayedOrders.PrimaryKeyIndexes.Should().ContainSingle();
+        replayedOrders.PrimaryKeyIndexes.Should().Contain(replayedOrders.Columns["OrderId"].Index);
+        replayedOrders.Indexes.ContainsKey("ix_orders_user_amount").Should().BeTrue();
+        replayedOrders.Indexes["ix_orders_user_amount"].KeyCols.Should().Equal(["UserId"]);
+        replayedOrders.Indexes["ix_orders_user_amount"].Include.Should().Equal(["Amount"]);
+        replayedOrders.ForeignKeys.ContainsKey("fk_orders_users").Should().BeTrue();
 
         var replayedForeignKey = replayedOrders.ForeignKeys["fk_orders_users"];
-        Assert.Equal("users", replayedForeignKey.RefTable.TableName, ignoreCase: true);
-        var replayedReference = Assert.Single(replayedForeignKey.References);
-        Assert.Equal("UserId", replayedReference.col.Name, ignoreCase: true);
-        Assert.Equal("Id", replayedReference.refCol.Name, ignoreCase: true);
+        replayedForeignKey.RefTable.TableName.Should().BeEquivalentTo("users");
+        var replayedReference = replayedForeignKey.References.Should().ContainSingle().Subject;
+        replayedReference.col.Name.Should().BeEquivalentTo("UserId");
+        replayedReference.refCol.Name.Should().BeEquivalentTo("Id");
     }
 
     /// <summary>
@@ -237,25 +239,25 @@ public sealed class SchemaSnapshotTests(
                 ReturnParam: new ProcParam("@returnValue", DbType.Int32, Required: false, Value: 0)));
 
         var snapshot = SchemaSnapshot.Export(sourceDb);
-        var schema = Assert.Single(snapshot.Schemas);
-        var procedure = Assert.Single(schema.Procedures);
+        var schema = snapshot.Schemas.Should().ContainSingle().Subject;
+        var procedure = schema.Procedures.Should().ContainSingle().Subject;
 
-        Assert.Equal("usp_sync_user", procedure.Name, ignoreCase: true);
-        Assert.Equal("@userId", Assert.Single(procedure.RequiredIn).Name, ignoreCase: true);
-        Assert.Equal("new", Assert.Single(procedure.OptionalIn).Value?.GetString());
-        Assert.Equal("@affected", Assert.Single(procedure.OutParams).Name, ignoreCase: true);
-        Assert.Equal("@returnValue", procedure.ReturnParam?.Name, ignoreCase: true);
+        procedure.Name.Should().BeEquivalentTo("usp_sync_user");
+        procedure.RequiredIn.Should().ContainSingle().Subject.Name.Should().BeEquivalentTo("@userId");
+        procedure.OptionalIn.Should().ContainSingle().Subject.Value?.GetString().Should().Be("new");
+        procedure.OutParams.Should().ContainSingle().Subject.Name.Should().BeEquivalentTo("@affected");
+        procedure.ReturnParam?.Name.Should().BeEquivalentTo("@returnValue");
 
         var targetDb = new SqliteDbMock();
         SchemaSnapshot.Load(snapshot.ToJson(), targetDb);
 
-        Assert.True(targetDb.TryGetProcedure("usp_sync_user", out var replayedProcedure));
-        Assert.NotNull(replayedProcedure);
-        Assert.Equal("@userId", Assert.Single(replayedProcedure!.RequiredIn).Name, ignoreCase: true);
-        Assert.Equal("new", Assert.Single(replayedProcedure.OptionalIn).Value);
-        Assert.Equal("@affected", Assert.Single(replayedProcedure.OutParams).Name, ignoreCase: true);
-        Assert.Equal("@returnValue", replayedProcedure.ReturnParam?.Name, ignoreCase: true);
-        Assert.Equal(0, replayedProcedure.ReturnParam?.Value);
+        targetDb.TryGetProcedure("usp_sync_user", out var replayedProcedure).Should().BeTrue();
+        replayedProcedure.Should().NotBeNull();
+        replayedProcedure!.RequiredIn.Should().ContainSingle().Subject.Name.Should().BeEquivalentTo("@userId");
+        replayedProcedure.OptionalIn.Should().ContainSingle().Subject.Value.Should().Be("new");
+        replayedProcedure.OutParams.Should().ContainSingle().Subject.Name.Should().BeEquivalentTo("@affected");
+        replayedProcedure.ReturnParam?.Name.Should().BeEquivalentTo("@returnValue");
+        replayedProcedure.ReturnParam?.Value.Should().Be(0);
     }
 
     /// <summary>
@@ -282,32 +284,33 @@ public sealed class SchemaSnapshotTests(
                 OutParams: []),
             schemaName: "reporting");
 
-        var viewQuery = Assert.IsType<SqlCreateViewQuery>(SqlQueryParser.Parse(
+        var viewQuery = SqlQueryParser.Parse(
             "CREATE VIEW active_users AS SELECT Id, Name FROM Users WHERE Id > 0",
-            sourceDb.Dialect));
+            sourceDb,
+            sourceDb.Dialect).Should().BeOfType<SqlCreateViewQuery>().Subject;
         sourceDb.AddView(viewQuery, "app");
 
         var snapshot = SchemaSnapshot.Export(sourceDb);
 
-        Assert.Equal(3, snapshot.Schemas.Count);
-        Assert.Contains(snapshot.Schemas, schema => schema.Name.Equals("app", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(snapshot.Schemas, schema => schema.Name.Equals("reporting", StringComparison.OrdinalIgnoreCase));
+        snapshot.Schemas.Count.Should().Be(3);
+        snapshot.Schemas.Should().Contain(schema => schema.Name.Equals("app"));
+        snapshot.Schemas.Should().Contain(schema => schema.Name.Equals("reporting"));
 
         var targetDb = new SqliteDbMock();
         SchemaSnapshot.Load(snapshot.ToJson(), targetDb);
 
-        Assert.True(targetDb.TryGetTable("Users", out var appUsers, "app"));
-        Assert.NotNull(appUsers);
-        Assert.True(targetDb.TryGetView("active_users", out var appView, "app"));
-        Assert.NotNull(appView);
+        targetDb.TryGetTable("Users", out var appUsers, "app").Should().BeTrue();
+        appUsers.Should().NotBeNull();
+        targetDb.TryGetView("active_users", out var appView, "app").Should().BeTrue();
+        appView.Should().NotBeNull();
 
-        Assert.True(targetDb.TryGetSequence("seq_report", out var reportingSequence, "reporting"));
-        Assert.NotNull(reportingSequence);
-        Assert.Equal(9, reportingSequence!.CurrentValue);
+        targetDb.TryGetSequence("seq_report", out var reportingSequence, "reporting").Should().BeTrue();
+        reportingSequence.Should().NotBeNull();
+        reportingSequence!.CurrentValue.Should().Be(9);
 
-        Assert.True(targetDb.TryGetProcedure("usp_refresh_report", out var reportingProcedure, "reporting"));
-        Assert.NotNull(reportingProcedure);
-        Assert.Equal("@reportId", Assert.Single(reportingProcedure!.RequiredIn).Name, ignoreCase: true);
+        targetDb.TryGetProcedure("usp_refresh_report", out var reportingProcedure, "reporting").Should().BeTrue();
+        reportingProcedure.Should().NotBeNull();
+        reportingProcedure!.RequiredIn.Should().ContainSingle().Subject.Name.Should().BeEquivalentTo("@reportId");
     }
 
     /// <summary>
@@ -335,12 +338,12 @@ public sealed class SchemaSnapshotTests(
         audits.CreateForeignKey("fk_audits_users", "app.Users", [("UserId", "Id")]);
 
         var snapshot = SchemaSnapshot.Export(sourceDb);
-        var reportingSchema = Assert.Single(snapshot.Schemas, schema => schema.Name.Equals("reporting", StringComparison.OrdinalIgnoreCase));
-        var auditsTable = Assert.Single(reportingSchema.Tables, table => table.Name.Equals("audits", StringComparison.OrdinalIgnoreCase));
-        var foreignKey = Assert.Single(auditsTable.ForeignKeys);
+        var reportingSchema = snapshot.Schemas.Should().ContainSingle(schema => schema.Name.Equals("reporting")).Subject;
+        var auditsTable = reportingSchema.Tables.Should().ContainSingle(table => table.Name.Equals("audits", StringComparison.OrdinalIgnoreCase)).Subject;
+        var foreignKey = auditsTable.ForeignKeys.Should().ContainSingle().Subject;
 
-        Assert.Equal("users", foreignKey.RefTableName, ignoreCase: true);
-        Assert.Equal("app", foreignKey.RefSchemaName, ignoreCase: true);
+        foreignKey.RefTableName.Should().BeEquivalentTo("users");
+        foreignKey.RefSchemaName.Should().BeEquivalentTo("app");
 
         var targetDb = new SqliteDbMock();
         SchemaSnapshot.Load(snapshot.ToJson(), targetDb);
@@ -348,11 +351,11 @@ public sealed class SchemaSnapshotTests(
         var replayedAudits = targetDb.GetTable("Audits", "reporting");
         var replayedForeignKey = replayedAudits.ForeignKeys["fk_audits_users"];
 
-        Assert.Equal("users", replayedForeignKey.RefTable.TableName, ignoreCase: true);
-        Assert.Equal("app", replayedForeignKey.RefTable.Schema.SchemaName, ignoreCase: true);
-        var replayedReference = Assert.Single(replayedForeignKey.References);
-        Assert.Equal("UserId", replayedReference.col.Name, ignoreCase: true);
-        Assert.Equal("Id", replayedReference.refCol.Name, ignoreCase: true);
+        replayedForeignKey.RefTable.TableName.Should().BeEquivalentTo("users");
+        replayedForeignKey.RefTable.Schema.SchemaName.Should().BeEquivalentTo("app");
+        var replayedReference = replayedForeignKey.References.Should().ContainSingle().Subject;
+        replayedReference.col.Name.Should().BeEquivalentTo("UserId");
+        replayedReference.refCol.Name.Should().BeEquivalentTo("Id");
     }
 
     /// <summary>
@@ -373,8 +376,8 @@ public sealed class SchemaSnapshotTests(
         var snapshot = sourceConnection.ExportSchemaSnapshot();
         var json = sourceConnection.ExportSchemaSnapshotJson();
 
-        Assert.Single(snapshot.Schemas);
-        Assert.Contains("\"schemas\"", json, StringComparison.OrdinalIgnoreCase);
+        snapshot.Schemas.Should().ContainSingle();
+        json.Should().Contain("\"schemas\"");
 
         var targetDb = new SqliteDbMock();
         targetDb.AddTable("Legacy", [new("Id", DbType.Int32, false)]);
@@ -382,10 +385,10 @@ public sealed class SchemaSnapshotTests(
         using var targetConnection = new SqliteConnectionMock(targetDb);
         targetConnection.ImportSchemaSnapshot(json);
 
-        Assert.False(targetConnection.TryGetTable("Legacy", out _));
-        Assert.True(targetConnection.TryGetTable("Users", out var usersTable));
-        Assert.NotNull(usersTable);
-        Assert.Equal(2, usersTable!.Columns.Count);
+        targetConnection.TryGetTable("Legacy", out _).Should().BeFalse();
+        targetConnection.TryGetTable("Users", out var usersTable).Should().BeTrue();
+        usersTable.Should().NotBeNull();
+        usersTable!.Columns.Count.Should().Be(2);
     }
 
     /// <summary>
@@ -410,13 +413,13 @@ public sealed class SchemaSnapshotTests(
         targetDb.CreateSchema("legacy");
         using var targetConnection = new SqliteConnectionMock(targetDb, "legacy");
 
-        Assert.Equal("legacy", targetConnection.Database, ignoreCase: true);
+        targetConnection.Database.Should().BeEquivalentTo("legacy");
 
         targetConnection.ImportSchemaSnapshot(json);
 
-        Assert.Equal("app", targetConnection.Database, ignoreCase: true);
-        Assert.True(targetConnection.TryGetTable("Users", out var usersTable, "app"));
-        Assert.NotNull(usersTable);
+        targetConnection.Database.Should().BeEquivalentTo("app");
+        targetConnection.TryGetTable("Users", out var usersTable, "app").Should().BeTrue();
+        usersTable.Should().NotBeNull();
     }
 
     /// <summary>
@@ -429,12 +432,12 @@ public sealed class SchemaSnapshotTests(
     {
         var snapshot = SchemaSnapshot.Export(new SqliteDbMock(version: 5));
 
-        Assert.True(snapshot.IsCompatibleWith(new SqliteDbMock(version: 5)));
-        Assert.True(snapshot.IsCompatibleWith(new SqliteDbMock(version: 6)));
-        Assert.False(snapshot.IsCompatibleWith(new SqliteDbMock(version: 4)));
+        snapshot.IsCompatibleWith(new SqliteDbMock(version: 5)).Should().BeTrue();
+        snapshot.IsCompatibleWith(new SqliteDbMock(version: 6)).Should().BeTrue();
+        snapshot.IsCompatibleWith(new SqliteDbMock(version: 4)).Should().BeFalse();
 
         var dialectMismatchSnapshot = snapshot with { DialectName = "mysql" };
-        Assert.False(dialectMismatchSnapshot.IsCompatibleWith(new SqliteDbMock(version: 6)));
+        dialectMismatchSnapshot.IsCompatibleWith(new SqliteDbMock(version: 6)).Should().BeFalse();
     }
 
     /// <summary>
@@ -456,15 +459,15 @@ public sealed class SchemaSnapshotTests(
         using var targetConnection = new SqliteConnectionMock(targetDb);
         var json = SchemaSnapshot.Export(sourceDb).ToJson();
 
-        var ex = Assert.Throws<InvalidOperationException>(() => targetConnection.ImportSchemaSnapshot(json, ensureCompatibility: true));
-        Assert.Contains("target version is 4", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.True(targetConnection.TryGetTable("Legacy", out var legacyTable));
-        Assert.NotNull(legacyTable);
-        Assert.False(targetConnection.TryGetTable("Users", out _));
+        var ex = ((Action)(() => targetConnection.ImportSchemaSnapshot(json, ensureCompatibility: true))).Should().Throw<InvalidOperationException>().Which;
+        ex.Message.Should().Contain("target version is 4");
+        targetConnection.TryGetTable("Legacy", out var legacyTable).Should().BeTrue();
+        legacyTable.Should().NotBeNull();
+        targetConnection.TryGetTable("Users", out _).Should().BeFalse();
 
         var mysqlSnapshot = SchemaSnapshot.Export(sourceDb) with { DialectName = "mysql" };
-        ex = Assert.Throws<InvalidOperationException>(() => targetConnection.ImportSchemaSnapshot(mysqlSnapshot.ToJson(), ensureCompatibility: true));
-        Assert.Contains("not compatible", ex.Message, StringComparison.OrdinalIgnoreCase);
+        ex = ((Action)(() => targetConnection.ImportSchemaSnapshot(mysqlSnapshot.ToJson(), ensureCompatibility: true))).Should().Throw<InvalidOperationException>().Which;
+        ex.Message.Should().Contain("not compatible");
     }
 
     /// <summary>
@@ -485,11 +488,11 @@ public sealed class SchemaSnapshotTests(
         var targetDb = new SqliteDbMock(version: 4);
         targetDb.AddTable("Legacy", [new("Id", DbType.Int32, false)]);
 
-        var ex = Assert.Throws<InvalidOperationException>(() => SchemaSnapshot.Load(json, targetDb, ensureCompatibility: true));
-        Assert.Contains("target version is 4", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.True(targetDb.TryGetTable("Legacy", out var legacyTable));
-        Assert.NotNull(legacyTable);
-        Assert.False(targetDb.TryGetTable("Users", out _));
+        var ex = ((Action)(() => SchemaSnapshot.Load(json, targetDb, ensureCompatibility: true))).Should().Throw<InvalidOperationException>().Which;
+        ex.Message.Should().Contain("target version is 4");
+        targetDb.TryGetTable("Legacy", out var legacyTable).Should().BeTrue();
+        legacyTable.Should().NotBeNull();
+        targetDb.TryGetTable("Users", out _).Should().BeFalse();
     }
 
     /// <summary>
@@ -510,17 +513,17 @@ public sealed class SchemaSnapshotTests(
         var sameStructureDb = new SqliteDbMock();
         SchemaSnapshot.Load(snapshot.ToJson(), sameStructureDb);
 
-        Assert.True(snapshot.Matches(SchemaSnapshot.Export(sameStructureDb)));
-        Assert.True(snapshot.Matches(sameStructureDb));
+        snapshot.Matches(SchemaSnapshot.Export(sameStructureDb)).Should().BeTrue();
+        snapshot.Matches(sameStructureDb).Should().BeTrue();
 
         using var sameStructureConnection = new SqliteConnectionMock(sameStructureDb);
-        Assert.True(snapshot.Matches(sameStructureConnection));
-        Assert.Equal(snapshot.GetFingerprint(), SchemaSnapshot.Export(sameStructureDb).GetFingerprint());
+        snapshot.Matches(sameStructureConnection).Should().BeTrue();
+        snapshot.GetFingerprint().Should().Be(SchemaSnapshot.Export(sameStructureDb).GetFingerprint());
 
         sameStructureDb.GetTable("Users").CreateIndex("ix_users_name", ["Name"], unique: false);
 
-        Assert.False(snapshot.Matches(sameStructureDb));
-        Assert.NotEqual(snapshot.GetFingerprint(), SchemaSnapshot.Export(sameStructureDb).GetFingerprint());
+        snapshot.Matches(sameStructureDb).Should().BeFalse();
+        snapshot.GetFingerprint().Should().NotBe(SchemaSnapshot.Export(sameStructureDb).GetFingerprint());
     }
 
     /// <summary>
@@ -550,14 +553,14 @@ public sealed class SchemaSnapshotTests(
 
         var comparison = snapshot.CompareTo(targetDb);
 
-        Assert.False(comparison.IsMatch);
-        Assert.NotEmpty(comparison.Differences);
-        Assert.Contains(comparison.Differences, difference => difference.Contains("Table 'Users'", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(comparison.Differences, difference => difference.Contains("Table in schema 'defaultschema' only in target: 'orders'", StringComparison.OrdinalIgnoreCase));
+        comparison.IsMatch.Should().BeFalse();
+        comparison.Differences.Should().NotBeEmpty();
+        comparison.Differences.Should().Contain(difference => difference.Contains("Table 'Users'"));
+        comparison.Differences.Should().Contain(difference => difference.Contains("Table in schema 'defaultschema' only in target: 'orders'"));
 
         var text = comparison.ToText();
-        Assert.Contains("IsMatch: False", text, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("Differences:", text, StringComparison.OrdinalIgnoreCase);
+        text.Should().Contain("IsMatch: False");
+        text.Should().Contain("Differences:");
     }
 
     /// <summary>
@@ -570,29 +573,29 @@ public sealed class SchemaSnapshotTests(
     {
         var profile = SchemaSnapshot.GetSupportProfile(new SqliteDbMock(version: 6));
 
-        Assert.Equal("sqlite", profile.DialectName, ignoreCase: true);
-        Assert.Equal(6, profile.Version);
-        Assert.Contains("tables", profile.SupportedObjects);
-        Assert.Contains("views", profile.SupportedObjects);
-        Assert.Contains("procedure-signatures", profile.SupportedObjects);
-        Assert.Contains("trigger-bodies", profile.UnsupportedObjects);
-        Assert.Contains("computed-default-expressions", profile.UnsupportedObjects);
+        profile.DialectName.Should().BeEquivalentTo("sqlite");
+        profile.Version.Should().Be(6);
+        profile.SupportedObjects.Should().Contain("tables");
+        profile.SupportedObjects.Should().Contain("views");
+        profile.SupportedObjects.Should().Contain("procedure-signatures");
+        profile.UnsupportedObjects.Should().Contain("trigger-bodies");
+        profile.UnsupportedObjects.Should().Contain("computed-default-expressions");
 
         var text = profile.ToText();
-        Assert.Contains("SupportedObjects:", text, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("UnsupportedObjects:", text, StringComparison.OrdinalIgnoreCase);
+        text.Should().Contain("SupportedObjects:");
+        text.Should().Contain("UnsupportedObjects:");
 
         using var connection = new SqliteConnectionMock(new SqliteDbMock(version: 6));
         var connectionProfile = connection.GetSchemaSnapshotSupportProfile();
 
-        Assert.Equal("sqlite", connectionProfile.DialectName, ignoreCase: true);
-        Assert.Equal(6, connectionProfile.Version);
-        Assert.Contains("tables", connectionProfile.SupportedObjects);
-        Assert.Contains("trigger-bodies", connectionProfile.UnsupportedObjects);
+        connectionProfile.DialectName.Should().BeEquivalentTo("sqlite");
+        connectionProfile.Version.Should().Be(6);
+        connectionProfile.SupportedObjects.Should().Contain("tables");
+        connectionProfile.UnsupportedObjects.Should().Contain("trigger-bodies");
 
         var connectionText = connection.GetSchemaSnapshotSupportProfileText();
-        Assert.Contains("SupportedObjects:", connectionText, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("UnsupportedObjects:", connectionText, StringComparison.OrdinalIgnoreCase);
+        connectionText.Should().Contain("SupportedObjects:");
+        connectionText.Should().Contain("UnsupportedObjects:");
     }
 
     /// <summary>
@@ -631,9 +634,10 @@ public sealed class SchemaSnapshotTests(
                 OutParams: []),
             schemaName: "reporting");
 
-        var viewQuery = Assert.IsType<SqlCreateViewQuery>(SqlQueryParser.Parse(
+        var viewQuery = SqlQueryParser.Parse(
             "CREATE VIEW active_users AS SELECT Id, Name FROM Users WHERE Id > 0",
-            sourceDb.Dialect));
+            sourceDb,
+            sourceDb.Dialect).Should().BeOfType<SqlCreateViewQuery>().Subject;
         sourceDb.AddView(viewQuery, "app");
 
         var snapshot = SchemaSnapshot.Export(sourceDb);
@@ -644,9 +648,9 @@ public sealed class SchemaSnapshotTests(
         var replayedSnapshot = SchemaSnapshot.Export(targetDb);
         var comparison = snapshot.CompareTo(replayedSnapshot);
 
-        Assert.True(comparison.IsMatch);
-        Assert.Empty(comparison.Differences);
-        Assert.Equal(snapshot.GetFingerprint(), replayedSnapshot.GetFingerprint());
+        comparison.IsMatch.Should().BeTrue();
+        comparison.Differences.Should().BeEmpty();
+        snapshot.GetFingerprint().Should().Be(replayedSnapshot.GetFingerprint());
     }
 
     /// <summary>
@@ -697,14 +701,14 @@ public sealed class SchemaSnapshotTests(
         targetDb.CreateSchema("legacy");
         using var targetConnection = new SqliteConnectionMock(targetDb, "legacy");
 
-        Assert.True(snapshot.IsCompatibleWith(targetConnection));
+        snapshot.IsCompatibleWith(targetConnection).Should().BeTrue();
 
         snapshot.ApplyTo(targetConnection, ensureCompatibility: true);
 
-        Assert.Equal("app", targetConnection.Database, ignoreCase: true);
-        Assert.True(targetConnection.TryGetTable("Users", out var usersTable, "app"));
-        Assert.NotNull(usersTable);
-        Assert.Equal(3, usersTable!.NextIdentity);
+        targetConnection.Database.Should().BeEquivalentTo("app");
+        targetConnection.TryGetTable("Users", out var usersTable, "app").Should().BeTrue();
+        usersTable.Should().NotBeNull();
+        usersTable!.NextIdentity.Should().Be(3);
     }
 
     /// <summary>
@@ -728,20 +732,20 @@ public sealed class SchemaSnapshotTests(
         {
             SchemaSnapshot.Export(sourceDb).SaveToFile(path);
 
-            Assert.True(File.Exists(path));
+            File.Exists(path).Should().BeTrue();
 
             var fromFile = SchemaSnapshot.LoadFromFile(path);
-            Assert.Single(fromFile.Schemas);
+            fromFile.Schemas.Should().ContainSingle();
 
             var targetDb = new SqliteDbMock();
             targetDb.AddTable("Legacy", [new("Id", DbType.Int32, false)]);
 
             SchemaSnapshot.LoadFromFile(path, targetDb);
 
-            Assert.False(targetDb.TryGetTable("Legacy", out _));
+            targetDb.TryGetTable("Legacy", out _).Should().BeFalse();
             var users = targetDb.GetTable("Users");
-            Assert.Equal(9, users.NextIdentity);
-            Assert.Equal("anonymous", users.Columns["Name"].DefaultValue);
+            users.NextIdentity.Should().Be(9);
+            users.Columns["Name"].DefaultValue.Should().Be("anonymous");
         }
         finally
         {
@@ -772,7 +776,7 @@ public sealed class SchemaSnapshotTests(
                 sourceConnection.ExportSchemaSnapshotToFile(path);
 
             var json = File.ReadAllText(path);
-            Assert.Contains("\"schemas\"", json, StringComparison.OrdinalIgnoreCase);
+            json.Should().Contain("\"schemas\"");
 
             var targetDb = new SqliteDbMock();
             targetDb.AddTable("Legacy", [new("Id", DbType.Int32, false)]);
@@ -780,10 +784,10 @@ public sealed class SchemaSnapshotTests(
             using var targetConnection = new SqliteConnectionMock(targetDb);
             targetConnection.ImportSchemaSnapshotFromFile(path);
 
-            Assert.False(targetConnection.TryGetTable("Legacy", out _));
-            Assert.True(targetConnection.TryGetTable("Users", out var usersTable));
-            Assert.NotNull(usersTable);
-            Assert.Equal(2, usersTable!.Columns.Count);
+            targetConnection.TryGetTable("Legacy", out _).Should().BeFalse();
+            targetConnection.TryGetTable("Users", out var usersTable).Should().BeTrue();
+            usersTable.Should().NotBeNull();
+            usersTable!.Columns.Count.Should().Be(2);
         }
         finally
         {
@@ -814,13 +818,13 @@ public sealed class SchemaSnapshotTests(
 
             using var jsonConnection = new SqliteConnectionMock(new SqliteDbMock(version: 6));
             SchemaSnapshot.Load(json, jsonConnection, ensureCompatibility: true);
-            Assert.True(jsonConnection.TryGetTable("Users", out var jsonUsers));
-            Assert.NotNull(jsonUsers);
+            jsonConnection.TryGetTable("Users", out var jsonUsers).Should().BeTrue();
+            jsonUsers.Should().NotBeNull();
 
             using var fileConnection = new SqliteConnectionMock(new SqliteDbMock(version: 6));
             SchemaSnapshot.LoadFromFile(path, fileConnection, ensureCompatibility: true);
-            Assert.True(fileConnection.TryGetTable("Users", out var fileUsers));
-            Assert.NotNull(fileUsers);
+            fileConnection.TryGetTable("Users", out var fileUsers).Should().BeTrue();
+            fileUsers.Should().NotBeNull();
         }
         finally
         {

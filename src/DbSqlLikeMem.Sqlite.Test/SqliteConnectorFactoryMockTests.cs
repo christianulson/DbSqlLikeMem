@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.Sqlite.Test;
 
 /// <summary>
@@ -17,11 +19,11 @@ public sealed class SqliteConnectorFactoryMockTests(
     {
         var factory = SqliteConnectorFactoryMock.GetInstance([]);
 
-        Assert.IsType<SqliteCommandMock>(factory.CreateCommand());
-        Assert.IsType<SqliteConnectionMock>(factory.CreateConnection());
-        Assert.IsType<SqliteDataAdapterMock>(factory.CreateDataAdapter());
-        Assert.IsType<DbConnectionStringBuilder>(factory.CreateConnectionStringBuilder());
-        Assert.NotNull(factory.CreateParameter());
+        factory.CreateCommand().Should().BeOfType<SqliteCommandMock>();
+        factory.CreateConnection().Should().BeOfType<SqliteConnectionMock>();
+        factory.CreateDataAdapter().Should().BeOfType<SqliteDataAdapterMock>();
+        factory.CreateConnectionStringBuilder().Should().BeOfType<DbConnectionStringBuilder>();
+        factory.CreateParameter().Should().NotBeNull();
     }
 
 #if NET8_0_OR_GREATER
@@ -34,9 +36,9 @@ public sealed class SqliteConnectorFactoryMockTests(
     {
         var factory = SqliteConnectorFactoryMock.GetInstance([]);
 
-        Assert.True(factory.CanCreateBatch);
-        Assert.IsType<SqliteBatchMock>(factory.CreateBatch());
-        Assert.IsType<SqliteBatchCommandMock>(factory.CreateBatchCommand());
+        factory.CanCreateBatch.Should().BeTrue();
+        factory.CreateBatch().Should().BeOfType<SqliteBatchMock>();
+        factory.CreateBatchCommand().Should().BeOfType<SqliteBatchCommandMock>();
     }
 #endif
 
@@ -51,7 +53,7 @@ public sealed class SqliteConnectorFactoryMockTests(
         var factory = SqliteConnectorFactoryMock.GetInstance([]);
 
         var dataSource = factory.CreateDataSource("Host=mock");
-        Assert.IsType<SqliteDataSourceMock>(dataSource);
+        dataSource.Should().BeOfType<SqliteDataSourceMock>();
     }
 #endif
 }

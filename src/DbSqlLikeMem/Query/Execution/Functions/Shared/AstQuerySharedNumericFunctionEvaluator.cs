@@ -49,6 +49,9 @@ internal static class AstQuerySharedNumericFunctionEvaluator
         if (string.Equals(fn.Name, "COS", StringComparison.OrdinalIgnoreCase))
             return TryEvalCosFunction(evalArg, out result);
 
+        if (string.Equals(fn.Name, "COSH", StringComparison.OrdinalIgnoreCase))
+            return TryEvalCoshFunction(evalArg, out result);
+
         if (string.Equals(fn.Name, "COT", StringComparison.OrdinalIgnoreCase))
             return TryEvalCotFunction(evalArg, out result);
 
@@ -92,11 +95,26 @@ internal static class AstQuerySharedNumericFunctionEvaluator
         if (string.Equals(fn.Name, "SIN", StringComparison.OrdinalIgnoreCase))
             return TryEvalSinFunction(evalArg, out result);
 
+        if (string.Equals(fn.Name, "SINH", StringComparison.OrdinalIgnoreCase))
+            return TryEvalSinhFunction(evalArg, out result);
+
         if (string.Equals(fn.Name, "SQRT", StringComparison.OrdinalIgnoreCase))
             return TryEvalSqrtFunction(evalArg, out result);
 
         if (string.Equals(fn.Name, "TAN", StringComparison.OrdinalIgnoreCase))
             return TryEvalTanFunction(evalArg, out result);
+
+        if (string.Equals(fn.Name, "TANH", StringComparison.OrdinalIgnoreCase))
+            return TryEvalTanhFunction(evalArg, out result);
+
+        if (string.Equals(fn.Name, "ACOSH", StringComparison.OrdinalIgnoreCase))
+            return TryEvalAcoshFunction(evalArg, out result);
+
+        if (string.Equals(fn.Name, "ASINH", StringComparison.OrdinalIgnoreCase))
+            return TryEvalAsinhFunction(evalArg, out result);
+
+        if (string.Equals(fn.Name, "ATANH", StringComparison.OrdinalIgnoreCase))
+            return TryEvalAtanhFunction(evalArg, out result);
 
         result = null;
         return false;
@@ -355,6 +373,27 @@ internal static class AstQuerySharedNumericFunctionEvaluator
         try
         {
             result = Math.Cos(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalCoshFunction(Func<int, object?> evalArg, out object? result)
+    {
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            result = Math.Cosh(Convert.ToDouble(value, CultureInfo.InvariantCulture));
             return true;
         }
         catch
@@ -709,6 +748,27 @@ internal static class AstQuerySharedNumericFunctionEvaluator
         }
     }
 
+    private static bool TryEvalSinhFunction(Func<int, object?> evalArg, out object? result)
+    {
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            result = Math.Sinh(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
     private static bool TryEvalSqrtFunction(Func<int, object?> evalArg, out object? result)
     {
         var value = evalArg(0);
@@ -722,6 +782,93 @@ internal static class AstQuerySharedNumericFunctionEvaluator
         {
             var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
             result = number < 0 ? null : Math.Sqrt(number);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalTanhFunction(Func<int, object?> evalArg, out object? result)
+    {
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            result = Math.Tanh(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalAcoshFunction(Func<int, object?> evalArg, out object? result)
+    {
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            result = number < 1d ? null : Math.Log(number + Math.Sqrt((number - 1d) * (number + 1d)));
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalAsinhFunction(Func<int, object?> evalArg, out object? result)
+    {
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            result = Math.Log(number + Math.Sqrt(number * number + 1d));
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalAtanhFunction(Func<int, object?> evalArg, out object? result)
+    {
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            result = Math.Abs(number) >= 1d ? null : 0.5d * Math.Log((1d + number) / (1d - number));
             return true;
         }
         catch

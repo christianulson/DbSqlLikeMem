@@ -48,6 +48,7 @@ internal sealed class CommandExecutionPipelineContext(
         parsedSqlRaw = sqlRaw;
         parsedQuery = SqlQueryParser.Parse(
             sqlRaw,
+            Connection.Db,
             Connection.ExecutionDialect,
             null,
             SqlCustomFunctionResolverFactory.Create(ExecutionContext));

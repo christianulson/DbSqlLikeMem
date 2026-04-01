@@ -160,7 +160,8 @@ public class Db2CommandMock(
                 continue;
             }
 
-            var q = SqlQueryParser.Parse(sqlRaw, connection.ExecutionDialect, Parameters);
+            var customFunctionSupported = SqlCustomFunctionResolverFactory.Create(QueryExecutionContext.FromConnection(connection!, Parameters));
+            var q = SqlQueryParser.Parse(sqlRaw,connection.Db, connection.ExecutionDialect, Parameters, customFunctionSupported);
             parsedStatementCount++;
 
             using var currentQueryScope = connection.BeginCurrentQueryScope(sqlRaw);
@@ -259,7 +260,7 @@ public class Db2CommandMock(
         if (string.IsNullOrWhiteSpace(exprSql))
             return false;
 
-        var expr = SqlExpressionParser.ParseScalar(exprSql, connection!.Db.Dialect);
+        var expr = SqlExpressionParser.ParseScalar(exprSql, connection!.Db, connection!.Db.Dialect);
         if (expr is not CallExpr call)
             return false;
 

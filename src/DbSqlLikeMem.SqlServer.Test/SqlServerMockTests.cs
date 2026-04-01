@@ -2111,12 +2111,12 @@ public sealed class SqlServerMockTests
     }
 
     /// <summary>
-    /// EN: Ensures schema-qualified STRING_SPLIT enable_ordinal accepts numeric text that coerces exactly to 1 on the shared SQL Server runtime path.
-    /// PT: Garante que STRING_SPLIT qualificado por schema com enable_ordinal aceite texto numerico que coerce exatamente para 1 no caminho compartilhado de runtime do SQL Server.
+    /// EN: Ensures schema-qualified STRING_SPLIT enable_ordinal rejects numeric text on the shared SQL Server runtime path.
+    /// PT: Garante que STRING_SPLIT qualificado por schema com enable_ordinal rejeite texto numerico no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
-    public void ExecuteReader_CrossApply_SchemaQualifiedStringSplitWithOrdinalNumericTextFlag_ShouldReturnOrdinalColumn()
+    public void ExecuteReader_CrossApply_SchemaQualifiedStringSplitWithOrdinalNumericTextFlag_ShouldThrow()
     {
         using (var seed = new SqlServerCommandMock(_connection))
         {
@@ -2135,14 +2135,8 @@ public sealed class SqlServerMockTests
                 """
         };
 
-        using var reader = command.ExecuteReader();
-        Assert.True(reader.Read());
-        Assert.Equal("red", reader.GetString(reader.GetOrdinal("Token")));
-        Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("TokenOrdinal")));
-        Assert.True(reader.Read());
-        Assert.Equal("blue", reader.GetString(reader.GetOrdinal("Token")));
-        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("TokenOrdinal")));
-        Assert.False(reader.Read());
+        var ex = Assert.Throws<InvalidOperationException>(command.ExecuteReader);
+        Assert.Contains("enable_ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2262,12 +2256,12 @@ public sealed class SqlServerMockTests
     }
 
     /// <summary>
-    /// EN: Ensures STRING_SPLIT enable_ordinal accepts decimal values that coerce exactly to 0 or 1 on the shared SQL Server runtime path.
-    /// PT: Garante que STRING_SPLIT enable_ordinal aceite valores decimais que coercem exatamente para 0 ou 1 no caminho compartilhado de runtime do SQL Server.
+    /// EN: Ensures STRING_SPLIT enable_ordinal rejects decimal values on the shared SQL Server runtime path.
+    /// PT: Garante que STRING_SPLIT enable_ordinal rejeite valores decimais no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
-    public void ExecuteReader_CrossApply_StringSplitWithOrdinalDecimalFlag_ShouldReturnOrdinalColumn()
+    public void ExecuteReader_CrossApply_StringSplitWithOrdinalDecimalFlag_ShouldThrow()
     {
         using (var seed = new SqlServerCommandMock(_connection))
         {
@@ -2288,23 +2282,17 @@ public sealed class SqlServerMockTests
                 """
         };
 
-        using var reader = command.ExecuteReader();
-        Assert.True(reader.Read());
-        Assert.Equal("red", reader.GetString(reader.GetOrdinal("Token")));
-        Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("TokenOrdinal")));
-        Assert.True(reader.Read());
-        Assert.Equal("blue", reader.GetString(reader.GetOrdinal("Token")));
-        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("TokenOrdinal")));
-        Assert.False(reader.Read());
+        var ex = Assert.Throws<InvalidOperationException>(command.ExecuteReader);
+        Assert.Contains("enable_ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
-    /// EN: Ensures STRING_SPLIT enable_ordinal accepts numeric text that coerces exactly to 0 or 1 on the shared SQL Server runtime path.
-    /// PT: Garante que STRING_SPLIT enable_ordinal aceite texto numerico que coerce exatamente para 0 ou 1 no caminho compartilhado de runtime do SQL Server.
+    /// EN: Ensures STRING_SPLIT enable_ordinal rejects numeric text on the shared SQL Server runtime path.
+    /// PT: Garante que STRING_SPLIT enable_ordinal rejeite texto numerico no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
-    public void ExecuteReader_CrossApply_StringSplitWithOrdinalNumericTextFlag_ShouldReturnOrdinalColumn()
+    public void ExecuteReader_CrossApply_StringSplitWithOrdinalNumericTextFlag_ShouldThrow()
     {
         using (var seed = new SqlServerCommandMock(_connection))
         {
@@ -2325,23 +2313,17 @@ public sealed class SqlServerMockTests
                 """
         };
 
-        using var reader = command.ExecuteReader();
-        Assert.True(reader.Read());
-        Assert.Equal("red", reader.GetString(reader.GetOrdinal("Token")));
-        Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("TokenOrdinal")));
-        Assert.True(reader.Read());
-        Assert.Equal("blue", reader.GetString(reader.GetOrdinal("Token")));
-        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("TokenOrdinal")));
-        Assert.False(reader.Read());
+        var ex = Assert.Throws<InvalidOperationException>(command.ExecuteReader);
+        Assert.Contains("enable_ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
-    /// EN: Ensures STRING_SPLIT enable_ordinal accepts numeric text that coerces exactly to 0 and suppresses the ordinal column on the shared SQL Server runtime path.
-    /// PT: Garante que STRING_SPLIT enable_ordinal aceite texto numerico que coerce exatamente para 0 e suprima a coluna ordinal no caminho compartilhado de runtime do SQL Server.
+    /// EN: Ensures STRING_SPLIT enable_ordinal rejects numeric text on the shared SQL Server runtime path.
+    /// PT: Garante que STRING_SPLIT enable_ordinal rejeite texto numerico no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
-    public void ExecuteReader_CrossApply_StringSplitWithOrdinalNumericTextZeroFlag_ShouldSuppressOrdinalColumn()
+    public void ExecuteReader_CrossApply_StringSplitWithOrdinalNumericTextZeroFlag_ShouldThrow()
     {
         using (var seed = new SqlServerCommandMock(_connection))
         {
@@ -2362,14 +2344,8 @@ public sealed class SqlServerMockTests
                 """
         };
 
-        using var reader = command.ExecuteReader();
-        Assert.Equal(1, reader.FieldCount);
-        Assert.Equal("Token", reader.GetName(0));
-        Assert.True(reader.Read());
-        Assert.Equal("blue", reader.GetString(reader.GetOrdinal("Token")));
-        Assert.True(reader.Read());
-        Assert.Equal("red", reader.GetString(reader.GetOrdinal("Token")));
-        Assert.False(reader.Read());
+        var ex = Assert.Throws<InvalidOperationException>(command.ExecuteReader);
+        Assert.Contains("enable_ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

@@ -22,7 +22,7 @@ public sealed class SqlExpressionParserTests(
     {
         Console.WriteLine("Where: @\"" + whereExpr + "\"");
 
-        var ex = Record.Exception(() => SqlExpressionParser.ParseWhere(whereExpr, GetDialect(version, v => new Db2Dialect(v))));
+        var ex = Record.Exception(() => SqlExpressionParser.ParseWhere(whereExpr, new Db2DbMock(), Get(version, v => new Db2Dialect(v))));
         Assert.Null(ex);
     }
 
@@ -79,7 +79,6 @@ public sealed class SqlExpressionParserTests(
         yield return new object[] { "u.id = o.userId AND o.status = 'paid'" };
         yield return new object[] { "EXISTS (SELECT 1 FROM orders o WHERE o.UserId = u.Id)" };
         yield return new object[] { "NOT EXISTS (SELECT 1 FROM orders o WHERE o.UserId = u.Id)" };
-        yield return new object[] { "FIND_IN_SET('b', tags)" };
         yield return new object[] { "(a,b) in (@rows)" };
         yield return new object[] { "(a) in ((SELECT 1 WHERE 0))" };
         yield return new object[] { "a in ((SELECT 1 WHERE 0))" };
@@ -99,7 +98,7 @@ public sealed class SqlExpressionParserTests(
     {
         Console.WriteLine("Where: @\"" + whereExpr + "\"");
 
-        var ex = Assert.ThrowsAny<Exception>(() => SqlExpressionParser.ParseWhere(whereExpr, GetDialect(version, v => new Db2Dialect(v))));
+        var ex = Assert.ThrowsAny<Exception>(() => SqlExpressionParser.ParseWhere(whereExpr, new Db2DbMock(), Get(version, v => new Db2Dialect(v))));
         Assert.True(ex is InvalidOperationException or NotSupportedException);
     }
 
@@ -135,7 +134,7 @@ public sealed class SqlExpressionParserTests(
     {
         // id = 1 OR id = 2 AND name = 'Bob'
         // esperado: OR( id=1 , AND(id=2, name='Bob') )
-        var ast = SqlExpressionParser.ParseWhere("id = 1 OR id = 2 AND name = 'Bob'", GetDialect(version, v => new Db2Dialect(v)));
+        var ast = SqlExpressionParser.ParseWhere("id = 1 OR id = 2 AND name = 'Bob'", new Db2DbMock(), Get(version, v => new Db2Dialect(v)));
 
         var or = Assert.IsType<BinaryExpr>(ast);
         Assert.Equal(SqlBinaryOp.Or, or.Op);
@@ -163,7 +162,7 @@ public sealed class SqlExpressionParserTests(
     public void Parentheses_ShouldOverridePrecedence(int version)
     {
         // (id = 1 OR id = 2) AND email IS NULL
-        var ast = SqlExpressionParser.ParseWhere("(id = 1 OR id = 2) AND email IS NULL", GetDialect(version, v => new Db2Dialect(v)));
+        var ast = SqlExpressionParser.ParseWhere("(id = 1 OR id = 2) AND email IS NULL", new Db2DbMock(), Get(version, v => new Db2Dialect(v)));
 
         var and = Assert.IsType<BinaryExpr>(ast);
         Assert.Equal(SqlBinaryOp.And, and.Op);
@@ -184,7 +183,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataDb2Version]
     public void Not_ShouldWork(int version)
     {
-        var ast = SqlExpressionParser.ParseWhere("NOT (id = 1 OR id = 2)", GetDialect(version, v => new Db2Dialect(v)));
+        var ast = SqlExpressionParser.ParseWhere("NOT (id = 1 OR id = 2)", new Db2DbMock(), Get(version, v => new Db2Dialect(v)));
 
         var not = Assert.IsType<UnaryExpr>(ast);
         Assert.Equal(SqlUnaryOp.Not, not.Op);
@@ -202,7 +201,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataDb2Version]
     public void IsNotNull_ShouldProduce_IsNullExpr_Negated(int version)
     {
-        var ast = SqlExpressionParser.ParseWhere("email IS NOT NULL", GetDialect(version, v => new Db2Dialect(v)));
+        var ast = SqlExpressionParser.ParseWhere("email IS NOT NULL", new Db2DbMock(), Get(version, v => new Db2Dialect(v)));
         var n = Assert.IsType<IsNullExpr>(ast);
         Assert.True(n.Negated);
     }
@@ -216,7 +215,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataDb2Version]
     public void In_ShouldParse_List(int version)
     {
-        var ast = SqlExpressionParser.ParseWhere("u.id IN (1,2,3)", GetDialect(version, v => new Db2Dialect(v)));
+        var ast = SqlExpressionParser.ParseWhere("u.id IN (1,2,3)", new Db2DbMock(), Get(version, v => new Db2Dialect(v)));
         var ins = Assert.IsType<InExpr>(ast);
         Assert.Equal(3, ins.Items.Count);
     }
@@ -230,7 +229,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataDb2Version]
     public void Like_ShouldParse(int version)
     {
-        var ast = SqlExpressionParser.ParseWhere("name LIKE '%oh%'", GetDialect(version, v => new Db2Dialect(v)));
+        var ast = SqlExpressionParser.ParseWhere("name LIKE '%oh%'", new Db2DbMock(), Get(version, v => new Db2Dialect(v)));
         var like = Assert.IsType<LikeExpr>(ast);
         Assert.NotNull(like.Pattern);
     }
@@ -244,7 +243,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataDb2Version]
     public void Like_WithEscapeClause_ShouldParseEscapeExpression(int version)
     {
-        var ast = SqlExpressionParser.ParseWhere("name LIKE 'Jo#_%' ESCAPE '#'", GetDialect(version, v => new Db2Dialect(v)));
+        var ast = SqlExpressionParser.ParseWhere("name LIKE 'Jo#_%' ESCAPE '#'", new Db2DbMock(), Get(version, v => new Db2Dialect(v)));
         var like = Assert.IsType<LikeExpr>(ast);
         var escape = Assert.IsType<LiteralExpr>(like.Escape);
 
@@ -261,7 +260,7 @@ public sealed class SqlExpressionParserTests(
     public void Like_WithMultiCharacterEscapeLiteral_ShouldThrowActionableError(int version)
     {
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseWhere("name LIKE 'Jo#_%' ESCAPE '##'", GetDialect(version, v => new Db2Dialect(v))));
+            SqlExpressionParser.ParseWhere("name LIKE 'Jo#_%' ESCAPE '##'", new Db2DbMock(), Get(version, v => new Db2Dialect(v))));
 
         Assert.Contains("single character", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -279,7 +278,7 @@ public sealed class SqlExpressionParserTests(
         parameters.AddWithValue("@esc", "##");
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseWhere("name LIKE 'Jo#_%' ESCAPE @esc", GetDialect(version, v => new Db2Dialect(v)), parameters));
+            SqlExpressionParser.ParseWhere("name LIKE 'Jo#_%' ESCAPE @esc", new Db2DbMock(), Get(version, v => new Db2Dialect(v)), parameters));
 
         Assert.Contains("single character", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -293,7 +292,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataDb2Version]
     public void SequenceExpression_NextValueFor_ShouldParse(int version)
     {
-        var expr = SqlExpressionParser.ParseScalar("NEXT VALUE FOR sales.seq_orders", GetDialect(version, v => new Db2Dialect(v)));
+        var expr = SqlExpressionParser.ParseScalar("NEXT VALUE FOR sales.seq_orders", new Db2DbMock(), Get(version, v => new Db2Dialect(v)));
         var call = Assert.IsType<CallExpr>(expr);
 
         Assert.Equal("NEXT_VALUE_FOR", call.Name, StringComparer.OrdinalIgnoreCase);
@@ -308,7 +307,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataDb2Version]
     public void SequenceExpression_PreviousValueFor_ShouldParse(int version)
     {
-        var expr = SqlExpressionParser.ParseScalar("PREVIOUS VALUE FOR sales.seq_orders", GetDialect(version, v => new Db2Dialect(v)));
+        var expr = SqlExpressionParser.ParseScalar("PREVIOUS VALUE FOR sales.seq_orders", new Db2DbMock(), Get(version, v => new Db2Dialect(v)));
         var call = Assert.IsType<CallExpr>(expr);
 
         Assert.Equal("PREVIOUS_VALUE_FOR", call.Name, StringComparer.OrdinalIgnoreCase);
@@ -323,7 +322,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataDb2Version]
     public void Identifier_WithAliasDotColumn_ShouldParse(int version)
     {
-        var ast = SqlExpressionParser.ParseWhere("u.id = o.userId", GetDialect(version, v => new Db2Dialect(v)));
+        var ast = SqlExpressionParser.ParseWhere("u.id = o.userId", new Db2DbMock(), Get(version, v => new Db2Dialect(v)));
         var eq = Assert.IsType<BinaryExpr>(ast);
         Assert.Equal(SqlBinaryOp.Eq, eq.Op);
 
@@ -346,10 +345,11 @@ public sealed class SqlExpressionParserTests(
     [MemberDataDb2Version]
     public void Parameter_Tokens_ShouldParse(int version)
     {
-        var d = GetDialect(version, v => new Db2Dialect(v));
-        Assert.NotNull(SqlExpressionParser.ParseWhere("a = @p", d));
-        Assert.NotNull(SqlExpressionParser.ParseWhere("a = :p", d));
-        Assert.NotNull(SqlExpressionParser.ParseWhere("a = ?", d));
+        var d = Get(version, v => new Db2Dialect(v));
+        var db = new Db2DbMock();
+        Assert.NotNull(SqlExpressionParser.ParseWhere("a = @p", db, d));
+        Assert.NotNull(SqlExpressionParser.ParseWhere("a = :p", db, d));
+        Assert.NotNull(SqlExpressionParser.ParseWhere("a = ?", db, d));
     }
 
     /// <summary>
@@ -362,7 +362,7 @@ public sealed class SqlExpressionParserTests(
     public void Backtick_Identifier_ShouldThrow(int version)
     {
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseWhere("`DeletedDtt` IS NULL", GetDialect(version, v => new Db2Dialect(v))));
+            SqlExpressionParser.ParseWhere("`DeletedDtt` IS NULL", new Db2DbMock(), Get(version, v => new Db2Dialect(v))));
 
         Assert.Contains("alias/identificadores", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("'`'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -377,7 +377,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataDb2Version]
     public void DoubleQuoted_Identifier_ShouldParse(int version)
     {
-        var ast = SqlExpressionParser.ParseWhere("name = \"John\"", GetDialect(version, v => new Db2Dialect(v)));
+        var ast = SqlExpressionParser.ParseWhere("name = \"John\"", new Db2DbMock(), Get(version, v => new Db2Dialect(v)));
         var eq = Assert.IsType<BinaryExpr>(ast);
         var id = Assert.IsType<IdentifierExpr>(eq.Right);
         Assert.Equal("John", id.Name);
@@ -393,7 +393,7 @@ public sealed class SqlExpressionParserTests(
     public void NullSafe_Operator_ShouldThrow(int version)
     {
         Assert.ThrowsAny<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseWhere("a <=> b", GetDialect(version, v => new Db2Dialect(v))));
+            SqlExpressionParser.ParseWhere("a <=> b", new Db2DbMock(), Get(version, v => new Db2Dialect(v))));
     }
 
     /// <summary>
@@ -405,7 +405,7 @@ public sealed class SqlExpressionParserTests(
     [MemberDataDb2Version]
     public void Printer_ShouldBeStable_ForSimpleExpression(int version)
     {
-        var ast = SqlExpressionParser.ParseWhere("a = 1 AND b = 2", GetDialect(version, v => new Db2Dialect(v)));
+        var ast = SqlExpressionParser.ParseWhere("a = 1 AND b = 2", new Db2DbMock(), Get(version, v => new Db2Dialect(v)));
         var s = SqlExprPrinter.Print(ast);
 
         // só uma checagem básica de que não está vazio e contém operadores esperados

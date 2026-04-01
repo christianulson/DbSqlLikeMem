@@ -130,8 +130,43 @@ internal static class AstQueryFunctionDispatchHelper
     {
         result = null;
 
+        if (context.Connection.TryGetRuntimeFunction(fn.Name, out var runtimeFunction)
+            && runtimeFunction is not null)
+        {
+            if (fn.Args.Count != runtimeFunction.Parameters.Count)
+                throw new InvalidOperationException($"Function '{fn.Name}' expects {runtimeFunction.Parameters.Count} argument(s), but received {fn.Args.Count}.");
+
+            var runtimeParameterScope = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+            for (var i = 0; i < runtimeFunction.Parameters.Count; i++)
+            {
+                var parameter = runtimeFunction.Parameters[i];
+                runtimeParameterScope[parameter.NormalizedName] = eval(fn.Args[i], row, group, ctes);
+            }
+
+            localParameterScopes.Push(runtimeParameterScope);
+            try
+            {
+                var body = runtimeFunction.Body ?? throw new InvalidOperationException($"Function '{fn.Name}' does not have a body.");
+                result = eval(body, row, group, ctes);
+                return true;
+            }
+            finally
+            {
+                localParameterScopes.Pop();
+            }
+        }
+
         if (!context.Connection.TryGetFunction(fn.Name, out var function) || function is null)
-            return false;
+        {
+            if (context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out var builtInDefinition)
+                && builtInDefinition is not null)
+            {
+                return false;
+            }
+
+            result = DBNull.Value;
+            return true;
+        }
 
         if (fn.Args.Count != function.Parameters.Count)
             throw new InvalidOperationException($"Function '{fn.Name}' expects {function.Parameters.Count} argument(s), but received {fn.Args.Count}.");

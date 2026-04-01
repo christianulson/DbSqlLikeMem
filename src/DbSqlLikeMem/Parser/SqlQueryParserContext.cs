@@ -39,19 +39,13 @@ internal sealed class SqlQueryParserContext
         SqlConst.UNPIVOT,
         SqlConst.RETURNING
     };
-
-    private readonly IReadOnlyList<SqlToken> _toks;
-    private readonly ISqlDialect _dialect;
-    private readonly IDataParameterCollection? _parameters;
-    private readonly Func<string, bool>? _customFunctionSupported;
-    private readonly AutoSqlSyntaxFeatures _autoSyntaxFeatures;
     private readonly Func<string, SqlQueryBase> _parseQuery;
     private readonly Func<string, SqlExpr> _parseScalar;
     private readonly Func<string, SqlExpr> _parseWhere;
-    private int _i;
 
     internal SqlQueryParserContext(
         IReadOnlyList<SqlToken> toks,
+        DbMock db,
         ISqlDialect dialect,
         IDataParameterCollection? parameters,
         Func<string, bool>? customFunctionSupported,
@@ -60,31 +54,30 @@ internal sealed class SqlQueryParserContext
         Func<string, SqlExpr> parseScalar,
         Func<string, SqlExpr> parseWhere)
     {
-        _toks = toks ?? throw new ArgumentNullException(nameof(toks));
-        _dialect = dialect ?? throw new ArgumentNullException(nameof(dialect));
-        _parameters = parameters;
-        _customFunctionSupported = customFunctionSupported;
-        _autoSyntaxFeatures = autoSyntaxFeatures;
+        Toks = toks ?? throw new ArgumentNullException(nameof(toks));
+        Db = db ?? throw new ArgumentNullException(nameof(db));
+        Dialect = dialect ?? throw new ArgumentNullException(nameof(dialect));
+        Parameters = parameters;
+        CustomFunctionSupported = customFunctionSupported;
+        AutoSyntaxFeatures = autoSyntaxFeatures;
         _parseQuery = parseQuery ?? throw new ArgumentNullException(nameof(parseQuery));
         _parseScalar = parseScalar ?? throw new ArgumentNullException(nameof(parseScalar));
         _parseWhere = parseWhere ?? throw new ArgumentNullException(nameof(parseWhere));
     }
 
-    internal IReadOnlyList<SqlToken> Toks => _toks;
+    internal IReadOnlyList<SqlToken> Toks { get; }
 
-    internal ISqlDialect Dialect => _dialect;
+    internal DbMock Db { get; }
 
-    internal IDataParameterCollection? Parameters => _parameters;
+    internal ISqlDialect Dialect { get; }
 
-    internal Func<string, bool>? CustomFunctionSupported => _customFunctionSupported;
+    internal IDataParameterCollection? Parameters { get; }
 
-    internal AutoSqlSyntaxFeatures AutoSyntaxFeatures => _autoSyntaxFeatures;
+    internal Func<string, bool>? CustomFunctionSupported { get; }
 
-    internal int Index
-    {
-        get => _i;
-        set => _i = value;
-    }
+    internal AutoSqlSyntaxFeatures AutoSyntaxFeatures { get; }
+
+    internal int Index { get; set; }
 
     internal bool AllowInsertSelectSuffixBoundary { get; set; }
 
@@ -148,12 +141,12 @@ internal sealed class SqlQueryParserContext
         return identifiers;
     }
 
-    internal SqlToken Peek(int offset = 0) => (_i + offset < _toks.Count) ? _toks[_i + offset] : SqlToken.EOF;
+    internal SqlToken Peek(int offset = 0) => (Index + offset < Toks.Count) ? Toks[Index + offset] : SqlToken.EOF;
 
     internal SqlToken PeekTokenFrom(int index)
-        => (index >= 0 && index < _toks.Count) ? _toks[index] : SqlToken.EOF;
+        => (index >= 0 && index < Toks.Count) ? Toks[index] : SqlToken.EOF;
 
-    internal SqlToken Consume() => _toks[_i++];
+    internal SqlToken Consume() => Toks[Index++];
 
     internal static bool IsEnd(SqlToken t) => t.Kind == SqlTokenKind.EndOfFile;
 
@@ -220,12 +213,12 @@ internal sealed class SqlQueryParserContext
 
     internal int ResolveParameterInt(string parameterToken)
     {
-        if (_parameters is null)
+        if (Parameters is null)
             throw new FormatException($"The input string '{parameterToken}' was not in a correct format.");
 
         var normalized = parameterToken.TrimStart('@', ':', '?');
 
-        foreach (IDataParameter parameter in _parameters)
+        foreach (IDataParameter parameter in Parameters)
         {
             var name = (parameter.ParameterName ?? string.Empty).TrimStart('@', ':', '?');
             if (!string.Equals(name, normalized, StringComparison.OrdinalIgnoreCase))
@@ -242,12 +235,12 @@ internal sealed class SqlQueryParserContext
 
     internal long ResolveParameterLong(string parameterToken)
     {
-        if (_parameters is null)
+        if (Parameters is null)
             throw new FormatException($"The input string '{parameterToken}' was not in a correct format.");
 
         var normalized = parameterToken.TrimStart('@', ':', '?');
 
-        foreach (IDataParameter parameter in _parameters)
+        foreach (IDataParameter parameter in Parameters)
         {
             var name = (parameter.ParameterName ?? string.Empty).TrimStart('@', ':', '?');
             if (!string.Equals(name, normalized, StringComparison.OrdinalIgnoreCase))
@@ -297,8 +290,8 @@ internal sealed class SqlQueryParserContext
         if (!IsWord(Peek(), SqlConst.OPTION))
             return;
 
-        if (!_dialect.SupportsSqlServerQueryHints)
-            throw SqlUnsupported.NotSupportedOptionQueryHints(_dialect);
+        if (!Dialect.SupportsSqlServerQueryHints)
+            throw SqlUnsupported.NotSupportedOptionQueryHints(Dialect);
 
         Consume();
         _ = ReadBalancedParenRawTokens();
@@ -307,9 +300,9 @@ internal sealed class SqlQueryParserContext
     internal bool HasTopLevelWordInRemaining(string word)
     {
         var depth = 0;
-        for (var idx = _i; idx < _toks.Count; idx++)
+        for (var idx = Index; idx < Toks.Count; idx++)
         {
-            var t = _toks[idx];
+            var t = Toks[idx];
             if (t.Kind == SqlTokenKind.EndOfFile)
                 break;
 
@@ -335,9 +328,9 @@ internal sealed class SqlQueryParserContext
     internal bool HasTopLevelMergeWhenClause()
     {
         var depth = 0;
-        for (var idx = _i; idx < _toks.Count; idx++)
+        for (var idx = Index; idx < Toks.Count; idx++)
         {
-            var t = _toks[idx];
+            var t = Toks[idx];
             if (t.Kind == SqlTokenKind.EndOfFile)
                 break;
 
@@ -549,7 +542,7 @@ internal sealed class SqlQueryParserContext
 
         string EscapeStringLiteral(string value)
         {
-            if (_dialect.StringEscapeStyle == SqlStringEscapeStyle.backslash)
+            if (Dialect.StringEscapeStyle == SqlStringEscapeStyle.backslash)
             {
                 return value
                     .Replace("\\", "\\\\")
@@ -564,7 +557,7 @@ internal sealed class SqlQueryParserContext
             if (string.IsNullOrWhiteSpace(ident))
                 return true;
 
-            if (_dialect.IsKeyword(ident))
+            if (Dialect.IsKeyword(ident))
                 return true;
 
             if (!Regex.IsMatch(ident, @"^[A-Za-z_#][A-Za-z0-9_$#]*$", RegexOptions.CultureInvariant))
@@ -578,13 +571,13 @@ internal sealed class SqlQueryParserContext
 
         string QuoteIdentifier(string ident)
         {
-            var style = _dialect.IdentifierEscapeStyle;
+            var style = Dialect.IdentifierEscapeStyle;
 
-            if (style == SqlIdentifierEscapeStyle.double_quote && _dialect.IsStringQuote('"'))
+            if (style == SqlIdentifierEscapeStyle.double_quote && Dialect.IsStringQuote('"'))
             {
-                if (_dialect.AllowsBacktickIdentifiers)
+                if (Dialect.AllowsBacktickIdentifiers)
                     style = SqlIdentifierEscapeStyle.backtick;
-                else if (_dialect.AllowsBracketIdentifiers)
+                else if (Dialect.AllowsBracketIdentifiers)
                     style = SqlIdentifierEscapeStyle.bracket;
             }
 

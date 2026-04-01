@@ -64,7 +64,7 @@ internal static class AstQueryExecutorFactory
             return exc(context);
 
         if (context.Dialect.Name.Equals("auto", StringComparison.OrdinalIgnoreCase)
-            && _executors.TryGetValue(context.Connection.Db.Dialect.Name, out var providerExecutor))
+            && _executors.TryGetValue(context.Connection.ProviderExecutionDialect.Name, out var providerExecutor))
         {
             return providerExecutor(context);
         }

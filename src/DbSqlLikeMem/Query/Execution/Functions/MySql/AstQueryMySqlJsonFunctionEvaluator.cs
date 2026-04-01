@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using static DbSqlLikeMem.AstQueryExecutorBase;
 
 namespace DbSqlLikeMem;
@@ -89,6 +90,13 @@ internal static class AstQueryMySqlJsonFunctionEvaluator
             return TryEvalJsonSearchFunction(context, fn, evalArg, out result);
         }
 
+        if (string.Equals(fn.Name, "JSON_MERGE", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "JSON_MERGE_PRESERVE", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "JSON_MERGE_PATCH", StringComparison.OrdinalIgnoreCase))
+        {
+            return TryEvalJsonMergeFunction(context, fn, evalArg, out result);
+        }
+
         if (string.Equals(fn.Name, "JSON_APPEND", StringComparison.OrdinalIgnoreCase)
             || string.Equals(fn.Name, "JSON_ARRAY_APPEND", StringComparison.OrdinalIgnoreCase))
         {
@@ -157,12 +165,10 @@ internal static class AstQueryMySqlJsonFunctionEvaluator
             return true;
         }
 
-        var options = new JsonSerializerOptions
-        {
-            WriteIndented = true
-        };
-        result = JsonSerializer.Serialize(element, options)
-            .Replace("\r\n", "\\n");
+        result = JsonNode
+            .Parse(element.GetRawText())
+            ?.ToJsonString(new JsonSerializerOptions { WriteIndented = true })
+            .Replace("\r\n", "\n");
         return true;
     }
 
@@ -708,6 +714,175 @@ internal static class AstQueryMySqlJsonFunctionEvaluator
         result = root.ToJsonString();
         return true;
     }
+
+    private static bool TryEvalJsonMergeFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException($"{fn.Name.ToUpperInvariant()}() espera ao menos dois JSONs.");
+
+        if (!TryParseJsonNodeOrNull(evalArg(0), out var mergedRoot))
+        {
+            result = null;
+            return true;
+        }
+
+        for (var i = 1; i < fn.Args.Count; i++)
+        {
+            if (!TryParseJsonNodeOrNull(evalArg(i), out var nextNode))
+            {
+                result = null;
+                return true;
+            }
+
+            mergedRoot = string.Equals(fn.Name, "JSON_MERGE_PATCH", StringComparison.OrdinalIgnoreCase)
+                ? MergeJsonPatch(mergedRoot, nextNode)
+                : MergeJsonPreserve(mergedRoot, nextNode);
+        }
+
+        result = mergedRoot!.ToJsonString();
+        return true;
+    }
+
+    private static bool TryParseJsonNodeOrNull(object? value, out JsonNode? node)
+    {
+        if (IsNullish(value))
+        {
+            node = null;
+            return true;
+        }
+
+        if (value is JsonNode jsonNode)
+        {
+            node = jsonNode.DeepClone();
+            return true;
+        }
+
+        if (AstQueryJsonPathFunctionEvaluator.TryParseJsonNode(value!, out var parsed))
+        {
+            node = parsed?.DeepClone();
+            return true;
+        }
+
+        node = null;
+        return false;
+    }
+
+    private static JsonNode MergeJsonPreserve(JsonNode? left, JsonNode? right)
+    {
+        if (left is null)
+            return right?.DeepClone() ?? JsonValue.Create((string?)null)!;
+
+        if (right is null)
+            return left.DeepClone();
+
+        if (left is JsonObject leftObject && right is JsonObject rightObject)
+            return MergeJsonObjectsPreserve(leftObject, rightObject);
+
+        if (left is JsonArray leftArray && right is JsonArray rightArray)
+            return MergeJsonArrays(leftArray, rightArray);
+
+        if (left is JsonArray leftArrayOnly)
+        {
+            var merged = new JsonArray();
+            foreach (var item in leftArrayOnly)
+                merged.Add(item?.DeepClone());
+            merged.Add(right.DeepClone());
+            return merged;
+        }
+
+        if (right is JsonArray rightArrayOnly)
+        {
+            var merged = new JsonArray();
+            merged.Add(left.DeepClone());
+            foreach (var item in rightArrayOnly)
+                merged.Add(item?.DeepClone());
+            return merged;
+        }
+
+        var pair = new JsonArray
+        {
+            left.DeepClone(),
+            right.DeepClone()
+        };
+        return pair;
+    }
+
+    private static JsonNode MergeJsonPatch(JsonNode? left, JsonNode? right)
+    {
+        if (right is null)
+            return JsonValue.Create((string?)null)!;
+
+        if (left is not JsonObject leftObject || right is not JsonObject rightObject)
+            return right.DeepClone();
+
+        var merged = new JsonObject();
+        foreach (var prop in leftObject)
+        {
+            if (prop.Value is not null)
+                merged[prop.Key] = prop.Value.DeepClone();
+        }
+
+        foreach (var prop in rightObject)
+        {
+            if (IsJsonNullNode(prop.Value))
+            {
+                merged.Remove(prop.Key);
+                continue;
+            }
+
+            merged[prop.Key] = prop.Value!.DeepClone();
+        }
+
+        return merged;
+    }
+
+    private static JsonNode MergeJsonObjectsPreserve(JsonObject left, JsonObject right)
+    {
+        var merged = new JsonObject();
+        foreach (var prop in left)
+        {
+            if (prop.Value is not null)
+                merged[prop.Key] = prop.Value.DeepClone();
+        }
+
+        foreach (var prop in right)
+        {
+            if (!merged.TryGetPropertyValue(prop.Key, out var existing) || existing is null)
+            {
+                merged[prop.Key] = prop.Value?.DeepClone();
+                continue;
+            }
+
+            merged[prop.Key] = MergeJsonPreserve(existing, prop.Value);
+        }
+
+        return merged;
+    }
+
+    private static JsonNode MergeJsonArrays(JsonArray left, JsonArray right)
+    {
+        var merged = new JsonArray();
+        foreach (var item in left)
+            merged.Add(item?.DeepClone());
+        foreach (var item in right)
+            merged.Add(item?.DeepClone());
+        return merged;
+    }
+
+    private static bool IsJsonNullNode(JsonNode? node)
+        => node is null
+            || (node is JsonValue jsonValue
+                && string.Equals(jsonValue.ToJsonString(), "null", StringComparison.OrdinalIgnoreCase));
 
     private static bool TryEvalJsonArrayInsertFunction(
         QueryExecutionContext context,

@@ -175,13 +175,13 @@ internal sealed class AstQueryHavingHelper(
     private static bool IsOrdinalCandidateSide(SqlBinaryOp op, bool leftSide)
         => op switch
         {
-            SqlBinaryOp.Eq => true,
-            SqlBinaryOp.Neq => true,
+            SqlBinaryOp.Eq => leftSide,
+            SqlBinaryOp.Neq => leftSide,
             SqlBinaryOp.Greater => leftSide,
             SqlBinaryOp.GreaterOrEqual => leftSide,
-            SqlBinaryOp.Less => !leftSide,
-            SqlBinaryOp.LessOrEqual => !leftSide,
-            SqlBinaryOp.NullSafeEq => true,
+            SqlBinaryOp.Less => leftSide,
+            SqlBinaryOp.LessOrEqual => leftSide,
+            SqlBinaryOp.NullSafeEq => leftSide,
             _ => false
         };
 

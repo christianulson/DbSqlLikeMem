@@ -98,6 +98,7 @@ internal sealed class Db2Dialect : SqlDialectBase, ISqlDialect
     /// PT: Obtém se há suporte a delete target alias.
     /// </summary>
     public override bool SupportsDeleteTargetAlias => false;
+    public override bool SupportsIifFunction => false;
 
     /// <summary>
     /// EN: Gets whether with cte is supported.
@@ -114,6 +115,19 @@ internal sealed class Db2Dialect : SqlDialectBase, ISqlDialect
     /// PT: Obtém se há suporte a merge.
     /// </summary>
     public override bool SupportsMerge => Version >= MergeMinVersion;
+
+    /// <summary>
+    /// EN: Checks whether a SQL Server-style aggregate helper is supported by DB2 compatibility behavior.
+    /// PT: Verifica se um helper agregado no estilo SQL Server e suportado pelo comportamento de compatibilidade DB2.
+    /// </summary>
+    public override bool SupportsSqlServerAggregateFunction(string functionName)
+        => !string.IsNullOrWhiteSpace(functionName)
+            && (
+                functionName.Equals("MEDIAN", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("PERCENTILE", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("PERCENTILE_CONT", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("PERCENTILE_DISC", StringComparison.OrdinalIgnoreCase));
+
     public override bool SupportsAlterTableAddColumn => true;
     public override bool SupportsFunctionDdl => true;
     bool ISqlDialect.SupportsInlineReturnCreateFunctionDdl => true;

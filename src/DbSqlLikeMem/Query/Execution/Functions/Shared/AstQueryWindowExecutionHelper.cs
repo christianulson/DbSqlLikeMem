@@ -54,11 +54,13 @@ internal static class AstQueryWindowExecutionHelper
                     var isFirstValue = w.Name.Equals("FIRST_VALUE", StringComparison.OrdinalIgnoreCase);
                     var isLastValue = w.Name.Equals("LAST_VALUE", StringComparison.OrdinalIgnoreCase);
                     var isNthValue = w.Name.Equals("NTH_VALUE", StringComparison.OrdinalIgnoreCase);
+                    var isCount = w.Name.Equals("COUNT", StringComparison.OrdinalIgnoreCase);
+                    var isAggregateWindow = AggregateFunctionCatalog.Contains(w.Name);
 
-                    var resolvedWindowDefinition2 = windowDefinition
+                    var resolvedWindowDefinition1 = windowDefinition
                         ?? throw SqlUnsupported.NotSupported(dialectInstance, $"window functions ({w.Name})");
 
-                    if (resolvedWindowDefinition2.RequiresOrderBy && w.Spec.OrderBy.Count == 0)
+                    if (resolvedWindowDefinition1.RequiresOrderBy && w.Spec.OrderBy.Count == 0)
                         throw new InvalidOperationException($"Window function '{w.Name}' requires ORDER BY in OVER clause.");
 
                     if (isRowNumber)
@@ -81,6 +83,18 @@ internal static class AstQueryWindowExecutionHelper
                     if (isNtile)
                     {
                         partitionContext.FillNtile(slot.Map, w, ctes, eval);
+                        continue;
+                    }
+
+                    if (isCount)
+                    {
+                        partitionContext.FillCount(slot.Map, w, ctes, eval, valueSelector);
+                        continue;
+                    }
+
+                    if (isAggregateWindow)
+                    {
+                        partitionContext.FillAggregate(slot.Map, w, ctes, eval);
                         continue;
                     }
 
@@ -175,5 +189,148 @@ internal static class AstQueryWindowExecutionHelper
         sb.Append('(');
         sb.Append(bound.Offset?.ToString(CultureInfo.InvariantCulture) ?? "null");
         sb.Append(')');
+    }
+
+    private static void FillCount(
+        this WindowPartitionExecutionContext partitionContext,
+        Dictionary<EvalRow, object?> map,
+        WindowFunctionExpr windowFunctionExpr,
+        IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
+        Func<EvalRow, object?>? valueSelector)
+    {
+        var context = partitionContext.QueryExecutionContext;
+        var part = partitionContext.Part;
+        if (part.Count == 0)
+            return;
+
+        var countArg = windowFunctionExpr.Args.Count > 0 ? windowFunctionExpr.Args[0] : null;
+        var countAllRows = countArg is null || countArg is StarExpr;
+        var countDistinct = windowFunctionExpr.Distinct;
+
+        if (windowFunctionExpr.Spec.Frame is null || partitionContext.CoversWholePartition())
+        {
+            mapAllRows(
+                map,
+                part,
+                countAllRows
+                    ? CountWholePartition(part)
+                    : CountWholePartition(context, part, countArg!, ctes, eval, valueSelector, countDistinct));
+            return;
+        }
+
+        for (var i = 0; i < part.Count; i++)
+        {
+            var frameRange = partitionContext.GetFrameRange(i);
+            if (frameRange.IsEmpty)
+            {
+                map[part[i]] = 0L;
+                continue;
+            }
+
+            map[part[i]] = countAllRows
+                ? frameRange.EndIndex - frameRange.StartIndex + 1L
+                : CountFrame(context, frameRange, part, countArg!, ctes, eval, valueSelector, countDistinct);
+        }
+
+        static void mapAllRows(
+            Dictionary<EvalRow, object?> target,
+            List<EvalRow> rows,
+            long value)
+        {
+            foreach (var row in rows)
+                target[row] = value;
+        }
+    }
+
+    private static long CountWholePartition(
+        List<EvalRow> part)
+        => part.Count;
+
+    private static long CountWholePartition(
+        QueryExecutionContext context,
+        List<EvalRow> part,
+        SqlExpr countArg,
+        IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
+        Func<EvalRow, object?>? valueSelector,
+        bool distinct)
+        => CountFrame(context, new RowsFrameRange(0, part.Count - 1, false), part, countArg, ctes, eval, valueSelector, distinct);
+
+    private static long CountFrame(
+        QueryExecutionContext context,
+        RowsFrameRange frameRange,
+        List<EvalRow> part,
+        SqlExpr countArg,
+        IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
+        Func<EvalRow, object?>? valueSelector,
+        bool distinct)
+    {
+        if (frameRange.IsEmpty)
+            return 0L;
+
+        HashSet<string>? seen = distinct ? new HashSet<string>(StringComparer.Ordinal) : null;
+        long count = 0;
+        for (var i = frameRange.StartIndex; i <= frameRange.EndIndex; i++)
+        {
+            var row = part[i];
+            var value = valueSelector is null
+                ? eval(countArg, row, null, ctes)
+                : valueSelector(row);
+            if (AstQueryExecutorBase.IsNullish(value))
+                continue;
+
+            if (seen is not null)
+            {
+                var key = context.NormalizeDistinctKey(value);
+                if (!seen.Add(key))
+                    continue;
+            }
+
+            count++;
+        }
+
+        return count;
+    }
+
+    private static void FillAggregate(
+        this WindowPartitionExecutionContext partitionContext,
+        Dictionary<EvalRow, object?> map,
+        WindowFunctionExpr windowFunctionExpr,
+        IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
+    {
+        var part = partitionContext.Part;
+        if (part.Count == 0)
+            return;
+
+        if (windowFunctionExpr.Spec.Frame is null || partitionContext.CoversWholePartition())
+        {
+            var wholePartitionValue = partitionContext.QueryExecutionContext.EvalAggregate(
+                new FunctionCallExpr(windowFunctionExpr.Name, windowFunctionExpr.Args, windowFunctionExpr.Distinct),
+                new EvalGroup(part),
+                ctes,
+                eval);
+
+            foreach (var row in part)
+                map[row] = wholePartitionValue;
+
+            return;
+        }
+
+        for (var i = 0; i < part.Count; i++)
+        {
+            var frameRange = partitionContext.GetFrameRange(i);
+            var frameRows = frameRange.IsEmpty
+                ? []
+                : part.GetRange(frameRange.StartIndex, frameRange.EndIndex - frameRange.StartIndex + 1);
+
+            map[part[i]] = partitionContext.QueryExecutionContext.EvalAggregate(
+                new FunctionCallExpr(windowFunctionExpr.Name, windowFunctionExpr.Args, windowFunctionExpr.Distinct),
+                new EvalGroup(frameRows),
+                ctes,
+                eval);
+        }
     }
 }

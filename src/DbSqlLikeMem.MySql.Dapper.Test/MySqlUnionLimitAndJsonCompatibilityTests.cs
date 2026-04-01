@@ -11,6 +11,7 @@ namespace DbSqlLikeMem.MySql.Dapper.Test;
 public sealed class MySqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : DapperUnionLimitAndJsonCompatibilityTestsBase<MySqlDbMock, MySqlConnectionMock>(helper)
 {
     private const int MySqlJsonExtractMinVersion = 57;
+    private const int MySqlJsonValueMinVersion = 57;
 
     /// <inheritdoc />
     protected override MySqlDbMock CreateDb(int? version) => new(version);
@@ -95,17 +96,26 @@ public sealed class MySqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper h
 
 
     /// <summary>
-    /// EN: Verifies unsupported JSON functions throw the expected exception.
-    /// PT: Verifica se funcoes JSON sem suporte lancam a excecao esperada.
+    /// EN: Verifies JSON_VALUE respects the configured MySQL version.
+    /// PT: Verifica se JSON_VALUE respeita a versao MySQL configurada.
     /// </summary>
-    [Fact]
+    [Theory]
     [Trait("Category", "MySqlUnionLimitAndJsonCompatibility")]
-    public void JsonFunction_ShouldThrow_WhenNotSupportedByDialect()
+    [MemberDataMySqlVersion]
+    public void JsonValue_SimpleObjectPath_ShouldRespectVersion(int version)
     {
-        var ex = Assert.Throws<NotSupportedException>(() =>
-            Connection.Query<dynamic>("SELECT JSON_VALUE(payload, '$.a.b') AS v FROM t").ToList());
-        Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("JSON_VALUE", ex.Message, StringComparison.OrdinalIgnoreCase);
+        using var cnn = CreateOpenConnection(version);
+
+        if (version < MySqlJsonValueMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                cnn.Query<dynamic>("SELECT id, JSON_VALUE(payload, '$.a.b') AS v FROM t ORDER BY id").ToList());
+            return;
+        }
+
+        var rows = cnn.Query<dynamic>("SELECT id, JSON_VALUE(payload, '$.a.b') AS v FROM t ORDER BY id").ToList();
+
+        Assert.Equal([123m, 456m, null], [.. rows.Select(r => (object?)r.v)]);
     }
 
     /// <summary>

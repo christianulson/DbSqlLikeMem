@@ -90,7 +90,7 @@ internal sealed class AstQueryPivotHelper(
             for (var i = 0; i < inItems.Count; i++)
             {
                 var bucket = group.Where(r => forValues[r].EqualsSql(inItems[i].Value, context)).ToList();
-                var aggregated = AggregatePivotBucket(pivot.AggregateFunction, aggArgExpr, bucket, ctes, context.Dialect);
+                var aggregated = AggregatePivotBucket(pivot.AggregateFunction, aggArgExpr, bucket, ctes, context);
                 outRow[groupColumns.Count + i] = CoercePivotAggregateValue(aggregated, pivot.AggregateFunction, pivotAggregateDbType);
             }
 
@@ -338,7 +338,12 @@ internal sealed class AstQueryPivotHelper(
     private List<EvalRow> MaterializeSourceRows(Source source)
         => [.. source.Rows().Select(fields => _createSourceEvalRow(source, fields))];
 
-    private object? AggregatePivotBucket(string aggregateFunction, SqlExpr aggArgExpr, List<EvalRow> rows, IDictionary<string, Source> ctes, ISqlDialect dialect)
+    private object? AggregatePivotBucket(
+        string aggregateFunction,
+        SqlExpr aggArgExpr,
+        List<EvalRow> rows,
+        IDictionary<string, Source> ctes,
+        QueryExecutionContext context)
     {
         if (aggregateFunction.Equals(SqlConst.COUNT, StringComparison.OrdinalIgnoreCase))
         {
@@ -348,7 +353,7 @@ internal sealed class AstQueryPivotHelper(
             var count = 0;
             foreach (var row in rows)
             {
-                var value = _eval(aggArgExpr, row, null, ctes);
+                var value = ReadPivotAggregateValue(row, aggArgExpr, ctes);
                 if (!IsNullish(value))
                     count++;
             }
@@ -364,7 +369,7 @@ internal sealed class AstQueryPivotHelper(
             long count = 0;
             foreach (var row in rows)
             {
-                var value = _eval(aggArgExpr, row, null, ctes);
+                var value = ReadPivotAggregateValue(row, aggArgExpr, ctes);
                 if (!IsNullish(value))
                     count++;
             }
@@ -373,14 +378,15 @@ internal sealed class AstQueryPivotHelper(
         }
 
         if (aggregateFunction.Equals(SqlConst.SUM, StringComparison.OrdinalIgnoreCase)
-            || aggregateFunction.Equals(SqlConst.AVG, StringComparison.OrdinalIgnoreCase)
-            || aggregateFunction.Equals(SqlConst.MIN, StringComparison.OrdinalIgnoreCase)
+            || aggregateFunction.Equals(SqlConst.AVG, StringComparison.OrdinalIgnoreCase))
+        {
+            return AggregatePivotNumericBucket(rows, aggArgExpr, ctes, aggregateFunction);
+        }
+
+        if (aggregateFunction.Equals(SqlConst.MIN, StringComparison.OrdinalIgnoreCase)
             || aggregateFunction.Equals(SqlConst.MAX, StringComparison.OrdinalIgnoreCase))
         {
-            var group = new EvalGroup(rows);
-            var aggregateExpr = new FunctionCallExpr(aggregateFunction, [aggArgExpr])
-                .BindScalarFunctionDefinition(dialect);
-            return _eval(aggregateExpr, group.Rows[0], group, ctes);
+            return AggregatePivotMinMaxBucket(rows, aggArgExpr, ctes, context, useMax: aggregateFunction.Equals(SqlConst.MAX, StringComparison.OrdinalIgnoreCase));
         }
 
         if (aggregateFunction.Equals(SqlConst.STDEV, StringComparison.OrdinalIgnoreCase))
@@ -398,6 +404,105 @@ internal sealed class AstQueryPivotHelper(
         throw new NotSupportedException($"PIVOT aggregate '{aggregateFunction}' not supported yet.");
     }
 
+    private object? AggregatePivotNumericBucket(
+        IReadOnlyList<EvalRow> rows,
+        SqlExpr aggArgExpr,
+        IDictionary<string, Source> ctes,
+        string aggregateFunction)
+    {
+        if (rows.Count == 0)
+            return null;
+
+        var useDouble = false;
+        var values = new List<object?>(rows.Count);
+        foreach (var row in rows)
+        {
+            var rawValue = ReadPivotAggregateValue(row, aggArgExpr, ctes);
+            if (IsNullish(rawValue))
+                continue;
+
+            values.Add(rawValue);
+            if (rawValue is float or double)
+                useDouble = true;
+        }
+
+        if (values.Count == 0)
+            return null;
+
+        if (useDouble)
+        {
+            var numericValues = new double[values.Count];
+            for (var i = 0; i < values.Count; i++)
+                numericValues[i] = Convert.ToDouble(values[i], CultureInfo.InvariantCulture);
+
+            double sum = 0d;
+            for (var i = 0; i < numericValues.Length; i++)
+                sum += numericValues[i];
+
+            return aggregateFunction.Equals(SqlConst.SUM, StringComparison.OrdinalIgnoreCase)
+                ? sum
+                : sum / numericValues.Length;
+        }
+
+        var decimalValues = new decimal[values.Count];
+        for (var i = 0; i < values.Count; i++)
+            decimalValues[i] = Convert.ToDecimal(values[i], CultureInfo.InvariantCulture);
+
+        decimal decimalSum = 0m;
+        for (var i = 0; i < decimalValues.Length; i++)
+            decimalSum += decimalValues[i];
+
+        return aggregateFunction.Equals(SqlConst.SUM, StringComparison.OrdinalIgnoreCase)
+            ? decimalSum
+            : decimalSum / decimalValues.Length;
+    }
+
+    private object? AggregatePivotMinMaxBucket(
+        IReadOnlyList<EvalRow> rows,
+        SqlExpr aggArgExpr,
+        IDictionary<string, Source> ctes,
+        QueryExecutionContext context,
+        bool useMax)
+    {
+        object? best = null;
+        var hasValue = false;
+
+        foreach (var row in rows)
+        {
+            var rawValue = ReadPivotAggregateValue(row, aggArgExpr, ctes);
+            if (IsNullish(rawValue))
+                continue;
+
+            if (!hasValue)
+            {
+                best = rawValue;
+                hasValue = true;
+                continue;
+            }
+
+            var cmp = context.Compare(rawValue, best!);
+            if ((useMax && cmp > 0) || (!useMax && cmp < 0))
+            {
+                best = rawValue;
+            }
+        }
+
+        return hasValue ? best : null;
+    }
+
+    private object? ReadPivotAggregateValue(
+        EvalRow row,
+        SqlExpr aggArgExpr,
+        IDictionary<string, Source> ctes)
+    {
+        return aggArgExpr switch
+        {
+            IdentifierExpr identifier => QueryRowValueHelper.ResolveIdentifier(identifier.Name, row),
+            ColumnExpr column => QueryRowValueHelper.ResolveColumn(column.Qualifier, column.Name, row),
+            _ => _eval(aggArgExpr, row, null, ctes)
+        };
+    }
+
     private double? EvaluatePivotVarianceAggregate(
         IReadOnlyList<EvalRow> rows,
         SqlExpr aggArgExpr,
@@ -408,7 +513,7 @@ internal sealed class AstQueryPivotHelper(
         var values = new List<double>(rows.Count);
         foreach (var row in rows)
         {
-            var rawValue = _eval(aggArgExpr, row, null, ctes);
+            var rawValue = ReadPivotAggregateValue(row, aggArgExpr, ctes);
             if (IsNullish(rawValue))
                 continue;
 

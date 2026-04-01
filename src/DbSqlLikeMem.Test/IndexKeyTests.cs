@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.Test;
 
 /// <summary>
@@ -19,8 +21,8 @@ public sealed class IndexKeyTests(
         var left = new IndexKey("ABC", 42, DBNull.Value);
         var right = new IndexKey("abc", 42, null);
 
-        Assert.Equal(left, right);
-        Assert.Equal(left.GetHashCode(), right.GetHashCode());
+        left.Should().Be(right);
+        left.GetHashCode().Should().Be(right.GetHashCode());
     }
 
     /// <summary>
@@ -33,7 +35,7 @@ public sealed class IndexKeyTests(
     {
         var key = new IndexKey(["one", "two", "three", "four"]);
 
-        Assert.Equal(new object?[] { "one", "two", "three", "four" }, key.Values);
-        Assert.Equal("one | two | three | four", key.ToString());
+        key.Values.Should().Equal(new object?[] { "one", "two", "three", "four" });
+        key.ToString().Should().Be("one | two | three | four");
     }
 }

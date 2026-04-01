@@ -6,4 +6,13 @@ namespace DbSqlLikeMem.Npgsql.LinqToDb.Test;
 /// </summary>
 public sealed class LinqToDbSmokeTests(
     ITestOutputHelper helper
-) : LinqToDbSmokeTestsBase(helper, static () => new NpgsqlLinqToDbConnectionFactory());
+) : LinqToDbSmokeTestsBase(helper, static () => new NpgsqlLinqToDbConnectionFactory())
+{
+    /// <inheritdoc />
+    protected override DbSqlLikeMem.TestTools.ProviderSqlDialect Dialect { get; } =
+        new DbSqlLikeMem.Npgsql.TestTools.NpgsqlProviderSqlDialect();
+
+    /// <inheritdoc />
+    protected override string BuildPaginationQuery(string tableName, string orderByClause, int offset, int fetch) =>
+        $"SELECT id FROM {tableName} ORDER BY {orderByClause} LIMIT {fetch} OFFSET {offset}";
+}

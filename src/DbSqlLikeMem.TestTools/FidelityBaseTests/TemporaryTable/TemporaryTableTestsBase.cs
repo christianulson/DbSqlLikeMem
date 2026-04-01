@@ -44,7 +44,7 @@ public abstract class TemporaryTableTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunCreateTemporaryTableAsSelectThenSelect("Users", uId);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().BeEquivalentTo(resultContainer);
                 }
                 finally
                 {
@@ -129,7 +129,7 @@ public abstract class TemporaryTableTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunTempTableCreateAndUse(tableName);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -176,7 +176,7 @@ public abstract class TemporaryTableTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunTemporaryTableCrossConnectionIsolation(tableName);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {

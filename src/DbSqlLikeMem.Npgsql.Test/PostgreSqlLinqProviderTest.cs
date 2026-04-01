@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.Npgsql.Test;
 /// <summary>
 /// EN: Verifies LINQ query translation and provider metadata behavior for PostgreSQL connections.
@@ -44,8 +46,8 @@ public sealed class PostgreSqlLinqProviderTest(
                       .Where(u => u.Id == 2)
                       .ToList();
 
-        Assert.Single(list);
-        Assert.Equal("B", list[0].Name);
+        list.Should().ContainSingle();
+        list[0].Name.Should().Be("B");
     }
 
 }

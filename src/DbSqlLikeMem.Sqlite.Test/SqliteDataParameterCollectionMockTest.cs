@@ -1,4 +1,6 @@
-﻿namespace DbSqlLikeMem.Sqlite.Test;
+using FluentAssertions;
+
+namespace DbSqlLikeMem.Sqlite.Test;
 /// <summary>
 /// EN: Verifies SQLite parameter collections normalize names, preserve ordering, and enforce guard clauses.
 /// PT: Verifica se colecoes de parametros do SQLite normalizam nomes, preservam a ordem e aplicam validacoes.
@@ -15,11 +17,11 @@ public sealed class SqliteDataParameterCollectionMockTest(
     [Trait("Category", "SqliteDataParameterCollectionMockTest")]
     public void ParameterCollection_Normalize_ShouldWork_ForAtQuestionAndQuotedNames()
     {
-        Assert.Equal("id", SqliteDataParameterCollectionMock.NormalizeParameterName("@id"));
-        Assert.Equal("id", SqliteDataParameterCollectionMock.NormalizeParameterName("?id"));
-        Assert.Equal("id", SqliteDataParameterCollectionMock.NormalizeParameterName("@`id`"));
-        Assert.Equal("id", SqliteDataParameterCollectionMock.NormalizeParameterName("@\"id\""));
-        Assert.Equal("id", SqliteDataParameterCollectionMock.NormalizeParameterName("@'id'"));
+        SqliteDataParameterCollectionMock.NormalizeParameterName("@id").Should().Be("id");
+        SqliteDataParameterCollectionMock.NormalizeParameterName("?id").Should().Be("id");
+        SqliteDataParameterCollectionMock.NormalizeParameterName("@`id`").Should().Be("id");
+        SqliteDataParameterCollectionMock.NormalizeParameterName("@\"id\"").Should().Be("id");
+        SqliteDataParameterCollectionMock.NormalizeParameterName("@'id'").Should().Be("id");
     }
 
     /// <summary>
@@ -33,7 +35,7 @@ public sealed class SqliteDataParameterCollectionMockTest(
         var pars = new SqliteDataParameterCollectionMock();
         pars.AddWithValue("@Id", 1);
 
-        Assert.Throws<ArgumentException>(() => pars.AddWithValue("@id", 2)); // case-insensitive
+        FluentActions.Invoking(() => pars.AddWithValue("@id", 2)).Should().Throw<ArgumentException>(); // case-insensitive
     }
 
     /// <summary>
@@ -51,12 +53,12 @@ public sealed class SqliteDataParameterCollectionMockTest(
 
         pars.RemoveAt("@b");
 
-        Assert.True(pars.Contains("@a"));
-        Assert.False(pars.Contains("@b"));
-        Assert.True(pars.Contains("@c"));
+        pars.Contains("@a").Should().BeTrue();
+        pars.Contains("@b").Should().BeFalse();
+        pars.Contains("@c").Should().BeTrue();
 
         // c deve agora estar no índice 1
-        Assert.Equal(3, pars["@c"].Value);
+        pars["@c"].Value.Should().Be(3);
     }
 
 }

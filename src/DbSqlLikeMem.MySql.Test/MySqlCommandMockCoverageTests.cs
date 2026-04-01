@@ -118,7 +118,7 @@ public sealed class MySqlCommandMockCoverageTests(
         clone.CommandType.Should().Be(CommandType.Text);
         clone.UpdatedRowSource.Should().Be(UpdateRowSource.FirstReturnedRecord);
         clone.DesignTimeVisible.Should().BeTrue();
-        Assert.Single(clone.Parameters);
+        clone.Parameters.Count.Should().Be(1);
         clonedParameter.Should().NotBeSameAs(originalParameter);
         clonedParameter.ParameterName.Should().Be("@id");
         clonedParameter.Value.Should().Be(7);

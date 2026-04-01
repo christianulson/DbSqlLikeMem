@@ -244,6 +244,12 @@ public sealed record DbFunctionDef(
     public bool IsStringAggregate { get; init; }
 
     /// <summary>
+    /// EN: Indicates whether integral inputs should be promoted to decimal for aggregate inference.
+    /// PT: Indica se entradas inteiras devem ser promovidas para decimal na inferencia de agregados.
+    /// </summary>
+    public bool PromotesIntegralInputsToDecimal { get; init; }
+
+    /// <summary>
     /// EN: Gets the invocation styles supported by the function.
     /// PT: Obtem os estilos de invocacao suportados pela funcao.
     /// </summary>
@@ -552,7 +558,8 @@ public sealed record DbFunctionDef(
             name,
             returnTypeSql,
             DbFunctionCapability.Scalar,
-            DbFunctionCategory.General)
+            DbFunctionCategory.General,
+            DbInvocationStyle.Call)
         {
             Parameters = parameters ?? [],
             Body = body

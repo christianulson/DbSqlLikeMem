@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
@@ -78,8 +80,8 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
                   """;
 
         var rows = Query(sql);
-        Assert.Single(rows);
-        Assert.Equal(2, (int)rows[0].userId);
+        rows.Should().ContainSingle();
+        ((int)rows[0].userId).Should().Be(2);
     }
 
 
@@ -96,15 +98,15 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         }
 
         var rows = Query(sql);
-        Assert.Equal(2, rows.Count);
+        rows.Count.Should().Be(2);
 
-        var first = Convert.ToString(rows[0].joined) ?? string.Empty;
-        var second = Convert.ToString(rows[1].joined) ?? string.Empty;
+        var first = Convert.ToString((object?)rows[0].joined) ?? string.Empty;
+        var second = Convert.ToString((object?)rows[1].joined) ?? string.Empty;
 
-        Assert.Contains("|", first, StringComparison.Ordinal);
-        Assert.Contains("10", first, StringComparison.Ordinal);
-        Assert.Contains("30", first, StringComparison.Ordinal);
-        Assert.Contains("5", second, StringComparison.Ordinal);
+        first.Should().Contain("|");
+        first.Should().Contain("10");
+        first.Should().Contain("30");
+        second.Should().Contain("5");
     }
 
     /// <summary>
@@ -120,16 +122,16 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         }
 
         var rows = Query(sql);
-        Assert.Equal(2, rows.Count);
+        rows.Count.Should().Be(2);
 
-        Assert.Null(rows[0].note);
-        Assert.Null(rows[1].note);
+        ((object?)rows[0].note).Should().BeNull();
+        ((object?)rows[1].note).Should().BeNull();
 
-        var firstJoined = Convert.ToString(rows[0].joined) ?? string.Empty;
-        var secondJoined = Convert.ToString(rows[1].joined) ?? string.Empty;
+        var firstJoined = Convert.ToString((object?)rows[0].joined) ?? string.Empty;
+        var secondJoined = Convert.ToString((object?)rows[1].joined) ?? string.Empty;
 
-        Assert.NotEmpty(firstJoined);
-        Assert.NotEmpty(secondJoined);
+        firstJoined.Should().NotBeEmpty();
+        secondJoined.Should().NotBeEmpty();
     }
 
     /// <summary>
@@ -145,16 +147,16 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         }
 
         var rows = Query(sql);
-        Assert.Equal(2, rows.Count);
+        rows.Count.Should().Be(2);
 
-        Assert.Null(rows[0].note);
-        Assert.Null(rows[1].note);
+        ((object?)rows[0].note).Should().BeNull();
+        ((object?)rows[1].note).Should().BeNull();
 
-        var firstJoined = Convert.ToString(rows[0].joined) ?? string.Empty;
-        var secondJoined = Convert.ToString(rows[1].joined) ?? string.Empty;
+        var firstJoined = Convert.ToString((object?)rows[0].joined) ?? string.Empty;
+        var secondJoined = Convert.ToString((object?)rows[1].joined) ?? string.Empty;
 
-        Assert.NotEmpty(firstJoined);
-        Assert.NotEmpty(secondJoined);
+        firstJoined.Should().NotBeEmpty();
+        secondJoined.Should().NotBeEmpty();
     }
 
     /// <summary>
@@ -170,16 +172,16 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         }
 
         var rows = Query(sql);
-        Assert.Equal(2, rows.Count);
+        rows.Count.Should().Be(2);
 
-        Assert.Equal("ok", Convert.ToString(rows[0].note));
-        Assert.Null(rows[1].note);
+        Convert.ToString((object?)rows[0].note).Should().Be("ok");
+        ((object?)rows[1].note).Should().BeNull();
 
-        var firstJoined = Convert.ToString(rows[0].joined) ?? string.Empty;
-        var secondJoined = Convert.ToString(rows[1].joined) ?? string.Empty;
+        var firstJoined = Convert.ToString((object?)rows[0].joined) ?? string.Empty;
+        var secondJoined = Convert.ToString((object?)rows[1].joined) ?? string.Empty;
 
-        Assert.NotEmpty(firstJoined);
-        Assert.NotEmpty(secondJoined);
+        firstJoined.Should().NotBeEmpty();
+        secondJoined.Should().NotBeEmpty();
     }
 
     /// <summary>
@@ -195,16 +197,16 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         }
 
         var rows = Query(sql);
-        Assert.Equal(2, rows.Count);
+        rows.Count.Should().Be(2);
 
-        Assert.Equal("primary", Convert.ToString(rows[0].note));
-        Assert.Equal("secondary", Convert.ToString(rows[1].note));
+        Convert.ToString((object?)rows[0].note).Should().Be("primary");
+        Convert.ToString((object?)rows[1].note).Should().Be("secondary");
 
-        var firstJoined = Convert.ToString(rows[0].joined) ?? string.Empty;
-        var secondJoined = Convert.ToString(rows[1].joined) ?? string.Empty;
+        var firstJoined = Convert.ToString((object?)rows[0].joined) ?? string.Empty;
+        var secondJoined = Convert.ToString((object?)rows[1].joined) ?? string.Empty;
 
-        Assert.NotEmpty(firstJoined);
-        Assert.NotEmpty(secondJoined);
+        firstJoined.Should().NotBeEmpty();
+        secondJoined.Should().NotBeEmpty();
     }
 
     /// <summary>
@@ -220,16 +222,16 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         }
 
         var rows = Query(sql);
-        Assert.Equal(2, rows.Count);
+        rows.Count.Should().Be(2);
 
-        Assert.Equal(100, Convert.ToInt32(rows[0].note));
-        Assert.Equal(200, Convert.ToInt32(rows[1].note));
+        Convert.ToInt32((object?)rows[0].note).Should().Be(100);
+        Convert.ToInt32((object?)rows[1].note).Should().Be(200);
 
-        var firstJoined = Convert.ToString(rows[0].joined) ?? string.Empty;
-        var secondJoined = Convert.ToString(rows[1].joined) ?? string.Empty;
+        var firstJoined = Convert.ToString((object?)rows[0].joined) ?? string.Empty;
+        var secondJoined = Convert.ToString((object?)rows[1].joined) ?? string.Empty;
 
-        Assert.NotEmpty(firstJoined);
-        Assert.NotEmpty(secondJoined);
+        firstJoined.Should().NotBeEmpty();
+        secondJoined.Should().NotBeEmpty();
     }
 
     /// <summary>
@@ -255,7 +257,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
             throw new ArgumentException("SQL cannot be null, empty, or whitespace.", nameof(sql));
         }
 
-        SqlNotSupportedAssert.ThrowsWithFeature(() => Query(sql), "WITHIN GROUP");
+        SqlNotSupportedAssertions.ThrowsWithFeature(() => Query(sql), "WITHIN GROUP");
     }
 
     /// <summary>
@@ -277,12 +279,12 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         ExecuteNonQuery("INSERT INTO textagg_data (grp, val) VALUES (1, 'b')");
 
         var rows = Query(querySql);
-        Assert.Single(rows);
+        rows.Should().ContainSingle();
 
-        var joined = Convert.ToString(rows[0].joined) ?? string.Empty;
-        Assert.Contains("a", joined, StringComparison.Ordinal);
-        Assert.Contains("b", joined, StringComparison.Ordinal);
-        Assert.Contains("|", joined, StringComparison.Ordinal);
+        var joined = Convert.ToString((object?)rows[0].joined) ?? string.Empty;
+        joined.Should().Contain("a");
+        joined.Should().Contain("b");
+        joined.Should().Contain("|");
     }
 
     /// <summary>
@@ -302,10 +304,10 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         ExecuteNonQuery("INSERT INTO textagg_order (grp, val, ord1, ord2) VALUES (1, 'c', 2, 1)");
 
         var rows = Query(querySql);
-        Assert.Single(rows);
+        rows.Should().ContainSingle();
 
-        var joined = Convert.ToString(rows[0].joined) ?? string.Empty;
-        Assert.Equal(expected, joined);
+        var joined = Convert.ToString((object?)rows[0].joined) ?? string.Empty;
+        joined.Should().Be(expected);
     }
 
     /// <summary>
@@ -331,10 +333,10 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
             throw new ArgumentException("SQL cannot be null, empty, or whitespace.", nameof(sql));
 
         var rows = Query(sql);
-        Assert.Single(rows);
+        rows.Should().ContainSingle();
 
-        var joined = Convert.ToString(rows[0].joined) ?? string.Empty;
-        Assert.Equal(expected, joined);
+        var joined = Convert.ToString((object?)rows[0].joined) ?? string.Empty;
+        joined.Should().Be(expected);
     }
 
     /// <summary>
@@ -355,10 +357,10 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         ExecuteNonQuery("INSERT INTO textagg_distinct_order (grp, val, ord1, ord2) VALUES (1, NULL, 0, 0)");
 
         var rows = Query(querySql);
-        Assert.Single(rows);
+        rows.Should().ContainSingle();
 
-        var joined = Convert.ToString(rows[0].joined) ?? string.Empty;
-        Assert.Equal(expected, joined);
+        var joined = Convert.ToString((object?)rows[0].joined) ?? string.Empty;
+        joined.Should().Be(expected);
     }
 
 
@@ -397,15 +399,15 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
                   """;
 
         var rows = Query(sql);
-        Assert.Equal(2, rows.Count);
+        rows.Should().HaveCount(2);
 
-        Assert.Equal(1, (int)rows[0].userId);
-        Assert.Equal(2, (int)rows[0].total);
-        Assert.Equal(40m, (decimal)rows[0].sumAmount);
+        ((int)rows[0].userId).Should().Be(1);
+        ((int)rows[0].total).Should().Be(2);
+        ((decimal)rows[0].sumAmount).Should().Be(40m);
 
-        Assert.Equal(2, (int)rows[1].userId);
-        Assert.Equal(1, (int)rows[1].total);
-        Assert.Equal(5m, (decimal)rows[1].sumAmount);
+        ((int)rows[1].userId).Should().Be(2);
+        ((int)rows[1].total).Should().Be(1);
+        ((decimal)rows[1].sumAmount).Should().Be(5m);
     }
 
     /// <summary>
@@ -423,8 +425,8 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
                   """;
 
         var rows = Query(sql);
-        Assert.Single(rows);
-        Assert.Equal(1, (int)rows[0].userId);
+        rows.Should().ContainSingle();
+        ((int)rows[0].userId).Should().Be(1);
     }
 
     /// <summary>
@@ -444,11 +446,11 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
         var rows = Query(sql);
 
-        Assert.Equal(2, rows.Count);
-        Assert.Equal(1, (int)rows[0].userId);
-        Assert.Equal(40m, (decimal)rows[0].sumAmount);
-        Assert.Equal(2, (int)rows[1].userId);
-        Assert.Equal(5m, (decimal)rows[1].sumAmount);
+        rows.Should().HaveCount(2);
+        ((int)rows[0].userId).Should().Be(1);
+        ((decimal)rows[0].sumAmount).Should().Be(40m);
+        ((int)rows[1].userId).Should().Be(2);
+        ((decimal)rows[1].sumAmount).Should().Be(5m);
     }
 
     /// <summary>
@@ -465,8 +467,8 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
                   HAVING missing_alias > 0
                   """;
 
-        var ex = Assert.Throws<InvalidOperationException>(() => Query(sql));
-        Assert.Contains("HAVING reference", ex.Message, StringComparison.OrdinalIgnoreCase);
+        var ex = FluentActions.Invoking(() => Query(sql)).Should().Throw<InvalidOperationException>().Which;
+        ex.Message.Contains("HAVING reference", StringComparison.OrdinalIgnoreCase).Should().BeTrue();
     }
 
     /// <summary>
@@ -485,9 +487,9 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
                   """;
 
         var rows = Query(sql);
-        Assert.Equal(2, rows.Count);
-        Assert.Equal(1, (int)rows[0].userId);
-        Assert.Equal(2, (int)rows[1].userId);
+        rows.Should().HaveCount(2);
+        ((int)rows[0].userId).Should().Be(1);
+        ((int)rows[1].userId).Should().Be(2);
     }
 
     /// <summary>
@@ -506,8 +508,8 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
                   """;
 
         var rows = Query(sql);
-        Assert.Single(rows);
-        Assert.Equal(1, (int)rows[0].userId);
+        rows.Should().ContainSingle();
+        ((int)rows[0].userId).Should().Be(1);
     }
 
     /// <summary>
@@ -526,8 +528,8 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
                   """;
 
         var rows = Query(sql);
-        Assert.Single(rows);
-        Assert.Equal(1, (int)rows[0].userId);
+        rows.Should().ContainSingle();
+        ((int)rows[0].userId).Should().Be(1);
     }
 
     /// <summary>
@@ -546,8 +548,8 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
                   """;
 
         var rows = Query(sql);
-        Assert.Single(rows);
-        Assert.Equal(1, (int)rows[0].userId);
+        rows.Should().ContainSingle();
+        ((int)rows[0].userId).Should().Be(1);
     }
 
     /// <summary>
@@ -566,8 +568,8 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
                   """;
 
         var rows = Query(sql);
-        Assert.Single(rows);
-        Assert.Equal(1, (int)rows[0].userId);
+        rows.Should().ContainSingle();
+        ((int)rows[0].userId).Should().Be(1);
     }
 
     /// <summary>
@@ -586,8 +588,8 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
                   """;
 
         var rows = Query(sql);
-        Assert.Single(rows);
-        Assert.Equal(1, (int)rows[0].userId);
+        rows.Should().ContainSingle();
+        ((int)rows[0].userId).Should().Be(1);
     }
 
     /// <summary>
@@ -604,8 +606,8 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
                   HAVING 3 > 0
                   """;
 
-        var ex = Assert.Throws<InvalidOperationException>(() => Query(sql));
-        Assert.Contains("HAVING ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
+        var ex = FluentActions.Invoking(() => Query(sql)).Should().Throw<InvalidOperationException>().Which;
+        ex.Message.Contains("HAVING ordinal", StringComparison.OrdinalIgnoreCase).Should().BeTrue();
     }
 
     /// <summary>
@@ -622,8 +624,8 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
                   HAVING 0 > 0 AND SUM(amount) > 0
                   """;
 
-        var ex = Assert.Throws<InvalidOperationException>(() => Query(sql));
-        Assert.Contains("HAVING ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
+        var ex = FluentActions.Invoking(() => Query(sql)).Should().Throw<InvalidOperationException>().Which;
+        ex.Message.Contains("HAVING ordinal", StringComparison.OrdinalIgnoreCase).Should().BeTrue();
     }
 
     /// <summary>
@@ -640,8 +642,8 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
                   HAVING 3 > 0 AND SUM(amount) > 0
                   """;
 
-        var ex = Assert.Throws<InvalidOperationException>(() => Query(sql));
-        Assert.Contains("HAVING ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
+        var ex = FluentActions.Invoking(() => Query(sql)).Should().Throw<InvalidOperationException>().Which;
+        ex.Message.Contains("HAVING ordinal", StringComparison.OrdinalIgnoreCase).Should().BeTrue();
     }
 
     /// <summary>

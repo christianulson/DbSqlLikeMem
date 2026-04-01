@@ -45,7 +45,7 @@ public abstract class SelectTestsBase<T, T2>(
             var resultContainer = serviceTestContainer.RunTest("Users", uId);
             serviceTestContainer.DropScenario("Users", uId);
 
-            Assert.Equal(resultMock, resultContainer);
+            resultMock.Should().Be(resultContainer);
         }
     }
 
@@ -91,7 +91,7 @@ public abstract class SelectTestsBase<T, T2>(
 
                     serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 2, "Bob"));
                     var resultContainer = serviceTestContainer.RunRowCountAfterSelect(containerTableName);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -124,7 +124,11 @@ public abstract class SelectTestsBase<T, T2>(
 
         try
         {
-            var resultMock = serviceTest.RunCteSimple(users, uId);
+            var tableName = dialect.Provider == ProviderId.Oracle
+                ? users.ToLowerInvariant()
+                : $"{users}_{uId}";
+
+            var resultMock = serviceTest.RunCteSimple(tableName);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -136,8 +140,12 @@ public abstract class SelectTestsBase<T, T2>(
                 serviceTestContainer.CreateScenario(users, uId);
                 try
                 {
-                    var resultContainer = serviceTestContainer.RunCteSimple(users, uId);
-                    Assert.Equal(resultMock, resultContainer);
+                    var containerTableName = dialect.Provider == ProviderId.Oracle
+                        ? users.ToLowerInvariant()
+                        : $"{users}_{uId}";
+
+                    var resultContainer = serviceTestContainer.RunCteSimple(containerTableName);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -186,8 +194,15 @@ public abstract class SelectTestsBase<T, T2>(
 
         try
         {
-            var resultMock = serviceTest.RunSelectScalarCaseMatrix(users, orders);
-            Assert.Equal(3, resultMock);
+            var usersTableName = dialect.Provider == ProviderId.Oracle
+                ? users.ToLowerInvariant()
+                : $"{users}_{uId}";
+            var ordersTableName = dialect.Provider == ProviderId.Oracle
+                ? orders.ToLowerInvariant()
+                : $"{orders}_{uId}";
+
+            var resultMock = serviceTest.RunSelectScalarCaseMatrix(usersTableName, ordersTableName);
+            resultMock.Should().Be(3);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -199,8 +214,15 @@ public abstract class SelectTestsBase<T, T2>(
                 serviceTestContainer.CreateScenario(users, orders, uId);
                 try
                 {
-                    var resultContainer = serviceTestContainer.RunSelectScalarCaseMatrix(users, orders);
-                    Assert.Equal(resultMock, resultContainer);
+                    var usersTableNameContainer = dialect.Provider == ProviderId.Oracle
+                        ? users.ToLowerInvariant()
+                        : $"{users}_{uId}";
+                    var ordersTableNameContainer = dialect.Provider == ProviderId.Oracle
+                        ? orders.ToLowerInvariant()
+                        : $"{orders}_{uId}";
+
+                    var resultContainer = serviceTestContainer.RunSelectScalarCaseMatrix(usersTableNameContainer, ordersTableNameContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -248,8 +270,15 @@ public abstract class SelectTestsBase<T, T2>(
 
         try
         {
-            var resultMock = serviceTest.RunSelectNotExistsPredicate(users, orders);
-            Assert.Equal(1, resultMock);
+            var usersTableName = dialect.Provider == ProviderId.Oracle
+                ? users.ToLowerInvariant()
+                : $"{users}_{uId}";
+            var ordersTableName = dialect.Provider == ProviderId.Oracle
+                ? orders.ToLowerInvariant()
+                : $"{orders}_{uId}";
+
+            var resultMock = serviceTest.RunSelectNotExistsPredicate(usersTableName, ordersTableName);
+            resultMock.Should().Be(1);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -261,8 +290,15 @@ public abstract class SelectTestsBase<T, T2>(
                 serviceTestContainer.CreateScenario(users, orders, uId);
                 try
                 {
-                    var resultContainer = serviceTestContainer.RunSelectNotExistsPredicate(users, orders);
-                    Assert.Equal(resultMock, resultContainer);
+                    var usersTableNameContainer = dialect.Provider == ProviderId.Oracle
+                        ? users.ToLowerInvariant()
+                        : $"{users}_{uId}";
+                    var ordersTableNameContainer = dialect.Provider == ProviderId.Oracle
+                        ? orders.ToLowerInvariant()
+                        : $"{orders}_{uId}";
+
+                    var resultContainer = serviceTestContainer.RunSelectNotExistsPredicate(usersTableNameContainer, ordersTableNameContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -310,8 +346,15 @@ public abstract class SelectTestsBase<T, T2>(
 
         try
         {
-            var resultMock = serviceTest.RunSelectNotInSubquery(users, orders);
-            Assert.Equal(1, resultMock);
+            var usersTableName = dialect.Provider == ProviderId.Oracle
+                ? users.ToLowerInvariant()
+                : $"{users}_{uId}";
+            var ordersTableName = dialect.Provider == ProviderId.Oracle
+                ? orders.ToLowerInvariant()
+                : $"{orders}_{uId}";
+
+            var resultMock = serviceTest.RunSelectNotInSubquery(usersTableName, ordersTableName);
+            resultMock.Should().Be(1);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -323,8 +366,15 @@ public abstract class SelectTestsBase<T, T2>(
                 serviceTestContainer.CreateScenario(users, orders, uId);
                 try
                 {
-                    var resultContainer = serviceTestContainer.RunSelectNotInSubquery(users, orders);
-                    Assert.Equal(resultMock, resultContainer);
+                    var usersTableNameContainer = dialect.Provider == ProviderId.Oracle
+                        ? users.ToLowerInvariant()
+                        : $"{users}_{uId}";
+                    var ordersTableNameContainer = dialect.Provider == ProviderId.Oracle
+                        ? orders.ToLowerInvariant()
+                        : $"{orders}_{uId}";
+
+                    var resultContainer = serviceTestContainer.RunSelectNotInSubquery(usersTableNameContainer, ordersTableNameContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -357,8 +407,12 @@ public abstract class SelectTestsBase<T, T2>(
 
         try
         {
-            var resultMock = serviceTest.RunInListPredicateMatrix(users);
-            Assert.Equal(2, resultMock);
+            var tableName = dialect.Provider == ProviderId.Oracle
+                ? users.ToLowerInvariant()
+                : $"{users}_{uId}";
+
+            var resultMock = serviceTest.RunInListPredicateMatrix(tableName);
+            resultMock.Should().Be(2);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -370,8 +424,12 @@ public abstract class SelectTestsBase<T, T2>(
                 serviceTestContainer.CreateScenario(users, uId);
                 try
                 {
-                    var resultContainer = serviceTestContainer.RunInListPredicateMatrix(users);
-                    Assert.Equal(resultMock, resultContainer);
+                    var containerTableName = dialect.Provider == ProviderId.Oracle
+                        ? users.ToLowerInvariant()
+                        : $"{users}_{uId}";
+
+                    var resultContainer = serviceTestContainer.RunInListPredicateMatrix(containerTableName);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -404,8 +462,12 @@ public abstract class SelectTestsBase<T, T2>(
 
         try
         {
-            var resultMock = serviceTest.RunBetweenPredicateMatrix(users);
-            Assert.Equal(3, resultMock);
+            var tableName = dialect.Provider == ProviderId.Oracle
+                ? users.ToLowerInvariant()
+                : $"{users}_{uId}";
+
+            var resultMock = serviceTest.RunBetweenPredicateMatrix(tableName);
+            resultMock.Should().Be(3);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -417,8 +479,12 @@ public abstract class SelectTestsBase<T, T2>(
                 serviceTestContainer.CreateScenario(users, uId);
                 try
                 {
-                    var resultContainer = serviceTestContainer.RunBetweenPredicateMatrix(users);
-                    Assert.Equal(resultMock, resultContainer);
+                    var containerTableName = dialect.Provider == ProviderId.Oracle
+                        ? users.ToLowerInvariant()
+                        : $"{users}_{uId}";
+
+                    var resultContainer = serviceTestContainer.RunBetweenPredicateMatrix(containerTableName);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -451,8 +517,12 @@ public abstract class SelectTestsBase<T, T2>(
 
         try
         {
-            var resultMock = serviceTest.RunLikePredicateMatrix(users);
-            Assert.Equal(1, resultMock);
+            var tableName = dialect.Provider == ProviderId.Oracle
+                ? users.ToLowerInvariant()
+                : $"{users}_{uId}";
+
+            var resultMock = serviceTest.RunLikePredicateMatrix(tableName);
+            resultMock.Should().Be(1);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -464,8 +534,12 @@ public abstract class SelectTestsBase<T, T2>(
                 serviceTestContainer.CreateScenario(users, uId);
                 try
                 {
-                    var resultContainer = serviceTestContainer.RunLikePredicateMatrix(users);
-                    Assert.Equal(resultMock, resultContainer);
+                    var containerTableName = dialect.Provider == ProviderId.Oracle
+                        ? users.ToLowerInvariant()
+                        : $"{users}_{uId}";
+
+                    var resultContainer = serviceTestContainer.RunLikePredicateMatrix(containerTableName);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -498,8 +572,12 @@ public abstract class SelectTestsBase<T, T2>(
 
         try
         {
-            var resultMock = serviceTest.RunBetweenLikeOrderByMatrix(users);
-            Assert.Equal(2, resultMock);
+            var tableName = dialect.Provider == ProviderId.Oracle
+                ? users.ToLowerInvariant()
+                : $"{users}_{uId}";
+
+            var resultMock = serviceTest.RunBetweenLikeOrderByMatrix(tableName);
+            resultMock.Should().Be(2);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -511,8 +589,12 @@ public abstract class SelectTestsBase<T, T2>(
                 serviceTestContainer.CreateScenario(users, uId);
                 try
                 {
-                    var resultContainer = serviceTestContainer.RunBetweenLikeOrderByMatrix(users);
-                    Assert.Equal(resultMock, resultContainer);
+                    var containerTableName = dialect.Provider == ProviderId.Oracle
+                        ? users.ToLowerInvariant()
+                        : $"{users}_{uId}";
+
+                    var resultContainer = serviceTestContainer.RunBetweenLikeOrderByMatrix(containerTableName);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -545,8 +627,12 @@ public abstract class SelectTestsBase<T, T2>(
 
         try
         {
-            var resultMock = serviceTest.RunNotLikePredicateMatrix(users);
-            Assert.Equal(4, resultMock);
+            var tableName = dialect.Provider == ProviderId.Oracle
+                ? users.ToLowerInvariant()
+                : $"{users}_{uId}";
+
+            var resultMock = serviceTest.RunNotLikePredicateMatrix(tableName);
+            resultMock.Should().Be(4);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -558,8 +644,12 @@ public abstract class SelectTestsBase<T, T2>(
                 serviceTestContainer.CreateScenario(users, uId);
                 try
                 {
-                    var resultContainer = serviceTestContainer.RunNotLikePredicateMatrix(users);
-                    Assert.Equal(resultMock, resultContainer);
+                    var containerTableName = dialect.Provider == ProviderId.Oracle
+                        ? users.ToLowerInvariant()
+                        : $"{users}_{uId}";
+
+                    var resultContainer = serviceTestContainer.RunNotLikePredicateMatrix(containerTableName);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -592,8 +682,12 @@ public abstract class SelectTestsBase<T, T2>(
 
         try
         {
-            var resultMock = serviceTest.RunNotEqualPredicateMatrix(users);
-            Assert.Equal(4, resultMock);
+            var tableName = dialect.Provider == ProviderId.Oracle
+                ? users.ToLowerInvariant()
+                : $"{users}_{uId}";
+
+            var resultMock = serviceTest.RunNotEqualPredicateMatrix(tableName);
+            resultMock.Should().Be(4);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -605,8 +699,12 @@ public abstract class SelectTestsBase<T, T2>(
                 serviceTestContainer.CreateScenario(users, uId);
                 try
                 {
-                    var resultContainer = serviceTestContainer.RunNotEqualPredicateMatrix(users);
-                    Assert.Equal(resultMock, resultContainer);
+                    var containerTableName = dialect.Provider == ProviderId.Oracle
+                        ? users.ToLowerInvariant()
+                        : $"{users}_{uId}";
+
+                    var resultContainer = serviceTestContainer.RunNotEqualPredicateMatrix(containerTableName);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -639,8 +737,12 @@ public abstract class SelectTestsBase<T, T2>(
 
         try
         {
-            var resultMock = serviceTest.RunEqualPredicateMatrix(users);
-            Assert.Equal(1, resultMock);
+            var tableName = dialect.Provider == ProviderId.Oracle
+                ? users.ToLowerInvariant()
+                : $"{users}_{uId}";
+
+            var resultMock = serviceTest.RunEqualPredicateMatrix(tableName);
+            resultMock.Should().Be(1);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -652,8 +754,12 @@ public abstract class SelectTestsBase<T, T2>(
                 serviceTestContainer.CreateScenario(users, uId);
                 try
                 {
-                    var resultContainer = serviceTestContainer.RunEqualPredicateMatrix(users);
-                    Assert.Equal(resultMock, resultContainer);
+                    var containerTableName = dialect.Provider == ProviderId.Oracle
+                        ? users.ToLowerInvariant()
+                        : $"{users}_{uId}";
+
+                    var resultContainer = serviceTestContainer.RunEqualPredicateMatrix(containerTableName);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -687,7 +793,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var resultMock = serviceTest.RunParameterSelectByNameMatrix(users, "Bob");
-            Assert.Equal("Bob", resultMock);
+            resultMock.Should().Be("Bob");
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -700,7 +806,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunParameterSelectByNameMatrix(users, "Bob");
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -734,7 +840,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var resultMock = serviceTest.RunParameterSelectByIdMatrix(users, 3, "Charlie");
-            Assert.Equal("Charlie", resultMock);
+            resultMock.Should().Be("Charlie");
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -747,7 +853,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunParameterSelectByIdMatrix(users, 3, "Charlie");
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -793,7 +899,7 @@ public abstract class SelectTestsBase<T, T2>(
                 createdAt,
                 DBNull.Value,
                 DBNull.Value);
-            Assert.Equal(1, resultMock);
+            resultMock.Should().Be(1);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -817,7 +923,7 @@ public abstract class SelectTestsBase<T, T2>(
                         createdAt,
                         DBNull.Value,
                         DBNull.Value);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -868,7 +974,7 @@ public abstract class SelectTestsBase<T, T2>(
                 createdAt,
                 Guid.Parse("11111111-2222-3333-4444-555555555555"),
                 new byte[] { 1, 2, 3, 4 });
-            Assert.Equal(1, resultMock);
+            resultMock.Should().Be(1);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -895,7 +1001,7 @@ public abstract class SelectTestsBase<T, T2>(
                         createdAt,
                         Guid.Parse("11111111-2222-3333-4444-555555555555"),
                         new byte[] { 1, 2, 3, 4 });
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -930,7 +1036,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var resultMock = serviceTest.RunParameterDateCurrencyMatrix(dateValue, currencyValue);
-            Assert.Equal(1, resultMock);
+            resultMock.Should().Be(1);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -942,7 +1048,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunParameterDateCurrencyMatrix(dateValue, currencyValue);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -976,7 +1082,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var resultMock = serviceTest.RunGreaterThanPredicateMatrix(users);
-            Assert.Equal(2, resultMock);
+            resultMock.Should().Be(2);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -989,7 +1095,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunGreaterThanPredicateMatrix(users);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -1023,7 +1129,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var resultMock = serviceTest.RunLessThanPredicateMatrix(users);
-            Assert.Equal(2, resultMock);
+            resultMock.Should().Be(2);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -1036,7 +1142,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunLessThanPredicateMatrix(users);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -1070,7 +1176,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var resultMock = serviceTest.RunGreaterThanOrEqualPredicateMatrix(users);
-            Assert.Equal(3, resultMock);
+            resultMock.Should().Be(3);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -1083,7 +1189,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunGreaterThanOrEqualPredicateMatrix(users);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -1116,8 +1222,12 @@ public abstract class SelectTestsBase<T, T2>(
 
         try
         {
-            var resultMock = serviceTest.RunLessThanOrEqualPredicateMatrix(users);
-            Assert.Equal(3, resultMock);
+            var tableName = dialect.Provider == ProviderId.Oracle
+                ? users.ToLowerInvariant()
+                : $"{users}_{uId}";
+
+            var resultMock = serviceTest.RunLessThanOrEqualPredicateMatrix(tableName);
+            resultMock.Should().Be(3);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -1129,8 +1239,12 @@ public abstract class SelectTestsBase<T, T2>(
                 serviceTestContainer.CreateScenario(users, uId);
                 try
                 {
-                    var resultContainer = serviceTestContainer.RunLessThanOrEqualPredicateMatrix(users);
-                    Assert.Equal(resultMock, resultContainer);
+                    var containerTableName = dialect.Provider == ProviderId.Oracle
+                        ? users.ToLowerInvariant()
+                        : $"{users}_{uId}";
+
+                    var resultContainer = serviceTestContainer.RunLessThanOrEqualPredicateMatrix(containerTableName);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -1163,8 +1277,12 @@ public abstract class SelectTestsBase<T, T2>(
 
         try
         {
-            var resultMock = serviceTest.RunOrderByNameMatrix(users);
-            Assert.Equal(3, resultMock);
+            var tableName = dialect.Provider == ProviderId.Oracle
+                ? users.ToLowerInvariant()
+                : $"{users}_{uId}";
+
+            var resultMock = serviceTest.RunOrderByNameMatrix(tableName);
+            resultMock.Should().Be(3);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -1176,8 +1294,12 @@ public abstract class SelectTestsBase<T, T2>(
                 serviceTestContainer.CreateScenario(users, uId);
                 try
                 {
-                    var resultContainer = serviceTestContainer.RunOrderByNameMatrix(users);
-                    Assert.Equal(resultMock, resultContainer);
+                    var containerTableName = dialect.Provider == ProviderId.Oracle
+                        ? users.ToLowerInvariant()
+                        : $"{users}_{uId}";
+
+                    var resultContainer = serviceTestContainer.RunOrderByNameMatrix(containerTableName);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -1217,8 +1339,8 @@ public abstract class SelectTestsBase<T, T2>(
             serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 2, "Bob"));
             serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 3, "Carla"));
 
-            var resultMock = serviceTest.RunUnionDistinctProjection(users);
-            Assert.Equal(3, resultMock);
+            var resultMock = serviceTest.RunUnionDistinctProjection(tableName);
+            resultMock.Should().Be(3);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -1237,8 +1359,8 @@ public abstract class SelectTestsBase<T, T2>(
                     serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 2, "Bob"));
                     serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 3, "Carla"));
 
-                    var resultContainer = serviceTestContainer.RunUnionDistinctProjection(users);
-                    Assert.Equal(resultMock, resultContainer);
+                    var resultContainer = serviceTestContainer.RunUnionDistinctProjection(containerTableName);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -1271,8 +1393,12 @@ public abstract class SelectTestsBase<T, T2>(
 
         try
         {
-            var resultMock = serviceTest.RunGroupByNameInitialMatrix(users);
-            Assert.Equal(3, resultMock);
+            var tableName = dialect.Provider == ProviderId.Oracle
+                ? users.ToLowerInvariant()
+                : $"{users}_{uId}";
+
+            var resultMock = serviceTest.RunGroupByNameInitialMatrix(tableName);
+            resultMock.Should().Be(3);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -1284,8 +1410,12 @@ public abstract class SelectTestsBase<T, T2>(
                 serviceTestContainer.CreateScenario(users, uId);
                 try
                 {
-                    var resultContainer = serviceTestContainer.RunGroupByNameInitialMatrix(users);
-                    Assert.Equal(resultMock, resultContainer);
+                    var containerTableName = dialect.Provider == ProviderId.Oracle
+                        ? users.ToLowerInvariant()
+                        : $"{users}_{uId}";
+
+                    var resultContainer = serviceTestContainer.RunGroupByNameInitialMatrix(containerTableName);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -1319,7 +1449,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var resultMock = serviceTest.RunGroupByNameHavingMatrix(users);
-            Assert.Equal(2, resultMock);
+            resultMock.Should().Be(2);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -1332,7 +1462,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunGroupByNameHavingMatrix(users);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -1366,7 +1496,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var resultMock = serviceTest.RunGroupByOrdinalMatrix(users);
-            Assert.Equal(3, resultMock);
+            resultMock.Should().Be(3);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -1379,7 +1509,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunGroupByOrdinalMatrix(users);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -1412,8 +1542,12 @@ public abstract class SelectTestsBase<T, T2>(
 
         try
         {
-            var resultMock = serviceTest.RunOrderByOrdinalMatrix(users);
-            Assert.Equal(3, resultMock);
+            var tableName = dialect.Provider == ProviderId.Oracle
+                ? users.ToLowerInvariant()
+                : $"{users}_{uId}";
+
+            var resultMock = serviceTest.RunOrderByOrdinalMatrix(tableName);
+            resultMock.Should().Be(3);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -1425,8 +1559,12 @@ public abstract class SelectTestsBase<T, T2>(
                 serviceTestContainer.CreateScenario(users, uId);
                 try
                 {
-                    var resultContainer = serviceTestContainer.RunOrderByOrdinalMatrix(users);
-                    Assert.Equal(resultMock, resultContainer);
+                    var containerTableName = dialect.Provider == ProviderId.Oracle
+                        ? users.ToLowerInvariant()
+                        : $"{users}_{uId}";
+
+                    var resultContainer = serviceTestContainer.RunOrderByOrdinalMatrix(containerTableName);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -1459,8 +1597,12 @@ public abstract class SelectTestsBase<T, T2>(
 
         try
         {
-            var resultMock = serviceTest.RunDistinctOrderByOrdinalMatrix(users);
-            Assert.Equal(4, resultMock);
+            var tableName = dialect.Provider == ProviderId.Oracle
+                ? users.ToLowerInvariant()
+                : $"{users}_{uId}";
+
+            var resultMock = serviceTest.RunDistinctOrderByOrdinalMatrix(tableName);
+            resultMock.Should().Be(4);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -1472,8 +1614,12 @@ public abstract class SelectTestsBase<T, T2>(
                 serviceTestContainer.CreateScenario(users, uId);
                 try
                 {
-                    var resultContainer = serviceTestContainer.RunDistinctOrderByOrdinalMatrix(users);
-                    Assert.Equal(resultMock, resultContainer);
+                    var containerTableName = dialect.Provider == ProviderId.Oracle
+                        ? users.ToLowerInvariant()
+                        : $"{users}_{uId}";
+
+                    var resultContainer = serviceTestContainer.RunDistinctOrderByOrdinalMatrix(containerTableName);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -1506,8 +1652,12 @@ public abstract class SelectTestsBase<T, T2>(
 
         try
         {
-            var resultMock = serviceTest.RunDistinctLikeOrderByOrdinalMatrix(users);
-            Assert.Equal(3, resultMock);
+            var tableName = dialect.Provider == ProviderId.Oracle
+                ? users.ToLowerInvariant()
+                : $"{users}_{uId}";
+
+            var resultMock = serviceTest.RunDistinctLikeOrderByOrdinalMatrix(tableName);
+            resultMock.Should().Be(3);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -1519,8 +1669,12 @@ public abstract class SelectTestsBase<T, T2>(
                 serviceTestContainer.CreateScenario(users, uId);
                 try
                 {
-                    var resultContainer = serviceTestContainer.RunDistinctLikeOrderByOrdinalMatrix(users);
-                    Assert.Equal(resultMock, resultContainer);
+                    var containerTableName = dialect.Provider == ProviderId.Oracle
+                        ? users.ToLowerInvariant()
+                        : $"{users}_{uId}";
+
+                    var resultContainer = serviceTestContainer.RunDistinctLikeOrderByOrdinalMatrix(containerTableName);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -1553,8 +1707,12 @@ public abstract class SelectTestsBase<T, T2>(
 
         try
         {
-            var resultMock = serviceTest.RunOrderByNameDescendingMatrix(users);
-            Assert.Equal(3, resultMock);
+            var tableName = dialect.Provider == ProviderId.Oracle
+                ? users.ToLowerInvariant()
+                : $"{users}_{uId}";
+
+            var resultMock = serviceTest.RunOrderByNameDescendingMatrix(tableName);
+            resultMock.Should().Be(3);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -1566,8 +1724,12 @@ public abstract class SelectTestsBase<T, T2>(
                 serviceTestContainer.CreateScenario(users, uId);
                 try
                 {
-                    var resultContainer = serviceTestContainer.RunOrderByNameDescendingMatrix(users);
-                    Assert.Equal(resultMock, resultContainer);
+                    var containerTableName = dialect.Provider == ProviderId.Oracle
+                        ? users.ToLowerInvariant()
+                        : $"{users}_{uId}";
+
+                    var resultContainer = serviceTestContainer.RunOrderByNameDescendingMatrix(containerTableName);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -1600,8 +1762,12 @@ public abstract class SelectTestsBase<T, T2>(
 
         try
         {
-            var resultMock = serviceTest.RunNamePaginationMatrix(users);
-            Assert.Equal(3, resultMock);
+            var tableName = dialect.Provider == ProviderId.Oracle
+                ? users.ToLowerInvariant()
+                : $"{users}_{uId}";
+
+            var resultMock = serviceTest.RunNamePaginationMatrix(tableName);
+            resultMock.Should().Be(3);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -1613,8 +1779,12 @@ public abstract class SelectTestsBase<T, T2>(
                 serviceTestContainer.CreateScenario(users, uId);
                 try
                 {
-                    var resultContainer = serviceTestContainer.RunNamePaginationMatrix(users);
-                    Assert.Equal(resultMock, resultContainer);
+                    var containerTableName = dialect.Provider == ProviderId.Oracle
+                        ? users.ToLowerInvariant()
+                        : $"{users}_{uId}";
+
+                    var resultContainer = serviceTestContainer.RunNamePaginationMatrix(containerTableName);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -1647,8 +1817,12 @@ public abstract class SelectTestsBase<T, T2>(
 
         try
         {
-            var resultMock = serviceTest.RunPagedNameProjectionMatrix(users);
-            Assert.Equal(2, resultMock);
+            var tableName = dialect.Provider == ProviderId.Oracle
+                ? users.ToLowerInvariant()
+                : $"{users}_{uId}";
+
+            var resultMock = serviceTest.RunPagedNameProjectionMatrix(tableName);
+            resultMock.Should().Be(2);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -1660,8 +1834,12 @@ public abstract class SelectTestsBase<T, T2>(
                 serviceTestContainer.CreateScenario(users, uId);
                 try
                 {
-                    var resultContainer = serviceTestContainer.RunPagedNameProjectionMatrix(users);
-                    Assert.Equal(resultMock, resultContainer);
+                    var containerTableName = dialect.Provider == ProviderId.Oracle
+                        ? users.ToLowerInvariant()
+                        : $"{users}_{uId}";
+
+                    var resultContainer = serviceTestContainer.RunPagedNameProjectionMatrix(containerTableName);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -1721,7 +1899,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var resultsContainer = RunRelationalCompositeAssertions(serviceTestContainer, users, orders);
-                    Assert.Equal(resultsMock, resultsContainer);
+                    resultsMock.Should().Be(resultsContainer);
                 }
                 finally
                 {
@@ -1764,9 +1942,9 @@ public abstract class SelectTestsBase<T, T2>(
             var rowNumberMock = serviceTest.RunWindowRowNumber(tableName);
             var lagMock = serviceTest.RunWindowLag(tableName);
             var leadMock = serviceTest.RunWindowLead(tableName);
-            Assert.Equal(3, rowNumberMock);
-            Assert.Equal(3, lagMock);
-            Assert.Equal(2, leadMock);
+            rowNumberMock.Should().Be(3);
+            lagMock.Should().Be(3);
+            leadMock.Should().Be(2);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -1789,9 +1967,9 @@ public abstract class SelectTestsBase<T, T2>(
                     var lagContainer = serviceTestContainer.RunWindowLag(containerTableName);
                     var leadContainer = serviceTestContainer.RunWindowLead(containerTableName);
 
-                    Assert.Equal(rowNumberMock, rowNumberContainer);
-                    Assert.Equal(lagMock, lagContainer);
-                    Assert.Equal(leadMock, leadContainer);
+                    rowNumberMock.Should().Be(rowNumberContainer);
+                    lagMock.Should().Be(lagContainer);
+                    leadMock.Should().Be(leadContainer);
                 }
                 finally
                 {
@@ -1833,7 +2011,7 @@ public abstract class SelectTestsBase<T, T2>(
             serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 4, "Charlie"));
 
             var resultMock = serviceTest.RunWindowRankDenseRank(tableName);
-            Assert.Equal(4, resultMock);
+            resultMock.Should().Be(4);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -1854,7 +2032,7 @@ public abstract class SelectTestsBase<T, T2>(
                     serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 4, "Charlie"));
 
                     var resultContainer = serviceTestContainer.RunWindowRankDenseRank(containerTableName);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -1896,7 +2074,7 @@ public abstract class SelectTestsBase<T, T2>(
             serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 4, "Charlie"));
 
             var resultMock = serviceTest.RunWindowFirstLastValue(tableName);
-            Assert.Equal(4, resultMock);
+            resultMock.Should().Be(4);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -1917,7 +2095,7 @@ public abstract class SelectTestsBase<T, T2>(
                     serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 4, "Charlie"));
 
                     var resultContainer = serviceTestContainer.RunWindowFirstLastValue(containerTableName);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -1959,7 +2137,7 @@ public abstract class SelectTestsBase<T, T2>(
             serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 4, "Charlie"));
 
             var resultMock = serviceTest.RunWindowNtile(tableName);
-            Assert.Equal(4, resultMock);
+            resultMock.Should().Be(4);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -1980,7 +2158,7 @@ public abstract class SelectTestsBase<T, T2>(
                     serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 4, "Charlie"));
 
                     var resultContainer = serviceTestContainer.RunWindowNtile(containerTableName);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -2022,7 +2200,7 @@ public abstract class SelectTestsBase<T, T2>(
             serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 4, "Charlie"));
 
             var resultMock = serviceTest.RunWindowPercentRankCumeDist(tableName);
-            Assert.Equal(4, resultMock);
+            resultMock.Should().Be(4);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -2043,7 +2221,7 @@ public abstract class SelectTestsBase<T, T2>(
                     serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 4, "Charlie"));
 
                     var resultContainer = serviceTestContainer.RunWindowPercentRankCumeDist(containerTableName);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -2085,7 +2263,7 @@ public abstract class SelectTestsBase<T, T2>(
             serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 4, "Charlie"));
 
             var resultMock = serviceTest.RunWindowNthValue(tableName);
-            Assert.Equal(4, resultMock);
+            resultMock.Should().Be(4);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -2106,7 +2284,7 @@ public abstract class SelectTestsBase<T, T2>(
                     serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 4, "Charlie"));
 
                     var resultContainer = serviceTestContainer.RunWindowNthValue(containerTableName);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -2151,8 +2329,8 @@ public abstract class SelectTestsBase<T, T2>(
 
             var partitionCountMock = serviceTest.RunPartitionPruningSelect(tableName);
             var pivotCountMock = serviceTest.RunPivotCount(tableName);
-            Assert.Equal(6, partitionCountMock);
-            Assert.Equal(2, pivotCountMock);
+            partitionCountMock.Should().Be(6);
+            pivotCountMock.Should().Be(2);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -2176,8 +2354,8 @@ public abstract class SelectTestsBase<T, T2>(
 
                     var partitionCountContainer = serviceTestContainer.RunPartitionPruningSelect(containerTableName);
                     var pivotCountContainer = serviceTestContainer.RunPivotCount(containerTableName);
-                    Assert.Equal(partitionCountMock, partitionCountContainer);
-                    Assert.Equal(pivotCountMock, pivotCountContainer);
+                    partitionCountMock.Should().Be(partitionCountContainer);
+                    pivotCountMock.Should().Be(pivotCountContainer);
                 }
                 finally
                 {
@@ -2226,7 +2404,7 @@ public abstract class SelectTestsBase<T, T2>(
             serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAt));
 
             var resultMock = serviceTest.RunJoinTypedExpressionMatrix(users, orders);
-            Assert.Equal(2, resultMock);
+            resultMock.Should().Be(2);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -2247,7 +2425,7 @@ public abstract class SelectTestsBase<T, T2>(
                     serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAtContainer));
 
                     var resultContainer = serviceTestContainer.RunJoinTypedExpressionMatrix(users, orders);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -2297,7 +2475,7 @@ public abstract class SelectTestsBase<T, T2>(
             serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAt));
 
             var resultMock = serviceTest.RunJoinNullAggregateMatrix(users, orders);
-            Assert.Equal(3, resultMock);
+            resultMock.Should().Be(3);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -2318,7 +2496,7 @@ public abstract class SelectTestsBase<T, T2>(
                     serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAtContainer));
 
                     var resultContainer = serviceTestContainer.RunJoinNullAggregateMatrix(users, orders);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -2368,7 +2546,7 @@ public abstract class SelectTestsBase<T, T2>(
             serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAt));
 
             var resultMock = serviceTest.RunJoinCastNullMatrix(users, orders);
-            Assert.Equal(3, resultMock);
+            resultMock.Should().Be(3);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -2389,7 +2567,7 @@ public abstract class SelectTestsBase<T, T2>(
                     serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAtContainer));
 
                     var resultContainer = serviceTestContainer.RunJoinCastNullMatrix(users, orders);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -2439,7 +2617,7 @@ public abstract class SelectTestsBase<T, T2>(
             serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAt));
 
             var resultMock = serviceTest.RunJoinCastTextComparisonMatrix(users, orders);
-            Assert.Equal(3, resultMock);
+            resultMock.Should().Be(3);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -2460,7 +2638,7 @@ public abstract class SelectTestsBase<T, T2>(
                     serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAtContainer));
 
                     var resultContainer = serviceTestContainer.RunJoinCastTextComparisonMatrix(users, orders);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -2510,7 +2688,7 @@ public abstract class SelectTestsBase<T, T2>(
             serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAt));
 
             var resultMock = serviceTest.RunJoinHavingCastMatrix(users, orders);
-            Assert.Equal(1, resultMock);
+            resultMock.Should().Be(1);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -2531,7 +2709,7 @@ public abstract class SelectTestsBase<T, T2>(
                     serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAtContainer));
 
                     var resultContainer = serviceTestContainer.RunJoinHavingCastMatrix(users, orders);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -2581,7 +2759,7 @@ public abstract class SelectTestsBase<T, T2>(
             serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAt));
 
             var resultMock = serviceTest.RunJoinLengthNumericMatrix(users, orders);
-            Assert.Equal(3, resultMock);
+            resultMock.Should().Be(3);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -2602,7 +2780,7 @@ public abstract class SelectTestsBase<T, T2>(
                     serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAtContainer));
 
                     var resultContainer = serviceTestContainer.RunJoinLengthNumericMatrix(users, orders);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -2652,7 +2830,7 @@ public abstract class SelectTestsBase<T, T2>(
             serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAt));
 
             var resultMock = serviceTest.RunJoinTextCaseLengthMatrix(users, orders);
-            Assert.Equal(3, resultMock);
+            resultMock.Should().Be(3);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -2673,7 +2851,7 @@ public abstract class SelectTestsBase<T, T2>(
                     serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAtContainer));
 
                     var resultContainer = serviceTestContainer.RunJoinTextCaseLengthMatrix(users, orders);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -2723,7 +2901,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var resultMock = serviceTest.RunJoinDistinctCaseMatrix(users, orders);
-            Assert.Equal(3, resultMock);
+            resultMock.Should().Be(3);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -2736,7 +2914,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunJoinDistinctCaseMatrix(users, orders);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -2786,7 +2964,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var resultMock = serviceTest.RunJoinDistinctHavingMatrix(users, orders);
-            Assert.Equal(2, resultMock);
+            resultMock.Should().Be(2);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -2799,7 +2977,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunJoinDistinctHavingMatrix(users, orders);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -2830,16 +3008,16 @@ public abstract class SelectTestsBase<T, T2>(
         var inSubquery = serviceTest.RunSelectInSubquery(users, orders);
         var pivot = serviceTest.RunPivotCount(users);
 
-        Assert.Equal(1, cte);
-        Assert.Equal(2, existsPredicate);
-        Assert.Equal(2, correlatedCount);
-        Assert.Equal(1, groupByHaving);
-        Assert.Equal(2, unionAll);
-        Assert.Equal(2, distinct);
-        Assert.Equal(4, multiJoin);
-        Assert.Equal("2", Convert.ToString(scalarSubquery, CultureInfo.InvariantCulture));
-        Assert.Equal(2, inSubquery);
-        Assert.Equal(2, pivot);
+        cte.Should().Be(1);
+        existsPredicate.Should().Be(2);
+        correlatedCount.Should().Be(2);
+        groupByHaving.Should().Be(1);
+        unionAll.Should().Be(2);
+        distinct.Should().Be(2);
+        multiJoin.Should().Be(4);
+        Convert.ToString(scalarSubquery, CultureInfo.InvariantCulture).Should().Be("2");
+        inSubquery.Should().Be(2);
+        pivot.Should().Be(2);
 
         return (cte, existsPredicate, correlatedCount, groupByHaving, unionAll, distinct, multiJoin, scalarSubquery, inSubquery, pivot);
     }
@@ -2891,7 +3069,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunJoinTemporalMatrix(users, orders);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -2940,7 +3118,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var resultMock = serviceTest.RunJoinWindowMatrix(users, orders);
-            Assert.Equal(3, resultMock);
+            resultMock.Should().Be(3);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -2953,7 +3131,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunJoinWindowMatrix(users, orders);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -3002,7 +3180,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var resultMock = serviceTest.RunJoinWindowTemporalMatrix(users, orders);
-            Assert.Equal(3, resultMock);
+            resultMock.Should().Be(3);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -3015,7 +3193,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunJoinWindowTemporalMatrix(users, orders);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -3064,7 +3242,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var resultMock = serviceTest.RunJoinWindowAggregateTemporalMatrix(users, orders);
-            Assert.Equal(3, resultMock);
+            resultMock.Should().Be(3);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -3077,7 +3255,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunJoinWindowAggregateTemporalMatrix(users, orders);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -3128,9 +3306,9 @@ public abstract class SelectTestsBase<T, T2>(
             var resultCrossApplyMock = serviceTest.RunCrossApplyProjection(users, orders);
             var resultOuterApplyMock = serviceTest.RunOuterApplyProjection(users, orders);
 
-            Assert.Equal(2, resultCrossApplyMock);
-            Assert.Equal(3, resultOuterApplyMock);
-            Assert.True(resultOuterApplyMock >= resultCrossApplyMock);
+            resultCrossApplyMock.Should().Be(2);
+            resultOuterApplyMock.Should().Be(3);
+            (resultOuterApplyMock >= resultCrossApplyMock).Should().BeTrue();
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -3145,8 +3323,8 @@ public abstract class SelectTestsBase<T, T2>(
                     var resultCrossApplyContainer = serviceTestContainer.RunCrossApplyProjection(users, orders);
                     var resultOuterApplyContainer = serviceTestContainer.RunOuterApplyProjection(users, orders);
 
-                    Assert.Equal(resultCrossApplyMock, resultCrossApplyContainer);
-                    Assert.Equal(resultOuterApplyMock, resultOuterApplyContainer);
+                    resultCrossApplyMock.Should().Be(resultCrossApplyContainer);
+                    resultOuterApplyMock.Should().Be(resultOuterApplyContainer);
                 }
                 finally
                 {
@@ -3198,10 +3376,10 @@ public abstract class SelectTestsBase<T, T2>(
             var outerApplyMock = serviceTest.RunOuterApplyProjection(users, orders);
             var temporalMock = serviceTest.RunJoinTemporalMatrix(users, orders);
 
-            Assert.Equal(2, crossApplyMock);
-            Assert.Equal(3, outerApplyMock);
-            Assert.Equal(3, temporalMock);
-            Assert.True(outerApplyMock >= crossApplyMock);
+            crossApplyMock.Should().Be(2);
+            outerApplyMock.Should().Be(3);
+            temporalMock.Should().Be(3);
+            (outerApplyMock >= crossApplyMock).Should().BeTrue();
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -3217,9 +3395,9 @@ public abstract class SelectTestsBase<T, T2>(
                     var outerApplyContainer = serviceTestContainer.RunOuterApplyProjection(users, orders);
                     var temporalContainer = serviceTestContainer.RunJoinTemporalMatrix(users, orders);
 
-                    Assert.Equal(crossApplyMock, crossApplyContainer);
-                    Assert.Equal(outerApplyMock, outerApplyContainer);
-                    Assert.Equal(temporalMock, temporalContainer);
+                    crossApplyMock.Should().Be(crossApplyContainer);
+                    outerApplyMock.Should().Be(outerApplyContainer);
+                    temporalMock.Should().Be(temporalContainer);
                 }
                 finally
                 {
@@ -3272,11 +3450,11 @@ public abstract class SelectTestsBase<T, T2>(
             var windowMock = serviceTest.RunJoinWindowMatrix(users, orders);
             var temporalMock = serviceTest.RunJoinWindowTemporalMatrix(users, orders);
 
-            Assert.Equal(2, crossApplyMock);
-            Assert.Equal(3, outerApplyMock);
-            Assert.Equal(3, windowMock);
-            Assert.Equal(3, temporalMock);
-            Assert.True(outerApplyMock >= crossApplyMock);
+            crossApplyMock.Should().Be(2);
+            outerApplyMock.Should().Be(3);
+            windowMock.Should().Be(3);
+            temporalMock.Should().Be(3);
+            (outerApplyMock >= crossApplyMock).Should().BeTrue();
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -3293,10 +3471,10 @@ public abstract class SelectTestsBase<T, T2>(
                     var windowContainer = serviceTestContainer.RunJoinWindowMatrix(users, orders);
                     var temporalContainer = serviceTestContainer.RunJoinWindowTemporalMatrix(users, orders);
 
-                    Assert.Equal(crossApplyMock, crossApplyContainer);
-                    Assert.Equal(outerApplyMock, outerApplyContainer);
-                    Assert.Equal(windowMock, windowContainer);
-                    Assert.Equal(temporalMock, temporalContainer);
+                    crossApplyMock.Should().Be(crossApplyContainer);
+                    outerApplyMock.Should().Be(outerApplyContainer);
+                    windowMock.Should().Be(windowContainer);
+                    temporalMock.Should().Be(temporalContainer);
                 }
                 finally
                 {

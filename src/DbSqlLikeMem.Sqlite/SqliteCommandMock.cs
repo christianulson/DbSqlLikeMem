@@ -172,7 +172,8 @@ public class SqliteCommandMock(
                 continue;
             }
 
-            var q = SqlQueryParser.Parse(sqlRaw, connection.ExecutionDialect, Parameters);
+            var customFunctionSupported = SqlCustomFunctionResolverFactory.Create(QueryExecutionContext.FromConnection(connection!, Parameters));
+            var q = SqlQueryParser.Parse(sqlRaw,connection.Db, connection.ExecutionDialect, Parameters, customFunctionSupported);
             parsedStatementCount++;
 
             using var currentQueryScope = connection.BeginCurrentQueryScope(sqlRaw);
@@ -402,7 +403,7 @@ public class SqliteCommandMock(
                 continue;
             }
 
-            var expr = SqlExpressionParser.ParseScalar(raw, connection!.Db.Dialect);
+            var expr = SqlExpressionParser.ParseScalar(raw, connection!.Db, connection!.ExecutionDialect);
             switch (expr)
             {
                 case IdentifierExpr id:
@@ -527,25 +528,6 @@ public class SqliteCommandMock(
         }
 
         return indexes;
-    }
-
-    /// <summary>
-    /// EN: Resolves command parameter value by SQL placeholder name.
-    /// PT: ResolveRowsFrameRange valor de parâmetro do comando pelo nome do placeholder SQL.
-    /// </summary>
-    private object? ResolveParameterValue(string rawName)
-    {
-        var normalized = NormalizeParameterName(rawName);
-
-        foreach (DbParameter parameter in Parameters)
-        {
-            var parameterName = NormalizeParameterName(parameter.ParameterName);
-            if (!parameterName.Equals(normalized, StringComparison.OrdinalIgnoreCase))
-                continue;
-            return parameter.Value is DBNull ? null : parameter.Value;
-        }
-
-        return null;
     }
 
     /// <summary>
@@ -692,7 +674,7 @@ public class SqliteCommandMock(
         var dialect = connection!.ExecutionDialect;
         try
         {
-            var parsed = SqlQueryParser.Parse(normalizedCommandText, dialect);
+            var parsed = SqlQueryParser.Parse(normalizedCommandText, new SqliteDbMock(), dialect);
 
             _preparedConnection = connection;
             _preparedCommandText = CommandText;
@@ -718,7 +700,7 @@ public class SqliteCommandMock(
         if (localConnection is null
             || _preparedConnection is null
             || !ReferenceEquals(localConnection, _preparedConnection)
-            || CommandType != global::System.Data.CommandType.Text
+            || CommandType != CommandType.Text
             || !string.Equals(CommandText, _preparedCommandText, StringComparison.Ordinal)
             || _preparedNonQueryQuery is null)
         {

@@ -78,7 +78,7 @@ public abstract class TransactionTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunTransactionCommitScenario(connContainer, users, uId);
-            Assert.Equal(resultMock, resultContainer);
+            resultMock.Should().Be(resultContainer);
         }
     }
 
@@ -97,7 +97,7 @@ public abstract class TransactionTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunTransactionRollbackScenario(connContainer, users, uId);
-            Assert.Equal(resultMock, resultContainer);
+            resultMock.Should().Be(resultContainer);
         }
     }
 
@@ -131,7 +131,7 @@ public abstract class TransactionTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunRollbackToSavepointScenario(connContainer, users, uId);
-            Assert.Equal(resultMock, resultContainer);
+            resultMock.Should().Be(resultContainer);
         }
     }
 
@@ -145,7 +145,7 @@ public abstract class TransactionTestsBase<T, T2>(
         }
         else
         {
-            Assert.Throws<NotSupportedException>(() => RunReleaseSavepointScenario(connMock));
+            FluentActions.Invoking(() => RunReleaseSavepointScenario(connMock)).Should().Throw<NotSupportedException>();
         }
 
         if (IsTransactionContainerComparisonEnabled(dialect.Provider)
@@ -159,7 +159,7 @@ public abstract class TransactionTestsBase<T, T2>(
             }
             else
             {
-                Assert.Throws<NotSupportedException>(() => RunReleaseSavepointScenario(connContainer));
+                FluentActions.Invoking(() => RunReleaseSavepointScenario(connContainer)).Should().Throw<NotSupportedException>();
             }
         }
     }
@@ -179,7 +179,7 @@ public abstract class TransactionTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunNestedSavepointFlowScenario(connContainer, users, uId);
-            Assert.Equal(resultMock, resultContainer);
+            resultMock.Should().Be(resultContainer);
         }
     }
 

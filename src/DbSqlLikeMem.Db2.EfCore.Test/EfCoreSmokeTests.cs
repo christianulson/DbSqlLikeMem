@@ -6,4 +6,9 @@ namespace DbSqlLikeMem.Db2.EfCore.Test;
 /// </summary>
 public sealed class EfCoreSmokeTests(
     ITestOutputHelper helper
-) : EfCoreSmokeTestsBase(helper, static () => new Db2EfCoreConnectionFactory());
+) : EfCoreSmokeTestsBase(helper, static () => new Db2EfCoreConnectionFactory())
+{
+    /// <inheritdoc />
+    protected override DbSqlLikeMem.TestTools.ProviderSqlDialect Dialect { get; } =
+        new DbSqlLikeMem.Db2.TestTools.Db2ProviderSqlDialect();
+}

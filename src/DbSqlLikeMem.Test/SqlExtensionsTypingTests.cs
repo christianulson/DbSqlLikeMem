@@ -16,8 +16,8 @@ public sealed class SqlExtensionsTypingTests(
     [Trait("Category", "Core")]
     public void ToBool_DecimalText_ShouldUseInvariantCulture()
     {
-        Assert.True("1.50".ToBool());
-        Assert.False("0.00".ToBool());
+        "1.50".ToBool().Should().BeTrue();
+        "0.00".ToBool().Should().BeFalse();
     }
 
     /// <summary>
@@ -28,10 +28,10 @@ public sealed class SqlExtensionsTypingTests(
     [Trait("Category", "Core")]
     public void ToBool_TextAliases_ShouldSupportOnOffYesNo()
     {
-        Assert.True("yes".ToBool());
-        Assert.True("on".ToBool());
-        Assert.False("no".ToBool());
-        Assert.False("off".ToBool());
+        "yes".ToBool().Should().BeTrue();
+        "on".ToBool().Should().BeTrue();
+        "no".ToBool().Should().BeFalse();
+        "off".ToBool().Should().BeFalse();
     }
 
     /// <summary>
@@ -42,14 +42,14 @@ public sealed class SqlExtensionsTypingTests(
     [Trait("Category", "Core")]
     public void ToBool_IntegralFamilies_ShouldUseZeroAsFalse()
     {
-        Assert.False(((sbyte)0).ToBool());
-        Assert.True(((sbyte)-1).ToBool());
-        Assert.False(((ushort)0).ToBool());
-        Assert.True(((ushort)1).ToBool());
-        Assert.False(((uint)0).ToBool());
-        Assert.True(((uint)2).ToBool());
-        Assert.False(((ulong)0).ToBool());
-        Assert.True(((ulong)3).ToBool());
+        ((sbyte)0).ToBool().Should().BeFalse();
+        ((sbyte)-1).ToBool().Should().BeTrue();
+        ((ushort)0).ToBool().Should().BeFalse();
+        ((ushort)1).ToBool().Should().BeTrue();
+        ((uint)0).ToBool().Should().BeFalse();
+        ((uint)2).ToBool().Should().BeTrue();
+        ((ulong)0).ToBool().Should().BeFalse();
+        ((ulong)3).ToBool().Should().BeTrue();
     }
 
     /// <summary>
@@ -60,7 +60,7 @@ public sealed class SqlExtensionsTypingTests(
     [Trait("Category", "Core")]
     public void ToBool_UlongAboveInt64Max_ShouldNotOverflow()
     {
-        Assert.True(ulong.MaxValue.ToBool());
+        ulong.MaxValue.ToBool().Should().BeTrue();
     }
 
     /// <summary>
@@ -71,8 +71,8 @@ public sealed class SqlExtensionsTypingTests(
     [Trait("Category", "Core")]
     public void ToDec_BooleanValues_ShouldMapToOneOrZero()
     {
-        Assert.Equal(1m, true.ToDec());
-        Assert.Equal(0m, false.ToDec());
+        true.ToDec().Should().Be(1m);
+        false.ToDec().Should().Be(0m);
     }
 
     /// <summary>
@@ -83,10 +83,10 @@ public sealed class SqlExtensionsTypingTests(
     [Trait("Category", "Core")]
     public void ToDec_IntegralFamilies_ShouldMapDeterministically()
     {
-        Assert.Equal(-5m, ((sbyte)-5).ToDec());
-        Assert.Equal(7m, ((ushort)7).ToDec());
-        Assert.Equal(11m, ((uint)11).ToDec());
-        Assert.Equal(13m, ((ulong)13).ToDec());
+        ((sbyte)-5).ToDec().Should().Be(-5m);
+        ((ushort)7).ToDec().Should().Be(7m);
+        ((uint)11).ToDec().Should().Be(11m);
+        ((ulong)13).ToDec().Should().Be(13m);
     }
 
     /// <summary>
@@ -100,8 +100,8 @@ public sealed class SqlExtensionsTypingTests(
         var offset = new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.FromHours(-3));
         var span = TimeSpan.FromMinutes(90);
 
-        Assert.Equal(offset.Ticks, offset.ToDec());
-        Assert.Equal(span.Ticks, span.ToDec());
+        offset.ToDec().Should().Be(offset.Ticks);
+        span.ToDec().Should().Be(span.Ticks);
     }
 
     /// <summary>
@@ -112,10 +112,10 @@ public sealed class SqlExtensionsTypingTests(
     [Trait("Category", "Core")]
     public void EqualsSql_BooleanAndNumericString_WithImplicitNumericComparison_ShouldMatch()
     {
-        Assert.True(true.EqualsSql("1"));
-        Assert.True(false.EqualsSql("0"));
-        Assert.True(1.EqualsSql(true));
-        Assert.True(0.EqualsSql(false));
+        true.EqualsSql("1").Should().BeTrue();
+        false.EqualsSql("0").Should().BeTrue();
+        1.EqualsSql(true).Should().BeTrue();
+        0.EqualsSql(false).Should().BeTrue();
     }
 
     /// <summary>
@@ -126,8 +126,8 @@ public sealed class SqlExtensionsTypingTests(
     [Trait("Category", "Core")]
     public void Compare_BooleanAndNumericString_WithImplicitNumericComparison_ShouldUseNumericOrdering()
     {
-        Assert.True(true.Compare("0") > 0);
-        Assert.True(false.Compare("1") < 0);
+        (true.Compare("0") > 0).Should().BeTrue();
+        (false.Compare("1") < 0).Should().BeTrue();
     }
 
     /// <summary>
@@ -141,7 +141,7 @@ public sealed class SqlExtensionsTypingTests(
         var dateTime = new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Utc);
         var offset = new DateTimeOffset(dateTime);
 
-        Assert.Equal(0, dateTime.Compare(offset));
+        dateTime.Compare(offset).Should().Be(0);
     }
 
     /// <summary>
@@ -156,7 +156,7 @@ public sealed class SqlExtensionsTypingTests(
         var dateTime = new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Utc);
         var offset = new DateTimeOffset(dateTime);
 
-        Assert.False(dateTime.EqualsSql(offset, dialect));
+        dateTime.EqualsSql(offset, dialect).Should().BeFalse();
     }
 
     /// <summary>
@@ -171,8 +171,8 @@ public sealed class SqlExtensionsTypingTests(
         var rightSame = new byte[] { 1, 2, 3 };
         var rightDifferent = new byte[] { 1, 2, 4 };
 
-        Assert.True(left.EqualsSql(rightSame));
-        Assert.False(left.EqualsSql(rightDifferent));
+        left.EqualsSql(rightSame).Should().BeTrue();
+        left.EqualsSql(rightDifferent).Should().BeFalse();
     }
 
     /// <summary>
@@ -187,10 +187,10 @@ public sealed class SqlExtensionsTypingTests(
         var b = new byte[] { 1, 2, 4 };
         var c = new byte[] { 1, 2, 3, 0 };
 
-        Assert.True(a.Compare(b) < 0);
-        Assert.True(b.Compare(a) > 0);
-        Assert.True(a.Compare(c) < 0);
-        Assert.Equal(0, a.Compare(new byte[] { 1, 2, 3 }));
+        (a.Compare(b) < 0).Should().BeTrue();
+        (b.Compare(a) > 0).Should().BeTrue();
+        (a.Compare(c) < 0).Should().BeTrue();
+        a.Compare(new byte[] { 1, 2, 3 }).Should().Be(0);
     }
 
     /// <summary>
@@ -203,7 +203,7 @@ public sealed class SqlExtensionsTypingTests(
     {
         var dialect = new SqlExtensionsTestDialect(supportsImplicitNumericStringComparison: false);
 
-        Assert.False(2.EqualsSql("2", dialect));
+        2.EqualsSql("2", dialect).Should().BeFalse();
     }
 
     /// <summary>
@@ -217,7 +217,7 @@ public sealed class SqlExtensionsTypingTests(
         var dialect = new SqlExtensionsTestDialect(supportsImplicitNumericStringComparison: false);
 
         // Text compare: "10" < "2"
-        Assert.True(dialect.Compare(10,"2") < 0);
+        (dialect.Compare(10, "2") < 0).Should().BeTrue();
     }
 
     /// <summary>
@@ -232,8 +232,8 @@ public sealed class SqlExtensionsTypingTests(
             supportsImplicitNumericStringComparison: true,
             likeDefaultEscapeCharacter: null);
 
-        Assert.True(dialect.Like("Jo_n","Jo#_%", "#"));
-        Assert.False(dialect.Like("Joan","Jo#_%", "#"));
+        dialect.Like("Jo_n", "Jo#_%", "#").Should().BeTrue();
+        dialect.Like("Joan", "Jo#_%", "#").Should().BeFalse();
     }
 
     /// <summary>
@@ -251,8 +251,8 @@ public sealed class SqlExtensionsTypingTests(
             supportsImplicitNumericStringComparison: true,
             likeDefaultEscapeCharacter: null);
 
-        Assert.True(mysqlLikeDialect.Like("Jo_n",@"Jo\_%"));
-        Assert.False(ansiLikeDialect.Like("Jo_n",@"Jo\_%"));
+        mysqlLikeDialect.Like("Jo_n", @"Jo\_%").Should().BeTrue();
+        ansiLikeDialect.Like("Jo_n", @"Jo\_%").Should().BeFalse();
     }
 
     /// <summary>
@@ -267,9 +267,9 @@ public sealed class SqlExtensionsTypingTests(
             supportsImplicitNumericStringComparison: true,
             likeDefaultEscapeCharacter: null);
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>dialect .Like("Jo_n","Jo#_%", "##"));
-
-        Assert.Contains("single character", ex.Message, StringComparison.OrdinalIgnoreCase);
+        var action = () => dialect.Like("Jo_n", "Jo#_%", "##");
+        action.Should().Throw<InvalidOperationException>()
+            .WithMessage("*single character*");
     }
 
     private sealed class SqlExtensionsTestDialect : SqlDialectBase

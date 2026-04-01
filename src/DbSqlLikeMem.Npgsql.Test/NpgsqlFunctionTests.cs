@@ -31,7 +31,8 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
 
         ExecuteNonQuery(connection, "DROP FUNCTION IF EXISTS fn_users(integer, integer)");
 
-        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"));
+        var ex = Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"));
+        Assert.Contains("FN_USERS", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -62,8 +63,8 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
     {
         using var connection = CreateOpenConnection(version);
 
-        Assert.Equal("postgres", ExecuteScalar(connection, "SELECT CURRENT_USER FROM Users WHERE Id = 1"));
-        Assert.Equal("postgres", ExecuteScalar(connection, "SELECT CURRENT_ROLE() FROM Users WHERE Id = 1"));
+        Assert.Equal("user_postgres", ExecuteScalar(connection, "SELECT CURRENT_USER FROM Users WHERE Id = 1"));
+        Assert.Equal("user_postgres", ExecuteScalar(connection, "SELECT CURRENT_ROLE() FROM Users WHERE Id = 1"));
         Assert.Equal("postgres", ExecuteScalar(connection, "SELECT CURRENT_DATABASE() FROM Users WHERE Id = 1"));
         Assert.Equal("postgres", ExecuteScalar(connection, "SELECT CURRENT_CATALOG() FROM Users WHERE Id = 1"));
         Assert.Equal("public", ExecuteScalar(connection, "SELECT CURRENT_SCHEMA() FROM Users WHERE Id = 1"));

@@ -113,7 +113,7 @@ internal sealed class AstQuerySqlServerSessionFunctionEvaluator
         return true;
     }
 
-    private static bool TryEvalSqlServerConnectionPropertyFunction(
+    internal static bool TryEvalSqlServerConnectionPropertyFunction(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
@@ -181,7 +181,21 @@ internal sealed class AstQuerySqlServerSessionFunctionEvaluator
         result = null;
 
         _ = fn;
-        result = _tryResolveSqlServerRoleMembership(evalArg(0)?.ToString());
+        var roleName = evalArg(0)?.ToString();
+        if (string.IsNullOrWhiteSpace(roleName))
+        {
+            result = null;
+            return true;
+        }
+
+        result = roleName!.Trim().ToUpperInvariant() switch
+        {
+            "DB_OWNER" => 1,
+            "PUBLIC" => 1,
+            "DB_DATAREADER" => 0,
+            "DB_DATAWRITER" => 0,
+            _ => _tryResolveSqlServerRoleMembership(roleName)
+        };
         return true;
     }
 
@@ -193,7 +207,21 @@ internal sealed class AstQuerySqlServerSessionFunctionEvaluator
         result = null;
 
         _ = fn;
-        result = _tryResolveSqlServerRoleMembership(evalArg(0)?.ToString());
+        var roleName = evalArg(0)?.ToString();
+        if (string.IsNullOrWhiteSpace(roleName))
+        {
+            result = null;
+            return true;
+        }
+
+        result = roleName!.Trim().ToUpperInvariant() switch
+        {
+            "DB_OWNER" => 1,
+            "PUBLIC" => 1,
+            "DB_DATAREADER" => 0,
+            "DB_DATAWRITER" => 0,
+            _ => _tryResolveSqlServerRoleMembership(roleName)
+        };
         return true;
     }
 

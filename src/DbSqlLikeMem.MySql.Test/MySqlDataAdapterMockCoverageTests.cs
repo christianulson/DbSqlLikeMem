@@ -1,3 +1,4 @@
+using FluentAssertions;
 using System.Reflection;
 
 namespace DbSqlLikeMem.MySql.Test;
@@ -178,20 +179,20 @@ public sealed class MySqlDataAdapterMockCoverageTests(
         var filledRows = await adapter.FillAsync(filledTable, new DataTableReader(source));
 
         filledRows.Should().Be(1);
-        Assert.Equal(1, filledTable.Rows.Count);
+        filledTable.Rows.Count.Should().Be(1);
         filledTable.Rows[0]["Name"].Should().Be("Ana");
 
         var schemaTable = await adapter.FillSchemaAsync(new DataTable("SchemaUsers"), SchemaType.Source, new DataTableReader(source));
-        Assert.Equal(2, schemaTable.Columns.Count);
+        schemaTable.Columns.Count.Should().Be(2);
 
         var filledDataSet = new DataSet();
         var dataSetRows = await adapter.FillAsync(filledDataSet, "Users", new DataTableReader(source), 0, 10);
         dataSetRows.Should().Be(1);
-        Assert.Single(filledDataSet.Tables.Cast<DataTable>());
+        filledDataSet.Tables.Cast<DataTable>().Should().ContainSingle();
 
         var schemaDataSet = await adapter.FillSchemaAsync(new DataSet(), SchemaType.Source, "Users", new DataTableReader(source));
-        Assert.Single(schemaDataSet);
-        Assert.Equal(2, schemaDataSet[0].Columns.Count);
+        schemaDataSet.Should().ContainSingle();
+        schemaDataSet[0].Columns.Count.Should().Be(2);
     }
 #pragma warning restore xUnit1051
 
@@ -216,22 +217,22 @@ public sealed class MySqlDataAdapterMockCoverageTests(
         var rows = new[] { dataTable.Rows[0] };
         var mapping = new DataTableMapping("Users", "Users");
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => adapter.FillAsync(0, 10, cts.Token, dataTable));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => adapter.FillAsync(dataSet, 0, 10, "Users", cts.Token));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => adapter.FillAsync(dataSet, "Users", reader, 0, 10, cts.Token));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => adapter.FillAsync([new DataTable()], 0, 10, command, CommandBehavior.Default, cts.Token));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => adapter.FillAsync(dataSet, 0, 10, "Users", command, CommandBehavior.Default, cts.Token));
+        await FluentActions.Awaiting(() => adapter.FillAsync(0, 10, cts.Token, dataTable)).Should().ThrowAsync<OperationCanceledException>();
+        await FluentActions.Awaiting(() => adapter.FillAsync(dataSet, 0, 10, "Users", cts.Token)).Should().ThrowAsync<OperationCanceledException>();
+        await FluentActions.Awaiting(() => adapter.FillAsync(dataSet, "Users", reader, 0, 10, cts.Token)).Should().ThrowAsync<OperationCanceledException>();
+        await FluentActions.Awaiting(() => adapter.FillAsync([new DataTable()], 0, 10, command, CommandBehavior.Default, cts.Token)).Should().ThrowAsync<OperationCanceledException>();
+        await FluentActions.Awaiting(() => adapter.FillAsync(dataSet, 0, 10, "Users", command, CommandBehavior.Default, cts.Token)).Should().ThrowAsync<OperationCanceledException>();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => adapter.FillSchemaAsync(dataSet, SchemaType.Source, "Users", cts.Token));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => adapter.FillSchemaAsync(dataSet, SchemaType.Source, "Users", reader, cts.Token));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => adapter.FillSchemaAsync(dataSet, SchemaType.Source, command, "Users", CommandBehavior.Default, cts.Token));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => adapter.FillSchemaAsync(dataTable, SchemaType.Source, reader, cts.Token));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => adapter.FillSchemaAsync(dataTable, SchemaType.Source, command, CommandBehavior.Default, cts.Token));
+        await FluentActions.Awaiting(() => adapter.FillSchemaAsync(dataSet, SchemaType.Source, "Users", cts.Token)).Should().ThrowAsync<OperationCanceledException>();
+        await FluentActions.Awaiting(() => adapter.FillSchemaAsync(dataSet, SchemaType.Source, "Users", reader, cts.Token)).Should().ThrowAsync<OperationCanceledException>();
+        await FluentActions.Awaiting(() => adapter.FillSchemaAsync(dataSet, SchemaType.Source, command, "Users", CommandBehavior.Default, cts.Token)).Should().ThrowAsync<OperationCanceledException>();
+        await FluentActions.Awaiting(() => adapter.FillSchemaAsync(dataTable, SchemaType.Source, reader, cts.Token)).Should().ThrowAsync<OperationCanceledException>();
+        await FluentActions.Awaiting(() => adapter.FillSchemaAsync(dataTable, SchemaType.Source, command, CommandBehavior.Default, cts.Token)).Should().ThrowAsync<OperationCanceledException>();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => adapter.UpdateAsync(rows, cts.Token));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => adapter.UpdateAsync(dataSet, cts.Token));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => adapter.UpdateAsync(rows, mapping, cts.Token));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => adapter.UpdateAsync(dataSet, "Users", cts.Token));
+        await FluentActions.Awaiting(() => adapter.UpdateAsync(rows, cts.Token)).Should().ThrowAsync<OperationCanceledException>();
+        await FluentActions.Awaiting(() => adapter.UpdateAsync(dataSet, cts.Token)).Should().ThrowAsync<OperationCanceledException>();
+        await FluentActions.Awaiting(() => adapter.UpdateAsync(rows, mapping, cts.Token)).Should().ThrowAsync<OperationCanceledException>();
+        await FluentActions.Awaiting(() => adapter.UpdateAsync(dataSet, "Users", cts.Token)).Should().ThrowAsync<OperationCanceledException>();
     }
 #pragma warning restore xUnit1051
 

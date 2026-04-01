@@ -190,7 +190,8 @@ internal static class DbUpdateDeleteFromSelectStrategies
         var executor = context.CreateExecutor();
         var q = SqlQueryParser.Parse(
             subSql,
-            dialect,
+            connection.Db,
+            connection.ExecutionDialect,
             null,
             SqlCustomFunctionResolverFactory.Create(context));
         var subRes = executor.ExecuteSelect((SqlSelectQuery)q);
@@ -431,7 +432,8 @@ internal static class DbUpdateDeleteFromSelectStrategies
         var executor = context.CreateExecutor();
         var q = SqlQueryParser.Parse(
             subSql,
-            context.Dialect,
+            connection.Db,
+            connection.ExecutionDialect,
             null,
             SqlCustomFunctionResolverFactory.Create(context));
         var subRes = executor.ExecuteSelect((SqlSelectQuery)q);

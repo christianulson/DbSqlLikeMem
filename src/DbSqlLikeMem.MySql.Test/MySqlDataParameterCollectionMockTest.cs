@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.MySql.Test;
 /// <summary>
 /// EN: Verifies MySQL parameter collections normalize names, preserve ordering, and enforce guard clauses.
@@ -15,11 +17,11 @@ public sealed class MySqlDataParameterCollectionMockTest(
     [Trait("Category", "MySqlDataParameterCollectionMockTest")]
     public void ParameterCollection_Normalize_ShouldWork_ForAtQuestionAndQuotedNames()
     {
-        Assert.Equal("id", MySqlDataParameterCollectionMock.NormalizeParameterName("@id"));
-        Assert.Equal("id", MySqlDataParameterCollectionMock.NormalizeParameterName("?id"));
-        Assert.Equal("id", MySqlDataParameterCollectionMock.NormalizeParameterName("@`id`"));
-        Assert.Equal("id", MySqlDataParameterCollectionMock.NormalizeParameterName("@\"id\""));
-        Assert.Equal("id", MySqlDataParameterCollectionMock.NormalizeParameterName("@'id'"));
+        MySqlDataParameterCollectionMock.NormalizeParameterName("@id").Should().Be("id");
+        MySqlDataParameterCollectionMock.NormalizeParameterName("?id").Should().Be("id");
+        MySqlDataParameterCollectionMock.NormalizeParameterName("@`id`").Should().Be("id");
+        MySqlDataParameterCollectionMock.NormalizeParameterName("@\"id\"").Should().Be("id");
+        MySqlDataParameterCollectionMock.NormalizeParameterName("@'id'").Should().Be("id");
     }
 
     /// <summary>
@@ -33,7 +35,7 @@ public sealed class MySqlDataParameterCollectionMockTest(
         var pars = new MySqlDataParameterCollectionMock();
         pars.AddWithValue("@Id", 1);
 
-        Assert.Throws<ArgumentException>(() => pars.AddWithValue("@id", 2)); // case-insensitive
+        FluentActions.Invoking(() => pars.AddWithValue("@id", 2)).Should().Throw<ArgumentException>(); // case-insensitive
     }
 
     /// <summary>
@@ -51,12 +53,12 @@ public sealed class MySqlDataParameterCollectionMockTest(
 
         pars.RemoveAt("@b");
 
-        Assert.True(pars.Contains("@a"));
-        Assert.False(pars.Contains("@b"));
-        Assert.True(pars.Contains("@c"));
+        pars.Contains("@a").Should().BeTrue();
+        pars.Contains("@b").Should().BeFalse();
+        pars.Contains("@c").Should().BeTrue();
 
         // c deve agora estar no índice 1
-        Assert.Equal(3, pars["@c"].Value);
+        pars["@c"].Value.Should().Be(3);
     }
 
     /// <summary>
@@ -74,29 +76,29 @@ public sealed class MySqlDataParameterCollectionMockTest(
         var bySize = pars.Add("@email", MySqlDbType.VarChar, 200);
         var byValue = pars.AddWithValue("@active", true);
 
-        Assert.Equal(4, pars.Count);
-        Assert.Same(byDbType, pars[0]);
-        Assert.Same(byMySqlType, pars["@name"]);
-        Assert.Same(bySize, pars["@email"]);
-        Assert.Same(byValue, pars["@active"]);
-        Assert.True(pars.Contains("@email"));
-        Assert.Contains(byValue, pars);
-        Assert.False(pars.Contains(new object()));
-        Assert.Equal(2, pars.IndexOf("@email"));
+        pars.Count.Should().Be(4);
+        pars[0].Should().BeSameAs(byDbType);
+        pars["@name"].Should().BeSameAs(byMySqlType);
+        pars["@email"].Should().BeSameAs(bySize);
+        pars["@active"].Should().BeSameAs(byValue);
+        pars.Contains("@email").Should().BeTrue();
+        pars.Should().Contain(byValue);
+        pars.Contains(new object()).Should().BeFalse();
+        pars.IndexOf("@email").Should().Be(2);
 
         var copied = new MySqlParameter[4];
         pars.CopyTo(copied, 0);
-        Assert.Same(byDbType, copied[0]);
-        Assert.Same(byValue, copied[3]);
+        copied[0].Should().BeSameAs(byDbType);
+        copied[3].Should().BeSameAs(byValue);
 
         var copiedAsArray = new object[4];
         pars.CopyTo(copiedAsArray, 0);
-        Assert.Same(byMySqlType, copiedAsArray[1]);
+        copiedAsArray[1].Should().BeSameAs(byMySqlType);
 
         pars.Clear();
 
-        Assert.Empty(pars);
-        Assert.False(pars.Contains("@id"));
+        pars.Should().BeEmpty();
+        pars.Contains("@id").Should().BeFalse();
     }
 
     /// <summary>
@@ -116,30 +118,30 @@ public sealed class MySqlDataParameterCollectionMockTest(
         pars.Add(second);
         ((DbParameterCollection)pars).Insert(1, third);
 
-        Assert.Equal(1, pars.IndexOf("@email"));
-        Assert.Same(third, pars[1]);
+        pars.IndexOf("@email").Should().Be(1);
+        pars[1].Should().BeSameAs(third);
 
         var replacement = new MySqlParameter("@displayName", "Ana Maria");
         pars[1] = replacement;
 
-        Assert.False(pars.Contains("@email"));
-        Assert.True(pars.Contains("@displayName"));
-        Assert.Same(replacement, pars["@displayName"]);
+        pars.Contains("@email").Should().BeFalse();
+        pars.Contains("@displayName").Should().BeTrue();
+        pars["@displayName"].Should().BeSameAs(replacement);
 
         pars["@displayName"] = new MySqlParameter("@nickname", "Aninha");
 
-        Assert.False(pars.Contains("@displayName"));
-        Assert.True(pars.Contains("@nickname"));
-        Assert.Equal(1, pars.IndexOf("@nickname"));
+        pars.Contains("@displayName").Should().BeFalse();
+        pars.Contains("@nickname").Should().BeTrue();
+        pars.IndexOf("@nickname").Should().Be(1);
 
-        Assert.True(pars.Remove(pars["@nickname"]));
-        Assert.False(pars.Remove(new MySqlParameter("@missing", 0)));
+        pars.Remove(pars["@nickname"]).Should().BeTrue();
+        pars.Remove(new MySqlParameter("@missing", 0)).Should().BeFalse();
 
         pars.Remove(first);
 
-        Assert.Single(pars);
-        Assert.Equal(-1, pars.IndexOf("@id"));
-        Assert.Equal(-1, pars.IndexOf(new object()));
+        pars.Should().ContainSingle();
+        pars.IndexOf("@id").Should().Be(-1);
+        pars.IndexOf(new object()).Should().Be(-1);
     }
 
     /// <summary>
@@ -154,12 +156,12 @@ public sealed class MySqlDataParameterCollectionMockTest(
         pars.AddWithValue("@id", 1);
         pars.AddWithValue("@name", "Ana");
 
-        Assert.Throws<ArgumentNullException>(() => pars.Add((object)null!));
-        Assert.Throws<ArgumentNullException>(() => pars.AddRange(null!));
-        Assert.Throws<ArgumentNullException>(() => pars.Insert(0, (object?)null));
-        Assert.Throws<ArgumentNullException>(() => pars.Remove((object?)null));
-        Assert.Throws<ArgumentNullException>(() => pars.Remove((MySqlParameter)null!));
-        Assert.Throws<ArgumentException>(() => _ = pars["@missing"]);
-        Assert.Throws<ArgumentException>(() => pars[1] = new MySqlParameter("@id", 2));
+        FluentActions.Invoking(() => pars.Add((object)null!)).Should().Throw<ArgumentNullException>();
+        FluentActions.Invoking(() => pars.AddRange(null!)).Should().Throw<ArgumentNullException>();
+        FluentActions.Invoking(() => pars.Insert(0, (object?)null)).Should().Throw<ArgumentNullException>();
+        FluentActions.Invoking(() => pars.Remove((object?)null)).Should().Throw<ArgumentNullException>();
+        FluentActions.Invoking(() => pars.Remove((MySqlParameter)null!)).Should().Throw<ArgumentNullException>();
+        FluentActions.Invoking(() => _ = pars["@missing"]).Should().Throw<ArgumentException>();
+        FluentActions.Invoking(() => pars[1] = new MySqlParameter("@id", 2)).Should().Throw<ArgumentException>();
     }
 }

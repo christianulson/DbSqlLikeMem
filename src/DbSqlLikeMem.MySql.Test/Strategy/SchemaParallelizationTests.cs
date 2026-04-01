@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.MySql.Test.Strategy;
 
 /// <summary>
@@ -30,7 +32,7 @@ public sealed class SchemaParallelizationTests(
             new("UserId", DbType.Int32, false)
         ]);
 
-        var schema = Assert.IsType<MySqlSchemaMock>(db["DefaultSchema"]);
+        var schema = db["DefaultSchema"].Should().BeOfType<MySqlSchemaMock>().Subject;
         var users = db.GetTable("Users");
         var orders = db.GetTable("Orders");
 
@@ -44,18 +46,18 @@ public sealed class SchemaParallelizationTests(
 
         schema.RestoreAllTablesBestEffort();
 
-        Assert.Single(users);
-        Assert.Single(orders);
-        Assert.Equal("Alice", users[0][1]);
-        Assert.Equal(1, orders[0][1]);
+        users.Should().ContainSingle();
+        orders.Should().ContainSingle();
+        users[0][1].Should().Be("Alice");
+        orders[0][1].Should().Be(1);
 
         schema.ClearBackupAllTablesBestEffort();
 
         users.Add(new Dictionary<int, object?> { [0] = 3, [1] = "Carol" });
         schema.RestoreAllTablesBestEffort();
 
-        Assert.Equal(2, users.Count);
-        Assert.Equal("Carol", users[1][1]);
+        users.Should().HaveCount(2);
+        users[1][1].Should().Be("Carol");
     }
 
     /// <summary>
@@ -90,10 +92,10 @@ public sealed class SchemaParallelizationTests(
 
         db.RestoreAllTablesBestEffort();
 
-        Assert.Single(defaultUsers);
-        Assert.Single(archiveUsers);
-        Assert.Equal("Ana", defaultUsers[0][1]);
-        Assert.Equal("Zed", archiveUsers[0][1]);
+        defaultUsers.Should().ContainSingle();
+        archiveUsers.Should().ContainSingle();
+        defaultUsers[0][1].Should().Be("Ana");
+        archiveUsers[0][1].Should().Be("Zed");
 
         db.ClearBackupAllTablesBestEffort();
 
@@ -101,10 +103,10 @@ public sealed class SchemaParallelizationTests(
         archiveUsers.Add(new Dictionary<int, object?> { [0] = 102, [1] = "Neo" });
         db.RestoreAllTablesBestEffort();
 
-        Assert.Equal(2, defaultUsers.Count);
-        Assert.Equal(2, archiveUsers.Count);
-        Assert.Equal("Carol", defaultUsers[1][1]);
-        Assert.Equal("Neo", archiveUsers[1][1]);
+        defaultUsers.Should().HaveCount(2);
+        archiveUsers.Should().HaveCount(2);
+        defaultUsers[1][1].Should().Be("Carol");
+        archiveUsers[1][1].Should().Be("Neo");
     }
 
     /// <summary>
@@ -131,14 +133,14 @@ public sealed class SchemaParallelizationTests(
 
         defaultUsers.Add(new Dictionary<int, object?> { [1] = "Ana" });
         archiveUsers.Add(new Dictionary<int, object?> { [1] = "Zed" });
-        Assert.Equal(2, defaultUsers.NextIdentity);
-        Assert.Equal(2, archiveUsers.NextIdentity);
+        defaultUsers.NextIdentity.Should().Be(2);
+        archiveUsers.NextIdentity.Should().Be(2);
 
         db.ResetVolatileData();
 
-        Assert.Empty(defaultUsers);
-        Assert.Empty(archiveUsers);
-        Assert.Equal(1, defaultUsers.NextIdentity);
-        Assert.Equal(1, archiveUsers.NextIdentity);
+        defaultUsers.Should().BeEmpty();
+        archiveUsers.Should().BeEmpty();
+        defaultUsers.NextIdentity.Should().Be(1);
+        archiveUsers.NextIdentity.Should().Be(1);
     }
 }

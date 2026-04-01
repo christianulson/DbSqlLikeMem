@@ -7,6 +7,13 @@ internal static class AstQueryToNumberFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
+        if (!(string.Equals(fn.Name, "TO_NUMBER", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "DEC", StringComparison.OrdinalIgnoreCase)))
+        {
+            result = null;
+            return false;
+        }
+
         var value = evalArg(0);
         if (value is string numberText)
         {

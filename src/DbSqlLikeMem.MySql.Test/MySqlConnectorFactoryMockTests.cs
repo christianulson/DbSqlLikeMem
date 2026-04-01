@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.MySql.Test;
 
 /// <summary>
@@ -17,16 +19,16 @@ public sealed class MySqlConnectorFactoryMockTests(
     {
         var factory = MySqlConnectorFactoryMock.GetInstance([]);
 
-        Assert.IsType<MySqlCommandMock>(factory.CreateCommand());
-        Assert.IsType<MySqlConnectionMock>(factory.CreateConnection());
-        Assert.IsType<MySqlDataAdapterMock>(factory.CreateDataAdapter());
-        Assert.IsType<MySqlParameter>(factory.CreateParameter());
-        Assert.IsType<MySqlConnectionStringBuilder>(factory.CreateConnectionStringBuilder());
-        Assert.IsType<MySqlCommandBuilder>(factory.CreateCommandBuilder());
-        Assert.False(factory.CanCreateDataSourceEnumerator);
+        factory.CreateCommand().Should().BeOfType<MySqlCommandMock>();
+        factory.CreateConnection().Should().BeOfType<MySqlConnectionMock>();
+        factory.CreateDataAdapter().Should().BeOfType<MySqlDataAdapterMock>();
+        factory.CreateParameter().Should().BeOfType<MySqlParameter>();
+        factory.CreateConnectionStringBuilder().Should().BeOfType<MySqlConnectionStringBuilder>();
+        factory.CreateCommandBuilder().Should().BeOfType<MySqlCommandBuilder>();
+        factory.CanCreateDataSourceEnumerator.Should().BeFalse();
 #if NETCOREAPP3_0_OR_GREATER
-        Assert.True(factory.CanCreateCommandBuilder);
-        Assert.True(factory.CanCreateDataAdapter);
+        factory.CanCreateCommandBuilder.Should().BeTrue();
+        factory.CanCreateDataAdapter.Should().BeTrue();
 #endif
     }
 
@@ -40,9 +42,9 @@ public sealed class MySqlConnectorFactoryMockTests(
     {
         var factory = MySqlConnectorFactoryMock.GetInstance([]);
 
-        Assert.True(factory.CanCreateBatch);
-        Assert.IsType<MySqlBatchMock>(factory.CreateBatch());
-        Assert.IsType<MySqlBatchCommandMock>(factory.CreateBatchCommand());
+        factory.CanCreateBatch.Should().BeTrue();
+        factory.CreateBatch().Should().BeOfType<MySqlBatchMock>();
+        factory.CreateBatchCommand().Should().BeOfType<MySqlBatchCommandMock>();
     }
 #endif
 
@@ -57,7 +59,7 @@ public sealed class MySqlConnectorFactoryMockTests(
         var factory = MySqlConnectorFactoryMock.GetInstance([]);
 
         var dataSource = factory.CreateDataSource("Host=mock");
-        Assert.IsType<MySqlDataSourceMock>(dataSource);
+        dataSource.Should().BeOfType<MySqlDataSourceMock>();
     }
 #endif
 }

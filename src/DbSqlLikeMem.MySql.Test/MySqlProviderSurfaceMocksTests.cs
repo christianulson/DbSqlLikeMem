@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.MySql.Test;
 
 /// <summary>
@@ -18,8 +20,8 @@ public sealed class MySqlProviderSurfaceMocksTests(
         using var connection = new MySqlConnectionMock(new MySqlDbMock());
         var adapter = new MySqlDataAdapterMock("SELECT 1", connection);
 
-        Assert.NotNull(adapter.SelectCommand);
-        Assert.Equal("SELECT 1", adapter.SelectCommand!.CommandText);
+        adapter.SelectCommand.Should().NotBeNull();
+        adapter.SelectCommand!.CommandText.Should().Be("SELECT 1");
     }
 
     /// <summary>
@@ -35,7 +37,7 @@ public sealed class MySqlProviderSurfaceMocksTests(
 #else
         using var connection = source.CreateDbConnection();
 #endif
-        Assert.IsType<MySqlConnectionMock>(connection);
+        connection.Should().BeOfType<MySqlConnectionMock>();
     }
 
     /// <summary>
@@ -47,8 +49,8 @@ public sealed class MySqlProviderSurfaceMocksTests(
     {
         var adapter = new MySqlDataAdapterMock();
 
-        Assert.True(adapter.LoadDefaults);
-        Assert.Equal(1, adapter.UpdateBatchSize);
+        adapter.LoadDefaults.Should().BeTrue();
+        adapter.UpdateBatchSize.Should().Be(1);
     }
 
     /// <summary>
@@ -62,8 +64,8 @@ public sealed class MySqlProviderSurfaceMocksTests(
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => adapter.FillAsync(new DataSet(), cts.Token));
+        await FluentActions.Awaiting(() => adapter.FillAsync(new DataSet(), cts.Token))
+            .Should().ThrowAsync<OperationCanceledException>();
     }
 
     /// <summary>
@@ -77,8 +79,8 @@ public sealed class MySqlProviderSurfaceMocksTests(
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => adapter.FillAsync(new DataTable(), cts.Token));
+        await FluentActions.Awaiting(() => adapter.FillAsync(new DataTable(), cts.Token))
+            .Should().ThrowAsync<OperationCanceledException>();
     }
 
     /// <summary>
@@ -92,12 +94,12 @@ public sealed class MySqlProviderSurfaceMocksTests(
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => adapter.FillAsync(new DataSet(), "Users", cts.Token));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => adapter.FillAsync(new DataTable(), new DataTableReader(new DataTable()), cts.Token));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => adapter.FillAsync(new DataTable(), new MySqlCommandMock(), CommandBehavior.Default, cts.Token));
+        await FluentActions.Awaiting(() => adapter.FillAsync(new DataSet(), "Users", cts.Token))
+            .Should().ThrowAsync<OperationCanceledException>();
+        await FluentActions.Awaiting(() => adapter.FillAsync(new DataTable(), new DataTableReader(new DataTable()), cts.Token))
+            .Should().ThrowAsync<OperationCanceledException>();
+        await FluentActions.Awaiting(() => adapter.FillAsync(new DataTable(), new MySqlCommandMock(), CommandBehavior.Default, cts.Token))
+            .Should().ThrowAsync<OperationCanceledException>();
     }
 
     /// <summary>
@@ -111,11 +113,11 @@ public sealed class MySqlProviderSurfaceMocksTests(
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => adapter.FillSchemaAsync(new DataSet(), SchemaType.Source, cts.Token));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => adapter.FillSchemaAsync(new DataTable(), SchemaType.Source, cts.Token));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => adapter.UpdateAsync(new DataTable(), cts.Token));
+        await FluentActions.Awaiting(() => adapter.FillSchemaAsync(new DataSet(), SchemaType.Source, cts.Token))
+            .Should().ThrowAsync<OperationCanceledException>();
+        await FluentActions.Awaiting(() => adapter.FillSchemaAsync(new DataTable(), SchemaType.Source, cts.Token))
+            .Should().ThrowAsync<OperationCanceledException>();
+        await FluentActions.Awaiting(() => adapter.UpdateAsync(new DataTable(), cts.Token))
+            .Should().ThrowAsync<OperationCanceledException>();
     }
 }

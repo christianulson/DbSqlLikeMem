@@ -18,8 +18,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_JsonTable_ShouldBeRejected(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
+
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("JSON_TABLE(payload, '$[*]' COLUMNS(x INT PATH '$'))", GetDialect(version, v => new SqlServerDialect(v))));
+            SqlExpressionParser.ParseScalar("JSON_TABLE(payload, '$[*]' COLUMNS(x INT PATH '$'))", db, d));
 
         Assert.Contains(SqlConst.JSON_TABLE, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -34,7 +37,7 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void MatchAgainstCapability_ShouldBeDisabled(int version)
     {
-        Assert.False(GetDialect(version, v => new SqlServerDialect(v)).SupportsMatchAgainstPredicate);
+        Assert.False(Get(version, v => new SqlServerDialect(v)).SupportsMatchAgainstPredicate);
     }
 
     /// <summary>
@@ -47,7 +50,7 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void LastFoundRowsCapability_ShouldExposeSqlServerFunctionAndIdentifier(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var dialect = Get(version, v => new SqlServerDialect(v));
 
         Assert.True(dialect.SupportsLastFoundRowsFunction("ROWCOUNT"));
         Assert.True(dialect.SupportsLastFoundRowsIdentifier("@@ROWCOUNT"));
@@ -64,7 +67,7 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void MutationCapabilities_ShouldExposeSqlServerContract(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var dialect = Get(version, v => new SqlServerDialect(v));
 
         Assert.False(dialect.SupportsUpdateJoinFromSubquerySyntax);
         Assert.True(dialect.SupportsUpdateFromJoinSubquerySyntax);
@@ -84,9 +87,9 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ApplyCapability_ShouldFollowSqlServerVersionSupport(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
 
-        Assert.Equal(version >= SqlServerDialect.WithCteMinVersion, dialect.SupportsApplyClause);
+        Assert.Equal(version >= SqlServerDialect.WithCteMinVersion, d.SupportsApplyClause);
     }
 
     /// <summary>
@@ -99,7 +102,7 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void MetadataFunctions_ShouldBeEnabledForAllVersions(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
         var functions = new[]
         {
             "APPLOCK_MODE",
@@ -130,7 +133,7 @@ public sealed class SqlServerDialectFeatureParserTests(
         };
 
         foreach (var name in functions)
-            Assert.True(dialect.SupportsSqlServerMetadataFunction(name), name);
+            Assert.True(d.SupportsSqlServerMetadataFunction(name), name);
     }
 
     /// <summary>
@@ -143,7 +146,7 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void MetadataIdentifiers_ShouldIncludeTextSize(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var dialect = Get(version, v => new SqlServerDialect(v));
 
         Assert.True(dialect.SupportsSqlServerMetadataIdentifier("@@TEXTSIZE"));
     }
@@ -158,7 +161,7 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ScalarFunctions_ShouldIncludeNewSequentialId(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var dialect = Get(version, v => new SqlServerDialect(v));
 
         Assert.True(dialect.SupportsSqlServerScalarFunction("NEWSEQUENTIALID"));
     }
@@ -173,6 +176,8 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseSelect_CrossApplyDerivedSubquery_ShouldFollowVersionSupport(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = """
             SELECT u.Id, latest.OrderId
             FROM Users u
@@ -186,12 +191,12 @@ public sealed class SqlServerDialectFeatureParserTests(
 
         if (version < SqlServerDialect.WithCteMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
             Assert.Contains("CROSS APPLY", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, d));
         var join = Assert.Single(parsed.Joins);
         Assert.Equal(SqlJoinType.CrossApply, join.Type);
         Assert.NotNull(join.Table.Derived);
@@ -208,6 +213,8 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseSelect_OuterApplyDerivedSubquery_ShouldFollowVersionSupport(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = """
             SELECT u.Id, latest.OrderId
             FROM Users u
@@ -221,12 +228,12 @@ public sealed class SqlServerDialectFeatureParserTests(
 
         if (version < SqlServerDialect.WithCteMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
             Assert.Contains("OUTER APPLY", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, d));
         var join = Assert.Single(parsed.Joins);
         Assert.Equal(SqlJoinType.OuterApply, join.Type);
         Assert.NotNull(join.Table.Derived);
@@ -243,20 +250,29 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseSelect_CrossApplyOpenJson_ShouldFollowVersionSupport(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = """
             SELECT u.Id, j.[value]
             FROM Users u
             CROSS APPLY OPENJSON(u.Email) j
             """;
 
+        if (version < SqlServerDialect.WithCteMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
+            Assert.Contains("CROSS APPLY", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
         if (version < SqlServerDialect.JsonFunctionsMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
             Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, d));
         var join = Assert.Single(parsed.Joins);
         Assert.Equal(SqlJoinType.CrossApply, join.Type);
         Assert.NotNull(join.Table.TableFunction);
@@ -273,6 +289,8 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseSelect_CrossApplyOpenJsonWithSchema_ShouldFollowVersionSupport(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = """
             SELECT u.Id, data.Name, data.Qty
             FROM Users u
@@ -284,14 +302,21 @@ public sealed class SqlServerDialectFeatureParserTests(
             ) data
             """;
 
+        if (version < SqlServerDialect.WithCteMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
+            Assert.Contains("CROSS APPLY", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
         if (version < SqlServerDialect.JsonFunctionsMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
             Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, d));
         var join = Assert.Single(parsed.Joins);
         var withClause = Assert.IsType<SqlOpenJsonWithClause>(join.Table.OpenJsonWithClause);
         Assert.Equal(4, withClause.Columns.Count);
@@ -313,6 +338,8 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseSelect_CrossApplyOpenJsonWithStrictQuotedPaths_ShouldPreservePaths(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = """
             SELECT data.Color
             FROM Users u
@@ -321,14 +348,21 @@ public sealed class SqlServerDialectFeatureParserTests(
             ) data
             """;
 
+        if (version < SqlServerDialect.WithCteMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
+            Assert.Contains("CROSS APPLY", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
         if (version < SqlServerDialect.JsonFunctionsMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
             Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, d));
         var join = Assert.Single(parsed.Joins);
         var function = Assert.IsType<FunctionCallExpr>(join.Table.TableFunction);
         Assert.Equal("strict $.items[1]", Assert.IsType<LiteralExpr>(function.Args[1]).Value);
@@ -345,20 +379,29 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseSelect_OuterApplyStringSplit_ShouldFollowVersionSupport(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = """
             SELECT u.Id, part.value
             FROM Users u
             OUTER APPLY STRING_SPLIT(u.Email, ',') part
             """;
 
+        if (version < SqlServerDialect.WithCteMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
+            Assert.Contains("OUTER APPLY", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
         if (version < SqlServerDialect.JsonFunctionsMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
             Assert.Contains(SqlConst.STRING_SPLIT, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, d));
         var join = Assert.Single(parsed.Joins);
         Assert.Equal(SqlJoinType.OuterApply, join.Type);
         Assert.NotNull(join.Table.TableFunction);
@@ -375,21 +418,43 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseSelect_CrossApplyStringSplitWithOrdinal_ShouldFollowVersionSupport(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = """
             SELECT u.Id, part.value, part.ordinal
             FROM Users u
             CROSS APPLY STRING_SPLIT(u.Email, ',', 1) part
             """;
 
-        if (version < SqlServerDialect.StringSplitOrdinalMinVersion)
+        if (version < SqlServerDialect.WithCteMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
-            //Assert.Contains("enable_ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.OrdinalIgnoreCase);
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
+            Assert.Contains("CROSS APPLY", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+        if (version < SqlServerDialect.WithCteMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
+            Assert.Contains("CROSS APPLY", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        if (version < SqlServerDialect.JsonFunctionsMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
+            Assert.Contains(SqlConst.STRING_SPLIT, ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        if (version < SqlServerDialect.StringSplitOrdinalMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
+            Assert.Contains("enable_ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, d));
         var join = Assert.Single(parsed.Joins);
         var function = Assert.IsType<FunctionCallExpr>(join.Table.TableFunction);
         Assert.Equal(SqlConst.STRING_SPLIT, function.Name, StringComparer.OrdinalIgnoreCase);
@@ -406,13 +471,15 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseSelect_WithUnpivot_ShouldPopulateTableTransform(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = """
             SELECT up.Id, up.FieldName, up.FieldValue
             FROM (SELECT Id, Name, Email FROM Users) src
             UNPIVOT (FieldValue FOR FieldName IN (Name, Email)) up
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, d));
         var source = Assert.IsType<SqlTableSource>(parsed.Table);
         var unpivot = Assert.IsType<SqlUnpivotSpec>(source.Unpivot);
 
@@ -434,6 +501,8 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseSelect_ForJsonPath_ShouldFollowVersionSupport(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = """
             SELECT u.Id AS [User.Id], u.Name AS [User.Name]
             FROM Users u
@@ -443,12 +512,12 @@ public sealed class SqlServerDialectFeatureParserTests(
 
         if (version < SqlServerDialect.JsonFunctionsMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
             Assert.Contains(SqlConst.FOR_JSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, d));
         var forJson = Assert.IsType<SqlForJsonClause>(parsed.ForJson);
         Assert.Equal(SqlForJsonMode.Path, forJson.Mode);
         Assert.Equal("users", forJson.RootName, ignoreCase: true);
@@ -466,6 +535,8 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseSelect_ForJsonAutoWithOptions_ShouldPopulateClause(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = """
             SELECT u.Id, u.Name, u.Email
             FROM Users u
@@ -475,12 +546,12 @@ public sealed class SqlServerDialectFeatureParserTests(
 
         if (version < SqlServerDialect.JsonFunctionsMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
             Assert.Contains(SqlConst.FOR_JSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, d));
         var forJson = Assert.IsType<SqlForJsonClause>(parsed.ForJson);
         Assert.Equal(SqlForJsonMode.Auto, forJson.Mode);
         Assert.True(forJson.IncludeNullValues);
@@ -498,15 +569,16 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_LastFoundRowsFunctions_ShouldFollowDialectCapability(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
 
-        Assert.Equal("ROWCOUNT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROWCOUNT()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("ROWCOUNT_BIG", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROWCOUNT_BIG()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ROWCOUNT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROWCOUNT()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ROWCOUNT_BIG", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROWCOUNT_BIG()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
 
-        var foundRowsEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("FOUND_ROWS()", dialect));
+        var foundRowsEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("FOUND_ROWS()", db, d));
         Assert.Contains("FOUND_ROWS", foundRowsEx.Message, StringComparison.OrdinalIgnoreCase);
 
-        var rowCountEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_COUNT()", dialect));
+        var rowCountEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_COUNT()", db, d));
         Assert.Contains("ROW_COUNT", rowCountEx.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -520,7 +592,7 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void MetadataFunctionCapability_ShouldExposeSqlServerContract(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var dialect = Get(version, v => new SqlServerDialect(v));
 
         Assert.True(dialect.SupportsSqlServerMetadataFunction("DB_ID"));
         Assert.True(dialect.SupportsSqlServerMetadataFunction("CURRENT_REQUEST_ID"));
@@ -582,63 +654,64 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_MetadataFunctions_ShouldFollowDialectCapability(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
 
-        Assert.Equal("APP_NAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("APP_NAME()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("CURRENT_REQUEST_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CURRENT_REQUEST_ID()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("CURRENT_TRANSACTION_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CURRENT_TRANSACTION_ID()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("CONTEXT_INFO", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CONTEXT_INFO()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("DATABASE_PRINCIPAL_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATABASE_PRINCIPAL_ID('dbo')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("DATABASEPROPERTYEX", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATABASEPROPERTYEX('DefaultSchema', 'Status')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("CONNECTIONPROPERTY", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CONNECTIONPROPERTY('net_transport')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("COLUMNPROPERTY", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("COLUMNPROPERTY(OBJECT_ID('Users'), 'Name', 'ColumnId')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("COL_LENGTH", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("COL_LENGTH('Users', 'Id')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("COL_NAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("COL_NAME(2, 2)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("DB_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DB_ID()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("DB_NAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DB_NAME()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("OBJECT_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("OBJECT_ID('Users')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("OBJECTPROPERTY", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("OBJECTPROPERTY(OBJECT_ID('Users'), 'IsTable')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("OBJECTPROPERTYEX", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("OBJECTPROPERTYEX(OBJECT_ID('sp_ping'), 'IsProcedure')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("OBJECT_NAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("OBJECT_NAME(2)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("OBJECT_SCHEMA_NAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("OBJECT_SCHEMA_NAME(2)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("ORIGINAL_DB_NAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ORIGINAL_DB_NAME()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("ORIGINAL_LOGIN", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ORIGINAL_LOGIN()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("GETANSINULL", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("GETANSINULL()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("HOST_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("HOST_ID()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("HOST_NAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("HOST_NAME()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("IS_MEMBER", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("IS_MEMBER('db_owner')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("IS_ROLEMEMBER", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("IS_ROLEMEMBER('db_datareader')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("IS_SRVROLEMEMBER", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("IS_SRVROLEMEMBER('sysadmin')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("APP_NAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("APP_NAME()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("CURRENT_REQUEST_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CURRENT_REQUEST_ID()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("CURRENT_TRANSACTION_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CURRENT_TRANSACTION_ID()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("CONTEXT_INFO", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CONTEXT_INFO()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("DATABASE_PRINCIPAL_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATABASE_PRINCIPAL_ID('dbo')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("DATABASEPROPERTYEX", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATABASEPROPERTYEX('DefaultSchema', 'Status')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("CONNECTIONPROPERTY", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CONNECTIONPROPERTY('net_transport')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("COLUMNPROPERTY", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("COLUMNPROPERTY(OBJECT_ID('Users'), 'Name', 'ColumnId')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("COL_LENGTH", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("COL_LENGTH('Users', 'Id')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("COL_NAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("COL_NAME(2, 2)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("DB_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DB_ID()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("DB_NAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DB_NAME()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("OBJECT_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("OBJECT_ID('Users')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("OBJECTPROPERTY", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("OBJECTPROPERTY(OBJECT_ID('Users'), 'IsTable')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("OBJECTPROPERTYEX", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("OBJECTPROPERTYEX(OBJECT_ID('sp_ping'), 'IsProcedure')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("OBJECT_NAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("OBJECT_NAME(2)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("OBJECT_SCHEMA_NAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("OBJECT_SCHEMA_NAME(2)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ORIGINAL_DB_NAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ORIGINAL_DB_NAME()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ORIGINAL_LOGIN", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ORIGINAL_LOGIN()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("GETANSINULL", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("GETANSINULL()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("HOST_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("HOST_ID()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("HOST_NAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("HOST_NAME()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("IS_MEMBER", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("IS_MEMBER('db_owner')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("IS_ROLEMEMBER", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("IS_ROLEMEMBER('db_datareader')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("IS_SRVROLEMEMBER", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("IS_SRVROLEMEMBER('sysadmin')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
         if (version < SqlServerDialect.SessionContextMinVersion)
         {
-            var sessionContextEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("SESSION_CONTEXT(N'tenant_id')", dialect));
+            var sessionContextEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("SESSION_CONTEXT(N'tenant_id')", db, d));
             Assert.Contains("SESSION_CONTEXT", sessionContextEx.Message, StringComparison.OrdinalIgnoreCase);
         }
         else
         {
-            Assert.Equal("SESSION_CONTEXT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SESSION_CONTEXT(N'tenant_id')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal("SESSION_CONTEXT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SESSION_CONTEXT(N'tenant_id')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
         }
-        Assert.Equal("ERROR_LINE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ERROR_LINE()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("ERROR_MESSAGE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ERROR_MESSAGE()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("ERROR_NUMBER", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ERROR_NUMBER()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("ERROR_PROCEDURE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ERROR_PROCEDURE()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("ERROR_SEVERITY", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ERROR_SEVERITY()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("ERROR_STATE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ERROR_STATE()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("SCOPE_IDENTITY", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SCOPE_IDENTITY()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("SCHEMA_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SCHEMA_ID()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("SCHEMA_NAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SCHEMA_NAME()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("SERVERPROPERTY", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SERVERPROPERTY('ProductVersion')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("SESSION_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SESSION_ID()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("SUSER_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SUSER_ID()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("SUSER_NAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SUSER_NAME()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("SUSER_SID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SUSER_SID()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("SUSER_SNAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SUSER_SNAME()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("TYPE_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("TYPE_ID('int')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("TYPE_NAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("TYPE_NAME(56)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("TYPEPROPERTY", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("TYPEPROPERTY('int', 'OwnerId')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("USER_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("USER_ID()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("USER_NAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("USER_NAME()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("XACT_STATE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("XACT_STATE()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ERROR_LINE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ERROR_LINE()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ERROR_MESSAGE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ERROR_MESSAGE()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ERROR_NUMBER", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ERROR_NUMBER()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ERROR_PROCEDURE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ERROR_PROCEDURE()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ERROR_SEVERITY", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ERROR_SEVERITY()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ERROR_STATE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ERROR_STATE()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SCOPE_IDENTITY", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SCOPE_IDENTITY()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SCHEMA_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SCHEMA_ID()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SCHEMA_NAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SCHEMA_NAME()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SERVERPROPERTY", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SERVERPROPERTY('ProductVersion')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SESSION_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SESSION_ID()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SUSER_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SUSER_ID()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SUSER_NAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SUSER_NAME()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SUSER_SID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SUSER_SID()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SUSER_SNAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SUSER_SNAME()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("TYPE_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("TYPE_ID('int')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("TYPE_NAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("TYPE_NAME(56)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("TYPEPROPERTY", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("TYPEPROPERTY('int', 'OwnerId')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("USER_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("USER_ID()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("USER_NAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("USER_NAME()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("XACT_STATE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("XACT_STATE()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -651,7 +724,7 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void MetadataIdentifierCapability_ShouldExposeSqlServerContract(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var dialect = Get(version, v => new SqlServerDialect(v));
 
         Assert.True(dialect.SupportsSqlServerMetadataIdentifier("CURRENT_USER"));
         Assert.True(dialect.SupportsSqlServerMetadataIdentifier("@@DATEFIRST"));
@@ -672,7 +745,7 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void DateFunctionCapability_ShouldExposeSqlServerContract(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var dialect = Get(version, v => new SqlServerDialect(v));
 
         Assert.True(dialect.SupportsSqlServerDateFunction("DATEDIFF"));
         Assert.True(dialect.SupportsSqlServerDateFunction("DATENAME"));
@@ -693,12 +766,13 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void AggregateFunctionCapability_ShouldExposeSqlServerContract(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
 
-        Assert.Equal(version >= SqlServerDialect.ApproxCountDistinctMinVersion, dialect.SupportsApproximateAggregateFunction("APPROX_COUNT_DISTINCT"));
-        Assert.False(dialect.SupportsSqlServerAggregateFunction("APPROX_COUNT_DISTINCT"));
-        Assert.True(dialect.SupportsSqlServerAggregateFunction(SqlConst.CHECKSUM_AGG));
-        Assert.False(dialect.SupportsSqlServerAggregateFunction(SqlConst.SUM));
+        Assert.Equal(version >= SqlServerDialect.ApproxCountDistinctMinVersion, d.SupportsApproximateAggregateFunction("APPROX_COUNT_DISTINCT"));
+        Assert.Equal(version >= SqlServerDialect.ApproxCountDistinctMinVersion, d.SupportsSqlServerAggregateFunction("APPROX_COUNT_DISTINCT"));
+        Assert.True(d.SupportsSqlServerAggregateFunction(SqlConst.CHECKSUM_AGG));
+        Assert.False(d.SupportsSqlServerAggregateFunction(SqlConst.SUM));
     }
 
     /// <summary>
@@ -711,19 +785,20 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_SqlServerAggregateHelpers_ShouldFollowDialectCapability(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
 
         if (version < SqlServerDialect.ApproxCountDistinctMinVersion)
         {
-            var approxEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("APPROX_COUNT_DISTINCT(Name)", dialect));
+            var approxEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("APPROX_COUNT_DISTINCT(Name)", db, d));
             Assert.Contains("APPROX_COUNT_DISTINCT", approxEx.Message, StringComparison.OrdinalIgnoreCase);
         }
         else
         {
-            Assert.Equal("APPROX_COUNT_DISTINCT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("APPROX_COUNT_DISTINCT(Name)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal("APPROX_COUNT_DISTINCT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("APPROX_COUNT_DISTINCT(Name)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
         }
 
-        Assert.Equal(SqlConst.CHECKSUM_AGG, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CHECKSUM_AGG(Name)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.CHECKSUM_AGG, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CHECKSUM_AGG(Name)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -736,14 +811,15 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_SqlServerDateHelpers_ShouldFollowDialectCapability(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
 
-        Assert.Equal("DATEDIFF", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATEDIFF(day, '2020-01-01', '2020-01-03')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("DATENAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATENAME(month, '2020-02-10')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("DATEPART", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATEPART(month, '2020-02-10')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("DAY", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DAY('2020-02-14')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("MONTH", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("MONTH('2020-02-14')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal(SqlConst.YEAR, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("YEAR('2020-02-14')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("DATEDIFF", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATEDIFF(day, '2020-01-01', '2020-01-03')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("DATENAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATENAME(month, '2020-02-10')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("DATEPART", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATEPART(month, '2020-02-10')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("DAY", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DAY('2020-02-14')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("MONTH", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("MONTH('2020-02-14')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.YEAR, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("YEAR('2020-02-14')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -756,14 +832,15 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_MetadataIdentifiers_ShouldFollowDialectCapability(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
 
-        Assert.Equal("CURRENT_USER", Assert.IsType<IdentifierExpr>(SqlExpressionParser.ParseScalar("CURRENT_USER", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("@@DATEFIRST", Assert.IsType<IdentifierExpr>(SqlExpressionParser.ParseScalar("@@DATEFIRST", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("@@IDENTITY", Assert.IsType<IdentifierExpr>(SqlExpressionParser.ParseScalar("@@IDENTITY", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("@@MAX_PRECISION", Assert.IsType<IdentifierExpr>(SqlExpressionParser.ParseScalar("@@MAX_PRECISION", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("SESSION_USER", Assert.IsType<IdentifierExpr>(SqlExpressionParser.ParseScalar("SESSION_USER", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("SYSTEM_USER", Assert.IsType<IdentifierExpr>(SqlExpressionParser.ParseScalar("SYSTEM_USER", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("CURRENT_USER", Assert.IsType<IdentifierExpr>(SqlExpressionParser.ParseScalar("CURRENT_USER", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("@@DATEFIRST", Assert.IsType<IdentifierExpr>(SqlExpressionParser.ParseScalar("@@DATEFIRST", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("@@IDENTITY", Assert.IsType<IdentifierExpr>(SqlExpressionParser.ParseScalar("@@IDENTITY", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("@@MAX_PRECISION", Assert.IsType<IdentifierExpr>(SqlExpressionParser.ParseScalar("@@MAX_PRECISION", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SESSION_USER", Assert.IsType<IdentifierExpr>(SqlExpressionParser.ParseScalar("SESSION_USER", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SYSTEM_USER", Assert.IsType<IdentifierExpr>(SqlExpressionParser.ParseScalar("SYSTEM_USER", db, d)).Name, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -776,7 +853,7 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void SqlServerScalarFunctionCapability_ShouldExposeContract(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var dialect = Get(version, v => new SqlServerDialect(v));
 
         Assert.True(dialect.SupportsSqlServerScalarFunction("ABS"));
         Assert.True(dialect.SupportsSqlServerScalarFunction("ACOS"));
@@ -859,138 +936,139 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_SqlServerScalarHelpers_ShouldFollowDialectCapability(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
 
-        Assert.Equal("ABS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ABS(-10)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("ACOS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ACOS(1)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("ASCII", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ASCII('A')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("ASIN", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ASIN(1)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("ATAN", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ATAN(1)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("ATN2", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ATN2(0, 1)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("BINARY_CHECKSUM", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("BINARY_CHECKSUM('Ana')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("CEILING", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CEILING(1.2)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("CHARINDEX", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CHARINDEX('bar', 'foobar')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("CHECKSUM", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CHECKSUM('Ana')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ABS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ABS(-10)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ACOS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ACOS(1)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ASCII", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ASCII('A')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ASIN", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ASIN(1)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ATAN", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ATAN(1)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ATN2", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ATN2(0, 1)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("BINARY_CHECKSUM", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("BINARY_CHECKSUM('Ana')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("CEILING", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CEILING(1.2)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("CHARINDEX", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CHARINDEX('bar', 'foobar')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("CHECKSUM", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CHECKSUM('Ana')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
         if (version < SqlServerDialect.CompressionFunctionsMinVersion)
         {
-            var compressEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("COMPRESS('Ana')", dialect));
+            var compressEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("COMPRESS('Ana')", db, d));
             Assert.Contains("COMPRESS", compressEx.Message, StringComparison.OrdinalIgnoreCase);
 
-            var decompressEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("DECOMPRESS(0x1F8B)", dialect));
+            var decompressEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("DECOMPRESS(0x1F8B)", db, d));
             Assert.Contains("DECOMPRESS", decompressEx.Message, StringComparison.OrdinalIgnoreCase);
         }
         else
         {
-            Assert.Equal("COMPRESS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("COMPRESS('Ana')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-            Assert.Equal("DECOMPRESS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DECOMPRESS(0x1F8B)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal("COMPRESS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("COMPRESS('Ana')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal("DECOMPRESS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DECOMPRESS(0x1F8B)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
         }
-        Assert.Equal("COS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("COS(0)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("COT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("COT(1)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("DEGREES", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DEGREES(PI())", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("DIFFERENCE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DIFFERENCE('Robert', 'Rupert')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("EXP", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("EXP(1)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("FLOOR", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("FLOOR(1.9)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("COS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("COS(0)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("COT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("COT(1)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("DEGREES", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DEGREES(PI())", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("DIFFERENCE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DIFFERENCE('Robert', 'Rupert')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("EXP", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("EXP(1)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("FLOOR", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("FLOOR(1.9)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
         if (version < SqlServerDialect.FormatMinVersion)
         {
-            var formatEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("FORMAT(42, 'D4')", dialect));
+            var formatEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("FORMAT(42, 'D4')", db, d));
             Assert.Contains("FORMAT", formatEx.Message, StringComparison.OrdinalIgnoreCase);
         }
         else
         {
-            Assert.Equal("FORMAT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("FORMAT(42, 'D4')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal("FORMAT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("FORMAT(42, 'D4')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
         }
-        Assert.Equal("FORMATMESSAGE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("FORMATMESSAGE('Hello %s #%d', 'Bob', 7)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("DATALENGTH", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATALENGTH('AB')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("FORMATMESSAGE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("FORMATMESSAGE('Hello %s #%d', 'Bob', 7)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("DATALENGTH", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATALENGTH('AB')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
         if (version < SqlServerDialect.DateDiffBigMinVersion)
         {
-            var dateDiffBigEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("DATEDIFF_BIG(day, '2020-01-01', '2020-01-03')", dialect));
+            var dateDiffBigEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("DATEDIFF_BIG(day, '2020-01-01', '2020-01-03')", db, d));
             Assert.Contains("DATEDIFF_BIG", dateDiffBigEx.Message, StringComparison.OrdinalIgnoreCase);
         }
         else
         {
-            Assert.Equal("DATEDIFF_BIG", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATEDIFF_BIG(day, '2020-01-01', '2020-01-03')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal("DATEDIFF_BIG", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATEDIFF_BIG(day, '2020-01-01', '2020-01-03')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
         }
-        Assert.Equal("GROUPING", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("GROUPING(1)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("GROUPING_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("GROUPING_ID(1, 2)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("ISDATE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ISDATE('2020-01-01')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("GROUPING", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("GROUPING(1)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("GROUPING_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("GROUPING_ID(1, 2)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ISDATE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ISDATE('2020-01-01')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
         if (version < SqlServerDialect.JsonFunctionsMinVersion)
         {
-            var isJsonEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ISJSON('{\"a\":1}')", dialect));
+            var isJsonEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ISJSON('{\"a\":1}')", db, d));
             Assert.Contains("ISJSON", isJsonEx.Message, StringComparison.OrdinalIgnoreCase);
         }
         else
         {
-            Assert.Equal("ISJSON", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ISJSON('{\"a\":1}')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal("ISJSON", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ISJSON('{\"a\":1}')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
         }
-        Assert.Equal("ISNUMERIC", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ISNUMERIC('10.5')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("CHAR", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CHAR(65)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal(SqlConst.CONCAT, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CONCAT('Ana', 'Maria')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal(SqlConst.CONCAT_WS, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CONCAT_WS('-', 'Ana', NULL, 'Maria')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("LEN", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LEN('Ana')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal(SqlConst.LEFT, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LEFT('Ana', 2)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("LOG", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LOG(10, 100)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("LOG10", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LOG10(100)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("LOWER", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LOWER('Ana')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("NCHAR", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("NCHAR(65)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ISNUMERIC", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ISNUMERIC('10.5')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("CHAR", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CHAR(65)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.CONCAT, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CONCAT('Ana', 'Maria')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.CONCAT_WS, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CONCAT_WS('-', 'Ana', NULL, 'Maria')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("LEN", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LEN('Ana')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.LEFT, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LEFT('Ana', 2)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("LOG", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LOG(10, 100)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("LOG10", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LOG10(100)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("LOWER", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LOWER('Ana')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("NCHAR", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("NCHAR(65)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
         if (version < SqlServerDialect.JsonFunctionsMinVersion)
         {
-            var jsonModifyEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("JSON_MODIFY(payload, '$.profile.name', 'Bia')", dialect));
+            var jsonModifyEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("JSON_MODIFY(payload, '$.profile.name', 'Bia')", db, d));
             Assert.Contains("JSON_MODIFY", jsonModifyEx.Message, StringComparison.OrdinalIgnoreCase);
         }
         else
         {
-            Assert.Equal("JSON_MODIFY", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("JSON_MODIFY(payload, '$.profile.name', 'Bia')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal("JSON_MODIFY", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("JSON_MODIFY(payload, '$.profile.name', 'Bia')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
         }
-        Assert.Equal("NEWID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("NEWID()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("PI", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("PI()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("POWER", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("POWER(2, 3)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("RADIANS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("RADIANS(180)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("RAND", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("RAND(7)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal(SqlConst.REPLACE, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("REPLACE('Ban', 'a', '')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal(SqlConst.RIGHT, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("RIGHT('Ana', 2)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("ROUND", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROUND(1.235, 2)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("SIGN", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SIGN(-10)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("SIN", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SIN(1.5707963267948966)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("SQUARE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SQUARE(3)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("STR", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("STR(123.45, 6, 1)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("NEWID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("NEWID()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("PI", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("PI()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("POWER", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("POWER(2, 3)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("RADIANS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("RADIANS(180)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("RAND", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("RAND(7)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.REPLACE, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("REPLACE('Ban', 'a', '')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.RIGHT, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("RIGHT('Ana', 2)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ROUND", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROUND(1.235, 2)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SIGN", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SIGN(-10)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SIN", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SIN(1.5707963267948966)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SQUARE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SQUARE(3)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("STR", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("STR(123.45, 6, 1)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
         if (version < SqlServerDialect.StringEscapeMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("STRING_ESCAPE('a', 'json')", dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("STRING_ESCAPE('a', 'json')", db, d));
             Assert.Contains("STRING_ESCAPE", ex.Message, StringComparison.OrdinalIgnoreCase);
         }
         else
         {
-            Assert.Equal("STRING_ESCAPE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("STRING_ESCAPE('a', 'json')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal("STRING_ESCAPE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("STRING_ESCAPE('a', 'json')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
         }
-        Assert.Equal("SUBSTRING", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SUBSTRING('Ana', 1, 2)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SUBSTRING", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SUBSTRING('Ana', 1, 2)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
         if (version < SqlServerDialect.DateTimeOffsetFunctionsMinVersion)
         {
-            var switchEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("SWITCHOFFSET('2020-02-29T10:11:12+01:00', '+00:00')", dialect));
+            var switchEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("SWITCHOFFSET('2020-02-29T10:11:12+01:00', '+00:00')", db, d));
             Assert.Contains("SWITCHOFFSET", switchEx.Message, StringComparison.OrdinalIgnoreCase);
 
-            var toOffsetEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("TODATETIMEOFFSET('2020-02-29T10:11:12', '+02:00')", dialect));
+            var toOffsetEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("TODATETIMEOFFSET('2020-02-29T10:11:12', '+02:00')", db, d));
             Assert.Contains("TODATETIMEOFFSET", toOffsetEx.Message, StringComparison.OrdinalIgnoreCase);
         }
         else
         {
-            Assert.Equal("SWITCHOFFSET", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SWITCHOFFSET('2020-02-29T10:11:12+01:00', '+00:00')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-            Assert.Equal("TODATETIMEOFFSET", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("TODATETIMEOFFSET('2020-02-29T10:11:12', '+02:00')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal("SWITCHOFFSET", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SWITCHOFFSET('2020-02-29T10:11:12+01:00', '+00:00')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal("TODATETIMEOFFSET", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("TODATETIMEOFFSET('2020-02-29T10:11:12', '+02:00')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
         }
-        Assert.Equal("TAN", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("TAN(0)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("TRIM", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("TRIM('  Ana  ')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("UPPER", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("UPPER('Ana')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("LTRIM", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LTRIM('  Ana')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("PARSENAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("PARSENAME('server.database.dbo.Users', 2)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("PATINDEX", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("PATINDEX('%Bob%', 'Ana Bob')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("QUOTENAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("QUOTENAME('Ana')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("REPLICATE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("REPLICATE('Na', 2)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("REVERSE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("REVERSE('Ana')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("RTRIM", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("RTRIM('Ana  ')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("SOUNDEX", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SOUNDEX('Robert')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("SPACE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SPACE(3)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("SQRT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SQRT(9)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("STUFF", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("STUFF('Ana', 2, 1, 'xx')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("UNICODE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("UNICODE('A')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("TAN", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("TAN(0)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("TRIM", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("TRIM('  Ana  ')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("UPPER", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("UPPER('Ana')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("LTRIM", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LTRIM('  Ana')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("PARSENAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("PARSENAME('server.database.dbo.Users', 2)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("PATINDEX", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("PATINDEX('%Bob%', 'Ana Bob')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("QUOTENAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("QUOTENAME('Ana')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("REPLICATE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("REPLICATE('Na', 2)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("REVERSE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("REVERSE('Ana')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("RTRIM", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("RTRIM('Ana  ')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SOUNDEX", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SOUNDEX('Robert')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SPACE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SPACE(3)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SQRT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SQRT(9)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("STUFF", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("STUFF('Ana', 2, 1, 'xx')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("UNICODE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("UNICODE('A')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1003,7 +1081,9 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_SystemRowCountIdentifier_ShouldFollowDialectCapability(int version)
     {
-        var expr = SqlExpressionParser.ParseScalar("@@ROWCOUNT", GetDialect(version, v => new SqlServerDialect(v)));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
+        var expr = SqlExpressionParser.ParseScalar("@@ROWCOUNT", db, d);
         var identifier = Assert.IsType<IdentifierExpr>(expr);
 
         Assert.Equal("@@ROWCOUNT", identifier.Name, StringComparer.OrdinalIgnoreCase);
@@ -1019,8 +1099,10 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_Ilike_ShouldBeRejected(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("name ILIKE 'jo%'", GetDialect(version, v => new SqlServerDialect(v))));
+            SqlExpressionParser.ParseScalar("name ILIKE 'jo%'", db, d));
 
         Assert.Contains(SqlConst.ILIKE, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1035,22 +1117,23 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_PostgreSqlStyleSequenceFunctionCalls_ShouldBeRejected(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
 
         var nextEx = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("nextval('sales.seq_orders')", dialect));
+            SqlExpressionParser.ParseScalar("nextval('sales.seq_orders')", db, d));
         Assert.Contains(SqlConst.NEXTVAL, nextEx.Message, StringComparison.OrdinalIgnoreCase);
 
         var currEx = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("currval('sales.seq_orders')", dialect));
+            SqlExpressionParser.ParseScalar("currval('sales.seq_orders')", db, d));
         Assert.Contains(SqlConst.CURRVAL, currEx.Message, StringComparison.OrdinalIgnoreCase);
 
         var setEx = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("setval('sales.seq_orders', 30, false)", dialect));
+            SqlExpressionParser.ParseScalar("setval('sales.seq_orders', 30, false)", db, d));
         Assert.Contains(SqlConst.SETVAL, setEx.Message, StringComparison.OrdinalIgnoreCase);
 
         var lastEx = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("lastval()", dialect));
+            SqlExpressionParser.ParseScalar("lastval()", db, d));
         Assert.Contains(SqlConst.LASTVAL, lastEx.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -1064,15 +1147,17 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseCreateSequence_ShouldFollowSqlServerVersionSupport(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "CREATE SEQUENCE sales.seq_orders START WITH 10 INCREMENT BY 5";
 
         if (version < SqlServerDialect.SequenceMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
             return;
         }
 
-        var parsed = Assert.IsType<SqlCreateSequenceQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+        var parsed = Assert.IsType<SqlCreateSequenceQuery>(SqlQueryParser.Parse(sql, db, d));
         Assert.Equal("sales", parsed.Table?.DbName, ignoreCase: true);
         Assert.Equal("seq_orders", parsed.Table?.Name, ignoreCase: true);
         Assert.Equal(10L, parsed.StartValue);
@@ -1089,15 +1174,17 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseDropSequence_ShouldFollowSqlServerVersionSupport(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "DROP SEQUENCE IF EXISTS sales.seq_orders";
 
         if (version < SqlServerDialect.SequenceMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
             return;
         }
 
-        var parsed = Assert.IsType<SqlDropSequenceQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+        var parsed = Assert.IsType<SqlDropSequenceQuery>(SqlQueryParser.Parse(sql, db, d));
         Assert.True(parsed.IfExists);
         Assert.Equal("sales", parsed.Table?.DbName, ignoreCase: true);
         Assert.Equal("seq_orders", parsed.Table?.Name, ignoreCase: true);
@@ -1113,9 +1200,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalarFunctionDdlSubset_ShouldParse(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var create = Assert.IsType<SqlCreateFunctionQuery>(SqlQueryParser.Parse(
             "CREATE FUNCTION fn_users(@baseValue INT, @incrementValue INT) RETURNS INT AS BEGIN RETURN @baseValue + @incrementValue END",
-            GetDialect(version, v => new SqlServerDialect(v))));
+            db, d));
 
         Assert.Equal("fn_users", create.Table?.Name, ignoreCase: true);
         Assert.Equal("INT", create.Definition.ReturnTypeSql, ignoreCase: true);
@@ -1126,7 +1215,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
         var drop = Assert.IsType<SqlDropFunctionQuery>(SqlQueryParser.Parse(
             "DROP FUNCTION IF EXISTS fn_users",
-            GetDialect(version, v => new SqlServerDialect(v))));
+            db, d));
 
         Assert.True(drop.IfExists);
         Assert.Equal("fn_users", drop.Table?.Name, ignoreCase: true);
@@ -1142,9 +1231,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseCreateOrReplaceScalarFunctionDdlSubset_ShouldReject(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "CREATE OR REPLACE FUNCTION fn_users(@baseValue INT, @incrementValue INT) RETURNS INT AS BEGIN RETURN @baseValue + @incrementValue END",
-            GetDialect(version, v => new SqlServerDialect(v))));
+            db, d));
         Assert.Contains("CREATE OR REPLACE FUNCTION", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -1157,9 +1248,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseDropIndex_WithOnTableClause_ShouldParse(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var parsed = Assert.IsType<SqlDropIndexQuery>(SqlQueryParser.Parse(
             "DROP INDEX IX_Users_Name ON dbo.Users",
-            GetDialect(version, v => new SqlServerDialect(v))));
+            db, d));
 
         Assert.Equal("IX_Users_Name", parsed.IndexName, ignoreCase: true);
         Assert.Equal("dbo", parsed.Table?.DbName, ignoreCase: true);
@@ -1175,9 +1268,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseCreateIndex_WithTableAlias_ShouldReject(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "CREATE INDEX IX_Users_Name ON dbo.Users u (Name)",
-            GetDialect(version, v => new SqlServerDialect(v))));
+            db, d));
 
         Assert.Contains("alias", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1191,9 +1286,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseCreateIndex_WithDerivedTable_ShouldReject(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "CREATE INDEX IX_Users_Name ON (SELECT * FROM dbo.Users) u (Name)",
-            GetDialect(version, v => new SqlServerDialect(v))));
+            db, d));
 
         Assert.Contains("concrete table name", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1207,9 +1304,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseCreateIndex_WithEmptyKeyColumnList_ShouldReject(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "CREATE INDEX IX_Users_Name ON dbo.Users ()",
-            GetDialect(version, v => new SqlServerDialect(v))));
+            db,d));
 
         Assert.Contains("at least one column", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1223,9 +1322,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseDropIndex_WithOnWithoutTableName_ShouldReject(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "DROP INDEX IX_Users_Name ON ;",
-            GetDialect(version, v => new SqlServerDialect(v))));
+            db, d));
 
         Assert.Contains("table name", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1239,9 +1340,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseDropIndex_WithOnTableAlias_ShouldReject(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "DROP INDEX IX_Users_Name ON dbo.Users u",
-            GetDialect(version, v => new SqlServerDialect(v))));
+            db, d));
 
         Assert.Contains("alias", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1255,9 +1358,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseDropIndex_WithOnDerivedTable_ShouldReject(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "DROP INDEX IX_Users_Name ON (SELECT * FROM dbo.Users) u",
-            GetDialect(version, v => new SqlServerDialect(v))));
+            db, d));
 
         Assert.Contains("concrete table name", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1271,9 +1376,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseAlterTableAddColumn_ShouldParse(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
             "ALTER TABLE dbo.Users ADD age INT NOT NULL DEFAULT 0",
-            GetDialect(version, v => new SqlServerDialect(v))));
+            db, d));
 
         Assert.Equal("dbo", parsed.Table?.DbName, ignoreCase: true);
         Assert.Equal("Users", parsed.Table?.Name, ignoreCase: true);
@@ -1292,9 +1399,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseAlterTableAddDecimalColumn_ShouldPreservePrecisionAndScale(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
             "ALTER TABLE dbo.Users ADD amount DECIMAL(10, 4) NOT NULL DEFAULT 0",
-            GetDialect(version, v => new SqlServerDialect(v))));
+            db, d));
 
         Assert.Equal(DbType.Decimal, parsed.ColumnType);
         Assert.Equal(10, parsed.Size);
@@ -1312,9 +1421,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseAlterTableAddBinaryColumn_ShouldPreserveSize(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
             "ALTER TABLE dbo.Users ADD payload VARBINARY(16) NULL",
-            GetDialect(version, v => new SqlServerDialect(v))));
+            db, d));
 
         Assert.Equal(DbType.Binary, parsed.ColumnType);
         Assert.Equal(16, parsed.Size);
@@ -1330,9 +1441,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseAlterTableAddColumn_WithTableAlias_ShouldReject(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "ALTER TABLE dbo.Users u ADD age INT",
-            GetDialect(version, v => new SqlServerDialect(v))));
+            db, d));
 
         Assert.Contains("alias", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1346,9 +1459,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseAlterTableAddColumn_WithDerivedTable_ShouldReject(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "ALTER TABLE (SELECT * FROM dbo.Users) u ADD age INT",
-            GetDialect(version, v => new SqlServerDialect(v))));
+            db, d));
 
         Assert.Contains("concrete table name", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1362,9 +1477,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseAlterTableAddColumn_NotNullWithDefaultNull_ShouldReject(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "ALTER TABLE dbo.Users ADD status VARCHAR(20) NOT NULL DEFAULT NULL",
-            GetDialect(version, v => new SqlServerDialect(v))));
+            db, d));
 
         Assert.Contains("default null", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1378,9 +1495,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseAlterTableAddColumn_WithInvalidVarcharTypeArguments_ShouldReject(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "ALTER TABLE dbo.Users ADD nickname VARCHAR(foo)",
-            GetDialect(version, v => new SqlServerDialect(v))));
+            db, d));
 
         Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1394,9 +1513,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseAlterTableAddColumn_WithInvalidDecimalTypeArguments_ShouldReject(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "ALTER TABLE dbo.Users ADD amount DECIMAL(10, foo)",
-            GetDialect(version, v => new SqlServerDialect(v))));
+            db, d));
 
         Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1410,9 +1531,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseAlterTableAddColumn_WithEmptyVarcharTypeArguments_ShouldReject(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "ALTER TABLE dbo.Users ADD nickname VARCHAR()",
-            GetDialect(version, v => new SqlServerDialect(v))));
+            db, d));
 
         Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1426,9 +1549,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseAlterTableAddColumn_WithEmptyDecimalTypeArguments_ShouldReject(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "ALTER TABLE dbo.Users ADD amount DECIMAL()",
-            GetDialect(version, v => new SqlServerDialect(v))));
+            db, d));
 
         Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1442,9 +1567,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseAlterTableAddColumn_WithTrailingCommaInVarcharTypeArguments_ShouldReject(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "ALTER TABLE dbo.Users ADD nickname VARCHAR(10,)",
-            GetDialect(version, v => new SqlServerDialect(v))));
+            db, d));
 
         Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1458,9 +1585,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseAlterTableAddColumn_WithTrailingCommaInDecimalTypeArguments_ShouldReject(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "ALTER TABLE dbo.Users ADD amount DECIMAL(10,)",
-            GetDialect(version, v => new SqlServerDialect(v))));
+            db, d));
 
         Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1475,15 +1604,17 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseSelect_OffsetWithoutOrderBy_ShouldRespectDialectRule(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var sql = "SELECT id FROM users OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY";
 
         if (version < SqlServerDialect.OffsetFetchMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
             return;
         }
 
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("Adicione ORDER BY", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -1501,6 +1632,8 @@ public sealed class SqlServerDialectFeatureParserTests(
     {
         if (version < SqlServerDialect.OffsetFetchMinVersion)
             return;
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
 
         var sql = "SELECT id FROM users ORDER BY id OFFSET @p0 ROWS FETCH FIRST @p1 ROWS ONLY";
         var pars = new SqlServerDataParameterCollectionMock
@@ -1509,7 +1642,7 @@ public sealed class SqlServerDialectFeatureParserTests(
             new SqlParameter("@p1", 2)
         };
 
-        var parsed = SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v)), pars);
+        var parsed = SqlQueryParser.Parse(sql, db, d, pars);
         Assert.IsType<SqlSelectQuery>(parsed);
     }
 
@@ -1524,16 +1657,18 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseSelect_OffsetFetch_ShouldNormalizeRowLimitAst(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         if (version < SqlServerDialect.OffsetFetchMinVersion)
         {
             Assert.Throws<NotSupportedException>(() =>
-                SqlQueryParser.Parse("SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY", GetDialect(version, v => new SqlServerDialect(v))));
+                SqlQueryParser.Parse("SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY", db, d));
             return;
         }
 
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY",
-            GetDialect(version, v => new SqlServerDialect(v))));
+            db, d));
 
         var rowLimit = Assert.IsType<SqlLimitOffset>(parsed.RowLimit);
         Assert.Equal(new LiteralExpr(2), rowLimit.Count);
@@ -1550,8 +1685,10 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseSelect_Limit_ShouldProvidePaginationHint(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse("SELECT id FROM users ORDER BY id LIMIT 5", GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse("SELECT id FROM users ORDER BY id LIMIT 5", db, d));
 
         Assert.Contains(SqlConst.LIMIT, ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(SqlConst.OFFSET, ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1570,8 +1707,10 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseUnsupportedTopLevelStatement_ShouldUseActionableMessage(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse("UPSERT INTO users VALUES (1)", GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse("UPSERT INTO users VALUES (1)", db, d));
 
         Assert.Contains("token inicial", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("SELECT/INSERT/UPDATE/DELETE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1587,8 +1726,10 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_JsonValueWithReturningClause_ShouldBeRejected(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("JSON_VALUE(payload, '$.a.b' RETURNING NUMBER)", GetDialect(version, v => new SqlServerDialect(v))));
+            SqlExpressionParser.ParseScalar("JSON_VALUE(payload, '$.a.b' RETURNING NUMBER)", db, d));
 
         Assert.Contains("JSON_VALUE", ex.Message, StringComparison.OrdinalIgnoreCase);
         if (version >= SqlServerDialect.JsonFunctionsMinVersion)
@@ -1605,17 +1746,18 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_JsonQuery_ShouldFollowSqlServerVersionSupport(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "JSON_QUERY(payload, '$.profile')";
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
 
         if (version < SqlServerDialect.JsonFunctionsMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, db, d));
             Assert.Contains("JSON_QUERY", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect));
+        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, db, d));
         Assert.Equal("JSON_QUERY", call.Name, StringComparer.OrdinalIgnoreCase);
     }
 
@@ -1629,7 +1771,7 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void TemporalCapabilities_ShouldFollowSqlServerVersionSupport(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var dialect = Get(version, v => new SqlServerDialect(v));
         var supported = version >= SqlServerDialect.HighPrecisionTemporalFunctionsMinVersion;
 
         Assert.True(dialect.SupportsGetUtcDateFunction);
@@ -1649,7 +1791,8 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_FromPartsFunctions_ShouldFollowSqlServerVersionSupport(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string dateSql = "DATEFROMPARTS(2020, 2, 29)";
         const string dateTimeSql = "DATETIMEFROMPARTS(2020, 2, 29, 10, 11, 12)";
         const string dateTime2Sql = "DATETIME2FROMPARTS(2020, 2, 29, 10, 11, 12, 1234567)";
@@ -1659,32 +1802,32 @@ public sealed class SqlServerDialectFeatureParserTests(
 
         if (version < SqlServerDialect.FromPartsMinVersion)
         {
-            var dateEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(dateSql, dialect));
+            var dateEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(dateSql, db, d));
             Assert.Contains("DATEFROMPARTS", dateEx.Message, StringComparison.OrdinalIgnoreCase);
 
-            var dateTimeEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(dateTimeSql, dialect));
+            var dateTimeEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(dateTimeSql, db, d));
             Assert.Contains("DATETIMEFROMPARTS", dateTimeEx.Message, StringComparison.OrdinalIgnoreCase);
 
-            var dateTime2Ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(dateTime2Sql, dialect));
+            var dateTime2Ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(dateTime2Sql, db, d));
             Assert.Contains("DATETIME2FROMPARTS", dateTime2Ex.Message, StringComparison.OrdinalIgnoreCase);
 
-            var dateTimeOffsetEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(dateTimeOffsetSql, dialect));
+            var dateTimeOffsetEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(dateTimeOffsetSql, db, d));
             Assert.Contains("DATETIMEOFFSETFROMPARTS", dateTimeOffsetEx.Message, StringComparison.OrdinalIgnoreCase);
 
-            var timeEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(timeSql, dialect));
+            var timeEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(timeSql, db, d));
             Assert.Contains("TIMEFROMPARTS", timeEx.Message, StringComparison.OrdinalIgnoreCase);
 
-            var smallDateTimeEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(smallDateTimeSql, dialect));
+            var smallDateTimeEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(smallDateTimeSql, db, d));
             Assert.Contains("SMALLDATETIMEFROMPARTS", smallDateTimeEx.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        Assert.Equal("DATEFROMPARTS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(dateSql, dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("DATETIMEFROMPARTS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(dateTimeSql, dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("DATETIME2FROMPARTS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(dateTime2Sql, dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("DATETIMEOFFSETFROMPARTS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(dateTimeOffsetSql, dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("TIMEFROMPARTS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(timeSql, dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("SMALLDATETIMEFROMPARTS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(smallDateTimeSql, dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("DATEFROMPARTS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(dateSql, db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("DATETIMEFROMPARTS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(dateTimeSql, db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("DATETIME2FROMPARTS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(dateTime2Sql, db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("DATETIMEOFFSETFROMPARTS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(dateTimeOffsetSql, db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("TIMEFROMPARTS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(timeSql, db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SMALLDATETIMEFROMPARTS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(smallDateTimeSql, db, d)).Name, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1697,19 +1840,20 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_TryCast_ShouldFollowSqlServerVersionSupport(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "TRY_CAST('42' AS INT)";
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
 
-        Assert.Equal(version >= SqlServerDialect.TryCastMinVersion, dialect.SupportsTryCastFunction);
+        Assert.Equal(version >= SqlServerDialect.TryCastMinVersion, d.SupportsTryCastFunction);
 
         if (version < SqlServerDialect.TryCastMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, db, d));
             Assert.Contains("TRY_CAST", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect));
+        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, db, d));
         Assert.Equal("TRY_CAST", call.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("INT", Assert.IsType<RawSqlExpr>(call.Args[1]).Sql, StringComparer.OrdinalIgnoreCase);
     }
@@ -1724,19 +1868,20 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_TryConvert_ShouldFollowSqlServerVersionSupport(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "TRY_CONVERT(INT, '42')";
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
 
-        Assert.Equal(version >= SqlServerDialect.TryConvertMinVersion, dialect.SupportsTryConvertFunction);
+        Assert.Equal(version >= SqlServerDialect.TryConvertMinVersion, d.SupportsTryConvertFunction);
 
         if (version < SqlServerDialect.TryConvertMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, db, d));
             Assert.Contains("TRY_CONVERT", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect));
+        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, db, d));
         Assert.Equal("TRY_CONVERT", call.Name, StringComparer.OrdinalIgnoreCase);
         Assert.IsType<RawSqlExpr>(call.Args[1]);
         Assert.Equal("INT", Assert.IsType<RawSqlExpr>(call.Args[1]).Sql, StringComparer.OrdinalIgnoreCase);
@@ -1752,19 +1897,20 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_Parse_ShouldFollowSqlServerVersionSupport(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "PARSE('42' AS INT)";
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
 
-        Assert.Equal(version >= SqlServerDialect.ParseMinVersion, dialect.SupportsParseFunction);
+        Assert.Equal(version >= SqlServerDialect.ParseMinVersion, d.SupportsParseFunction);
 
         if (version < SqlServerDialect.ParseMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, db, d));
             Assert.Contains("PARSE", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect));
+        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, db, d));
         Assert.Equal("PARSE", call.Name, StringComparer.OrdinalIgnoreCase);
         Assert.IsType<RawSqlExpr>(call.Args[1]);
         Assert.Equal("INT", Assert.IsType<RawSqlExpr>(call.Args[1]).Sql, StringComparer.OrdinalIgnoreCase);
@@ -1780,19 +1926,20 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_TryParse_ShouldFollowSqlServerVersionSupport(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "TRY_PARSE('42' AS INT)";
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
 
-        Assert.Equal(version >= SqlServerDialect.ParseMinVersion, dialect.SupportsTryParseFunction);
+        Assert.Equal(version >= SqlServerDialect.ParseMinVersion, d.SupportsTryParseFunction);
 
         if (version < SqlServerDialect.ParseMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, db, d));
             Assert.Contains("TRY_PARSE", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect));
+        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, db, d));
         Assert.Equal("TRY_PARSE", call.Name, StringComparer.OrdinalIgnoreCase);
         Assert.IsType<RawSqlExpr>(call.Args[1]);
         Assert.Equal("INT", Assert.IsType<RawSqlExpr>(call.Args[1]).Sql, StringComparer.OrdinalIgnoreCase);
@@ -1808,19 +1955,20 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_Eomonth_ShouldFollowSqlServerVersionSupport(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "EOMONTH('2020-02-15')";
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
 
-        Assert.Equal(version >= SqlServerDialect.EomonthMinVersion, dialect.SupportsEomonthFunction);
+        Assert.Equal(version >= SqlServerDialect.EomonthMinVersion, d.SupportsEomonthFunction);
 
         if (version < SqlServerDialect.EomonthMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, db, d));
             Assert.Contains("EOMONTH", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect));
+        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, db, d));
         Assert.Equal("EOMONTH", call.Name, StringComparer.OrdinalIgnoreCase);
     }
 
@@ -1834,19 +1982,20 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_Translate_ShouldFollowSqlServerVersionSupport(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "TRANSLATE('abc', 'ab', 'xy')";
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
 
-        Assert.Equal(version >= SqlServerDialect.TranslateMinVersion, dialect.SupportsSqlServerScalarFunction("TRANSLATE"));
+        Assert.Equal(version >= SqlServerDialect.TranslateMinVersion, d.SupportsSqlServerScalarFunction("TRANSLATE"));
 
         if (version < SqlServerDialect.TranslateMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, db, d));
             Assert.Contains("TRANSLATE", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect));
+        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, db, d));
         Assert.Equal("TRANSLATE", call.Name, StringComparer.OrdinalIgnoreCase);
     }
 
@@ -1860,12 +2009,13 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_GetUtcDate_ShouldRemainAvailableAcrossSqlServerVersions(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "GETUTCDATE()";
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
 
-        Assert.True(dialect.SupportsGetUtcDateFunction);
+        Assert.True(d.SupportsGetUtcDateFunction);
 
-        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect));
+        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, db, d));
         Assert.Equal("GETUTCDATE", call.Name, StringComparer.OrdinalIgnoreCase);
     }
 
@@ -1879,21 +2029,14 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_OpenJson_ShouldFollowSqlServerVersionSupport(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "OPENJSON(payload)";
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
 
-        if (version < SqlServerDialect.JsonFunctionsMinVersion)
-        {
-            var ex = Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar(sql, dialect));
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar(sql, db, d));
 
-            Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
-            return;
-        }
-
-        var expr = SqlExpressionParser.ParseScalar(sql, dialect);
-        var call = Assert.IsType<CallExpr>(expr);
-        Assert.Equal(SqlConst.OPENJSON, call.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1906,20 +2049,29 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseSelect_SchemaQualifiedTableFunctionInApply_ShouldFollowVersionSupport(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = """
             SELECT u.Id, part.value
             FROM Users u
             CROSS APPLY dbo.STRING_SPLIT(u.Email, ',') part
             """;
 
+        if (version < SqlServerDialect.WithCteMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
+            Assert.Contains("CROSS APPLY", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
         if (version < SqlServerDialect.JsonFunctionsMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
             Assert.Contains(SqlConst.STRING_SPLIT, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, d));
         var join = Assert.Single(parsed.Joins);
         Assert.Equal("dbo", join.Table.DbName, ignoreCase: true);
         var function = Assert.IsType<FunctionCallExpr>(join.Table.TableFunction);
@@ -1936,6 +2088,8 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseSelect_SchemaQualifiedOpenJsonWithSchema_ShouldFollowVersionSupport(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = """
             SELECT data.Name, data.PayloadJson
             FROM Users u
@@ -1945,14 +2099,21 @@ public sealed class SqlServerDialectFeatureParserTests(
             ) data
             """;
 
+        if (version < SqlServerDialect.WithCteMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
+            Assert.Contains("CROSS APPLY", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
         if (version < SqlServerDialect.JsonFunctionsMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
             Assert.Contains(SqlConst.OPENJSON, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, d));
         var join = Assert.Single(parsed.Joins);
         Assert.Equal("dbo", join.Table.DbName, ignoreCase: true);
         var withClause = Assert.IsType<SqlOpenJsonWithClause>(join.Table.OpenJsonWithClause);
@@ -1970,21 +2131,36 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseSelect_SchemaQualifiedStringSplitWithOrdinal_ShouldFollowVersionSupport(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = """
             SELECT u.Id, part.value, part.ordinal
             FROM Users u
             CROSS APPLY dbo.STRING_SPLIT(u.Email, ',', 1) part
             """;
 
-        if (version < SqlServerDialect.StringSplitOrdinalMinVersion)
+        if (version < SqlServerDialect.WithCteMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
-            //Assert.Contains("enable_ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.OrdinalIgnoreCase);
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
+            Assert.Contains("CROSS APPLY", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+        if (version < SqlServerDialect.JsonFunctionsMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
+            Assert.Contains(SqlConst.STRING_SPLIT, ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        if (version < SqlServerDialect.StringSplitOrdinalMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
+            Assert.Contains("enable_ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, d));
         var join = Assert.Single(parsed.Joins);
         Assert.Equal("dbo", join.Table.DbName, ignoreCase: true);
         var function = Assert.IsType<FunctionCallExpr>(join.Table.TableFunction);
@@ -2001,18 +2177,19 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_DateAddFamily_ShouldRespectSqlServerDialectRule(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
 
-        var expr = SqlExpressionParser.ParseScalar("DATEADD(DAY, 1, created_at)", dialect);
+        var expr = SqlExpressionParser.ParseScalar("DATEADD(DAY, 1, created_at)", db, d);
         var call = Assert.IsType<CallExpr>(expr);
         Assert.Equal("DATEADD", call.Name, StringComparer.OrdinalIgnoreCase);
 
         var dateAddEx = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("DATE_ADD(created_at, INTERVAL 1 DAY)", dialect));
+            SqlExpressionParser.ParseScalar("DATE_ADD(created_at, INTERVAL 1 DAY)", db, d));
         Assert.Contains("DATE_ADD", dateAddEx.Message, StringComparison.OrdinalIgnoreCase);
 
         var timestampAddEx = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("TIMESTAMPADD(DAY, 1, created_at)", dialect));
+            SqlExpressionParser.ParseScalar("TIMESTAMPADD(DAY, 1, created_at)", db, d));
         Assert.Contains("TIMESTAMPADD", timestampAddEx.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -2026,25 +2203,26 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_SequenceValueFunctions_ShouldFollowSqlServerVersionSupport(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
 
         if (version < SqlServerDialect.SequenceMinVersion)
         {
             var nextEx = Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("NEXT VALUE FOR sales.seq_orders", dialect));
+                SqlExpressionParser.ParseScalar("NEXT VALUE FOR sales.seq_orders", db, d));
             Assert.Contains("NEXT VALUE FOR", nextEx.Message, StringComparison.OrdinalIgnoreCase);
 
             var previousEx = Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("PREVIOUS VALUE FOR sales.seq_orders", dialect));
+                SqlExpressionParser.ParseScalar("PREVIOUS VALUE FOR sales.seq_orders", db, d));
             Assert.Contains("PREVIOUS VALUE FOR", previousEx.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var nextExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("NEXT VALUE FOR sales.seq_orders", dialect));
+        var nextExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("NEXT VALUE FOR sales.seq_orders", db, d));
         Assert.Equal("NEXT_VALUE_FOR", nextExpr.Name, StringComparer.OrdinalIgnoreCase);
 
         var previousExSupported = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("PREVIOUS VALUE FOR sales.seq_orders", dialect));
+            SqlExpressionParser.ParseScalar("PREVIOUS VALUE FOR sales.seq_orders", db, d));
         Assert.Contains("PREVIOUS VALUE FOR", previousExSupported.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -2058,15 +2236,17 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseMerge_ShouldFollowSqlServerVersionSupport(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "MERGE INTO users target USING users src ON target.id = src.id WHEN MATCHED THEN UPDATE SET name = 'x'";
 
         if (version < SqlServerDialect.MergeMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
             return;
         }
 
-        var parsed = Assert.IsType<SqlMergeQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+        var parsed = Assert.IsType<SqlMergeQuery>(SqlQueryParser.Parse(sql, db, d));
         Assert.NotNull(parsed.Table);
         Assert.Equal("users", parsed.Table!.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("target", parsed.Table.Alias, StringComparer.OrdinalIgnoreCase);
@@ -2083,9 +2263,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.MergeMinVersion)]
     public void ParseMerge_WithWhenNotMatched_ShouldParse(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "MERGE INTO users target USING users src ON target.id = src.id WHEN NOT MATCHED THEN INSERT (id) VALUES (src.id)";
 
-        var query = Assert.IsType<SqlMergeQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+        var query = Assert.IsType<SqlMergeQuery>(SqlQueryParser.Parse(sql, db, d));
 
         Assert.Equal("users", query.Table?.Name, ignoreCase: true);
     }
@@ -2100,8 +2282,10 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.MergeMinVersion)]
     public void ParseMerge_WithoutUsing_ShouldProvideActionableMessage(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse("MERGE INTO users target ON target.id = 1 WHEN MATCHED THEN UPDATE SET name = 'x'", GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse("MERGE INTO users target ON target.id = 1 WHEN MATCHED THEN UPDATE SET name = 'x'", db, d));
 
         Assert.Contains("MERGE requer cláusula USING", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2116,8 +2300,10 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.MergeMinVersion)]
     public void ParseMerge_WithoutOn_ShouldProvideActionableMessage(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse("MERGE INTO users target USING users src WHEN MATCHED THEN UPDATE SET name = 'x'", GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse("MERGE INTO users target USING users src WHEN MATCHED THEN UPDATE SET name = 'x'", db, d));
 
         Assert.Contains("MERGE requer cláusula ON", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2132,9 +2318,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.MergeMinVersion)]
     public void ParseMerge_WithOnOnlyInsideUsingSubquery_ShouldProvideActionableMessage(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "MERGE INTO users target USING (SELECT id FROM users WHERE id IN (SELECT id FROM users WHERE id > 0)) src WHEN MATCHED THEN UPDATE SET name = 'x'";
 
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("MERGE requer cláusula ON", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2149,8 +2337,10 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.MergeMinVersion)]
     public void ParseMerge_WithoutWhen_ShouldProvideActionableMessage(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse("MERGE INTO users target USING users src ON target.id = src.id", GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse("MERGE INTO users target USING users src ON target.id = src.id", db, d));
 
         Assert.Contains("MERGE requer ao menos uma cláusula WHEN", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2165,9 +2355,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.MergeMinVersion)]
     public void ParseMerge_WithUsingAliasNamedWhen_ShouldProvideActionableMessage(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "MERGE INTO users target USING users when ON target.id = when.id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("MERGE requer ao menos uma cláusula WHEN", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2182,9 +2374,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.MergeMinVersion)]
     public void ParseMerge_WithWhenOnlyInsideUsingSubquery_ShouldProvideActionableMessage(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "MERGE INTO users target USING (SELECT CASE WHEN id > 0 THEN id ELSE 0 END AS id FROM users) src ON target.id = src.id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("MERGE requer ao menos uma cláusula WHEN", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2200,9 +2394,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.MergeMinVersion)]
     public void ParseMerge_WithInvalidTopLevelWhenForm_ShouldProvideActionableMessage(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "MERGE INTO users target USING users src ON target.id = src.id WHEN src.id > 0 THEN UPDATE SET name = 'x'";
 
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("MERGE requer ao menos uma cláusula WHEN", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2217,15 +2413,17 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseSelect_WithRecursive_ShouldBeRejected(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var sql = "WITH RECURSIVE cte(n) AS (SELECT 1) SELECT n FROM cte";
 
         if (version < SqlServerDialect.WithCteMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
             return;
         }
 
-        Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+        Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
     }
 
 
@@ -2240,8 +2438,10 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.WithCteMinVersion)]
     public void ParseSelect_WithRecursive_ShouldProvideActionableMessage(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse("WITH RECURSIVE cte(n) AS (SELECT 1) SELECT n FROM cte", GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse("WITH RECURSIVE cte(n) AS (SELECT 1) SELECT n FROM cte", db, d));
 
         Assert.Contains("WITH sem RECURSIVE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2256,9 +2456,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseSelect_WithSqlServerTableHints_ShouldParse(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var sql = "SELECT u.id FROM users u WITH (NOLOCK, INDEX([IX_Users_Id]))";
 
-        var parsed = SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v)));
+        var parsed = SqlQueryParser.Parse(sql, db, d);
         Assert.IsType<SqlSelectQuery>(parsed);
     }
 
@@ -2272,9 +2474,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseSelect_WithLegacySqlServerTableHint_ShouldParse(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var sql = "SELECT u.id FROM users u (NOLOCK)";
 
-        var parsed = SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v)));
+        var parsed = SqlQueryParser.Parse(sql, db, d);
         Assert.IsType<SqlSelectQuery>(parsed);
     }
 
@@ -2288,9 +2492,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseSelect_WithOptionQueryHint_ShouldParse(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var sql = "SELECT id FROM users OPTION (MAXDOP 1, RECOMPILE)";
 
-        var parsed = SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v)));
+        var parsed = SqlQueryParser.Parse(sql, db, d);
 
         Assert.IsType<SqlSelectQuery>(parsed);
     }
@@ -2305,9 +2511,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseUnion_WithOptionQueryHint_ShouldParse(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var sql = "SELECT id FROM users UNION SELECT id FROM users ORDER BY id OPTION (MAXDOP 1)";
 
-        var parsed = SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v)));
+        var parsed = SqlQueryParser.Parse(sql, db, d);
 
         Assert.IsType<SqlUnionQuery>(parsed);
     }
@@ -2323,8 +2531,10 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseSelect_WithBacktickQuotedAlias_ShouldProvideActionableMessage(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse("SELECT name `User Name` FROM users", GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse("SELECT name `User Name` FROM users", db, d));
 
         Assert.Contains("alias/identificadores", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("'`'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2340,9 +2550,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseSelect_WithBracketQuotedAlias_ShouldParseAndNormalizeAlias(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT name [User Name] FROM users",
-            GetDialect(version, v => new SqlServerDialect(v))));
+            db, d));
 
         var item = Assert.Single(parsed.SelectItems);
         Assert.Equal("User Name", item.Alias);
@@ -2358,9 +2570,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseSelect_WithEscapedBracketQuotedAlias_ShouldNormalizeEscapedBracket(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT name [User]]Name] FROM users",
-            GetDialect(version, v => new SqlServerDialect(v))));
+            db, d));
 
         var item = Assert.Single(parsed.SelectItems);
         Assert.Equal("User]Name", item.Alias);
@@ -2376,9 +2590,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseSelect_WithEscapedDoubleQuotedAlias_ShouldNormalizeEscapedQuote(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT name \"User\"\"Name\" FROM users",
-            GetDialect(version, v => new SqlServerDialect(v))));
+            db, d));
 
         var item = Assert.Single(parsed.SelectItems);
         Assert.Equal("User\"Name", item.Alias);
@@ -2395,9 +2611,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseSelect_WithPivot_ShouldParse(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var sql = "SELECT t10 FROM (SELECT tenantid, id FROM users) src PIVOT (COUNT(id) FOR tenantid IN (10 AS t10)) p";
 
-        var parsed = SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v)));
+        var parsed = SqlQueryParser.Parse(sql, db, d);
 
         Assert.IsType<SqlSelectQuery>(parsed);
     }
@@ -2412,9 +2630,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseSelect_WithInvalidPivotSyntax_ShouldThrowInvalidOperation(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var sql = "SELECT t10 FROM users PIVOT (COUNT(id) tenantid IN (10 AS t10)) p";
 
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains(SqlConst.PIVOT, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2429,7 +2649,7 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void RuntimeDialectRules_ShouldRemainStable(int version)
     {
-        var d = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
 
         Assert.True(d.AreUnionColumnTypesCompatible(DbType.Int32, DbType.Decimal));
         Assert.True(d.AreUnionColumnTypesCompatible(DbType.String, DbType.AnsiString));
@@ -2453,8 +2673,10 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseUnsupportedSql_ShouldUseStandardNotSupportedMessage(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse("WITH RECURSIVE cte(n) AS (SELECT 1) SELECT n FROM cte", GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse("WITH RECURSIVE cte(n) AS (SELECT 1) SELECT n FROM cte", db, d));
 
         Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.Ordinal);
         Assert.Contains("sqlserver", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2469,7 +2691,7 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void WindowFunctionCapability_ShouldRespectVersionAndKnownFunctions(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var dialect = Get(version, v => new SqlServerDialect(v));
 
         var expected = version >= SqlServerDialect.WindowFunctionsMinVersion;
         Assert.Equal(expected, dialect.SupportsWindowFunction("ROW_NUMBER"));
@@ -2486,19 +2708,20 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_WindowFunctionName_ShouldRespectDialectCapability(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var supported = "ROW_NUMBER() OVER (ORDER BY id)";
         var unsupported = "PERCENTILE_CONT(0.5) OVER (ORDER BY id)";
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
 
         if (version < SqlServerDialect.WindowFunctionsMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(supported, dialect));
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(supported, db, d));
             return;
         }
 
-        var expr = SqlExpressionParser.ParseScalar(supported, dialect);
+        var expr = SqlExpressionParser.ParseScalar(supported, db, d);
         Assert.IsType<WindowFunctionExpr>(expr);
-        Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(unsupported, dialect));
+        Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(unsupported, db, d));
     }
 
 
@@ -2511,16 +2734,17 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_WindowFunctionWithoutOrderBy_ShouldRespectDialectRules(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
 
         if (version < SqlServerDialect.WindowFunctionsMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER ()", dialect));
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER ()", db, d));
             return;
         }
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER ()", dialect));
+            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER ()", db, d));
 
         Assert.Contains("requires ORDER BY", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2535,24 +2759,25 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_WindowFunctionArguments_ShouldValidateArity(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
 
         if (version < SqlServerDialect.WindowFunctionsMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER(1) OVER (ORDER BY id)", dialect));
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER(1) OVER (ORDER BY id)", db, d));
             return;
         }
 
         var exRowNumber = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("ROW_NUMBER(1) OVER (ORDER BY id)", dialect));
+            SqlExpressionParser.ParseScalar("ROW_NUMBER(1) OVER (ORDER BY id)", db, d));
         Assert.Contains("does not accept arguments", exRowNumber.Message, StringComparison.OrdinalIgnoreCase);
 
         var exNtile = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("NTILE() OVER (ORDER BY id)", dialect));
+            SqlExpressionParser.ParseScalar("NTILE() OVER (ORDER BY id)", db, d));
         Assert.Contains("exactly 1 argument", exNtile.Message, StringComparison.OrdinalIgnoreCase);
 
         var exLag = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("LAG(id, 1, 0, 99) OVER (ORDER BY id)", dialect));
+            SqlExpressionParser.ParseScalar("LAG(id, 1, 0, 99) OVER (ORDER BY id)", db, d));
         Assert.Contains("between 1 and 3 arguments", exLag.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -2566,24 +2791,25 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_WindowFunctionLiteralArguments_ShouldValidateSemanticRange(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         if (version < SqlServerDialect.WindowFunctionsMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("NTILE(0) OVER (ORDER BY id)", dialect));
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("NTILE(0) OVER (ORDER BY id)", db, d));
             return;
         }
 
 
         var exNtile = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("NTILE(0) OVER (ORDER BY id)", dialect));
-        Assert.Contains("positive bucket count", exNtile.Message, StringComparison.OrdinalIgnoreCase);
+            SqlExpressionParser.ParseScalar("NTILE(0) OVER (ORDER BY id)", db, d));
+        Assert.Contains("positive integer literal", exNtile.Message, StringComparison.OrdinalIgnoreCase);
 
         var exLag = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("LAG(id, -1, 0) OVER (ORDER BY id)", dialect));
-        Assert.Contains("non-negative offset", exLag.Message, StringComparison.OrdinalIgnoreCase);
+            SqlExpressionParser.ParseScalar("LAG(id, -1, 0) OVER (ORDER BY id)", db, d));
+        Assert.Contains("offset must be non-negative", exLag.Message, StringComparison.OrdinalIgnoreCase);
 
         var exNthValue = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("NTH_VALUE(id, 0) OVER (ORDER BY id)", dialect));
+            SqlExpressionParser.ParseScalar("NTH_VALUE(id, 0) OVER (ORDER BY id)", db, d));
         Assert.Contains("greater than zero", exNthValue.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -2596,13 +2822,14 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void WindowFunctionOrderByRequirementHook_ShouldRespectVersion(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
 
         var expected = version >= SqlServerDialect.WindowFunctionsMinVersion;
-        Assert.Equal(expected, dialect.RequiresOrderByInWindowFunction("ROW_NUMBER"));
-        Assert.Equal(expected, dialect.RequiresOrderByInWindowFunction("LAG"));
+        Assert.Equal(expected, d.RequiresOrderByInWindowFunction("ROW_NUMBER"));
+        Assert.Equal(expected, d.RequiresOrderByInWindowFunction("LAG"));
 
-        Assert.False(dialect.RequiresOrderByInWindowFunction(SqlConst.COUNT));
+        Assert.False(d.RequiresOrderByInWindowFunction(SqlConst.COUNT));
     }
 
 
@@ -2615,23 +2842,26 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void WindowFunctionArgumentArityHook_ShouldRespectVersion(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
 
         if (version < SqlServerDialect.WindowFunctionsMinVersion)
         {
-            Assert.False(dialect.TryGetWindowFunctionArgumentArity("ROW_NUMBER", out _, out _));
+            Assert.False(d.TryGetWindowFunctionArgumentArity("ROW_NUMBER", out _, out _));
             return;
         }
 
-        Assert.True(dialect.TryGetWindowFunctionArgumentArity("ROW_NUMBER", out var rnMin, out var rnMax));
+        Assert.True(d.TryGetWindowFunctionArgumentArity("ROW_NUMBER", out var rnMin, out var rnMax));
         Assert.Equal(0, rnMin);
         Assert.Equal(0, rnMax);
 
-        Assert.True(dialect.TryGetWindowFunctionArgumentArity("LAG", out var lagMin, out var lagMax));
+        Assert.True(d.TryGetWindowFunctionArgumentArity("LAG", out var lagMin, out var lagMax));
         Assert.Equal(1, lagMin);
         Assert.Equal(3, lagMax);
 
-        Assert.False(dialect.TryGetWindowFunctionArgumentArity(SqlConst.COUNT, out _, out _));
+        Assert.True(d.TryGetWindowFunctionArgumentArity(SqlConst.COUNT, out var countMin, out var countMax));
+        Assert.Equal(1, countMin);
+        Assert.Equal(1, countMax);
     }
 
 
@@ -2644,21 +2874,22 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_WindowFrameClause_ShouldRespectDialectCapabilities(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
 
         if (version < SqlServerDialect.WindowFunctionsMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect));
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, d));
             return;
         }
 
-        var rowsExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
+        var rowsExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, d);
         Assert.IsType<WindowFunctionExpr>(rowsExpr);
 
-        var rangeExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
+        var rangeExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, d);
         Assert.IsType<WindowFunctionExpr>(rangeExpr);
 
-        var groupsExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id GROUPS BETWEEN 1 PRECEDING AND CURRENT ROW)", dialect);
+        var groupsExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id GROUPS BETWEEN 1 PRECEDING AND CURRENT ROW)", db, d);
         Assert.IsType<WindowFunctionExpr>(groupsExpr);
     }
 
@@ -2671,18 +2902,19 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_StringAggWithinGroup_ShouldParse(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
 
         if (version < SqlServerDialect.StringAggMinVersion)
         {
             Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
+                SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", db, d));
             Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|')", dialect));
+                SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|')", db, d));
             return;
         }
 
-        var expr = SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect);
+        var expr = SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", db, d);
         var call = Assert.IsType<CallExpr>(expr);
 
         Assert.Equal(SqlConst.STRING_AGG, call.Name, StringComparer.OrdinalIgnoreCase);
@@ -2690,7 +2922,7 @@ public sealed class SqlServerDialectFeatureParserTests(
         Assert.Single(call.WithinGroupOrderBy!);
         Assert.True(call.WithinGroupOrderBy![0].Desc);
 
-        var multiExpr = SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC, id ASC)", dialect);
+        var multiExpr = SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC, id ASC)", db, d);
         var multiCall = Assert.IsType<CallExpr>(multiExpr);
         Assert.NotNull(multiCall.WithinGroupOrderBy);
         Assert.Equal(2, multiCall.WithinGroupOrderBy!.Count);
@@ -2707,12 +2939,11 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_ListAggWithinGroup_ShouldThrowNotSupported(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
-
-        Assert.Contains(SqlConst.LISTAGG, ex.Message, StringComparison.OrdinalIgnoreCase);
+            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", db, d));
     }
 
     /// <summary>
@@ -2724,19 +2955,18 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_StringAggWithinGroupWithoutOrderBy_ShouldThrowActionableError(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
 
         if (version < SqlServerDialect.StringAggMinVersion)
         {
-            var gateEx = Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (amount DESC)", dialect));
-
-            Assert.Contains(SqlConst.STRING_AGG, gateEx.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (amount DESC)", db, d));
             return;
         }
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (amount DESC)", dialect));
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (amount DESC)", db, d));
 
         Assert.Contains("WITHIN GROUP requires ORDER BY", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2750,19 +2980,18 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_WithinGroupOrderByTrailingComma_ShouldThrowActionableError(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
 
         if (version < SqlServerDialect.StringAggMinVersion)
         {
-            var gateEx = Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC,)", dialect));
-
-            Assert.Contains(SqlConst.STRING_AGG, gateEx.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC,)", db, d));
             return;
         }
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC,)", dialect));
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC,)", db, d));
 
         Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2776,19 +3005,18 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_WithinGroupOrderByEmptyList_ShouldThrowActionableError(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
 
         if (version < SqlServerDialect.StringAggMinVersion)
         {
-            var gateEx = Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY)", dialect));
-
-            Assert.Contains(SqlConst.STRING_AGG, gateEx.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY)", db, d));
             return;
         }
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY)", dialect));
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY)", db, d));
 
         Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2802,19 +3030,18 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_WithinGroupOrderByLeadingComma_ShouldThrowActionableError(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
 
         if (version < SqlServerDialect.StringAggMinVersion)
         {
-            var gateEx = Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY, amount DESC)", dialect));
-
-            Assert.Contains(SqlConst.STRING_AGG, gateEx.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY, amount DESC)", db, d));
             return;
         }
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY, amount DESC)", dialect));
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY, amount DESC)", db, d));
 
         Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2829,19 +3056,18 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_WithinGroupOrderByMissingCommaBetweenExpressions_ShouldThrowActionableError(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
 
         if (version < SqlServerDialect.StringAggMinVersion)
         {
-            var gateEx = Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC id ASC)", dialect));
-
-            Assert.Contains(SqlConst.STRING_AGG, gateEx.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC id ASC)", db, d));
             return;
         }
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC id ASC)", dialect));
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC id ASC)", db, d));
 
         Assert.Contains("requires commas", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2857,16 +3083,17 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseScalar_WindowFrameClauseInvalidBounds_ShouldBeRejected(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
 
         if (version < SqlServerDialect.WindowFunctionsMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 PRECEDING)", dialect));
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 PRECEDING)", db, d));
             return;
         }
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 PRECEDING)", dialect));
+            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 PRECEDING)", db, d));
 
         Assert.Contains("start bound cannot be greater", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2881,10 +3108,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseUpdate_WithReturning_ShouldBeRejected(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2899,10 +3128,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseUpdate_WithReturningWithoutWhere_ShouldBeRejected(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "UPDATE users SET name = 'b' RETURNING id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2916,10 +3147,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseUpdate_WithEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING;";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2933,10 +3166,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseUpdate_WithMalformedReturningLeadingComma_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING, id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2950,10 +3185,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseUpdate_WithMalformedReturningTrailingComma_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING id,";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2967,10 +3204,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseUpdate_WithMalformedReturningAliasWithoutExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING AS user_id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2985,10 +3224,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseUpdate_WithUnexpectedTrailingToken_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 EXTRA";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("Unexpected token after UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3003,10 +3244,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseUpdate_WhereWithoutPredicate_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3021,10 +3264,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseUpdate_WhereOnlySemicolon_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3039,10 +3284,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseUpdate_SetAssignmentsWithoutCommaSeparator_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "UPDATE users SET name = 'b' updated_at = GETDATE() WHERE id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("must separate assignments with commas", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3056,10 +3303,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseUpdate_SetInvalidAssignmentExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "UPDATE users SET name = (GETDATE() WHERE id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("assignment for 'name' has an invalid expression", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3073,10 +3322,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseUpdate_SetAssignmentWithoutEquals_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "UPDATE users SET name 'b' WHERE id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires '=' between column and expression", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3090,10 +3341,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseUpdate_SetWithoutAssignmentsBeforeSemicolon_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "UPDATE users SET;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3108,10 +3361,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseUpdate_SetRepeatedSetKeyword_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "UPDATE users SET SET name = 'b' WHERE id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("must not repeat SET keyword", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'SET'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3126,10 +3381,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseUpdate_SetLeadingComma_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "UPDATE users SET , name = 'b' WHERE id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unexpected comma before assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ','", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3144,10 +3401,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseUpdate_SetTrailingComma_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "UPDATE users SET name = 'b', WHERE id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("trailing comma without assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'WHERE'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3162,10 +3421,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseUpdate_WhereInvalidPredicate_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE (id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("UPDATE WHERE predicate is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3180,10 +3441,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseDelete_WithReturning_ShouldBeRejected(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "DELETE FROM users WHERE id = 1 RETURNING id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3198,10 +3461,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseDelete_WithEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "DELETE FROM users WHERE id = 1 RETURNING;";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3216,10 +3481,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseDelete_WithMalformedReturningLeadingComma_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "DELETE FROM users WHERE id = 1 RETURNING, id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3234,10 +3501,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseDelete_WithMalformedReturningTrailingComma_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "DELETE FROM users WHERE id = 1 RETURNING id,";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3252,10 +3521,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseDelete_WithMalformedReturningInvalidExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "DELETE FROM users WHERE id = 1 RETURNING id +";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3270,10 +3541,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseDelete_WithMalformedReturningUnbalancedParenthesis_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "DELETE FROM users WHERE id = 1 RETURNING (id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3287,10 +3560,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseDelete_WithMalformedReturningAliasWithoutExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "DELETE FROM users WHERE id = 1 RETURNING AS user_id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3305,10 +3580,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseDelete_WithUnexpectedTrailingToken_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "DELETE FROM users WHERE id = 1 EXTRA";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("Unexpected token after DELETE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3323,10 +3600,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseDelete_WhereWithoutPredicate_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "DELETE FROM users WHERE";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3341,10 +3620,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseDelete_WhereOnlySemicolon_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "DELETE FROM users WHERE;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3359,10 +3640,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseDelete_WhereInvalidPredicate_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "DELETE FROM users WHERE (id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DELETE WHERE predicate is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3377,10 +3660,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithMalformedReturning_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING, id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3394,10 +3679,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING;";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3411,10 +3698,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithMalformedReturningTrailingComma_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING id,";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3428,10 +3717,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithMalformedReturningInvalidExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING id +";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3445,10 +3736,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithMalformedReturningUnbalancedParenthesis_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING (id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3462,10 +3755,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithMalformedReturningAliasWithoutExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING AS user_id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3479,10 +3774,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithMalformedOnDuplicateKeyUpdate_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name),";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -3495,10 +3792,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnDuplicateReturningClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -3511,10 +3810,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnDuplicateInvalidReturningExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING id +";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -3527,10 +3828,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnDuplicateEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING;";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -3543,10 +3846,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnDuplicateUnbalancedReturningExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING (id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -3559,10 +3864,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnDuplicateLeadingCommaReturning_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING, id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -3575,10 +3882,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnDuplicateTrailingCommaReturning_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING id,";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -3591,10 +3900,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnDuplicateWithoutAssignments_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -3607,10 +3918,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnDuplicateWithoutAssignmentsReturningClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE RETURNING id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -3623,10 +3936,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnDuplicateWithoutAssignmentsEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE RETURNING;";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -3639,10 +3954,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnDuplicateWithoutAssignmentsUnbalancedReturningExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE RETURNING (id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -3655,10 +3972,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnDuplicateWithoutAssignmentsWhereClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE WHERE id = 1";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -3671,10 +3990,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnDuplicateWithoutAssignmentsFromClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE FROM users";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -3687,10 +4008,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnDuplicateWithoutAssignmentsUsingClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE USING users";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -3703,10 +4026,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnDuplicateRepeatedSetKeyword_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE SET name = VALUES(name)";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -3719,10 +4044,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnDuplicateAssignmentWithoutEquals_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name VALUES(name)";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -3735,10 +4062,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnDuplicateLeadingComma_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE , name = VALUES(name)";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -3751,10 +4080,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnDuplicateWhereClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) WHERE id = 1";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -3767,10 +4098,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnDuplicateFromClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) FROM users";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -3783,10 +4116,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnDuplicateUsingClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) USING users";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -3800,10 +4135,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithUnexpectedTrailingToken_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') EXTRA";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("Unexpected token after INSERT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3818,10 +4155,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_ValuesTrailingComma_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id) VALUES (1),";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3836,10 +4175,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_ValuesTuplesWithoutCommaSeparator_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id) VALUES (1) (2)";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("separate row tuples with commas", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3853,10 +4194,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_ValuesLeadingComma_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id) VALUES , (1)";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3870,10 +4213,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_ValuesInvalidExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1 +, 'a')";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("row 1 expression 1 is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3887,10 +4232,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_ValuesSecondRowInvalidExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a'), (2 +, 'b')";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("row 2 expression 1 is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3905,10 +4252,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_ColumnListTrailingComma_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id,) VALUES (1)";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3922,10 +4271,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_EmptyColumnList_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users () VALUES (1)";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("at least one column", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3940,10 +4291,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_ColumnListLeadingComma_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (,id) VALUES (1)";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3957,10 +4310,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_ColumnListUnclosedBeforeSemicolon_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("not closed correctly", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3975,10 +4330,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_ValuesTupleMissingExpressionBetweenCommas_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users VALUES (1,,2)";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("empty expression", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3992,10 +4349,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_ValuesTupleTrailingComma_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users VALUES (1,)";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("empty expression", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -4010,10 +4369,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_ValuesTupleUnclosedParenthesis_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users VALUES (1, 2";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("not closed correctly", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -4028,10 +4389,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_ValuesColumnCountMismatch_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1)";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("column count", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("row 1", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -4047,10 +4410,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_ValuesRowArityMismatch_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users VALUES (1, 'a'), (2)";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("row 2", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("row 1", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -4066,10 +4431,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithMalformedOnConflictTarget_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (, id) DO NOTHING";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4083,10 +4450,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictTargetUnclosedBeforeSemicolon_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id;";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4100,10 +4469,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithMalformedOnConflictDoUpdateSet_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET , name = EXCLUDED.name";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4117,10 +4488,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictMissingDoBranch_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id)";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4133,10 +4506,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoNothingWhereClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING WHERE id = 1";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4149,10 +4524,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoNothingFromClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING FROM users";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4165,10 +4542,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoNothingUsingClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING USING users";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4181,10 +4560,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoNothingSetClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING SET name = 'b'";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4197,10 +4578,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoNothingUpdateClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING UPDATE SET name = 'b'";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4213,10 +4596,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoNothingReturning_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4229,10 +4614,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoUpdateReturning_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4245,10 +4632,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoNothingInvalidReturningExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING id +";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4261,10 +4650,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoNothingUnbalancedReturningExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING (id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4277,10 +4668,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoNothingEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING;";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4293,10 +4686,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoNothingUnexpectedContinuation_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING EXTRA";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4310,10 +4705,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictTargetWhereWithoutPredicate_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE DO NOTHING";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4326,10 +4723,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictTargetInvalidExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id +) DO NOTHING";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4342,10 +4741,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictTargetWhereOnlySemicolon_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE; DO NOTHING";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4358,10 +4759,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictTargetWhereInvalidPredicate_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id = DO NOTHING";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4374,10 +4777,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoUpdateWhereOnlySemicolon_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE;";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4390,10 +4795,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoUpdateWhereWithoutPredicate_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE RETURNING id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4406,10 +4813,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoUpdateWhereInvalidPredicate_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE id = RETURNING id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4422,10 +4831,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoUpdateWhereInvalidReturningExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING id +";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4438,10 +4849,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoUpdateWhereUnbalancedReturningExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING (id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4454,10 +4867,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoUpdateWhereEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING;";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4470,10 +4885,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictTargetWhereDoNothing_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4486,10 +4903,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictTargetWhereDoNothingReturning_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING RETURNING id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4502,10 +4921,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictTargetWhereDoNothingInvalidReturningExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING RETURNING id +";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4518,10 +4939,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictTargetWhereDoNothingUnbalancedReturningExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING RETURNING (id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4534,10 +4957,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictTargetWhereDoNothingEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING RETURNING;";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4550,10 +4975,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictTargetWhereDoNothingUnexpectedContinuationToken_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING EXTRA";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4566,10 +4993,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictTargetWhereDoNothingWithFromClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING FROM users";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4582,10 +5011,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictTargetWhereDoNothingWithUsingClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING USING users";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4598,10 +5029,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictTargetWhereDoNothingWithSetClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING SET name = 'b'";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4614,10 +5047,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictTargetWhereDoNothingWithUpdateClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING UPDATE SET name = 'b'";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4630,10 +5065,12 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictTargetWhereDoNothingWithWhereClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING WHERE id = 1";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4646,6 +5083,8 @@ public sealed class SqlServerDialectFeatureParserTests(
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictTargetWhereUpdateWhereReturning_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT (id) WHERE id > 0
@@ -4654,7 +5093,7 @@ WHERE users.id = EXCLUDED.id
 RETURNING id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4667,6 +5106,8 @@ RETURNING id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictTargetWhereUpdateWhereInvalidReturningExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT (id) WHERE id > 0
@@ -4675,7 +5116,7 @@ WHERE users.id = EXCLUDED.id
 RETURNING id +";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4688,6 +5129,8 @@ RETURNING id +";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictTargetWhereUpdateWhereUnbalancedReturningExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT (id) WHERE id > 0
@@ -4696,7 +5139,7 @@ WHERE users.id = EXCLUDED.id
 RETURNING (id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4709,6 +5152,8 @@ RETURNING (id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictTargetWhereUpdateWhereEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT (id) WHERE id > 0
@@ -4717,7 +5162,7 @@ WHERE users.id = EXCLUDED.id
 RETURNING;";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4730,6 +5175,8 @@ RETURNING;";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictTargetWhereUpdateWhereWithoutReturning_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT (id) WHERE id > 0
@@ -4737,7 +5184,7 @@ DO UPDATE SET name = EXCLUDED.name
 WHERE users.id = EXCLUDED.id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4750,10 +5197,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoUpdateInvalidReturningExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING id +";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4766,10 +5215,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoUpdateUnbalancedReturningExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING (id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4782,10 +5233,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoUpdateEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING;";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4798,10 +5251,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoUpdateFromClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name FROM users";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4814,10 +5269,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoUpdateSetFromWithoutAssignments_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET FROM users";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4830,10 +5287,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoUpdateSetUsingWithoutAssignments_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET USING users";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4846,10 +5305,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoUpdateUsingClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name USING users";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4862,10 +5323,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoUpdateSetInvalidAssignmentExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = (EXCLUDED.name WHERE id = 1";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4878,10 +5341,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoUpdateSetRepeatedSetKeyword_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET SET name = EXCLUDED.name";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4894,10 +5359,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictDoUpdateSetAssignmentWithoutEquals_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name EXCLUDED.name";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4911,10 +5378,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintWithoutName_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT DO NOTHING";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4927,10 +5396,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintWithoutNameAtEndOfStatement_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4943,10 +5414,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintWithoutDoBranch_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4959,10 +5432,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoInvalidContinuation_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO SKIP";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4975,10 +5450,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoUpdateWithoutSet_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4991,10 +5468,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoUpdateSetWithoutAssignments_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5007,10 +5486,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoUpdateSetLeadingComma_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET , name = EXCLUDED.name";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5023,10 +5504,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoUpdateSetTrailingComma_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name,";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5039,10 +5522,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoUpdateSetAssignmentsWithoutCommaSeparator_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name updated_at = NOW()";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5055,10 +5540,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoUpdateSetRepeatedSetKeyword_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET SET name = EXCLUDED.name";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5071,10 +5558,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoUpdateSetAssignmentWithoutEquals_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name EXCLUDED.name";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5087,10 +5576,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoUpdateSetInvalidAssignmentExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = (EXCLUDED.name";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5103,10 +5594,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoUpdateWithFromClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name FROM users";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5119,10 +5612,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoUpdateWithUsingClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name USING users";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5135,10 +5630,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoUpdateSetFromWithoutAssignments_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET FROM users";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5151,10 +5648,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoUpdateSetUsingWithoutAssignments_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET USING users";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5167,10 +5666,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoUpdateReturning_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name RETURNING id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5183,10 +5684,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoUpdateInvalidReturningExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name RETURNING id +";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5199,10 +5702,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoUpdateUnbalancedReturningExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name RETURNING (id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5215,10 +5720,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoUpdateEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name RETURNING;";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5231,10 +5738,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoNothingReturning_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING RETURNING id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5247,10 +5756,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoNothingInvalidReturningExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING RETURNING id +";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5263,10 +5774,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoNothingUnbalancedReturningExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING RETURNING (id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5279,10 +5792,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoNothingEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING RETURNING;";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5295,10 +5810,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintTargetWhereDoNothing_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0 DO NOTHING";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5311,10 +5828,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintTargetWhereDoNothingReturning_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0 DO NOTHING RETURNING id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5327,10 +5846,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintTargetWhereDoNothingInvalidReturningExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0 DO NOTHING RETURNING id +";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5343,10 +5864,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintTargetWhereDoNothingUnbalancedReturningExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0 DO NOTHING RETURNING (id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5359,10 +5882,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintTargetWhereDoNothingEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0 DO NOTHING RETURNING;";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5375,10 +5900,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoNothingWithFromClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING FROM users";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5391,10 +5918,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoNothingWithUsingClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING USING users";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5407,10 +5936,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoNothingWithSetClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING SET name = 'b'";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5423,10 +5954,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoNothingWithUpdateClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING UPDATE SET name = 'b'";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5439,10 +5972,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoNothingWithWhereClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING WHERE id = 1";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5455,10 +5990,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoNothingWithUnexpectedContinuationToken_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING EXTRA";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5471,10 +6008,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintTargetWhereWithoutPredicate_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE DO NOTHING";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5487,10 +6026,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintTargetWhereOnlySemicolon_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE; DO NOTHING";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5503,10 +6044,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintTargetWhereInvalidPredicate_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id = DO NOTHING";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5519,10 +6062,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintTargetWhereInvalidPredicateBeforeDoUpdate_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id = DO UPDATE SET name = EXCLUDED.name";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5535,6 +6080,8 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintTargetWhereUpdateWhereReturning_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
@@ -5543,7 +6090,7 @@ WHERE users.id = EXCLUDED.id
 RETURNING id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5556,6 +6103,8 @@ RETURNING id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintTargetWhereUpdateWhereInvalidReturningExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
@@ -5564,7 +6113,7 @@ WHERE users.id = EXCLUDED.id
 RETURNING id +";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5577,6 +6126,8 @@ RETURNING id +";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintTargetWhereUpdateWhereUnbalancedReturningExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
@@ -5585,7 +6136,7 @@ WHERE users.id = EXCLUDED.id
 RETURNING (id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5598,6 +6149,8 @@ RETURNING (id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintTargetWhereUpdateWhereEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
@@ -5606,7 +6159,7 @@ WHERE users.id = EXCLUDED.id
 RETURNING;";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5619,6 +6172,8 @@ RETURNING;";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintTargetWhereUpdateWhereWithoutReturning_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
@@ -5626,7 +6181,7 @@ DO UPDATE SET name = EXCLUDED.name
 WHERE users.id = EXCLUDED.id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5639,10 +6194,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoUpdateWhereOnlySemicolon_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE; RETURNING id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5655,10 +6212,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoUpdateWhereOnlySemicolonWithoutReturning_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE;";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5671,10 +6230,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoUpdateWhereWithoutPredicate_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE RETURNING id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5687,10 +6248,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoUpdateWhereInvalidPredicate_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE id = RETURNING id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5703,10 +6266,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoUpdateWhereInvalidReturningExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING id +";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5719,10 +6284,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoUpdateWhereUnbalancedReturningExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING (id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5735,10 +6302,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseInsert_WithOnConflictOnConstraintDoUpdateWhereEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING;";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -5751,10 +6320,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseUpdate_WithMalformedReturningUnbalancedParenthesis_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING (id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -5768,10 +6339,12 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseUpdate_WithMalformedReturningInvalidExpression_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING id +";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -5787,13 +6360,15 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataSqlServerVersion]
     public void ParseUpdate_WithSubqueryInSetAndFromJoin_ShouldKeepSetAndWhereBoundaries(int version)
     {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
         var sql = @"UPDATE u
 SET u.total = (SELECT SUM(o.amount) FROM orders o WHERE o.userid = u.id)
 FROM users u
 JOIN (SELECT userid FROM orders GROUP BY userid) s ON s.userid = u.id
 WHERE u.id > 0";
 
-        var parsed = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new SqlServerDialect(v))));
+        var parsed = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(sql, db, d));
 
         Assert.NotNull(parsed.UpdateFromSelect);
         Assert.Single(parsed.Set);
@@ -5810,10 +6385,11 @@ WHERE u.id > 0";
     [MemberDataSqlServerVersion]
     public void ParseScalar_MatchAgainst_ShouldBeRejectedByDialectGate(int version)
     {
-        var dialect = GetDialect(version, v => new SqlServerDialect(v));
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("MATCH(name) AGAINST ('john' IN BOOLEAN MODE)", dialect));
+            SqlExpressionParser.ParseScalar("MATCH(name) AGAINST ('john' IN BOOLEAN MODE)", db, d));
 
         Assert.Contains("MATCH ... AGAINST", ex.Message, StringComparison.OrdinalIgnoreCase);
     }

@@ -8,6 +8,10 @@ public sealed class EfCoreSmokeTests(
     ITestOutputHelper helper
 ) : EfCoreSupportTestsBase(helper)
 {
+    /// <inheritdoc />
+    protected override DbSqlLikeMem.TestTools.ProviderSqlDialect Dialect { get; } =
+        new DbSqlLikeMem.Sqlite.TestTools.SqliteProviderSqlDialect();
+
     /// <summary>
     /// EN: Creates the Sqlite EF Core connection factory used by the shared contract tests.
     /// PT: Cria a fábrica de conexão EF Core de Sqlite usada pelos testes de contrato compartilhados.

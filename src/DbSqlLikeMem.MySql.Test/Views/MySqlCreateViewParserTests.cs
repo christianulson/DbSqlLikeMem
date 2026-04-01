@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.MySql.Test.Views;
 
 /// <summary>
@@ -17,23 +19,25 @@ public sealed class MySqlCreateViewParserTests(
     [MemberDataMySqlVersion]
     public void ParseMulti_CreateView_ThenSelect_ShouldReturnTwoStatements(int version)
     {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
         const string sql = @"
 CREATE VIEW v_users AS
 SELECT id, name FROM users WHERE tenantid = 10;
 
 SELECT * FROM v_users;
 ";
-        var q = SqlQueryParser.ParseMulti(sql, GetDialect(version, v => new MySqlDialect(v))).ToList();
-        Assert.Equal(2, q.Count);
+        var q = SqlQueryParser.ParseMulti(sql, db, d).ToList();
+        q.Should().HaveCount(2);
 
-        Assert.IsType<SqlCreateViewQuery>(q[0]);
-        Assert.IsType<SqlSelectQuery>(q[1]);
+        q[0].Should().BeOfType<SqlCreateViewQuery>();
+        q[1].Should().BeOfType<SqlSelectQuery>();
 
-        var cv = (SqlCreateViewQuery)q[0];
-        Assert.Equal("v_users", cv.Table?.Name);
-        Assert.False(cv.OrReplace);
-        Assert.NotNull(cv.Select);
-        Assert.Contains("users", cv.Select.Table?.Name, StringComparison.OrdinalIgnoreCase);
+        var cv = q[0].Should().BeOfType<SqlCreateViewQuery>().Which;
+        cv.Table?.Name.Should().Be("v_users");
+        cv.OrReplace.Should().BeFalse();
+        cv.Select.Should().NotBeNull();
+        cv.Select!.Table?.Name.Should().Contain("users");
     }
 
     /// <summary>
@@ -45,11 +49,13 @@ SELECT * FROM v_users;
     [MemberDataMySqlVersion]
     public void Parse_CreateOrReplaceView_ShouldSetFlag(int version)
     {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "CREATE OR REPLACE VIEW v AS SELECT id FROM users;";
-        var q = SqlQueryParser.ParseMulti(sql, GetDialect(version, v => new MySqlDialect(v))).Single();
-        var cv = Assert.IsType<SqlCreateViewQuery>(q);
-        Assert.True(cv.OrReplace);
-        Assert.Equal("v", cv.Table?.Name);
+        var q = SqlQueryParser.ParseMulti(sql, db, d).Single();
+        var cv = q.Should().BeOfType<SqlCreateViewQuery>().Which;
+        cv.OrReplace.Should().BeTrue();
+        cv.Table?.Name.Should().Be("v");
     }
 
     /// <summary>
@@ -61,10 +67,12 @@ SELECT * FROM v_users;
     [MemberDataMySqlVersion]
     public void Parse_CreateView_WithExplicitColumnList_ShouldCaptureNames(int version)
     {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "CREATE VIEW v (a,b) AS SELECT id, name FROM users;";
-        var q = SqlQueryParser.ParseMulti(sql, GetDialect(version, v => new MySqlDialect(v))).Single();
-        var cv = Assert.IsType<SqlCreateViewQuery>(q);
-        Assert.Equal(["a", "b"], cv.ColumnNames);
+        var q = SqlQueryParser.ParseMulti(sql, db, d).Single();
+        var cv = q.Should().BeOfType<SqlCreateViewQuery>().Which;
+        cv.ColumnNames.Should().Equal(["a", "b"]);
     }
 
     /// <summary>
@@ -76,10 +84,12 @@ SELECT * FROM v_users;
     [MemberDataMySqlVersion]
     public void Parse_CreateView_WithBackticks_ShouldWork(int version)
     {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "CREATE VIEW `v` AS SELECT `id` FROM `users`;";
-        var q = SqlQueryParser.ParseMulti(sql, GetDialect(version, v => new MySqlDialect(v))).Single();
-        var cv = Assert.IsType<SqlCreateViewQuery>(q);
-        Assert.Equal("v", cv.Table?.Name);
+        var q = SqlQueryParser.ParseMulti(sql, db, d).Single();
+        var cv = q.Should().BeOfType<SqlCreateViewQuery>().Which;
+        cv.Table?.Name.Should().Be("v");
     }
 
     /// <summary>
@@ -91,8 +101,11 @@ SELECT * FROM v_users;
     [MemberDataMySqlVersion]
     public void Parse_CreateView_IfNotExists_ShouldBeRejected_ByMySqlSpec(int version)
     {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "CREATE VIEW IF NOT EXISTS v AS SELECT 1;";
-        Assert.ThrowsAny<Exception>(() => SqlQueryParser.ParseMulti(sql, GetDialect(version, v => new MySqlDialect(v))).ToList());
+        Action act = () => SqlQueryParser.ParseMulti(sql, db, d).ToList();
+        act.Should().Throw<Exception>();
     }
 
     /// <summary>
@@ -104,8 +117,11 @@ SELECT * FROM v_users;
     [MemberDataMySqlVersion]
     public void Parse_DropView_WithUnexpectedContinuation_ShouldThrow(int version)
     {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "DROP VIEW v_users EXTRA";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
+        Action act = () => SqlQueryParser.Parse(sql, db, d);
+        act.Should().Throw<InvalidOperationException>();
     }
 
     /// <summary>
@@ -117,8 +133,11 @@ SELECT * FROM v_users;
     [MemberDataMySqlVersion]
     public void Parse_CreateView_WithUnexpectedSecondStatementInBody_ShouldThrow(int version)
     {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "CREATE VIEW v_users AS SELECT id FROM users; SELECT 1";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
+        Action act = () => SqlQueryParser.Parse(sql, db, d);
+        act.Should().Throw<InvalidOperationException>();
     }
 
     /// <summary>
@@ -130,8 +149,11 @@ SELECT * FROM v_users;
     [MemberDataMySqlVersion]
     public void Parse_CreateView_WithMissingBodyAfterAs_ShouldThrow(int version)
     {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "CREATE VIEW v_users AS ;";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
+        Action act = () => SqlQueryParser.Parse(sql, db, d);
+        act.Should().Throw<InvalidOperationException>();
     }
 
     /// <summary>
@@ -143,8 +165,12 @@ SELECT * FROM v_users;
     [MemberDataMySqlVersion]
     public void Parse_DropView_WithoutName_ShouldThrow(int version)
     {
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse("DROP VIEW ;", GetDialect(version, v => new MySqlDialect(v))));
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse("DROP VIEW IF EXISTS ;", GetDialect(version, v => new MySqlDialect(v))));
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        Action dropView = () => SqlQueryParser.Parse("DROP VIEW ;", db, d);
+        Action dropViewIfExists = () => SqlQueryParser.Parse("DROP VIEW IF EXISTS ;", db, d);
+        dropView.Should().Throw<InvalidOperationException>();
+        dropViewIfExists.Should().Throw<InvalidOperationException>();
     }
 
     /// <summary>
@@ -156,8 +182,11 @@ SELECT * FROM v_users;
     [MemberDataMySqlVersion]
     public void Parse_CreateView_WithEmptyColumnList_ShouldThrow(int version)
     {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "CREATE VIEW v_users () AS SELECT id FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
+        Action act = () => SqlQueryParser.Parse(sql, db, d);
+        act.Should().Throw<InvalidOperationException>();
     }
 
     /// <summary>
@@ -169,8 +198,11 @@ SELECT * FROM v_users;
     [MemberDataMySqlVersion]
     public void Parse_CreateView_WithTrailingCommaInColumnList_ShouldThrow(int version)
     {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "CREATE VIEW v_users (id,) AS SELECT id FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
+        Action act = () => SqlQueryParser.Parse(sql, db, d);
+        act.Should().Throw<InvalidOperationException>();
     }
 
     /// <summary>
@@ -182,8 +214,11 @@ SELECT * FROM v_users;
     [MemberDataMySqlVersion]
     public void Parse_CreateView_WithLeadingCommaInColumnList_ShouldThrow(int version)
     {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "CREATE VIEW v_users (,id) AS SELECT id FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
+        Action act = () => SqlQueryParser.Parse(sql, db, d);
+        act.Should().Throw<InvalidOperationException>();
     }
 
     /// <summary>
@@ -195,8 +230,11 @@ SELECT * FROM v_users;
     [MemberDataMySqlVersion]
     public void Parse_CreateView_WithUnclosedColumnList_ShouldThrow(int version)
     {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "CREATE VIEW v_users (id";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
+        Action act = () => SqlQueryParser.Parse(sql, db, d);
+        act.Should().Throw<InvalidOperationException>();
     }
 
     /// <summary>
@@ -208,8 +246,11 @@ SELECT * FROM v_users;
     [MemberDataMySqlVersion]
     public void Parse_CreateView_WithMissingCommaBetweenColumns_ShouldThrow(int version)
     {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "CREATE VIEW v_users (id name) AS SELECT id, name FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
+        Action act = () => SqlQueryParser.Parse(sql, db, d);
+        act.Should().Throw<InvalidOperationException>();
     }
 
     /// <summary>
@@ -221,8 +262,11 @@ SELECT * FROM v_users;
     [MemberDataMySqlVersion]
     public void Parse_DropView_WithUnexpectedSecondStatement_ShouldThrow(int version)
     {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "DROP VIEW v_users; SELECT 1";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
+        Action act = () => SqlQueryParser.Parse(sql, db, d);
+        act.Should().Throw<InvalidOperationException>();
     }
 
     /// <summary>
@@ -234,8 +278,11 @@ SELECT * FROM v_users;
     [MemberDataMySqlVersion]
     public void Parse_DropViewIfExists_WithUnexpectedSecondStatement_ShouldThrow(int version)
     {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "DROP VIEW IF EXISTS v_users; SELECT 1";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
+        Action act = () => SqlQueryParser.Parse(sql, db, d);
+        act.Should().Throw<InvalidOperationException>();
     }
 
     /// <summary>
@@ -247,8 +294,11 @@ SELECT * FROM v_users;
     [MemberDataMySqlVersion]
     public void Parse_CreateView_WithDoubleCommaInColumnList_ShouldThrow(int version)
     {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "CREATE VIEW v_users (id,,name) AS SELECT id, name FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
+        Action act = () => SqlQueryParser.Parse(sql, db, d);
+        act.Should().Throw<InvalidOperationException>();
     }
 
     /// <summary>
@@ -260,7 +310,10 @@ SELECT * FROM v_users;
     [MemberDataMySqlVersion]
     public void Parse_CreateView_WithUnclosedColumnListBeforeAs_ShouldThrow(int version)
     {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "CREATE VIEW v_users (id AS SELECT id FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new MySqlDialect(v))));
+        Action act = () => SqlQueryParser.Parse(sql, db, d);
+        act.Should().Throw<InvalidOperationException>();
     }
 }

@@ -48,7 +48,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = RunStringAggregationVariants(serviceTestContainer, $"{users}_{uId}");
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -94,7 +94,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = RunStringAggregationSummary(serviceTestContainer, $"{users}_{uId}");
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -140,7 +140,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = RunStringAggregationGroupCase(serviceTestContainer, $"{users}_{uId}");
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -165,11 +165,11 @@ public abstract class StringAggregateTestsBase<T, T2>(
         var separator = serviceTest.RunStringAggregateCustomSeparator(users);
         var largeGroup = serviceTest.RunStringAggregateLargeGroup(users);
 
-        Assert.NotNull(plain);
-        Assert.NotNull(ordered);
-        Assert.NotNull(distinct);
-        Assert.NotNull(separator);
-        Assert.NotNull(largeGroup);
+        plain.Should().NotBeNull();
+        ordered.Should().NotBeNull();
+        distinct.Should().NotBeNull();
+        separator.Should().NotBeNull();
+        largeGroup.Should().NotBeNull();
 
         return (plain, ordered, distinct, separator, largeGroup);
     }
@@ -181,10 +181,10 @@ public abstract class StringAggregateTestsBase<T, T2>(
     {
         var result = serviceTest.RunStringAggregateSummaryMatrix(users);
 
-        Assert.NotNull(result.Ordered);
-        Assert.Equal(5, result.TotalCount);
-        Assert.Equal(4, result.DistinctCount);
-        Assert.Equal(2, result.BobCount);
+        result.Ordered.Should().NotBeNull();
+        result.TotalCount.Should().Be(5);
+        result.DistinctCount.Should().Be(4);
+        result.BobCount.Should().Be(2);
 
         return result;
     }
@@ -195,7 +195,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
         where TConnection : DbConnection
     {
         var result = serviceTest.RunStringAggregateGroupCaseMatrix(users);
-        Assert.Equal(2, result);
+        result.Should().Be(2);
         return result;
     }
 

@@ -1,3 +1,4 @@
+using FluentAssertions;
 using System.Linq.Expressions;
 
 namespace DbSqlLikeMem.MySql.Test;
@@ -50,8 +51,8 @@ public sealed class MySqlLinqProviderTest(
                       .Where(u => u.Id == 2)
                       .ToList();
 
-        Assert.Single(list);
-        Assert.Equal("B", list[0].Name);
+        list.Should().ContainSingle();
+        list[0].Name.Should().Be("B");
     }
 
     /// <summary>
@@ -85,7 +86,7 @@ public sealed class MySqlLinqProviderTest(
 
         var count = cnn.AsQueryable<User>("users").Count();
 
-        Assert.Equal(2, count);
+        count.Should().Be(2);
     }
 
     /// <summary>
@@ -100,7 +101,8 @@ public sealed class MySqlLinqProviderTest(
         var provider = new MySqlQueryProvider(cnn);
         Expression<Func<int>> expression = () => 1;
 
-        Assert.Throws<InvalidOperationException>(() => provider.CreateQuery<int>(expression.Body));
+        Action act = () => provider.CreateQuery<int>(expression.Body);
+        act.Should().Throw<InvalidOperationException>();
     }
 
 }

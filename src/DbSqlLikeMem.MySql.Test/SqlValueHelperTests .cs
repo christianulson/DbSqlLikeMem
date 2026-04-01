@@ -1,3 +1,4 @@
+using FluentAssertions;
 using System.Text.Json;
 
 namespace DbSqlLikeMem.MySql.Test;
@@ -28,7 +29,7 @@ public sealed class SqlValueHelperTests(
 
         var v = MySqlValueHelper.Resolve("@p0", DbType.Int32, isNullable: false, cmd.Parameters, colDict: null);
 
-        Assert.Equal(123, v);
+        v.Should().Be(123);
     }
 
     /// <summary>
@@ -39,8 +40,8 @@ public sealed class SqlValueHelperTests(
     [Trait("Category", "SqlValueHelperTests ")]
     public void Resolve_ShouldThrow_WhenParameterMissing()
     {
-        Assert.Throws<MySqlMockException>(() =>
-            MySqlValueHelper.Resolve("@p404", DbType.Int32, isNullable: false, pars: null, colDict: null));
+        FluentActions.Invoking(() => MySqlValueHelper.Resolve("@p404", DbType.Int32, isNullable: false, pars: null, colDict: null))
+            .Should().Throw<MySqlMockException>();
     }
 
     /// <summary>
@@ -53,8 +54,8 @@ public sealed class SqlValueHelperTests(
     {
         var v = MySqlValueHelper.Resolve("(1, 2, 3)", DbType.Int32, isNullable: false, pars: null, colDict: null);
 
-        var list = Assert.IsType<List<object?>>(v);
-        Assert.Equal([1, 2, 3], [.. list.Cast<int>()]);
+        var list = v.Should().BeOfType<List<object?>>().Which;
+        list.Cast<int>().Should().Equal(new[] { 1, 2, 3 });
     }
 
     /// <summary>
@@ -65,8 +66,8 @@ public sealed class SqlValueHelperTests(
     [Trait("Category", "SqlValueHelperTests ")]
     public void Resolve_NullOnNonNullable_ShouldThrow()
     {
-        Assert.Throws<MySqlMockException>(() =>
-            MySqlValueHelper.Resolve("null", DbType.Int32, isNullable: false, pars: null, colDict: null));
+        FluentActions.Invoking(() => MySqlValueHelper.Resolve("null", DbType.Int32, isNullable: false, pars: null, colDict: null))
+            .Should().Throw<MySqlMockException>();
     }
 
     /// <summary>
@@ -79,7 +80,7 @@ public sealed class SqlValueHelperTests(
     {
         var value = MySqlValueHelper.Resolve("null", DbType.Int32, isNullable: true, pars: null, colDict: null);
 
-        Assert.Null(value);
+        value.Should().BeNull();
     }
 
     /// <summary>
@@ -92,8 +93,8 @@ public sealed class SqlValueHelperTests(
     {
         var v = MySqlValueHelper.Resolve("{\"a\":1}", DbType.Object, isNullable: false, pars: null, colDict: null);
 
-        var doc = Assert.IsType<JsonDocument>(v);
-        Assert.Equal(1, doc.RootElement.GetProperty("a").GetInt32());
+        var doc = v.Should().BeOfType<JsonDocument>().Which;
+        doc.RootElement.GetProperty("a").GetInt32().Should().Be(1);
     }
 
     /// <summary>
@@ -106,7 +107,7 @@ public sealed class SqlValueHelperTests(
     {
         var value = MySqlValueHelper.Resolve("{invalid json", DbType.Object, isNullable: false, pars: null, colDict: null);
 
-        Assert.Equal("{invalid json", value);
+        value.Should().Be("{invalid json");
     }
 
     /// <summary>
@@ -122,7 +123,7 @@ public sealed class SqlValueHelperTests(
     [InlineData("John", "%OH%", true)] // ignore case
     public void Like_ShouldMatch_MySqlStyle(string value, string pattern, bool expected)
     {
-        Assert.Equal(expected, MySqlValueHelper.Like(value, pattern));
+        MySqlValueHelper.Like(value, pattern).Should().Be(expected);
     }
 
     /// <summary>
@@ -141,11 +142,11 @@ public sealed class SqlValueHelperTests(
         MySqlValueHelper.CurrentColumn = "Status";
 
         var ok = MySqlValueHelper.Resolve("'Active'", DbType.String, false, null, tb.Columns);
-        Assert.Equal("active", ok);
+        ok.Should().Be("active");
 
-        var ex = Assert.Throws<MySqlMockException>(() =>
-            MySqlValueHelper.Resolve("'blocked'", DbType.String, false, null, tb.Columns));
-        Assert.Equal(1265, ex.ErrorCode);
+        var ex = FluentActions.Invoking(() => MySqlValueHelper.Resolve("'blocked'", DbType.String, false, null, tb.Columns))
+            .Should().Throw<MySqlMockException>().Which;
+        ex.ErrorCode.Should().Be(1265);
     }
 
     /// <summary>
@@ -167,12 +168,12 @@ public sealed class SqlValueHelperTests(
             MySqlValueHelper.CurrentColumn = "Tags";
 
             var ok = MySqlValueHelper.Resolve("'a,b'", DbType.Int32, isNullable: false, pars: null, colDict: tb.Columns);
-            var hs = Assert.IsType<HashSet<string>>(ok);
-            Assert.True(hs.SetEquals(["a", "b"]));
+            var hs = ok.Should().BeOfType<HashSet<string>>().Which;
+            hs.SetEquals(["a", "b"]).Should().BeTrue();
 
-            var ex = Assert.Throws<MySqlMockException>(() =>
-                MySqlValueHelper.Resolve("'a,x'", DbType.Int32, isNullable: false, pars: null, colDict: tb.Columns));
-            Assert.Equal(1265, ex.ErrorCode);
+            var ex = FluentActions.Invoking(() => MySqlValueHelper.Resolve("'a,x'", DbType.Int32, isNullable: false, pars: null, colDict: tb.Columns))
+                .Should().Throw<MySqlMockException>().Which;
+            ex.ErrorCode.Should().Be(1265);
         }
         finally
         {
@@ -196,9 +197,9 @@ public sealed class SqlValueHelperTests(
         try
         {
             MySqlValueHelper.CurrentColumn = "Name";
-            var ex = Assert.Throws<MySqlMockException>(() =>
-                MySqlValueHelper.Resolve("'abcd'", DbType.String, false, null, tb.Columns));
-            Assert.Equal(1406, ex.ErrorCode);
+            var ex = FluentActions.Invoking(() => MySqlValueHelper.Resolve("'abcd'", DbType.String, false, null, tb.Columns))
+                .Should().Throw<MySqlMockException>().Which;
+            ex.ErrorCode.Should().Be(1406);
         }
         finally
         {
@@ -222,9 +223,9 @@ public sealed class SqlValueHelperTests(
         try
         {
             MySqlValueHelper.CurrentColumn = "Amount";
-            var ex = Assert.Throws<MySqlMockException>(() =>
-                MySqlValueHelper.Resolve("10.123", DbType.Decimal, false, null, tb.Columns));
-            Assert.Equal(1265, ex.ErrorCode);
+            var ex = FluentActions.Invoking(() => MySqlValueHelper.Resolve("10.123", DbType.Decimal, false, null, tb.Columns))
+                .Should().Throw<MySqlMockException>().Which;
+            ex.ErrorCode.Should().Be(1265);
         }
         finally
         {

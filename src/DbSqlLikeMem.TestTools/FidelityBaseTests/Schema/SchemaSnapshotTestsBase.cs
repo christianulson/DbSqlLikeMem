@@ -68,9 +68,9 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunSchemaSnapshotExportScenario(connContainer);
-            Assert.Equal(
-                NormalizeSchemaSnapshotJson(resultMock, connMock, dialect),
-                NormalizeSchemaSnapshotJson(resultContainer, connContainer, dialect));
+            NormalizeSchemaSnapshotJson(resultMock, connMock, dialect)
+                .Should()
+                .Be(NormalizeSchemaSnapshotJson(resultContainer, connContainer, dialect));
         }
     }
 
@@ -86,9 +86,9 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunSchemaSnapshotToJsonScenario(connContainer);
-            Assert.Equal(
-                NormalizeSchemaSnapshotJson(resultMock, connMock, dialect),
-                NormalizeSchemaSnapshotJson(resultContainer, connContainer, dialect));
+            NormalizeSchemaSnapshotJson(resultMock, connMock, dialect)
+                .Should()
+                .Be(NormalizeSchemaSnapshotJson(resultContainer, connContainer, dialect));
         }
     }
 
@@ -104,7 +104,7 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             using var resultContainer = RunSchemaSnapshotLoadJsonScenario(connContainer);
-            Assert.Equal(resultMock.RootElement.GetRawText(), resultContainer.RootElement.GetRawText());
+            resultMock.RootElement.GetRawText().Should().Be(resultContainer.RootElement.GetRawText());
         }
     }
 
@@ -120,7 +120,7 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunSchemaSnapshotCompareScenario(connContainer);
-                Assert.Equal(resultMock, resultContainer);
+                resultMock.Should().Be(resultContainer);
         }
     }
 
@@ -136,7 +136,7 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             using var resultContainer = RunSchemaSnapshotRoundTripScenario(connContainer);
-            Assert.Equal(resultMock.RootElement.GetRawText(), resultContainer.RootElement.GetRawText());
+            resultMock.RootElement.GetRawText().Should().Be(resultContainer.RootElement.GetRawText());
         }
     }
 

@@ -7,6 +7,7 @@
  
 	<ItemGroup>
 		<InternalsVisibleTo Include="DbSqlLikeMem.Auto" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.Auto.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Db2" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Db2.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Db2.Dapper.Test" />

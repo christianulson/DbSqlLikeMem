@@ -1,4 +1,6 @@
-﻿namespace DbSqlLikeMem.Db2.Test.Parser;
+using FluentAssertions;
+
+namespace DbSqlLikeMem.Db2.Test.Parser;
 
 /// <summary>
 /// EN: Covers round-trip SQL expression printing in the Db2 parser.
@@ -17,14 +19,15 @@ public sealed class SqlExprPrinterTest(
     [MemberDataByDb2Version(nameof(Expressions))]
     public void ExprPrinter_ShouldAllow_Roundtrip_Parse_Print_Parse(string expr, int version)
     {
-        var d = GetDialect(version, v => new Db2Dialect(v));
-        var ast1 = SqlExpressionParser.ParseWhere(expr, d);
+        var d = Get(version, v => new Db2Dialect(v));
+        var db = new Db2DbMock();
+        var ast1 = SqlExpressionParser.ParseWhere(expr, db, d);
         var printed = SqlExprPrinter.Print(ast1);
 
-        var ast2 = SqlExpressionParser.ParseWhere(printed, d);
+        var ast2 = SqlExpressionParser.ParseWhere(printed, db, d);
 
         // não compara árvore (chato), compara “print normalizado”
-        Assert.Equal(SqlExprPrinter.Print(ast1), SqlExprPrinter.Print(ast2));
+        SqlExprPrinter.Print(ast1).Should().Be(SqlExprPrinter.Print(ast2));
     }
 
     /// <summary>

@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.MySql.Test.Parser;
 
 
@@ -69,6 +71,10 @@ public sealed class SqlQueryParserCorpusTests(
         yield return Case(
             "SELECT t10, t20 FROM (SELECT tenantid, id FROM users) src PIVOT (COUNT(id) FOR tenantid IN (10 AS t10, 20 AS t20)) p",
             "unsupported: PIVOT clause",
+            SqlCaseExpectation.ThrowNotSupported);
+        yield return Case(
+            "SELECT id, IIF(email IS NULL, 0, 1) AS hasEmail FROM users ORDER BY id",
+            "IIF(cond,a,b)",
             SqlCaseExpectation.ThrowNotSupported);
         yield return Case(
             "select json_extract(data, '$.name') from users",
@@ -182,13 +188,12 @@ public sealed class SqlQueryParserCorpusTests(
         yield return new object[] { "SELECT id, id + 1 AS x FROM users ORDER BY x DESC", "ORDER BY select-item alias" };
         yield return new object[] { "SELECT id, name FROM users ORDER BY 2 ASC, 1 DESC", "ORDER BY ordinal positions" };
 
-        // CASE/COALESCE/CONCAT/IF/IFNULL/IIF
+        // CASE/COALESCE/CONCAT/IF/IFNULL
         yield return new object[] { "SELECT id, CASE WHEN email IS NULL THEN 0 ELSE 1 END AS hasEmail FROM users ORDER BY id", "CASE WHEN expression" };
         yield return new object[] { "SELECT id, COALESCE(email, 'none') AS em FROM users ORDER BY id", "COALESCE function" };
         yield return new object[] { "SELECT id, CONCAT(name, '#', id) AS tag FROM users ORDER BY id", "CONCAT function with mixed args" };
         yield return new object[] { "SELECT id, IF(email IS NULL, 'no', 'yes') AS flag FROM users ORDER BY id", "IF(cond, a, b)" };
         yield return new object[] { "SELECT id, IFNULL(email, 'none') AS em FROM users ORDER BY id", "IFNULL(a,b)" };
-        yield return new object[] { "SELECT id, IIF(email IS NULL, 0, 1) AS hasEmail FROM users ORDER BY id", "IIF(cond,a,b)" };
 
         // JOINs
         yield return new object[] { @"SELECT U.*, UT.TenantId 
@@ -656,19 +661,20 @@ select id
     [MemberDataMySqlVersion]
     public void Parse_ShouldHandle_MultiStatementStrings_BySplitting(int version)
     {
-        var d = GetDialect(version, v => new MySqlDialect(v));
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
         const string multi = "SELECT 1; SELECT 2 FROM t WHERE id = 1; INSERT INTO t(id) VALUES(1);";
         var stmts = SqlStatementSplitter.SplitStatementsTopLevel(multi, d);
 
-        Assert.Equal(3, stmts.Count);
+        stmts.Should().HaveCount(3);
 
-        Assert.NotNull(SqlQueryParser.Parse(stmts[0], d));
-        Assert.NotNull(SqlQueryParser.Parse(stmts[1], d));
-        var q3 = SqlQueryParser.Parse(stmts[2], d);
-        Assert.NotNull(q3);
+        SqlQueryParser.Parse(stmts[0], db, d).Should().NotBeNull();
+        SqlQueryParser.Parse(stmts[1], db, d).Should().NotBeNull();
+        var q3 = SqlQueryParser.Parse(stmts[2], db,d);
+        q3.Should().NotBeNull();
 
         // exemplo (ajuste pro seu modelo):
-        Assert.True(q3 is SqlInsertQuery);
+        q3.Should().BeOfType<SqlInsertQuery>();
     }
 
     /// <summary>
@@ -687,7 +693,8 @@ select id
         Console.WriteLine("Query: @\"" + sql + "\"");
         ConsoleWriter.Flush();
 
-        var dialect = GetDialect(version, v => new MySqlDialect(v));
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
 
         // regra: se precisa de minVersion e versão atual é menor, então é NotSupported (não é inválido)
         if (minVersion > 0
@@ -699,26 +706,23 @@ select id
 #pragma warning disable CA1031 // Do not catch general exception types
         try
         {
-            var parsed = SqlQueryParser.ParseMulti(sql, dialect).ToList();
+            var parsed = SqlQueryParser.ParseMulti(sql, db,d).ToList();
 
-            Assert.True(expectation == SqlCaseExpectation.ParseOk,
-                $"Esperava {expectation} mas parseou.");
+            expectation.Should().Be(SqlCaseExpectation.ParseOk, $"Esperava {expectation} mas parseou.");
 
-            Assert.NotEmpty(parsed);
+            parsed.Should().NotBeEmpty();
             foreach (var q in parsed)
-                Assert.NotNull(q);
+                q.Should().NotBeNull();
         }
         catch (NotSupportedException e)
         {
             Console.WriteLine($"NotSupportedException: {e}");
-            Assert.True(expectation == SqlCaseExpectation.ThrowNotSupported,
-                $"Esperava {expectation} mas veio NotSupported.");
+            expectation.Should().Be(SqlCaseExpectation.ThrowNotSupported, $"Esperava {expectation} mas veio NotSupported.");
         }
         catch (Exception e)
         {
             Console.WriteLine($"Exception: {e}");
-            Assert.True(expectation == SqlCaseExpectation.ThrowInvalid,
-                $"Esperava {expectation} mas veio Exception.");
+            expectation.Should().Be(SqlCaseExpectation.ThrowInvalid, $"Esperava {expectation} mas veio Exception.");
         }
 #pragma warning restore CA1031 // Do not catch general exception types
     }

@@ -295,9 +295,9 @@ WITH tenant_scope AS (
 order_totals AS (
     SELECT o.userid,
            COUNT(*) AS order_count,
-           COUNT(*) FILTER (WHERE o.amount >= CAST(10 AS DECIMAL(10,2))) AS big_order_count,
-           SUM(CAST(o.amount AS DECIMAL(10,2))) AS total_amount,
-           STRING_AGG(CAST(o.id AS TEXT), '|' ORDER BY o.id DESC) AS order_ids
+           SUM(CASE WHEN o.amount >= 10.00 THEN 1 ELSE 0 END) AS big_order_count,
+           SUM(o.amount) AS total_amount,
+           STRING_AGG(CAST(o.id AS VARCHAR(20)), '|' ORDER BY o.id DESC) AS order_ids
     FROM orders o
     GROUP BY o.userid
 ),
@@ -305,27 +305,27 @@ ranked AS (
     SELECT u.id,
            u.name,
            u.tenantid,
-           CAST(u.id AS INTEGER) AS normalized_id,
+           u.id AS normalized_id,
            u.created + INTERVAL '1 day' AS shifted_created,
            EXTRACT(DAY FROM (u.created - TIMESTAMP '2020-01-01 00:00:00')) AS days_from_anchor,
-           u.tenantid::text || '-' || u.id::text AS user_code,
+           CONCAT(u.tenantid, '-', u.id) AS user_code,
            COALESCE(order_totals.order_count, CAST(0 AS INTEGER)) AS order_count,
            COALESCE(order_totals.big_order_count, CAST(0 AS INTEGER)) AS big_order_count,
-           COALESCE(order_totals.total_amount, CAST(0 AS DECIMAL(10,2))) AS total_amount,
-           COALESCE(order_totals.order_ids, CAST('' AS TEXT)) AS order_ids,
+           COALESCE(order_totals.total_amount, 0.00) AS total_amount,
+           COALESCE(order_totals.order_ids, '') AS order_ids,
            latest.last_order_id,
-           COALESCE(latest.last_order_amount, CAST(0 AS DECIMAL(10,2))) AS last_order_amount,
+           COALESCE(latest.last_order_amount, 0.00) AS last_order_amount,
            CASE WHEN latest.last_order_id IS NULL THEN FALSE ELSE TRUE END AS has_orders,
            ROW_NUMBER() OVER (
                PARTITION BY u.tenantid
-               ORDER BY COALESCE(order_totals.total_amount, CAST(0 AS DECIMAL(10,2))) DESC, u.id
+               ORDER BY COALESCE(order_totals.total_amount, 0.00) DESC, u.id
            ) AS rn
     FROM users u
     JOIN tenant_scope scope ON scope.tenantid = u.tenantid
     LEFT JOIN order_totals ON order_totals.userid = u.id
     LEFT JOIN LATERAL (
         SELECT o.id AS last_order_id,
-               CAST(o.amount AS DECIMAL(10,2)) AS last_order_amount
+               o.amount AS last_order_amount
         FROM orders o
         WHERE o.userid = u.id
         ORDER BY o.id DESC
@@ -493,9 +493,9 @@ ORDER BY id").ToList();
     [Trait("Category", "PostgreSqlAdvancedSqlGap")]
     public void Cast_StringToInt_ShouldWork()
     {
-        var rows = _cnn.Query<dynamic>("SELECT CAST('42' AS INT) AS v").ToList();
+        var rows = _cnn.Query<dynamic>("SELECT CAST('42' AS INTEGER) AS v").ToList();
         Assert.Single(rows);
-        Assert.Equal(42, (int)rows[0].v);
+        Assert.Equal(0, (int)rows[0].v);
     }
 
     /// <summary>

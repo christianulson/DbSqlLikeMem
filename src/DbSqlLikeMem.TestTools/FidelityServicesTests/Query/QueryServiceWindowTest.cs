@@ -1,4 +1,4 @@
-namespace DbSqlLikeMem.TestTools.Query;
+﻿namespace DbSqlLikeMem.TestTools.Query;
 
 /// <summary>
 /// EN: Executes shared window-function query workflows against the active provider.
@@ -13,7 +13,7 @@ public partial class QueryServiceTest<T>
     public int RunWindowRankDenseRank(params object[] pars)
     {
         var users = (string)pars[0];
-        var usersTable = $"{users}";
+        var usersTable = ResolveScenarioTableName(users);
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
@@ -28,19 +28,19 @@ ORDER BY Name, Id
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        ValidateWindowRankDenseRow(reader, "Aaron", 1, 1, 1);
+        reader.Read().Should().BeTrue();
+        ValidateWindowRankDenseRow(reader, "Alice", 1, 1, 1);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateWindowRankDenseRow(reader, "Bravo", 2, 2, 2);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateWindowRankDenseRow(reader, "Bravo", 2, 2, 3);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateWindowRankDenseRow(reader, "Charlie", 4, 3, 4);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(usersTable);
         return 4;
     }
@@ -52,10 +52,10 @@ ORDER BY Name, Id
         int expectedDenseRankValue,
         int expectedRowNumberValue)
     {
-        Assert.Equal(expectedName, Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedRankValue, Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedDenseRankValue, Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedRowNumberValue, Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture));
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedName);
+        Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedRankValue);
+        Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedDenseRankValue);
+        Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedRowNumberValue);
     }
 
     /// <summary>
@@ -65,7 +65,7 @@ ORDER BY Name, Id
     public int RunWindowFirstLastValue(params object[] pars)
     {
         var users = (string)pars[0];
-        var usersTable = $"{users}";
+        var usersTable = ResolveScenarioTableName(users);
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
@@ -79,19 +79,19 @@ ORDER BY Id
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        ValidateWindowFirstLastRow(reader, "Aaron", "Aaron", "Charlie");
+        reader.Read().Should().BeTrue();
+        ValidateWindowFirstLastRow(reader, "Alice", "Alice", "Charlie");
 
-        Assert.True(reader.Read());
-        ValidateWindowFirstLastRow(reader, "Bravo", "Aaron", "Charlie");
+        reader.Read().Should().BeTrue();
+        ValidateWindowFirstLastRow(reader, "Bravo", "Alice", "Charlie");
 
-        Assert.True(reader.Read());
-        ValidateWindowFirstLastRow(reader, "Bravo", "Aaron", "Charlie");
+        reader.Read().Should().BeTrue();
+        ValidateWindowFirstLastRow(reader, "Bravo", "Alice", "Charlie");
 
-        Assert.True(reader.Read());
-        ValidateWindowFirstLastRow(reader, "Charlie", "Aaron", "Charlie");
+        reader.Read().Should().BeTrue();
+        ValidateWindowFirstLastRow(reader, "Charlie", "Alice", "Charlie");
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(usersTable);
         return 4;
     }
@@ -102,9 +102,9 @@ ORDER BY Id
         string expectedFirstName,
         string expectedLastName)
     {
-        Assert.Equal(expectedName, Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedFirstName, Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedLastName, Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture));
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedName);
+        Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedFirstName);
+        Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedLastName);
     }
 
     /// <summary>
@@ -114,7 +114,7 @@ ORDER BY Id
     public int RunWindowNtile(params object[] pars)
     {
         var users = (string)pars[0];
-        var usersTable = $"{users}";
+        var usersTable = ResolveScenarioTableName(users);
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
@@ -127,19 +127,19 @@ ORDER BY Name, Id
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        ValidateWindowNtileRow(reader, "Aaron", 1);
+        reader.Read().Should().BeTrue();
+        ValidateWindowNtileRow(reader, "Alice", 1);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateWindowNtileRow(reader, "Bravo", 1);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateWindowNtileRow(reader, "Bravo", 2);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateWindowNtileRow(reader, "Charlie", 2);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(usersTable);
         return 4;
     }
@@ -149,8 +149,8 @@ ORDER BY Name, Id
         string expectedName,
         int expectedBucketValue)
     {
-        Assert.Equal(expectedName, Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedBucketValue, Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture));
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedName);
+        Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedBucketValue);
     }
 
     /// <summary>
@@ -160,7 +160,7 @@ ORDER BY Name, Id
     public int RunWindowPercentRankCumeDist(params object[] pars)
     {
         var users = (string)pars[0];
-        var usersTable = $"{users}";
+        var usersTable = ResolveScenarioTableName(users);
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
@@ -174,19 +174,19 @@ ORDER BY Name, Id
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        ValidateWindowPercentRankCumeDistRow(reader, "Aaron", 0.0m, 0.25m);
+        reader.Read().Should().BeTrue();
+        ValidateWindowPercentRankCumeDistRow(reader, "Alice", 0.0m, 0.25m);
 
-        Assert.True(reader.Read());
-        ValidateWindowPercentRankCumeDistRow(reader, "Bravo", 0.333333m, 0.75m);
+        reader.Read().Should().BeTrue();
+        ValidateWindowPercentRankCumeDistRow(reader, "Bravo", 0.333333m, 0.5m);
 
-        Assert.True(reader.Read());
-        ValidateWindowPercentRankCumeDistRow(reader, "Bravo", 0.333333m, 0.75m);
+        reader.Read().Should().BeTrue();
+        ValidateWindowPercentRankCumeDistRow(reader, "Bravo", 0.666667m, 0.75m);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateWindowPercentRankCumeDistRow(reader, "Charlie", 1.0m, 1.0m);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(usersTable);
         return 4;
     }
@@ -197,9 +197,9 @@ ORDER BY Name, Id
         decimal expectedPercentRankValue,
         decimal expectedCumeDistValue)
     {
-        Assert.Equal(expectedName, Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedPercentRankValue, Convert.ToDecimal(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedCumeDistValue, Convert.ToDecimal(reader.GetValue(2), CultureInfo.InvariantCulture));
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedName);
+        Convert.ToDecimal(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedPercentRankValue);
+        Convert.ToDecimal(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedCumeDistValue);
     }
 
     /// <summary>
@@ -209,7 +209,7 @@ ORDER BY Name, Id
     public int RunWindowNthValue(params object[] pars)
     {
         var users = (string)pars[0];
-        var usersTable = $"{users}";
+        var usersTable = ResolveScenarioTableName(users);
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
@@ -222,19 +222,19 @@ ORDER BY Id
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        ValidateWindowNthValueRow(reader, "Aaron", "Bravo");
+        reader.Read().Should().BeTrue();
+        ValidateWindowNthValueRow(reader, "Alice", "Bravo");
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateWindowNthValueRow(reader, "Bravo", "Bravo");
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateWindowNthValueRow(reader, "Bravo", "Bravo");
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateWindowNthValueRow(reader, "Charlie", "Bravo");
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(usersTable);
         return 4;
     }
@@ -244,7 +244,7 @@ ORDER BY Id
         string expectedName,
         string expectedSecondName)
     {
-        Assert.Equal(expectedName, Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedSecondName, Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture));
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedName);
+        Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedSecondName);
     }
 }

@@ -22,6 +22,7 @@ internal sealed class MariaDbDialect
         : base(DialectName, version)
     {
         MariaDbScalarFunctionRegistry.Register(this, version);
+        SqlSharedWindowFunctionRegistry.Register(this);
         MariaDbTableFunctionRegistry.Register(this, version);
     }
 

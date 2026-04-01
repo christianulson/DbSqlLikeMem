@@ -11,4 +11,25 @@ public partial class QueryServiceTest<T>(
     ) : BaseServiceTest<T>(connection, testScenario, dialect)
     where T : DbConnection
 {
+    /// <summary>
+    /// EN: Resolves a scenario table name to the provider-specific physical table name used in the current test run.
+    /// PT: Resolve o nome logico de uma tabela de cenario para o nome fisico especifico do provedor usado na execucao atual.
+    /// </summary>
+    protected string ResolveScenarioTableName(string tableName)
+    {
+        var scenarioArgs = CurrentScenarioArgs;
+        if (scenarioArgs is null || scenarioArgs.Count < 2)
+            return tableName;
+
+        var uId = scenarioArgs[scenarioArgs.Count - 1]?.ToString();
+        if (string.IsNullOrWhiteSpace(uId))
+            return tableName;
+
+        if (tableName.EndsWith($"_{uId}", StringComparison.OrdinalIgnoreCase))
+            return tableName;
+
+        return Dialect.Provider == ProviderId.Oracle
+            ? tableName.ToLowerInvariant()
+            : $"{tableName}_{uId}";
+    }
 }

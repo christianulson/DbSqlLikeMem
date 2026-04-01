@@ -5,24 +5,41 @@ using System.Globalization;
 
 internal static class AstQueryPostgresDateFunctionEvaluator
 {
+    private static readonly IReadOnlyDictionary<string, AstQueryGeneralScalarFunctionHandler> _handlers =
+        CreateHandlers();
+
     internal static bool TryEvaluatePostgresDateFunction(
         this QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
-        result = null;
-        if (context.Dialect.Functions.TryGetValue(fn.Name, out var handler)
-            && handler.AstExecutor != null)
-            return handler.AstExecutor(context, fn, evalArg, out result);
+        if (_handlers.TryGetValue(fn.Name, out var handler))
+            return handler(context, fn, evalArg, out result);
 
+        result = null;
         return false;
     }
 
-    internal static void CreateHandlers(
-        this QueryExecutionContext context)
+    private static IReadOnlyDictionary<string, AstQueryGeneralScalarFunctionHandler> CreateHandlers()
     {
-        var dialect = context.Dialect;
+        var handlers = new Dictionary<string, AstQueryGeneralScalarFunctionHandler>(StringComparer.OrdinalIgnoreCase);
+        Register(handlers, TryEvalDateTruncFunction, "DATE_TRUNC");
+        Register(handlers, TryEvalDatePartFunction, "DATE_PART");
+        Register(handlers, TryEvalAgeFunction, "AGE");
+        Register(handlers, TryEvalMakeIntervalFunction, "MAKE_INTERVAL");
+        Register(handlers, TryEvalMakeDateFunction, "MAKE_DATE");
+        Register(handlers, TryEvalMakeTimeFunction, "MAKE_TIME");
+        Register(handlers, TryEvalMakeTimestampFunction, "MAKE_TIMESTAMP");
+        Register(handlers, TryEvalMakeTimestamptzFunction, "MAKE_TIMESTAMPTZ");
+        Register(handlers, TryEvalToDateFunction, "TO_DATE");
+        Register(handlers, TryEvalToCharFunction, "TO_CHAR");
+        return handlers;
+    }
+
+    internal static void RegisterHandlers(
+        this ISqlDialect dialect)
+    {
         dialect.AddScalarFunctions("DATE", TryEvalDateTruncFunction, "DATE_TRUNC");
         dialect.AddScalarFunctions("DATE", TryEvalDatePartFunction, "DATE_PART");
         dialect.AddScalarFunctions("AGE", TryEvalAgeFunction, "AGE");
@@ -33,6 +50,15 @@ internal static class AstQueryPostgresDateFunctionEvaluator
         dialect.AddScalarFunctions("TIMESTAMP", TryEvalMakeTimestamptzFunction, "MAKE_TIMESTAMPTZ");
         dialect.AddScalarFunctions("DATE", TryEvalToDateFunction, "TO_DATE");
         dialect.AddScalarFunctions("VARCHAR", TryEvalToCharFunction, "TO_CHAR");
+    }
+
+    private static void Register(
+        IDictionary<string, AstQueryGeneralScalarFunctionHandler> handlers,
+        AstQueryGeneralScalarFunctionHandler handler,
+        params string[] names)
+    {
+        foreach (var name in names)
+            handlers[name] = handler;
     }
 
     private static bool TryEvalDateTruncFunction(
@@ -93,7 +119,7 @@ internal static class AstQueryPostgresDateFunctionEvaluator
         if (fn.Args.Count == 0)
         {
             result = null;
-            return true;
+            return false;
         }
 
         var left = evalArg(0);

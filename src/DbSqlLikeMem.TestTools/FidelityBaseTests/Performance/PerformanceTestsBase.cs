@@ -138,7 +138,7 @@ public abstract class PerformanceTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunDebugTraceJsonScenario(connContainer);
-            Assert.Equal(resultMock, resultContainer);
+            resultMock.Should().Be(resultContainer);
         }
     }
 
@@ -154,7 +154,7 @@ public abstract class PerformanceTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunFluentSchemaBuildScenario(connContainer);
-            Assert.Equal(SerializeValue(resultMock), SerializeValue(resultContainer));
+            SerializeValue(resultMock).Should().Be(SerializeValue(resultContainer));
         }
     }
 
@@ -170,7 +170,7 @@ public abstract class PerformanceTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunFluentSeed100Scenario(connContainer);
-            Assert.Equal(SerializeValue(resultMock), SerializeValue(resultContainer));
+            SerializeValue(resultMock).Should().Be(SerializeValue(resultContainer));
         }
     }
 
@@ -186,7 +186,7 @@ public abstract class PerformanceTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunFluentSeed1000Scenario(connContainer);
-            Assert.Equal(SerializeValue(resultMock), SerializeValue(resultContainer));
+            SerializeValue(resultMock).Should().Be(SerializeValue(resultContainer));
         }
     }
 
@@ -202,7 +202,7 @@ public abstract class PerformanceTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunFluentScenarioComposeScenario(connContainer);
-            Assert.Equal(SerializeValue(resultMock), SerializeValue(resultContainer));
+            SerializeValue(resultMock).Should().Be(SerializeValue(resultContainer));
         }
     }
 
@@ -211,7 +211,7 @@ public abstract class PerformanceTestsBase<T, T2>(
     {
         var service = new ConnectionLifecycleServiceTest<TConnection>(connection, new NoopScenario<TConnection>(), dialect);
         service.RunConnectionReopenAfterClose();
-        Assert.Equal(ConnectionState.Open, connection.State);
+        connection.State.Should().Be(ConnectionState.Open);
     }
 
     private void RunResetVolatileDataScenario<TConnection>(TConnection connection)
@@ -219,7 +219,7 @@ public abstract class PerformanceTestsBase<T, T2>(
     {
         var service = new ConnectionLifecycleServiceTest<TConnection>(connection, new NoopScenario<TConnection>(), dialect);
         service.RunResetVolatileData();
-        Assert.Equal(ConnectionState.Open, connection.State);
+        connection.State.Should().Be(ConnectionState.Open);
     }
 
     private void RunResetAllVolatileDataScenario<TConnection>(TConnection connection)
@@ -227,7 +227,7 @@ public abstract class PerformanceTestsBase<T, T2>(
     {
         var service = new ConnectionLifecycleServiceTest<TConnection>(connection, new NoopScenario<TConnection>(), dialect);
         service.RunResetAllVolatileData();
-        Assert.Equal(ConnectionState.Open, connection.State);
+        connection.State.Should().Be(ConnectionState.Open);
     }
 
     private string RunDebugTraceJsonScenario<TConnection>(TConnection connection)

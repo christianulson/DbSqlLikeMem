@@ -25,6 +25,7 @@ public sealed class UsersOrdersScenario<T>(
         var ordersSeed = seedOrders ?? [(10, 1, "A"), (11, 1, "B")];
         var usersTable = $"{users}_{uId}";
         var ordersTable = $"{orders}_{uId}";
+        var currentTimestampExpr = dialect.TemporalCurrentTimestampExpression();
 
         service.ExecuteNonQuery(dialect.CreateUsersTable(users, uId));
         service.ExecuteNonQuery(dialect.CreateOrdersTable(orders, usersTable, uId));
@@ -37,8 +38,7 @@ public sealed class UsersOrdersScenario<T>(
         foreach (var (id, userId, note) in ordersSeed)
         {
             var orderNumber = $"o-{id}";
-            var orderedAt = dialect.Provider == ProviderId.Db2 ? "CURRENT TIMESTAMP" : "CURRENT_TIMESTAMP";
-            service.ExecuteNonQuery(dialect.InsertOrder(ordersTable, usersTable, id, userId, note, orderNumber, 0.00m, 1, false, orderedAt));
+            service.ExecuteNonQuery(dialect.InsertOrder(ordersTable, usersTable, id, userId, note, orderNumber, 0.00m, 1, false, currentTimestampExpr));
         }
     }
 

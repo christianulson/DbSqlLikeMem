@@ -169,7 +169,7 @@ public class SqlServerCommandMock(
                 outputClause = extractedOutput;
             }
 
-            var query = SqlQueryParser.Parse(effectiveSql, connection.Db.Dialect, Parameters);
+            var query = SqlQueryParser.Parse(effectiveSql, connection.Db, connection.Db.Dialect, Parameters);
             parsedStatementCount++;
 
             using var currentQueryScope = connection.BeginCurrentQueryScope(sqlRaw);

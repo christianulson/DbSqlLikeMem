@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -37,11 +38,11 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests(
         _ = command.ExecuteScalar();
 
         var interceptors = provider.GetServices<DbConnectionInterceptor>().ToArray();
-        Assert.Contains(interceptors, x => ReferenceEquals(x, recorder));
-        Assert.Contains(interceptors, x => x is LoggingDbConnectionInterceptor);
-        Assert.Same(recorder, provider.GetRequiredService<RecordingDbConnectionInterceptor>());
-        Assert.Contains(lines, x => x.Contains("event=CommandExecuted", StringComparison.Ordinal));
-        Assert.Contains(recorder.Events, x => x.EventKind == DbInterceptionEventKind.CommandExecuted);
+        interceptors.Should().Contain(x => ReferenceEquals(x, recorder));
+        interceptors.Should().Contain(x => x is LoggingDbConnectionInterceptor);
+        provider.GetRequiredService<RecordingDbConnectionInterceptor>().Should().BeSameAs(recorder);
+        lines.Should().Contain(x => x.Contains("event=CommandExecuted", StringComparison.Ordinal));
+        recorder.Events.Should().Contain(x => x.EventKind == DbInterceptionEventKind.CommandExecuted);
     }
 
     /// <summary>
@@ -71,9 +72,9 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests(
         command.CommandText = "select 43";
         _ = command.ExecuteScalar();
 
-        Assert.IsType<InterceptingDbConnection>(connection);
-        Assert.Contains(recorder.Events, x => x.EventKind == DbInterceptionEventKind.CommandExecuted);
-        Assert.Contains(logger.Messages, x => x.Contains("event=CommandExecuted", StringComparison.Ordinal));
+        connection.Should().BeOfType<InterceptingDbConnection>();
+        recorder.Events.Should().Contain(x => x.EventKind == DbInterceptionEventKind.CommandExecuted);
+        logger.Messages.Should().Contain(x => x.Contains("event=CommandExecuted", StringComparison.Ordinal));
     }
 
     /// <summary>
@@ -87,8 +88,10 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests(
         services.AddDbConnectionInterceptor<CountingInterceptor>();
 
         using var provider = services.BuildServiceProvider();
-        var interceptor = Assert.Single(provider.GetServices<DbConnectionInterceptor>());
-        Assert.IsType<CountingInterceptor>(interceptor);
+        var interceptors = provider.GetServices<DbConnectionInterceptor>().ToList();
+        interceptors.Should().ContainSingle();
+        var interceptor = interceptors.Single();
+        interceptor.Should().BeOfType<CountingInterceptor>();
 
         using var connection = new SqliteConnectionMock(new SqliteDbMock()).WithRegisteredInterceptors(provider);
         connection.Open();
@@ -96,7 +99,7 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests(
         command.CommandText = "select 1";
         _ = command.ExecuteScalar();
 
-        Assert.Equal(1, ((CountingInterceptor)interceptor).ExecuteCount);
+        ((CountingInterceptor)interceptor).ExecuteCount.Should().Be(1);
     }
 
     /// <summary>
@@ -115,9 +118,9 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests(
         services.AddDbInterceptionTextWriter(writer);
 
         using var provider = services.BuildServiceProvider();
-        Assert.Same(recorder, provider.GetRequiredService<RecordingDbConnectionInterceptor>());
-        Assert.NotNull(provider.GetRequiredService<LoggingDbConnectionInterceptor>());
-        Assert.NotNull(provider.GetRequiredService<TextWriterDbConnectionInterceptor>());
+        provider.GetRequiredService<RecordingDbConnectionInterceptor>().Should().BeSameAs(recorder);
+        provider.GetRequiredService<LoggingDbConnectionInterceptor>().Should().NotBeNull();
+        provider.GetRequiredService<TextWriterDbConnectionInterceptor>().Should().NotBeNull();
 
         using var connection = new SqliteConnectionMock(new SqliteDbMock()).WithRegisteredInterceptors(provider);
         connection.Open();
@@ -125,9 +128,9 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests(
         command.CommandText = "select 99";
         _ = command.ExecuteScalar();
 
-        Assert.Contains(recorder.Events, x => x.EventKind == DbInterceptionEventKind.CommandExecuted);
-        Assert.Contains(lines, x => x.Contains("event=CommandExecuted", StringComparison.Ordinal));
-        Assert.Contains("event=CommandExecuted", writer.ToString(), StringComparison.Ordinal);
+        recorder.Events.Should().Contain(x => x.EventKind == DbInterceptionEventKind.CommandExecuted);
+        lines.Should().Contain(x => x.Contains("event=CommandExecuted", StringComparison.Ordinal));
+        writer.ToString().Should().Contain("event=CommandExecuted");
     }
 
     /// <summary>
@@ -142,7 +145,7 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests(
         services.AddDbInterceptionLogger(logger);
 
         using var provider = services.BuildServiceProvider();
-        Assert.NotNull(provider.GetRequiredService<ILoggerDbConnectionInterceptor>());
+        provider.GetRequiredService<ILoggerDbConnectionInterceptor>().Should().NotBeNull();
 
         using var connection = new SqliteConnectionMock(new SqliteDbMock()).WithRegisteredInterceptors(provider);
         connection.Open();
@@ -150,8 +153,8 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests(
         command.CommandText = "select 77";
         _ = command.ExecuteScalar();
 
-        Assert.Contains(logger.Messages, x => x.Contains("event=CommandExecuted", StringComparison.Ordinal));
-        Assert.Contains(logger.Messages, x => x.Contains("sql=select 77", StringComparison.Ordinal));
+        logger.Messages.Should().Contain(x => x.Contains("event=CommandExecuted", StringComparison.Ordinal));
+        logger.Messages.Should().Contain(x => x.Contains("sql=select 77", StringComparison.Ordinal));
     }
 
     /// <summary>
@@ -207,10 +210,10 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests(
         foreach (var message in logger.Messages)
             Console.WriteLine(message);
 
-        Assert.Contains(formattedEvents, x => x.Contains("performanceDelta=", StringComparison.Ordinal));
-        Assert.Contains(lines, x => x.Contains("performanceDelta=", StringComparison.Ordinal));
-        Assert.Contains("performanceDelta=", writer.ToString(), StringComparison.Ordinal);
-        Assert.Contains(logger.Messages, x => x.Contains("performanceDelta=", StringComparison.Ordinal));
+        formattedEvents.Should().Contain(x => x.Contains("performanceDelta=", StringComparison.Ordinal));
+        lines.Should().Contain(x => x.Contains("performanceDelta=", StringComparison.Ordinal));
+        writer.ToString().Should().Contain("performanceDelta=");
+        logger.Messages.Should().Contain(x => x.Contains("performanceDelta=", StringComparison.Ordinal));
     }
 
     /// <summary>
@@ -233,8 +236,8 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests(
         command.CommandText = "select 5";
         _ = command.ExecuteScalar();
 
-        Assert.IsType<InterceptingDbConnection>(connection);
-        Assert.Contains(recorder.Events, x => x.EventKind == DbInterceptionEventKind.CommandExecuted);
+        connection.Should().BeOfType<InterceptingDbConnection>();
+        recorder.Events.Should().Contain(x => x.EventKind == DbInterceptionEventKind.CommandExecuted);
     }
 
     /// <summary>
@@ -257,8 +260,8 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests(
         command.CommandText = "select 6";
         _ = command.ExecuteScalar();
 
-        Assert.IsType<InterceptingDbConnection>(connection);
-        Assert.Contains(lines, x => x.Contains("event=CommandExecuted", StringComparison.Ordinal));
+        connection.Should().BeOfType<InterceptingDbConnection>();
+        lines.Should().Contain(x => x.Contains("event=CommandExecuted", StringComparison.Ordinal));
     }
 
     /// <summary>
@@ -280,9 +283,9 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests(
         command.CommandText = "select 7";
         _ = command.ExecuteScalar();
 
-        Assert.IsType<InterceptingDbConnection>(connection);
-        Assert.Contains(recorder.Events, x => x.EventKind == DbInterceptionEventKind.ConnectionOpened);
-        Assert.Contains(recorder.Events, x => x.EventKind == DbInterceptionEventKind.CommandExecuted);
+        connection.Should().BeOfType<InterceptingDbConnection>();
+        recorder.Events.Should().Contain(x => x.EventKind == DbInterceptionEventKind.ConnectionOpened);
+        recorder.Events.Should().Contain(x => x.EventKind == DbInterceptionEventKind.CommandExecuted);
     }
 
     /// <summary>
@@ -313,9 +316,9 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests(
         command.CommandText = "select 8";
         _ = command.ExecuteScalar();
 
-        Assert.IsType<InterceptingDbConnection>(connection);
-        Assert.Contains(recorder.Events, x => x.EventKind == DbInterceptionEventKind.CommandExecuted);
-        Assert.Contains(logger.Messages, x => x.Contains("event=CommandExecuted", StringComparison.Ordinal));
+        connection.Should().BeOfType<InterceptingDbConnection>();
+        recorder.Events.Should().Contain(x => x.EventKind == DbInterceptionEventKind.CommandExecuted);
+        logger.Messages.Should().Contain(x => x.Contains("event=CommandExecuted", StringComparison.Ordinal));
     }
 
     private sealed class CountingInterceptor : DbConnectionInterceptor

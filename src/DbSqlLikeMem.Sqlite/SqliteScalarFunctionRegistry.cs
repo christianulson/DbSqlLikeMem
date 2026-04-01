@@ -85,7 +85,16 @@ internal static class SqliteScalarFunctionRegistry
             {
                 IsStringAggregate = true
             });
-        dialect.AddScalarFunction(DbFunctionDef.CreateScalar("CHANGES", "INT"));
+        var changesDefinition = DbFunctionDef.CreateScalar("CHANGES", "INT") with
+        {
+            AstExecutor = AstQuerySqliteScalarFunctionEvaluator.TryEvaluate
+        };
+        dialect.AddScalarFunctions(
+            changesDefinition,
+            "CHANGES",
+            "FOUND_ROWS",
+            "ROW_COUNT",
+            "ROWCOUNT");
         var jsonExtractDefinition = DbFunctionDef.CreateScalar("JSON_EXTRACT", "VARCHAR") with
         {
             AstExecutor = AstQueryJsonExtractionFunctionEvaluator.TryEvalJsonExtractionFunction

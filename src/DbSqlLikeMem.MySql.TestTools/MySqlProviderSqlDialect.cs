@@ -155,22 +155,22 @@ CREATE TABLE {tableName}_{uId} (
 
     /// <inheritdoc />
     public override string TemporalDateAdd() =>
-        "SELECT DATE_ADD('2024-01-01 00:00:00', INTERVAL 1 DAY)";
+        "SELECT DATE_ADD(NOW(), INTERVAL 1 DAY)";
 
     /// <inheritdoc />
-    public override string TemporalCurrentTimestampExpression() => "CURRENT_TIMESTAMP";
+    public override string TemporalCurrentTimestampExpression() => "NOW()";
 
     /// <inheritdoc />
     public override string TemporalDateAddExpression() =>
-        "DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 1 DAY)";
+        "DATE_ADD(NOW(), INTERVAL 1 DAY)";
 
     /// <inheritdoc />
     public override string TemporalNowWhere(string tableName) =>
-        $"SELECT COUNT(*) FROM {tableName} WHERE CURRENT_TIMESTAMP IS NOT NULL";
+        $"SELECT COUNT(*) FROM {tableName} WHERE NOW() IS NOT NULL";
 
     /// <inheritdoc />
     public override string TemporalNowOrderBy(string tableName) =>
-        $"SELECT Name FROM {tableName} ORDER BY CURRENT_TIMESTAMP, Name LIMIT 1";
+        $"SELECT Name FROM {tableName} ORDER BY Name, NOW() LIMIT 1";
 
     /// <inheritdoc />
     public override string PagedNameProjection(string tableName, int offset, int fetch) =>

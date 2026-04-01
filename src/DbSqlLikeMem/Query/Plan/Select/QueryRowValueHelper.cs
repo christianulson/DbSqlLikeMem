@@ -11,39 +11,51 @@ internal static class QueryRowValueHelper
     }
 
     internal static object? ResolveIdentifier(string name, AstQueryExecutorBase.EvalRow row)
+        => TryResolveIdentifier(name, row, out var value) ? value : null;
+
+    internal static bool TryResolveIdentifier(string name, AstQueryExecutorBase.EvalRow row, out object? value)
     {
         if (name.Equals("_ROWID", StringComparison.OrdinalIgnoreCase)
             && TryResolveRowIdFromSources(row, out var rowId))
         {
-            return rowId;
+            value = rowId;
+            return true;
         }
 
         if (TrySplitQualifiedIdentifier(name, out var qualifier, out var columnName))
-            return ResolveColumn(qualifier, columnName, row);
+            return TryResolveColumn(qualifier, columnName, row, out value);
 
-        return TryResolveIdentifierFromSources(name, row, out var value)
-            ? value
-            : TryResolveProjectedIdentifier(name, row, out value)
-                ? value
-                : null;
+        if (TryResolveIdentifierFromSources(name, row, out value))
+            return true;
+
+        if (TryResolveProjectedIdentifier(name, row, out value))
+            return true;
+
+        value = null;
+        return false;
     }
 
     internal static object? ResolveColumn(
         string? qualifier,
         string col,
         AstQueryExecutorBase.EvalRow row)
+        => TryResolveColumn(qualifier, col, row, out var value) ? value : null;
+
+    internal static bool TryResolveColumn(
+        string? qualifier,
+        string col,
+        AstQueryExecutorBase.EvalRow row,
+        out object? value)
     {
         col = col.NormalizeName();
 
         if (!string.IsNullOrWhiteSpace(qualifier))
-            return ResolveQualifiedColumn(qualifier!, col, row);
+            return TryResolveQualifiedColumn(qualifier!, col, row, out value);
 
-        if (TryResolveUnqualifiedColumn(col, row, out var value))
-            return value;
+        if (TryResolveUnqualifiedColumn(col, row, out value))
+            return true;
 
-        return TryResolveColumnFromSources(col, row, out value)
-            ? value
-            : null;
+        return TryResolveColumnFromSources(col, row, out value);
     }
 
     internal static string NormalizeDistinctKey(this QueryExecutionContext? context, object? value)
@@ -165,10 +177,11 @@ internal static class QueryRowValueHelper
         return false;
     }
 
-    private static object? ResolveQualifiedColumn(
+    private static bool TryResolveQualifiedColumn(
         string qualifier,
         string col,
-        AstQueryExecutorBase.EvalRow row)
+        AstQueryExecutorBase.EvalRow row,
+        out object? value)
     {
         qualifier = qualifier.NormalizeName();
 
@@ -177,17 +190,22 @@ internal static class QueryRowValueHelper
         if (source is null)
         {
             if (TryResolveDirectQualifiedField(qualifier, lastQualifier, col, row, out var directValue))
-                return directValue;
+            {
+                value = directValue;
+                return true;
+            }
 
-            return null;
+            value = null;
+            return false;
         }
 
         if (col == "*")
-            return null;
+        {
+            value = null;
+            return false;
+        }
 
-        return TryResolveQualifiedNameValue(source, col, row, out var value)
-            ? value
-            : null;
+        return TryResolveQualifiedNameValue(source, col, row, out value);
     }
 
     private static string GetLastQualifierSegment(string qualifier)
@@ -320,6 +338,9 @@ internal static class QueryRowValueHelper
         if (!source.TryGetQualifiedColumnName(columnName, out qualifiedName)
             || string.IsNullOrEmpty(qualifiedName))
             return false;
+
+        if (row.Fields.TryGetValue(qualifiedName!, out value))
+            return true;
 
         return row.TryGetValue(qualifiedName!, out value);
     }

@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.MySql.Test.Strategy;
 
 /// <summary>
@@ -29,12 +31,12 @@ public sealed class MySqlInsertStrategyCoverageTests(
 
         var inserted = cmd.ExecuteNonQuery();
 
-        Assert.Equal(2, inserted);
-        Assert.Equal(2, t.Count);
-        Assert.Equal(1, (int)t[0][0]!);
-        Assert.Equal("A", (string)t[0][1]!);
-        Assert.Equal(2, (int)t[1][0]!);
-        Assert.Equal("B", (string)t[1][1]!);
+        inserted.Should().Be(2);
+        t.Count.Should().Be(2);
+        t[0][0].Should().Be(1);
+        t[0][1].Should().Be("A");
+        t[1][0].Should().Be(2);
+        t[1][1].Should().Be("B");
     }
 
     /// <summary>
@@ -60,12 +62,12 @@ public sealed class MySqlInsertStrategyCoverageTests(
 
         var inserted = cmd.ExecuteNonQuery();
 
-        Assert.Equal(2, inserted);
-        Assert.Equal(2, t.Count);
-        Assert.Equal(1, (int)t[0][0]!);
-        Assert.Equal("A", (string)t[0][1]!);
-        Assert.Equal(2, (int)t[1][0]!);
-        Assert.Equal("B", (string)t[1][1]!);
+        inserted.Should().Be(2);
+        t.Count.Should().Be(2);
+        t[0][0].Should().Be(1);
+        t[0][1].Should().Be("A");
+        t[1][0].Should().Be(2);
+        t[1][1].Should().Be("B");
     }
 
     /// <summary>
@@ -96,8 +98,8 @@ public sealed class MySqlInsertStrategyCoverageTests(
 
         var inserted = cmd.ExecuteNonQuery();
 
-        Assert.Equal(2, inserted);
-        Assert.Equal(2, t.Count);
-        Assert.Equal([1, 2], [.. t.Select(r => (int)r[0]!)]);
+        inserted.Should().Be(2);
+        t.Count.Should().Be(2);
+        t.Select(r => (int)r[0]!).Should().Equal([1, 2]);
     }
 }

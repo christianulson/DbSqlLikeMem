@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.MySql.Test;
 
 /// <summary>
@@ -31,8 +33,8 @@ public sealed class MySqlBatchMockTests(
 
         var affected = batch.ExecuteNonQuery();
 
-        Assert.Equal(2, affected);
-        Assert.Equal(2, connection.GetTable("users").Count);
+        affected.Should().Be(2);
+        connection.GetTable("users").Count.Should().Be(2);
     }
 
     /// <summary>
@@ -64,7 +66,7 @@ public sealed class MySqlBatchMockTests(
 
         var result = batch.ExecuteScalar();
 
-        Assert.Equal("Ana", result);
+        result.Should().Be("Ana");
     }
     /// <summary>
     /// EN: Ensures readers can iterate through result sets produced by multiple batch commands.
@@ -94,12 +96,12 @@ public sealed class MySqlBatchMockTests(
         batch.BatchCommands.Add(new MySqlBatchCommandMock("SELECT Id FROM Users WHERE Id = 1"));
 
         using var reader = batch.ExecuteReader();
-        Assert.True(reader.Read());
-        Assert.Equal("Ana", reader.GetString(0));
+        reader.Read().Should().BeTrue();
+        reader.GetString(0).Should().Be("Ana");
 
-        Assert.True(reader.NextResult());
-        Assert.True(reader.Read());
-        Assert.Equal(1, reader.GetInt32(0));
+        reader.NextResult().Should().BeTrue();
+        reader.Read().Should().BeTrue();
+        reader.GetInt32(0).Should().Be(1);
     }
 
     /// <summary>
@@ -124,8 +126,8 @@ public sealed class MySqlBatchMockTests(
         batch.BatchCommands.Add(new MySqlBatchCommandMock("SELECT Name FROM Users WHERE Id = 10"));
 
         using var reader = batch.ExecuteReader();
-        Assert.True(reader.Read());
-        Assert.Equal("Caio", reader.GetString(0));
+        reader.Read().Should().BeTrue();
+        reader.GetString(0).Should().Be("Caio");
     }
 
 }

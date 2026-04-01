@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.SqlAzure.Test;
 
 /// <summary>
@@ -71,9 +73,9 @@ WHERE u.tenantid = 10";
 
         const string sql = "DELETE FROM users u USING (SELECT 1 AS id) s WHERE s.id = u.id";
 
-        var ex = Assert.Throws<NotSupportedException>(() => ExecuteNonQuery(db, sql));
-        Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("DELETE FROM ... USING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        var ex = FluentActions.Invoking(() => ExecuteNonQuery(db, sql)).Should().Throw<NotSupportedException>().Which;
+        ex.Message.Should().Contain("SQL não suportado para dialeto");
+        ex.Message.Should().Contain("DELETE FROM ... USING");
     }
 }
 

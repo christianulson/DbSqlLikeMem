@@ -154,10 +154,10 @@ internal static class SqlTemporalFunctionEvaluator
     {
         value = kind switch
         {
-            SqlTemporalFunctionKind.Date => utcNow.Date,
-            SqlTemporalFunctionKind.Time => utcNow.TimeOfDay,
+            SqlTemporalFunctionKind.Date => localNow.Date,
+            SqlTemporalFunctionKind.Time => localNow.TimeOfDay,
             SqlTemporalFunctionKind.DateTimeOffset => new DateTimeOffset(localNow),
-            _ => utcNow,
+            _ => localNow,
         };
 
         return true;

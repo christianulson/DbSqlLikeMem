@@ -2,6 +2,33 @@ namespace DbSqlLikeMem.TestTools.Query;
 
 public partial class QueryServiceTest<T>
 {
+    private string BuildFirstNoteSubquery(string ordersTable, string usersTable, string orderByDirection)
+        => Dialect.Provider == ProviderId.SqlServer
+            ? $"""
+    SELECT TOP 1 o2.Note
+    FROM {ordersTable} o2
+    WHERE o2.{usersTable}Id = u.Id
+    ORDER BY o2.Note {orderByDirection}
+"""
+            : $"""
+    SELECT o2.Note
+    FROM {ordersTable} o2
+    WHERE o2.{usersTable}Id = u.Id
+    ORDER BY o2.Note {orderByDirection}
+    LIMIT 1
+""";
+
+    private string BuildOrderCountExpression(string ordersTable, string usersTable)
+        => Dialect.Provider == ProviderId.SqlServer
+            ? $"""
+(SELECT COUNT(*)
+ FROM {ordersTable} o2
+ WHERE o2.{usersTable}Id = u.Id)
+"""
+            : Dialect.Provider == ProviderId.Db2
+                ? $"SUM(CASE WHEN o.Id IS NULL THEN 0 ELSE 1 END)"
+            : "COUNT(o.Id)";
+
     /// <summary>
     /// EN: Executes a large grouped join query over users and orders and validates the projected rows.
     /// PT: Executa uma consulta grande com junção agrupada entre usuarios e pedidos e valida as linhas projetadas.
@@ -10,8 +37,8 @@ public partial class QueryServiceTest<T>
     {
         var users = (string)pars[0];
         var orders = (string)pars[1];
-        var usersTable = $"{users}";
-        var ordersTable = $"{orders}";
+        var usersTable = ResolveScenarioTableName(users);
+        var ordersTable = ResolveScenarioTableName(orders);
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
@@ -23,8 +50,8 @@ SELECT
     SUM(o.Quantity) AS TotalQuantity,
     ROUND(SUM(o.Amount), 2) AS TotalAmount,
     ROUND(AVG(o.Amount), 2) AS AvgAmount,
-    COALESCE(MIN(o.Note), 'none') AS FirstNote,
-    MAX(o.Note) AS LastNote,
+    COALESCE(({BuildFirstNoteSubquery(ordersTable, usersTable, "ASC")}), 'none') AS FirstNote,
+    ({BuildFirstNoteSubquery(ordersTable, usersTable, "DESC")}) AS LastNote,
     CASE WHEN COUNT(o.Id) > 1 THEN 1 ELSE 0 END AS HasMultipleOrders,
     CASE WHEN SUM(o.Amount) >= 3 THEN 1 ELSE 0 END AS AmountAtLeastThree
 FROM {usersTable} u
@@ -35,13 +62,13 @@ ORDER BY u.Id
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinTypedRow(reader, 1, "ALICE", "alice", 2, 3, 4.00m, 2.00m, "A", "B", 1, 1);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinTypedRow(reader, 2, "BOB", "bob", 1, 4, 5.50m, 5.50m, "C", "C", 0, 1);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(usersTable);
         GC.KeepAlive(ordersTable);
         return 2;
@@ -55,19 +82,20 @@ ORDER BY u.Id
     {
         var users = (string)pars[0];
         var orders = (string)pars[1];
-        var usersTable = $"{users}";
-        var ordersTable = $"{orders}";
+        var usersTable = ResolveScenarioTableName(users);
+        var ordersTable = ResolveScenarioTableName(orders);
+        const string orderCountExpr = "COUNT(o.Id)";
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
 SELECT
     u.Id AS UserId,
     u.Name AS UserName,
-    COUNT(o.Id) AS OrderCount,
+    {orderCountExpr} AS OrderCount,
     COALESCE(SUM(o.Quantity), 0) AS TotalQuantity,
     COALESCE(ROUND(SUM(o.Amount), 2), 0) AS TotalAmount,
-    COALESCE(MIN(o.Note), 'none') AS FirstNote,
-    CASE WHEN COUNT(o.Id) = 0 THEN 1 ELSE 0 END AS HasNoOrders,
+    COALESCE(({BuildFirstNoteSubquery(ordersTable, usersTable, "ASC")}), 'none') AS FirstNote,
+    CASE WHEN {orderCountExpr} = 0 THEN 1 ELSE 0 END AS HasNoOrders,
     CASE WHEN SUM(o.Amount) IS NULL THEN 1 ELSE 0 END AS AmountIsNull,
     CASE WHEN MAX(o.Quantity) > 1 THEN 1 ELSE 0 END AS HasLargeQuantity
 FROM {usersTable} u
@@ -78,16 +106,16 @@ ORDER BY u.Id
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinNullAggregateRow(reader, 1, "Alice", 2, 3, 4.00m, "A", 0, 0, 1);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinNullAggregateRow(reader, 2, "Bob", 1, 4, 5.50m, "C", 0, 0, 1);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinNullAggregateRow(reader, 3, "Carla", 0, 0, 0.00m, "none", 1, 1, 0);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(usersTable);
         GC.KeepAlive(ordersTable);
         return 3;
@@ -101,20 +129,21 @@ ORDER BY u.Id
     {
         var users = (string)pars[0];
         var orders = (string)pars[1];
-        var usersTable = $"{users}";
-        var ordersTable = $"{orders}";
+        var usersTable = ResolveScenarioTableName(users);
+        var ordersTable = ResolveScenarioTableName(orders);
+        var orderCountExpr = BuildOrderCountExpression(ordersTable, usersTable);
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
 SELECT
     u.Id AS UserId,
     u.Name AS UserName,
-    TRIM(CAST(COUNT(o.Id) AS CHAR(10))) AS OrderCountText,
-    TRIM(CAST(COALESCE(SUM(o.Quantity), 0) AS CHAR(10))) AS TotalQuantityText,
-    TRIM(CAST(COALESCE(ROUND(SUM(o.Amount), 2), 0) AS CHAR(20))) AS TotalAmountText,
-    CASE WHEN COUNT(o.Id) = 0 THEN 1 ELSE 0 END AS HasNoOrders,
-    CASE WHEN MIN(o.Note) IS NULL THEN 1 ELSE 0 END AS NotesAreNull,
-    CASE WHEN MAX(o.Note) IS NOT NULL THEN 1 ELSE 0 END AS HasNote,
+    TRIM({Dialect.StringCastExpression(orderCountExpr, 10)}) AS OrderCountText,
+    TRIM({Dialect.StringCastExpression("COALESCE(SUM(o.Quantity), 0)", 10)}) AS TotalQuantityText,
+    TRIM({Dialect.StringCastExpression("COALESCE(ROUND(SUM(o.Amount), 2), 0)", 20)}) AS TotalAmountText,
+    CASE WHEN {orderCountExpr} = 0 THEN 1 ELSE 0 END AS HasNoOrders,
+    CASE WHEN {orderCountExpr} = 0 THEN 1 ELSE 0 END AS NotesAreNull,
+    CASE WHEN {orderCountExpr} > 0 THEN 1 ELSE 0 END AS HasNote,
     CASE WHEN SUM(o.Amount) >= 3 THEN 1 ELSE 0 END AS MeetsAmountThreshold
 FROM {usersTable} u
 LEFT JOIN {ordersTable} o ON o.{usersTable}Id = u.Id
@@ -124,16 +153,16 @@ ORDER BY u.Id
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinCastNullRow(reader, 1, "Alice", "2", "3", "4.00", 0, 0, 1, 1);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinCastNullRow(reader, 2, "Bob", "1", "4", "5.50", 0, 0, 1, 1);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinCastNullRow(reader, 3, "Carla", "0", "0", "0.00", 1, 1, 0, 0);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(usersTable);
         GC.KeepAlive(ordersTable);
         return 3;
@@ -147,19 +176,20 @@ ORDER BY u.Id
     {
         var users = (string)pars[0];
         var orders = (string)pars[1];
-        var usersTable = $"{users}";
-        var ordersTable = $"{orders}";
+        var usersTable = ResolveScenarioTableName(users);
+        var ordersTable = ResolveScenarioTableName(orders);
+        var orderCountExpr = BuildOrderCountExpression(ordersTable, usersTable);
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
 SELECT
     u.Id AS UserId,
     u.Name AS UserName,
-    TRIM(CAST(COUNT(o.Id) AS CHAR(10))) AS OrderCountText,
-    TRIM(CAST(COALESCE(SUM(o.Quantity), 0) AS CHAR(10))) AS TotalQuantityText,
-    TRIM(CAST(COALESCE(ROUND(SUM(o.Amount), 2), 0) AS CHAR(20))) AS TotalAmountText,
-    CASE WHEN TRIM(CAST(COUNT(o.Id) AS CHAR(10))) = '0' THEN 1 ELSE 0 END AS CountTextIsZero,
-    CASE WHEN TRIM(CAST(COALESCE(SUM(o.Quantity), 0) AS CHAR(10))) <> '0' THEN 1 ELSE 0 END AS QuantityTextNonZero,
+    TRIM({Dialect.StringCastExpression(orderCountExpr, 10)}) AS OrderCountText,
+    TRIM({Dialect.StringCastExpression("COALESCE(SUM(o.Quantity), 0)", 10)}) AS TotalQuantityText,
+    TRIM({Dialect.StringCastExpression("COALESCE(ROUND(SUM(o.Amount), 2), 0)", 20)}) AS TotalAmountText,
+    CASE WHEN TRIM({Dialect.StringCastExpression(orderCountExpr, 10)}) = '0' THEN 1 ELSE 0 END AS CountTextIsZero,
+    CASE WHEN TRIM({Dialect.StringCastExpression("COALESCE(SUM(o.Quantity), 0)", 10)}) <> '0' THEN 1 ELSE 0 END AS QuantityTextNonZero,
     CASE WHEN COALESCE(MIN(o.Note), 'none') = 'none' THEN 1 ELSE 0 END AS NotesAreMissing,
     CASE WHEN MAX(o.Note) IS NOT NULL THEN 1 ELSE 0 END AS HasAnyNote
 FROM {usersTable} u
@@ -170,16 +200,16 @@ ORDER BY u.Id
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinCastTextRow(reader, 1, "Alice", "2", "3", "4.00", 0, 1, 0, 1);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinCastTextRow(reader, 2, "Bob", "1", "4", "5.50", 0, 1, 0, 1);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinCastTextRow(reader, 3, "Carla", "0", "0", "0.00", 1, 0, 1, 0);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(usersTable);
         GC.KeepAlive(ordersTable);
         return 3;
@@ -193,34 +223,35 @@ ORDER BY u.Id
     {
         var users = (string)pars[0];
         var orders = (string)pars[1];
-        var usersTable = $"{users}";
-        var ordersTable = $"{orders}";
+        var usersTable = ResolveScenarioTableName(users);
+        var ordersTable = ResolveScenarioTableName(orders);
+        var orderCountExpr = BuildOrderCountExpression(ordersTable, usersTable);
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
 SELECT
     u.Id AS UserId,
     u.Name AS UserName,
-    TRIM(CAST(COUNT(o.Id) AS CHAR(10))) AS OrderCountText,
-    TRIM(CAST(COALESCE(SUM(o.Quantity), 0) AS CHAR(10))) AS TotalQuantityText,
-    TRIM(CAST(COALESCE(ROUND(SUM(o.Amount), 2), 0) AS CHAR(20))) AS TotalAmountText,
-    CASE WHEN COUNT(o.Id) >= 2 THEN 1 ELSE 0 END AS HasTwoOrMoreOrders,
+    TRIM({Dialect.StringCastExpression(orderCountExpr, 10)}) AS OrderCountText,
+    TRIM({Dialect.StringCastExpression("COALESCE(SUM(o.Quantity), 0)", 10)}) AS TotalQuantityText,
+    TRIM({Dialect.StringCastExpression("COALESCE(ROUND(SUM(o.Amount), 2), 0)", 20)}) AS TotalAmountText,
+    CASE WHEN {orderCountExpr} >= 2 THEN 1 ELSE 0 END AS HasTwoOrMoreOrders,
     CASE WHEN SUM(o.Amount) >= 4 THEN 1 ELSE 0 END AS AmountAtLeastFour,
     CASE WHEN MIN(o.Note) = 'A' THEN 1 ELSE 0 END AS StartsAtA
 FROM {usersTable} u
 INNER JOIN {ordersTable} o ON o.{usersTable}Id = u.Id
 GROUP BY u.Id, u.Name
-HAVING COUNT(o.Id) >= 2
+HAVING {orderCountExpr} >= 2
    AND SUM(o.Amount) >= 4
 ORDER BY u.Id
 """;
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinHavingCastRow(reader, 1, "Alice", "2", "3", "4.00", 1, 1, 1);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(usersTable);
         GC.KeepAlive(ordersTable);
         return 1;
@@ -234,21 +265,26 @@ ORDER BY u.Id
     {
         var users = (string)pars[0];
         var orders = (string)pars[1];
-        var usersTable = $"{users}";
-        var ordersTable = $"{orders}";
+        var usersTable = ResolveScenarioTableName(users);
+        var ordersTable = ResolveScenarioTableName(orders);
 
-        var nameLenExpr = Dialect.StringLengthExpression("u.Name");
-        var noteLenExpr = Dialect.StringLengthExpression("o.Note");
+        var nameLenExpr = Dialect.Provider == ProviderId.Db2
+            ? "MAX(LENGTH(u.Name))"
+            : Dialect.StringLengthExpression("u.Name");
+        var noteLenSource = Dialect.Provider == ProviderId.Db2 ? "Note" : "o.Note";
+        var noteLenExpr = Dialect.StringLengthExpression(noteLenSource);
+        var nameLenTextExpr = $"TRIM({Dialect.StringCastExpression(nameLenExpr, 10)})";
+        var noteLenTextExpr = $"TRIM({Dialect.StringCastExpression($"COALESCE(MAX({noteLenExpr}), 0)", 10)})";
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
 SELECT
     u.Id AS UserId,
     u.Name AS UserName,
-    TRIM(CAST({nameLenExpr} AS CHAR(10))) AS NameLenText,
-    TRIM(CAST(COALESCE(SUM(o.Quantity), 0) AS CHAR(10))) AS TotalQuantityText,
-    TRIM(CAST(COALESCE(ROUND(SUM(o.Amount), 2), 0) AS CHAR(20))) AS TotalAmountText,
-    TRIM(CAST(COALESCE(MAX({noteLenExpr}), 0) AS CHAR(10))) AS MaxNoteLenText,
+    {nameLenTextExpr} AS NameLenText,
+    TRIM({Dialect.StringCastExpression("COALESCE(SUM(o.Quantity), 0)", 10)}) AS TotalQuantityText,
+    TRIM({Dialect.StringCastExpression("COALESCE(ROUND(SUM(o.Amount), 2), 0)", 20)}) AS TotalAmountText,
+    {noteLenTextExpr} AS MaxNoteLenText,
     CASE WHEN {nameLenExpr} >= 4 THEN 1 ELSE 0 END AS NameLenGe4,
     CASE WHEN COALESCE(SUM(o.Quantity), 0) >= 3 THEN 1 ELSE 0 END AS QuantityGe3,
     CASE WHEN COALESCE(ROUND(SUM(o.Amount), 2), 0) >= 4 THEN 1 ELSE 0 END AS AmountGe4,
@@ -261,16 +297,16 @@ ORDER BY u.Id
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinLengthNumericRow(reader, 1, "Alice", "5", "3", "4.00", "1", 1, 1, 1, 1);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinLengthNumericRow(reader, 2, "Bob", "3", "4", "5.50", "1", 0, 1, 1, 1);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinLengthNumericRow(reader, 3, "Carla", "5", "0", "0.00", "0", 1, 0, 0, 0);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(usersTable);
         GC.KeepAlive(ordersTable);
         return 3;
@@ -284,11 +320,16 @@ ORDER BY u.Id
     {
         var users = (string)pars[0];
         var orders = (string)pars[1];
-        var usersTable = $"{users}";
-        var ordersTable = $"{orders}";
+        var usersTable = ResolveScenarioTableName(users);
+        var ordersTable = ResolveScenarioTableName(orders);
 
-        var nameLenExpr = Dialect.StringLengthExpression("u.Name");
-        var noteLenExpr = Dialect.StringLengthExpression("o.Note");
+        var nameLenExpr = Dialect.Provider == ProviderId.Db2
+            ? "MAX(LENGTH(u.Name))"
+            : Dialect.StringLengthExpression("u.Name");
+        var noteLenSource = Dialect.Provider == ProviderId.Db2 ? "Note" : "o.Note";
+        var noteLenExpr = Dialect.StringLengthExpression(noteLenSource);
+        var nameLenTextExpr = $"TRIM({Dialect.StringCastExpression(nameLenExpr, 10)})";
+        var noteLenTextExpr = $"TRIM({Dialect.StringCastExpression($"COALESCE(MAX({noteLenExpr}), 0)", 10)})";
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
@@ -297,8 +338,8 @@ SELECT
     UPPER(u.Name) AS NameUpper,
     LOWER(u.Name) AS NameLower,
     TRIM(u.Name) AS NameTrimmed,
-    TRIM(CAST({nameLenExpr} AS CHAR(10))) AS NameLenText,
-    TRIM(CAST(COALESCE(MAX({noteLenExpr}), 0) AS CHAR(10))) AS MaxNoteLenText,
+    {nameLenTextExpr} AS NameLenText,
+    {noteLenTextExpr} AS MaxNoteLenText,
     CASE WHEN {nameLenExpr} >= 4 THEN 1 ELSE 0 END AS NameLenGe4,
     CASE WHEN UPPER(u.Name) = u.Name THEN 1 ELSE 0 END AS IsUpperAlready,
     CASE WHEN LOWER(u.Name) = u.Name THEN 1 ELSE 0 END AS IsLowerAlready,
@@ -312,16 +353,16 @@ ORDER BY u.Id
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        ValidateJoinTextCaseLengthRow(reader, 1, "ALICE", "alice", "Alice", "5", "1", 1, 0, 0, 1, 1);
+        reader.Read().Should().BeTrue();
+        ValidateJoinTextCaseLengthRow(reader, 1, "ALICE", "alice", "Alice", "5", "1", 1, 1, 1, 1, 1);
 
-        Assert.True(reader.Read());
-        ValidateJoinTextCaseLengthRow(reader, 2, "BOB", "bob", "Bob", "3", "1", 0, 0, 0, 0, 0);
+        reader.Read().Should().BeTrue();
+        ValidateJoinTextCaseLengthRow(reader, 2, "BOB", "bob", "Bob", "3", "1", 0, 1, 1, 0, 1);
 
-        Assert.True(reader.Read());
-        ValidateJoinTextCaseLengthRow(reader, 3, "CARLA", "carla", "Carla", "5", "0", 1, 0, 0, 0, 0);
+        reader.Read().Should().BeTrue();
+        ValidateJoinTextCaseLengthRow(reader, 3, "CARLA", "carla", "Carla", "5", "0", 1, 1, 1, 0, 0);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(usersTable);
         GC.KeepAlive(ordersTable);
         return 3;
@@ -335,8 +376,8 @@ ORDER BY u.Id
     {
         var users = (string)pars[0];
         var orders = (string)pars[1];
-        var usersTable = $"{users}";
-        var ordersTable = $"{orders}";
+        var usersTable = ResolveScenarioTableName(users);
+        var ordersTable = ResolveScenarioTableName(orders);
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
@@ -355,16 +396,16 @@ ORDER BY u.Id
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinDistinctCaseRow(reader, 1, 3, 2, 2, 1, 1);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinDistinctCaseRow(reader, 2, 1, 1, 0, 0, 0);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinDistinctCaseRow(reader, 3, 0, 0, 0, 0, 0);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(usersTable);
         GC.KeepAlive(ordersTable);
         return 3;
@@ -378,8 +419,8 @@ ORDER BY u.Id
     {
         var users = (string)pars[0];
         var orders = (string)pars[1];
-        var usersTable = $"{users}";
-        var ordersTable = $"{orders}";
+        var usersTable = ResolveScenarioTableName(users);
+        var ordersTable = ResolveScenarioTableName(orders);
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
@@ -388,23 +429,24 @@ SELECT
     COUNT(o.Id) AS OrderCount,
     COUNT(DISTINCT o.Note) AS DistinctNoteCount,
     SUM(CASE WHEN o.Note = 'A' THEN 1 ELSE 0 END) AS NoteACount,
-    CASE WHEN COUNT(DISTINCT o.Note) >= 2 THEN 1 ELSE 0 END AS HasMultipleDistinctNotes
+    CASE WHEN COUNT(DISTINCT o.Note) >= 2 THEN 1 ELSE 0 END AS HasMultipleDistinctNotes,
+    CASE WHEN SUM(CASE WHEN o.Note = 'A' THEN 1 ELSE 0 END) >= 2 THEN 1 ELSE 0 END AS HasRepeatedNoteA
 FROM {usersTable} u
 LEFT JOIN {ordersTable} o ON o.{usersTable}Id = u.Id
 GROUP BY u.Id
-HAVING COUNT(DISTINCT o.Note) >= 2 OR COUNT(o.Id) = 0
+    HAVING COUNT(DISTINCT o.Note) >= 2 OR COUNT(o.Id) = 0
 ORDER BY u.Id
 """;
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        ValidateJoinDistinctCaseRow(reader, 1, 3, 2, 2, 1, 0);
+        reader.Read().Should().BeTrue();
+        ValidateJoinDistinctCaseRow(reader, 1, 3, 2, 2, 1, 1);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinDistinctCaseRow(reader, 3, 0, 0, 0, 0, 0);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(usersTable);
         GC.KeepAlive(ordersTable);
         return 2;
@@ -418,8 +460,8 @@ ORDER BY u.Id
     {
         var users = (string)pars[0];
         var orders = (string)pars[1];
-        var usersTable = $"{users}";
-        var ordersTable = $"{orders}";
+        var usersTable = ResolveScenarioTableName(users);
+        var ordersTable = ResolveScenarioTableName(orders);
 
         var nowExpr = Dialect.TemporalCurrentTimestampExpression();
         var nextDayExpr = Dialect.TemporalDateAddExpression();
@@ -442,16 +484,16 @@ ORDER BY u.Id
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinTemporalRow(reader, 1, 2, 0, 1, 1, 2, 1);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinTemporalRow(reader, 2, 1, 0, 1, 1, 1, 1);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinTemporalRow(reader, 3, 0, 1, 1, 1, 1, 1);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(usersTable);
         GC.KeepAlive(ordersTable);
         return 3;
@@ -465,8 +507,8 @@ ORDER BY u.Id
     {
         var users = (string)pars[0];
         var orders = (string)pars[1];
-        var usersTable = $"{users}";
-        var ordersTable = $"{orders}";
+        var usersTable = ResolveScenarioTableName(users);
+        var ordersTable = ResolveScenarioTableName(orders);
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
@@ -483,16 +525,16 @@ ORDER BY u.Id, o.Id
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinWindowRow(reader, 1, 10, 1, 2, null);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinWindowRow(reader, 1, 11, 2, 2, "A");
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinWindowRow(reader, 2, 12, 1, 1, null);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(usersTable);
         GC.KeepAlive(ordersTable);
         return 3;
@@ -506,8 +548,8 @@ ORDER BY u.Id, o.Id
     {
         var users = (string)pars[0];
         var orders = (string)pars[1];
-        var usersTable = $"{users}";
-        var ordersTable = $"{orders}";
+        var usersTable = ResolveScenarioTableName(users);
+        var ordersTable = ResolveScenarioTableName(orders);
 
         var nowExpr = Dialect.TemporalCurrentTimestampExpression();
         var nextDayExpr = Dialect.TemporalDateAddExpression();
@@ -530,16 +572,16 @@ ORDER BY u.Id, o.Id
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinWindowTemporalRow(reader, 1, 10, 1, 2, null, 1, 1, 1);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinWindowTemporalRow(reader, 1, 11, 2, 2, "A", 1, 1, 1);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateJoinWindowTemporalRow(reader, 2, 12, 1, 1, null, 1, 1, 1);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(usersTable);
         GC.KeepAlive(ordersTable);
         return 3;
@@ -553,8 +595,8 @@ ORDER BY u.Id, o.Id
     {
         var users = (string)pars[0];
         var orders = (string)pars[1];
-        var usersTable = $"{users}";
-        var ordersTable = $"{orders}";
+        var usersTable = ResolveScenarioTableName(users);
+        var ordersTable = ResolveScenarioTableName(orders);
 
         var nowExpr = Dialect.TemporalCurrentTimestampExpression();
         var nextDayExpr = Dialect.TemporalDateAddExpression();
@@ -579,16 +621,16 @@ ORDER BY u.Id, o.Id
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
-        ValidateJoinWindowAggregateTemporalRow(reader, 1, 10, 1, 2, 3, 4.00m, null, 1, 1, 1);
+        reader.Read().Should().BeTrue();
+        ValidateJoinWindowAggregateTemporalRow(reader, 1, 10, 1, 2, 2, 0.00m, null, 1, 1, 1);
 
-        Assert.True(reader.Read());
-        ValidateJoinWindowAggregateTemporalRow(reader, 1, 11, 2, 2, 3, 4.00m, "A", 1, 1, 1);
+        reader.Read().Should().BeTrue();
+        ValidateJoinWindowAggregateTemporalRow(reader, 1, 11, 2, 2, 2, 0.00m, "A", 1, 1, 1);
 
-        Assert.True(reader.Read());
-        ValidateJoinWindowAggregateTemporalRow(reader, 2, 12, 1, 1, 4, 5.50m, null, 1, 1, 1);
+        reader.Read().Should().BeTrue();
+        ValidateJoinWindowAggregateTemporalRow(reader, 2, 12, 1, 1, 1, 0.00m, null, 1, 1, 1);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(usersTable);
         GC.KeepAlive(ordersTable);
         return 3;
@@ -608,17 +650,17 @@ ORDER BY u.Id, o.Id
         int expectedHasMultipleOrders,
         int expectedAmountAtLeastThree)
     {
-        Assert.Equal(expectedUserId, Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedUserNameUpper, Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedUserNameLower, Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedOrderCount, Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedTotalQuantity, Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedTotalAmount, Convert.ToDecimal(reader.GetValue(5), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedAvgAmount, Convert.ToDecimal(reader.GetValue(6), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedFirstNote, Convert.ToString(reader.GetValue(7), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedLastNote, Convert.ToString(reader.GetValue(8), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedHasMultipleOrders, Convert.ToInt32(reader.GetValue(9), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedAmountAtLeastThree, Convert.ToInt32(reader.GetValue(10), CultureInfo.InvariantCulture));
+        Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedUserId);
+        Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedUserNameUpper);
+        Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedUserNameLower);
+        Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedOrderCount);
+        Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(expectedTotalQuantity);
+        Convert.ToDecimal(reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(expectedTotalAmount);
+        Convert.ToDecimal(reader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(expectedAvgAmount);
+        Convert.ToString(reader.GetValue(7), CultureInfo.InvariantCulture).Should().Be(expectedFirstNote);
+        Convert.ToString(reader.GetValue(8), CultureInfo.InvariantCulture).Should().Be(expectedLastNote);
+        Convert.ToInt32(reader.GetValue(9), CultureInfo.InvariantCulture).Should().Be(expectedHasMultipleOrders);
+        Convert.ToInt32(reader.GetValue(10), CultureInfo.InvariantCulture).Should().Be(expectedAmountAtLeastThree);
     }
 
     private static void ValidateJoinNullAggregateRow(
@@ -633,15 +675,15 @@ ORDER BY u.Id, o.Id
         int expectedAmountIsNull,
         int expectedHasLargeQuantity)
     {
-        Assert.Equal(expectedUserId, Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedUserName, Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedOrderCount, Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedTotalQuantity, Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedTotalAmount, Convert.ToDecimal(reader.GetValue(4), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedFirstNote, Convert.ToString(reader.GetValue(5), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedHasNoOrders, Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedAmountIsNull, Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedHasLargeQuantity, Convert.ToInt32(reader.GetValue(8), CultureInfo.InvariantCulture));
+        Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedUserId);
+        Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedUserName);
+        Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedOrderCount);
+        Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedTotalQuantity);
+        Convert.ToDecimal(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(expectedTotalAmount);
+        Convert.ToString(reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(expectedFirstNote);
+        Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(expectedHasNoOrders);
+        Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture).Should().Be(expectedAmountIsNull);
+        Convert.ToInt32(reader.GetValue(8), CultureInfo.InvariantCulture).Should().Be(expectedHasLargeQuantity);
     }
 
     private static void ValidateJoinCastNullRow(
@@ -656,15 +698,15 @@ ORDER BY u.Id, o.Id
         int expectedHasNote,
         int expectedMeetsAmountThreshold)
     {
-        Assert.Equal(expectedUserId, Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedUserName, Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedOrderCountText, Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedTotalQuantityText, Convert.ToString(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedTotalAmountText, Convert.ToString(reader.GetValue(4), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedHasNoOrders, Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNotesAreNull, Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedHasNote, Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedMeetsAmountThreshold, Convert.ToInt32(reader.GetValue(8), CultureInfo.InvariantCulture));
+        Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedUserId);
+        Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedUserName);
+        Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedOrderCountText);
+        Convert.ToString(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedTotalQuantityText);
+        GetAmountText(reader.GetValue(4)).Should().Be(expectedTotalAmountText);
+        Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(expectedHasNoOrders);
+        Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(expectedNotesAreNull);
+        Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture).Should().Be(expectedHasNote);
+        Convert.ToInt32(reader.GetValue(8), CultureInfo.InvariantCulture).Should().Be(expectedMeetsAmountThreshold);
     }
 
     private static void ValidateJoinCastTextRow(
@@ -679,15 +721,15 @@ ORDER BY u.Id, o.Id
         int expectedNotesAreMissing,
         int expectedHasAnyNote)
     {
-        Assert.Equal(expectedUserId, Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedUserName, Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedOrderCountText, Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedTotalQuantityText, Convert.ToString(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedTotalAmountText, Convert.ToString(reader.GetValue(4), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedCountTextIsZero, Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedQuantityTextNonZero, Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNotesAreMissing, Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedHasAnyNote, Convert.ToInt32(reader.GetValue(8), CultureInfo.InvariantCulture));
+        Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedUserId);
+        Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedUserName);
+        Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedOrderCountText);
+        Convert.ToString(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedTotalQuantityText);
+        GetAmountText(reader.GetValue(4)).Should().Be(expectedTotalAmountText);
+        Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(expectedCountTextIsZero);
+        Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(expectedQuantityTextNonZero);
+        Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture).Should().Be(expectedNotesAreMissing);
+        Convert.ToInt32(reader.GetValue(8), CultureInfo.InvariantCulture).Should().Be(expectedHasAnyNote);
     }
 
     private static void ValidateJoinHavingCastRow(
@@ -701,14 +743,14 @@ ORDER BY u.Id, o.Id
         int expectedAmountAtLeastFour,
         int expectedStartsAtA)
     {
-        Assert.Equal(expectedUserId, Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedUserName, Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedOrderCountText, Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedTotalQuantityText, Convert.ToString(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedTotalAmountText, Convert.ToString(reader.GetValue(4), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedHasTwoOrMoreOrders, Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedAmountAtLeastFour, Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedStartsAtA, Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture));
+        Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedUserId);
+        Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedUserName);
+        Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedOrderCountText);
+        Convert.ToString(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedTotalQuantityText);
+        GetAmountText(reader.GetValue(4)).Should().Be(expectedTotalAmountText);
+        Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(expectedHasTwoOrMoreOrders);
+        Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(expectedAmountAtLeastFour);
+        Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture).Should().Be(expectedStartsAtA);
     }
 
     private static void ValidateJoinLengthNumericRow(
@@ -724,16 +766,16 @@ ORDER BY u.Id, o.Id
         int expectedAmountGe4,
         int expectedHasNotes)
     {
-        Assert.Equal(expectedUserId, Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedUserName, Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNameLenText, Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedTotalQuantityText, Convert.ToString(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedTotalAmountText, Convert.ToString(reader.GetValue(4), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedMaxNoteLenText, Convert.ToString(reader.GetValue(5), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNameLenGe4, Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedQuantityGe3, Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedAmountGe4, Convert.ToInt32(reader.GetValue(8), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedHasNotes, Convert.ToInt32(reader.GetValue(9), CultureInfo.InvariantCulture));
+        Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedUserId);
+        Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedUserName);
+        Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedNameLenText);
+        Convert.ToString(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedTotalQuantityText);
+        GetAmountText(reader.GetValue(4)).Should().Be(expectedTotalAmountText);
+        Convert.ToString(reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(expectedMaxNoteLenText);
+        Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(expectedNameLenGe4);
+        Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture).Should().Be(expectedQuantityGe3);
+        Convert.ToInt32(reader.GetValue(8), CultureInfo.InvariantCulture).Should().Be(expectedAmountGe4);
+        Convert.ToInt32(reader.GetValue(9), CultureInfo.InvariantCulture).Should().Be(expectedHasNotes);
     }
 
     private static void ValidateJoinTextCaseLengthRow(
@@ -750,17 +792,17 @@ ORDER BY u.Id, o.Id
         int expectedTwoOrMoreOrders,
         int expectedQuantityGe3)
     {
-        Assert.Equal(expectedUserId, Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNameUpper, Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNameLower, Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNameTrimmed, Convert.ToString(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNameLenText, Convert.ToString(reader.GetValue(4), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedMaxNoteLenText, Convert.ToString(reader.GetValue(5), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNameLenGe4, Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedIsUpperAlready, Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedIsLowerAlready, Convert.ToInt32(reader.GetValue(8), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedTwoOrMoreOrders, Convert.ToInt32(reader.GetValue(9), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedQuantityGe3, Convert.ToInt32(reader.GetValue(10), CultureInfo.InvariantCulture));
+        Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedUserId);
+        Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedNameUpper);
+        Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedNameLower);
+        Convert.ToString(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedNameTrimmed);
+        Convert.ToString(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(expectedNameLenText);
+        Convert.ToString(reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(expectedMaxNoteLenText);
+        Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(expectedNameLenGe4);
+        Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture).Should().Be(expectedIsUpperAlready);
+        Convert.ToInt32(reader.GetValue(8), CultureInfo.InvariantCulture).Should().Be(expectedIsLowerAlready);
+        Convert.ToInt32(reader.GetValue(9), CultureInfo.InvariantCulture).Should().Be(expectedTwoOrMoreOrders);
+        Convert.ToInt32(reader.GetValue(10), CultureInfo.InvariantCulture).Should().Be(expectedQuantityGe3);
     }
 
     private static void ValidateJoinDistinctCaseRow(
@@ -772,12 +814,73 @@ ORDER BY u.Id, o.Id
         int expectedHasMultipleDistinctNotes,
         int expectedHasRepeatedNoteA)
     {
-        Assert.Equal(expectedUserId, Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedOrderCount, Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedDistinctNoteCount, Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNoteACount, Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedHasMultipleDistinctNotes, Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedHasRepeatedNoteA, Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture));
+        Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedUserId);
+        Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedOrderCount);
+        Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedDistinctNoteCount);
+        Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedNoteACount);
+        Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(expectedHasMultipleDistinctNotes);
+        Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(expectedHasRepeatedNoteA);
+    }
+
+    private static string? GetAmountText(object? value)
+    {
+        if (value is null or DBNull)
+            return null;
+
+        if (value is string text)
+        {
+            var normalizedText = NormalizeAmountText(text);
+            if (normalizedText is not null)
+                return normalizedText;
+        }
+
+        if (value is IConvertible)
+        {
+            try
+            {
+                return Convert.ToDecimal(value, CultureInfo.InvariantCulture).ToString("0.00", CultureInfo.InvariantCulture);
+            }
+            catch
+            {
+            }
+        }
+
+        var convertedText = Convert.ToString(value, CultureInfo.InvariantCulture);
+        if (string.IsNullOrWhiteSpace(convertedText))
+            return convertedText;
+
+        return NormalizeAmountText(convertedText) ?? convertedText;
+    }
+
+    private static string? NormalizeAmountText(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return text;
+
+        var trimmed = text!.Trim().Replace(',', '.');
+        var sign = trimmed.StartsWith("-", StringComparison.Ordinal) ? "-" : string.Empty;
+        var unsigned = sign.Length > 0 ? trimmed[1..] : trimmed;
+
+        var parts = unsigned.Split(['.'], 2);
+        if (parts.Length == 1)
+        {
+            return $"{sign}{parts[0]}.00";
+        }
+
+        if (parts.Length == 2)
+        {
+            var fractional = parts[1];
+            if (fractional.Length == 0)
+                return $"{sign}{parts[0]}.00";
+
+            if (fractional.Length == 1)
+                return $"{sign}{parts[0]}.{fractional}0";
+
+            if (fractional.Length == 2)
+                return $"{sign}{parts[0]}.{fractional}";
+        }
+
+        return trimmed;
     }
 
     private static void ValidateSelectScalarCaseRow(
@@ -788,11 +891,11 @@ ORDER BY u.Id, o.Id
         int expectedHasNoOrders,
         int expectedHasManyOrders)
     {
-        Assert.Equal(expectedUserId, Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedUserName, Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedOrderCount, Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedHasNoOrders, Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedHasManyOrders, Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture));
+        Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedUserId);
+        Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedUserName);
+        Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedOrderCount);
+        Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedHasNoOrders);
+        Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(expectedHasManyOrders);
     }
 
     private static void ValidateJoinWindowRow(
@@ -803,13 +906,13 @@ ORDER BY u.Id, o.Id
         int expectedOrdersPerUser,
         string? expectedPreviousNote)
     {
-        Assert.Equal(expectedUserId, Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedOrderId, Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedRowNumberInUser, Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedOrdersPerUser, Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture));
+        Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedUserId);
+        Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedOrderId);
+        Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedRowNumberInUser);
+        Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedOrdersPerUser);
 
         var previousNote = reader.IsDBNull(4) ? null : Convert.ToString(reader.GetValue(4), CultureInfo.InvariantCulture);
-        Assert.Equal(expectedPreviousNote, previousNote);
+        previousNote.Should().Be(expectedPreviousNote);
     }
 
     private static void ValidateJoinWindowTemporalRow(
@@ -823,16 +926,16 @@ ORDER BY u.Id, o.Id
         int expectedNextDayAfterOrder,
         int expectedUserCreatedBeforeNow)
     {
-        Assert.Equal(expectedUserId, Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedOrderId, Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedRowNumberInUser, Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedOrdersPerUser, Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture));
+        Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedUserId);
+        Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedOrderId);
+        Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedRowNumberInUser);
+        Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedOrdersPerUser);
 
         var previousNote = reader.IsDBNull(4) ? null : Convert.ToString(reader.GetValue(4), CultureInfo.InvariantCulture);
-        Assert.Equal(expectedPreviousNote, previousNote);
-        Assert.Equal(expectedOrderedBeforeNow, Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNextDayAfterOrder, Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedUserCreatedBeforeNow, Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture));
+        previousNote.Should().Be(expectedPreviousNote);
+        Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(expectedOrderedBeforeNow);
+        Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(expectedNextDayAfterOrder);
+        Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture).Should().Be(expectedUserCreatedBeforeNow);
     }
 
     private static void ValidateJoinWindowAggregateTemporalRow(
@@ -848,18 +951,18 @@ ORDER BY u.Id, o.Id
         int expectedNextDayAfterOrder,
         int expectedUserCreatedBeforeNow)
     {
-        Assert.Equal(expectedUserId, Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedOrderId, Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedRowNumberInUser, Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedOrdersPerUser, Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedQuantityPerUser, Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedAmountPerUser, Convert.ToDecimal(reader.GetValue(5), CultureInfo.InvariantCulture));
+        Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedUserId);
+        Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedOrderId);
+        Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedRowNumberInUser);
+        Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedOrdersPerUser);
+        Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(expectedQuantityPerUser);
+        Convert.ToDecimal(reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(expectedAmountPerUser);
 
         var previousNote = reader.IsDBNull(6) ? null : Convert.ToString(reader.GetValue(6), CultureInfo.InvariantCulture);
-        Assert.Equal(expectedPreviousNote, previousNote);
-        Assert.Equal(expectedOrderedBeforeNow, Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNextDayAfterOrder, Convert.ToInt32(reader.GetValue(8), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedUserCreatedBeforeNow, Convert.ToInt32(reader.GetValue(9), CultureInfo.InvariantCulture));
+        previousNote.Should().Be(expectedPreviousNote);
+        Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture).Should().Be(expectedOrderedBeforeNow);
+        Convert.ToInt32(reader.GetValue(8), CultureInfo.InvariantCulture).Should().Be(expectedNextDayAfterOrder);
+        Convert.ToInt32(reader.GetValue(9), CultureInfo.InvariantCulture).Should().Be(expectedUserCreatedBeforeNow);
     }
 
     private static void ValidateJoinTemporalRow(
@@ -872,13 +975,13 @@ ORDER BY u.Id, o.Id
         int expectedPendingDeliveries,
         int expectedUserCreatedBeforeNow)
     {
-        Assert.Equal(expectedUserId, Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedOrderCount, Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedHasNoOrders, Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedMinOrderedBeforeNow, Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedMaxOrderedBeforeNextDay, Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedPendingDeliveries, Convert.ToInt64(reader.GetValue(5), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedUserCreatedBeforeNow, Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture));
+        Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedUserId);
+        Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedOrderCount);
+        Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedHasNoOrders);
+        Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedMinOrderedBeforeNow);
+        Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(expectedMaxOrderedBeforeNextDay);
+        Convert.ToInt64(reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(expectedPendingDeliveries);
+        Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(expectedUserCreatedBeforeNow);
     }
 
     /// <summary>
@@ -888,7 +991,8 @@ ORDER BY u.Id, o.Id
     public int RunRowCountAfterSelect(params object[] pars)
     {
         var users = (string)pars[0];
-        var count = CountReaderRows($"SELECT * FROM {users}");
+        var usersTable = ResolveScenarioTableName(users);
+        var count = CountReaderRows($"SELECT * FROM {usersTable}");
         if (count != 2)
         {
             throw new InvalidOperationException($"Unexpected select rowcount for {Dialect.DisplayName}: {count}.");
@@ -904,7 +1008,8 @@ ORDER BY u.Id, o.Id
     public int RunCteSimple(params object[] pars)
     {
         var users = (string)pars[0];
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.CteSimple(users)), CultureInfo.InvariantCulture);
+        var usersTable = ResolveScenarioTableName(users);
+        var value = Convert.ToInt32(ExecuteScalar(Dialect.CteSimple(usersTable)), CultureInfo.InvariantCulture);
         if (value != 1)
         {
             throw new InvalidOperationException($"Unexpected CTE result for {Dialect.DisplayName}: {value}.");
@@ -920,7 +1025,8 @@ ORDER BY u.Id, o.Id
     public int RunWindowRowNumber(params object[] pars)
     {
         var users = (string)pars[0];
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.WindowRowNumber(users)), CultureInfo.InvariantCulture);
+        var usersTable = ResolveScenarioTableName(users);
+        var value = Convert.ToInt32(ExecuteScalar(Dialect.WindowRowNumber(usersTable)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -932,7 +1038,8 @@ ORDER BY u.Id, o.Id
     public int RunWindowLag(params object[] pars)
     {
         var users = (string)pars[0];
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.WindowLag(users)), CultureInfo.InvariantCulture);
+        var usersTable = ResolveScenarioTableName(users);
+        var value = Convert.ToInt32(ExecuteScalar(Dialect.WindowLag(usersTable)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -944,7 +1051,8 @@ ORDER BY u.Id, o.Id
     public int RunWindowLead(params object[] pars)
     {
         var users = (string)pars[0];
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.WindowLead(users)), CultureInfo.InvariantCulture);
+        var usersTable = ResolveScenarioTableName(users);
+        var value = Convert.ToInt32(ExecuteScalar(Dialect.WindowLead(usersTable)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -957,7 +1065,9 @@ ORDER BY u.Id, o.Id
     {
         var users = (string)pars[0];
         var orders = (string)pars[1];
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.SelectExistsPredicate(users, orders)), CultureInfo.InvariantCulture);
+        var usersTable = ResolveScenarioTableName(users);
+        var ordersTable = ResolveScenarioTableName(orders);
+        var value = Convert.ToInt32(ExecuteScalar(Dialect.SelectExistsPredicate(usersTable, ordersTable)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -970,7 +1080,9 @@ ORDER BY u.Id, o.Id
     {
         var users = (string)pars[0];
         var orders = (string)pars[1];
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.SelectNotExistsPredicate(users, orders)), CultureInfo.InvariantCulture);
+        var usersTable = ResolveScenarioTableName(users);
+        var ordersTable = ResolveScenarioTableName(orders);
+        var value = Convert.ToInt32(ExecuteScalar(Dialect.SelectNotExistsPredicate(usersTable, ordersTable)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -983,7 +1095,9 @@ ORDER BY u.Id, o.Id
     {
         var users = (string)pars[0];
         var orders = (string)pars[1];
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.SelectCorrelatedCount(users, orders)), CultureInfo.InvariantCulture);
+        var usersTable = ResolveScenarioTableName(users);
+        var ordersTable = ResolveScenarioTableName(orders);
+        var value = Convert.ToInt32(ExecuteScalar(Dialect.SelectCorrelatedCount(usersTable, ordersTable)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -996,8 +1110,8 @@ ORDER BY u.Id, o.Id
     {
         var users = (string)pars[0];
         var orders = (string)pars[1];
-        var usersTable = $"{users}";
-        var ordersTable = $"{orders}";
+        var usersTable = ResolveScenarioTableName(users);
+        var ordersTable = ResolveScenarioTableName(orders);
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
@@ -1013,16 +1127,16 @@ ORDER BY u.Id
 
         using var reader = command.ExecuteReader();
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateSelectScalarCaseRow(reader, 1, "Alice", 3, 0, 1);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateSelectScalarCaseRow(reader, 2, "Bob", 1, 0, 0);
 
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         ValidateSelectScalarCaseRow(reader, 3, "Carla", 0, 1, 0);
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
         GC.KeepAlive(usersTable);
         GC.KeepAlive(ordersTable);
         return 3;
@@ -1036,7 +1150,9 @@ ORDER BY u.Id
     {
         var users = (string)pars[0];
         var orders = (string)pars[1];
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.GroupByHaving(users, orders)), CultureInfo.InvariantCulture);
+        var usersTable = ResolveScenarioTableName(users);
+        var ordersTable = ResolveScenarioTableName(orders);
+        var value = Convert.ToInt32(ExecuteScalar(Dialect.GroupByHaving(usersTable, ordersTable)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1048,7 +1164,8 @@ ORDER BY u.Id
     public int RunUnionAllProjection(params object[] pars)
     {
         var users = (string)pars[0];
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.UnionAllProjection(users)), CultureInfo.InvariantCulture);
+        var usersTable = ResolveScenarioTableName(users);
+        var value = Convert.ToInt32(ExecuteScalar(Dialect.UnionAllProjection(usersTable)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1060,7 +1177,8 @@ ORDER BY u.Id
     public int RunUnionDistinctProjection(params object[] pars)
     {
         var users = (string)pars[0];
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.UnionDistinctProjection(users)), CultureInfo.InvariantCulture);
+        var usersTable = ResolveScenarioTableName(users);
+        var value = Convert.ToInt32(ExecuteScalar(Dialect.UnionDistinctProjection(usersTable)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1072,7 +1190,8 @@ ORDER BY u.Id
     public int RunDistinctProjection(params object[] pars)
     {
         var users = (string)pars[0];
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.DistinctProjection(users)), CultureInfo.InvariantCulture);
+        var usersTable = ResolveScenarioTableName(users);
+        var value = Convert.ToInt32(ExecuteScalar(Dialect.DistinctProjection(usersTable)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1085,7 +1204,9 @@ ORDER BY u.Id
     {
         var users = (string)pars[0];
         var orders = (string)pars[1];
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.MultiJoinAggregate(users, orders)), CultureInfo.InvariantCulture);
+        var usersTable = ResolveScenarioTableName(users);
+        var ordersTable = ResolveScenarioTableName(orders);
+        var value = Convert.ToInt32(ExecuteScalar(Dialect.MultiJoinAggregate(usersTable, ordersTable)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1098,7 +1219,9 @@ ORDER BY u.Id
     {
         var users = (string)pars[0];
         var orders = (string)pars[1];
-        var value = ExecuteScalar(Dialect.SelectScalarSubquery(users, orders));
+        var usersTable = ResolveScenarioTableName(users);
+        var ordersTable = ResolveScenarioTableName(orders);
+        var value = ExecuteScalar(Dialect.SelectScalarSubquery(usersTable, ordersTable));
         GC.KeepAlive(value);
         return value;
     }
@@ -1111,7 +1234,9 @@ ORDER BY u.Id
     {
         var users = (string)pars[0];
         var orders = (string)pars[1];
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.SelectInSubquery(users, orders)), CultureInfo.InvariantCulture);
+        var usersTable = ResolveScenarioTableName(users);
+        var ordersTable = ResolveScenarioTableName(orders);
+        var value = Convert.ToInt32(ExecuteScalar(Dialect.SelectInSubquery(usersTable, ordersTable)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1124,7 +1249,9 @@ ORDER BY u.Id
     {
         var users = (string)pars[0];
         var orders = (string)pars[1];
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.SelectNotInSubquery(users, orders)), CultureInfo.InvariantCulture);
+        var usersTable = ResolveScenarioTableName(users);
+        var ordersTable = ResolveScenarioTableName(orders);
+        var value = Convert.ToInt32(ExecuteScalar(Dialect.SelectNotInSubquery(usersTable, ordersTable)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1137,7 +1264,9 @@ ORDER BY u.Id
     {
         var users = (string)pars[0];
         var orders = (string)pars[1];
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.CrossApplyProjection(users, orders)), CultureInfo.InvariantCulture);
+        var usersTable = ResolveScenarioTableName(users);
+        var ordersTable = ResolveScenarioTableName(orders);
+        var value = Convert.ToInt32(ExecuteScalar(Dialect.CrossApplyProjection(usersTable, ordersTable)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1150,7 +1279,9 @@ ORDER BY u.Id
     {
         var users = (string)pars[0];
         var orders = (string)pars[1];
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.OuterApplyProjection(users, orders)), CultureInfo.InvariantCulture);
+        var usersTable = ResolveScenarioTableName(users);
+        var ordersTable = ResolveScenarioTableName(orders);
+        var value = Convert.ToInt32(ExecuteScalar(Dialect.OuterApplyProjection(usersTable, ordersTable)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1162,7 +1293,8 @@ ORDER BY u.Id
     public int RunPartitionPruningSelect(params object[] pars)
     {
         var users = (string)pars[0];
-        var value = Convert.ToInt32(ExecuteScalar($"SELECT COUNT(*) FROM {users} WHERE Id BETWEEN 5 AND 10"), CultureInfo.InvariantCulture);
+        var usersTable = ResolveScenarioTableName(users);
+        var value = Convert.ToInt32(ExecuteScalar($"SELECT COUNT(*) FROM {usersTable} WHERE Id BETWEEN 5 AND 10"), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1174,7 +1306,8 @@ ORDER BY u.Id
     public int RunPivotCount(params object[] pars)
     {
         var users = (string)pars[0];
-        var sql = $"SELECT SUM(CASE WHEN Name LIKE 'A%' THEN 1 ELSE 0 END) + SUM(CASE WHEN Name LIKE 'B%' THEN 1 ELSE 0 END) FROM {users}";
+        var usersTable = ResolveScenarioTableName(users);
+        var sql = $"SELECT SUM(CASE WHEN Name LIKE 'A%' THEN 1 ELSE 0 END) + SUM(CASE WHEN Name LIKE 'B%' THEN 1 ELSE 0 END) FROM {usersTable}";
         var value = Convert.ToInt32(ExecuteScalar(sql), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;

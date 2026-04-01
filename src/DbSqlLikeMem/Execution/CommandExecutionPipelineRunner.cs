@@ -15,6 +15,7 @@ internal static class CommandExecutionPipelineRunner
         Action<string>? validateBeforeParse = null,
         IReadOnlyList<INonQueryCommandHandler>? handlers = null)
     {
+        using var currentQueryScope = connection.BeginCurrentQueryScope(sql);
         return NonQueryPipeline.ExecuteNonQuery(
             connection,
             sql,
@@ -30,4 +31,3 @@ internal static class CommandExecutionPipelineRunner
             });
     }
 }
-

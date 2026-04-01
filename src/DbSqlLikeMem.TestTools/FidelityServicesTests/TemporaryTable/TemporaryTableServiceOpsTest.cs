@@ -122,9 +122,12 @@ SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10";
     /// </summary>
     public int RunTempTableCreateAndUse(params object[] pars)
     {
-        var users = (string)pars[0];
-        ExecuteNonQuery(InsertTemporaryRowSql(users, 1, "Alice"));
-        var count = Convert.ToInt32(ExecuteScalar(Dialect.CountRows(users)), CultureInfo.InvariantCulture);
+        var users = ResolveTemporaryUsersTableName((string)pars[0]);
+        var sessionUsers = Dialect.Provider == ProviderId.Db2 && Connection is not DbSqlLikeMem.DbConnectionMockBase
+            ? $"SESSION.{users}"
+            : users;
+        ExecuteNonQuery(InsertTemporaryRowSql(sessionUsers, 1, "Alice"));
+        var count = Convert.ToInt32(ExecuteScalar(Dialect.CountRows(sessionUsers)), CultureInfo.InvariantCulture);
         if (count != 1)
         {
             throw new InvalidOperationException($"Unexpected temporary-table rowcount for {Dialect.DisplayName}: {count}.");
@@ -140,7 +143,7 @@ SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10";
     /// </summary>
     public void RunTempTableRollback(params object[] pars)
     {
-        var users = Dialect.TemporaryUsersTableName((string)pars[0]);
+        var users = ResolveTemporaryUsersTableName((string)pars[0]);
         var sessionUsers = Dialect.Provider == ProviderId.Db2 && Connection is not DbSqlLikeMem.DbConnectionMockBase
             ? $"SESSION.{users}"
             : users;
@@ -169,7 +172,7 @@ SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10";
             throw new InvalidOperationException($"Cross-connection temporary-table workflows require a connection factory for {Dialect.DisplayName}.");
         }
 
-        var users = Dialect.TemporaryUsersTableName((string)pars[0]);
+        var users = ResolveTemporaryUsersTableName((string)pars[0]);
         var sessionUsers = Dialect.Provider == ProviderId.Db2 && Connection is not DbSqlLikeMem.DbConnectionMockBase
             ? $"SESSION.{users}"
             : users;
@@ -229,4 +232,10 @@ SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10";
 
     private static string InsertTemporaryRowSql(string tableName, int id, string name)
         => $"INSERT INTO {tableName} (Id, Name) VALUES ({id}, '{name}')";
+
+    private string ResolveTemporaryUsersTableName(string rawTableName)
+        => (Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure)
+            && Connection is DbConnectionMockBase
+            ? rawTableName
+            : Dialect.TemporaryUsersTableName(rawTableName);
 }

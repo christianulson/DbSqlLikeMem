@@ -60,6 +60,8 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
         Register(handlers, TryEvalLowerFunction, "LOWER");
         Register(handlers, TryEvalLtrimFunction, "LTRIM");
         Register(handlers, TryEvalDivFunction, "DIV");
+        Register(handlers, TryEvalTimestampAddFunction, "TIMESTAMPADD");
+        Register(handlers, TryEvalTimestampDiffFunction, "TIMESTAMPDIFF");
         Register(handlers, TryEvalMonthsBetweenFunction, "MONTHS_BETWEEN");
         Register(handlers, TryEvalMidnightSecondsFunction, "MIDNIGHT_SECONDS");
         Register(handlers, TryEvalNanvlFunction, "NANVL");
@@ -647,6 +649,161 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
             return true;
         }
     }
+
+    private static bool TryEvalTimestampAddFunction(
+        this QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+
+        if (!string.Equals(fn.Name, "TIMESTAMPADD", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 3)
+            throw new InvalidOperationException("TIMESTAMPADD() espera 3 argumentos.");
+
+        var intervalValue = evalArg(0);
+        var amountValue = evalArg(1);
+        var timestampValue = evalArg(2);
+        if (!TryResolveDb2IntervalCode(intervalValue, out var intervalCode)
+            || AstQueryExecutorBase.IsNullish(amountValue)
+            || AstQueryExecutorBase.IsNullish(timestampValue)
+            || !AstQueryExecutorBase.TryCoerceDateTime(timestampValue, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!TryApplyDb2TimestampDelta(dateTime, intervalCode, Convert.ToInt32((amountValue ?? 0m).ToDec()), out var added))
+        {
+            result = null;
+            return true;
+        }
+
+        result = added;
+        return true;
+    }
+
+    private static bool TryEvalTimestampDiffFunction(
+        this QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+
+        if (!string.Equals(fn.Name, "TIMESTAMPDIFF", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 3)
+            throw new InvalidOperationException("TIMESTAMPDIFF() espera 3 argumentos.");
+
+        var intervalValue = evalArg(0);
+        var startValue = evalArg(1);
+        var endValue = evalArg(2);
+        if (!TryResolveDb2IntervalCode(intervalValue, out var intervalCode)
+            || AstQueryExecutorBase.IsNullish(startValue)
+            || AstQueryExecutorBase.IsNullish(endValue)
+            || !AstQueryExecutorBase.TryCoerceDateTime(startValue, out var startDate)
+            || !AstQueryExecutorBase.TryCoerceDateTime(endValue, out var endDate))
+        {
+            result = null;
+            return true;
+        }
+
+        result = TryGetDb2TimestampDifference(startDate, endDate, intervalCode);
+        return true;
+    }
+
+    private static bool TryResolveDb2IntervalCode(object? value, out int intervalCode)
+    {
+        intervalCode = 0;
+
+        if (AstQueryExecutorBase.IsNullish(value))
+            return false;
+
+        if (value is string text)
+            return TryResolveDb2IntervalCode(text, out intervalCode);
+
+        try
+        {
+            intervalCode = Convert.ToInt32(value, CultureInfo.InvariantCulture);
+            return intervalCode > 0;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool TryResolveDb2IntervalCode(string text, out int intervalCode)
+    {
+        intervalCode = text.Trim().ToUpperInvariant() switch
+        {
+            "MICROSECOND" or "MICROSECONDS" => 1,
+            "SECOND" or "SECONDS" => 2,
+            "MINUTE" or "MINUTES" => 4,
+            "HOUR" or "HOURS" => 8,
+            "DAY" or "DAYS" => 16,
+            "WEEK" or "WEEKS" => 32,
+            "MONTH" or "MONTHS" => 64,
+            "QUARTER" or "QUARTERS" => 128,
+            "YEAR" or "YEARS" => 256,
+            _ => 0
+        };
+
+        return intervalCode > 0;
+    }
+
+    private static bool TryApplyDb2TimestampDelta(DateTime dateTime, int intervalCode, int amount, out DateTime result)
+    {
+        try
+        {
+            result = intervalCode switch
+            {
+                1 => dateTime.AddTicks(checked(amount * 10L)),
+                2 => dateTime.AddSeconds(amount),
+                4 => dateTime.AddMinutes(amount),
+                8 => dateTime.AddHours(amount),
+                16 => dateTime.AddDays(amount),
+                32 => dateTime.AddDays(amount * 7d),
+                64 => dateTime.AddMonths(amount),
+                128 => dateTime.AddMonths(amount * 3),
+                256 => dateTime.AddYears(amount),
+                _ => dateTime
+            };
+
+            return intervalCode is 1 or 2 or 4 or 8 or 16 or 32 or 64 or 128 or 256;
+        }
+        catch
+        {
+            result = default;
+            return false;
+        }
+    }
+
+    private static object? TryGetDb2TimestampDifference(DateTime start, DateTime end, int intervalCode)
+        => intervalCode switch
+        {
+            1 => (end - start).Ticks / 10L,
+            2 => (int)(end - start).TotalSeconds,
+            4 => (int)(end - start).TotalMinutes,
+            8 => (int)(end - start).TotalHours,
+            16 => (int)(end.Date - start.Date).TotalDays,
+            32 => (int)Math.Truncate((end.Date - start.Date).TotalDays / 7d),
+            64 => (end.Year - start.Year) * 12 + end.Month - start.Month,
+            128 => ((end.Year - start.Year) * 12 + end.Month - start.Month) / 3,
+            256 => end.Year - start.Year,
+            _ => null
+        };
 
     private static bool TryEvalMonthsBetweenFunction(
         this QueryExecutionContext context,

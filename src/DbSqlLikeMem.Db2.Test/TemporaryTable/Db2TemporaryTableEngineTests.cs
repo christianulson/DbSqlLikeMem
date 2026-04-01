@@ -1,4 +1,6 @@
-﻿namespace DbSqlLikeMem.Db2.Test.TemporaryTable;
+using FluentAssertions;
+
+namespace DbSqlLikeMem.Db2.Test.TemporaryTable;
 
 /// <summary>
 /// EN: Covers CREATE TEMPORARY TABLE execution scenarios in the Db2 mock.
@@ -43,6 +45,6 @@ SELECT id FROM tmp_users ORDER BY id;";
         var ids = new List<int>();
         while (r.Read()) ids.Add(r.GetInt32(0));
 
-        Assert.Equal(expected, ids);
+        ids.Should().Equal(expected);
     }
 }

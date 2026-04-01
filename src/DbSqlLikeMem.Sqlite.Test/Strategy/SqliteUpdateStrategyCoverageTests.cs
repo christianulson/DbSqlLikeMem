@@ -1,4 +1,6 @@
-﻿namespace DbSqlLikeMem.Sqlite.Test.Strategy;
+using FluentAssertions;
+
+namespace DbSqlLikeMem.Sqlite.Test.Strategy;
 
 /// <summary>
 /// EN: Covers update edge cases in the Sqlite mock.
@@ -30,8 +32,8 @@ public sealed class SqliteUpdateStrategyCoverageTests(
 
         var updated = cmd.ExecuteNonQuery();
 
-        Assert.Equal(1, updated);
-        Assert.Null(users[0][1]);
+        updated.Should().Be(1);
+        users[0][1].Should().BeNull();
     }
 
     /// <summary>
@@ -54,7 +56,8 @@ public sealed class SqliteUpdateStrategyCoverageTests(
             CommandText = "UPDATE users SET total = NULL WHERE id = 1"
         };
 
-        var ex = Assert.Throws<SqliteMockException>(() => cmd.ExecuteNonQuery());
-        Assert.Contains(SqlExceptionMessages.ColumnDoesNotAcceptNull(), ex.Message, StringComparison.OrdinalIgnoreCase);
+        Action act = () => cmd.ExecuteNonQuery();
+        act.Should().Throw<SqliteMockException>()
+            .Which.Message.Should().Contain(SqlExceptionMessages.ColumnDoesNotAcceptNull());
     }
 }

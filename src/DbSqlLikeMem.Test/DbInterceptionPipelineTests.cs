@@ -32,19 +32,15 @@ public sealed class DbInterceptionPipelineTests(
         using var command = connection.CreateCommand();
         var affected = command.ExecuteNonQuery();
 
-        Assert.Equal(7, affected);
-        Assert.Equal("rewritten sql", innerConnection.LastExecutedCommandText);
-        Assert.Equal(
-            new[]
-            {
-                "first:created",
-                "second:created",
-                "first:executing:NonQuery",
-                "second:executing:NonQuery",
-                "second:executed:NonQuery:7",
-                "first:executed:NonQuery:7"
-            },
-            events);
+        affected.Should().Be(7);
+        innerConnection.LastExecutedCommandText.Should().Be("rewritten sql");
+        events.Should().Equal(
+            "first:created",
+            "second:created",
+            "first:executing:NonQuery",
+            "second:executing:NonQuery",
+            "second:executed:NonQuery:7",
+            "first:executed:NonQuery:7");
     }
 
     /// <summary>
@@ -64,19 +60,15 @@ public sealed class DbInterceptionPipelineTests(
         connection.Open();
         connection.Close();
 
-        Assert.Equal(
-            new[]
-            {
-                "first:opening",
-                "second:opening",
-                "second:opened",
-                "first:opened",
-                "first:closing",
-                "second:closing",
-                "second:closed",
-                "first:closed"
-            },
-            events);
+        events.Should().Equal(
+            "first:opening",
+            "second:opening",
+            "second:opened",
+            "first:opened",
+            "first:closing",
+            "second:closing",
+            "second:closed",
+            "first:closed");
     }
 
     /// <summary>
@@ -95,20 +87,16 @@ public sealed class DbInterceptionPipelineTests(
             new RecordingInterceptor("second", events));
         using var command = connection.CreateCommand();
 
-        var ex = Assert.Throws<InvalidOperationException>(command.ExecuteScalar);
+        var ex = FluentActions.Invoking(() => command.ExecuteScalar()).Should().Throw<InvalidOperationException>().Which;
 
-        Assert.Equal("boom", ex.Message);
-        Assert.Equal(
-            new[]
-            {
-                "first:created",
-                "second:created",
-                "first:executing:Scalar",
-                "second:executing:Scalar",
-                "second:failed:Scalar:boom",
-                "first:failed:Scalar:boom"
-            },
-            events);
+        ex.Message.Should().Be("boom");
+        events.Should().Equal(
+            "first:created",
+            "second:created",
+            "first:executing:Scalar",
+            "second:executing:Scalar",
+            "second:failed:Scalar:boom",
+            "first:failed:Scalar:boom");
     }
 
     /// <summary>
@@ -123,7 +111,7 @@ public sealed class DbInterceptionPipelineTests(
 
         using var transaction = connection.BeginTransaction();
 
-        Assert.Same(connection, transaction.Connection);
+        transaction.Connection.Should().Be(connection);
     }
 
     /// <summary>
@@ -146,27 +134,23 @@ public sealed class DbInterceptionPipelineTests(
         using var rolledBack = connection.BeginTransaction(IsolationLevel.ReadCommitted);
         rolledBack.Rollback();
 
-        Assert.Equal(
-            new[]
-            {
-                "first:tx-starting:Serializable",
-                "second:tx-starting:Serializable",
-                "second:tx-started:Begin",
-                "first:tx-started:Begin",
-                "first:tx-executing:Commit",
-                "second:tx-executing:Commit",
-                "second:tx-executed:Commit",
-                "first:tx-executed:Commit",
-                "first:tx-starting:ReadCommitted",
-                "second:tx-starting:ReadCommitted",
-                "second:tx-started:Begin",
-                "first:tx-started:Begin",
-                "first:tx-executing:Rollback",
-                "second:tx-executing:Rollback",
-                "second:tx-executed:Rollback",
-                "first:tx-executed:Rollback"
-            },
-            events);
+        events.Should().Equal(
+            "first:tx-starting:Serializable",
+            "second:tx-starting:Serializable",
+            "second:tx-started:Begin",
+            "first:tx-started:Begin",
+            "first:tx-executing:Commit",
+            "second:tx-executing:Commit",
+            "second:tx-executed:Commit",
+            "first:tx-executed:Commit",
+            "first:tx-starting:ReadCommitted",
+            "second:tx-starting:ReadCommitted",
+            "second:tx-started:Begin",
+            "first:tx-started:Begin",
+            "first:tx-executing:Rollback",
+            "second:tx-executing:Rollback",
+            "second:tx-executed:Rollback",
+            "first:tx-executed:Rollback");
     }
 
     /// <summary>
@@ -196,15 +180,11 @@ public sealed class DbInterceptionPipelineTests(
         using var command = connection.CreateCommand();
         _ = command.ExecuteNonQuery();
 
-        Assert.Equal("delegated sql", innerConnection.LastExecutedCommandText);
-        Assert.Equal(
-            new[]
-            {
-                "created",
-                "executing:NonQuery",
-                "executed:7"
-            },
-            events);
+        innerConnection.LastExecutedCommandText.Should().Be("delegated sql");
+        events.Should().Equal(
+            "created",
+            "executing:NonQuery",
+            "executed:7");
     }
 
     /// <summary>
@@ -224,9 +204,9 @@ public sealed class DbInterceptionPipelineTests(
         command.Dispose();
         connection.Dispose();
 
-        Assert.True(innerConnection.TransactionDisposed);
-        Assert.True(innerConnection.CommandDisposed);
-        Assert.True(innerConnection.ConnectionDisposed);
+        innerConnection.TransactionDisposed.Should().BeTrue();
+        innerConnection.CommandDisposed.Should().BeTrue();
+        innerConnection.ConnectionDisposed.Should().BeTrue();
     }
 
     /// <summary>
@@ -252,27 +232,27 @@ public sealed class DbInterceptionPipelineTests(
 
         var events = recorder.Events;
 
-        Assert.Contains(events, x => x.EventKind == DbInterceptionEventKind.ConnectionOpening);
-        Assert.Contains(events, x => x.EventKind == DbInterceptionEventKind.ConnectionOpened);
-        Assert.Contains(events, x => x.EventKind == DbInterceptionEventKind.TransactionStarting
+        events.Should().Contain(x => x.EventKind == DbInterceptionEventKind.ConnectionOpening);
+        events.Should().Contain(x => x.EventKind == DbInterceptionEventKind.ConnectionOpened);
+        events.Should().Contain(x => x.EventKind == DbInterceptionEventKind.TransactionStarting
             && x.TransactionOperationKind == DbTransactionOperationKind.Begin
             && x.IsolationLevel == IsolationLevel.Serializable);
-        Assert.Contains(events, x => x.EventKind == DbInterceptionEventKind.CommandExecuting
+        events.Should().Contain(x => x.EventKind == DbInterceptionEventKind.CommandExecuting
             && x.CommandExecutionKind == DbCommandExecutionKind.Scalar
             && x.CommandText == "select 42");
-        Assert.Contains(events, x => x.EventKind == DbInterceptionEventKind.CommandExecuted
+        events.Should().Contain(x => x.EventKind == DbInterceptionEventKind.CommandExecuted
             && Equals(x.Result, 42));
-        Assert.Contains(events, x => x.EventKind == DbInterceptionEventKind.TransactionExecuted
+        events.Should().Contain(x => x.EventKind == DbInterceptionEventKind.TransactionExecuted
             && x.TransactionOperationKind == DbTransactionOperationKind.Commit);
-        Assert.Contains(events, x => x.EventKind == DbInterceptionEventKind.ConnectionClosed);
+        events.Should().Contain(x => x.EventKind == DbInterceptionEventKind.ConnectionClosed);
 
         var formatted = recorder.GetFormattedEvents();
-        Assert.Contains(formatted, x => x.Contains("event=ConnectionOpening", StringComparison.Ordinal));
-        Assert.Contains(formatted, x => x.Contains("commandKind=Scalar", StringComparison.Ordinal));
-        Assert.Contains(formatted, x => x.Contains("transactionKind=Commit", StringComparison.Ordinal));
+        formatted.Should().Contain(x => x.Contains("event=ConnectionOpening", StringComparison.Ordinal));
+        formatted.Should().Contain(x => x.Contains("commandKind=Scalar", StringComparison.Ordinal));
+        formatted.Should().Contain(x => x.Contains("transactionKind=Commit", StringComparison.Ordinal));
 
         recorder.Clear();
-        Assert.Empty(recorder.Events);
+        recorder.Events.Should().BeEmpty();
     }
 
     /// <summary>
@@ -293,10 +273,10 @@ public sealed class DbInterceptionPipelineTests(
         using var command = connection.CreateCommand();
         command.CommandText = "delete from users";
 
-        var ex = Assert.Throws<IOException>(() => command.ExecuteNonQuery());
+        var ex = FluentActions.Invoking(() => command.ExecuteNonQuery()).Should().Throw<IOException>().Which;
 
-        Assert.Equal("blocked:delete from users", ex.Message);
-        Assert.Null(innerConnection.LastExecutedCommandText);
+        ex.Message.Should().Be("blocked:delete from users");
+        innerConnection.LastExecutedCommandText.Should().BeNull();
     }
 
     /// <summary>
@@ -314,8 +294,8 @@ public sealed class DbInterceptionPipelineTests(
                 ConnectionOpenExceptionFactory = static _ => new IOException("open-blocked")
             });
 
-        var openEx = Assert.Throws<IOException>(blockedOpen.Open);
-        Assert.Equal("open-blocked", openEx.Message);
+        var openEx = FluentActions.Invoking(() => blockedOpen.Open()).Should().Throw<IOException>().Which;
+        openEx.Message.Should().Be("open-blocked");
 
         using var blockedTransaction = new FakeDbConnection().WithInterceptors(
             new FaultInjectionDbConnectionInterceptor
@@ -325,8 +305,8 @@ public sealed class DbInterceptionPipelineTests(
             });
         blockedTransaction.Open();
 
-        var txEx = Assert.Throws<IOException>(() => blockedTransaction.BeginTransaction(IsolationLevel.Serializable));
-        Assert.Equal("tx-start-blocked", txEx.Message);
+        var txEx = FluentActions.Invoking(() => blockedTransaction.BeginTransaction(IsolationLevel.Serializable)).Should().Throw<IOException>().Which;
+        txEx.Message.Should().Be("tx-start-blocked");
     }
 
     /// <summary>
@@ -351,19 +331,19 @@ public sealed class DbInterceptionPipelineTests(
         }
         connection.Close();
 
-        Assert.Contains(messages, x => x.Contains("event=ConnectionOpening", StringComparison.Ordinal));
-        Assert.Contains(messages, x => x.Contains("event=CommandCreated", StringComparison.Ordinal)
+        messages.Should().Contain(x => x.Contains("event=ConnectionOpening", StringComparison.Ordinal));
+        messages.Should().Contain(x => x.Contains("event=CommandCreated", StringComparison.Ordinal)
             && x.Contains("sql=select 1", StringComparison.Ordinal));
-        Assert.Contains(messages, x => x.Contains("event=CommandExecuted", StringComparison.Ordinal)
+        messages.Should().Contain(x => x.Contains("event=CommandExecuted", StringComparison.Ordinal)
             && x.Contains("sql=select 42", StringComparison.Ordinal)
             && x.Contains("commandKind=Scalar", StringComparison.Ordinal)
             && x.Contains("result=42", StringComparison.Ordinal));
-        Assert.Contains(messages, x => x.Contains("event=TransactionStarting", StringComparison.Ordinal)
+        messages.Should().Contain(x => x.Contains("event=TransactionStarting", StringComparison.Ordinal)
             && x.Contains("transactionKind=Begin", StringComparison.Ordinal)
             && x.Contains("isolation=ReadCommitted", StringComparison.Ordinal));
-        Assert.Contains(messages, x => x.Contains("event=TransactionExecuted", StringComparison.Ordinal)
+        messages.Should().Contain(x => x.Contains("event=TransactionExecuted", StringComparison.Ordinal)
             && x.Contains("transactionKind=Commit", StringComparison.Ordinal));
-        Assert.Contains(messages, x => x.Contains("event=ConnectionClosed", StringComparison.Ordinal));
+        messages.Should().Contain(x => x.Contains("event=ConnectionClosed", StringComparison.Ordinal));
     }
 
     /// <summary>
@@ -385,11 +365,11 @@ public sealed class DbInterceptionPipelineTests(
         connection.Close();
 
         var text = writer.ToString();
-        Assert.Contains("event=ConnectionOpening", text, StringComparison.Ordinal);
-        Assert.Contains("event=CommandCreated", text, StringComparison.Ordinal);
-        Assert.Contains("sql=select 42", text, StringComparison.Ordinal);
-        Assert.Contains("commandKind=Scalar", text, StringComparison.Ordinal);
-        Assert.Contains("event=ConnectionClosed", text, StringComparison.Ordinal);
+        text.Should().Contain("event=ConnectionOpening");
+        text.Should().Contain("event=CommandCreated");
+        text.Should().Contain("sql=select 42");
+        text.Should().Contain("commandKind=Scalar");
+        text.Should().Contain("event=ConnectionClosed");
     }
 
     /// <summary>
@@ -422,10 +402,10 @@ public sealed class DbInterceptionPipelineTests(
         _ = command.ExecuteScalar();
         connection.Close();
 
-        Assert.Contains(logLines, x => x.Contains("event=CommandExecuted", StringComparison.Ordinal));
-        Assert.Contains("event=CommandExecuted", writer.ToString(), StringComparison.Ordinal);
-        Assert.Equal(new[] { "select 42" }, customEvents);
-        Assert.Contains(recorder.Events, x => x.EventKind == DbInterceptionEventKind.CommandExecuted);
+        logLines.Should().Contain(x => x.Contains("event=CommandExecuted", StringComparison.Ordinal));
+        writer.ToString().Should().Contain("event=CommandExecuted");
+        customEvents.Should().Equal("select 42");
+        recorder.Events.Should().Contain(x => x.EventKind == DbInterceptionEventKind.CommandExecuted);
     }
 
     /// <summary>
@@ -445,9 +425,9 @@ public sealed class DbInterceptionPipelineTests(
         command.CommandText = "select 123";
         _ = command.ExecuteScalar();
 
-        Assert.Equal(ConnectionState.Open, connection.State);
-        Assert.Contains(recorder.Events, x => x.EventKind == DbInterceptionEventKind.ConnectionOpened);
-        Assert.Contains(recorder.Events, x => x.EventKind == DbInterceptionEventKind.CommandExecuted);
+        connection.State.Should().Be(ConnectionState.Open);
+        recorder.Events.Should().Contain(x => x.EventKind == DbInterceptionEventKind.ConnectionOpened);
+        recorder.Events.Should().Contain(x => x.EventKind == DbInterceptionEventKind.CommandExecuted);
     }
 
     /// <summary>
@@ -472,7 +452,7 @@ public sealed class DbInterceptionPipelineTests(
         command.CommandText = "select 456";
         _ = command.ExecuteScalar();
 
-        Assert.Contains(lines, x => x.Contains("event=CommandExecuted", StringComparison.Ordinal));
+        lines.Should().Contain(x => x.Contains("event=CommandExecuted", StringComparison.Ordinal));
     }
 
     /// <summary>
@@ -498,7 +478,7 @@ public sealed class DbInterceptionPipelineTests(
         command.CommandText = "select 654";
         _ = command.ExecuteScalar();
 
-        Assert.Contains(recorder.Events, x => x.EventKind == DbInterceptionEventKind.CommandExecuted);
+        recorder.Events.Should().Contain(x => x.EventKind == DbInterceptionEventKind.CommandExecuted);
     }
 
     /// <summary>
@@ -528,10 +508,10 @@ public sealed class DbInterceptionPipelineTests(
         command.CommandText = "select 789";
         _ = command.ExecuteScalar();
 
-        Assert.Contains(recorder.Events, x => x.EventKind == DbInterceptionEventKind.CommandExecuted);
-        Assert.Contains(lines, x => x.Contains("event=CommandExecuted", StringComparison.Ordinal));
-        Assert.Contains("event=CommandExecuted", writer.ToString(), StringComparison.Ordinal);
-        Assert.Equal(new[] { "select 789" }, customCommands);
+        recorder.Events.Should().Contain(x => x.EventKind == DbInterceptionEventKind.CommandExecuted);
+        lines.Should().Contain(x => x.Contains("event=CommandExecuted", StringComparison.Ordinal));
+        writer.ToString().Should().Contain("event=CommandExecuted");
+        customCommands.Should().Equal("select 789");
     }
 
     /// <summary>
@@ -552,8 +532,8 @@ public sealed class DbInterceptionPipelineTests(
         command.CommandText = "select 999";
         _ = command.ExecuteScalar();
 
-        Assert.Contains(lines, x => x.Contains("event=CommandExecuted", StringComparison.Ordinal));
-        Assert.Contains(lines, x => x.Contains("sql=select 999", StringComparison.Ordinal));
+        lines.Should().Contain(x => x.Contains("event=CommandExecuted", StringComparison.Ordinal));
+        lines.Should().Contain(x => x.Contains("sql=select 999", StringComparison.Ordinal));
     }
 
     /// <summary>
@@ -574,12 +554,12 @@ public sealed class DbInterceptionPipelineTests(
             Exception = new InvalidOperationException("broken")
         });
 
-        Assert.Contains("event=CommandFailed", text, StringComparison.Ordinal);
-        Assert.Contains("state=Open", text, StringComparison.Ordinal);
-        Assert.Contains("sql=select 1", text, StringComparison.Ordinal);
-        Assert.Contains("commandKind=Reader", text, StringComparison.Ordinal);
-        Assert.Contains("performanceDelta=sql.parse[hits=1,ms=0.123]", text, StringComparison.Ordinal);
-        Assert.Contains("exception=broken", text, StringComparison.Ordinal);
+        text.Should().Contain("event=CommandFailed");
+        text.Should().Contain("state=Open");
+        text.Should().Contain("sql=select 1");
+        text.Should().Contain("commandKind=Reader");
+        text.Should().Contain("performanceDelta=sql.parse[hits=1,ms=0.123]");
+        text.Should().Contain("exception=broken");
     }
 
     /// <summary>
@@ -606,15 +586,15 @@ public sealed class DbInterceptionPipelineTests(
         }
         connection.Close();
 
-        Assert.Contains(observer.Events, x => x.Key == DbInterceptionDiagnosticNames.ConnectionOpening);
-        Assert.Contains(observer.Events, x => x.Key == DbInterceptionDiagnosticNames.CommandExecuting);
-        Assert.Contains(observer.Events, x => x.Key == DbInterceptionDiagnosticNames.TransactionExecuted);
-        Assert.All(observer.Events, x => Assert.IsType<DbInterceptionEvent>(x.Value));
+        observer.Events.Should().Contain(x => x.Key == DbInterceptionDiagnosticNames.ConnectionOpening);
+        observer.Events.Should().Contain(x => x.Key == DbInterceptionDiagnosticNames.CommandExecuting);
+        observer.Events.Should().Contain(x => x.Key == DbInterceptionDiagnosticNames.TransactionExecuted);
+        observer.Events.Should().AllSatisfy(x => x.Value.Should().BeOfType<DbInterceptionEvent>());
 
-        var commandEvent = Assert.Single(observer.Events, x => x.Key == DbInterceptionDiagnosticNames.CommandExecuting);
-        var payload = Assert.IsType<DbInterceptionEvent>(commandEvent.Value);
-        Assert.Equal(DbCommandExecutionKind.Scalar, payload.CommandExecutionKind);
-        Assert.Equal("select 42", payload.CommandText);
+        var commandEvent = observer.Events.Single(x => x.Key == DbInterceptionDiagnosticNames.CommandExecuting);
+        var payload = commandEvent.Value.Should().BeOfType<DbInterceptionEvent>().Which;
+        payload.CommandExecutionKind.Should().Be(DbCommandExecutionKind.Scalar);
+        payload.CommandText.Should().Be("select 42");
     }
 
 #if NET8_0_OR_GREATER
@@ -649,13 +629,13 @@ public sealed class DbInterceptionPipelineTests(
         }
         connection.Close();
 
-        Assert.Contains(activities, x => x.OperationName == DbInterceptionActivityNames.ConnectionOpen);
-        Assert.Contains(activities, x => x.OperationName == DbInterceptionActivityNames.Command);
-        Assert.Contains(activities, x => x.OperationName == DbInterceptionActivityNames.TransactionOperation);
+        activities.Should().Contain(x => x.OperationName == DbInterceptionActivityNames.ConnectionOpen);
+        activities.Should().Contain(x => x.OperationName == DbInterceptionActivityNames.Command);
+        activities.Should().Contain(x => x.OperationName == DbInterceptionActivityNames.TransactionOperation);
 
-        var commandActivity = Assert.Single(activities, x => x.OperationName == DbInterceptionActivityNames.Command);
-        Assert.Equal("Scalar", commandActivity.Tags.FirstOrDefault(x => x.Key == "db.operation").Value);
-        Assert.Equal("select 42", commandActivity.Tags.FirstOrDefault(x => x.Key == "db.statement").Value);
+        var commandActivity = activities.Single(x => x.OperationName == DbInterceptionActivityNames.Command);
+        commandActivity.Tags.FirstOrDefault(x => x.Key == "db.operation").Value.Should().Be("Scalar");
+        commandActivity.Tags.FirstOrDefault(x => x.Key == "db.statement").Value.Should().Be("select 42");
     }
 #endif
 

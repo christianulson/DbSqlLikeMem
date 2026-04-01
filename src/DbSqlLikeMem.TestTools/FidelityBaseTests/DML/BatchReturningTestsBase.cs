@@ -21,11 +21,9 @@ public abstract class BatchReturningTestsBase<T, T2>(
     /// </summary>
     [Fact]
     public void BatchReturningInsertTest()
-        => Assert.Equal(
-            1,
-            RunReturningComparison(
-                (service, tableName) => service.RunReturningInsert(tableName),
-                (service, tableName) => service.RunReturningInsert(tableName)));
+        => RunReturningComparison(
+            (service, tableName) => service.RunReturningInsert(tableName),
+            (service, tableName) => service.RunReturningInsert(tableName)).Should().Be(1);
 
     private TResult RunReturningComparison<TResult>(
         Func<BatchServiceTest<T>, string, TResult> runMock,
@@ -44,7 +42,7 @@ public abstract class BatchReturningTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunReturningScenario(connContainer, users, uId, runContainer);
-            Assert.Equal(resultMock, resultContainer);
+            resultMock.Should().Be(resultContainer);
         }
 
         return resultMock;
@@ -73,9 +71,7 @@ public abstract class BatchReturningTestsBase<T, T2>(
     }
 
     private string BuildTableName(string users, string uId)
-        => dialect.Provider == ProviderId.Oracle
-            ? users.ToLowerInvariant()
-            : $"{users}_{uId}";
+        => $"{users}_{uId}";
 
     private static string NewToken()
         => Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();

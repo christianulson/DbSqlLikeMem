@@ -19,6 +19,7 @@ internal static class SqlSharedScalarFunctionRegistry
         dialect.Functions.Add(DbFunctionDef.CreateScalar("CEIL", "DOUBLE", AstQuerySharedNumericFunctionEvaluator.TryEvaluate));
         dialect.Functions.Add(DbFunctionDef.CreateScalar("CEILING", "DOUBLE", AstQuerySharedNumericFunctionEvaluator.TryEvaluate));
         dialect.Functions.Add(DbFunctionDef.CreateScalar("COS", "DOUBLE", AstQuerySharedNumericFunctionEvaluator.TryEvaluate));
+        dialect.Functions.Add(DbFunctionDef.CreateScalar("COSH", "DOUBLE", AstQuerySharedNumericFunctionEvaluator.TryEvaluate));
         dialect.Functions.Add(DbFunctionDef.CreateScalar("COT", "DOUBLE", AstQuerySharedNumericFunctionEvaluator.TryEvaluate));
         dialect.Functions.Add(DbFunctionDef.CreateScalar("EXP", "DOUBLE", AstQuerySharedNumericFunctionEvaluator.TryEvaluate));
         dialect.Functions.Add(DbFunctionDef.CreateScalar("FLOOR", "DOUBLE", AstQuerySharedNumericFunctionEvaluator.TryEvaluate));
@@ -34,8 +35,13 @@ internal static class SqlSharedScalarFunctionRegistry
         dialect.Functions.Add(DbFunctionDef.CreateScalar("ROUND", "DOUBLE", AstQuerySharedNumericFunctionEvaluator.TryEvaluate));
         dialect.Functions.Add(DbFunctionDef.CreateScalar("SIGN", "DOUBLE", AstQuerySharedNumericFunctionEvaluator.TryEvaluate));
         dialect.Functions.Add(DbFunctionDef.CreateScalar("SIN", "DOUBLE", AstQuerySharedNumericFunctionEvaluator.TryEvaluate));
+        dialect.Functions.Add(DbFunctionDef.CreateScalar("SINH", "DOUBLE", AstQuerySharedNumericFunctionEvaluator.TryEvaluate));
         dialect.Functions.Add(DbFunctionDef.CreateScalar("SQRT", "DOUBLE", AstQuerySharedNumericFunctionEvaluator.TryEvaluate));
         dialect.Functions.Add(DbFunctionDef.CreateScalar("TAN", "DOUBLE", AstQuerySharedNumericFunctionEvaluator.TryEvaluate));
+        dialect.Functions.Add(DbFunctionDef.CreateScalar("TANH", "DOUBLE", AstQuerySharedNumericFunctionEvaluator.TryEvaluate));
+        dialect.Functions.Add(DbFunctionDef.CreateScalar("ACOSH", "DOUBLE", AstQuerySharedNumericFunctionEvaluator.TryEvaluate));
+        dialect.Functions.Add(DbFunctionDef.CreateScalar("ASINH", "DOUBLE", AstQuerySharedNumericFunctionEvaluator.TryEvaluate));
+        dialect.Functions.Add(DbFunctionDef.CreateScalar("ATANH", "DOUBLE", AstQuerySharedNumericFunctionEvaluator.TryEvaluate));
 
         dialect.Functions.Add(DbFunctionDef.CreateScalar(
             "CONCAT", "VARCHAR", 

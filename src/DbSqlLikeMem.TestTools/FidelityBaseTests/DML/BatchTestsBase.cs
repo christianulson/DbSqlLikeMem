@@ -21,11 +21,11 @@ public abstract class BatchTestsBase<T, T2>(
     /// </summary>
     [Fact]
     public void BatchServiceInsert10Test()
-        => Assert.Equal(
-            10,
-            RunBatchComparison(
+        => RunBatchComparison(
                 (service, tableName) => service.RunBatchInsert10(tableName),
-                (service, tableName) => service.RunBatchInsert10(tableName)));
+                (service, tableName) => service.RunBatchInsert10(tableName))
+            .Should()
+            .Be(10);
 
     /// <summary>
     /// EN: Verifies that a batch insert of one hundred rows persists the expected count for the current provider.
@@ -33,11 +33,11 @@ public abstract class BatchTestsBase<T, T2>(
     /// </summary>
     [Fact]
     public void BatchServiceInsert100Test()
-        => Assert.Equal(
-            100,
-            RunBatchComparison(
+        => RunBatchComparison(
                 (service, tableName) => service.RunBatchInsert100(tableName),
-                (service, tableName) => service.RunBatchInsert100(tableName)));
+                (service, tableName) => service.RunBatchInsert100(tableName))
+            .Should()
+            .Be(100);
 
     /// <summary>
     /// EN: Verifies that batched single-row inserts persist the expected row count for the current provider.
@@ -45,11 +45,11 @@ public abstract class BatchTestsBase<T, T2>(
     /// </summary>
     [Fact]
     public void BatchServiceRowCountInBatchTest()
-        => Assert.Equal(
-            2,
-            RunBatchComparison(
+        => RunBatchComparison(
                 (service, tableName) => service.RunRowCountInBatch(tableName),
-                (service, tableName) => service.RunRowCountInBatch(tableName)));
+                (service, tableName) => service.RunRowCountInBatch(tableName))
+            .Should()
+            .Be(2);
 
     /// <summary>
     /// EN: Verifies that a mixed batch keeps reads and writes consistent for the current provider.
@@ -57,11 +57,11 @@ public abstract class BatchTestsBase<T, T2>(
     /// </summary>
     [Fact]
     public void BatchServiceMixedReadWriteTest()
-        => Assert.Equal(
-            "Alice",
-            RunBatchComparison(
+        => RunBatchComparison(
                 (service, tableName) => service.RunBatchMixedReadWrite(tableName),
-                (service, tableName) => service.RunBatchMixedReadWrite(tableName)));
+                (service, tableName) => service.RunBatchMixedReadWrite(tableName))
+            .Should()
+            .Be("Alice");
 
     /// <summary>
     /// EN: Verifies that a scalar batch keeps the expected row count and second value for the current provider.
@@ -69,11 +69,11 @@ public abstract class BatchTestsBase<T, T2>(
     /// </summary>
     [Fact]
     public void BatchServiceScalarTest()
-        => Assert.Equal(
-            "Bob",
-            RunBatchComparison(
+        => RunBatchComparison(
                 (service, tableName) => service.RunBatchScalar(tableName),
-                (service, tableName) => service.RunBatchScalar(tableName)));
+                (service, tableName) => service.RunBatchScalar(tableName))
+            .Should()
+            .Be("Bob");
 
     /// <summary>
     /// EN: Verifies that a non-query batch keeps the expected final row count for the current provider.
@@ -81,11 +81,11 @@ public abstract class BatchTestsBase<T, T2>(
     /// </summary>
     [Fact]
     public void BatchServiceNonQueryTest()
-        => Assert.Equal(
-            1,
-            RunBatchComparison(
+        => RunBatchComparison(
                 (service, tableName) => service.RunBatchNonQuery(tableName),
-                (service, tableName) => service.RunBatchNonQuery(tableName)));
+                (service, tableName) => service.RunBatchNonQuery(tableName))
+            .Should()
+            .Be(1);
 
     /// <summary>
     /// EN: Verifies that a batch transaction control flow keeps the committed table name visible for the current provider.
@@ -98,7 +98,7 @@ public abstract class BatchTestsBase<T, T2>(
             (service, tableName) => service.RunBatchTransactionControl(tableName),
             (service, tableName) => service.RunBatchTransactionControl(tableName));
 
-        Assert.StartsWith("Users", result, StringComparison.OrdinalIgnoreCase);
+        result.Should().StartWithEquivalentOf("Users");
     }
 
     /// <summary>
@@ -107,11 +107,11 @@ public abstract class BatchTestsBase<T, T2>(
     /// </summary>
     [Fact]
     public void BatchServiceReaderMultiResultTest()
-        => Assert.Equal(
-            "Alice",
-            RunBatchComparison(
+        => RunBatchComparison(
                 (service, tableName) => service.RunBatchReaderMultiResult(tableName),
-                (service, tableName) => service.RunBatchReaderMultiResult(tableName)));
+                (service, tableName) => service.RunBatchReaderMultiResult(tableName))
+            .Should()
+            .Be("Alice");
 
     private TResult RunBatchComparison<TResult>(
         Func<BatchServiceTest<T>, string, TResult> runMock,
@@ -130,7 +130,7 @@ public abstract class BatchTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunBatchScenario(connContainer, users, uId, runContainer);
-            Assert.Equal(resultMock, resultContainer);
+            resultMock.Should().Be(resultContainer);
         }
 
         return resultMock;
@@ -159,9 +159,7 @@ public abstract class BatchTestsBase<T, T2>(
     }
 
     private string BuildTableName(string users, string uId)
-        => dialect.Provider == ProviderId.Oracle
-            ? users.ToLowerInvariant()
-            : $"{users}_{uId}";
+        => $"{users}_{uId}";
 
     private static string NewToken()
         => Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();

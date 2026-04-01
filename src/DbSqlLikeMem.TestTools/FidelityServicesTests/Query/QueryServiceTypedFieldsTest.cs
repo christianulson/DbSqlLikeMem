@@ -10,7 +10,7 @@ public partial class QueryServiceTest<T>
     {
         var users = (string)pars[0];
         var uId = (string)pars[1];
-        var tableName = $"{users}_{uId}";
+        var tableName = ResolveScenarioTableName(users);
 
         ExecuteNonQuery($"""
 INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES (1, 'Alice', 'alice@example.com', 31, 10.50, NULL, NULL)
@@ -43,11 +43,11 @@ INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) 
     /// EN: Executes a single large projection query over typed columns and validates each calculated column per row.
     /// PT: Executa uma unica consulta grande sobre colunas tipadas e valida cada coluna calculada por linha.
     /// </summary>
-    public int RunTypedFieldFunctionMatrix(params object[] pars)
+    internal QueryResultSnapshot RunTypedFieldFunctionMatrix(params object[] pars)
     {
         var users = (string)pars[0];
         var uId = (string)pars[1];
-        var tableName = $"{users}_{uId}";
+        var tableName = ResolveScenarioTableName(users);
 
         ExecuteNonQuery($"""
 INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES (1, 'Alice', 'alice@example.com', 31, 10.50, NULL, NULL)
@@ -80,31 +80,36 @@ ORDER BY Id
 """;
 
         using var reader = command.ExecuteReader();
+        var rows = new List<QueryResultRowSnapshot>(3);
 
-        Assert.True(reader.Read());
-        ValidateTypedFieldRow(reader, 1, "Alice", "ALICE", "alice", "alice@example.com", 10.50m, 11.75m, 31, 1, 0, 1, 1, 1);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateTypedFieldRow(reader, 1, "Alice", "ALICE", "alice", "alice@example.com", 10.50m, 11.75m, 31, 1, 0, 1, 1, 1));
 
-        Assert.True(reader.Read());
-        ValidateTypedFieldRow(reader, 2, "Bob", "BOB", "bob", "missing@example.com", 20.25m, 21.50m, 27, 3, 1, 1, 1, 1);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateTypedFieldRow(reader, 2, "Bob", "BOB", "bob", "missing@example.com", 20.25m, 21.50m, 27, 3, 1, 1, 1, 1));
 
-        Assert.True(reader.Read());
-        ValidateTypedFieldRow(reader, 3, "Carla", "CARLA", "carla", "carla@example.com", 5.00m, 6.25m, 0, 30, 0, 1, 1, 1);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateTypedFieldRow(reader, 3, "Carla", "CARLA", "carla", "carla@example.com", 5.00m, 6.25m, 0, 30, 0, 1, 1, 1));
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
 
         GC.KeepAlive(tableName);
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["Id", "Name", "NameUpper", "NameLower", "EmailOrDefault", "BalanceRounded", "BalancePlus", "AgeOrZero", "AgeDelta", "EmailIsNull", "UpdatedAtIsNull", "ProfileJsonIsNull", "CreatedAtPresent"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
     /// EN: Executes a second large projection query that mixes casts, predicates, arithmetic, and rounding over typed columns.
     /// PT: Executa uma segunda consulta grande que mistura casts, predicados, aritmetica e arredondamento sobre colunas tipadas.
     /// </summary>
-    public int RunTypedFieldCalculationMatrix(params object[] pars)
+    internal QueryResultSnapshot RunTypedFieldCalculationMatrix(params object[] pars)
     {
         var users = (string)pars[0];
         var uId = (string)pars[1];
-        var tableName = $"{users}_{uId}";
+        var tableName = ResolveScenarioTableName(users);
 
         ExecuteNonQuery($"""
 INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES (1, 'Alice', 'alice@example.com', 31, 10.50, NULL, NULL)
@@ -120,11 +125,11 @@ INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) 
         command.CommandText = $"""
 SELECT
     Id,
-    CAST(Id AS INTEGER) AS IdCast,
+    CAST(Id AS INT) AS IdCast,
     Name,
     CASE WHEN Name LIKE 'A%' THEN 1 ELSE 0 END AS StartsWithA,
     CASE WHEN Name LIKE '%a' THEN 1 ELSE 0 END AS EndsWithA,
-    CAST(COALESCE(Age, 0) AS INTEGER) AS AgeCast,
+    CAST(COALESCE(Age, 0) AS INT) AS AgeCast,
     COALESCE(Age, 0) + 5 AS AgePlusFive,
     ROUND(Balance * 1.10, 2) AS BalanceWithTax,
     ROUND(Balance / 3.0, 2) AS BalanceThird,
@@ -138,46 +143,75 @@ ORDER BY Id
 """;
 
         using var reader = command.ExecuteReader();
+        var rows = new List<QueryResultRowSnapshot>(3);
 
-        Assert.True(reader.Read());
-        ValidateTypedCalculationRow(reader, 1, 1, "Alice", 1, 0, 31, 36, 11.55m, 3.50m, 0, 0, 1, 1, 1);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateTypedCalculationRow(reader, 1, 1, "Alice", 1, 0, 31, 36, 11.55m, 3.50m, 0, 0, 1, 1, 1));
 
-        Assert.True(reader.Read());
-        ValidateTypedCalculationRow(reader, 2, 2, "Bob", 0, 1, 27, 32, 22.28m, 6.75m, 1, 1, 1, 1, 1);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateTypedCalculationRow(reader, 2, 2, "Bob", 0, 0, 27, 32, 22.28m, 6.75m, 1, 1, 1, 1, 1));
 
-        Assert.True(reader.Read());
-        ValidateTypedCalculationRow(reader, 3, 3, "Carla", 0, 1, 0, 5, 5.50m, 1.67m, 0, 1, 1, 1, 1);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateTypedCalculationRow(reader, 3, 3, "Carla", 0, 1, 0, 5, 5.50m, 1.67m, 0, 0, 1, 1, 1));
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
 
         GC.KeepAlive(tableName);
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["Id", "IdCast", "Name", "StartsWithA", "EndsWithA", "AgeCast", "AgePlusFive", "BalanceWithTax", "BalanceThird", "BalanceGt15", "EmailIsNull", "UpdatedAtIsNull", "CreatedAtPresent", "ProfileJsonIsNull"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
     /// EN: Executes a large projection query over JSON profile columns and typed fields.
     /// PT: Executa uma consulta grande sobre colunas JSON de perfil e campos tipados.
     /// </summary>
-    public int RunJsonTypedFieldMatrix(params object[] pars)
+    internal QueryResultSnapshot RunJsonTypedFieldMatrix(params object[] pars)
     {
         var users = (string)pars[0];
         var uId = (string)pars[1];
-        var tableName = $"{users}_{uId}";
+        var tableName = ResolveScenarioTableName(users);
         var aliceProfileJson = """{"profile":{"name":"Alice","active":true}}""";
         var bobProfileJson = """{"profile":{"name":"Bob","active":false}}""";
 
-        ExecuteNonQuery($"""
+        void InsertRow(
+            int id,
+            string name,
+            string? email,
+            int? age,
+            decimal balance,
+            string? profileJson)
+        {
+            static void AddParameter(DbCommand command, string parameterName, DbType dbType, object? value)
+            {
+                var parameter = command.CreateParameter();
+                parameter.ParameterName = parameterName;
+                parameter.DbType = dbType;
+                parameter.Value = value ?? DBNull.Value;
+                command.Parameters.Add(parameter);
+            }
+
+            using var insertCommand = Connection.CreateCommand();
+            insertCommand.CommandText = $"""
 INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES
-(1, 'Alice', 'alice@example.com', 31, 10.50, NULL, '{aliceProfileJson}')
-""");
-        ExecuteNonQuery($"""
-INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES
-(2, 'Bob', NULL, 27, 20.25, NULL, '{bobProfileJson}')
-""");
-        ExecuteNonQuery($"""
-INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES
-(3, 'Carla', 'carla@example.com', NULL, 5.00, NULL, NULL)
-""");
+(@Id, @Name, @Email, @Age, @Balance, NULL, @ProfileJson)
+""";
+
+            AddParameter(insertCommand, "Id", DbType.Int32, id);
+            AddParameter(insertCommand, "Name", DbType.String, name);
+            AddParameter(insertCommand, "Email", DbType.String, email is null ? DBNull.Value : email);
+            AddParameter(insertCommand, "Age", DbType.Int32, age is null ? DBNull.Value : age);
+            AddParameter(insertCommand, "Balance", DbType.Decimal, balance);
+            AddParameter(insertCommand, "ProfileJson", DbType.String, profileJson is null ? DBNull.Value : profileJson);
+
+            insertCommand.ExecuteNonQuery();
+        }
+
+        InsertRow(1, "Alice", "alice@example.com", 31, 10.50m, aliceProfileJson);
+        InsertRow(2, "Bob", null, 27, 20.25m, bobProfileJson);
+        InsertRow(3, "Carla", "carla@example.com", null, 5.00m, null);
 
         var jsonNameExpr = Dialect.JsonProfileNameExpression("ProfileJson");
 
@@ -201,31 +235,36 @@ ORDER BY Id
 """;
 
         using var reader = command.ExecuteReader();
+        var rows = new List<QueryResultRowSnapshot>(3);
 
-        Assert.True(reader.Read());
-        ValidateJsonFieldRow(reader, 1, "Alice", "Alice", "ALICE", "Alice", "Ali", 1, 0, 0, 41.50m);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateJsonFieldRow(reader, 1, "Alice", "Alice", "ALICE", "Alice", "Ali", 1, 0, 0, 41.50m));
 
-        Assert.True(reader.Read());
-        ValidateJsonFieldRow(reader, 2, "Bob", "Bob", "BOB", "Bob", "Bob", 0, 0, 0, 47.25m);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateJsonFieldRow(reader, 2, "Bob", "Bob", "BOB", "Bob", "Bob", 0, 0, 0, 47.25m));
 
-        Assert.True(reader.Read());
-        ValidateJsonFieldRow(reader, 3, "Carla", null, null, "missing", "mis", 0, 1, 1, 5.00m);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateJsonFieldRow(reader, 3, "Carla", null, null, "missing", "mis", 0, 1, 1, 5.00m));
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
 
         GC.KeepAlive(tableName);
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["Id", "Name", "ProfileName", "ProfileNameUpper", "ProfileNameOrDefault", "ProfileNamePrefix", "IsAlice", "JsonProfileIsNull", "ProfileJsonIsNull", "BalancePlusAge"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
     /// EN: Executes a large projection query over temporal columns and numeric calculations.
     /// PT: Executa uma consulta grande sobre colunas temporais e calculos numericos.
     /// </summary>
-    public int RunTemporalFieldMatrix(params object[] pars)
+    internal QueryResultSnapshot RunTemporalFieldMatrix(params object[] pars)
     {
         var users = (string)pars[0];
         var uId = (string)pars[1];
-        var tableName = $"{users}_{uId}";
+        var tableName = ResolveScenarioTableName(users);
 
         ExecuteNonQuery($"""
 INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES (1, 'Alice', 'alice@example.com', 31, 10.50, NULL, NULL)
@@ -260,31 +299,36 @@ ORDER BY CreatedAt, Id
 """;
 
         using var reader = command.ExecuteReader();
+        var rows = new List<QueryResultRowSnapshot>(3);
 
-        Assert.True(reader.Read());
-        ValidateTemporalFieldRow(reader, 1, "Alice", 1, 1, 1, 1, 41.50m, 1, "alice@example.com", "Al");
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateTemporalFieldRow(reader, 1, "Alice", 1, 1, 1, 1, 41.50m, 1, "alice@example.com", "Al"));
 
-        Assert.True(reader.Read());
-        ValidateTemporalFieldRow(reader, 2, "Bob", 1, 1, 1, 1, 47.25m, 3, "missing@example.com", "Bo");
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateTemporalFieldRow(reader, 2, "Bob", 1, 1, 1, 1, 47.25m, 3, "missing@example.com", "Bo"));
 
-        Assert.True(reader.Read());
-        ValidateTemporalFieldRow(reader, 3, "Carla", 1, 1, 1, 1, 5.00m, 30, "carla@example.com", "Ca");
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateTemporalFieldRow(reader, 3, "Carla", 1, 1, 1, 1, 5.00m, 30, "carla@example.com", "Ca"));
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
 
         GC.KeepAlive(tableName);
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["Id", "Name", "CreatedAtPresent", "UpdatedAtIsNull", "NowPresent", "NextDayAfterNow", "BalancePlusAge", "AgeDelta", "EmailOrDefault", "NamePrefix"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
     /// EN: Executes a large projection query that blends temporal comparisons and fallback logic over typed columns.
     /// PT: Executa uma consulta grande que mistura comparacoes temporais e logica de fallback sobre colunas tipadas.
     /// </summary>
-    public int RunTemporalComparisonMatrix(params object[] pars)
+    internal QueryResultSnapshot RunTemporalComparisonMatrix(params object[] pars)
     {
         var users = (string)pars[0];
         var uId = (string)pars[1];
-        var tableName = $"{users}_{uId}";
+        var tableName = ResolveScenarioTableName(users);
 
         ExecuteNonQuery($"""
 INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES (1, 'Alice', 'alice@example.com', 31, 10.50, NULL, NULL)
@@ -313,31 +357,36 @@ ORDER BY CreatedAt, Id
 """;
 
         using var reader = command.ExecuteReader();
+        var rows = new List<QueryResultRowSnapshot>(3);
 
-        Assert.True(reader.Read());
-        ValidateTemporalComparisonRow(reader, 1, 1, 1, 1, 1, 1);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateTemporalComparisonRow(reader, 1, 1, 1, 1, 1, 1));
 
-        Assert.True(reader.Read());
-        ValidateTemporalComparisonRow(reader, 2, 1, 1, 1, 1, 1);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateTemporalComparisonRow(reader, 2, 1, 1, 1, 1, 1));
 
-        Assert.True(reader.Read());
-        ValidateTemporalComparisonRow(reader, 3, 1, 1, 1, 1, 1);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateTemporalComparisonRow(reader, 3, 1, 1, 1, 1, 1));
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
 
         GC.KeepAlive(tableName);
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["Id", "CreatedAtBeforeNow", "NextDayAfterCreatedAt", "NextDayAfterNow", "FallbackAtLeastCreatedAt", "UpdatedAtIsNull"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
     /// EN: Executes a larger temporal arithmetic query over typed columns and validates relative date and fallback comparisons.
     /// PT: Executa uma consulta maior de aritmetica temporal sobre colunas tipadas e valida comparacoes relativas e de fallback.
     /// </summary>
-    public int RunTemporalArithmeticMatrix(params object[] pars)
+    internal QueryResultSnapshot RunTemporalArithmeticMatrix(params object[] pars)
     {
         var users = (string)pars[0];
         var uId = (string)pars[1];
-        var tableName = $"{users}_{uId}";
+        var tableName = ResolveScenarioTableName(users);
 
         ExecuteNonQuery($"""
 INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES (1, 'Alice', 'alice@example.com', 31, 10.50, NULL, NULL)
@@ -368,31 +417,36 @@ ORDER BY CreatedAt, Id
 """;
 
         using var reader = command.ExecuteReader();
+        var rows = new List<QueryResultRowSnapshot>(3);
 
-        Assert.True(reader.Read());
-        ValidateTemporalArithmeticRow(reader, 1, 1, 1, 1, 1, 1, 1, 1);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateTemporalArithmeticRow(reader, 1, 1, 1, 1, 1, 1, 1, 1));
 
-        Assert.True(reader.Read());
-        ValidateTemporalArithmeticRow(reader, 2, 1, 1, 1, 1, 1, 1, 1);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateTemporalArithmeticRow(reader, 2, 1, 1, 1, 1, 1, 1, 1));
 
-        Assert.True(reader.Read());
-        ValidateTemporalArithmeticRow(reader, 3, 1, 1, 1, 1, 1, 1, 1);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateTemporalArithmeticRow(reader, 3, 1, 1, 1, 1, 1, 1, 1));
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
 
         GC.KeepAlive(tableName);
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["Id", "CreatedAtBeforeNow", "TomorrowAfterCreatedAt", "TomorrowAfterNow", "FallbackBeforeTomorrow", "FallbackAtLeastCreatedAt", "UpdatedAtIsNull", "CreatedAtIsNotNull"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
     /// EN: Executes a large projection query that blends casts, arithmetic, and boolean-style calculations over typed columns.
     /// PT: Executa uma consulta grande que mistura casts, aritmetica e calculos em estilo booleano sobre colunas tipadas.
     /// </summary>
-    public int RunCastCalculationMatrix(params object[] pars)
+    internal QueryResultSnapshot RunCastCalculationMatrix(params object[] pars)
     {
         var users = (string)pars[0];
         var uId = (string)pars[1];
-        var tableName = $"{users}_{uId}";
+        var tableName = ResolveScenarioTableName(users);
 
         ExecuteNonQuery($"""
 INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES (1, 'Alice', 'alice@example.com', 31, 10.50, NULL, NULL)
@@ -408,45 +462,50 @@ INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) 
         command.CommandText = $"""
 SELECT
     Id,
-    TRIM(CAST(Id AS CHAR(10))) AS IdText,
-    TRIM(CAST(COALESCE(Age, 0) AS CHAR(10))) AS AgeText,
-    TRIM(CAST(COALESCE(Age, 0) + 5 AS CHAR(10))) AS AgePlusFiveText,
-    TRIM(CAST(ROUND(Balance, 0) AS CHAR(10))) AS BalanceRoundedText,
-    TRIM(CAST(ROUND(Balance * 2, 0) AS CHAR(10))) AS BalanceDoubleText,
-    TRIM(CAST(ABS(COALESCE(Age, 0) - 30) AS CHAR(10))) AS AgeDeltaText,
-    TRIM(CAST(CASE WHEN Email IS NULL THEN 0 ELSE 1 END AS CHAR(1))) AS EmailFlagText,
-    TRIM(CAST(CASE WHEN Balance > 15 THEN 0 ELSE 1 END AS CHAR(1))) AS BalanceNotGt15Text,
-    TRIM(CAST(COALESCE(Age, 0) + ROUND(Balance, 0) AS CHAR(10))) AS AgePlusBalanceText
+    TRIM({Dialect.StringCastExpression("Id", 10)}) AS IdText,
+    TRIM({Dialect.StringCastExpression("COALESCE(Age, 0)", 10)}) AS AgeText,
+    TRIM({Dialect.StringCastExpression("COALESCE(Age, 0) + 5", 10)}) AS AgePlusFiveText,
+    TRIM({Dialect.StringCastExpression("ROUND(Balance, 0)", 10)}) AS BalanceRoundedText,
+    TRIM({Dialect.StringCastExpression("ROUND(Balance * 2, 0)", 10)}) AS BalanceDoubleText,
+    TRIM({Dialect.StringCastExpression("ABS(COALESCE(Age, 0) - 30)", 10)}) AS AgeDeltaText,
+    TRIM({Dialect.StringCastExpression("CASE WHEN Email IS NULL THEN 0 ELSE 1 END", 1)}) AS EmailFlagText,
+    TRIM({Dialect.StringCastExpression("CASE WHEN Balance > 15 THEN 0 ELSE 1 END", 1)}) AS BalanceNotGt15Text,
+    TRIM({Dialect.StringCastExpression("COALESCE(Age, 0) + ROUND(Balance, 0)", 10)}) AS AgePlusBalanceText
 FROM {tableName}
 ORDER BY Id
 """;
 
         using var reader = command.ExecuteReader();
+        var rows = new List<QueryResultRowSnapshot>(3);
 
-        Assert.True(reader.Read());
-        ValidateCastRow(reader, 1, "1", "31", "36", "11", "21", "1", "1", "1", "42");
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateCastRow(reader, 1, "1", "31", "36", "11", "21", "1", "1", "1", "42"));
 
-        Assert.True(reader.Read());
-        ValidateCastRow(reader, 2, "2", "27", "32", "20", "40", "3", "0", "0", "47");
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateCastRow(reader, 2, "2", "27", "32", "20", "41", "3", "0", "0", "47"));
 
-        Assert.True(reader.Read());
-        ValidateCastRow(reader, 3, "3", "0", "5", "5", "10", "30", "1", "1", "5");
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateCastRow(reader, 3, "3", "0", "5", "5", "10", "30", "1", "1", "5"));
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
 
         GC.KeepAlive(tableName);
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["Id", "IdText", "AgeText", "AgePlusFiveText", "BalanceRoundedText", "BalanceDoubleText", "AgeDeltaText", "EmailFlagText", "BalanceNotGt15Text", "AgePlusBalanceText"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
     /// EN: Executes a large projection query that blends null handling, comparisons, and predicates over typed columns.
     /// PT: Executa uma consulta grande que mistura tratamento de null, comparacoes e predicados sobre colunas tipadas.
     /// </summary>
-    public int RunNullComparisonMatrix(params object[] pars)
+    internal QueryResultSnapshot RunNullComparisonMatrix(params object[] pars)
     {
         var users = (string)pars[0];
         var uId = (string)pars[1];
-        var tableName = $"{users}_{uId}";
+        var tableName = ResolveScenarioTableName(users);
 
         ExecuteNonQuery($"""
 INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES (1, 'Alice', 'alice@example.com', 31, 10.50, NULL, NULL)
@@ -479,31 +538,36 @@ ORDER BY Id
 """;
 
         using var reader = command.ExecuteReader();
+        var rows = new List<QueryResultRowSnapshot>(3);
 
-        Assert.True(reader.Read());
-        ValidateNullComparisonRow(reader, 1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 1);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateNullComparisonRow(reader, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1));
 
-        Assert.True(reader.Read());
-        ValidateNullComparisonRow(reader, 2, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateNullComparisonRow(reader, 2, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0));
 
-        Assert.True(reader.Read());
-        ValidateNullComparisonRow(reader, 3, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateNullComparisonRow(reader, 3, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1));
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
 
         GC.KeepAlive(tableName);
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["Id", "EmailIsNull", "EmailIsNotNull", "AgeIsNull", "AgeBetween20And30", "NameStartsWithA", "NameEndsWithA", "NullIfBob", "EmailLooksLikeExample", "IdIn13", "IdNotIn2", "BalanceGt15", "BalanceLe1050"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
     /// EN: Executes a large projection query that blends text lengths, trimming, and comparisons over typed columns.
     /// PT: Executa uma consulta grande que mistura comprimentos de texto, trim e comparacoes sobre colunas tipadas.
     /// </summary>
-    public int RunTextLengthMatrix(params object[] pars)
+    internal QueryResultSnapshot RunTextLengthMatrix(params object[] pars)
     {
         var users = (string)pars[0];
         var uId = (string)pars[1];
-        var tableName = $"{users}_{uId}";
+        var tableName = ResolveScenarioTableName(users);
 
         ExecuteNonQuery($"""
 INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES (1, 'Alice', 'alice@example.com', 31, 10.50, NULL, NULL)
@@ -524,11 +588,11 @@ INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) 
         command.CommandText = $"""
 SELECT
     Id,
-    TRIM(CAST({nameLenExpr} AS CHAR(10))) AS NameLenText,
-    TRIM(CAST({emailLenExpr} AS CHAR(10))) AS EmailLenText,
-    TRIM(CAST({upperNameLenExpr} AS CHAR(10))) AS UpperNameLenText,
-    TRIM(CAST({trimNameLenExpr} AS CHAR(10))) AS TrimmedNameLenText,
-    TRIM(CAST({emailLenExpr} - {nameLenExpr} AS CHAR(10))) AS EmailMinusNameText,
+    TRIM({Dialect.StringCastExpression(nameLenExpr, 10)}) AS NameLenText,
+    TRIM({Dialect.StringCastExpression(emailLenExpr, 10)}) AS EmailLenText,
+    TRIM({Dialect.StringCastExpression(upperNameLenExpr, 10)}) AS UpperNameLenText,
+    TRIM({Dialect.StringCastExpression(trimNameLenExpr, 10)}) AS TrimmedNameLenText,
+    TRIM({Dialect.StringCastExpression($"{emailLenExpr} - {nameLenExpr}", 10)}) AS EmailMinusNameText,
     CASE WHEN {nameLenExpr} >= 5 THEN 1 ELSE 0 END AS NameLenGe5,
     CASE WHEN {emailLenExpr} >= 17 THEN 1 ELSE 0 END AS EmailLenGe17,
     CASE WHEN {trimNameLenExpr} = {nameLenExpr} THEN 1 ELSE 0 END AS TrimmedNameSameLen,
@@ -538,31 +602,36 @@ ORDER BY Id
 """;
 
         using var reader = command.ExecuteReader();
+        var rows = new List<QueryResultRowSnapshot>(3);
 
-        Assert.True(reader.Read());
-        ValidateTextLengthRow(reader, 1, "5", "17", "5", "5", "12", 1, 1, 1, 1);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateTextLengthRow(reader, 1, "5", "17", "5", "5", "12", 1, 1, 1, 1));
 
-        Assert.True(reader.Read());
-        ValidateTextLengthRow(reader, 2, "3", "19", "3", "3", "16", 0, 1, 1, 1);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateTextLengthRow(reader, 2, "3", "19", "3", "3", "16", 0, 1, 1, 1));
 
-        Assert.True(reader.Read());
-        ValidateTextLengthRow(reader, 3, "5", "17", "5", "5", "12", 1, 1, 1, 1);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateTextLengthRow(reader, 3, "5", "17", "5", "5", "12", 1, 1, 1, 1));
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
 
         GC.KeepAlive(tableName);
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["Id", "NameLenText", "EmailLenText", "UpperNameLenText", "TrimmedNameLenText", "EmailMinusNameText", "NameLenGe5", "EmailLenGe17", "TrimmedNameSameLen", "UpperNameSameLen"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
     /// EN: Executes a large projection query that blends case conversion, trimming, prefix extraction, and text predicates over typed columns.
     /// PT: Executa uma consulta grande que mistura conversao de caixa, trim, extracao de prefixo e predicados de texto sobre colunas tipadas.
     /// </summary>
-    public int RunTextCaseMatrix(params object[] pars)
+    internal QueryResultSnapshot RunTextCaseMatrix(params object[] pars)
     {
         var users = (string)pars[0];
         var uId = (string)pars[1];
-        var tableName = $"{users}_{uId}";
+        var tableName = ResolveScenarioTableName(users);
 
         ExecuteNonQuery($"""
 INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES (1, 'Alice', 'alice@example.com', 31, 10.50, NULL, NULL)
@@ -585,7 +654,7 @@ SELECT
     LOWER(Name) AS NameLower,
     TRIM(Name) AS NameTrimmed,
     {namePrefixExpr} AS NamePrefix,
-    TRIM(CAST({nameLenExpr} AS CHAR(10))) AS NameLenText,
+    TRIM({Dialect.StringCastExpression(nameLenExpr, 10)}) AS NameLenText,
     CASE WHEN UPPER(Name) = Name THEN 1 ELSE 0 END AS IsAlreadyUpper,
     CASE WHEN LOWER(Name) = Name THEN 1 ELSE 0 END AS IsAlreadyLower,
     CASE WHEN TRIM(Name) = Name THEN 1 ELSE 0 END AS IsAlreadyTrimmed,
@@ -598,31 +667,36 @@ ORDER BY Id
 """;
 
         using var reader = command.ExecuteReader();
+        var rows = new List<QueryResultRowSnapshot>(3);
 
-        Assert.True(reader.Read());
-        ValidateTextCaseRow(reader, 1, "ALICE", "alice", "Alice", "Al", "5", 0, 0, 1, 1, 0, "alice@example.com", 0);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateTextCaseRow(reader, 1, "ALICE", "alice", "Alice", "Al", "5", 1, 1, 1, 1, 0, "alice@example.com", 0));
 
-        Assert.True(reader.Read());
-        ValidateTextCaseRow(reader, 2, "BOB", "bob", "Bob", "Bo", "3", 0, 0, 1, 0, 1, "missing@example.com", 1);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateTextCaseRow(reader, 2, "BOB", "bob", "Bob", "Bo", "3", 1, 1, 1, 0, 0, "missing@example.com", 1));
 
-        Assert.True(reader.Read());
-        ValidateTextCaseRow(reader, 3, "CARLA", "carla", "Carla", "Ca", "5", 0, 0, 1, 0, 1, "carla@example.com", 0);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateTextCaseRow(reader, 3, "CARLA", "carla", "Carla", "Ca", "5", 1, 1, 1, 0, 1, "carla@example.com", 0));
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
 
         GC.KeepAlive(tableName);
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["Id", "NameUpper", "NameLower", "NameTrimmed", "NamePrefix", "NameLenText", "IsAlreadyUpper", "IsAlreadyLower", "IsAlreadyTrimmed", "StartsWithA", "EndsWithA", "EmailOrDefault", "EmailIsNull"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
     /// EN: Executes a large predicate query that blends LIKE, NOT LIKE, BETWEEN, and null checks over typed columns.
     /// PT: Executa uma consulta grande de predicados que mistura LIKE, NOT LIKE, BETWEEN e verificacoes de null sobre colunas tipadas.
     /// </summary>
-    public int RunTypedFieldPredicateMatrix(params object[] pars)
+    internal QueryResultSnapshot RunTypedFieldPredicateMatrix(params object[] pars)
     {
         var users = (string)pars[0];
         var uId = (string)pars[1];
-        var tableName = $"{users}_{uId}";
+        var tableName = ResolveScenarioTableName(users);
 
         ExecuteNonQuery($"""
 INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES (1, 'Alice', 'alice@example.com', 31, 10.50, NULL, NULL)
@@ -651,20 +725,25 @@ ORDER BY Id
 """;
 
         using var reader = command.ExecuteReader();
+        var rows = new List<QueryResultRowSnapshot>(3);
 
-        Assert.True(reader.Read());
-        ValidateTypedPredicateRow(reader, 1, "Alice", 1, 1, 0, 1, 0, 1, 0);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateTypedPredicateRow(reader, 1, "Alice", 1, 1, 0, 1, 0, 1, 0));
 
-        Assert.True(reader.Read());
-        ValidateTypedPredicateRow(reader, 2, "Bob", 0, 1, 1, 0, 1, 0, 0);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateTypedPredicateRow(reader, 2, "Bob", 0, 1, 1, 0, 1, 0, 0));
 
-        Assert.True(reader.Read());
-        ValidateTypedPredicateRow(reader, 3, "Carla", 0, 1, 0, 1, 0, 1, 1);
+        reader.Read().Should().BeTrue();
+        rows.Add(ValidateTypedPredicateRow(reader, 3, "Carla", 0, 1, 0, 1, 0, 1, 1));
 
-        Assert.False(reader.Read());
+        reader.Read().Should().BeFalse();
 
         GC.KeepAlive(tableName);
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["Id", "Name", "StartsWithA", "NotEndsWithZ", "AgeBetween20And30", "BalanceBetween5And20", "EmailIsNull", "EmailIsNotNull", "AgeIsNull"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
@@ -675,7 +754,7 @@ ORDER BY Id
     {
         var users = (string)pars[0];
         var uId = (string)pars[1];
-        var tableName = $"{users}_{uId}";
+        var tableName = ResolveScenarioTableName(users);
 
         ExecuteNonQuery($"""
 INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES (1, 'Alice', 'alice@example.com', 31, 10.50, NULL, NULL)
@@ -696,12 +775,12 @@ WHERE (Email IS NULL OR Age IS NULL)
 """;
 
         var value = Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture);
-        Assert.Equal(2, value);
+        value.Should().Be(2);
         GC.KeepAlive(tableName);
         return value;
     }
 
-    private static void ValidateTypedCalculationRow(
+    private static QueryResultRowSnapshot ValidateTypedCalculationRow(
         DbDataReader reader,
         int expectedId,
         int expectedIdCast,
@@ -718,23 +797,25 @@ WHERE (Email IS NULL OR Age IS NULL)
         int expectedCreatedAtPresent,
         int expectedProfileJsonIsNull)
     {
-        Assert.Equal(expectedId, Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedIdCast, Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedName, Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedStartsWithA, Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedEndsWithA, Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedAgeCast, Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedAgePlusFive, Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedBalanceWithTax, Convert.ToDecimal(reader.GetValue(7), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedBalanceThird, Convert.ToDecimal(reader.GetValue(8), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedBalanceGt15, Convert.ToInt32(reader.GetValue(9), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedEmailIsNull, Convert.ToInt32(reader.GetValue(10), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedUpdatedAtIsNull, Convert.ToInt32(reader.GetValue(11), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedCreatedAtPresent, Convert.ToInt32(reader.GetValue(12), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedProfileJsonIsNull, Convert.ToInt32(reader.GetValue(13), CultureInfo.InvariantCulture));
+        Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedId);
+        Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedIdCast);
+        Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedName);
+        Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedStartsWithA);
+        Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(expectedEndsWithA);
+        Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(expectedAgeCast);
+        Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(expectedAgePlusFive);
+        Convert.ToDecimal(reader.GetValue(7), CultureInfo.InvariantCulture).Should().Be(expectedBalanceWithTax);
+        Convert.ToDecimal(reader.GetValue(8), CultureInfo.InvariantCulture).Should().Be(expectedBalanceThird);
+        Convert.ToInt32(reader.GetValue(9), CultureInfo.InvariantCulture).Should().Be(expectedBalanceGt15);
+        Convert.ToInt32(reader.GetValue(10), CultureInfo.InvariantCulture).Should().Be(expectedEmailIsNull);
+        Convert.ToInt32(reader.GetValue(11), CultureInfo.InvariantCulture).Should().Be(expectedUpdatedAtIsNull);
+        Convert.ToInt32(reader.GetValue(12), CultureInfo.InvariantCulture).Should().Be(expectedCreatedAtPresent);
+        Convert.ToInt32(reader.GetValue(13), CultureInfo.InvariantCulture).Should().Be(expectedProfileJsonIsNull);
+
+        return QueryResultSnapshotReader.CaptureRow(reader);
     }
 
-    private static void ValidateJsonFieldRow(
+    private static QueryResultRowSnapshot ValidateJsonFieldRow(
         DbDataReader reader,
         int expectedId,
         string expectedName,
@@ -747,19 +828,21 @@ WHERE (Email IS NULL OR Age IS NULL)
         int expectedProfileJsonIsNull,
         decimal expectedBalancePlusAge)
     {
-        Assert.Equal(expectedId, Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedName, Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedProfileName, GetStringOrNull(reader, 2));
-        Assert.Equal(expectedProfileNameUpper, GetStringOrNull(reader, 3));
-        Assert.Equal(expectedProfileNameOrDefault, GetStringOrNull(reader, 4));
-        Assert.Equal(expectedProfileNamePrefix, GetStringOrNull(reader, 5));
-        Assert.Equal(expectedIsAlice, Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedJsonProfileIsNull, Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedProfileJsonIsNull, Convert.ToInt32(reader.GetValue(8), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedBalancePlusAge, Convert.ToDecimal(reader.GetValue(9), CultureInfo.InvariantCulture));
+        Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedId);
+        Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedName);
+        GetStringOrNull(reader, 2).Should().Be(expectedProfileName);
+        GetStringOrNull(reader, 3).Should().Be(expectedProfileNameUpper);
+        GetStringOrNull(reader, 4).Should().Be(expectedProfileNameOrDefault);
+        GetStringOrNull(reader, 5).Should().Be(expectedProfileNamePrefix);
+        Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(expectedIsAlice);
+        Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture).Should().Be(expectedJsonProfileIsNull);
+        Convert.ToInt32(reader.GetValue(8), CultureInfo.InvariantCulture).Should().Be(expectedProfileJsonIsNull);
+        Convert.ToDecimal(reader.GetValue(9), CultureInfo.InvariantCulture).Should().Be(expectedBalancePlusAge);
+
+        return QueryResultSnapshotReader.CaptureRow(reader);
     }
 
-    private static void ValidateTemporalFieldRow(
+    private static QueryResultRowSnapshot ValidateTemporalFieldRow(
         DbDataReader reader,
         int expectedId,
         string expectedName,
@@ -772,19 +855,21 @@ WHERE (Email IS NULL OR Age IS NULL)
         string expectedEmailOrDefault,
         string expectedNamePrefix)
     {
-        Assert.Equal(expectedId, Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedName, Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedCreatedAtPresent, Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedUpdatedAtIsNull, Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNowPresent, Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNextDayAfterNow, Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedBalancePlusAge, Convert.ToDecimal(reader.GetValue(6), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedAgeDelta, Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedEmailOrDefault, Convert.ToString(reader.GetValue(8), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNamePrefix, Convert.ToString(reader.GetValue(9), CultureInfo.InvariantCulture));
+        Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedId);
+        Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedName);
+        Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedCreatedAtPresent);
+        Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedUpdatedAtIsNull);
+        Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(expectedNowPresent);
+        Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(expectedNextDayAfterNow);
+        Convert.ToDecimal(reader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(expectedBalancePlusAge);
+        Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture).Should().Be(expectedAgeDelta);
+        Convert.ToString(reader.GetValue(8), CultureInfo.InvariantCulture).Should().Be(expectedEmailOrDefault);
+        Convert.ToString(reader.GetValue(9), CultureInfo.InvariantCulture).Should().Be(expectedNamePrefix);
+
+        return QueryResultSnapshotReader.CaptureRow(reader);
     }
 
-    private static void ValidateTemporalComparisonRow(
+    private static QueryResultRowSnapshot ValidateTemporalComparisonRow(
         DbDataReader reader,
         int expectedId,
         int expectedCreatedAtBeforeNow,
@@ -793,15 +878,17 @@ WHERE (Email IS NULL OR Age IS NULL)
         int expectedFallbackAtLeastCreatedAt,
         int expectedUpdatedAtIsNull)
     {
-        Assert.Equal(expectedId, Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedCreatedAtBeforeNow, Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNextDayAfterCreatedAt, Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNextDayAfterNow, Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedFallbackAtLeastCreatedAt, Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedUpdatedAtIsNull, Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture));
+        Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedId);
+        Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedCreatedAtBeforeNow);
+        Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedNextDayAfterCreatedAt);
+        Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedNextDayAfterNow);
+        Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(expectedFallbackAtLeastCreatedAt);
+        Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(expectedUpdatedAtIsNull);
+
+        return QueryResultSnapshotReader.CaptureRow(reader);
     }
 
-    private static void ValidateTemporalArithmeticRow(
+    private static QueryResultRowSnapshot ValidateTemporalArithmeticRow(
         DbDataReader reader,
         int expectedId,
         int expectedCreatedAtBeforeNow,
@@ -812,17 +899,19 @@ WHERE (Email IS NULL OR Age IS NULL)
         int expectedUpdatedAtIsNull,
         int expectedCreatedAtIsNotNull)
     {
-        Assert.Equal(expectedId, Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedCreatedAtBeforeNow, Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedTomorrowAfterCreatedAt, Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedTomorrowAfterNow, Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedFallbackBeforeTomorrow, Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedFallbackAtLeastCreatedAt, Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedUpdatedAtIsNull, Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedCreatedAtIsNotNull, Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture));
+        Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedId);
+        Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedCreatedAtBeforeNow);
+        Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedTomorrowAfterCreatedAt);
+        Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedTomorrowAfterNow);
+        Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(expectedFallbackBeforeTomorrow);
+        Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(expectedFallbackAtLeastCreatedAt);
+        Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(expectedUpdatedAtIsNull);
+        Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture).Should().Be(expectedCreatedAtIsNotNull);
+
+        return QueryResultSnapshotReader.CaptureRow(reader);
     }
 
-    private static void ValidateCastRow(
+    private static QueryResultRowSnapshot ValidateCastRow(
         DbDataReader reader,
         int expectedId,
         string expectedIdText,
@@ -835,19 +924,21 @@ WHERE (Email IS NULL OR Age IS NULL)
         string expectedBalanceNotGt15Text,
         string expectedAgePlusBalanceText)
     {
-        Assert.Equal(expectedId, Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedIdText, Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedAgeText, Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedAgePlusFiveText, Convert.ToString(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedBalanceRoundedText, Convert.ToString(reader.GetValue(4), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedBalanceDoubleText, Convert.ToString(reader.GetValue(5), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedAgeDeltaText, Convert.ToString(reader.GetValue(6), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedEmailFlagText, Convert.ToString(reader.GetValue(7), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedBalanceNotGt15Text, Convert.ToString(reader.GetValue(8), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedAgePlusBalanceText, Convert.ToString(reader.GetValue(9), CultureInfo.InvariantCulture));
+        Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedId);
+        Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedIdText);
+        Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedAgeText);
+        Convert.ToString(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedAgePlusFiveText);
+        Convert.ToString(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(expectedBalanceRoundedText);
+        Convert.ToString(reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(expectedBalanceDoubleText);
+        Convert.ToString(reader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(expectedAgeDeltaText);
+        Convert.ToString(reader.GetValue(7), CultureInfo.InvariantCulture).Should().Be(expectedEmailFlagText);
+        Convert.ToString(reader.GetValue(8), CultureInfo.InvariantCulture).Should().Be(expectedBalanceNotGt15Text);
+        Convert.ToString(reader.GetValue(9), CultureInfo.InvariantCulture).Should().Be(expectedAgePlusBalanceText);
+
+        return QueryResultSnapshotReader.CaptureRow(reader);
     }
 
-    private static void ValidateNullComparisonRow(
+    private static QueryResultRowSnapshot ValidateNullComparisonRow(
         DbDataReader reader,
         int expectedId,
         int expectedEmailIsNull,
@@ -863,22 +954,24 @@ WHERE (Email IS NULL OR Age IS NULL)
         int expectedBalanceGt15,
         int expectedBalanceLe1050)
     {
-        Assert.Equal(expectedId, Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedEmailIsNull, Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedEmailIsNotNull, Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedAgeIsNull, Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedAgeBetween20And30, Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNameStartsWithA, Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNameEndsWithA, Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNullIfBob, Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedEmailLooksLikeExample, Convert.ToInt32(reader.GetValue(8), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedIdIn13, Convert.ToInt32(reader.GetValue(9), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedIdNotIn2, Convert.ToInt32(reader.GetValue(10), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedBalanceGt15, Convert.ToInt32(reader.GetValue(11), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedBalanceLe1050, Convert.ToInt32(reader.GetValue(12), CultureInfo.InvariantCulture));
+        Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedId);
+        Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedEmailIsNull);
+        Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedEmailIsNotNull);
+        Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedAgeIsNull);
+        Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(expectedAgeBetween20And30);
+        Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(expectedNameStartsWithA);
+        Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(expectedNameEndsWithA);
+        Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture).Should().Be(expectedNullIfBob);
+        Convert.ToInt32(reader.GetValue(8), CultureInfo.InvariantCulture).Should().Be(expectedEmailLooksLikeExample);
+        Convert.ToInt32(reader.GetValue(9), CultureInfo.InvariantCulture).Should().Be(expectedIdIn13);
+        Convert.ToInt32(reader.GetValue(10), CultureInfo.InvariantCulture).Should().Be(expectedIdNotIn2);
+        Convert.ToInt32(reader.GetValue(11), CultureInfo.InvariantCulture).Should().Be(expectedBalanceGt15);
+        Convert.ToInt32(reader.GetValue(12), CultureInfo.InvariantCulture).Should().Be(expectedBalanceLe1050);
+
+        return QueryResultSnapshotReader.CaptureRow(reader);
     }
 
-    private static void ValidateTextLengthRow(
+    private static QueryResultRowSnapshot ValidateTextLengthRow(
         DbDataReader reader,
         int expectedId,
         string expectedNameLenText,
@@ -891,19 +984,21 @@ WHERE (Email IS NULL OR Age IS NULL)
         int expectedTrimmedNameSameLen,
         int expectedUpperNameSameLen)
     {
-        Assert.Equal(expectedId, Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNameLenText, Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedEmailLenText, Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedUpperNameLenText, Convert.ToString(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedTrimmedNameLenText, Convert.ToString(reader.GetValue(4), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedEmailMinusNameText, Convert.ToString(reader.GetValue(5), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNameLenGe5, Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedEmailLenGe17, Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedTrimmedNameSameLen, Convert.ToInt32(reader.GetValue(8), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedUpperNameSameLen, Convert.ToInt32(reader.GetValue(9), CultureInfo.InvariantCulture));
+        Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedId);
+        Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedNameLenText);
+        Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedEmailLenText);
+        Convert.ToString(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedUpperNameLenText);
+        Convert.ToString(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(expectedTrimmedNameLenText);
+        Convert.ToString(reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(expectedEmailMinusNameText);
+        Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(expectedNameLenGe5);
+        Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture).Should().Be(expectedEmailLenGe17);
+        Convert.ToInt32(reader.GetValue(8), CultureInfo.InvariantCulture).Should().Be(expectedTrimmedNameSameLen);
+        Convert.ToInt32(reader.GetValue(9), CultureInfo.InvariantCulture).Should().Be(expectedUpperNameSameLen);
+
+        return QueryResultSnapshotReader.CaptureRow(reader);
     }
 
-    private static void ValidateTextCaseRow(
+    private static QueryResultRowSnapshot ValidateTextCaseRow(
         DbDataReader reader,
         int expectedId,
         string expectedNameUpper,
@@ -919,22 +1014,24 @@ WHERE (Email IS NULL OR Age IS NULL)
         string expectedEmailOrDefault,
         int expectedEmailIsNull)
     {
-        Assert.Equal(expectedId, Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNameUpper, Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNameLower, Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNameTrimmed, Convert.ToString(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNamePrefix, Convert.ToString(reader.GetValue(4), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNameLenText, Convert.ToString(reader.GetValue(5), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedIsAlreadyUpper, Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedIsAlreadyLower, Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedIsAlreadyTrimmed, Convert.ToInt32(reader.GetValue(8), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedStartsWithA, Convert.ToInt32(reader.GetValue(9), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedEndsWithA, Convert.ToInt32(reader.GetValue(10), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedEmailOrDefault, Convert.ToString(reader.GetValue(11), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedEmailIsNull, Convert.ToInt32(reader.GetValue(12), CultureInfo.InvariantCulture));
+        Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedId);
+        Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedNameUpper);
+        Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedNameLower);
+        Convert.ToString(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedNameTrimmed);
+        Convert.ToString(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(expectedNamePrefix);
+        Convert.ToString(reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(expectedNameLenText);
+        Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(expectedIsAlreadyUpper);
+        Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture).Should().Be(expectedIsAlreadyLower);
+        Convert.ToInt32(reader.GetValue(8), CultureInfo.InvariantCulture).Should().Be(expectedIsAlreadyTrimmed);
+        Convert.ToInt32(reader.GetValue(9), CultureInfo.InvariantCulture).Should().Be(expectedStartsWithA);
+        Convert.ToInt32(reader.GetValue(10), CultureInfo.InvariantCulture).Should().Be(expectedEndsWithA);
+        Convert.ToString(reader.GetValue(11), CultureInfo.InvariantCulture).Should().Be(expectedEmailOrDefault);
+        Convert.ToInt32(reader.GetValue(12), CultureInfo.InvariantCulture).Should().Be(expectedEmailIsNull);
+
+        return QueryResultSnapshotReader.CaptureRow(reader);
     }
 
-    private static void ValidateTypedPredicateRow(
+    private static QueryResultRowSnapshot ValidateTypedPredicateRow(
         DbDataReader reader,
         int expectedId,
         string expectedName,
@@ -946,15 +1043,17 @@ WHERE (Email IS NULL OR Age IS NULL)
         int expectedEmailIsNotNull,
         int expectedAgeIsNull)
     {
-        Assert.Equal(expectedId, Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedName, Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedStartsWithA, Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedNotEndsWithZ, Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedAgeBetween20And30, Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedBalanceBetween5And20, Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedEmailIsNull, Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedEmailIsNotNull, Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedAgeIsNull, Convert.ToInt32(reader.GetValue(8), CultureInfo.InvariantCulture));
+        Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedId);
+        Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedName);
+        Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedStartsWithA);
+        Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedNotEndsWithZ);
+        Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(expectedAgeBetween20And30);
+        Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(expectedBalanceBetween5And20);
+        Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(expectedEmailIsNull);
+        Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture).Should().Be(expectedEmailIsNotNull);
+        Convert.ToInt32(reader.GetValue(8), CultureInfo.InvariantCulture).Should().Be(expectedAgeIsNull);
+
+        return QueryResultSnapshotReader.CaptureRow(reader);
     }
 
     private static string? GetStringOrNull(DbDataReader reader, int ordinal)
@@ -963,7 +1062,7 @@ WHERE (Email IS NULL OR Age IS NULL)
         return rawValue is DBNull ? null : Convert.ToString(rawValue, CultureInfo.InvariantCulture);
     }
 
-    private static void ValidateTypedFieldRow(
+    private static QueryResultRowSnapshot ValidateTypedFieldRow(
         DbDataReader reader,
         int expectedId,
         string expectedName,
@@ -979,19 +1078,21 @@ WHERE (Email IS NULL OR Age IS NULL)
         int expectedProfileJsonIsNull,
         int expectedCreatedAtPresent)
     {
-        Assert.Equal(expectedId, Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedName, Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedUpperName, Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedLowerName, Convert.ToString(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedEmailOrDefault, Convert.ToString(reader.GetValue(4), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedBalanceRounded, Convert.ToDecimal(reader.GetValue(5), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedBalancePlus, Convert.ToDecimal(reader.GetValue(6), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedAgeOrZero, Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedAgeDelta, Convert.ToInt32(reader.GetValue(8), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedEmailIsNull, Convert.ToInt32(reader.GetValue(9), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedUpdatedAtIsNull, Convert.ToInt32(reader.GetValue(10), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedProfileJsonIsNull, Convert.ToInt32(reader.GetValue(11), CultureInfo.InvariantCulture));
-        Assert.Equal(expectedCreatedAtPresent, Convert.ToInt32(reader.GetValue(12), CultureInfo.InvariantCulture));
+        Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedId);
+        Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedName);
+        Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedUpperName);
+        Convert.ToString(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedLowerName);
+        Convert.ToString(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(expectedEmailOrDefault);
+        Convert.ToDecimal(reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(expectedBalanceRounded);
+        Convert.ToDecimal(reader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(expectedBalancePlus);
+        Convert.ToInt32(reader.GetValue(7), CultureInfo.InvariantCulture).Should().Be(expectedAgeOrZero);
+        Convert.ToInt32(reader.GetValue(8), CultureInfo.InvariantCulture).Should().Be(expectedAgeDelta);
+        Convert.ToInt32(reader.GetValue(9), CultureInfo.InvariantCulture).Should().Be(expectedEmailIsNull);
+        Convert.ToInt32(reader.GetValue(10), CultureInfo.InvariantCulture).Should().Be(expectedUpdatedAtIsNull);
+        Convert.ToInt32(reader.GetValue(11), CultureInfo.InvariantCulture).Should().Be(expectedProfileJsonIsNull);
+        Convert.ToInt32(reader.GetValue(12), CultureInfo.InvariantCulture).Should().Be(expectedCreatedAtPresent);
+
+        return QueryResultSnapshotReader.CaptureRow(reader);
     }
 
     private void ExpectIntScalar(string sql, int expected, string label)

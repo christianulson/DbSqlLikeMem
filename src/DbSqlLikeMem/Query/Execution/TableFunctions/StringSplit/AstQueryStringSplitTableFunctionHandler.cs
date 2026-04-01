@@ -95,34 +95,6 @@ internal sealed class AstQueryStringSplitTableFunctionHandler(
             };
         }
 
-        if (rawValue is decimal or double or float)
-        {
-            var numeric = Convert.ToDecimal(rawValue, CultureInfo.InvariantCulture);
-            return numeric switch
-            {
-                0m => false,
-                1m => true,
-                _ => throw new InvalidOperationException("STRING_SPLIT enable_ordinal must be 0 or 1 in the mock.")
-            };
-        }
-
-        var text = rawValue.ToString()?.Trim();
-        if (string.Equals(text, "0", StringComparison.Ordinal))
-            return false;
-
-        if (string.Equals(text, "1", StringComparison.Ordinal))
-            return true;
-
-        if (decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsedNumeric))
-        {
-            return parsedNumeric switch
-            {
-                0m => false,
-                1m => true,
-                _ => throw new InvalidOperationException("STRING_SPLIT enable_ordinal must be 0 or 1 in the mock.")
-            };
-        }
-
         throw new InvalidOperationException("STRING_SPLIT enable_ordinal must be 0 or 1 in the mock.");
     }
 }

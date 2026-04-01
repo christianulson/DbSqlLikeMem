@@ -1,3 +1,5 @@
+using DbSqlLikeMem.Models;
+
 namespace DbSqlLikeMem.MariaDb;
 
 internal static class MariaDbScalarFunctionRegistry
@@ -47,6 +49,15 @@ internal static class MariaDbScalarFunctionRegistry
             "VARCHAR",
             QueryMariaDbFunctionHelper.TryEvalFunctions);
 
+        dialect.AddScalarFunction(new DbFunctionDef(SqlConst.SUM, null, DbFunctionCapability.Aggregate)
+        {
+            PromotesIntegralInputsToDecimal = true
+        });
+        dialect.AddScalarFunction(new DbFunctionDef(SqlConst.AVG, null, DbFunctionCapability.Aggregate)
+        {
+            PromotesIntegralInputsToDecimal = true
+        });
+
         dialect.AddScalarFunctions(
             "VARBINARY",
             QueryMariaDbSpecialFunctionHelper.TryEvalSpecialFunctions,
@@ -82,5 +93,58 @@ internal static class MariaDbScalarFunctionRegistry
             "WSREP_SYNC_WAIT_UPTO_GTID",
             "INT",
             QueryMariaDbSpecialFunctionHelper.TryEvalSpecialFunctions);
+
+        dialect.AddScalarFunction(
+            "NEXT_VALUE_FOR",
+            "BIGINT",
+            TryEvalSequenceFunction);
+        dialect.AddScalarFunction(
+            "PREVIOUS_VALUE_FOR",
+            "BIGINT",
+            TryEvalSequenceFunction);
+    }
+
+    private static bool TryEvalSequenceFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = evalArg;
+        return SqlSequenceEvaluator.TryEvaluateCall(
+            context.Connection,
+            fn.Name,
+            fn.Args,
+            expr => ResolveSequenceArgValue(fn.Args, expr, evalArg),
+            out result);
+    }
+
+    private static object? ResolveSequenceArgValue(
+        IReadOnlyList<SqlExpr> args,
+        SqlExpr expr,
+        Func<int, object?> evalArg)
+    {
+        return expr switch
+        {
+            LiteralExpr lit => lit.Value,
+            RawSqlExpr raw => raw.Sql,
+            IdentifierExpr id => id.Name,
+            ColumnExpr col => string.IsNullOrWhiteSpace(col.Qualifier) ? col.Name : $"{col.Qualifier}.{col.Name}",
+            _ => ResolveSequenceArgValueByReference(args, expr, evalArg)
+        };
+    }
+
+    private static object? ResolveSequenceArgValueByReference(
+        IReadOnlyList<SqlExpr> args,
+        SqlExpr expr,
+        Func<int, object?> evalArg)
+    {
+        for (var i = 0; i < args.Count; i++)
+        {
+            if (ReferenceEquals(args[i], expr))
+                return evalArg(i);
+        }
+
+        return null;
     }
 }

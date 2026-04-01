@@ -1,4 +1,5 @@
 using Dapper;
+using FluentAssertions;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -73,6 +74,29 @@ public abstract class DapperSupportTestsBase(
     protected abstract DbConnection CreateOpenConnection();
 
     /// <summary>
+    /// EN: Provides the provider-specific SQL dialect used by pagination helpers.
+    /// PT: Fornece o dialeto SQL especifico do provedor usado pelos helpers de paginacao.
+    /// </summary>
+    protected abstract ProviderSqlDialect Dialect { get; }
+
+    /// <summary>
+    /// EN: Builds the pagination query using provider-specific syntax derived from the dialect hook.
+    /// PT: Monta a query de paginacao usando a sintaxe especifica do provedor derivada do hook do dialeto.
+    /// </summary>
+    /// <param name="tableName">EN: Name of the table being paginated. PT: Nome da tabela paginada.</param>
+    /// <param name="orderByClause">EN: ORDER BY clause used to keep the page deterministic. PT: Clausula ORDER BY usada para manter a pagina deterministica.</param>
+    /// <param name="offset">EN: Number of rows to skip before the page starts. PT: Numero de linhas a ignorar antes do inicio da pagina.</param>
+    /// <param name="fetch">EN: Number of rows to return. PT: Numero de linhas a retornar.</param>
+    protected virtual string BuildPaginationQuery(string tableName, string orderByClause, int offset, int fetch)
+    {
+        var sample = Dialect.PagedNameProjection(tableName, offset, fetch);
+        if (sample.Contains("LIMIT", StringComparison.OrdinalIgnoreCase))
+            return $"SELECT id FROM {tableName} ORDER BY {orderByClause} LIMIT {fetch} OFFSET {offset}";
+
+        return $"SELECT id FROM {tableName} ORDER BY {orderByClause} OFFSET {offset} ROWS FETCH NEXT {fetch} ROWS ONLY";
+    }
+
+    /// <summary>
     /// EN: Verifies Dapper can execute parameterized CASE WHEN aggregates with grouped ordering.
     /// PT: Verifica se o Dapper executa agregações CASE WHEN parametrizadas com ordenação agrupada.
     /// </summary>
@@ -92,14 +116,12 @@ public abstract class DapperSupportTestsBase(
 
         var rows = connection.Query<(string category, int score)>(@"SELECT
   category,
-  SUM(CASE WHEN amount >= @cutoff THEN 1 ELSE 0 END) score
+  CAST(SUM(CASE WHEN amount >= @cutoff THEN 1 ELSE 0 END) AS INT) score
 FROM dapper_case_group
 GROUP BY category
 ORDER BY category", new { cutoff = 50 }).ToList();
 
-        Assert.Equal(2, rows.Count);
-        Assert.Equal(("A", 1), rows[0]);
-        Assert.Equal(("B", 1), rows[1]);
+        rows.Should().Equal(new[] {("A", 1), ("B", 1)});
     }
 
     /// <summary>
@@ -124,7 +146,7 @@ ORDER BY category", new { cutoff = 50 }).ToList();
             "SELECT COUNT(*) FROM dapper_like_users WHERE name LIKE @contains OR name LIKE @fixed1",
             new { contains = "%li%", fixed1 = "A__" });
 
-        Assert.Equal(3, count);
+        count.Should().Be(3);
     }
 
     /// <summary>
@@ -141,17 +163,18 @@ ORDER BY category", new { cutoff = 50 }).ToList();
         for (var i = 1; i <= 9; i++)
             connection.Execute("INSERT INTO dapper_page_users (id, grp) VALUES (@id, @grp)", new { id = i, grp = i <= 3 ? 1 : i <= 6 ? 2 : 3 });
 
-        List<int> ReadPage(int offset) => connection.Query<int>($"SELECT id FROM dapper_page_users ORDER BY grp, id OFFSET {offset} ROWS FETCH NEXT 3 ROWS ONLY").ToList();
+        List<int> ReadPage(int offset) =>
+            connection.Query<int>(BuildPaginationQuery("dapper_page_users", "grp, id", offset, 3)).ToList();
 
         var p1 = ReadPage(0);
         var p2 = ReadPage(3);
         var p3 = ReadPage(6);
 
-        Assert.Equal([1, 2, 3], p1);
-        Assert.Equal([4, 5, 6], p2);
-        Assert.Equal([7, 8, 9], p3);
-        Assert.Empty(p1.Intersect(p2));
-        Assert.Empty(p2.Intersect(p3));
+        p1.Should().Equal(new[] { 1, 2, 3 });
+        p2.Should().Equal(new[] { 4, 5, 6 });
+        p3.Should().Equal(new[] { 7, 8, 9 });
+        p1.Intersect(p2).Should().BeEmpty();
+        p2.Intersect(p3).Should().BeEmpty();
     }
 
 
@@ -177,7 +200,7 @@ ORDER BY category", new { cutoff = 50 }).ToList();
             "SELECT COUNT(*) FROM dapper_null_in_or WHERE (nickname IS NULL OR nickname IN (@a, @b)) AND kind = @kind",
             new { a = "Ana", b = "Bob", kind = "staff" });
 
-        Assert.Equal(3, count);
+        count.Should().Be(3);
     }
 
     /// <summary>
@@ -202,8 +225,8 @@ ORDER BY category", new { cutoff = 50 }).ToList();
 FROM dapper_scalar_users u
 WHERE u.id = 1");
 
-        Assert.Equal("Alice", row.name);
-        Assert.Equal(25, row.firstAmount);
+        row.name.Should().Be("Alice");
+        row.firstAmount.Should().Be(25);
     }
 
     /// <summary>
@@ -215,28 +238,28 @@ WHERE u.id = 1");
     public void Dapper_Connection_TransactionSequence_ShouldRollbackThenCommitExpectedState()
     {
         using var connection = CreateOpenConnection();
-        connection.Execute("CREATE TABLE dapper_tx_sequence (id INT PRIMARY KEY, value INT)");
+        connection.Execute("CREATE TABLE dapper_tx_sequence (id INT PRIMARY KEY, amount INT)");
 
         using (var tx = connection.BeginTransaction())
         {
-            connection.Execute("INSERT INTO dapper_tx_sequence (id, value) VALUES (1, 10), (2, 20)", transaction: tx);
-            connection.Execute("UPDATE dapper_tx_sequence SET value = value + 5 WHERE id = 1", transaction: tx);
+            connection.Execute("INSERT INTO dapper_tx_sequence (id, amount) VALUES (1, 10), (2, 20)", transaction: tx);
+            connection.Execute("UPDATE dapper_tx_sequence SET amount = amount + 5 WHERE id = 1", transaction: tx);
             connection.Execute("DELETE FROM dapper_tx_sequence WHERE id = 2", transaction: tx);
             tx.Rollback();
         }
 
-        Assert.Equal(0, connection.ExecuteScalar<int>("SELECT COUNT(*) FROM dapper_tx_sequence"));
+        connection.ExecuteScalar<int>("SELECT COUNT(*) FROM dapper_tx_sequence").Should().Be(0);
 
         using (var tx = connection.BeginTransaction())
         {
-            connection.Execute("INSERT INTO dapper_tx_sequence (id, value) VALUES (1, 10), (2, 20)", transaction: tx);
-            connection.Execute("UPDATE dapper_tx_sequence SET value = value + 5 WHERE id = 1", transaction: tx);
+            connection.Execute("INSERT INTO dapper_tx_sequence (id, amount) VALUES (1, 10), (2, 20)", transaction: tx);
+            connection.Execute("UPDATE dapper_tx_sequence SET amount = amount + 5 WHERE id = 1", transaction: tx);
             connection.Execute("DELETE FROM dapper_tx_sequence WHERE id = 2", transaction: tx);
             tx.Commit();
         }
 
-        var values = connection.Query<int>("SELECT value FROM dapper_tx_sequence ORDER BY id").ToList();
-        Assert.Equal([15], values);
+        var values = connection.Query<int>("SELECT amount FROM dapper_tx_sequence ORDER BY id").ToList();
+        values.Should().Equal(new[] {15});
     }
 
 
@@ -261,14 +284,13 @@ WHERE u.id = 1");
 
         var rows = connection.Query<(string category, int score)>(@"SELECT
   category,
-  SUM(CASE WHEN amount >= @high THEN 2 WHEN amount >= @mid THEN 1 ELSE 0 END) score
+  CAST(SUM(CASE WHEN amount >= @high THEN 2 WHEN amount >= @mid THEN 1 ELSE 0 END) AS INT) score
 FROM dapper_case_having
 GROUP BY category
 HAVING SUM(CASE WHEN amount >= @high THEN 2 WHEN amount >= @mid THEN 1 ELSE 0 END) >= @minScore
 ORDER BY category", new { high = 100, mid = 50, minScore = 2 }).ToList();
 
-        Assert.Single(rows);
-        Assert.Equal(("A", 3), rows[0]);
+        rows.Should().ContainSingle().Which.Should().Be(("A", 3));
     }
 
     /// <summary>
@@ -293,9 +315,9 @@ ORDER BY category", new { high = 100, mid = 50, minScore = 2 }).ToList();
         int countFixed = connection.ExecuteScalar<int>("SELECT COUNT(*) FROM dapper_like_variants WHERE name LIKE @p", new { p = "A____" });
         int countSuffix = connection.ExecuteScalar<int>("SELECT COUNT(*) FROM dapper_like_variants WHERE name LIKE @p", new { p = "%bet" });
 
-        Assert.Equal(2, countContains);
-        Assert.Equal(2, countFixed);
-        Assert.Equal(1, countSuffix);
+        countContains.Should().Be(2);
+        countFixed.Should().Be(2);
+        countSuffix.Should().Be(1);
     }
 
     /// <summary>
@@ -317,8 +339,8 @@ ORDER BY category", new { high = 100, mid = 50, minScore = 2 }).ToList();
 FROM dapper_scalar_null_users u
 WHERE u.id = 1");
 
-        Assert.Equal(1, row.id);
-        Assert.Null(row.totalAmount);
+        row.id.Should().Be(1);
+        row.totalAmount.Should().BeNull();
     }
 
     /// <summary>
@@ -335,14 +357,15 @@ WHERE u.id = 1");
         for (var i = 1; i <= 9; i++)
             connection.Execute("INSERT INTO dapper_page_repeat (id, grp) VALUES (@id, @grp)", new { id = i, grp = i <= 3 ? 1 : i <= 6 ? 2 : 3 });
 
-        List<int> ReadPage(int offset) => connection.Query<int>($"SELECT id FROM dapper_page_repeat ORDER BY grp, id OFFSET {offset} ROWS FETCH NEXT 3 ROWS ONLY").ToList();
+        List<int> ReadPage(int offset) =>
+            connection.Query<int>(BuildPaginationQuery("dapper_page_repeat", "grp, id", offset, 3)).ToList();
 
         var p1a = ReadPage(0); var p2a = ReadPage(3); var p3a = ReadPage(6);
         var p1b = ReadPage(0); var p2b = ReadPage(3); var p3b = ReadPage(6);
 
-        Assert.Equal(p1a, p1b);
-        Assert.Equal(p2a, p2b);
-        Assert.Equal(p3a, p3b);
+        p1a.Should().Equal(p1b);
+        p2a.Should().Equal(p2b);
+        p3a.Should().Equal(p3b);
     }
 
     /// <summary>
@@ -354,17 +377,17 @@ WHERE u.id = 1");
     public void Dapper_Connection_TransactionReadAfterWrite_ShouldObserveCurrentScopeBeforeRollback()
     {
         using var connection = CreateOpenConnection();
-        connection.Execute("CREATE TABLE dapper_tx_read_write (id INT PRIMARY KEY, value INT)");
-        connection.Execute("INSERT INTO dapper_tx_read_write (id, value) VALUES (1, 10)");
+        connection.Execute("CREATE TABLE dapper_tx_read_write (id INT PRIMARY KEY, amount INT)");
+        connection.Execute("INSERT INTO dapper_tx_read_write (id, amount) VALUES (1, 10)");
 
         using var tx = connection.BeginTransaction();
-        connection.Execute("UPDATE dapper_tx_read_write SET value = value + 7 WHERE id = 1", transaction: tx);
-        var inside = connection.ExecuteScalar<int>("SELECT value FROM dapper_tx_read_write WHERE id = 1", transaction: tx);
+        connection.Execute("UPDATE dapper_tx_read_write SET amount = amount + 7 WHERE id = 1", transaction: tx);
+        var inside = connection.ExecuteScalar<int>("SELECT amount FROM dapper_tx_read_write WHERE id = 1", transaction: tx);
         tx.Rollback();
 
-        var outside = connection.ExecuteScalar<int>("SELECT value FROM dapper_tx_read_write WHERE id = 1");
-        Assert.Equal(17, inside);
-        Assert.Equal(10, outside);
+        var outside = connection.ExecuteScalar<int>("SELECT amount FROM dapper_tx_read_write WHERE id = 1");
+        inside.Should().Be(17);
+        outside.Should().Be(10);
     }
 
     /// <summary>
@@ -384,7 +407,7 @@ WHERE u.id = 1");
             "SELECT COUNT(*) FROM dapper_null_param WHERE nickname IS NULL OR nickname = @nickname",
             new { nickname = (string?)null });
 
-        Assert.Equal(1, count);
+        count.Should().Be(1);
     }
 
     /// <summary>
@@ -408,7 +431,7 @@ WHERE u.id = 1");
         }
 
         var persistedName = connection.ExecuteScalar<string>("SELECT name FROM dapper_tx_commit_users WHERE id = @id", new { id = 1 });
-        Assert.Equal("Committed", persistedName);
+        persistedName.Should().Be("Committed");
     }
 
     /// <summary>
@@ -434,8 +457,7 @@ WHERE u.id = 1");
             "SELECT id, amount FROM dapper_typed_params WHERE amount >= @minimumAmount AND created_at >= @minimumDate ORDER BY id",
             new { minimumAmount = 20.00m, minimumDate = baselineDate }).ToList();
 
-        Assert.Single(rows);
-        Assert.Equal((2, 25.50m), rows[0]);
+        rows.Should().ContainSingle().Which.Should().Be((2, 25.50m));
     }
 
     /// <summary>
@@ -463,10 +485,11 @@ FROM dapper_join_users u
 INNER JOIN dapper_join_departments d ON d.id = u.department_id
 ORDER BY d.name, u.name").ToList();
 
-        Assert.Equal(3, rows.Count);
-        Assert.Equal(("Engineering", "Alice"), rows[0]);
-        Assert.Equal(("Engineering", "Bob"), rows[1]);
-        Assert.Equal(("Sales", "Carol"), rows[2]);
+        rows.Should().Equal(new[] {
+            ("Engineering", "Alice"),
+            ("Engineering", "Bob"),
+            ("Sales", "Carol")
+        });
     }
 
     /// <summary>
@@ -491,7 +514,7 @@ LEFT JOIN dapper_left_orders o ON o.user_id = u.id
 WHERE o.id IS NULL
 ORDER BY u.id").ToList();
 
-        Assert.Equal([2], userIdsWithoutOrders);
+        userIdsWithoutOrders.Should().Equal(new[] {2});
     }
 
     /// <summary>
@@ -518,9 +541,7 @@ WHERE u.id IN (@a, @b, @c)
   AND EXISTS (SELECT 1 FROM dapper_exists_orders o WHERE o.user_id = u.id)
 ORDER BY u.id", new { a = 1, b = 2, c = 3 }).ToList();
 
-        Assert.Equal(2, rows.Count);
-        Assert.Equal((1, "Alice"), rows[0]);
-        Assert.Equal((3, "Carol"), rows[1]);
+        rows.Should().Equal(new[] {(1, "Alice"), (3, "Carol")});
     }
 
     /// <summary>
@@ -548,8 +569,8 @@ SELECT user_id userId, amount FROM dapper_qm_orders WHERE amount >= @minAmount O
         var users = multi.Read<(int id, string name)>().ToList();
         var orders = multi.Read<(int userId, int amount)>().ToList();
 
-        Assert.Equal([(1, "Alice"), (2, "Bob")], users);
-        Assert.Equal([(1, 45), (1, 30)], orders);
+        users.Should().Equal(new[] {(1, "Alice"), (2, "Bob")});
+        orders.Should().Equal(new[] {(1, 45), (1, 30)});
     }
 
     /// <summary>
@@ -583,9 +604,9 @@ WHERE u.id = @id",
             new { id = 1 },
             splitOn: "TenantId").Single();
 
-        Assert.Equal(1, row.Id);
-        Assert.Equal("Alice", row.Name);
-        Assert.Equal([7], row.Tenants);
+        row.Id.Should().Be(1);
+        row.Name.Should().Be("Alice");
+        row.Tenants.Should().Equal(new[] {7});
     }
 
     private sealed class DapperMultiMapUser
@@ -688,7 +709,7 @@ public abstract class DapperCrudTestsBase(
     public void TestSelectQuery()
     {
         var users = _connection.Query<UserObjectTest>("SELECT * FROM Users").ToList();
-        Assert.NotNull(users);
+        users.Should().NotBeNull();
     }
 
     /// <summary>
@@ -715,13 +736,14 @@ public abstract class DapperCrudTestsBase(
         IEnumerable<dynamic> result;
         using (var reader = command.ExecuteReader())
         {
-            result = [.. reader.Parse<dynamic>()];
+            result = reader.Parse<dynamic>().ToList();
         }
 
-        Assert.Single(result);
-        Assert.Equal(1, result.First().id);
-        Assert.Equal("John Doe", result.First().name);
-        Assert.Equal(dt, result.First().CreatedDate);
+        result.Should().ContainSingle();
+        var row = result.First();
+        ((int)row.id).Should().Be(1);
+        ((string)row.name).Should().Be("John Doe");
+        ((DateTime)row.CreatedDate).Should().Be(dt);
     }
 
     /// <summary>
@@ -747,11 +769,11 @@ public abstract class DapperCrudTestsBase(
             "INSERT INTO users (id, name, createdDate) VALUES (@id, @name, @dt)",
             new { id = 1, name = "John Doe", dt });
 
-        Assert.Equal(1, rowsAffected);
-        Assert.Single(table);
-        Assert.Equal(1, table[0][0]);
-        Assert.Equal("John Doe", table[0][1]);
-        Assert.Equal(dt, table[0][2]);
+        rowsAffected.Should().Be(1);
+        table.Should().ContainSingle();
+        table[0][0].Should().Be(1);
+        table[0][1].Should().Be("John Doe");
+        table[0][2].Should().Be(dt);
     }
 
     /// <summary>
@@ -774,10 +796,10 @@ public abstract class DapperCrudTestsBase(
 
         table.AddItem(new { id = 1, name = "John Doe", CreatedDate = dtInsert });
 
-        Assert.Single(table);
-        Assert.Equal("John Doe", table[0][1]);
-        Assert.Equal(dtInsert, table[0][2]);
-        Assert.Null(table[0][3]);
+        table.Should().ContainSingle();
+        table[0][1].Should().Be("John Doe");
+        table[0][2].Should().Be(dtInsert);
+        table[0][3].Should().BeNull();
 
         using var connection = _connectionFactory(db);
         connection.Open();
@@ -788,11 +810,11 @@ UPDATE users
      , UpdatedData = @dtUpdate 
  WHERE id = @id", new { id = 1, name = "Jane Doe", dtUpdate });
 
-        Assert.Equal(1, rowsAffected);
-        Assert.Single(table);
-        Assert.Equal("Jane Doe", table[0][1]);
-        Assert.Equal(dtInsert, table[0][2]);
-        Assert.Equal(dtUpdate, table[0][3]);
+        rowsAffected.Should().Be(1);
+        table.Should().ContainSingle();
+        table[0][1].Should().Be("Jane Doe");
+        table[0][2].Should().Be(dtInsert);
+        table[0][3].Should().Be(dtUpdate);
     }
 
     /// <summary>
@@ -815,8 +837,8 @@ UPDATE users
 
         var rowsAffected = connection.Execute("DELETE FROM users WHERE id = @id", new { id = 1 });
 
-        Assert.Equal(1, rowsAffected);
-        Assert.Empty(table);
+        rowsAffected.Should().Be(1);
+        table.Should().BeEmpty();
     }
 
     /// <summary>
@@ -857,21 +879,21 @@ UPDATE users
             } while (reader.NextResult());
         }
 
-        Assert.Equal(2, resultSets.Count);
+        resultSets.Should().HaveCount(2);
 
         var users = resultSets[0].ToList();
-        Assert.Single(users);
-        Assert.Equal(1, users[0].id);
-        Assert.Equal("John Doe", users[0].name);
+        users.Should().ContainSingle();
+        ((int)users[0].id).Should().Be(1);
+        ((string)users[0].name).Should().Be("John Doe");
 
         var emails = resultSets[1].ToList();
-        Assert.Equal(2, emails.Count);
-        Assert.Equal(1, emails[0].id);
-        Assert.Equal("john.doe@example.com", emails[0].email);
-        Assert.Equal(dt, emails[0].CreatedDate);
-        Assert.Equal(2, emails[1].id);
-        Assert.Equal("jane.doe@example.com", emails[1].email);
-        Assert.Equal(dt2, emails[1].CreatedDate);
+        emails.Should().HaveCount(2);
+        ((int)emails[0].id).Should().Be(1);
+        ((string)emails[0].email).Should().Be("john.doe@example.com");
+        ((DateTime)emails[0].CreatedDate).Should().Be(dt);
+        ((int)emails[1].id).Should().Be(2);
+        ((string)emails[1].email).Should().Be("jane.doe@example.com");
+        ((DateTime)emails[1].CreatedDate).Should().Be(dt2);
     }
 
     /// <inheritdoc />
@@ -1004,8 +1026,8 @@ public abstract class DapperUserTestsBase(
             "INSERT INTO Users (Id, Name, Email, CreatedDate, UpdatedData, TestGuid, TestGuidNull) VALUES (@Id, @Name, @Email, @CreatedDate, @UpdatedData, @TestGuid, @TestGuidNull)",
             user);
 
-        Assert.Equal(1, rowsAffected);
-        Assert.Single(table);
+        rowsAffected.Should().Be(1);
+        table.Should().ContainSingle();
         AssertUserRow(table[0], user);
     }
 
@@ -1027,14 +1049,14 @@ public abstract class DapperUserTestsBase(
             "SELECT * FROM Users WHERE Id = @Id",
             new { user.Id }).FirstOrDefault();
 
-        Assert.NotNull(result);
-        Assert.Equal(user.Id, result!.Id);
-        Assert.Equal(user.Name, result.Name);
-        Assert.Equal(user.Email, result.Email);
-        Assert.Equal(user.CreatedDate, result.CreatedDate);
-        Assert.Equal(user.UpdatedData, result.UpdatedData);
-        Assert.Equal(user.TestGuid, result.TestGuid);
-        Assert.Equal(user.TestGuidNull, result.TestGuidNull);
+        result.Should().NotBeNull();
+        result!.Id.Should().Be(user.Id);
+        result.Name.Should().Be(user.Name);
+        result.Email.Should().Be(user.Email);
+        result.CreatedDate.Should().Be(user.CreatedDate);
+        result.UpdatedData.Should().Be(user.UpdatedData);
+        result.TestGuid.Should().Be(user.TestGuid);
+        result.TestGuidNull.Should().Be(user.TestGuidNull);
     }
 
     /// <summary>
@@ -1068,8 +1090,8 @@ public abstract class DapperUserTestsBase(
             "UPDATE Users SET Name = @Name, Email = @Email, UpdatedData = @UpdatedData, TestGuidNull = @TestGuidNull WHERE Id = @Id",
             updatedUser);
 
-        Assert.Equal(1, rowsAffected);
-        Assert.Single(table);
+        rowsAffected.Should().Be(1);
+        table.Should().ContainSingle();
         AssertUserRow(table[0], updatedUser);
     }
 
@@ -1091,8 +1113,8 @@ public abstract class DapperUserTestsBase(
 
         var rowsAffected = connection.Execute("DELETE FROM Users WHERE Id = @Id", new { user.Id });
 
-        Assert.Equal(1, rowsAffected);
-        Assert.Empty(table);
+        rowsAffected.Should().Be(1);
+        table.Should().BeEmpty();
     }
 
     /// <summary>
@@ -1133,19 +1155,19 @@ public abstract class DapperUserTestsBase(
             } while (reader.NextResult());
         }
 
-        Assert.Equal(2, resultSets.Count);
+        resultSets.Should().HaveCount(2);
 
         var users1 = resultSets[0].ToList();
-        Assert.Single(users1);
-        Assert.Equal(1, users1[0].Id);
-        Assert.Equal("John Doe", users1[0].Name);
-        Assert.Equal("john.doe@example.com", users1[0].Email);
+        users1.Should().ContainSingle();
+        users1[0].Id.Should().Be(1);
+        users1[0].Name.Should().Be("John Doe");
+        users1[0].Email.Should().Be("john.doe@example.com");
 
         var users2 = resultSets[1].ToList();
-        Assert.Single(users2);
-        Assert.Equal(2, users2[0].Id);
-        Assert.Equal("Jane Doe", users2[0].Name);
-        Assert.Equal("jane.doe@example.com", users2[0].Email);
+        users2.Should().ContainSingle();
+        users2[0].Id.Should().Be(2);
+        users2[0].Name.Should().Be("Jane Doe");
+        users2[0].Email.Should().Be("jane.doe@example.com");
     }
 
     /// <summary>
@@ -1179,12 +1201,12 @@ public abstract class DapperUserTestsBase(
             new { Id = 1 },
             splitOn: "TenantId").FirstOrDefault();
 
-        Assert.NotNull(result);
-        Assert.Equal(1, result!.Id);
-        Assert.Equal("John Doe", result.Name);
-        Assert.Equal("john.doe@example.com", result.Email);
-        Assert.Single(result.Tenants);
-        Assert.Equal(1, result.Tenants[0]);
+        result.Should().NotBeNull();
+        result!.Id.Should().Be(1);
+        result.Name.Should().Be("John Doe");
+        result.Email.Should().Be("john.doe@example.com");
+        result.Tenants.Should().ContainSingle();
+        result.Tenants[0].Should().Be(1);
     }
 
     private static ITableMock CreateUserTable(DbMock db, string tableName)
@@ -1227,13 +1249,13 @@ public abstract class DapperUserTestsBase(
 
     private static void AssertUserRow(IReadOnlyDictionary<int, object?> row, DapperUserContractModel user)
     {
-        Assert.Equal(user.Id, row[0]);
-        Assert.Equal(user.Name, row[1]);
-        Assert.Equal(user.Email, row[2]);
-        Assert.Equal(user.CreatedDate, row[3]);
-        Assert.Equal(user.UpdatedData, row[4]);
-        Assert.Equal(user.TestGuid, row[5]);
-        Assert.Equal(user.TestGuidNull, row[6]);
+        row[0].Should().Be(user.Id);
+        row[1].Should().Be(user.Name);
+        row[2].Should().Be(user.Email);
+        row[3].Should().Be(user.CreatedDate);
+        row[4].Should().Be(user.UpdatedData);
+        row[5].Should().Be(user.TestGuid);
+        row[6].Should().Be(user.TestGuidNull);
     }
 }
 
@@ -1304,7 +1326,7 @@ public abstract class StoredProcedureExecutionTestsBase<TConnection, TCommand, T
 
         var affected = cmd.ExecuteNonQuery();
 
-        Assert.Equal(0, affected);
+        affected.Should().Be(0);
     }
 
     /// <summary>
@@ -1329,8 +1351,8 @@ public abstract class StoredProcedureExecutionTestsBase<TConnection, TCommand, T
         using var cmd = CreateStoredProcedureCommand(c, "sp_add_user");
         cmd.Parameters.Add(CreateParameter("p_name", "John", DbType.String));
 
-        var ex = Assert.Throws<TException>(() => cmd.ExecuteNonQuery());
-        Assert.Equal(1318, GetErrorCode(ex));
+        var ex = FluentActions.Invoking(() => cmd.ExecuteNonQuery()).Should().Throw<TException>().Which;
+        GetErrorCode(ex).Should().Be(1318);
     }
 
     /// <summary>
@@ -1356,8 +1378,8 @@ public abstract class StoredProcedureExecutionTestsBase<TConnection, TCommand, T
         cmd.Parameters.Add(CreateParameter("p_name", "John", DbType.String));
         cmd.Parameters.Add(CreateParameter("p_email", null, DbType.String));
 
-        var ex = Assert.Throws<TException>(() => cmd.ExecuteNonQuery());
-        Assert.Equal(1048, GetErrorCode(ex));
+        var ex = FluentActions.Invoking(() => cmd.ExecuteNonQuery()).Should().Throw<TException>().Which;
+        GetErrorCode(ex).Should().Be(1048);
     }
 
     /// <summary>
@@ -1389,8 +1411,8 @@ public abstract class StoredProcedureExecutionTestsBase<TConnection, TCommand, T
 
         cmd.ExecuteNonQuery();
 
-        Assert.Equal(string.Empty, ((TParameter)cmd.Parameters["@o_token"]).Value);
-        Assert.Equal(0, ((TParameter)cmd.Parameters["@o_status"]).Value);
+        ((TParameter)cmd.Parameters["@o_token"]).Value.Should().Be(string.Empty);
+        ((TParameter)cmd.Parameters["@o_status"]).Value.Should().Be(0);
     }
 
     /// <summary>
@@ -1413,8 +1435,8 @@ public abstract class StoredProcedureExecutionTestsBase<TConnection, TCommand, T
 
         using var r = cmd.ExecuteReader();
 
-        Assert.Equal(0, r.FieldCount);
-        Assert.False(r.Read());
+        r.FieldCount.Should().Be(0);
+        r.Read().Should().BeFalse();
     }
 
     /// <summary>
@@ -1438,7 +1460,7 @@ public abstract class StoredProcedureExecutionTestsBase<TConnection, TCommand, T
 
         command.ExecuteNonQuery();
 
-        Assert.Equal(0, command.Parameters["@ret"].Value);
+        command.Parameters["@ret"].Value.Should().Be(0);
     }
 
     /// <summary>
@@ -1459,8 +1481,8 @@ public abstract class StoredProcedureExecutionTestsBase<TConnection, TCommand, T
         using var command = CreateStoredProcedureCommand(c, "sp_with_input");
         command.Parameters.Add(CreateParameter("p_id", 1, DbType.Int32, ParameterDirection.Output));
 
-        var exception = Assert.Throws<TException>(() => command.ExecuteNonQuery());
-        Assert.Equal(1414, GetErrorCode(exception));
+        var exception = FluentActions.Invoking(() => command.ExecuteNonQuery()).Should().Throw<TException>().Which;
+        GetErrorCode(exception).Should().Be(1414);
     }
 
     /// <summary>
@@ -1487,7 +1509,7 @@ public abstract class StoredProcedureExecutionTestsBase<TConnection, TCommand, T
             new { p_name = "John", p_email = "john@x.com" },
             commandType: CommandType.StoredProcedure);
 
-        Assert.Equal(0, affected);
+        affected.Should().Be(0);
     }
 
     /// <summary>
@@ -1509,13 +1531,13 @@ public abstract class StoredProcedureExecutionTestsBase<TConnection, TCommand, T
             OutParams: [],
             ReturnParam: null));
 
-        var ex = Assert.Throws<TException>(() =>
+        var ex = FluentActions.Invoking(() =>
             c.Execute(
                 "sp_add_user",
                 new { p_name = "John" },
-                commandType: CommandType.StoredProcedure));
+                commandType: CommandType.StoredProcedure)).Should().Throw<TException>().Which;
 
-        Assert.Equal(1318, GetErrorCode(ex));
+        GetErrorCode(ex).Should().Be(1318);
     }
 }
 
@@ -1573,11 +1595,11 @@ public abstract class QueryExecutorExtrasTestsBase<TDb, TConnection, TCommand, T
     /// </summary>
     protected virtual void AssertPaginationSql(string sql)
     {
-        Assert.Contains("OFFSET 2", sql, StringComparison.OrdinalIgnoreCase);
-        Assert.True(
+        sql.Contains("OFFSET 2", StringComparison.OrdinalIgnoreCase).Should().BeTrue();
+        (
             sql.Contains("LIMIT 3", StringComparison.OrdinalIgnoreCase)
-            || Regex.IsMatch(sql, @"FETCH\s+NEXT\s+3\s+ROWS\s+ONLY", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant),
-            $"Expected LIMIT/FETCH pagination fragment in SQL: {sql}");
+            || Regex.IsMatch(sql, @"FETCH\s+NEXT\s+3\s+ROWS\s+ONLY", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)
+        ).Should().BeTrue($"Expected LIMIT/FETCH pagination fragment in SQL: {sql}");
     }
 
     /// <summary>
@@ -1611,13 +1633,13 @@ GROUP BY grp
         using var reader = cmd.ExecuteReader();
         var rows = reader.Parse<dynamic>().ToList();
 
-        Assert.Equal(2, rows.Count);
+        rows.Should().HaveCount(2);
         var a = rows.Single(r => r.grp == "A");
-        Assert.Equal(2L, a.C);
-        Assert.Equal(40m, a.S);
-        Assert.Equal(20m, a.A);
-        Assert.Equal(10m, a.MI);
-        Assert.Equal(30m, a.MA);
+        ((long)a.C).Should().Be(2L);
+        ((decimal)a.S).Should().Be(40m);
+        ((decimal)a.A).Should().Be(20m);
+        ((decimal)a.MI).Should().Be(10m);
+        ((decimal)a.MA).Should().Be(30m);
     }
 
     /// <summary>
@@ -1641,10 +1663,10 @@ GROUP BY grp
         using var reader = cmd.ExecuteReader();
         var ids = reader.Parse<dynamic>().Select(r => (int)r.id).ToList();
 
-        Assert.Equal([4, 3], ids);
+        ids.Should().Equal(new[] {4, 3});
         reader.NextResult();
         var ids2 = reader.Parse<dynamic>().Select(r => (int)r.id).ToList();
-        Assert.Equal([4, 3], ids2);
+        ids2.Should().Equal(new[] {4, 3});
     }
 
     /// <summary>
@@ -1665,7 +1687,7 @@ GROUP BY grp
         var translator = GetTranslatorFromProvider(q.Provider);
         var sql = TranslateSql(translator, q.Expression);
 
-        Assert.StartsWith("SELECT * FROM QueryExecutorFoo WHERE", sql, StringComparison.OrdinalIgnoreCase);
+        sql.StartsWith("SELECT * FROM QueryExecutorFoo WHERE", StringComparison.OrdinalIgnoreCase).Should().BeTrue();
         AssertPaginationSql(sql);
     }
 
@@ -1744,7 +1766,7 @@ public abstract class DapperJoinTestsBase<TDb, TConnection>(
                   """;
 
         var rows = connection.Query<dynamic>(sql).ToList();
-        Assert.Contains(rows, r => (int)r.id == 2);
+        rows.Select(r => (int)r.id).Should().Contain(2);
     }
 
     /// <summary>
@@ -1760,8 +1782,10 @@ public abstract class DapperJoinTestsBase<TDb, TConnection>(
                   RIGHT JOIN orders o ON u.id = o.userId
                   """;
 
-        var rows = connection.Query<dynamic>(sql).ToList();
-        Assert.Contains(rows, r => r.id is null && (int)r.orderId == 12);
+        var rows = connection.Query<dynamic>(sql)
+            .Select(r => new { Id = (int?)r.id, OrderId = (int)r.orderId })
+            .ToList();
+        rows.Should().Contain(r => r.Id == null && r.OrderId == 12);
     }
 
     /// <summary>
@@ -1778,8 +1802,8 @@ public abstract class DapperJoinTestsBase<TDb, TConnection>(
                   """;
 
         var rows = connection.Query<dynamic>(sql).ToList();
-        Assert.Single(rows);
-        Assert.Equal(10, (int)rows[0].orderId);
+        rows.Should().ContainSingle();
+        ((int)rows[0].orderId).Should().Be(10);
     }
 
     private TConnection CreateOpenConnection()
@@ -1849,11 +1873,11 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
         connection.Execute("INSERT INTO Users (Id, Name, Email) VALUES (@Id, @Name, @Email)", user, transaction);
         connection.CommitTransaction();
 
-        Assert.Single(table);
+        table.Should().ContainSingle();
         var insertedRow = table[0];
-        Assert.Equal(user.Id, insertedRow[0]);
-        Assert.Equal(user.Name, insertedRow[1]);
-        Assert.Equal(user.Email, insertedRow[2]);
+        insertedRow[0].Should().Be(user.Id);
+        insertedRow[1].Should().Be(user.Name);
+        insertedRow[2].Should().Be(user.Email);
     }
 
     /// <summary>
@@ -1877,7 +1901,7 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
         connection.Execute("INSERT INTO Users (Id, Name, Email) VALUES (@Id, @Name, @Email)", user, transaction);
         connection.RollbackTransaction();
 
-        Assert.Empty(table);
+        table.Should().BeEmpty();
     }
 
     /// <summary>
@@ -1902,7 +1926,7 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
 
         connection.RollbackTransaction();
 
-        Assert.Empty(temp);
+        temp.Should().BeEmpty();
     }
 
     /// <summary>
@@ -1934,9 +1958,9 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
         connection.RollbackTransaction("sp_temp");
         connection.CommitTransaction();
 
-        Assert.Single(temp);
-        Assert.Equal(1, temp[0][0]);
-        Assert.Equal("Ana", temp[0][1]);
+        temp.Should().ContainSingle();
+        temp[0][0].Should().Be(1);
+        temp[0][1].Should().Be("Ana");
     }
 
     /// <summary>
@@ -1966,12 +1990,12 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
 
         connection.ResetAllVolatileData();
 
-        Assert.False(connection.HasActiveTransaction);
-        Assert.Empty(users);
-        Assert.Equal(1, users.NextIdentity);
-        Assert.Empty(temp);
-        Assert.Equal(1, temp.NextIdentity);
-        Assert.False(connection.TryGetTemporaryTable("temp_users", out var _));
+        connection.HasActiveTransaction.Should().BeFalse();
+        users.Should().BeEmpty();
+        users.NextIdentity.Should().Be(1);
+        temp.Should().BeEmpty();
+        temp.NextIdentity.Should().Be(1);
+        connection.TryGetTemporaryTable("temp_users", out var _).Should().BeFalse();
     }
 
     /// <summary>
@@ -1991,15 +2015,15 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
         connection.Execute("CREATE GLOBAL TEMPORARY TABLE gtmp_users AS SELECT id, name FROM users");
 
         var globalTemp = connection.GetTable("gtmp_users");
-        Assert.Single(globalTemp);
+        globalTemp.Should().ContainSingle();
 
         db.ResetVolatileData(includeGlobalTemporaryTables: false);
-        Assert.Empty(users);
-        Assert.Single(globalTemp);
+        users.Should().BeEmpty();
+        globalTemp.Should().ContainSingle();
 
         db.ResetVolatileData(includeGlobalTemporaryTables: true);
-        Assert.Empty(globalTemp);
-        Assert.Equal(2, globalTemp.Columns.Count);
+        globalTemp.Should().BeEmpty();
+        globalTemp.Columns.Count.Should().Be(2);
     }
 
     /// <summary>
@@ -2017,10 +2041,10 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
 
         db.ResetVolatileData();
 
-        Assert.True(db.ContainsTable("users"));
-        Assert.Equal(2, users.Columns.Count);
-        Assert.Empty(users);
-        Assert.Equal(1, users.NextIdentity);
+        db.ContainsTable("users").Should().BeTrue();
+        users.Columns.Count.Should().Be(2);
+        users.Should().BeEmpty();
+        users.NextIdentity.Should().Be(1);
     }
 
     /// <summary>
@@ -2040,9 +2064,9 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
 
         db.ResetVolatileData(includeGlobalTemporaryTables: true);
 
-        Assert.True(connection.TryGetTemporaryTable("temp_users", out var tempAfter));
-        Assert.Single(tempAfter!);
-        Assert.Equal("Tmp-A", tempAfter![0][1]);
+        connection.TryGetTemporaryTable("temp_users", out var tempAfter).Should().BeTrue();
+        tempAfter.Should().ContainSingle();
+        tempAfter![0][1].Should().Be("Tmp-A");
     }
 
     /// <summary>
@@ -2062,12 +2086,12 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
         connection.Execute("CREATE GLOBAL TEMPORARY TABLE gtmp_users AS SELECT id, name FROM users");
 
         var globalTemp = connection.GetTable("gtmp_users");
-        Assert.Single(globalTemp);
+        globalTemp.Should().ContainSingle();
 
         connection.ResetAllVolatileData();
 
-        Assert.Empty(globalTemp);
-        Assert.Equal(2, globalTemp.Columns.Count);
+        globalTemp.Should().BeEmpty();
+        globalTemp.Columns.Count.Should().Be(2);
     }
 
     /// <summary>
@@ -2085,9 +2109,9 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
 
         connection.ResetAllVolatileData();
 
-        Assert.False(connection.HasActiveTransaction);
-        var ex = Assert.Throws<InvalidOperationException>(() => connection.RollbackTransaction("sp_reset"));
-        Assert.Contains("No active transaction", ex.Message, StringComparison.OrdinalIgnoreCase);
+        connection.HasActiveTransaction.Should().BeFalse();
+        var ex = FluentActions.Invoking(() => connection.RollbackTransaction("sp_reset")).Should().Throw<InvalidOperationException>().Which;
+        ex.Message.Contains("No active transaction", StringComparison.OrdinalIgnoreCase).Should().BeTrue();
     }
 
     /// <summary>
@@ -2113,10 +2137,10 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
         connA.Execute("INSERT INTO temp_users (id, name) VALUES (@id, @name)", new { id = 1, name = "Ana" });
         connB.Execute("INSERT INTO temp_users (id, name) VALUES (@id, @name)", new { id = 2, name = "Bob" });
 
-        Assert.Single(tempA);
-        Assert.Single(tempB);
-        Assert.Equal("Ana", tempA[0][1]);
-        Assert.Equal("Bob", tempB[0][1]);
+        tempA.Should().ContainSingle();
+        tempB.Should().ContainSingle();
+        tempA[0][1].Should().Be("Ana");
+        tempB[0][1].Should().Be("Bob");
     }
 
     /// <summary>
@@ -2139,13 +2163,13 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
 
         connection.Close();
 
-        Assert.Equal(ConnectionState.Closed, connection.State);
-        Assert.False(connection.HasActiveTransaction);
-        Assert.Equal(IsolationLevel.Unspecified, connection.CurrentIsolationLevel);
-        Assert.False(connection.TryGetTemporaryTable("temp_users", out var _));
+        connection.State.Should().Be(ConnectionState.Closed);
+        connection.HasActiveTransaction.Should().BeFalse();
+        connection.CurrentIsolationLevel.Should().Be(IsolationLevel.Unspecified);
+        connection.TryGetTemporaryTable("temp_users", out var _).Should().BeFalse();
 
-        var ex = Assert.Throws<InvalidOperationException>(() => connection.RollbackTransaction("sp_close"));
-        Assert.Contains("No active transaction", ex.Message, StringComparison.OrdinalIgnoreCase);
+        var ex = FluentActions.Invoking(() => connection.RollbackTransaction("sp_close")).Should().Throw<InvalidOperationException>().Which;
+        ex.Message.Contains("No active transaction", StringComparison.OrdinalIgnoreCase).Should().BeTrue();
     }
 
     /// <summary>
@@ -2174,10 +2198,10 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
 
         connA.Close();
 
-        Assert.Single(users);
+        users.Should().ContainSingle();
         var globalTempFromConnB = connB.GetTable("gtmp_users");
-        Assert.Single(globalTempFromConnB);
-        Assert.False(connA.TryGetTemporaryTable("temp_users", out var _));
+        globalTempFromConnB.Should().ContainSingle();
+        connA.TryGetTemporaryTable("temp_users", out var _).Should().BeFalse();
     }
 
     /// <summary>
@@ -2203,15 +2227,15 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
         connection.Close();
         connection.Open();
 
-        Assert.Equal(ConnectionState.Open, connection.State);
-        Assert.False(connection.HasActiveTransaction);
-        Assert.False(connection.TryGetTemporaryTable("temp_users", out var _));
-        Assert.Single(users);
+        connection.State.Should().Be(ConnectionState.Open);
+        connection.HasActiveTransaction.Should().BeFalse();
+        connection.TryGetTemporaryTable("temp_users", out var _).Should().BeFalse();
+        users.Should().ContainSingle();
 
         var tempNew = connection.AddTemporaryTable("temp_users");
         tempNew.AddColumn("id", DbType.Int32, false);
         tempNew.AddColumn("name", DbType.String, false);
-        Assert.Empty(tempNew);
+        tempNew.Should().BeEmpty();
     }
 
     /// <summary>
@@ -2272,29 +2296,29 @@ public abstract class DapperFluentTestsBase<TDb, TConnection>(
             "INSERT INTO user (name, email, created) VALUES (@name, @email, @created)",
             new { name = "Alice", email = "alice@mail.com", created = DateTime.UtcNow });
 
-        Assert.Equal(1, rows);
-        Assert.Equal(1, connection.Metrics.Inserts);
-        Assert.Single(connection.GetTable("user"));
+        rows.Should().Be(1);
+        connection.Metrics.Inserts.Should().Be(1);
+        connection.GetTable("user").Should().ContainSingle();
 
         rows = connection.Execute(
             "UPDATE user SET name = @name WHERE id = @id",
             new { id = 1, name = "Alice Cooper" });
 
-        Assert.Equal(1, rows);
-        Assert.Equal(1, connection.Metrics.Updates);
-        Assert.Equal("Alice Cooper", connection.GetTable("user")[0][1]);
+        rows.Should().Be(1);
+        connection.Metrics.Updates.Should().Be(1);
+        connection.GetTable("user")[0][1].Should().Be("Alice Cooper");
 
         rows = connection.Execute(
             "DELETE FROM user WHERE id = @id",
             new { id = 1 });
 
-        Assert.Equal(1, rows);
-        Assert.Equal(1, connection.Metrics.Deletes);
-        Assert.Empty(connection.GetTable("user"));
-        Assert.Equal(1, connection.Metrics.Inserts);
-        Assert.Equal(1, connection.Metrics.Updates);
-        Assert.Equal(1, connection.Metrics.Deletes);
-        Assert.True(connection.Metrics.Elapsed > TimeSpan.Zero);
+        rows.Should().Be(1);
+        connection.Metrics.Deletes.Should().Be(1);
+        connection.GetTable("user").Should().BeEmpty();
+        connection.Metrics.Inserts.Should().Be(1);
+        connection.Metrics.Updates.Should().Be(1);
+        connection.Metrics.Deletes.Should().Be(1);
+        (connection.Metrics.Elapsed > TimeSpan.Zero).Should().BeTrue();
     }
 
     /// <summary>
@@ -2316,10 +2340,10 @@ public abstract class DapperFluentTestsBase<TDb, TConnection>(
             [null, "Alice", DateTime.UtcNow],
             [null, "Bob", DateTime.UtcNow]);
 
-        Assert.Equal(2, connection.GetTable("user").Count);
+        connection.GetTable("user").Count.Should().Be(2);
         var idIdx = connection.GetTable("user").Columns["id"].Index;
-        Assert.Equal(0, idIdx);
-        Assert.Equal(1, connection.GetTable("user")[0][idIdx]);
+        idIdx.Should().Be(0);
+        connection.GetTable("user")[0][idIdx].Should().Be(1);
     }
 
     private TConnection BuildConfiguredOpenConnection()
@@ -2383,16 +2407,16 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
         using var connection = OpenConnection(db);
 
         var rows1 = connection.Execute("INSERT INTO users (name) VALUES (@name)", new { name = "Alice" });
-        Assert.Equal(1, rows1);
-        Assert.Single(table);
-        Assert.Equal(1, table[0][0]);
-        Assert.Equal("Alice", table[0][1]);
+        rows1.Should().Be(1);
+        table.Should().ContainSingle();
+        table[0][0].Should().Be(1);
+        table[0][1].Should().Be("Alice");
 
         var rows2 = connection.Execute("INSERT INTO users (name) VALUES (@name)", new { name = "Bob" });
-        Assert.Equal(1, rows2);
-        Assert.Equal(2, table.Count);
-        Assert.Equal(2, table[1][0]);
-        Assert.Equal("Bob", table[1][1]);
+        rows2.Should().Be(1);
+        table.Count.Should().Be(2);
+        table[1][0].Should().Be(2);
+        table[1][1].Should().Be("Bob");
     }
 
     /// <summary>
@@ -2410,18 +2434,18 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
         connection.IdentityOf("users", nextIdentity: 1, allowInsertOverride: true);
 
         var rows1 = connection.Execute("INSERT INTO users (id, name) VALUES (@id, @name)", new { id = 42, name = "Alice" });
-        Assert.Equal(1, rows1);
-        Assert.Single(table);
-        Assert.Equal(42, table[0][0]);
-        Assert.Equal("Alice", table[0][1]);
-        Assert.Equal(43, table.NextIdentity);
+        rows1.Should().Be(1);
+        table.Should().ContainSingle();
+        table[0][0].Should().Be(42);
+        table[0][1].Should().Be("Alice");
+        table.NextIdentity.Should().Be(43);
 
         var rows2 = connection.Execute("INSERT INTO users (name) VALUES (@name)", new { name = "Bob" });
-        Assert.Equal(1, rows2);
-        Assert.Equal(2, table.Count);
-        Assert.Equal(43, table[1][0]);
-        Assert.Equal("Bob", table[1][1]);
-        Assert.Equal(44, table.NextIdentity);
+        rows2.Should().Be(1);
+        table.Count.Should().Be(2);
+        table[1][0].Should().Be(43);
+        table[1][1].Should().Be("Bob");
+        table.NextIdentity.Should().Be(44);
     }
 
     /// <summary>
@@ -2437,8 +2461,8 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
         using var connection = OpenConnection(db);
 
         var rows = connection.Execute("INSERT INTO data (id, info) VALUES (@id, @info)", new { id = 1, info = (string?)null });
-        Assert.Equal(1, rows);
-        Assert.Null(table[0][1]);
+        rows.Should().Be(1);
+        table[0][1].Should().BeNull();
     }
 
     /// <summary>
@@ -2453,7 +2477,7 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
         table.AddColumn("info", DbType.String, false);
         using var connection = OpenConnection(db);
 
-        Assert.Throws<TException>(() =>
+        FluentActions.Invoking(() =>
             connection.Execute("INSERT INTO data (id, info) VALUES (@id, @info)", new { id = 1, info = (string?)null }));
     }
 
@@ -2475,8 +2499,8 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
         using var connection = OpenConnection(db);
 
         var result = connection.Query<dynamic>("SELECT * FROM t WHERE first = @f AND second = @s", new { f = "A", s = "X" }).ToList();
-        Assert.Single(result);
-        Assert.Equal(1, (int)result[0].value);
+        result.Should().ContainSingle();
+        ((int)result[0].value).Should().Be(1);
     }
 
     /// <summary>
@@ -2493,8 +2517,8 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
         using var connection = OpenConnection(db);
 
         var result = connection.Query<dynamic>("SELECT * FROM t WHERE name LIKE 'a%'").ToList();
-        Assert.Single(result);
-        Assert.Equal("alice", result[0].name);
+        result.Should().ContainSingle();
+        ((string)result[0].name).Should().Be("alice");
     }
 
     /// <summary>
@@ -2513,7 +2537,7 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
 
         var result = connection.Query<dynamic>("SELECT * FROM t WHERE id IN (1,3)").ToList();
         var ids = result.Select(r => (int)r.id).OrderBy(static x => x).ToArray();
-        Assert.Equal([1, 3], ids);
+        ids.Should().Equal(new[] {1, 3});
     }
 
     /// <summary>
@@ -2531,8 +2555,8 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
         using var connection = OpenConnection(db);
 
         var result = connection.Query<dynamic>(DistinctPaginationSql).ToList();
-        Assert.Single(result);
-        Assert.Equal(1, (int)result[0].id);
+        result.Should().ContainSingle();
+        ((int)result[0].id).Should().Be(1);
     }
 
     /// <summary>
@@ -2552,9 +2576,9 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
 
         const string sql = "SELECT grp, COUNT(val) AS C FROM t GROUP BY grp HAVING C > 1";
         var result = connection.Query<dynamic>(sql).ToList();
-        Assert.Single(result);
-        Assert.Equal("a", result[0].grp);
-        Assert.Equal(2L, result[0].C);
+        result.Should().ContainSingle();
+        ((string)result[0].grp).Should().Be("a");
+        ((long)result[0].C).Should().Be(2L);
     }
 
     /// <summary>
@@ -2577,7 +2601,7 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
 
         using var connection = OpenConnection(db);
 
-        Assert.Throws<TException>(() => connection.Execute("DELETE FROM parent WHERE id = 1"));
+        FluentActions.Invoking(() => connection.Execute("DELETE FROM parent WHERE id = 1")).Should().Throw<TException>();
     }
 
     /// <summary>
@@ -2599,7 +2623,7 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
 
         using var connection = OpenConnection(db);
 
-        Assert.Throws<TException>(() => connection.Execute("DELETE FROM parent WHERE id = 1"));
+        FluentActions.Invoking(() => connection.Execute("DELETE FROM parent WHERE id = 1")).Should().Throw<TException>();
     }
 
     /// <summary>
@@ -2621,10 +2645,10 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
         };
 
         var rows = connection.Execute("INSERT INTO users (id,name) VALUES (@id,@name)", data);
-        Assert.Equal(2, rows);
-        Assert.Equal(2, table.Count);
-        Assert.Equal("A", table[0][1]);
-        Assert.Equal("B", table[1][1]);
+        rows.Should().Be(2);
+        table.Count.Should().Be(2);
+        table[0][1].Should().Be("A");
+        table[1][1].Should().Be("B");
     }
 
     private TConnection OpenConnection(TDb db)
@@ -2712,14 +2736,14 @@ SELECT id FROM t WHERE id = 1
 UNION ALL
 SELECT id FROM t WHERE id = 1
 ").ToList();
-        Assert.Equal([1, 1], [.. all.Select(r => (int)r.id)]);
+        all.Select(r => (int)r.id).Should().Equal(new[] { 1, 1 });
 
         var distinct = Connection.Query<dynamic>(@"
 SELECT id FROM t WHERE id = 1
 UNION
 SELECT id FROM t WHERE id = 1
 ").ToList();
-        Assert.Equal([1], [.. distinct.Select(r => (int)r.id)]);
+        distinct.Select(r => (int)r.id).Should().Equal(new[] { 1 });
     }
 
     /// <summary>
@@ -2734,7 +2758,7 @@ UNION
 SELECT 1 AS v
 ").ToList();
 
-        Assert.Single(rows);
+        rows.Should().ContainSingle();
     }
 
     /// <summary>
@@ -2743,12 +2767,12 @@ SELECT 1 AS v
     /// </summary>
     protected void AssertUnionValidatesIncompatibleColumnTypes()
     {
-        Assert.Throws<InvalidOperationException>(() =>
+        FluentActions.Invoking(() =>
             Connection.Query<dynamic>(@"
 SELECT 1 AS v
 UNION
 SELECT 'x' AS v
-").ToList());
+").ToList()).Should().Throw<InvalidOperationException>();
     }
 
     /// <summary>
@@ -2764,7 +2788,7 @@ SELECT id AS x FROM t WHERE id = 3
 ORDER BY v
 ").ToList();
 
-        Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.v)]);
+        rows.Select(r => (int)r.v).Should().Equal(new[] { 1, 2, 3 });
     }
 
     /// <inheritdoc />
@@ -2831,10 +2855,10 @@ public abstract class AdditionalBehaviorCoverageTestsBase<TDb, TConnection>
     protected void Where_IsNull_And_IsNotNull_ShouldWork()
     {
         var nullIds = Connection.Query<int>("SELECT id FROM users WHERE email IS NULL ORDER BY id").ToList();
-        Assert.Equal([2], nullIds);
+        nullIds.Should().Equal(new[] {2});
 
         var notNullIds = Connection.Query<int>("SELECT id FROM users WHERE email IS NOT NULL ORDER BY id").ToList();
-        Assert.Equal([1, 3], notNullIds);
+        notNullIds.Should().Equal(new[] {1, 3});
     }
 
     /// <summary>
@@ -2844,10 +2868,10 @@ public abstract class AdditionalBehaviorCoverageTestsBase<TDb, TConnection>
     protected void Where_EqualNull_ShouldReturnNoRows()
     {
         var ids = Connection.Query<int>("SELECT id FROM users WHERE email = NULL").ToList();
-        Assert.Empty(ids);
+        ids.Should().BeEmpty();
 
-        ids = [.. Connection.Query<int>("SELECT id FROM users WHERE email <> NULL")];
-        Assert.Empty(ids);
+        ids = Connection.Query<int>("SELECT id FROM users WHERE email <> NULL").ToList();
+        ids.Should().BeEmpty();
     }
 
     /// <summary>
@@ -2863,13 +2887,13 @@ LEFT JOIN orders o ON o.userid = u.id AND o.amount > 100
 ORDER BY u.id
 ").ToList();
 
-        Assert.Equal(3, rows.Count);
-        Assert.Equal(1, (int)rows[0].id);
-        Assert.Null((object?)rows[0].amount);
-        Assert.Equal(2, (int)rows[1].id);
-        Assert.Equal(200m, (decimal)rows[1].amount);
-        Assert.Equal(3, (int)rows[2].id);
-        Assert.Null((object?)rows[2].amount);
+        rows.Count.Should().Be(3);
+        ((int)rows[0].id).Should().Be(1);
+        ((object?)rows[0].amount).Should().BeNull();
+        ((int)rows[1].id).Should().Be(2);
+        ((decimal)rows[1].amount).Should().Be(200m);
+        ((int)rows[2].id).Should().Be(3);
+        ((object?)rows[2].amount).Should().BeNull();
     }
 
     /// <summary>
@@ -2884,8 +2908,8 @@ FROM orders
 ORDER BY amount DESC, id ASC
 ").ToList();
 
-        Assert.Equal([11, 10, 12], [.. rows.Select(r => (int)r.id)]);
-        Assert.Equal([200m, 50m, 10m], [.. rows.Select(r => (decimal)r.amount)]);
+        rows.Select(r => (int)r.id).Should().Equal(new[] { 11, 10, 12 });
+        rows.Select(r => (decimal)r.amount).Should().Equal(new[] { 200m, 50m, 10m });
     }
 
     /// <summary>
@@ -2895,8 +2919,8 @@ ORDER BY amount DESC, id ASC
     protected void Aggregation_CountStar_Vs_CountColumn_ShouldRespectNulls()
     {
         var row = Connection.QuerySingle<dynamic>("SELECT COUNT(*) c1, COUNT(email) c2 FROM users");
-        Assert.Equal(3L, (long)row.c1);
-        Assert.Equal(2L, (long)row.c2);
+        ((long)row.c1).Should().Be(3L);
+        ((long)row.c2).Should().Be(2L);
     }
 
     /// <summary>
@@ -2913,7 +2937,7 @@ HAVING SUM(amount) > 100
 ORDER BY userid
 ").ToList();
 
-        Assert.Equal([2], userIds);
+        userIds.Should().Equal(new[] {2});
     }
 
     /// <summary>
@@ -2923,7 +2947,7 @@ ORDER BY userid
     protected void Where_In_WithParameterList_ShouldWork()
     {
         var ids = Connection.Query<int>("SELECT id FROM users WHERE id IN @ids ORDER BY id", new { ids = Param }).ToList();
-        Assert.Equal([1, 3], ids);
+        ids.Should().Equal(new[] {1, 3});
     }
 
     /// <summary>
@@ -2935,9 +2959,9 @@ ORDER BY userid
         Connection.Execute("INSERT INTO users (name, id, email) VALUES (@name, @id, @email)", new { id = 4, name = "Zed", email = "zed@x.com" });
 
         var row = Connection.QuerySingle<dynamic>("SELECT id, name, email FROM users WHERE id = 4");
-        Assert.Equal(4, (int)row.id);
-        Assert.Equal("Zed", (string)row.name);
-        Assert.Equal("zed@x.com", (string)row.email);
+        ((int)row.id).Should().Be(4);
+        ((string)row.name).Should().Be("Zed");
+        ((string)row.email).Should().Be("zed@x.com");
     }
 
     /// <summary>
@@ -2947,10 +2971,10 @@ ORDER BY userid
     protected void Delete_WithInParameterList_ShouldDeleteMatchingRows()
     {
         var deleted = Connection.Execute(DeleteWithInParameterListSql, new { ids = Param });
-        Assert.Equal(2, deleted);
+        deleted.Should().Be(2);
 
         var remaining = Connection.Query<int>("SELECT id FROM users ORDER BY id").ToList();
-        Assert.Equal([2], remaining);
+        remaining.Should().Equal(new[] {2});
     }
 
     /// <summary>
@@ -2971,12 +2995,12 @@ ORDER BY userid
         connection.Open();
 
         var updated = connection.Execute("UPDATE users SET counter = counter + 1 WHERE id IN @ids", new { ids = ParamArray });
-        Assert.Equal(2, updated);
+        updated.Should().Be(2);
 
         var counters = connection.Query<dynamic>("SELECT id, counter FROM users ORDER BY id").ToList();
-        Assert.Equal(1, (int)counters[0].counter);
-        Assert.Equal(1, (int)counters[1].counter);
-        Assert.Equal(0, (int)counters[2].counter);
+        ((int)counters[0].counter).Should().Be(1);
+        ((int)counters[1].counter).Should().Be(1);
+        ((int)counters[2].counter).Should().Be(0);
     }
 
     /// <inheritdoc />

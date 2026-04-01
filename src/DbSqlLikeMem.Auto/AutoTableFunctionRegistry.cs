@@ -8,23 +8,21 @@ internal static class AutoTableFunctionRegistry
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
 
-        DbFunctionDef openJsonDefinition = DbFunctionDef.CreateTable(
+        var openJsonFunction = DbFunctionDef.CreateTable(
             SqlConst.OPENJSON,
             signatures: new DbFunctionSignature([], 1, 2)) with
         {
             TableExecutor = static (executor, tableSource, ctes, outerRow)
                 => executor.ExecuteOpenJsonTableFunction(tableSource, ctes, outerRow)
         };
-
-        DbFunctionDef stringSplitDefinition = DbFunctionDef.CreateTable(
+        var stringSplitFunction = DbFunctionDef.CreateTable(
             SqlConst.STRING_SPLIT,
             signatures: new DbFunctionSignature([], 2, 3)) with
         {
             TableExecutor = static (executor, tableSource, ctes, outerRow)
                 => executor.ExecuteStringSplitTableFunction(tableSource, ctes, outerRow)
         };
-
-        dialect.AddTableFunctions(openJsonDefinition, stringSplitDefinition);
+        dialect.AddTableFunctions(openJsonFunction, stringSplitFunction);
 
         SqlSharedTableFunctionRegistry.RegisterJsonTable(dialect);
     }

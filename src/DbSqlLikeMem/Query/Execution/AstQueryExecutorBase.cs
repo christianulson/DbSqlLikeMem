@@ -129,6 +129,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
                     case LiteralExpr l:
                         return (true, l.Value);
                     case ParameterExpr p:
+                        if (TryResolveLocalFunctionValue(p.Name, out var localValue))
+                            return (true, localValue);
                         return (true, QueryRowValueHelper.ResolveParam(_context, p.Name));
                     default:
                         return (false, null);
@@ -350,7 +352,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         => _castConversionFamilyEvaluator ??= new AstQueryCastConversionFamilyEvaluator(
             tryEvalJsonAccessShimFunction: AstQueryJsonExtractionFunctionEvaluator.TryEvalJsonAccessShimFunction,
             tryEvalJsonExtractionFunction: AstQueryJsonExtractionFunctionEvaluator.TryEvalJsonExtractionFunction,
-            tryEvalSqlServerJsonModifyFunction: SqlServerUtilityFunctionEvaluator.TryEvalSqlServerJsonModifyFunction,
+            tryEvalSqlServerJsonModifyFunction: AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSqlServerJsonModifyFunction,
             tryEvalOpenJsonFunction: SqlServerUtilityFunctionEvaluator.TryEvalOpenJsonFunction,
             tryEvalJsonUnquoteFunction: AstQueryJsonUnquoteFunctionEvaluator.TryEvalJsonUnquoteFunction,
             tryEvalToNumberFunction: AstQueryToNumberFunctionEvaluator.TryEvalToNumberFunction);
@@ -410,7 +412,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         => _sqlServerSessionFunctionEvaluator ??= new AstQuerySqlServerSessionFunctionEvaluator(
             getDialect: () => context.Dialect,
             getContextInfo: Cnn.GetContextInfo,
-            hasActiveTransaction: () => Cnn.HasActiveTransaction,
+            hasActiveTransaction: () => Cnn.HasActiveTransaction || _context.HasActiveTransaction,
             tryResolveSqlServerRoleMembership: AstQuerySqlServerResolutionHelper.TryResolveSqlServerRoleMembership,
             tryResolveSqlServerServerRoleMembership: AstQuerySqlServerResolutionHelper.TryResolveSqlServerServerRoleMembership);
 
@@ -432,20 +434,24 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
     // Custom schema functions are resolved through the current connection when available.
     private SqlExpr ParseExpr(string raw)
     {
-        var dialectInstance = context.Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para parse de expressão.");
+        var db = context.Connection.Db ?? throw new InvalidOperationException("Banco SQL não disponível para parse de expressão.");
+        var dialect = context.Dialect ?? throw new InvalidOperationException("Dialecto SQL não disponível para parse de expressão.");
         return SqlExpressionParser.ParseWhere(
             raw,
-            dialectInstance,
+            db,
+            dialect,
             null,
             customFunctionSupported: name => Cnn.TryGetFunction(name, out _));
     }
 
     private SqlExpr ParseScalarExpr(string raw)
     {
-        var dialect1 = context.Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para parse de expressão escalar.");
+        var db = context.Connection.Db ?? throw new InvalidOperationException("Banco SQL não disponível para parse de expressão.");
+        var dialect = context.Dialect ?? throw new InvalidOperationException("Dialecto SQL não disponível para parse de expressão.");
         return SqlExpressionParser.ParseScalar(
             raw,
-            dialect1,
+            db,
+            dialect,
             _pars,
             customFunctionSupported: name => Cnn.TryGetFunction(name, out _));
     }
@@ -492,10 +498,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         QueryDebugTraceBuilder? debugTrace = Cnn.IsDebugTraceCaptureEnabled
             ? new QueryDebugTraceBuilder(SqlConst.SELECT)
             : null;
+        var hasSqlCalcFoundRows = HasSqlCalcFoundRows(q);
         var result = ExecuteSelect(q, null, null, debugTrace);
         sw.Stop();
 
-        if (!HasSqlCalcFoundRows(q) && !IsRowCountHelperSelect(q))
+        if (!hasSqlCalcFoundRows)
             Cnn.SetLastFoundRows(result.Count);
 
         var metrics = _context.BuildPlanRuntimeMetrics(q, result.Count, sw.ElapsedMilliseconds);
@@ -1383,11 +1390,13 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
                 return l.Value;
 
             case ParameterExpr p:
+                if (TryResolveLocalFunctionValue(p.Name, out var localParameterValue))
+                    return localParameterValue;
                 return QueryRowValueHelper.ResolveParam(_context, p.Name);
 
             case IdentifierExpr id:
-                if (TryResolveLocalFunctionValue(id.Name, out var localValue))
-                    return localValue;
+                if (TryResolveLocalFunctionValue(id.Name, out var localIdentifierValue))
+                    return localIdentifierValue;
 
                 return EvalIdentifier(id, row);
 
@@ -1481,6 +1490,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private object? EvalIdentifier(IdentifierExpr identifier, EvalRow row)
     {
+        if (QueryRowValueHelper.TryResolveIdentifier(identifier.Name, row, out var resolvedColumn))
+        {
+            return resolvedColumn;
+        }
+
         if (_context.TryResolveIdentifier(
                 identifier,
                 _evaluationLocalNow,
@@ -1491,7 +1505,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return resolved;
         }
 
-        return QueryRowValueHelper.ResolveIdentifier(identifier.Name, row);
+        return null;
     }
 
     private object? EvalIsNull(
@@ -1500,9 +1514,36 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         EvalGroup? group,
         IDictionary<string, Source> ctes)
     {
-        var value = Eval(expression.Expr, row, group, ctes);
-        var isNull = value is null || value is DBNull;
+        var isNull = expression.Expr switch
+        {
+            JsonAccessExpr jsonAccess => EvalJsonAccessIsNull(jsonAccess, row, group, ctes),
+            _ => IsNullish(Eval(expression.Expr, row, group, ctes))
+        };
         return expression.Negated ? !isNull : isNull;
+    }
+
+    private bool EvalJsonAccessIsNull(
+        JsonAccessExpr expression,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes)
+    {
+        var json = Eval(expression.Target, row, group, ctes);
+        if (json is null or DBNull)
+            return true;
+
+        if (json is JsonElement element && element.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+            return true;
+
+        if (json is JsonDocument document && document.RootElement.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+            return true;
+
+        var path = Eval(expression.Path, row, group, ctes)?.ToString();
+        if (string.IsNullOrWhiteSpace(path))
+            return true;
+
+        var value = QueryJsonFunctionHelper.TryReadJsonPathValue(json, path!);
+        return IsNullish(value);
     }
 
     internal static bool TryConvertNumericToInt64(object value, out long numeric)
@@ -1591,6 +1632,16 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
         if (fn.Name.Equals("INTERVAL", StringComparison.OrdinalIgnoreCase))
             return ParseIntervalValue(fn, row, group, ctes);
+
+        if (TryEvalUserDefinedScalarFunction(
+            new FunctionCallExpr(fn.Name, fn.Args, fn.Distinct),
+            row,
+            group,
+            ctes,
+            out var userDefinedResult))
+        {
+            return userDefinedResult;
+        }
 
         // se não for agregado, trata como função "normal" reaproveitando EvalFunction
         // (Distinct em função escalar não faz sentido aqui, então ignoramos)

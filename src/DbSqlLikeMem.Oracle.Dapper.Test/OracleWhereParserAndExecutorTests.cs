@@ -210,9 +210,10 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
     [Trait("Category", "OracleWhereParserAndExecutor")]
     public void Where_FindInSet_ShouldWork()
     {
-        // FIND_IN_SET('b', tags) -> John(a,b) e Jane(b,c)
-        var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE FIND_IN_SET('b', tags)").ToList();
-        Assert.Equal([1, 2], [.. rows.Select(r => (int)r.id).OrderBy(_=>_)]);
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            _cnn.Query<dynamic>("SELECT id FROM users WHERE FIND_IN_SET('b', tags)").ToList());
+
+        Assert.Contains("FIND_IN_SET", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

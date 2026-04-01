@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 
 /// <summary>
@@ -141,6 +143,6 @@ public sealed class ExtendedSqliteMockTests(
         table.Add(new Dictionary<int, object?> { { 0, "A|B" }, { 1, "C" } });
         table.Add(new Dictionary<int, object?> { { 0, "A" }, { 1, "B|C" } });
 
-        Assert.Equal(2, table.Count);
+        table.Count.Should().Be(2);
     }
 }

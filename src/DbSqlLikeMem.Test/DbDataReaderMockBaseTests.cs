@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.Test;
 
 /// <summary>
@@ -17,11 +19,11 @@ public sealed class DbDataReaderMockBaseTests(
     public void GetBytes_ShouldReturnLength_WhenBufferIsNull()
     {
         using var reader = CreateReader(new Dictionary<int, object?> { [0] = new byte[] { 1, 2, 3, 4 } }, DbType.Binary);
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
 
         var total = reader.GetBytes(0, 0, null, 0, 0);
 
-        Assert.Equal(4, total);
+        total.Should().Be(4);
     }
 
     /// <summary>
@@ -33,13 +35,13 @@ public sealed class DbDataReaderMockBaseTests(
     public void GetBytes_ShouldCopyRequestedSegment()
     {
         using var reader = CreateReader(new Dictionary<int, object?> { [0] = new byte[] { 10, 11, 12, 13 } }, DbType.Binary);
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         var buffer = new byte[3];
 
         var copied = reader.GetBytes(0, 1, buffer, 0, 3);
 
-        Assert.Equal(3, copied);
-        Assert.Equal(new byte[] { 11, 12, 13 }, buffer);
+        copied.Should().Be(3);
+        buffer.Should().Equal(new byte[] { 11, 12, 13 });
     }
 
     /// <summary>
@@ -51,13 +53,13 @@ public sealed class DbDataReaderMockBaseTests(
     public void GetChars_ShouldCopyRequestedSegment()
     {
         using var reader = CreateReader(new Dictionary<int, object?> { [0] = "abcdef" }, DbType.String);
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
         var buffer = new char[3];
 
         var copied = reader.GetChars(0, 2, buffer, 0, 3);
 
-        Assert.Equal(3, copied);
-        Assert.Equal("cde", new string(buffer));
+        copied.Should().Be(3);
+        new string(buffer).Should().Be("cde");
     }
 
 
@@ -76,12 +78,12 @@ public sealed class DbDataReaderMockBaseTests(
         };
         table.Add(new Dictionary<int, object?> { [0] = "Alice" });
         using var reader = new TestDbDataReaderMock([table]);
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
 
         var ordinal = reader.GetOrdinal("User Name");
 
-        Assert.Equal(0, ordinal);
-        Assert.Equal("Alice", reader.GetString(ordinal));
+        ordinal.Should().Be(0);
+        reader.GetString(ordinal).Should().Be("Alice");
     }
 
     /// <summary>
@@ -94,11 +96,11 @@ public sealed class DbDataReaderMockBaseTests(
     {
         using var nested = CreateReader(new Dictionary<int, object?> { [0] = 42 }, DbType.Int32);
         using var outer = CreateReader(new Dictionary<int, object?> { [0] = nested }, DbType.Object);
-        Assert.True(outer.Read());
+        outer.Read().Should().BeTrue();
 
         var read = outer.GetData(0);
 
-        Assert.Same(nested, read);
+        read.Should().BeSameAs(nested);
     }
 
     /// <summary>
@@ -110,9 +112,9 @@ public sealed class DbDataReaderMockBaseTests(
     public void GetData_ShouldThrowInvalidCast_WhenColumnDoesNotContainReader()
     {
         using var outer = CreateReader(new Dictionary<int, object?> { [0] = "not a reader" }, DbType.String);
-        Assert.True(outer.Read());
+        outer.Read().Should().BeTrue();
 
-        Assert.Throws<InvalidCastException>(() => outer.GetData(0));
+        FluentActions.Invoking(() => outer.GetData(0)).Should().Throw<InvalidCastException>();
     }
 
 
@@ -135,13 +137,13 @@ public sealed class DbDataReaderMockBaseTests(
         };
         table.Add(new Dictionary<int, object?> { [0] = 11, [1] = "hello" });
         using var reader = new TestDbDataReaderMock([table]);
-        Assert.True(reader.Read());
+        reader.Read().Should().BeTrue();
 
         var values = new object[1];
         var copied = reader.GetValues(values);
 
-        Assert.Equal(1, copied);
-        Assert.Equal(11, values[0]);
+        copied.Should().Be(1);
+        values[0].Should().Be(11);
     }
 
     /// <summary>
@@ -154,12 +156,12 @@ public sealed class DbDataReaderMockBaseTests(
     {
         var nested = CreateReader(new Dictionary<int, object?> { [0] = 7 }, DbType.Int32);
         var outer = CreateReader(new Dictionary<int, object?> { [0] = nested }, DbType.Object);
-        Assert.True(outer.Read());
+        outer.Read().Should().BeTrue();
 
         outer.Dispose();
 
-        Assert.True(outer.IsClosed);
-        Assert.True(nested.IsClosed);
+        outer.IsClosed.Should().BeTrue();
+        nested.IsClosed.Should().BeTrue();
     }
 
 

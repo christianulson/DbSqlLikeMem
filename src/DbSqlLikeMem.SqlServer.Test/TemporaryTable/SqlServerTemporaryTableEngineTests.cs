@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.SqlServer.Test.TemporaryTable;
 
 /// <summary>
@@ -43,7 +45,7 @@ SELECT id FROM tmp_users ORDER BY id;";
         var ids = new List<int>();
         while (r.Read()) ids.Add(r.GetInt32(0));
 
-        Assert.Equal(expected, ids);
+        ids.Should().Equal(expected);
     }
 
     /// <summary>
@@ -86,6 +88,6 @@ SELECT id FROM ##tmp_users ORDER BY id;";
         var ids = new List<int>();
         while (r.Read()) ids.Add(r.GetInt32(0));
 
-        Assert.Equal(expected, ids);
+        ids.Should().Equal(expected);
     }
 }

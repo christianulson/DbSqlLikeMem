@@ -6,4 +6,9 @@ namespace DbSqlLikeMem.MySql.LinqToDb.Test;
 /// </summary>
 public sealed class LinqToDbSmokeTests(
     ITestOutputHelper helper
-) : LinqToDbSmokeTestsBase(helper, static () => new MySqlLinqToDbConnectionFactory());
+) : LinqToDbSmokeTestsBase(helper, static () => new MySqlLinqToDbConnectionFactory())
+{
+    /// <inheritdoc />
+    protected override DbSqlLikeMem.TestTools.ProviderSqlDialect Dialect { get; } =
+        new DbSqlLikeMem.MySql.TestTools.MySqlProviderSqlDialect();
+}

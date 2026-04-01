@@ -6,6 +6,42 @@ namespace DbSqlLikeMem.Oracle.TestTools;
 /// </summary>
 public sealed class OracleProviderSqlDialect : ProviderSqlDialect
 {
+    private static string NormalizeScenarioTableName(string tableName)
+    {
+        if (string.IsNullOrWhiteSpace(tableName))
+            return tableName;
+
+        var trimmed = tableName.Trim();
+        return TryStripScenarioTokenSuffix(trimmed, out var stripped)
+            ? stripped.ToLowerInvariant()
+            : trimmed.ToLowerInvariant();
+    }
+
+    private static bool TryStripScenarioTokenSuffix(string tableName, out string stripped)
+    {
+        stripped = tableName;
+
+        var underscoreIndex = tableName.LastIndexOf('_');
+        if (underscoreIndex < 0)
+            return false;
+
+        var suffixLength = tableName.Length - underscoreIndex - 1;
+        if (suffixLength != 8)
+            return false;
+
+        for (var i = underscoreIndex + 1; i < tableName.Length; i++)
+        {
+            var ch = tableName[i];
+            var isHexUpper = ch is >= 'A' and <= 'F';
+            var isHexDigit = ch is >= '0' and <= '9';
+            if (!isHexUpper && !isHexDigit)
+                return false;
+        }
+
+        stripped = tableName[..underscoreIndex];
+        return true;
+    }
+
     /// <inheritdoc />
     public override ProviderId Provider => ProviderId.Oracle;
 
@@ -35,7 +71,7 @@ CREATE GLOBAL TEMPORARY TABLE {TemporaryUsersTableName(tableName)} (
     /// <inheritdoc />
     public override string CreateUsersTable(string tableName, string uId) =>
         $@"
-CREATE TABLE {tableName}_{uId} (
+CREATE TABLE {NormalizeScenarioTableName(tableName)} (
     Id NUMBER(10) PRIMARY KEY,
     Name VARCHAR2(100) NOT NULL,
     Email VARCHAR2(150) NULL,
@@ -45,15 +81,15 @@ CREATE TABLE {tableName}_{uId} (
     CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     UpdatedAt TIMESTAMP NULL,
     ProfileJson CLOB NULL,
-    CONSTRAINT CK_{tableName}_{uId}_ProfileJson CHECK (ProfileJson IS JSON)
+    CONSTRAINT CK_{NormalizeScenarioTableName(tableName)}_{uId}_ProfileJson CHECK (ProfileJson IS JSON)
 )";
 
     /// <inheritdoc />
     public override string CreateOrdersTable(string tableName, string usersTableName, string uId) =>
         $@"
-CREATE TABLE {tableName}_{uId} (
+CREATE TABLE {NormalizeScenarioTableName(tableName)} (
     Id NUMBER(10) PRIMARY KEY,
-    {usersTableName}Id NUMBER(10) NOT NULL,
+    {NormalizeScenarioTableName(usersTableName)}Id NUMBER(10) NOT NULL,
     Note VARCHAR2(100) NOT NULL,
     OrderNumber VARCHAR2(40) NOT NULL,
     Amount NUMBER(12,2) DEFAULT 0.00 NOT NULL,
@@ -62,9 +98,16 @@ CREATE TABLE {tableName}_{uId} (
     OrderedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     DeliveredAt TIMESTAMP NULL,
     ExtraJson CLOB NULL,
-    CONSTRAINT CK_{tableName}_{uId}_ExtraJson CHECK (ExtraJson IS JSON),
-    CONSTRAINT FK_{tableName}_{uId}_{usersTableName} FOREIGN KEY ({usersTableName}Id) REFERENCES {usersTableName}(Id)
+    CONSTRAINT CK_{NormalizeScenarioTableName(tableName)}_{uId}_ExtraJson CHECK (ExtraJson IS JSON),
+    CONSTRAINT FK_{NormalizeScenarioTableName(tableName)}_{uId}_{NormalizeScenarioTableName(usersTableName)} FOREIGN KEY ({NormalizeScenarioTableName(usersTableName)}Id) REFERENCES {NormalizeScenarioTableName(usersTableName)}(Id)
 )";
+
+    /// <inheritdoc />
+    public override string DropTable(string tableName, string uId)
+    {
+        _ = uId;
+        return $"DROP TABLE {NormalizeScenarioTableName(tableName)}";
+    }
 
     /// <inheritdoc />
     public override string DropTemporaryUsersTable(string tableName) =>
@@ -80,7 +123,7 @@ CREATE TABLE {tableName}_{uId} (
 
     /// <inheritdoc />
     public override string InsertUser(string tableName, int id, string name) =>
-        $@"INSERT INTO {tableName} (
+        $@"INSERT INTO {NormalizeScenarioTableName(tableName)} (
     Id,
     Name,
     Email,
@@ -104,7 +147,7 @@ CREATE TABLE {tableName}_{uId} (
 
     /// <inheritdoc />
     public override string InsertUsers(string tableName, params (int id, string name)[] values) =>
-        $@"INSERT INTO {tableName} (
+        $@"INSERT INTO {NormalizeScenarioTableName(tableName)} (
     Id,
     Name,
     Email,
@@ -130,27 +173,27 @@ CREATE TABLE {tableName}_{uId} (
         int quantity,
         bool isPaid,
         string orderedAtLiteral) =>
-        $"INSERT INTO {tableName} (Id, {usersTableName}Id, Note, OrderNumber, Amount, Quantity, IsPaid, OrderedAt) VALUES ({id}, {userId}, '{note}', '{orderNumber}', {amount.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}, {quantity}, {(isPaid ? "1" : "0")}, {orderedAtLiteral})";
+        $"INSERT INTO {NormalizeScenarioTableName(tableName)} (Id, {NormalizeScenarioTableName(usersTableName)}Id, Note, OrderNumber, Amount, Quantity, IsPaid, OrderedAt) VALUES ({id}, {userId}, '{note}', '{orderNumber}', {amount.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}, {quantity}, {(isPaid ? "1" : "0")}, {orderedAtLiteral})";
 
     /// <inheritdoc />
     public override string SelectUserNameById(string tableName, int id) =>
-        $"select name from {tableName} where id = {id}";
+        $"select name from {NormalizeScenarioTableName(tableName)} where TO_NUMBER(id) = {id}";
 
     /// <inheritdoc />
     public override string CountJoinForUser(string usersTable, string ordersTable, int userId) =>
-        $"SELECT COUNT(*) FROM {usersTable} u INNER JOIN {ordersTable} o ON o.{usersTable}Id = u.Id WHERE u.Id = {userId}";
+        $"SELECT COUNT(*) FROM {NormalizeScenarioTableName(usersTable)} u INNER JOIN {NormalizeScenarioTableName(ordersTable)} o ON TO_NUMBER(o.{NormalizeScenarioTableName(usersTable)}Id) = TO_NUMBER(u.Id) WHERE TO_NUMBER(u.Id) = {userId}";
 
     /// <inheritdoc />
     public override string UpdateUserNameById(string tableName, int id, string newName) =>
-        $"UPDATE {tableName} SET Name = '{newName}' WHERE Id = {id}";
+        $"UPDATE {NormalizeScenarioTableName(tableName)} SET Name = '{newName}' WHERE TO_NUMBER(Id) = {id}";
 
     /// <inheritdoc />
     public override string DeleteUserById(string tableName, int id) =>
-        $"DELETE FROM {tableName} WHERE Id = {id}";
+        $"DELETE FROM {NormalizeScenarioTableName(tableName)} WHERE TO_NUMBER(Id) = {id}";
 
     /// <inheritdoc />
     public override string CountRows(string tableName) =>
-        $"SELECT COUNT(*) FROM {tableName}";
+        $"SELECT COUNT(*) FROM {NormalizeScenarioTableName(tableName)}";
 
     /// <inheritdoc />
     public override string DateScalar() =>
@@ -158,11 +201,11 @@ CREATE TABLE {tableName}_{uId} (
 
     /// <inheritdoc />
     public override string StringAggregate(string tableName) =>
-        $"SELECT LISTAGG(Name, ',') WITHIN GROUP (ORDER BY Name) FROM {tableName}";
+        $"SELECT LISTAGG(Name, ',') WITHIN GROUP (ORDER BY Name) FROM {NormalizeScenarioTableName(tableName)}";
 
     /// <inheritdoc />
     public override string Upsert(string tableName, int id, string newName) => $@"
-MERGE INTO {tableName} target
+MERGE INTO {NormalizeScenarioTableName(tableName)} target
 USING (SELECT {id} Id, '{newName}' Name FROM DUAL) source
 ON (target.Id = source.Id)
 WHEN MATCHED THEN UPDATE SET target.Name = source.Name
@@ -182,11 +225,11 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
 
     /// <inheritdoc />
     public override string CurrentSequenceValue(string sequenceName) =>
-        $"{sequenceName}.CURRVAL";
+        $"SELECT {sequenceName}.CURRVAL FROM DUAL";
 
     /// <inheritdoc />
     public override string StringAggregateOrdered(string tableName) =>
-        $"SELECT LISTAGG(Name, ',') WITHIN GROUP (ORDER BY Name) FROM {tableName}";
+        $"SELECT LISTAGG(Name, ',') WITHIN GROUP (ORDER BY Name) FROM {NormalizeScenarioTableName(tableName)}";
 
     /// <inheritdoc />
     public override string JsonScalarRead(string jsonLiteral) =>
@@ -194,15 +237,15 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
 
     /// <inheritdoc />
     public override string StringAggregateDistinct(string tableName) =>
-        $"SELECT LISTAGG(Name, ',') WITHIN GROUP (ORDER BY Name) FROM (SELECT DISTINCT Name FROM {tableName}) t";
+        $"SELECT LISTAGG(Name, ',') WITHIN GROUP (ORDER BY Name) FROM (SELECT DISTINCT Name FROM {NormalizeScenarioTableName(tableName)}) t";
 
     /// <inheritdoc />
     public override string StringAggregateCustomSeparator(string tableName, string separator) =>
-        $"SELECT LISTAGG(Name, '{separator}') WITHIN GROUP (ORDER BY Name) FROM {tableName}";
+        $"SELECT LISTAGG(Name, '{separator}') WITHIN GROUP (ORDER BY Name) FROM {NormalizeScenarioTableName(tableName)}";
 
     /// <inheritdoc />
     public override string StringAggregateLargeGroup(string tableName) =>
-        $"SELECT LISTAGG(Name, ',') WITHIN GROUP (ORDER BY Name) FROM {tableName}";
+        $"SELECT LISTAGG(Name, ',') WITHIN GROUP (ORDER BY Name) FROM {NormalizeScenarioTableName(tableName)}";
 
     /// <inheritdoc />
     public override string JsonPathRead(string jsonLiteral) =>
@@ -218,7 +261,7 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
 
     /// <inheritdoc />
     public override string TemporalDateAdd() =>
-        "SELECT TO_TIMESTAMP('2024-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS') + INTERVAL '1' DAY FROM DUAL";
+        "SELECT CURRENT_TIMESTAMP + INTERVAL '1' DAY FROM DUAL";
 
     /// <inheritdoc />
     public override string TemporalCurrentTimestampExpression() => "CURRENT_TIMESTAMP";
@@ -237,7 +280,7 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
 
     /// <inheritdoc />
     public override string TemporalNowWhere(string tableName) =>
-        $"SELECT COUNT(*) FROM {tableName} WHERE CURRENT_TIMESTAMP IS NOT NULL";
+        $"SELECT COUNT(*) FROM {NormalizeScenarioTableName(tableName)} WHERE CURRENT_TIMESTAMP IS NOT NULL";
 
     /// <inheritdoc />
     public override string TemporalNowOrderBy(string tableName) =>

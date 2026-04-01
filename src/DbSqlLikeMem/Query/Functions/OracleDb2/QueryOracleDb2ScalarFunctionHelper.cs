@@ -1,3 +1,5 @@
+using static DbSqlLikeMem.AstQueryExecutorBase;
+
 namespace DbSqlLikeMem;
 
 internal delegate bool TryCoerceDateTimeDelegate(object? value, out DateTime result);
@@ -51,6 +53,7 @@ internal static class QueryOracleDb2ScalarFunctionHelper
         Register(handlers, TryEvalBitXorFunction, "BITXOR");
         Register(handlers, TryEvalBitNotFunction, "BITNOT");
         Register(handlers, TryEvalBitAndNotFunction, "BITANDNOT");
+        Register(handlers, TryEvalTruncFunction, "TRUNC", "TRUNCATE");
         return handlers;
     }
 
@@ -327,6 +330,77 @@ internal static class QueryOracleDb2ScalarFunctionHelper
             var l = Convert.ToInt64(left, CultureInfo.InvariantCulture);
             var r = Convert.ToInt64(right, CultureInfo.InvariantCulture);
             result = l & ~r;
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalTruncFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        TryCoerceDateTimeDelegate? tryCoerceDateTime,
+        out object? result)
+    {
+        _ = context;
+        _ = tryCoerceDateTime;
+
+        if (fn.Args.Count == 0)
+        {
+            result = null;
+            return true;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        var coerceDateTime = tryCoerceDateTime ?? AstQueryExecutorBase.TryCoerceDateTime;
+        if (coerceDateTime(value, out var dateTime))
+        {
+            if (fn.Args.Count < 2)
+            {
+                result = AstQueryExecutorBase.TruncateDateTime(dateTime, TemporalUnit.Day);
+                return true;
+            }
+
+            var unitText = evalArg(1)?.ToString();
+            if (string.IsNullOrWhiteSpace(unitText))
+            {
+                result = null;
+                return true;
+            }
+
+            result = AstQueryExecutorBase.TruncateDateTime(dateTime, AstQueryExecutionRuntimeHelper.ResolveTemporalUnit(unitText!));
+            return true;
+        }
+
+        try
+        {
+            var number = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+            if (fn.Args.Count < 2)
+            {
+                result = decimal.Truncate(number);
+                return true;
+            }
+
+            var decimalsValue = evalArg(1);
+            if (IsNullish(decimalsValue))
+            {
+                result = null;
+                return true;
+            }
+
+            var decimals = Convert.ToInt32(decimalsValue.ToDec());
+            var factor = (decimal)Math.Pow(10d, decimals);
+            result = decimal.Truncate(number * factor) / factor;
             return true;
         }
         catch

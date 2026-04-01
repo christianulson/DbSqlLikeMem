@@ -100,6 +100,18 @@ internal sealed class SqlQueryAstCache
         }
     }
 
+    public void Clear()
+    {
+        if (_capacity <= 0)
+            return;
+
+        lock (_gate)
+        {
+            _entries.Clear();
+            _lru.Clear();
+        }
+    }
+
     internal static string NormalizeSql(string sql)
     {
         var trimmed = sql.Trim();

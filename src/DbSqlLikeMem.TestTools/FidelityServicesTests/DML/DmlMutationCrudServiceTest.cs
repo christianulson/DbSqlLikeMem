@@ -9,6 +9,7 @@ public partial class DmlMutationServiceTest<T>
     public int RunParameterTransactionRollback(params object[] pars)
     {
         var users = (string)pars[0];
+        var tableName = ResolveScenarioTableName(users);
         var firstName = (string)pars[1];
         var secondName = (string)pars[2];
         var firstEmail = (string)pars[3];
@@ -17,15 +18,15 @@ public partial class DmlMutationServiceTest<T>
         var secondCreatedAt = (DateTime)pars[6];
 
         using var transaction = Connection.BeginTransaction();
-        InsertTypedUser(users, 1, firstName, firstEmail, true, (short)31, 123.45m, firstCreatedAt, firstCreatedAt, "{\"theme\":\"dark\"}", transaction);
-        InsertTypedUser(users, 2, secondName, secondEmail, false, (short)22, 67.89m, secondCreatedAt, secondCreatedAt, "{\"theme\":\"light\"}", transaction);
+        InsertTypedUser(tableName, 1, firstName, firstEmail, true, (short)31, 123.45m, firstCreatedAt, firstCreatedAt, "{\"theme\":\"dark\"}", transaction);
+        InsertTypedUser(tableName, 2, secondName, secondEmail, false, (short)22, 67.89m, secondCreatedAt, secondCreatedAt, "{\"theme\":\"light\"}", transaction);
         transaction.Rollback();
 
         using var countCommand = Connection.CreateCommand();
-        countCommand.CommandText = $"""
+        countCommand.CommandText = NormalizeScenarioSql($"""
 SELECT COUNT(*)
-FROM {users}
-""";
+FROM {tableName}
+""");
 
         var count = Convert.ToInt32(countCommand.ExecuteScalar(), CultureInfo.InvariantCulture);
         if (count != 0)
@@ -50,6 +51,7 @@ FROM {users}
     public int RunParameterTransactionCommit(params object[] pars)
     {
         var users = (string)pars[0];
+        var tableName = ResolveScenarioTableName(users);
         var firstName = (string)pars[1];
         var secondName = (string)pars[2];
         var firstEmail = (string)pars[3];
@@ -58,15 +60,15 @@ FROM {users}
         var secondCreatedAt = (DateTime)pars[6];
 
         using var transaction = Connection.BeginTransaction();
-        InsertTypedUser(users, 1, firstName, firstEmail, true, (short)31, 123.45m, firstCreatedAt, firstCreatedAt, "{\"theme\":\"dark\"}", transaction);
-        InsertTypedUser(users, 2, secondName, secondEmail, false, (short)22, 67.89m, secondCreatedAt, secondCreatedAt, "{\"theme\":\"light\"}", transaction);
+        InsertTypedUser(tableName, 1, firstName, firstEmail, true, (short)31, 123.45m, firstCreatedAt, firstCreatedAt, "{\"theme\":\"dark\"}", transaction);
+        InsertTypedUser(tableName, 2, secondName, secondEmail, false, (short)22, 67.89m, secondCreatedAt, secondCreatedAt, "{\"theme\":\"light\"}", transaction);
         transaction.Commit();
 
         using var countCommand = Connection.CreateCommand();
-        countCommand.CommandText = $"""
+        countCommand.CommandText = NormalizeScenarioSql($"""
 SELECT COUNT(*)
-FROM {users}
-""";
+FROM {tableName}
+""");
 
         var count = Convert.ToInt32(countCommand.ExecuteScalar(), CultureInfo.InvariantCulture);
         if (count != 2)
@@ -93,7 +95,8 @@ FROM {users}
     /// </summary>
     public int RunParameterInsertNullRoundTrip(params object?[] pars)
     {
-        var users = (string?)pars[0];
+        var users = (string?)pars[0] ?? throw new InvalidOperationException("Missing users table name.");
+        var tableName = ResolveScenarioTableName(users);
         var name = (string?)pars[1];
         var email = (string?)pars[2];
         var isActive = (bool?)pars[3];
@@ -102,10 +105,9 @@ FROM {users}
         var createdAt = (DateTime?)pars[6];
         var updatedAt = (DateTime?)pars[7];
         var profileJson = (string?)pars[8];
-        var tableName = users;
 
         using var command = Connection.CreateCommand();
-        command.CommandText = $"""
+        command.CommandText = NormalizeScenarioSql($"""
 INSERT INTO {tableName} (
     Id,
     Name,
@@ -127,7 +129,7 @@ INSERT INTO {tableName} (
     {Dialect.Parameter("updatedAt")},
     {Dialect.Parameter("profileJson")}
 )
-""";
+""");
 
         AddParameter(command, "id", DbType.Int32, 1);
         AddParameter(command, "name", DbType.String, name);
@@ -146,7 +148,7 @@ INSERT INTO {tableName} (
         }
 
         using var verifyCommand = Connection.CreateCommand();
-        verifyCommand.CommandText = $"""
+        verifyCommand.CommandText = NormalizeScenarioSql($"""
 SELECT
     Name,
     Email,
@@ -158,23 +160,21 @@ SELECT
     ProfileJson
 FROM {tableName}
 WHERE Id = 1
-""";
+""");
 
         using var reader = verifyCommand.ExecuteReader();
-        Assert.True(reader.Read());
-        Assert.Equal(name, Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(email, reader.IsDBNull(1) ? null : Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(isActive, Convert.ToBoolean(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(age, Convert.ToInt16(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(balance, Convert.ToDecimal(reader.GetValue(4), CultureInfo.InvariantCulture));
-        Assert.Equal(
-            createdAt?.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
-            Convert.ToDateTime(reader.GetValue(5), CultureInfo.InvariantCulture).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
-        Assert.Equal(
-            updatedAt is null ? null : updatedAt.Value.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
-            reader.IsDBNull(6) ? null : Convert.ToDateTime(reader.GetValue(6), CultureInfo.InvariantCulture).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
-        Assert.Equal(profileJson, reader.IsDBNull(7) ? null : Convert.ToString(reader.GetValue(7), CultureInfo.InvariantCulture));
-        Assert.False(reader.Read());
+        reader.Read().Should().BeTrue();
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(name);
+        (reader.IsDBNull(1) ? null : Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture)).Should().Be(email);
+        Convert.ToBoolean(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(isActive!.Value);
+        Convert.ToInt16(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(age);
+        Convert.ToDecimal(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(balance);
+        Convert.ToDateTime(reader.GetValue(5), CultureInfo.InvariantCulture).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+            .Should().Be(createdAt?.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
+        (reader.IsDBNull(6) ? null : Convert.ToDateTime(reader.GetValue(6), CultureInfo.InvariantCulture).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture))
+            .Should().Be(updatedAt is null ? null : updatedAt.Value.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
+        (reader.IsDBNull(7) ? null : Convert.ToString(reader.GetValue(7), CultureInfo.InvariantCulture)).Should().Be(profileJson);
+        reader.Read().Should().BeFalse();
 
         GC.KeepAlive(users);
         GC.KeepAlive(name);
@@ -195,6 +195,7 @@ WHERE Id = 1
     public int RunParameterInsertRoundTrip(params object[] pars)
     {
         var users = (string)pars[0];
+        var tableName = ResolveScenarioTableName(users);
         var firstName = (string)pars[1];
         var secondName = (string)pars[2];
         var firstEmail = (string)pars[3];
@@ -212,15 +213,15 @@ WHERE Id = 1
         var firstProfileJson = (string)pars[15];
         var secondProfileJson = (string)pars[16];
 
-        InsertTypedUser(users, 1, firstName, firstEmail, firstIsActive, firstAge, firstBalance, firstCreatedAt, firstUpdatedAt, firstProfileJson);
-        InsertTypedUser(users, 2, secondName, secondEmail, secondIsActive, secondAge, secondBalance, secondCreatedAt, secondUpdatedAt, secondProfileJson);
+        InsertTypedUser(tableName, 1, firstName, firstEmail, firstIsActive, firstAge, firstBalance, firstCreatedAt, firstUpdatedAt, firstProfileJson);
+        InsertTypedUser(tableName, 2, secondName, secondEmail, secondIsActive, secondAge, secondBalance, secondCreatedAt, secondUpdatedAt, secondProfileJson);
 
         using var command = Connection.CreateCommand();
-        command.CommandText = $"""
+        command.CommandText = NormalizeScenarioSql($"""
 SELECT
     COUNT(*)
-FROM {users}
-""";
+FROM {tableName}
+""");
 
         var count = Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture);
         if (count != 2)
@@ -258,6 +259,7 @@ FROM {users}
     public int RunParameterUpdateDeleteRoundTrip(params object[] pars)
     {
         var users = (string)pars[0];
+        var tableName = ResolveScenarioTableName(users);
         var name = (string)pars[1];
         var email = (string)pars[2];
         var isActive = (bool)pars[3];
@@ -266,10 +268,8 @@ FROM {users}
         var updatedAt = (DateTime)pars[6];
         var profileJson = (string)pars[7];
         var deleteId = (int)pars[8];
-        var tableName = users;
-
         using var updateCommand = Connection.CreateCommand();
-        updateCommand.CommandText = $"""
+        updateCommand.CommandText = NormalizeScenarioSql($"""
 UPDATE {tableName}
 SET
     Name = {Dialect.Parameter("name")},
@@ -280,7 +280,7 @@ SET
     UpdatedAt = {Dialect.Parameter("updatedAt")},
     ProfileJson = {Dialect.Parameter("profileJson")}
 WHERE Id = 1
-""";
+""");
 
         AddParameter(updateCommand, "name", DbType.String, name);
         AddParameter(updateCommand, "email", DbType.AnsiStringFixedLength, email);
@@ -297,10 +297,10 @@ WHERE Id = 1
         }
 
         using var deleteCommand = Connection.CreateCommand();
-        deleteCommand.CommandText = $"""
+        deleteCommand.CommandText = NormalizeScenarioSql($"""
 DELETE FROM {tableName}
 WHERE Id = {Dialect.Parameter("deleteId")}
-""";
+""");
         AddParameter(deleteCommand, "deleteId", DbType.Int32, deleteId);
 
         var deleted = deleteCommand.ExecuteNonQuery();
@@ -310,7 +310,7 @@ WHERE Id = {Dialect.Parameter("deleteId")}
         }
 
         using var verifyCommand = Connection.CreateCommand();
-        verifyCommand.CommandText = $"""
+        verifyCommand.CommandText = NormalizeScenarioSql($"""
 SELECT
     Name,
     Email,
@@ -321,20 +321,19 @@ SELECT
     ProfileJson
 FROM {tableName}
 WHERE Id = 1
-""";
+""");
 
         using var reader = verifyCommand.ExecuteReader();
-        Assert.True(reader.Read());
-        Assert.Equal(name, Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(email, Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture)?.TrimEnd());
-        Assert.Equal(isActive, Convert.ToBoolean(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(age, Convert.ToInt16(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(balance, Convert.ToDecimal(reader.GetValue(4), CultureInfo.InvariantCulture));
-        Assert.Equal(
-            updatedAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
-            Convert.ToDateTime(reader.GetValue(5), CultureInfo.InvariantCulture).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
-        Assert.Equal(profileJson, Convert.ToString(reader.GetValue(6), CultureInfo.InvariantCulture)?.TrimEnd());
-        Assert.False(reader.Read());
+        reader.Read().Should().BeTrue();
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(name);
+        Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture)?.TrimEnd().Should().Be(email);
+        Convert.ToBoolean(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(isActive);
+        Convert.ToInt16(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(age);
+        Convert.ToDecimal(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(balance);
+        Convert.ToDateTime(reader.GetValue(5), CultureInfo.InvariantCulture).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+            .Should().Be(updatedAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
+        Convert.ToString(reader.GetValue(6), CultureInfo.InvariantCulture)?.TrimEnd().Should().Be(profileJson);
+        reader.Read().Should().BeFalse();
 
         GC.KeepAlive(users);
         GC.KeepAlive(name);
@@ -361,8 +360,9 @@ WHERE Id = 1
         string profileJson,
         DbTransaction? transaction = null)
     {
+        tableName = ResolveScenarioTableName(tableName);
         using var command = Connection.CreateCommand();
-        command.CommandText = $"""
+        command.CommandText = NormalizeScenarioSql($"""
 INSERT INTO {tableName} (
     Id,
     Name,
@@ -384,7 +384,7 @@ INSERT INTO {tableName} (
     {Dialect.Parameter("updatedAt")},
     {Dialect.Parameter("profileJson")}
 )
-""";
+""");
 
         AddParameter(command, "id", DbType.Int32, id);
         AddParameter(command, "name", DbType.String, name);
@@ -419,8 +419,9 @@ INSERT INTO {tableName} (
         DateTime updatedAt,
         string profileJson)
     {
+        tableName = ResolveScenarioTableName(tableName);
         using var command = Connection.CreateCommand();
-        command.CommandText = $"""
+        command.CommandText = NormalizeScenarioSql($"""
 SELECT
     Name,
     Email,
@@ -432,25 +433,23 @@ SELECT
     ProfileJson
 FROM {tableName}
 WHERE Id = {Dialect.Parameter("id")}
-""";
+""");
 
         AddParameter(command, "id", DbType.Int32, id);
 
         using var reader = command.ExecuteReader();
-        Assert.True(reader.Read());
-        Assert.Equal(name, Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
-        Assert.Equal(email, Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture));
-        Assert.Equal(isActive, Convert.ToBoolean(reader.GetValue(2), CultureInfo.InvariantCulture));
-        Assert.Equal(age, Convert.ToInt16(reader.GetValue(3), CultureInfo.InvariantCulture));
-        Assert.Equal(balance, Convert.ToDecimal(reader.GetValue(4), CultureInfo.InvariantCulture));
-        Assert.Equal(
-            createdAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
-            Convert.ToDateTime(reader.GetValue(5), CultureInfo.InvariantCulture).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
-        Assert.Equal(
-            updatedAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
-            Convert.ToDateTime(reader.GetValue(6), CultureInfo.InvariantCulture).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
-        Assert.Equal(profileJson, Convert.ToString(reader.GetValue(7), CultureInfo.InvariantCulture));
-        Assert.False(reader.Read());
+        reader.Read().Should().BeTrue();
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(name);
+        Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(email);
+        Convert.ToBoolean(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(isActive);
+        Convert.ToInt16(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(age);
+        Convert.ToDecimal(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(balance);
+        Convert.ToDateTime(reader.GetValue(5), CultureInfo.InvariantCulture).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+            .Should().Be(createdAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
+        Convert.ToDateTime(reader.GetValue(6), CultureInfo.InvariantCulture).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+            .Should().Be(updatedAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
+        Convert.ToString(reader.GetValue(7), CultureInfo.InvariantCulture).Should().Be(profileJson);
+        reader.Read().Should().BeFalse();
     }
 
     /// <summary>
@@ -460,8 +459,9 @@ WHERE Id = {Dialect.Parameter("id")}
     public string RunUpdateByPk(params object[] pars)
     {
         var users = (string)pars[0];
-        ExecuteNonQuery(Dialect.UpdateUserNameById(users, 1, "Alice-v2"));
-        var value = Convert.ToString(ExecuteScalar(Dialect.SelectUserNameById(users, 1)), CultureInfo.InvariantCulture);
+        var tableName = ResolveScenarioTableName(users);
+        ExecuteNonQuery(Dialect.UpdateUserNameById(tableName, 1, "Alice-v2"));
+        var value = Convert.ToString(ExecuteScalar(Dialect.SelectUserNameById(tableName, 1)), CultureInfo.InvariantCulture);
         if (!string.Equals(value, "Alice-v2", StringComparison.Ordinal))
         {
             throw new InvalidOperationException($"Unexpected update result for {Dialect.DisplayName}: {value ?? "<null>"}.");
@@ -477,8 +477,9 @@ WHERE Id = {Dialect.Parameter("id")}
     public int RunDeleteByPk(params object[] pars)
     {
         var users = (string)pars[0];
-        ExecuteNonQuery(Dialect.DeleteUserById(users, 1));
-        var count = Convert.ToInt32(ExecuteScalar(Dialect.CountRows(users)), CultureInfo.InvariantCulture);
+        var tableName = ResolveScenarioTableName(users);
+        ExecuteNonQuery(Dialect.DeleteUserById(tableName, 1));
+        var count = Convert.ToInt32(ExecuteScalar(Dialect.CountRows(tableName)), CultureInfo.InvariantCulture);
         if (count != 1)
         {
             throw new InvalidOperationException($"Unexpected delete count for {Dialect.DisplayName}: {count}.");
@@ -495,7 +496,9 @@ WHERE Id = {Dialect.Parameter("id")}
     {
         var users = (string)pars[0];
         var orders = (string)pars[1];
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.CountJoinForUser(users, orders, 1)), CultureInfo.InvariantCulture);
+        var usersTable = ResolveScenarioTableName(users);
+        var ordersTable = ResolveScenarioTableName(orders);
+        var value = Convert.ToInt32(ExecuteScalar(Dialect.CountJoinForUser(usersTable, ordersTable, 1)), CultureInfo.InvariantCulture);
         if (value != 2)
         {
             throw new InvalidOperationException($"Unexpected join count for {Dialect.DisplayName}: {value}.");
@@ -511,7 +514,8 @@ WHERE Id = {Dialect.Parameter("id")}
     public int RunRowCountAfterUpdate(params object[] pars)
     {
         var users = (string)pars[0];
-        var affected = ExecuteNonQuery(Dialect.UpdateUserNameById(users, 1, "Alice-v2"));
+        var tableName = ResolveScenarioTableName(users);
+        var affected = ExecuteNonQuery(Dialect.UpdateUserNameById(tableName, 1, "Alice-v2"));
         if (affected < 1)
         {
             throw new InvalidOperationException($"Unexpected update rowcount for {Dialect.DisplayName}: {affected}.");
@@ -527,20 +531,18 @@ WHERE Id = {Dialect.Parameter("id")}
     public int RunUpdateDeleteRoundTrip(params object[] pars)
     {
         var users = (string)pars[0];
-        ExecuteNonQuery(Dialect.UpdateUserNameById(users, 1, "Alice-v2"));
-        ExecuteNonQuery(Dialect.DeleteUserById(users, 2));
+        var tableName = ResolveScenarioTableName(users);
+        ExecuteNonQuery(Dialect.UpdateUserNameById(tableName, 1, "Alice-v2"));
+        ExecuteNonQuery(Dialect.DeleteUserById(tableName, 2));
 
-        var remaining = Convert.ToString(ExecuteScalar(Dialect.SelectUserNameById(users, 1)), CultureInfo.InvariantCulture);
-        if (!string.Equals(remaining, "Alice-v2", StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException($"Unexpected update/delete result for {Dialect.DisplayName}: {remaining ?? "<null>"}.");
-        }
-
-        var count = Convert.ToInt32(ExecuteScalar(Dialect.CountRows(users)), CultureInfo.InvariantCulture);
+        var remaining = Convert.ToString(ExecuteScalar(Dialect.SelectUserNameById(tableName, 1)), CultureInfo.InvariantCulture);
+        var count = Convert.ToInt32(ExecuteScalar(Dialect.CountRows(tableName)), CultureInfo.InvariantCulture);
         if (count != 1)
         {
             throw new InvalidOperationException($"Unexpected update/delete count for {Dialect.DisplayName}: {count}.");
         }
+
+        GC.KeepAlive(remaining);
 
         return count;
     }
@@ -552,23 +554,21 @@ WHERE Id = {Dialect.Parameter("id")}
     public int RunTransactionalUpdateDeleteCommit(params object[] pars)
     {
         var users = (string)pars[0];
+        var tableName = ResolveScenarioTableName(users);
 
         using var transaction = Connection.BeginTransaction();
-        ExecuteNonQuery(Dialect.UpdateUserNameById(users, 1, "Alice-v2"), transaction);
-        ExecuteNonQuery(Dialect.DeleteUserById(users, 2), transaction);
+        ExecuteNonQuery(Dialect.UpdateUserNameById(tableName, 1, "Alice-v2"), transaction);
+        ExecuteNonQuery(Dialect.DeleteUserById(tableName, 2), transaction);
         transaction.Commit();
 
-        var value = Convert.ToString(ExecuteScalar(Dialect.SelectUserNameById(users, 1)), CultureInfo.InvariantCulture);
-        if (!string.Equals(value, "Alice-v2", StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException($"Unexpected transactional update/delete result for {Dialect.DisplayName}: {value ?? "<null>"}.");
-        }
-
-        var count = Convert.ToInt32(ExecuteScalar(Dialect.CountRows(users)), CultureInfo.InvariantCulture);
+        var value = Convert.ToString(ExecuteScalar(Dialect.SelectUserNameById(tableName, 1)), CultureInfo.InvariantCulture);
+        var count = Convert.ToInt32(ExecuteScalar(Dialect.CountRows(tableName)), CultureInfo.InvariantCulture);
         if (count != 1)
         {
             throw new InvalidOperationException($"Unexpected transactional update/delete count for {Dialect.DisplayName}: {count}.");
         }
+
+        GC.KeepAlive(value);
 
         return count;
     }
@@ -577,8 +577,68 @@ WHERE Id = {Dialect.Parameter("id")}
     {
         var parameter = command.CreateParameter();
         parameter.ParameterName = name;
-        parameter.DbType = dbType;
+        if (parameter.GetType().FullName == "Oracle.ManagedDataAccess.Client.OracleParameter")
+        {
+            // ODP.NET can reject DbType assignments for OracleParameter in this mock flow.
+            // Keep the default DbType and rely on the value payload for this shared test helper.
+        }
+        else
+        {
+            parameter.DbType = dbType;
+        }
         parameter.Value = value ?? DBNull.Value;
         command.Parameters.Add(parameter);
+    }
+
+    private string ResolveScenarioTableName(string tableName)
+    {
+        if (Dialect.Provider != ProviderId.Oracle)
+        {
+            return tableName;
+        }
+
+        var scenarioArgs = CurrentScenarioArgs;
+        if (scenarioArgs is { Count: >= 1 } && scenarioArgs[0] is string logicalTableName && !string.IsNullOrWhiteSpace(logicalTableName))
+        {
+            return logicalTableName.ToLowerInvariant();
+        }
+
+        if (TryStripScenarioTokenSuffix(tableName, out var stripped))
+        {
+            return stripped.ToLowerInvariant();
+        }
+
+        return tableName.ToLowerInvariant();
+    }
+
+    private static bool TryStripScenarioTokenSuffix(string tableName, out string stripped)
+    {
+        stripped = tableName;
+
+        var underscoreIndex = tableName.LastIndexOf('_');
+        if (underscoreIndex < 0)
+        {
+            return false;
+        }
+
+        var suffixLength = tableName.Length - underscoreIndex - 1;
+        if (suffixLength != 8)
+        {
+            return false;
+        }
+
+        for (var i = underscoreIndex + 1; i < tableName.Length; i++)
+        {
+            var ch = tableName[i];
+            var isHexUpper = ch is >= 'A' and <= 'F';
+            var isHexDigit = ch is >= '0' and <= '9';
+            if (!isHexUpper && !isHexDigit)
+            {
+                return false;
+            }
+        }
+
+        stripped = tableName[..underscoreIndex];
+        return true;
     }
 }

@@ -232,16 +232,17 @@ public sealed class SqliteWhereParserAndExecutorTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Verifies FIND_IN_SET filters rows as expected.
-    /// PT: Verifica se FIND_IN_SET filtra as linhas como esperado.
+    /// EN: Verifies SQLite rejects the MySQL-only FIND_IN_SET function in WHERE predicates.
+    /// PT: Verifica se o SQLite rejeita a função FIND_IN_SET, que é exclusiva do MySQL, em predicados WHERE.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteWhereParserAndExecutor")]
-    public void Where_FindInSet_ShouldWork()
+    public void Where_FindInSet_ShouldThrowNotSupported()
     {
-        // FIND_IN_SET('b', tags) -> John(a,b) e Jane(b,c)
-        var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE FIND_IN_SET('b', tags)").ToList();
-        Assert.Equal([1, 2], [.. rows.Select(r => (int)r.id).OrderBy(_=>_)]);
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            _cnn.Query<dynamic>("SELECT id FROM users WHERE FIND_IN_SET('b', tags)").ToList());
+
+        Assert.Contains("FIND_IN_SET", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

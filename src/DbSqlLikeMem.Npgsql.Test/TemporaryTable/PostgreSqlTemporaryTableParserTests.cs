@@ -17,6 +17,7 @@ public sealed class PostgreSqlTemporaryTableParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseMulti_ShouldAccept_CreateTemporaryTable_AsSelect_FollowedBySelect(int version)
     {
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = @"
 CREATE TEMPORARY TABLE tmp_users AS
 SELECT id, name FROM users WHERE tenantid = 10;
@@ -24,7 +25,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
 SELECT * FROM tmp_users;
 ";
 
-        var queries = SqlQueryParser.ParseMulti(sql, GetDialect(version, v => new NpgsqlDialect(v))).ToList();
+        var queries = SqlQueryParser.ParseMulti(sql, db, Get(version, v => new NpgsqlDialect(v))).ToList();
 
         // TDD contract: the parser must accept the batch and produce 2 statements.
         Assert.Equal(2, queries.Count);
@@ -73,8 +74,9 @@ WHERE tenantid = 10",
     [MemberDataByNpgsqlVersion(nameof(CreateTempTableStatements))]
     public void Parse_ShouldAccept_CreateTemporaryTable_Variants(string sql, int version)
     {
+        var db = Get(version, v => new NpgsqlDbMock(v));
         // TDD contract: these statements must parse without throwing.
-        var q = SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v)));
+        var q = SqlQueryParser.Parse(sql, db, Get(version, v => new NpgsqlDialect(v)));
         Assert.NotNull(q);
         Assert.Contains(SqlConst.CREATE, q.RawSql, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(SqlConst.TEMPORARY, q.RawSql, StringComparison.OrdinalIgnoreCase);
@@ -89,9 +91,10 @@ WHERE tenantid = 10",
     [MemberDataNpgsqlVersion]
     public void Parse_ShouldTreat_PgTempSchema_AsTemporary(int version)
     {
-        var dialect = GetDialect(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
+        var dialect = Get(version, v => new NpgsqlDialect(v));
         var q = Assert.IsType<SqlCreateTemporaryTableQuery>(
-            SqlQueryParser.Parse("CREATE TABLE pg_temp.tmp_users AS SELECT id FROM users", dialect));
+            SqlQueryParser.Parse("CREATE TABLE pg_temp.tmp_users AS SELECT id FROM users", db, dialect));
 
         Assert.Equal(TemporaryTableScope.Connection, q.Scope);
     }
@@ -105,8 +108,9 @@ WHERE tenantid = 10",
     [MemberDataNpgsqlVersion]
     public void Parse_CreateOrReplaceTable_ShouldThrow(int version)
     {
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "CREATE OR REPLACE TABLE tmp_users AS SELECT id FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new NpgsqlDialect(v))));
     }
 
     /// <summary>
@@ -118,8 +122,9 @@ WHERE tenantid = 10",
     [MemberDataNpgsqlVersion]
     public void Parse_ShouldAccept_DropTable_IfExists(int version)
     {
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var q = Assert.IsType<SqlDropTableQuery>(
-            SqlQueryParser.Parse("DROP TABLE IF EXISTS tmp_users", GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse("DROP TABLE IF EXISTS tmp_users", db, Get(version, v => new NpgsqlDialect(v))));
 
         Assert.True(q.IfExists);
         Assert.NotNull(q.Table);
@@ -135,8 +140,9 @@ WHERE tenantid = 10",
     [MemberDataNpgsqlVersion]
     public void Parse_ShouldAccept_DropGlobalTemporaryTable_IfExists(int version)
     {
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var q = Assert.IsType<SqlDropTableQuery>(
-            SqlQueryParser.Parse("DROP GLOBAL TEMPORARY TABLE IF EXISTS tmp_users", GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse("DROP GLOBAL TEMPORARY TABLE IF EXISTS tmp_users", db, Get(version, v => new NpgsqlDialect(v))));
 
         Assert.True(q.IfExists);
         Assert.True(q.Temporary);
@@ -152,8 +158,9 @@ WHERE tenantid = 10",
     [MemberDataNpgsqlVersion]
     public void Parse_DropGlobalTable_WithoutTemporaryKeyword_ShouldThrow(int version)
     {
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "DROP GLOBAL TABLE IF EXISTS tmp_users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new NpgsqlDialect(v))));
     }
 
 
@@ -166,8 +173,9 @@ WHERE tenantid = 10",
     [MemberDataNpgsqlVersion]
     public void Parse_DropTable_WithoutName_ShouldThrow(int version)
     {
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "DROP TABLE IF EXISTS ;";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new NpgsqlDialect(v))));
     }
 
     /// <summary>
@@ -179,8 +187,9 @@ WHERE tenantid = 10",
     [MemberDataNpgsqlVersion]
     public void Parse_DropTable_WithUnexpectedSecondStatement_ShouldThrow(int version)
     {
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "DROP TABLE IF EXISTS tmp_users; SELECT 1";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new NpgsqlDialect(v))));
     }
 
     /// <summary>
@@ -192,8 +201,9 @@ WHERE tenantid = 10",
     [MemberDataNpgsqlVersion]
     public void Parse_CreateGlobalTable_WithoutTemporaryKeyword_ShouldThrow(int version)
     {
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "CREATE GLOBAL TABLE tmp_users AS SELECT id FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new NpgsqlDialect(v))));
     }
 
     /// <summary>
@@ -205,8 +215,9 @@ WHERE tenantid = 10",
     [MemberDataNpgsqlVersion]
     public void Parse_CreateTemporaryTable_WithUnexpectedSecondStatementInBody_ShouldThrow(int version)
     {
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "CREATE TEMPORARY TABLE tmp_users AS SELECT id FROM users; SELECT 1";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new NpgsqlDialect(v))));
     }
 
     /// <summary>
@@ -218,8 +229,9 @@ WHERE tenantid = 10",
     [MemberDataNpgsqlVersion]
     public void Parse_CreateTemporaryTable_WithMissingBodyAfterAs_ShouldThrow(int version)
     {
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "CREATE TEMPORARY TABLE tmp_users AS ;";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new NpgsqlDialect(v))));
     }
 
     /// <summary>
@@ -231,8 +243,9 @@ WHERE tenantid = 10",
     [MemberDataNpgsqlVersion]
     public void Parse_CreateTemporaryTable_WithEmptyColumnList_ShouldThrow(int version)
     {
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "CREATE TEMPORARY TABLE tmp_users () AS SELECT id FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new NpgsqlDialect(v))));
     }
 
     /// <summary>
@@ -244,8 +257,9 @@ WHERE tenantid = 10",
     [MemberDataNpgsqlVersion]
     public void Parse_CreateTemporaryTable_WithTrailingCommaInColumnList_ShouldThrow(int version)
     {
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "CREATE TEMPORARY TABLE tmp_users (id INT,) AS SELECT id FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql,db, Get(version, v => new NpgsqlDialect(v))));
     }
 
     /// <summary>
@@ -257,8 +271,9 @@ WHERE tenantid = 10",
     [MemberDataNpgsqlVersion]
     public void Parse_CreateTemporaryTable_WithLeadingCommaInColumnList_ShouldThrow(int version)
     {
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "CREATE TEMPORARY TABLE tmp_users (,id INT) AS SELECT id FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql,db, Get(version, v => new NpgsqlDialect(v))));
     }
 
     /// <summary>
@@ -270,8 +285,9 @@ WHERE tenantid = 10",
     [MemberDataNpgsqlVersion]
     public void Parse_CreateTemporaryTable_WithUnclosedColumnList_ShouldThrow(int version)
     {
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "CREATE TEMPORARY TABLE tmp_users (id INT AS SELECT id FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql,db, Get(version, v => new NpgsqlDialect(v))));
     }
 
     /// <summary>
@@ -283,8 +299,9 @@ WHERE tenantid = 10",
     [MemberDataNpgsqlVersion]
     public void Parse_CreateTemporaryTable_WithMissingCommaBetweenColumns_ShouldThrow(int version)
     {
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "CREATE TEMPORARY TABLE tmp_users (id INT name VARCHAR(50)) AS SELECT id, name FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql,db, Get(version, v => new NpgsqlDialect(v))));
     }
 
     /// <summary>
@@ -296,8 +313,9 @@ WHERE tenantid = 10",
     [MemberDataNpgsqlVersion]
     public void Parse_CreateTemporaryTable_WithMissingCommaAfterParenthesizedType_ShouldThrow(int version)
     {
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "CREATE TEMPORARY TABLE tmp_users (id INT, name VARCHAR(50) age INT) AS SELECT id, name, age FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new NpgsqlDialect(v))));
     }
 
     /// <summary>
@@ -309,8 +327,9 @@ WHERE tenantid = 10",
     [MemberDataNpgsqlVersion]
     public void Parse_CreateTemporaryTable_WithDoubleCommaInColumnList_ShouldThrow(int version)
     {
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "CREATE TEMPORARY TABLE tmp_users (id INT,,name VARCHAR(50)) AS SELECT id, name FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new NpgsqlDialect(v))));
     }
 
     /// <summary>
@@ -322,8 +341,9 @@ WHERE tenantid = 10",
     [MemberDataNpgsqlVersion]
     public void Parse_CreateTemporaryTable_WithIfExistsInsteadOfIfNotExists_ShouldThrow(int version)
     {
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "CREATE TEMPORARY TABLE IF EXISTS tmp_users AS SELECT id FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new NpgsqlDialect(v))));
     }
 }
 

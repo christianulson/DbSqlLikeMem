@@ -48,6 +48,12 @@ public abstract class SequenceTestsBase<T, T2>(
         => RunSequenceCurrentValueTest();
 
     /// <summary>
+    /// EN: Indicates whether the current provider supports reading the current sequence value in this benchmark.
+    /// PT: Indica se o provedor atual suporta leitura do valor corrente da sequence neste benchmark.
+    /// </summary>
+    protected virtual bool SupportsCurrentSequenceValue => dialect.Provider is not ProviderId.SqlServer and not ProviderId.SqlAzure;
+
+    /// <summary>
     /// EN: Verifies that a sequence value can be projected inside a SELECT for the current provider.
     /// PT: Verifica se um valor de sequence pode ser projetado dentro de um SELECT para o provedor atual.
     /// </summary>
@@ -93,7 +99,7 @@ public abstract class SequenceTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunSequenceNextValuesScenario(connContainer, sequence);
-            Assert.Equal(resultMock, resultContainer);
+            resultMock.Should().Be(resultContainer);
         }
     }
 
@@ -113,7 +119,7 @@ public abstract class SequenceTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunSequenceInsertRoundTripScenario(connContainer, users, uId, sequence);
-            Assert.Equal(resultMock, resultContainer);
+            resultMock.Should().Be(resultContainer);
         }
     }
 
@@ -133,7 +139,7 @@ public abstract class SequenceTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunSequenceInsertExpressionScenario(connContainer, users, uId, sequence);
-            Assert.Equal(resultMock, resultContainer);
+            resultMock.Should().Be(resultContainer);
         }
     }
 
@@ -143,6 +149,13 @@ public abstract class SequenceTestsBase<T, T2>(
 
         using var connMock = connectionMock();
         connMock.Open();
+
+        if (!SupportsCurrentSequenceValue)
+        {
+            FluentActions.Invoking(() => RunSequenceCurrentValueScenario(connMock, sequence)).Should().Throw<NotSupportedException>();
+            return;
+        }
+
         var resultMock = RunSequenceCurrentValueScenario(connMock, sequence);
 
         if (IsInsertContainerComparisonEnabled(dialect.Provider)
@@ -151,7 +164,7 @@ public abstract class SequenceTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunSequenceCurrentValueScenario(connContainer, sequence);
-            Assert.Equal(resultMock, resultContainer);
+            resultMock.Should().Be(resultContainer);
         }
     }
 
@@ -169,7 +182,7 @@ public abstract class SequenceTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunSequenceSelectProjectionScenario(connContainer, sequence);
-            Assert.Equal(resultMock, resultContainer);
+            resultMock.Should().Be(resultContainer);
         }
     }
 
@@ -187,7 +200,7 @@ public abstract class SequenceTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunSequenceCaseWhereMatrixScenario(connContainer, sequence);
-            Assert.Equal(resultMock, resultContainer);
+            resultMock.Should().Be(resultContainer);
         }
     }
 
@@ -205,7 +218,7 @@ public abstract class SequenceTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunSequenceTemporalMatrixScenario(connContainer, sequence);
-            Assert.Equal(resultMock, resultContainer);
+            resultMock.Should().Be(resultContainer);
         }
     }
 
@@ -226,7 +239,7 @@ public abstract class SequenceTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunSequenceJoinAggregateScenario(connContainer, users, orders, uId, sequence);
-            Assert.Equal(resultMock, resultContainer);
+            resultMock.Should().Be(resultContainer);
         }
     }
 
@@ -244,8 +257,8 @@ public abstract class SequenceTestsBase<T, T2>(
             var first = Convert.ToInt64(serviceTest.RunSequenceNextValue(sequence), CultureInfo.InvariantCulture);
             var second = Convert.ToInt64(serviceTest.RunSequenceNextValue(sequence), CultureInfo.InvariantCulture);
 
-            Assert.Equal(10L, first);
-            Assert.Equal(11L, second);
+            first.Should().Be(10L);
+            second.Should().Be(11L);
             return (first, second);
         }
         finally
@@ -271,16 +284,16 @@ public abstract class SequenceTestsBase<T, T2>(
 
         try
         {
-            var tableName = $"{users}_{uId}";
+            var tableName = ResolveScenarioTableName(users, uId);
             var first = Convert.ToInt64(sequenceService.RunSequenceNextValue(sequence), CultureInfo.InvariantCulture);
             ExecuteNonQueryOnConnection(connection, dialect.InsertUser(tableName, (int)first, $"Seq-{first}"));
             var second = Convert.ToInt64(sequenceService.RunSequenceNextValue(sequence), CultureInfo.InvariantCulture);
             ExecuteNonQueryOnConnection(connection, dialect.InsertUser(tableName, (int)second, $"Seq-{second}"));
 
             var result = ExecuteAggregateReadback(connection, tableName);
-            Assert.Equal(10L, result.MinId);
-            Assert.Equal(11L, result.MaxId);
-            Assert.Equal(2L, result.RowCount);
+            result.MinId.Should().Be(10L);
+            result.MaxId.Should().Be(11L);
+            result.RowCount.Should().Be(2L);
             return result;
         }
         finally
@@ -307,14 +320,14 @@ public abstract class SequenceTestsBase<T, T2>(
 
         try
         {
-            var tableName = $"{users}_{uId}";
+            var tableName = ResolveScenarioTableName(users, uId);
             ExecuteNonQueryOnConnection(connection, $"INSERT INTO {tableName} (Id, Name) VALUES ({dialect.NextSequenceValueExpression(sequence)}, 'Seq-A')");
             ExecuteNonQueryOnConnection(connection, $"INSERT INTO {tableName} (Id, Name) VALUES ({dialect.NextSequenceValueExpression(sequence)}, 'Seq-B')");
 
             var result = ExecuteAggregateReadback(connection, tableName);
-            Assert.Equal(10L, result.MinId);
-            Assert.Equal(11L, result.MaxId);
-            Assert.Equal(2L, result.RowCount);
+            result.MinId.Should().Be(10L);
+            result.MaxId.Should().Be(11L);
+            result.RowCount.Should().Be(2L);
             return result;
         }
         finally
@@ -340,10 +353,10 @@ public abstract class SequenceTestsBase<T, T2>(
             var second = Convert.ToInt64(serviceTest.RunSequenceNextValue(sequence), CultureInfo.InvariantCulture);
             var currentAfterSecond = Convert.ToInt64(ExecuteScalarOnConnection(connection, dialect.CurrentSequenceValue(sequence))!, CultureInfo.InvariantCulture);
 
-            Assert.Equal(10L, first);
-            Assert.Equal(10L, current);
-            Assert.Equal(11L, second);
-            Assert.Equal(11L, currentAfterSecond);
+            first.Should().Be(10L);
+            current.Should().Be(10L);
+            second.Should().Be(11L);
+            currentAfterSecond.Should().Be(11L);
 
             return (first, current, second, currentAfterSecond);
         }
@@ -365,7 +378,7 @@ public abstract class SequenceTestsBase<T, T2>(
         try
         {
             var value = Convert.ToInt64(ExecuteScalarOnConnection(connection, dialect.SelectNextSequenceValue(sequence))!, CultureInfo.InvariantCulture);
-            Assert.Equal(10L, value);
+            value.Should().Be(10L);
             return value;
         }
         finally
@@ -385,14 +398,17 @@ public abstract class SequenceTestsBase<T, T2>(
 
         try
         {
+            var seqFirstCte = dialect.Provider == ProviderId.Db2
+                ? $"seq_first AS (SELECT NEXT VALUE FOR {sequence} AS SeqValue FROM SYSIBM.SYSDUMMY1)"
+                : $"seq_first AS (SELECT {dialect.NextSequenceValueExpression(sequence)} AS SeqValue)";
+            var seqSecondCte = dialect.Provider == ProviderId.Db2
+                ? $"seq_second AS (SELECT NEXT VALUE FOR {sequence} AS SeqValue FROM SYSIBM.SYSDUMMY1)"
+                : $"seq_second AS (SELECT {dialect.NextSequenceValueExpression(sequence)} AS SeqValue)";
+
             using var command = connection.CreateCommand();
             command.CommandText = $"""
-WITH seq_first AS (
-    SELECT {dialect.NextSequenceValueExpression(sequence)} AS SeqValue
-),
-seq_second AS (
-    SELECT {dialect.NextSequenceValueExpression(sequence)} AS SeqValue
-)
+WITH {seqFirstCte},
+{seqSecondCte}
 SELECT
     s1.SeqValue,
     s2.SeqValue,
@@ -408,15 +424,15 @@ WHERE s1.SeqValue >= 10
 """;
 
             using var reader = command.ExecuteReader();
-            Assert.True(reader.Read());
-            Assert.Equal(10L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
-            Assert.Equal(11L, Convert.ToInt64(reader.GetValue(1), CultureInfo.InvariantCulture));
-            Assert.Equal(1, Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture));
-            Assert.Equal(1, Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture));
-            Assert.Equal(1, Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture));
-            Assert.Equal(1, Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture));
-            Assert.Equal(1, Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture));
-            Assert.False(reader.Read());
+            reader.Read().Should().BeTrue();
+            Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(10L);
+            Convert.ToInt64(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(11L);
+            Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(1);
+            Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(1);
+            Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(1);
+            Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(1);
+            Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(1);
+            reader.Read().Should().BeFalse();
             return 1;
         }
         finally
@@ -438,15 +454,17 @@ WHERE s1.SeqValue >= 10
         {
             var nowExpr = dialect.TemporalCurrentTimestampExpression();
             var nextDayExpr = dialect.TemporalDateAddExpression();
+            var seqFirstCte = dialect.Provider == ProviderId.Db2
+                ? $"seq_first AS (SELECT NEXT VALUE FOR {sequence} AS SeqValue FROM SYSIBM.SYSDUMMY1)"
+                : $"seq_first AS (SELECT {dialect.NextSequenceValueExpression(sequence)} AS SeqValue)";
+            var seqSecondCte = dialect.Provider == ProviderId.Db2
+                ? $"seq_second AS (SELECT NEXT VALUE FOR {sequence} AS SeqValue FROM SYSIBM.SYSDUMMY1)"
+                : $"seq_second AS (SELECT {dialect.NextSequenceValueExpression(sequence)} AS SeqValue)";
 
             using var command = connection.CreateCommand();
             command.CommandText = $"""
-WITH seq_first AS (
-    SELECT {dialect.NextSequenceValueExpression(sequence)} AS SeqValue
-),
-seq_second AS (
-    SELECT {dialect.NextSequenceValueExpression(sequence)} AS SeqValue
-)
+WITH {seqFirstCte},
+{seqSecondCte}
 SELECT
     s1.SeqValue,
     s2.SeqValue,
@@ -462,15 +480,15 @@ WHERE s1.SeqValue BETWEEN 10 AND 10
 """;
 
             using var reader = command.ExecuteReader();
-            Assert.True(reader.Read());
-            Assert.Equal(10L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
-            Assert.Equal(11L, Convert.ToInt64(reader.GetValue(1), CultureInfo.InvariantCulture));
-            Assert.Equal(1, Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture));
-            Assert.Equal(1, Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture));
-            Assert.Equal(1, Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture));
-            Assert.Equal(1, Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture));
-            Assert.Equal(1, Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture));
-            Assert.False(reader.Read());
+            reader.Read().Should().BeTrue();
+            Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(10L);
+            Convert.ToInt64(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(11L);
+            Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(1);
+            Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(1);
+            Convert.ToInt32(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(1);
+            Convert.ToInt32(reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(1);
+            Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(1);
+            reader.Read().Should().BeFalse();
             return 1;
         }
         finally
@@ -497,8 +515,8 @@ WHERE s1.SeqValue BETWEEN 10 AND 10
 
         try
         {
-            var usersTable = $"{users}_{uId}";
-            var ordersTable = $"{orders}_{uId}";
+            var usersTable = ResolveScenarioTableName(users, uId);
+            var ordersTable = ResolveScenarioTableName(orders, uId);
             var firstUserId = Convert.ToInt64(sequenceService.RunSequenceNextValue(sequence), CultureInfo.InvariantCulture);
             var secondUserId = Convert.ToInt64(sequenceService.RunSequenceNextValue(sequence), CultureInfo.InvariantCulture);
 
@@ -512,7 +530,7 @@ WHERE s1.SeqValue BETWEEN 10 AND 10
             command.CommandText = $"""
 SELECT
     u.Id,
-    COUNT(o.Id) AS OrderCount,
+    COUNT(o.Note) AS OrderCount,
     SUM(o.Quantity) AS TotalQuantity,
     ROUND(SUM(o.Amount), 2) AS TotalAmount
 FROM {usersTable} u
@@ -522,19 +540,19 @@ ORDER BY u.Id
 """;
 
             using var reader = command.ExecuteReader();
-            Assert.True(reader.Read());
-            Assert.Equal((int)firstUserId, Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
-            Assert.Equal(2, Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture));
-            Assert.Equal(3, Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture));
-            Assert.Equal(4.00m, Convert.ToDecimal(reader.GetValue(3), CultureInfo.InvariantCulture));
+            reader.Read().Should().BeTrue();
+            Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be((int)firstUserId);
+            Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(2);
+            Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(3);
+            Convert.ToDecimal(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(4.00m);
 
-            Assert.True(reader.Read());
-            Assert.Equal((int)secondUserId, Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
-            Assert.Equal(1, Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture));
-            Assert.Equal(4, Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture));
-            Assert.Equal(5.50m, Convert.ToDecimal(reader.GetValue(3), CultureInfo.InvariantCulture));
+            reader.Read().Should().BeTrue();
+            Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be((int)secondUserId);
+            Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(1);
+            Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(4);
+            Convert.ToDecimal(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(5.50m);
 
-            Assert.False(reader.Read());
+            reader.Read().Should().BeFalse();
             return (firstUserId, secondUserId, 2);
         }
         finally
@@ -559,6 +577,11 @@ ORDER BY u.Id
             Convert.ToInt64(reader.GetValue(1), CultureInfo.InvariantCulture),
             Convert.ToInt64(reader.GetValue(2), CultureInfo.InvariantCulture));
     }
+
+    private string ResolveScenarioTableName(string users, string uId)
+        => dialect.Provider == ProviderId.Oracle
+            ? users.ToLowerInvariant()
+            : $"{users}_{uId}";
 
     private static void ExecuteNonQueryOnConnection(
         DbConnection connection,

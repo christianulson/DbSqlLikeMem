@@ -130,7 +130,7 @@ public class OracleCommandMock(
         if (!LooksLikeOracleFunctionDdl(sqlRaw))
             return false;
 
-        var query = SqlQueryParser.Parse(sqlRaw, connection!.ExecutionDialect, Parameters);
+        var query = SqlQueryParser.Parse(sqlRaw, connection!.Db, connection!.ExecutionDialect, Parameters);
         if (query is not SqlCreateFunctionQuery createFunctionQuery)
             return false;
 
@@ -151,7 +151,7 @@ public class OracleCommandMock(
 
         if (TryExtractOracleReturningIntoClause(sqlRaw, out var rewrittenSql, out var clause))
         {
-            var query = SqlQueryParser.Parse(rewrittenSql, connection!.Db.Dialect);
+            var query = SqlQueryParser.Parse(rewrittenSql, connection!.Db, connection!.Db.Dialect);
             affectedRows = ExecuteNonQueryWithReturningInto(query, clause);
             return true;
         }
@@ -201,7 +201,8 @@ public class OracleCommandMock(
                 continue;
             }
 
-            var query = SqlQueryParser.Parse(sqlRaw, connection.ExecutionDialect, Parameters);
+            var customFunctionSupported = SqlCustomFunctionResolverFactory.Create(QueryExecutionContext.FromConnection(connection!, Parameters));
+            var query = SqlQueryParser.Parse(sqlRaw, connection.Db, connection.ExecutionDialect, Parameters, customFunctionSupported);
             parsedStatementCount++;
 
             using var statementQueryScope = connection.BeginCurrentQueryScope(sqlRaw);

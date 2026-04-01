@@ -246,7 +246,7 @@ internal static class AstQueryFormatFunctionHelper
             {
                 'd' or 'i' => AstQueryExecutorBase.IsNullish(value) ? "0" : Convert.ToInt64(value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture),
                 'f' => AstQueryExecutorBase.IsNullish(value) ? "0" : Convert.ToDouble(value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture),
-                's' => value?.ToString() ?? string.Empty,
+                's' => AstQueryExecutorBase.IsNullish(value) ? string.Empty : Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty,
                 'x' => AstQueryExecutorBase.IsNullish(value) ? "0" : Convert.ToInt64(value, CultureInfo.InvariantCulture).ToString("x", CultureInfo.InvariantCulture),
                 'X' => AstQueryExecutorBase.IsNullish(value) ? "0" : Convert.ToInt64(value, CultureInfo.InvariantCulture).ToString("X", CultureInfo.InvariantCulture),
                 _ => value?.ToString() ?? string.Empty

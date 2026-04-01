@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.MySql.Test.Strategy;
 
 /// <summary>
@@ -30,8 +32,8 @@ public sealed class MySqlUpdateStrategyCoverageTests(
 
         var updated = cmd.ExecuteNonQuery();
 
-        Assert.Equal(1, updated);
-        Assert.Null(users[0][1]);
+        updated.Should().Be(1);
+        users[0][1].Should().BeNull();
     }
 
     /// <summary>
@@ -54,7 +56,8 @@ public sealed class MySqlUpdateStrategyCoverageTests(
             CommandText = "UPDATE users SET total = NULL WHERE id = 1"
         };
 
-        var ex = Assert.Throws<MySqlMockException>(() => cmd.ExecuteNonQuery());
-        Assert.Contains(SqlExceptionMessages.ColumnDoesNotAcceptNull(), ex.Message, StringComparison.OrdinalIgnoreCase);
+        Action act = () => cmd.ExecuteNonQuery();
+        act.Should().Throw<MySqlMockException>()
+            .Which.Message.Should().Contain(SqlExceptionMessages.ColumnDoesNotAcceptNull());
     }
 }

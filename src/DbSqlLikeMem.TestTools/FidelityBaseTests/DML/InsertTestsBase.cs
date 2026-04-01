@@ -70,7 +70,7 @@ public abstract class InsertTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunInsertCountScenario(connContainer, users, uId, rowCount);
-            Assert.Equal(resultMock, resultContainer);
+            resultMock.Should().Be(resultContainer);
         }
     }
 
@@ -82,7 +82,7 @@ public abstract class InsertTestsBase<T, T2>(
         using var connMock = connectionMock();
         connMock.Open();
         var resultMock = RunRowCountAfterInsertScenario(connMock, users, uId);
-        Assert.True(resultMock > 0);
+        resultMock.Should().BeGreaterThan(0);
 
         if (IsInsertContainerComparisonEnabled(dialect.Provider)
             && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -90,7 +90,7 @@ public abstract class InsertTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunRowCountAfterInsertScenario(connContainer, users, uId);
-            Assert.Equal(resultMock, resultContainer);
+            resultMock.Should().Be(resultContainer);
         }
     }
 
@@ -102,8 +102,8 @@ public abstract class InsertTestsBase<T, T2>(
         using var connMock = connectionMock();
         connMock.Open();
         var resultMock = RunInsertCustomStartIdScenario(connMock, users, uId);
-        Assert.Equal("User-10", resultMock.firstName);
-        Assert.Equal("User-12", resultMock.lastName);
+        resultMock.firstName.Should().Be("User-10");
+        resultMock.lastName.Should().Be("User-12");
 
         if (IsInsertContainerComparisonEnabled(dialect.Provider)
             && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -111,8 +111,8 @@ public abstract class InsertTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunInsertCustomStartIdScenario(connContainer, users, uId);
-            Assert.Equal(resultMock.firstName, resultContainer.firstName);
-            Assert.Equal(resultMock.lastName, resultContainer.lastName);
+            resultMock.firstName.Should().Be(resultContainer.firstName);
+            resultMock.lastName.Should().Be(resultContainer.lastName);
         }
     }
 

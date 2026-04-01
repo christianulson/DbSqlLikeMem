@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.Db2.EfCore.Test;
 
 /// <summary>
@@ -20,8 +22,8 @@ public sealed class Db2EfCoreInterceptionConnectionFactoryTests(
 
         using var connection = factory.CreateOpenConnection();
 
-        Assert.IsType<InterceptingDbConnection>(connection);
-        Assert.Equal(ConnectionState.Open, connection.State);
-        Assert.Contains(recorder.Events, x => x.EventKind == DbInterceptionEventKind.ConnectionOpened);
+        connection.Should().BeOfType<InterceptingDbConnection>();
+        connection.State.Should().Be(ConnectionState.Open);
+        recorder.Events.Should().Contain(x => x.EventKind == DbInterceptionEventKind.ConnectionOpened);
     }
 }

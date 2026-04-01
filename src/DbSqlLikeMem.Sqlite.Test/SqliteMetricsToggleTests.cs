@@ -1,3 +1,4 @@
+using FluentAssertions;
 namespace DbSqlLikeMem.Sqlite.Test;
 
 /// <summary>
@@ -32,20 +33,20 @@ public sealed class SqliteMetricsToggleTests(
         {
             insert.CommandText = "INSERT INTO Users (Id, Name) VALUES (1, 'Ana')";
             var rowsAffected = insert.ExecuteNonQuery();
-            Assert.Equal(1, rowsAffected);
+            rowsAffected.Should().Be(1);
         }
 
         using (var count = new SqliteCommandMock(connection))
         {
             count.CommandText = "SELECT COUNT(*) FROM Users";
             var rowCount = Convert.ToInt32(count.ExecuteScalar(), CultureInfo.InvariantCulture);
-            Assert.Equal(1, rowCount);
+            rowCount.Should().Be(1);
         }
 
-        Assert.Equal(0, connection.Metrics.Inserts);
-        Assert.Equal(0, connection.Metrics.Selects);
-        Assert.Equal(0, connection.Metrics.NonQueryStatements);
-        Assert.Equal(TimeSpan.Zero, connection.Metrics.Elapsed);
+        connection.Metrics.Inserts.Should().Be(0);
+        connection.Metrics.Selects.Should().Be(0);
+        connection.Metrics.NonQueryStatements.Should().Be(0);
+        connection.Metrics.Elapsed.Should().Be(TimeSpan.Zero);
     }
 
 #if NET8_0_OR_GREATER
@@ -81,11 +82,11 @@ public sealed class SqliteMetricsToggleTests(
 
         var rowsAffected = batch.ExecuteNonQuery();
 
-        Assert.Equal(2, rowsAffected);
-        Assert.Equal(2, connection.GetTable("Users").Count);
-        Assert.Equal(0, connection.Metrics.BatchNonQueryCommands);
-        Assert.Equal(0, connection.Metrics.BatchMaterializations);
-        Assert.Equal(0, connection.Metrics.NonQueryStatements);
+        rowsAffected.Should().Be(2);
+        connection.GetTable("Users").Count.Should().Be(2);
+        connection.Metrics.BatchNonQueryCommands.Should().Be(0);
+        connection.Metrics.BatchMaterializations.Should().Be(0);
+        connection.Metrics.NonQueryStatements.Should().Be(0);
     }
 #endif
 }

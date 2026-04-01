@@ -115,6 +115,12 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
         Func<int, object?> evalArg,
         out object? result)
     {
+        if (!string.Equals(fn.Name, "TRY_CAST", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
         if (!context.Dialect.SupportsTryCastFunction)
             throw SqlUnsupported.NotSupported(context.Dialect, "TRY_CAST");
 
@@ -122,12 +128,25 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
         return true;
     }
 
+    internal static bool TryEvalTryCastLikeFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalTryCastFunction(context, fn, evalArg, out result);
+
     private static bool TryEvalTryConvertFunction(
         QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
+        if (!string.Equals(fn.Name, "TRY_CONVERT", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
         if (!context.Dialect.SupportsTryConvertFunction)
             throw SqlUnsupported.NotSupported(context.Dialect, "TRY_CONVERT");
 
@@ -135,12 +154,25 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
         return true;
     }
 
+    internal static bool TryEvalTryConvertLikeFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalTryConvertFunction(context, fn, evalArg, out result);
+
     private static bool TryEvalParseFunction(
         QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
+        if (!string.Equals(fn.Name, "PARSE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
         if (!context.Dialect.SupportsParseFunction)
             throw SqlUnsupported.NotSupported(context.Dialect, "PARSE");
 
@@ -154,6 +186,12 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
         Func<int, object?> evalArg,
         out object? result)
     {
+        if (!string.Equals(fn.Name, "TRY_PARSE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
         if (!context.Dialect.SupportsTryParseFunction)
             throw SqlUnsupported.NotSupported(context.Dialect, "TRY_PARSE");
 
@@ -167,6 +205,13 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
         Func<int, object?> evalArg,
         out object? result)
     {
+        if (!string.Equals(fn.Name, "CAST", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(fn.Name, "CONVERT", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
         _ = context;
         result = EvalCast(context, fn, evalArg);
         return true;
@@ -225,7 +270,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 return AstQueryExecutionRuntimeHelper.TryCoerceDateTime(v, out var dt) ? dt : null;
             }
 
-            return v!.ToString();
+            return Convert.ToString(v, CultureInfo.InvariantCulture);
         }
         catch
         {
@@ -289,7 +334,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 return null;
             }
 
-            return value!.ToString();
+            return Convert.ToString(value, CultureInfo.InvariantCulture);
         }
         catch
         {
@@ -315,6 +360,9 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
 
         try
         {
+            if (IsTextCastTypeName(type))
+                return Convert.ToString(v, CultureInfo.InvariantCulture) ?? string.Empty;
+
             if ((context.Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para CAST.")).IsIntegerCastTypeName(type))
             {
                 if (v is long l) return (int)l;
@@ -377,7 +425,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 return ValidateJsonOrNull(serialized);
             }
 
-            return v!.ToString();
+            return Convert.ToString(v, CultureInfo.InvariantCulture);
         }
 #pragma warning disable CA1031
         catch (Exception e)
@@ -386,5 +434,21 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
             return null;
         }
 #pragma warning restore CA1031
+    }
+
+    private static bool IsTextCastTypeName(string typeName)
+    {
+        if (string.IsNullOrWhiteSpace(typeName))
+            return false;
+
+        return typeName.StartsWith("CHAR", StringComparison.OrdinalIgnoreCase)
+            || typeName.StartsWith("VARCHAR", StringComparison.OrdinalIgnoreCase)
+            || typeName.StartsWith("NCHAR", StringComparison.OrdinalIgnoreCase)
+            || typeName.StartsWith("NVARCHAR", StringComparison.OrdinalIgnoreCase)
+            || typeName.StartsWith("TEXT", StringComparison.OrdinalIgnoreCase)
+            || typeName.StartsWith("CLOB", StringComparison.OrdinalIgnoreCase)
+            || typeName.StartsWith("LONGTEXT", StringComparison.OrdinalIgnoreCase)
+            || typeName.StartsWith("MEDIUMTEXT", StringComparison.OrdinalIgnoreCase)
+            || typeName.StartsWith("TINYTEXT", StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -6,4 +6,9 @@ namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 /// </summary>
 public sealed class DapperSmokeTests(
     ITestOutputHelper helper
-) : DapperSmokeTestsBase<SqliteConnectionMock>(helper, static () => new SqliteConnectionMock());
+) : DapperSmokeTestsBase<SqliteConnectionMock>(helper, static () => new SqliteConnectionMock())
+{
+    /// <inheritdoc />
+    protected override DbSqlLikeMem.TestTools.ProviderSqlDialect Dialect { get; } =
+        new DbSqlLikeMem.Sqlite.TestTools.SqliteProviderSqlDialect();
+}

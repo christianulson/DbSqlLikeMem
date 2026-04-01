@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
@@ -35,7 +37,7 @@ public static class OrdersTableFactory {}
         {
             var fallback = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table);
             var snapshot = await GeneratedClassSnapshotReader.ReadAsync(file, fallback, TestContext.Current.CancellationToken);
-            Assert.Equal("trg_orders_audit", snapshot.Reference.Properties!["Triggers"]);
+            snapshot.Reference.Properties!["Triggers"].Should().Be("trg_orders_audit");
 
             var dbObject = new DatabaseObjectReference(
                 "dbo",
@@ -52,7 +54,7 @@ public static class OrdersTableFactory {}
             var checker = new ObjectConsistencyChecker();
             var result = await checker.CheckAsync(new ConnectionDefinition("1", "MySql", "ERP", "conn"), snapshot, provider, TestContext.Current.CancellationToken);
 
-            Assert.Equal(ObjectHealthStatus.DifferentFromDatabase, result.Status);
+            result.Status.Should().Be(ObjectHealthStatus.DifferentFromDatabase);
         }
         finally
         {

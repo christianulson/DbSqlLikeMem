@@ -1,3 +1,5 @@
+using System.Text.Json.Nodes;
+
 namespace DbSqlLikeMem;
 
 internal delegate bool TransactionControlCommandHandler(string sqlRaw, out DmlExecutionResult affectedRows);
@@ -73,7 +75,7 @@ internal static class CommandScalarExecutionPrelude
         }
 
         var customFunctionSupported = SqlCustomFunctionResolverFactory.Create(context);
-        var q = SqlQueryParser.Parse(sqlRaw, context.Dialect, pars, customFunctionSupported);
+        var q = SqlQueryParser.Parse(sqlRaw, context.Connection.Db, context.Dialect, pars, customFunctionSupported);
         if (q is SqlSelectQuery rowCountQuery && IsRowCountHelperSelect(rowCountQuery))
         {
             scalar = connection.GetLastFoundRows();
@@ -86,7 +88,7 @@ internal static class CommandScalarExecutionPrelude
         if (TryEvaluateSimpleCountStarScalar(context, selectQuery, out scalar))
             return true;
 
-        if (TryEvaluateSimpleSelectScalar(context, selectQuery, out scalar))
+        if (TryEvaluateSimpleSelectScalar(context, selectQuery, customFunctionSupported, out scalar))
             return true;
 
         var executor = context.CreateExecutor();
@@ -124,6 +126,7 @@ internal static class CommandScalarExecutionPrelude
     private static bool TryEvaluateSimpleSelectScalar(
         this QueryExecutionContext context,
         SqlSelectQuery query,
+        Func<string, bool>? customFunctionSupported,
         out object? scalar)
     {
         scalar = DBNull.Value;
@@ -144,7 +147,12 @@ internal static class CommandScalarExecutionPrelude
         SqlExpr expr;
         try
         {
-            expr = SqlExpressionParser.ParseScalar(query.SelectItems[0].Raw, context.Dialect);
+            expr = SqlExpressionParser.ParseScalar(
+                query.SelectItems[0].Raw,
+                context.Connection.Db,
+                context.Dialect,
+                null,
+                customFunctionSupported);
         }
         catch
         {
@@ -173,10 +181,42 @@ internal static class CommandScalarExecutionPrelude
                 && context.TryEvaluateZeroArgCall(call.Name, out var temporalCallValue):
                 scalar = temporalCallValue ?? DBNull.Value;
                 return true;
+            case FunctionCallExpr functionCall when TryEvaluateSequenceScalarExpression(context, functionCall.Name, functionCall.Args, out var sequenceFunctionValue):
+                scalar = sequenceFunctionValue ?? DBNull.Value;
+                return true;
+            case CallExpr call when TryEvaluateSequenceScalarExpression(context, call.Name, call.Args, out var sequenceCallValue):
+                scalar = sequenceCallValue ?? DBNull.Value;
+                return true;
             default:
                 return false;
         }
     }
+
+    private static bool TryEvaluateSequenceScalarExpression(
+        QueryExecutionContext context,
+        string functionName,
+        IReadOnlyList<SqlExpr> args,
+        out object? value)
+    {
+        value = null;
+        if (!IsSequenceFunctionName(functionName))
+            return false;
+
+        return SqlSequenceEvaluator.TryEvaluateCall(
+            context.Connection,
+            functionName,
+            args,
+            expr => TryEvaluateConstantScalarExpression(context, expr, out var argValue) ? argValue : null,
+            out value);
+    }
+
+    private static bool IsSequenceFunctionName(string functionName)
+        => functionName.Equals("NEXT_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals(SqlConst.NEXTVAL, StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals(SqlConst.CURRVAL, StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals(SqlConst.SETVAL, StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals(SqlConst.LASTVAL, StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("PREVIOUS_VALUE_FOR", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryEvaluateSimpleCountStarScalar(
         this QueryExecutionContext context,
@@ -375,6 +415,9 @@ internal static class CommandScalarExecutionPrelude
             return true;
 
         if (TryEvaluateConstantJsonFunction(context, functionName, args, out value))
+            return true;
+
+        if (TryEvaluateConstantJsonMergeFunction(context, functionName, args, out value))
             return true;
 
         value = null;
@@ -654,6 +697,172 @@ internal static class CommandScalarExecutionPrelude
         return root.ValueKind is JsonValueKind.Object or JsonValueKind.Array
             ? root.GetRawText()
             : null;
+    }
+
+    private static bool TryEvaluateConstantJsonMergeFunction(
+        this QueryExecutionContext context,
+        string functionName,
+        IReadOnlyList<SqlExpr> args,
+        out object? value)
+    {
+        value = null;
+        if (!(functionName.Equals("JSON_MERGE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("JSON_MERGE_PRESERVE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("JSON_MERGE_PATCH", StringComparison.OrdinalIgnoreCase)))
+        {
+            return false;
+        }
+
+        if (!context.Dialect.TryGetScalarFunctionDefinition(functionName, out var definition)
+            || definition is null
+            || !definition.AllowsCall)
+        {
+            return false;
+        }
+
+        if (args.Count < 2)
+            return false;
+
+        if (!TryEvaluateConstantScalarExpression(context, args[0], out var firstValue))
+            return false;
+
+        if (!TryParseConstantJsonNode(firstValue, out var mergedRoot))
+            return false;
+
+        for (var i = 1; i < args.Count; i++)
+        {
+            if (!TryEvaluateConstantScalarExpression(context, args[i], out var nextValue))
+                return false;
+
+            if (!TryParseConstantJsonNode(nextValue, out var nextNode))
+                return false;
+
+            mergedRoot = string.Equals(functionName, "JSON_MERGE_PATCH", StringComparison.OrdinalIgnoreCase)
+                ? MergeConstantJsonPatch(mergedRoot, nextNode)
+                : MergeConstantJsonPreserve(mergedRoot, nextNode);
+        }
+
+        value = mergedRoot!.ToJsonString();
+        return true;
+    }
+
+    private static bool TryParseConstantJsonNode(object? value, out JsonNode? node)
+    {
+        if (value is null or DBNull)
+        {
+            node = null;
+            return true;
+        }
+
+        if (value is JsonNode jsonNode)
+        {
+            node = jsonNode.DeepClone();
+            return true;
+        }
+
+        return AstQueryJsonPathFunctionEvaluator.TryParseJsonNode(value!, out node);
+    }
+
+    private static JsonNode MergeConstantJsonPreserve(JsonNode? left, JsonNode? right)
+    {
+        if (left is null)
+            return right?.DeepClone() ?? JsonValue.Create((string?)null)!;
+
+        if (right is null)
+            return left.DeepClone();
+
+        if (left is JsonObject leftObject && right is JsonObject rightObject)
+        {
+            var merged = new JsonObject();
+            foreach (var prop in leftObject)
+            {
+                if (prop.Value is not null)
+                    merged[prop.Key] = prop.Value.DeepClone();
+            }
+
+            foreach (var prop in rightObject)
+            {
+                if (!merged.TryGetPropertyValue(prop.Key, out var existing) || existing is null)
+                {
+                    merged[prop.Key] = prop.Value?.DeepClone();
+                    continue;
+                }
+
+                merged[prop.Key] = MergeConstantJsonPreserve(existing, prop.Value);
+            }
+
+            return merged;
+        }
+
+        if (left is JsonArray leftArray && right is JsonArray rightArray)
+        {
+            var merged = new JsonArray();
+            foreach (var item in leftArray)
+                merged.Add(item?.DeepClone());
+            foreach (var item in rightArray)
+                merged.Add(item?.DeepClone());
+            return merged;
+        }
+
+        if (left is JsonArray leftArrayOnly)
+        {
+            var merged = new JsonArray();
+            foreach (var item in leftArrayOnly)
+                merged.Add(item?.DeepClone());
+            merged.Add(right.DeepClone());
+            return merged;
+        }
+
+        if (right is JsonArray rightArrayOnly)
+        {
+            var merged = new JsonArray();
+            merged.Add(left.DeepClone());
+            foreach (var item in rightArrayOnly)
+                merged.Add(item?.DeepClone());
+            return merged;
+        }
+
+        return new JsonArray
+        {
+            left.DeepClone(),
+            right.DeepClone()
+        };
+    }
+
+    private static JsonNode MergeConstantJsonPatch(JsonNode? left, JsonNode? right)
+    {
+        if (right is null)
+            return JsonValue.Create((string?)null)!;
+
+        if (left is not JsonObject leftObject || right is not JsonObject rightObject)
+            return right.DeepClone();
+
+        var merged = new JsonObject();
+        foreach (var prop in leftObject)
+        {
+            if (prop.Value is not null)
+                merged[prop.Key] = prop.Value.DeepClone();
+        }
+
+        foreach (var prop in rightObject)
+        {
+            if (prop.Value is null)
+            {
+                merged.Remove(prop.Key);
+                continue;
+            }
+
+            if (prop.Value is JsonValue jsonValue
+                && string.Equals(jsonValue.ToJsonString(), "null", StringComparison.OrdinalIgnoreCase))
+            {
+                merged.Remove(prop.Key);
+                continue;
+            }
+
+            merged[prop.Key] = prop.Value.DeepClone();
+        }
+
+        return merged;
     }
 
     private static bool TryParseIntervalCall(

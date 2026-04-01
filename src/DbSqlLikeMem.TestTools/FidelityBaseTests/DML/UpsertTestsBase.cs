@@ -48,7 +48,7 @@ public abstract class UpsertTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunUpsertInsertThenUpdate(tableName);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {

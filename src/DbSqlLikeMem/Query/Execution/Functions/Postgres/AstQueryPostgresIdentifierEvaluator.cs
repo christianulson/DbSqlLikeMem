@@ -41,7 +41,7 @@ internal static class AstQueryPostgresIdentifierEvaluator
             handlers[name] = handler;
     }
 
-    private static object? ResolvePostgresUserValue() => "postgres";
+    private static object? ResolvePostgresUserValue() => "user_postgres";
 
     private static object? ResolvePostgresSchemaValue() => "public";
 

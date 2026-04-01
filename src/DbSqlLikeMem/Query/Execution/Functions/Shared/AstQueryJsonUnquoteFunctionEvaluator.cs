@@ -1,3 +1,4 @@
+using System.Text.Json;
 using static DbSqlLikeMem.AstQueryExecutorBase;
 
 namespace DbSqlLikeMem;
@@ -18,6 +19,18 @@ internal static class AstQueryJsonUnquoteFunctionEvaluator
 
         var value = evalArg(0);
         if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (value is JsonElement element && element.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+        {
+            result = null;
+            return true;
+        }
+
+        if (value is JsonDocument document && document.RootElement.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
         {
             result = null;
             return true;

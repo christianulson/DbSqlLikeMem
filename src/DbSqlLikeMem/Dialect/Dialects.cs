@@ -831,7 +831,7 @@ internal abstract class SqlDialectBase : ISqlDialect
         return TemporalFunctionCallNames.Any(token => token.Equals(functionName, StringComparison.OrdinalIgnoreCase));
     }
 
-    protected bool TryGetAggregateFunctionDefinition(string functionName, out DbFunctionDef? definition)
+    public virtual bool TryGetAggregateFunctionDefinition(string functionName, out DbFunctionDef? definition)
         => TryGetFunctionDefinition(functionName, out definition)
             && definition!.HasCapability(DbFunctionCapability.Aggregate);
 

@@ -30,6 +30,11 @@ internal interface ISqlDialect
     bool TryGetScalarFunctionDefinition(string functionName, out DbFunctionDef? definition);
     bool TryGetScalarFunctionDefinition(FunctionCallExpr functionCall, out DbFunctionDef? definition);
     bool TryGetScalarFunctionDefinition(CallExpr functionCall, out DbFunctionDef? definition);
+    /// <summary>
+    /// EN: Gets the aggregate function definition registered for the specified name.
+    /// PT: Obtém a definicao de funcao agregada registrada para o nome informado.
+    /// </summary>
+    bool TryGetAggregateFunctionDefinition(string functionName, out DbFunctionDef? definition);
     bool TryGetTableFunctionDefinition(string functionName, out DbFunctionDef? definition);
     bool TryGetTableFunctionDefinition(FunctionCallExpr functionCall, out DbFunctionDef? definition);
     bool TryGetWindowFunctionDefinition(string functionName, out DbFunctionDef? definition);

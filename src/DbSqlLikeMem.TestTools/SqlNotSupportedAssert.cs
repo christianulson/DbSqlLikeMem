@@ -1,10 +1,12 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
-/// EN: Provides shared assertions for dialect not-supported errors.
-/// PT: Fornece asserções compartilhadas para erros de funcionalidade não suportada por dialeto.
+/// EN: Provides shared checks for dialect not-supported errors.
+/// PT: Fornece verificacoes compartilhadas para erros de funcionalidade nao suportada por dialeto.
 /// </summary>
-public static class SqlNotSupportedAssert
+public static class SqlNotSupportedAssertions
 {
     /// <summary>
     /// EN: Asserts the action throws <see cref="NotSupportedException"/> containing the expected feature token.
@@ -15,8 +17,8 @@ public static class SqlNotSupportedAssert
     /// <returns>EN: Captured exception instance. PT: Instância da exceção capturada.</returns>
     public static NotSupportedException ThrowsWithFeature(Action action, string expectedFeatureToken)
     {
-        var ex = Assert.Throws<NotSupportedException>(action);
-        Assert.Contains(expectedFeatureToken, ex.Message, StringComparison.OrdinalIgnoreCase);
+        var ex = action.Should().Throw<NotSupportedException>().Which;
+        ex.Message.Contains(expectedFeatureToken, StringComparison.OrdinalIgnoreCase).Should().BeTrue();
         return ex;
     }
 }

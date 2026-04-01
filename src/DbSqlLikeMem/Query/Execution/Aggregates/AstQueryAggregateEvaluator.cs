@@ -74,7 +74,7 @@ internal static class AstQueryAggregateEvaluator
     {
         var name = fn.Name.ToUpperInvariant();
 
-        if (TryEvalAggregateCount(fn, group, ctes, eval, name, out var countValue))
+        if (TryEvalAggregateCount(context, fn, group, ctes, eval, name, out var countValue))
             return countValue;
 
         if (name is SqlConst.JSON_GROUP_OBJECT or SqlConst.JSON_OBJECTAGG)
@@ -140,7 +140,7 @@ internal static class AstQueryAggregateEvaluator
         if (name is "STD" or "STDDEV" or "STDDEV_POP" or "STDDEV_SAMP")
         {
             var normalizedName = name == "STD" ? "STDDEV_POP" : name;
-            return EvalStdDevAggregate(fn, group, ctes, eval, normalizedName);
+            return EvalStdDevAggregate(context, fn, group, ctes, eval, normalizedName);
         }
 
         if (name is "RATIO_TO_REPORT")
@@ -167,12 +167,12 @@ internal static class AstQueryAggregateEvaluator
 
         if (name is SqlConst.GROUP_CONCAT or SqlConst.STRING_AGG or SqlConst.LISTAGG)
         {
-            var separator = GetAggregateSeparator(fn, group, ctes, eval);
+            var separator = GetAggregateSeparator(fn.Args, group, ctes, eval);
             var defaultSeparator = GetStringAggregateDefaultSeparator(name) ?? string.Empty;
-            return EvalSimpleStringAggregate(fn, group, ctes, eval, separator, defaultSeparator);
+            return EvalSimpleStringAggregate(context, fn, group, ctes, eval, separator, defaultSeparator);
         }
 
-        var values = TryGetAggregateValues(fn, group, ctes, eval);
+        var values = TryGetAggregateValues(context, fn, group, ctes, eval);
         if (values is null)
             return null;
 
@@ -189,11 +189,35 @@ internal static class AstQueryAggregateEvaluator
         IDictionary<string, Source> ctes,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
     {
+        if (fn.Name is SqlConst.GROUP_CONCAT or SqlConst.STRING_AGG or SqlConst.LISTAGG)
+        {
+            var separator = GetAggregateSeparator(fn.Args, group, ctes, eval);
+            var defaultSeparator = GetStringAggregateDefaultSeparator(fn.Name) ?? string.Empty;
+            return EvalSimpleStringAggregate(context, fn, group, ctes, eval, separator, defaultSeparator);
+        }
+
         var shim = fn.ResolvedScalarFunction is not null
-            ? new FunctionCallExpr(fn.Name, fn.Args).BindScalarFunctionDefinition(fn.ResolvedScalarFunction)
-            : new FunctionCallExpr(fn.Name, fn.Args);
+            ? new FunctionCallExpr(fn.Name, fn.Args, fn.Distinct).BindScalarFunctionDefinition(fn.ResolvedScalarFunction)
+            : new FunctionCallExpr(fn.Name, fn.Args, fn.Distinct);
         return context.EvalAggregate(shim, group, ctes, eval);
     }
+
+    private static string? EvalSimpleStringAggregate(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
+        object? separatorObj,
+        string? defaultSeparator)
+        => EvalSimpleStringAggregate(
+            context,
+            new CallExpr(fn.Name, fn.Args, fn.Distinct).BindScalarFunctionDefinition(fn.ResolvedScalarFunction),
+            group,
+            ctes,
+            eval,
+            separatorObj,
+            defaultSeparator);
 
     private static object? EvalCollectedAggregateValues(
         FunctionCallExpr fn,
@@ -203,13 +227,13 @@ internal static class AstQueryAggregateEvaluator
         string name,
         IReadOnlyList<object?> values)
     {
-        var separator = GetAggregateSeparator(fn, group, ctes, eval);
+        var separator = GetAggregateSeparator(fn.Args, group, ctes, eval);
         return name switch
         {
             SqlConst.SUM => AggregateNumericValues(values, AggregateNumericOperation.Sum),
             SqlConst.AVG => AggregateNumericValues(values, AggregateNumericOperation.Average),
-            SqlConst.MIN => AggregateNumericValues(values, AggregateNumericOperation.Min),
-            SqlConst.MAX => AggregateNumericValues(values, AggregateNumericOperation.Max),
+            SqlConst.MIN => AggregateMinMaxValues(values, useMax: false),
+            SqlConst.MAX => AggregateMinMaxValues(values, useMax: true),
             SqlConst.CHECKSUM_AGG => AggregateChecksumValues(values, binary: false),
             SqlConst.GROUP_CONCAT => EvalStringAggregate(values, separator, ","),
             SqlConst.STRING_AGG => EvalStringAggregate(values, separator, ","),
@@ -481,13 +505,14 @@ internal static class AstQueryAggregateEvaluator
     }
 
     private static object? EvalStdDevAggregate(
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         EvalGroup group,
         IDictionary<string, Source> ctes,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
         string name)
     {
-        var values = TryGetAggregateValues(fn, group, ctes, eval);
+        var values = TryGetAggregateValues(context, fn, group, ctes, eval);
         if (values is null)
             return null;
 
@@ -744,6 +769,94 @@ internal static class AstQueryAggregateEvaluator
         };
     }
 
+    private static object? AggregateMinMaxValues(IReadOnlyList<object?> values, bool useMax)
+    {
+        if (values.Count == 0)
+            return null;
+
+        var best = values[0];
+        for (var i = 1; i < values.Count; i++)
+        {
+            var current = values[i];
+            var comparison = CompareAggregateValues(current, best);
+            if (useMax ? comparison > 0 : comparison < 0)
+            {
+                best = current;
+            }
+        }
+
+        return best;
+    }
+
+    private static int CompareAggregateValues(object? left, object? right)
+    {
+        if (ReferenceEquals(left, right))
+            return 0;
+
+        if (left is null)
+            return -1;
+
+        if (right is null)
+            return 1;
+
+        if (TryConvertNumericToDouble(left, out var leftDouble)
+            && TryConvertNumericToDouble(right, out var rightDouble))
+        {
+            return leftDouble.CompareTo(rightDouble);
+        }
+
+        if (left is string leftText && right is string rightText)
+            return StringComparer.Ordinal.Compare(leftText, rightText);
+
+        if (left is DateTime leftDateTime && right is DateTime rightDateTime)
+            return leftDateTime.CompareTo(rightDateTime);
+
+        if (left is DateTimeOffset leftOffset && right is DateTimeOffset rightOffset)
+            return leftOffset.CompareTo(rightOffset);
+
+        if (left is TimeSpan leftSpan && right is TimeSpan rightSpan)
+            return leftSpan.CompareTo(rightSpan);
+
+        if (left is string || right is string)
+        {
+            var leftTextFallback1 = Convert.ToString(left, CultureInfo.InvariantCulture) ?? string.Empty;
+            var rightTextFallback1 = Convert.ToString(right, CultureInfo.InvariantCulture) ?? string.Empty;
+            return StringComparer.Ordinal.Compare(leftTextFallback1, rightTextFallback1);
+        }
+
+        if (left is IComparable leftComparable && left.GetType() == right.GetType())
+        {
+#pragma warning disable CA1031 // Do not catch general exception types
+            try
+            {
+                return leftComparable.CompareTo(right);
+            }
+            catch
+            {
+                // Falls through to the string fallback for mixed or provider-specific values.
+            }
+#pragma warning restore CA1031 // Do not catch general exception types
+        }
+
+        if (right is IComparable rightComparable && right.GetType() == left.GetType())
+        {
+#pragma warning disable CA1031 // Do not catch general exception types
+            try
+            {
+                return -rightComparable.CompareTo(left);
+            }
+            catch
+            {
+                // Falls through to the string fallback for mixed or provider-specific values.
+            }
+#pragma warning restore CA1031 // Do not catch general exception types
+        }
+
+        var leftTextFallback = Convert.ToString(left, CultureInfo.InvariantCulture) ?? string.Empty;
+        var rightTextFallback = Convert.ToString(right, CultureInfo.InvariantCulture) ?? string.Empty;
+        return StringComparer.Ordinal.Compare(leftTextFallback, rightTextFallback);
+    }
+
     private static object? AggregateTotal(IReadOnlyList<object?> values)
     {
         var total = 0d;
@@ -826,7 +939,8 @@ internal static class AstQueryAggregateEvaluator
     }
 
     private static string? EvalSimpleStringAggregate(
-        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        CallExpr fn,
         EvalGroup group,
         IDictionary<string, Source> ctes,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
@@ -837,12 +951,20 @@ internal static class AstQueryAggregateEvaluator
             return null;
 
         var hasDirectValueSelector = TryCreateStringAggregateValueSelector(fn.Args[0], out var valueSelector);
-        if (group.Rows.Count == 1)
+        var rows = group.Rows;
+        if (fn.WithinGroupOrderBy is { Count: > 0 } orderBy && group.Rows.Count > 1)
+            rows = OrderStringAggregateRows(context, orderBy, group.Rows, ctes, eval);
+
+        HashSet<string>? seen = fn.Distinct ? new HashSet<string>(StringComparer.Ordinal) : null;
+        if (rows.Count == 1)
         {
             var singleValue = hasDirectValueSelector
-                ? valueSelector!(group.Rows[0])
-                : eval(fn.Args[0], group.Rows[0], null, ctes);
-            if (!AstQueryAggregateKeyHelper.TryGetStringAggregateText(singleValue, out var singleText))
+                ? valueSelector!(rows[0])
+                : eval(fn.Args[0], rows[0], null, ctes);
+            if (!AstQueryAggregateKeyHelper.TryGetStringAggregateKeyAndText(singleValue, useOrdinalTextComparison: true, out var singleText, out var singleKey))
+                return null;
+
+            if (seen is not null && !seen.Add(singleKey))
                 return null;
 
             return singleText;
@@ -851,17 +973,24 @@ internal static class AstQueryAggregateEvaluator
         var separator = separatorObj?.ToString() ?? defaultSeparator ?? string.Empty;
         StringBuilder? builder = null;
         var hasValue = false;
-        var estimatedCapacity = EstimateStringAggregateCapacity(group.Rows.Count, separator.Length);
+        var estimatedCapacity = EstimateStringAggregateCapacity(rows.Count, separator.Length);
 
         if (!hasDirectValueSelector)
         {
-            for (var i = 0; i < group.Rows.Count; i++)
+            for (var i = 0; i < rows.Count; i++)
             {
-                var value = eval(fn.Args[0], group.Rows[i], null, ctes);
+                var value = eval(fn.Args[0], rows[i], null, ctes);
                 if (IsNullish(value))
                     continue;
 
                 var text = value?.ToString() ?? string.Empty;
+                if (seen is not null)
+                {
+                    if (!AstQueryAggregateKeyHelper.TryGetStringAggregateKeyAndText(value, useOrdinalTextComparison: true, out _, out var key)
+                        || !seen.Add(key))
+                        continue;
+                }
+
                 if (!hasValue)
                 {
                     builder = new StringBuilder(Math.Max(estimatedCapacity, text.Length));
@@ -876,13 +1005,20 @@ internal static class AstQueryAggregateEvaluator
         }
         else
         {
-            for (var i = 0; i < group.Rows.Count; i++)
+            for (var i = 0; i < rows.Count; i++)
             {
-                var value = valueSelector!(group.Rows[i]);
+                var value = valueSelector!(rows[i]);
                 if (IsNullish(value))
                     continue;
 
                 var text = value?.ToString() ?? string.Empty;
+                if (seen is not null)
+                {
+                    if (!AstQueryAggregateKeyHelper.TryGetStringAggregateKeyAndText(value, useOrdinalTextComparison: true, out _, out var key)
+                        || !seen.Add(key))
+                        continue;
+                }
+
                 if (!hasValue)
                 {
                     builder = new StringBuilder(Math.Max(estimatedCapacity, text.Length));
@@ -899,16 +1035,45 @@ internal static class AstQueryAggregateEvaluator
         return hasValue ? builder!.ToString() : null;
     }
 
+    private static List<AstQueryExecutorBase.EvalRow> OrderStringAggregateRows(
+        QueryExecutionContext context,
+        IReadOnlyList<WindowOrderItem> orderBy,
+        IReadOnlyList<AstQueryExecutorBase.EvalRow> rows,
+        IDictionary<string, Source> ctes,
+        Func<SqlExpr, AstQueryExecutorBase.EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
+    {
+        var orderedRows = new List<AstQueryExecutorBase.EvalRow>(rows.Count);
+        for (var i = 0; i < rows.Count; i++)
+            orderedRows.Add(rows[i]);
+
+        orderedRows.Sort((leftRow, rightRow) =>
+        {
+            for (var i = 0; i < orderBy.Count; i++)
+            {
+                var item = orderBy[i];
+                var leftValue = eval(item.Expr, leftRow, null, ctes);
+                var rightValue = eval(item.Expr, rightRow, null, ctes);
+                var comparison = context.CompareSql(leftValue, rightValue);
+                if (comparison != 0)
+                    return item.Desc ? -comparison : comparison;
+            }
+
+            return 0;
+        });
+
+        return orderedRows;
+    }
+
     private static string? GetStringAggregateDefaultSeparator(string name)
         => name == SqlConst.LISTAGG ? string.Empty : ",";
 
     private static object? GetAggregateSeparator(
-        FunctionCallExpr fn,
+        IReadOnlyList<SqlExpr> args,
         EvalGroup group,
         IDictionary<string, Source> ctes,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
-        => fn.Args.Count > 1 && group.Rows.Count > 0
-            ? eval(fn.Args[1], group.Rows[0], null, ctes)
+        => args.Count > 1 && group.Rows.Count > 0
+            ? eval(args[1], group.Rows[0], null, ctes)
             : null;
 
     private static int EstimateStringAggregateCapacity(int rowCount, int separatorLength)
@@ -953,6 +1118,7 @@ internal static class AstQueryAggregateEvaluator
     }
 
     private static bool TryEvalAggregateCount(
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         EvalGroup group,
         IDictionary<string, Source> ctes,
@@ -978,12 +1144,23 @@ internal static class AstQueryAggregateEvaluator
             return true;
         }
 
+        var distinct = fn.Distinct;
+        HashSet<string>? seen = distinct ? new HashSet<string>(StringComparer.Ordinal) : null;
         long c = 0;
         foreach (var r in group.Rows)
         {
             var v = eval(fn.Args[0], r, null, ctes);
             if (!IsNullish(v))
+            {
+                if (seen is not null)
+                {
+                    var key = context.NormalizeDistinctKey(v);
+                    if (!seen.Add(key))
+                        continue;
+                }
+
                 c++;
+            }
         }
 
         value = c;
@@ -991,6 +1168,7 @@ internal static class AstQueryAggregateEvaluator
     }
 
     private static List<object?>? TryGetAggregateValues(
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         EvalGroup group,
         IDictionary<string, Source> ctes,
@@ -1000,11 +1178,20 @@ internal static class AstQueryAggregateEvaluator
             return null;
 
         var values = new List<object?>(group.Rows.Count);
+        HashSet<string>? seen = fn.Distinct ? new HashSet<string>(StringComparer.Ordinal) : null;
         foreach (var r in group.Rows)
         {
             var v = eval(fn.Args[0], r, null, ctes);
             if (!IsNullish(v))
+            {
+                if (seen is not null)
+                {
+                    var key = context.NormalizeDistinctKey(v);
+                    if (!seen.Add(key))
+                        continue;
+                }
                 values.Add(v);
+            }
         }
         return values;
     }

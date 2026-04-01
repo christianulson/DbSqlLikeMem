@@ -32,6 +32,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\DbSqlLikeMem.MySql.MiniProfiler.XUnit\DbSqlLikeMem.MySql.MiniProfiler.XUnit.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />
+		<ProjectReference Include="..\DbSqlLikeMem.MySql.TestTools\DbSqlLikeMem.MySql.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 		<ProjectReference Include="..\DbSqlLikeMem.MiniProfiler.TestTools\DbSqlLikeMem.MiniProfiler.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 	</ItemGroup>
 

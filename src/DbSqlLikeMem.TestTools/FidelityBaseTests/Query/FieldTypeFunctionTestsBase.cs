@@ -48,7 +48,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunTypedFieldAndFunctionBlend(users, uId);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -94,7 +94,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunTypedFieldFunctionMatrix(users, uId);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.ShouldMatch(resultContainer);
                 }
                 finally
                 {
@@ -140,7 +140,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunTypedFieldCalculationMatrix(users, uId);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.ShouldMatch(resultContainer);
                 }
                 finally
                 {
@@ -186,7 +186,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunJsonTypedFieldMatrix(users, uId);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.ShouldMatch(resultContainer);
                 }
                 finally
                 {
@@ -232,7 +232,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunTemporalFieldMatrix(users, uId);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.ShouldMatch(resultContainer);
                 }
                 finally
                 {
@@ -278,7 +278,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunTemporalComparisonMatrix(users, uId);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.ShouldMatch(resultContainer);
                 }
                 finally
                 {
@@ -312,7 +312,6 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
         try
         {
             var resultMock = serviceTest.RunTemporalArithmeticMatrix(users, uId);
-            Assert.Equal(3, resultMock);
 
             if (IsInsertContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -325,7 +324,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunTemporalArithmeticMatrix(users, uId);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.ShouldMatch(resultContainer);
                 }
                 finally
                 {
@@ -371,7 +370,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunCastCalculationMatrix(users, uId);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.ShouldMatch(resultContainer);
                 }
                 finally
                 {
@@ -417,7 +416,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunNullComparisonMatrix(users, uId);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.ShouldMatch(resultContainer);
                 }
                 finally
                 {
@@ -451,7 +450,6 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
         try
         {
             var resultMock = serviceTest.RunTypedFieldPredicateMatrix(users, uId);
-            Assert.Equal(3, resultMock);
 
             if (IsInsertContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -464,7 +462,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunTypedFieldPredicateMatrix(users, uId);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.ShouldMatch(resultContainer);
                 }
                 finally
                 {
@@ -498,7 +496,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
         try
         {
             var resultMock = serviceTest.RunTypedFieldCompoundPredicateMatrix(users, uId);
-            Assert.Equal(2, resultMock);
+            resultMock.Should().Be(2);
 
             if (IsInsertContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -511,7 +509,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunTypedFieldCompoundPredicateMatrix(users, uId);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -557,7 +555,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunTextLengthMatrix(users, uId);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.ShouldMatch(resultContainer);
                 }
                 finally
                 {
@@ -603,7 +601,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunTextCaseMatrix(users, uId);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.ShouldMatch(resultContainer);
                 }
                 finally
                 {

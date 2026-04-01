@@ -28,7 +28,8 @@ internal static class SelectPlanIndexRecommendationHelper
 
         foreach (var tableName in tableNames)
         {
-            if (!context.Connection.TryGetTable(tableName, out var table) || table is null)
+            var table = FindTable(context.Connection, tableName);
+            if (table is null)
                 continue;
 
             filterColumnsByTable.TryGetValue(tableName, out var filterCols);
@@ -262,6 +263,7 @@ internal static class SelectPlanIndexRecommendationHelper
         IReadOnlyDictionary<string, SqlTableSource> sourceMap)
     {
         var result = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        var singlePhysicalTableName = TryGetSinglePhysicalTableName(sourceMap);
 
         foreach (var order in query.OrderBy)
         {
@@ -270,7 +272,13 @@ internal static class SelectPlanIndexRecommendationHelper
                 continue;
 
             if (!TryResolveColumn(token!, sourceMap, out var tableName, out var columnName))
-                continue;
+            {
+                if (singlePhysicalTableName is null)
+                    continue;
+
+                tableName = singlePhysicalTableName;
+                columnName = token!;
+            }
 
             if (!result.TryGetValue(tableName, out var list))
             {
@@ -361,7 +369,14 @@ internal static class SelectPlanIndexRecommendationHelper
         Dictionary<string, List<string>> columnsByTable)
     {
         if (!TryResolveColumn(token, sourceMap, out var tableName, out var columnName))
-            return;
+        {
+            var singlePhysicalTableName = TryGetSinglePhysicalTableName(sourceMap);
+            if (singlePhysicalTableName is null)
+                return;
+
+            tableName = singlePhysicalTableName;
+            columnName = token;
+        }
 
         if (!columnsByTable.TryGetValue(tableName, out var cols))
         {
@@ -373,6 +388,28 @@ internal static class SelectPlanIndexRecommendationHelper
             cols.Add(columnName);
     }
 
+    private static string? TryGetSinglePhysicalTableName(
+        IReadOnlyDictionary<string, SqlTableSource> sourceMap)
+    {
+        string? uniqueTableName = null;
+        foreach (var currentSource in sourceMap.Values)
+        {
+            if (string.IsNullOrWhiteSpace(currentSource.Name))
+                continue;
+
+            if (uniqueTableName is null)
+            {
+                uniqueTableName = currentSource.Name;
+                continue;
+            }
+
+            if (!string.Equals(uniqueTableName, currentSource.Name, StringComparison.OrdinalIgnoreCase))
+                return null;
+        }
+
+        return uniqueTableName;
+    }
+
     private static bool TryResolveColumn(
         string token,
         IReadOnlyDictionary<string, SqlTableSource> sourceMap,
@@ -382,7 +419,7 @@ internal static class SelectPlanIndexRecommendationHelper
         tableName = string.Empty;
         columnName = string.Empty;
 
-        var parts = token.Split('.').Select(_=>_.Trim()).Where(_=>string.IsNullOrWhiteSpace(_)).ToArray();
+        var parts = token.Split('.').Select(_ => _.Trim()).Where(_ => !string.IsNullOrWhiteSpace(_)).ToArray();
         if (parts.Length == 0)
             return false;
 
@@ -419,5 +456,27 @@ internal static class SelectPlanIndexRecommendationHelper
         tableName = source.Name!;
         columnName = parts[^1];
         return true;
+    }
+
+    private static ITableMock? FindTable(
+        DbConnectionMockBase connection,
+        string tableName)
+    {
+        if (connection.TryGetTable(tableName, out var directTable)
+            && directTable is not null)
+        {
+            return directTable;
+        }
+
+        foreach (var schema in connection.Db.Values)
+        {
+            if (schema.TryGetTable(tableName, out var schemaTable)
+                && schemaTable is not null)
+            {
+                return schemaTable;
+            }
+        }
+
+        return null;
     }
 }

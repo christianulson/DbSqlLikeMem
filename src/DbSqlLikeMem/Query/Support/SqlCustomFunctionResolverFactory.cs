@@ -11,15 +11,26 @@ internal static class SqlCustomFunctionResolverFactory
     internal static Func<string, bool>? Create(DbMock db, string schemaName)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(db, nameof(db));
-        if (string.IsNullOrWhiteSpace(schemaName))
-            return null;
+        return functionName =>
+        {
+            if (!string.IsNullOrWhiteSpace(schemaName)
+                && db.TryGetValue(schemaName, out var schema)
+                && schema is SchemaMock schemaMock
+                && schemaMock.TryGetFunction(functionName, out _))
+            {
+                return true;
+            }
 
-        if (!db.TryGetValue(schemaName, out var schema) || schema is not SchemaMock schemaMock)
-            return null;
+            foreach (var candidateSchema in db.Values)
+            {
+                if (candidateSchema is null)
+                    continue;
 
-        if (schemaMock.Functions.Count == 0)
-            return null;
+                if (candidateSchema.TryGetFunction(functionName, out _))
+                    return true;
+            }
 
-        return functionName => schemaMock.TryGetFunction(functionName, out _);
+            return false;
+        };
     }
 }

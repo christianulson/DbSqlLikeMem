@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.MySql.Test.Strategy;
 
 /// <summary>
@@ -26,12 +28,12 @@ public class MySqlInsertOnDuplicateTests(
         using var cnn = new MySqlConnectionMock(db);
 
         const string sql = "INSERT INTO users (Id, Name) VALUES (1, 'A') ON DUPLICATE KEY UPDATE Name = VALUES(Name)";
-        var q = SqlQueryParser.Parse(sql, db.Dialect);
+        var q = SqlQueryParser.Parse(sql, db, db.Dialect);
         var affected = cnn.ExecuteInsert((SqlInsertQuery)q, new MySqlDataParameterCollectionMock(), db.Dialect);
 
-        Assert.Equal(1, affected.AffectedRows);
-        Assert.Single(t);
-        Assert.Equal("A", t[0][1]);
+        affected.AffectedRows.Should().Be(1);
+        t.Should().ContainSingle();
+        t[0][1].Should().Be("A");
     }
 
     /// <summary>
@@ -54,12 +56,12 @@ public class MySqlInsertOnDuplicateTests(
         using var cnn = new MySqlConnectionMock(db);
 
         const string sql = "INSERT INTO users (Id, Name) VALUES (1, 'NEW') ON DUPLICATE KEY UPDATE Name = VALUES(Name)";
-        var q = SqlQueryParser.Parse(sql, db.Dialect);
+        var q = SqlQueryParser.Parse(sql, db, db.Dialect);
         var affected = cnn.ExecuteInsert((SqlInsertQuery)q, new MySqlDataParameterCollectionMock(), db.Dialect);
 
         // MySQL real pode retornar 2 dependendo flags; no mock mantenha 1 ou 2, mas seja consistente.
-        Assert.Equal("NEW", t[0][1]);
-        Assert.Single(t);
+        t[0][1].Should().Be("NEW");
+        t.Should().ContainSingle();
     }
 
     /// <summary>
@@ -81,12 +83,12 @@ public class MySqlInsertOnDuplicateTests(
         using var cnn = new MySqlConnectionMock(db);
 
         const string sql = "INSERT INTO users (Id, Name) VALUES (1, 'NEW') ON DUPLICATE KEY UPDATE Name = VALUES(Name)";
-        var q = SqlQueryParser.Parse(sql, db.Dialect);
+        var q = SqlQueryParser.Parse(sql, db, db.Dialect);
         var affected = cnn.ExecuteInsert((SqlInsertQuery)q, new MySqlDataParameterCollectionMock(), db.Dialect);
 
-        Assert.Equal(2, affected.AffectedRows);
-        Assert.Single(t);
-        Assert.Equal("NEW", t[0][1]);
+        affected.AffectedRows.Should().Be(2);
+        t.Should().ContainSingle();
+        t[0][1].Should().Be("NEW");
     }
 
     /// <summary>
@@ -112,12 +114,12 @@ public class MySqlInsertOnDuplicateTests(
 
         const string sql = "INSERT INTO users (Id, Email, Name) VALUES (2, 'a@a.com', 'B') " +
                   "ON DUPLICATE KEY UPDATE Name = VALUES(Name)";
-        var q = SqlQueryParser.Parse(sql, db.Dialect);
+        var q = SqlQueryParser.Parse(sql, db, db.Dialect);
         cnn.ExecuteInsert((SqlInsertQuery)q, new MySqlDataParameterCollectionMock(), db.Dialect);
 
-        Assert.Single(t);
-        Assert.Equal(1, t[0][0]);          // Id original preservado
-        Assert.Equal("B", t[0][2]);        // atualizado
+        t.Should().ContainSingle();
+        t[0][0].Should().Be(1);          // Id original preservado
+        t[0][2].Should().Be("B");        // atualizado
     }
 
     /// <summary>
@@ -150,7 +152,7 @@ public class MySqlInsertOnDuplicateTests(
 
         var rows = cmd.ExecuteNonQuery(); // tem que chamar ExecuteInsert internamente
 
-        Assert.Equal("FORCED", t[0][1]);
+        t[0][1].Should().Be("FORCED");
     }
 
     /// <summary>
@@ -184,6 +186,6 @@ INSERT INTO users (Id, Qtd) VALUES (@p0, @p1)
 
         var rows = cmd.ExecuteNonQuery(); // tem que chamar ExecuteInsert internamente
 
-        Assert.Equal(2, t[0][1]);
+        t[0][1].Should().Be(2);
     }
 }

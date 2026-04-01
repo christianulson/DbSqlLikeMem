@@ -11,6 +11,7 @@ public abstract class DbTransactionMockBase<TConnection>(
     where TConnection : DbConnectionMockBase
 {
     private bool _disposed;
+    private bool _completed;
 
     /// <summary>
     /// EN: Gets the provider-specific connection associated with this transaction.
@@ -32,6 +33,7 @@ public abstract class DbTransactionMockBase<TConnection>(
         {
             Debug.WriteLine("Transaction Committed");
             Connection.CommitTransaction();
+            _completed = true;
         }
     }
 
@@ -42,6 +44,7 @@ public abstract class DbTransactionMockBase<TConnection>(
         {
             Debug.WriteLine("Transaction Rolled Back");
             Connection.RollbackTransaction();
+            _completed = true;
         }
     }
 
@@ -98,6 +101,9 @@ public abstract class DbTransactionMockBase<TConnection>(
     {
         if (!_disposed)
             _disposed = true;
+
+        if (_completed)
+            return;
 
         base.Dispose(disposing);
     }

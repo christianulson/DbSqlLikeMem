@@ -15,6 +15,32 @@ public abstract class EfCoreSupportTestsBase(
     protected abstract IDbSqlLikeMemEfCoreConnectionFactory CreateFactory();
 
     /// <summary>
+    /// EN: Provides the provider-specific SQL dialect used by pagination helpers.
+    /// PT: Fornece o dialeto SQL especifico do provedor usado pelos helpers de paginacao.
+    /// </summary>
+    protected abstract ProviderSqlDialect Dialect { get; }
+
+    /// <summary>
+    /// EN: Builds the pagination query used by the shared EF Core smoke tests.
+    /// PT: Monta a query de paginação usada nos testes smoke compartilhados de EF Core.
+    /// </summary>
+    /// <param name="tableName">EN: Name of the table being paginated. PT: Nome da tabela paginada.</param>
+    /// <param name="orderByClause">EN: ORDER BY clause used to keep the page deterministic. PT: Clausula ORDER BY usada para manter a pagina deterministica.</param>
+    /// <param name="offset">EN: Number of rows to skip before the page starts. PT: Numero de linhas a ignorar antes do inicio da pagina.</param>
+    /// <param name="fetch">EN: Number of rows to return. PT: Numero de linhas a retornar.</param>
+    protected virtual string BuildPaginationQuery(string tableName, string orderByClause, int offset, int fetch)
+    {
+        if (Dialect.Provider == ProviderId.Sqlite)
+            return $"SELECT id FROM {tableName} ORDER BY {orderByClause} LIMIT {fetch} OFFSET {offset}";
+
+        var sample = Dialect.PagedNameProjection(tableName, offset, fetch);
+        if (sample.Contains("LIMIT", StringComparison.OrdinalIgnoreCase))
+            return $"SELECT id FROM {tableName} ORDER BY {orderByClause} LIMIT {fetch} OFFSET {offset}";
+
+        return $"SELECT id FROM {tableName} ORDER BY {orderByClause} OFFSET {offset} ROWS FETCH NEXT {fetch} ROWS ONLY";
+    }
+
+    /// <summary>
     /// EN: Verifies the factory returns an opened connection.
     /// PT: Verifica se a fábrica retorna uma conexão aberta.
     /// </summary>
@@ -501,7 +527,7 @@ public abstract class EfCoreSupportTestsBase(
         }
 
         using var page = connection.CreateCommand();
-        page.CommandText = "SELECT id FROM ef_page_users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY";
+        page.CommandText = BuildPaginationQuery("ef_page_users", "id", 1, 2);
 
         var ids = new List<int>();
         using var reader = page.ExecuteReader();
@@ -780,7 +806,7 @@ WHERE u.id = 1";
         }
 
         using var page = connection.CreateCommand();
-        page.CommandText = "SELECT id FROM ef_page_stable ORDER BY grp, id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY";
+        page.CommandText = BuildPaginationQuery("ef_page_stable", "grp, id", 1, 2);
 
         var ids = new List<int>();
         using var reader = page.ExecuteReader();
@@ -867,7 +893,7 @@ WHERE u.id = 1";
         List<int> ReadWindow()
         {
             using var page = connection.CreateCommand();
-            page.CommandText = "SELECT id FROM ef_page_repeatable ORDER BY grp, id OFFSET 2 ROWS FETCH NEXT 2 ROWS ONLY";
+            page.CommandText = BuildPaginationQuery("ef_page_repeatable", "grp, id", 2, 2);
 
             var ids = new List<int>();
             using var reader = page.ExecuteReader();
@@ -1009,7 +1035,7 @@ WHERE u.id = 1";
         List<int> ReadPage(int offset)
         {
             using var page = connection.CreateCommand();
-            page.CommandText = $"SELECT id FROM ef_page_disjoint ORDER BY grp, id OFFSET {offset} ROWS FETCH NEXT 3 ROWS ONLY";
+            page.CommandText = BuildPaginationQuery("ef_page_disjoint", "grp, id", offset, 3);
 
             var ids = new List<int>();
             using var reader = page.ExecuteReader();
@@ -1268,7 +1294,7 @@ WHERE u.id = 1";
         List<int> ReadPage(int offset)
         {
             using var page = connection.CreateCommand();
-            page.CommandText = $"SELECT id FROM ef_page_three ORDER BY grp, id OFFSET {offset} ROWS FETCH NEXT 3 ROWS ONLY";
+            page.CommandText = BuildPaginationQuery("ef_page_three", "grp, id", offset, 3);
             var ids = new List<int>();
             using var reader = page.ExecuteReader();
             while (reader.Read()) ids.Add(Convert.ToInt32(reader[0]));
@@ -1549,7 +1575,7 @@ ORDER BY category";
         List<int> ReadPage(int offset)
         {
             using var page = connection.CreateCommand();
-            page.CommandText = $"SELECT id FROM ef_page_tail ORDER BY grp, id OFFSET {offset} ROWS FETCH NEXT 3 ROWS ONLY";
+            page.CommandText = BuildPaginationQuery("ef_page_tail", "grp, id", offset, 3);
             var ids = new List<int>();
             using var reader = page.ExecuteReader();
             while (reader.Read()) ids.Add(Convert.ToInt32(reader[0]));
@@ -1582,7 +1608,7 @@ ORDER BY category";
 
         using (var create = connection.CreateCommand())
         {
-            create.CommandText = "CREATE TABLE ef_tx_intermediate (id INT PRIMARY KEY, value INT)";
+            create.CommandText = "CREATE TABLE ef_tx_intermediate (id INT PRIMARY KEY, amount INT)";
             _ = create.ExecuteNonQuery();
         }
 
@@ -1590,12 +1616,12 @@ ORDER BY category";
         {
             using var insert = connection.CreateCommand();
             insert.Transaction = tx;
-            insert.CommandText = "INSERT INTO ef_tx_intermediate (id, value) VALUES (1, 10), (2, 20)";
+            insert.CommandText = "INSERT INTO ef_tx_intermediate (id, amount) VALUES (1, 10), (2, 20)";
             _ = insert.ExecuteNonQuery();
 
             using var update = connection.CreateCommand();
             update.Transaction = tx;
-            update.CommandText = "UPDATE ef_tx_intermediate SET value = value + 7 WHERE id = 1";
+            update.CommandText = "UPDATE ef_tx_intermediate SET amount = amount + 7 WHERE id = 1";
             _ = update.ExecuteNonQuery();
 
             using var delete = connection.CreateCommand();
@@ -1605,7 +1631,7 @@ ORDER BY category";
 
             using var readInside = connection.CreateCommand();
             readInside.Transaction = tx;
-            readInside.CommandText = "SELECT value FROM ef_tx_intermediate ORDER BY id";
+            readInside.CommandText = "SELECT amount FROM ef_tx_intermediate ORDER BY id";
             using var insideReader = readInside.ExecuteReader();
             Assert.True(insideReader.Read());
             Assert.Equal(17, Convert.ToInt32(insideReader[0]));
@@ -1624,12 +1650,12 @@ ORDER BY category";
         {
             using var insert = connection.CreateCommand();
             insert.Transaction = txCommit;
-            insert.CommandText = "INSERT INTO ef_tx_intermediate (id, value) VALUES (1, 10), (2, 20)";
+            insert.CommandText = "INSERT INTO ef_tx_intermediate (id, amount) VALUES (1, 10), (2, 20)";
             _ = insert.ExecuteNonQuery();
 
             using var update = connection.CreateCommand();
             update.Transaction = txCommit;
-            update.CommandText = "UPDATE ef_tx_intermediate SET value = value + 7 WHERE id = 1";
+            update.CommandText = "UPDATE ef_tx_intermediate SET amount = amount + 7 WHERE id = 1";
             _ = update.ExecuteNonQuery();
 
             using var delete = connection.CreateCommand();
@@ -1641,7 +1667,7 @@ ORDER BY category";
         }
 
         using var finalRead = connection.CreateCommand();
-        finalRead.CommandText = "SELECT value FROM ef_tx_intermediate ORDER BY id";
+        finalRead.CommandText = "SELECT amount FROM ef_tx_intermediate ORDER BY id";
         using var finalReader = finalRead.ExecuteReader();
         Assert.True(finalReader.Read());
         Assert.Equal(17, Convert.ToInt32(finalReader[0]));
@@ -1761,7 +1787,7 @@ ORDER BY u.id";
         List<int> ReadPage(int offset)
         {
             using var page = connection.CreateCommand();
-            page.CommandText = $"SELECT id FROM ef_page_repeat_three ORDER BY grp, id OFFSET {offset} ROWS FETCH NEXT 3 ROWS ONLY";
+            page.CommandText = BuildPaginationQuery("ef_page_repeat_three", "grp, id", offset, 3);
             var ids = new List<int>();
             using var reader = page.ExecuteReader();
             while (reader.Read()) ids.Add(Convert.ToInt32(reader[0]));

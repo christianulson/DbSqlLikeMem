@@ -9,6 +9,10 @@ public class MySqlCommandMock(
     MySqlTransactionMock? transaction = null
     ) : DbCommand, ICloneable
 {
+    private static readonly Regex OffsetFetchPaginationRegex = new(
+        @"(?is)\s+OFFSET\s+(?<offset>.+?)\s+ROWS?\s+FETCH\s+(?:NEXT|FIRST)\s+(?<fetch>.+?)\s+ROWS?\s+ONLY\s*;?\s*$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
     /// <summary>
     /// Contructor
     /// </summary>
@@ -187,6 +191,19 @@ public class MySqlCommandMock(
         return text == "," || string.Equals(text, SqlConst.ON, StringComparison.OrdinalIgnoreCase);
     }
 
+    private static string NormalizePaginationSyntax(string commandText)
+    {
+        var match = OffsetFetchPaginationRegex.Match(commandText);
+        if (!match.Success)
+            return commandText;
+
+        var prefix = commandText[..match.Index].TrimEnd();
+        var limitClause = $"LIMIT {match.Groups["fetch"].Value.Trim()} OFFSET {match.Groups["offset"].Value.Trim()}";
+        return string.IsNullOrWhiteSpace(prefix)
+            ? limitClause
+            : $"{prefix} {limitClause}";
+    }
+
     private readonly MySqlDataParameterCollectionMock collectionMock = [];
 
     /// <summary>
@@ -300,10 +317,11 @@ public class MySqlCommandMock(
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
         using var _ = connection.Metrics.BeginAmbientScope();
         using var currentQueryScope = connection.BeginCurrentQueryScope(CommandText);
+        var commandText = NormalizePaginationSyntax(CommandText);
 
         if (connection.TryHandleExecuteReaderPrelude(
             CommandType,
-            CommandText,
+            commandText,
             Parameters,
             static () => new MySqlDataReaderMock([[]]),
             normalizeSqlInput: false,
@@ -324,6 +342,8 @@ public class MySqlCommandMock(
             if (string.IsNullOrWhiteSpace(sqlRaw))
                 continue;
 
+            sqlRaw = NormalizePaginationSyntax(sqlRaw);
+
             if (connection.TryHandleReaderControlCommand(
                 sqlRaw,
                 Parameters,
@@ -333,7 +353,8 @@ public class MySqlCommandMock(
                 continue;
             }
 
-            var q = SqlQueryParser.Parse(sqlRaw, connection.ExecutionDialect, Parameters);
+            var customFunctionSupported = SqlCustomFunctionResolverFactory.Create(QueryExecutionContext.FromConnection(connection!, Parameters));
+            var q = SqlQueryParser.Parse(sqlRaw, connection.Db, connection.ExecutionDialect, Parameters, customFunctionSupported);
             parsedStatementCount++;
 
             using var statementQueryScope = connection.BeginCurrentQueryScope(sqlRaw);
@@ -559,7 +580,7 @@ public class MySqlCommandMock(
                 continue;
             }
 
-            var expr = SqlExpressionParser.ParseScalar(raw, connection!.Db.Dialect);
+            var expr = SqlExpressionParser.ParseScalar(raw, connection!.Db, connection!.Db.Dialect);
             switch (expr)
             {
                 case IdentifierExpr id:
@@ -767,9 +788,10 @@ public class MySqlCommandMock(
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
         using var _ = connection!.Metrics.BeginAmbientScope();
         using var currentQueryScope = connection.BeginCurrentQueryScope(CommandText);
+        var commandText = NormalizePaginationSyntax(CommandText);
         if (connection.TryHandleExecuteScalarPrelude(
             CommandType,
-            CommandText,
+            commandText,
             Parameters,
             static () => new MySqlDataReaderMock([[]]),
             normalizeSqlInput: true,
@@ -833,3 +855,4 @@ public class MySqlCommandMock(
         return clone;
     }
 }
+

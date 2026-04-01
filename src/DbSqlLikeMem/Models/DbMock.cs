@@ -32,6 +32,8 @@ public abstract class DbMock
 
     private readonly Dictionary<string, ITableMock> _globalTemporaryTables =
         new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _runtimeFunctions =
+        new(StringComparer.OrdinalIgnoreCase);
 
     IEnumerable<string> IReadOnlyDictionary<string, ISchemaMock>.Keys => Keys;
 
@@ -578,8 +580,29 @@ public abstract class DbMock
         string? schemaName = null)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(functionName, nameof(functionName));
+        if (schemaName is null)
+        {
+            foreach (var schema in Values)
+            {
+                if (schema is null)
+                    continue;
+
+                if (schema.TryGetFunction(functionName, out function))
+                    return true;
+            }
+
+            function = null;
+            return false;
+        }
+
         var sc = GetSchemaName(schemaName);
         return this[sc].TryGetFunction(functionName, out function);
+    }
+
+    internal bool ContainsRuntimeFunction(string functionName)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
+        return _runtimeFunctions.Contains(functionName.NormalizeName());
     }
 
     internal void CreateFunction(
@@ -595,6 +618,12 @@ public abstract class DbMock
         this[sc].CreateFunction(
             definition,
             orReplace);
+        _runtimeFunctions.Add(definition.Name.NormalizeName());
+
+        if (TryGetFunction(definition.Name, out var currentDefinition, sc) && currentDefinition is not null)
+            Dialect.Functions.Add(currentDefinition);
+        else
+            Dialect.Functions.Remove(definition.Name);
     }
 
     internal void DropFunction(
@@ -605,6 +634,12 @@ public abstract class DbMock
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
         var sc = GetSchemaName(schemaName);
         this[sc].DropFunction(functionName, ifExists);
+        _runtimeFunctions.Remove(functionName.NormalizeName());
+
+        if (TryGetFunction(functionName, out var currentDefinition, null) && currentDefinition is not null)
+            Dialect.Functions.Add(currentDefinition);
+        else
+            Dialect.Functions.Remove(functionName);
     }
 
     internal void RestoreFunction(
@@ -616,6 +651,12 @@ public abstract class DbMock
         ArgumentNullExceptionCompatible.ThrowIfNull(definition, nameof(definition));
         var sc = GetSchemaName(schemaName);
         this[sc].RestoreFunction(functionName, definition);
+        _runtimeFunctions.Add(functionName.NormalizeName());
+        if (TryGetFunction(functionName, out var currentDefinition, sc) && currentDefinition is not null)
+            Dialect.Functions.Add(currentDefinition);
+        else
+            Dialect.Functions.Remove(functionName);
+        SqlQueryParser.ClearAstCache();
     }
 
     internal void RemoveFunction(
@@ -625,6 +666,12 @@ public abstract class DbMock
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
         var sc = GetSchemaName(schemaName);
         this[sc].RemoveFunction(functionName);
+        _runtimeFunctions.Remove(functionName.NormalizeName());
+        if (TryGetFunction(functionName, out var currentDefinition, null) && currentDefinition is not null)
+            Dialect.Functions.Add(currentDefinition);
+        else
+            Dialect.Functions.Remove(functionName);
+        SqlQueryParser.ClearAstCache();
     }
 
     #endregion

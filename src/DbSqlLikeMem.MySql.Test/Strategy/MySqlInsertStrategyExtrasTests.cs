@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.MySql.Test.Strategy;
 /// <summary>
 /// EN: Covers extra INSERT scenarios in the MySql mock.
@@ -30,9 +32,9 @@ public sealed class MySqlInsertStrategyExtrasTests(
         var affected = cmd.ExecuteNonQuery();
 
         // Assert
-        Assert.Equal(3, affected);
-        Assert.Equal(3, table.Count);
-        Assert.Equal("B", table[1][1]);
+        affected.Should().Be(3);
+        table.Count.Should().Be(3);
+        table[1][1].Should().Be("B");
     }
 
     /// <summary>
@@ -59,12 +61,12 @@ public sealed class MySqlInsertStrategyExtrasTests(
         var affected2 = cmd.ExecuteNonQuery();
 
         // Assert
-        Assert.Equal(1, affected1);
-        Assert.Equal(1, affected2);
-        Assert.Equal(2, table.Count);
-        Assert.Equal(1, table[0][0]);
-        Assert.Equal("DEF", table[0][1]);
-        Assert.Equal(2, table[1][0]);
+        affected1.Should().Be(1);
+        affected2.Should().Be(1);
+        table.Count.Should().Be(2);
+        table[0][0].Should().Be(1);
+        table[0][1].Should().Be("DEF");
+        table[1][0].Should().Be(2);
     }
 
     /// <summary>
@@ -88,8 +90,9 @@ public sealed class MySqlInsertStrategyExtrasTests(
         cmd.ExecuteNonQuery();
 
         // Act & Assert
-        var ex = Assert.Throws<MySqlMockException>(() => cmd.ExecuteNonQuery());
-        Assert.Contains(SqlExceptionMessages.DuplicateKey(string.Empty, string.Empty).Split('\'')[0].Trim(), ex.Message, StringComparison.OrdinalIgnoreCase);
+        Action act = () => cmd.ExecuteNonQuery();
+        act.Should().Throw<MySqlMockException>()
+            .Which.Message.Should().Contain(SqlExceptionMessages.DuplicateKey(string.Empty, string.Empty).Split('\'')[0].Trim());
     }
 
     /// <summary>
@@ -115,9 +118,9 @@ public sealed class MySqlInsertStrategyExtrasTests(
 
         var affected = cmd.ExecuteNonQuery();
 
-        Assert.Equal(2, affected);
-        Assert.Single(table);
-        Assert.Equal("NEW", table[0][1]);
+        affected.Should().Be(2);
+        table.Should().ContainSingle();
+        table[0][1].Should().Be("NEW");
     }
 }
 
@@ -156,8 +159,9 @@ public class MySqlDeleteStrategyForeignKeyTests
         };
 
         // Act & Assert
-        var ex = Assert.Throws<MySqlMockException>(() => cmd.ExecuteNonQuery());
-        Assert.Contains(SqlExceptionMessages.ReferencedRow(string.Empty).Split('(')[0].Trim(), ex.Message, StringComparison.OrdinalIgnoreCase);
+        Action act = () => cmd.ExecuteNonQuery();
+        act.Should().Throw<MySqlMockException>()
+            .Which.Message.Should().Contain(SqlExceptionMessages.ReferencedRow(string.Empty).Split('(')[0].Trim());
     }
 }
 
@@ -193,8 +197,8 @@ public class MySqlUpdateStrategyExtrasTests
         var affected = cmd.ExecuteNonQuery();
 
         // Assert
-        Assert.Equal(1, affected);
-        Assert.Equal("Z", table[0][2]);
-        Assert.Equal("A", table[1][2]);
+        affected.Should().Be(1);
+        table[0][2].Should().Be("Z");
+        table[1][2].Should().Be("A");
     }
 }

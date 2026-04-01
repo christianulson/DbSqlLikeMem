@@ -18,9 +18,11 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseAlterTableAddBinaryColumn_ShouldPreserveSize(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
             "ALTER TABLE users ADD payload VARBINARY(16) NULL",
-            GetDialect(version, v => new OracleDialect(v))));
+            db, d));
 
         Assert.Equal(DbType.Binary, parsed.ColumnType);
         Assert.Equal(16, parsed.Size);
@@ -37,9 +39,11 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseAlterTableAddDecimalColumn_ShouldPreservePrecisionAndScale(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
             "ALTER TABLE users ADD amount DECIMAL(10, 4) NOT NULL DEFAULT 0",
-            GetDialect(version, v => new OracleDialect(v))));
+            db, d));
 
         Assert.Equal(DbType.Decimal, parsed.ColumnType);
         Assert.Equal(10, parsed.Size);
@@ -58,9 +62,11 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseAlterTableAddColumn_NotNullWithDefaultNull_ShouldReject(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "ALTER TABLE users ADD status VARCHAR(20) NOT NULL DEFAULT NULL",
-            GetDialect(version, v => new OracleDialect(v))));
+            db, d));
 
         Assert.Contains("default null", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -75,9 +81,11 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseAlterTableAddColumn_WithTableAlias_ShouldReject(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "ALTER TABLE users u ADD age INT",
-            GetDialect(version, v => new OracleDialect(v))));
+            db, d));
 
         Assert.Contains("alias", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -92,9 +100,11 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseAlterTableAddColumn_WithDerivedTable_ShouldReject(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "ALTER TABLE (SELECT * FROM users) u ADD age INT",
-            GetDialect(version, v => new OracleDialect(v))));
+            db, d));
 
         Assert.Contains("concrete table name", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -109,11 +119,12 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseScalarFunctionDdlSubset_ShouldParse(int version)
     {
-        var dialect = GetDialect(version, v => new OracleDialect(v));
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
 
         var create = Assert.IsType<SqlCreateFunctionQuery>(SqlQueryParser.Parse(
             "CREATE FUNCTION fn_users(baseValue NUMBER, incrementValue NUMBER) RETURN NUMBER IS BEGIN RETURN baseValue + incrementValue; END",
-            dialect));
+            db, d));
 
         Assert.Equal("fn_users", create.Table?.Name, ignoreCase: true);
         Assert.Equal("NUMBER", create.Definition.ReturnTypeSql, ignoreCase: true);
@@ -124,7 +135,7 @@ public sealed class OracleDialectFeatureParserTests(
 
         var drop = Assert.IsType<SqlDropFunctionQuery>(SqlQueryParser.Parse(
             "DROP FUNCTION fn_users",
-            dialect));
+            db, d));
 
         Assert.False(drop.IfExists);
         Assert.Equal("fn_users", drop.Table?.Name, ignoreCase: true);
@@ -140,10 +151,11 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseCreateOrReplaceScalarFunctionDdlSubset_ShouldParse(int version)
     {
-        var dialect = GetDialect(version, v => new OracleDialect(v));
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         var create = Assert.IsType<SqlCreateFunctionQuery>(SqlQueryParser.Parse(
             "CREATE OR REPLACE FUNCTION fn_users(baseValue NUMBER, incrementValue NUMBER) RETURN NUMBER IS BEGIN RETURN baseValue + incrementValue + 1; END",
-            dialect));
+            db, d));
         Assert.True(create.OrReplace);
         Assert.Equal("fn_users", create.Table?.Name, ignoreCase: true);
         Assert.Equal(2, create.Definition.Parameters.Count);
@@ -160,7 +172,7 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void LastFoundRowsCapability_ShouldExposeOracleFunction(int version)
     {
-        var dialect = GetDialect(version, v => new OracleDialect(v));
+        var dialect = Get(version, v => new OracleDialect(v));
 
         Assert.True(dialect.SupportsLastFoundRowsFunction("ROW_COUNT"));
         Assert.False(dialect.SupportsLastFoundRowsFunction("FOUND_ROWS"));
@@ -177,11 +189,12 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseScalar_LastFoundRowsFunctions_ShouldFollowDialectCapability(int version)
     {
-        var dialect = GetDialect(version, v => new OracleDialect(v));
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
 
-        Assert.Equal("ROW_COUNT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROW_COUNT()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ROW_COUNT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROW_COUNT()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
 
-        var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("FOUND_ROWS()", dialect));
+        var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("FOUND_ROWS()", db, d));
         Assert.Contains("FOUND_ROWS", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -195,18 +208,18 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseSelect_WithRecursive_ShouldBeRejected(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         var sql = "WITH RECURSIVE cte(n) AS (SELECT 1 FROM dual) SELECT n FROM cte";
 
         if (version < OracleDialect.WithCteMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
+            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
             return;
         }
 
-        Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
+        Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
     }
-
-
 
     /// <summary>
     /// EN: Verifies WITH RECURSIVE rejection includes actionable guidance for Oracle syntax.
@@ -218,8 +231,10 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.WithCteMinVersion)]
     public void ParseSelect_WithRecursive_ShouldProvideActionableMessage(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse("WITH RECURSIVE cte(n) AS (SELECT 1 FROM dual) SELECT n FROM cte", GetDialect(version, v => new OracleDialect(v))));
+            SqlQueryParser.Parse("WITH RECURSIVE cte(n) AS (SELECT 1 FROM dual) SELECT n FROM cte", db, d));
 
         Assert.Contains("WITH sem RECURSIVE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -234,9 +249,11 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseInsert_OnConflict_ShouldBeRejected(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         var sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING";
 
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains(SqlConst.MERGE, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -251,15 +268,17 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseMerge_ShouldFollowOracleVersionSupport(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         const string sql = "MERGE INTO users target USING users src ON target.id = src.id WHEN MATCHED THEN UPDATE SET name = 'x'";
 
         if (version < OracleDialect.MergeMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
+            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
             return;
         }
 
-        var parsed = Assert.IsType<SqlMergeQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
+        var parsed = Assert.IsType<SqlMergeQuery>(SqlQueryParser.Parse(sql, db, d));
         Assert.NotNull(parsed.Table);
         Assert.Equal("users", parsed.Table!.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("target", parsed.Table.Alias, StringComparer.OrdinalIgnoreCase);
@@ -275,9 +294,11 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion(VersionGraterOrEqual = 12)]
     public void ParseSelect_OuterApply_ShouldParse(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         const string sql = "SELECT COUNT(*) FROM users u OUTER APPLY (SELECT o.Note FROM orders o WHERE o.UserId = u.Id ORDER BY o.Id DESC FETCH FIRST 1 ROW ONLY) x";
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, d));
 
         Assert.Single(parsed.Joins);
         Assert.Equal(SqlJoinType.OuterApply, parsed.Joins[0].Type);
@@ -294,9 +315,11 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.MergeMinVersion)]
     public void ParseMerge_WithWhenNotMatched_ShouldParse(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         const string sql = "MERGE INTO users target USING users src ON target.id = src.id WHEN NOT MATCHED THEN INSERT (id) VALUES (src.id)";
 
-        var query = Assert.IsType<SqlMergeQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
+        var query = Assert.IsType<SqlMergeQuery>(SqlQueryParser.Parse(sql, db, d));
 
         Assert.Equal("users", query.Table?.Name, ignoreCase: true);
     }
@@ -311,8 +334,10 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.MergeMinVersion)]
     public void ParseMerge_WithoutUsing_ShouldProvideActionableMessage(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse("MERGE INTO users target ON target.id = 1 WHEN MATCHED THEN UPDATE SET name = 'x'", GetDialect(version, v => new OracleDialect(v))));
+            SqlQueryParser.Parse("MERGE INTO users target ON target.id = 1 WHEN MATCHED THEN UPDATE SET name = 'x'", db, d));
 
         Assert.Contains("MERGE requer cláusula USING", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -327,8 +352,10 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.MergeMinVersion)]
     public void ParseMerge_WithoutOn_ShouldProvideActionableMessage(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse("MERGE INTO users target USING users src WHEN MATCHED THEN UPDATE SET name = 'x'", GetDialect(version, v => new OracleDialect(v))));
+            SqlQueryParser.Parse("MERGE INTO users target USING users src WHEN MATCHED THEN UPDATE SET name = 'x'", db, d));
 
         Assert.Contains("MERGE requer cláusula ON", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -343,9 +370,11 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.MergeMinVersion)]
     public void ParseMerge_WithOnOnlyInsideUsingSubquery_ShouldProvideActionableMessage(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         const string sql = "MERGE INTO users target USING (SELECT id FROM users WHERE id IN (SELECT id FROM users WHERE id > 0)) src WHEN MATCHED THEN UPDATE SET name = 'x'";
 
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("MERGE requer cláusula ON", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -360,12 +389,13 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.MergeMinVersion)]
     public void ParseMerge_WithoutWhen_ShouldProvideActionableMessage(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse("MERGE INTO users target USING users src ON target.id = src.id", GetDialect(version, v => new OracleDialect(v))));
+            SqlQueryParser.Parse("MERGE INTO users target USING users src ON target.id = src.id", db, d));
 
         Assert.Contains("MERGE requer ao menos uma cláusula WHEN", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
-
 
     /// <summary>
     /// EN: Ensures pagination syntaxes normalize to the same row-limit AST shape for this dialect.
@@ -377,21 +407,22 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseSelect_PaginationSyntaxes_ShouldNormalizeRowLimitAst(int version)
     {
-        var dialect = GetDialect(version, v => new OracleDialect(v));
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
 
         if (version < OracleDialect.OffsetFetchMinVersion)
         {
             Assert.Throws<NotSupportedException>(() =>
-                SqlQueryParser.Parse("SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY", dialect));
+                SqlQueryParser.Parse("SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY", db, d));
             return;
         }
 
         var offsetFetch = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY",
-            dialect));
+            db, d));
         var fetchFirst = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT id FROM users ORDER BY id FETCH FIRST 2 ROWS ONLY",
-            dialect));
+            db, d));
 
         var normalizedOffsetFetch = Assert.IsType<SqlLimitOffset>(offsetFetch.RowLimit);
         var normalizedFetchFirst = Assert.IsType<SqlLimitOffset>(fetchFirst.RowLimit);
@@ -412,17 +443,18 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseScalar_JsonValueWithReturningClause_ShouldParse(int version)
     {
-        var dialect = GetDialect(version, v => new OracleDialect(v));
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         if (version < OracleDialect.OracleJsonSqlFunctionMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("JSON_VALUE(payload, '$.a.b' RETURNING NUMBER)", dialect));
+                SqlExpressionParser.ParseScalar("JSON_VALUE(payload, '$.a.b' RETURNING NUMBER)", db, d));
             Assert.Contains("JSON_VALUE", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
         var parsed = Assert.IsType<CallExpr>(
-            SqlExpressionParser.ParseScalar("JSON_VALUE(payload, '$.a.b' RETURNING NUMBER)", dialect));
+            SqlExpressionParser.ParseScalar("JSON_VALUE(payload, '$.a.b' RETURNING NUMBER)", db, d));
 
         Assert.Equal("JSON_VALUE", parsed.Name, ignoreCase: true);
         Assert.Equal(3, parsed.Args.Count);
@@ -439,7 +471,8 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseScalar_ApproximateAggregateHelpers_ShouldFollowDialectCapability(int version)
     {
-        var dialect = GetDialect(version, v => new OracleDialect(v));
+        var dialect = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
 
         Assert.Equal(
             version >= OracleDialect.ApproxCountDistinctMinVersion,
@@ -508,49 +541,49 @@ public sealed class OracleDialectFeatureParserTests(
             version >= 18,
             dialect.SupportsOracleAnalyticsFunction("FEATURE_COMPARE"));
         Assert.Equal(
-            version >= 12,
+            version >= OracleDialect.ApproximateAnalyticsMinVersion,
             dialect.SupportsOracleAnalyticsFunction("FEATURE_DETAILS"));
         Assert.Equal(
-            version >= 10,
+            version >= OracleDialect.ApproximateAnalyticsMinVersion,
             dialect.SupportsOracleAnalyticsFunction("FEATURE_ID"));
         Assert.Equal(
-            version >= 10,
+            version >= OracleDialect.ApproximateAnalyticsMinVersion,
             dialect.SupportsOracleAnalyticsFunction("FEATURE_SET"));
         Assert.Equal(
-            version >= 10,
+            version >= OracleDialect.ApproximateAnalyticsMinVersion,
             dialect.SupportsOracleAnalyticsFunction("FEATURE_VALUE"));
         Assert.Equal(
-            version >= 18,
+            version >= OracleDialect.ApproximateAnalyticsMinVersion,
             dialect.SupportsOracleAnalyticsFunction("NCGR"));
         Assert.Equal(
-            version >= 10,
+            version >= OracleDialect.ApproximateAnalyticsMinVersion,
             dialect.SupportsOracleAnalyticsFunction("POWERMULTISET"));
         Assert.Equal(
-            version >= 10,
+            version >= OracleDialect.ApproximateAnalyticsMinVersion,
             dialect.SupportsOracleAnalyticsFunction("POWERMULTISET_BY_CARDINALITY"));
         Assert.Equal(
-            version >= 10,
+            version >= OracleDialect.ApproximateAnalyticsMinVersion,
             dialect.SupportsOracleAnalyticsFunction("PREDICTION"));
         Assert.Equal(
-            version >= 11,
+            version >= OracleDialect.ApproximateAnalyticsMinVersion,
             dialect.SupportsOracleAnalyticsFunction("PREDICTION_BOUNDS"));
         Assert.Equal(
-            version >= 10,
+            version >= OracleDialect.ApproximateAnalyticsMinVersion,
             dialect.SupportsOracleAnalyticsFunction("PREDICTION_COST"));
         Assert.Equal(
-            version >= 10,
+            version >= OracleDialect.ApproximateAnalyticsMinVersion,
             dialect.SupportsOracleAnalyticsFunction("PREDICTION_DETAILS"));
         Assert.Equal(
-            version >= 10,
+            version >= OracleDialect.ApproximateAnalyticsMinVersion,
             dialect.SupportsOracleAnalyticsFunction("PREDICTION_PROBABILITY"));
         Assert.Equal(
-            version >= 10,
+            version >= OracleDialect.ApproximateAnalyticsMinVersion,
             dialect.SupportsOracleAnalyticsFunction("PREDICTION_SET"));
         Assert.Equal(
-            version >= 10,
+            version >= OracleDialect.ApproximateAnalyticsMinVersion,
             dialect.SupportsOracleAnalyticsFunction("PRESENTNNV"));
         Assert.Equal(
-            version >= 10,
+            version >= OracleDialect.ApproximateAnalyticsMinVersion,
             dialect.SupportsOracleAnalyticsFunction("PRESENTV"));
         Assert.Equal(
             version >= 8,
@@ -583,9 +616,7 @@ public sealed class OracleDialectFeatureParserTests(
             version >= OracleDialect.OracleContainerFunctionMinVersion,
             dialect.SupportsOracleContainerFunction("CON_UID_TO_ID"));
         Assert.True(dialect.SupportsOracleRowIdFunction("ROWIDTOCHAR"));
-        Assert.Equal(
-            version >= OracleDialect.OracleRowToNCharFunctionMinVersion,
-            dialect.SupportsOracleRowIdFunction("ROWTONCHAR"));
+        Assert.True(dialect.SupportsOracleRowIdFunction("ROWTONCHAR"));
         Assert.True(dialect.SupportsOracleUserEnvFunction("USERENV"));
         Assert.Equal(
             version >= OracleDialect.OracleUserEnvMetadataMinVersion,
@@ -672,220 +703,220 @@ public sealed class OracleDialectFeatureParserTests(
         if (version < OracleDialect.ApproxCountDistinctMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("APPROX_COUNT_DISTINCT(amount)", dialect));
+                SqlExpressionParser.ParseScalar("APPROX_COUNT_DISTINCT(amount)", db, dialect));
             Assert.Contains("APPROX_COUNT_DISTINCT", ex.Message, StringComparison.OrdinalIgnoreCase);
         }
         else
         {
             Assert.Equal(
                 "APPROX_COUNT_DISTINCT",
-                Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("APPROX_COUNT_DISTINCT(amount)", dialect)).Name,
+                Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("APPROX_COUNT_DISTINCT(amount)", db, dialect)).Name,
                 StringComparer.OrdinalIgnoreCase);
         }
 
         if (version < OracleDialect.ApproximateAnalyticsMinVersion)
         {
             var exAgg = Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("APPROX_COUNT_DISTINCT_AGG(amount)", dialect));
+                SqlExpressionParser.ParseScalar("APPROX_COUNT_DISTINCT_AGG(amount)", db, dialect));
             Assert.Contains("APPROX_COUNT_DISTINCT_AGG", exAgg.Message, StringComparison.OrdinalIgnoreCase);
 
             var exDetail = Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("APPROX_COUNT_DISTINCT_DETAIL(amount)", dialect));
+                SqlExpressionParser.ParseScalar("APPROX_COUNT_DISTINCT_DETAIL(amount)", db, dialect));
             Assert.Contains("APPROX_COUNT_DISTINCT_DETAIL", exDetail.Message, StringComparison.OrdinalIgnoreCase);
 
             var exMedian = Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("APPROX_MEDIAN(amount)", dialect));
+                SqlExpressionParser.ParseScalar("APPROX_MEDIAN(amount)", db, dialect));
             Assert.Contains("APPROX_MEDIAN", exMedian.Message, StringComparison.OrdinalIgnoreCase);
 
             var exPercentile = Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("APPROX_PERCENTILE(amount, 0.5)", dialect));
+                SqlExpressionParser.ParseScalar("APPROX_PERCENTILE(amount, 0.5)", db, dialect));
             Assert.Contains("APPROX_PERCENTILE", exPercentile.Message, StringComparison.OrdinalIgnoreCase);
 
             var exPercentileAgg = Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("APPROX_PERCENTILE_AGG(amount, 0.5)", dialect));
+                SqlExpressionParser.ParseScalar("APPROX_PERCENTILE_AGG(amount, 0.5)", db, dialect));
             Assert.Contains("APPROX_PERCENTILE_AGG", exPercentileAgg.Message, StringComparison.OrdinalIgnoreCase);
 
             var exPercentileDetail = Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("APPROX_PERCENTILE_DETAIL(amount, 0.5)", dialect));
+                SqlExpressionParser.ParseScalar("APPROX_PERCENTILE_DETAIL(amount, 0.5)", db, dialect));
             Assert.Contains("APPROX_PERCENTILE_DETAIL", exPercentileDetail.Message, StringComparison.OrdinalIgnoreCase);
 
             var exToApproxCount = Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("TO_APPROX_COUNT_DISTINCT(amount)", dialect));
+                SqlExpressionParser.ParseScalar("TO_APPROX_COUNT_DISTINCT(amount)", db, dialect));
             Assert.Contains("TO_APPROX_COUNT_DISTINCT", exToApproxCount.Message, StringComparison.OrdinalIgnoreCase);
 
             var exToApproxPercentile = Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("TO_APPROX_PERCENTILE(amount)", dialect));
+                SqlExpressionParser.ParseScalar("TO_APPROX_PERCENTILE(amount)", db, dialect));
             Assert.Contains("TO_APPROX_PERCENTILE", exToApproxPercentile.Message, StringComparison.OrdinalIgnoreCase);
         }
         else
         {
             Assert.Equal(
                 "APPROX_COUNT_DISTINCT_AGG",
-                Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("APPROX_COUNT_DISTINCT_AGG(amount)", dialect)).Name,
+                Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("APPROX_COUNT_DISTINCT_AGG(amount)", db, dialect)).Name,
                 StringComparer.OrdinalIgnoreCase);
             Assert.Equal(
                 "APPROX_COUNT_DISTINCT_DETAIL",
-                Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("APPROX_COUNT_DISTINCT_DETAIL(amount)", dialect)).Name,
+                Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("APPROX_COUNT_DISTINCT_DETAIL(amount)", db, dialect)).Name,
                 StringComparer.OrdinalIgnoreCase);
             Assert.Equal(
                 "APPROX_MEDIAN",
-                Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("APPROX_MEDIAN(amount)", dialect)).Name,
+                Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("APPROX_MEDIAN(amount)", db, dialect)).Name,
                 StringComparer.OrdinalIgnoreCase);
             Assert.Equal(
                 "APPROX_PERCENTILE",
-                Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("APPROX_PERCENTILE(amount, 0.5)", dialect)).Name,
+                Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("APPROX_PERCENTILE(amount, 0.5)", db, dialect)).Name,
                 StringComparer.OrdinalIgnoreCase);
             Assert.Equal(
                 "APPROX_PERCENTILE_AGG",
-                Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("APPROX_PERCENTILE_AGG(amount, 0.5)", dialect)).Name,
+                Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("APPROX_PERCENTILE_AGG(amount, 0.5)", db, dialect)).Name,
                 StringComparer.OrdinalIgnoreCase);
             Assert.Equal(
                 "APPROX_PERCENTILE_DETAIL",
-                Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("APPROX_PERCENTILE_DETAIL(amount, 0.5)", dialect)).Name,
+                Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("APPROX_PERCENTILE_DETAIL(amount, 0.5)", db, dialect)).Name,
                 StringComparer.OrdinalIgnoreCase);
             Assert.Equal(
                 "TO_APPROX_COUNT_DISTINCT",
-                Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("TO_APPROX_COUNT_DISTINCT(amount)", dialect)).Name,
+                Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("TO_APPROX_COUNT_DISTINCT(amount)", db, dialect)).Name,
                 StringComparer.OrdinalIgnoreCase);
             Assert.Equal(
                 "TO_APPROX_PERCENTILE",
-                Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("TO_APPROX_PERCENTILE(amount)", dialect)).Name,
+                Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("TO_APPROX_PERCENTILE(amount)", db, dialect)).Name,
                 StringComparer.OrdinalIgnoreCase);
         }
 
-        AssertOracleSpecificConversionParsing(version, dialect, "TO_BINARY_DOUBLE(amount)", "TO_BINARY_DOUBLE", OracleDialect.OracleBinaryConversionMinVersion);
-        AssertOracleSpecificConversionParsing(version, dialect, "TO_BINARY_FLOAT(amount)", "TO_BINARY_FLOAT", OracleDialect.OracleBinaryConversionMinVersion);
-        AssertOracleSpecificConversionParsing(version, dialect, "TO_BLOB(amount)", "TO_BLOB", OracleDialect.OracleBlobConversionMinVersion);
-        AssertOracleSpecificConversionParsing(version, dialect, "TO_CLOB(amount)", "TO_CLOB", OracleDialect.OracleTextConversionMinVersion);
-        AssertOracleSpecificConversionParsing(version, dialect, "TO_DSINTERVAL(amount)", "TO_DSINTERVAL", OracleDialect.OracleTextConversionMinVersion);
-        AssertOracleSpecificConversionParsing(version, dialect, "TO_LOB(amount)", "TO_LOB", 7);
-        AssertOracleSpecificConversionParsing(version, dialect, "TO_MULTI_BYTE(amount)", "TO_MULTI_BYTE", 7);
-        AssertOracleSpecificConversionParsing(version, dialect, "TO_NCHAR(amount)", "TO_NCHAR", OracleDialect.OracleTextConversionMinVersion);
-        AssertOracleSpecificConversionParsing(version, dialect, "TO_NCLOB(amount)", "TO_NCLOB", OracleDialect.OracleTextConversionMinVersion);
-        AssertOracleSpecificConversionParsing(version, dialect, "TO_SINGLE_BYTE(amount)", "TO_SINGLE_BYTE", 7);
-        AssertOracleSpecificConversionParsing(version, dialect, "TO_TIMESTAMP_TZ(amount)", "TO_TIMESTAMP_TZ", OracleDialect.OracleTextConversionMinVersion);
-        AssertOracleSpecificConversionParsing(version, dialect, "TO_YMINTERVAL(amount)", "TO_YMINTERVAL", OracleDialect.OracleTextConversionMinVersion);
-        AssertOracleScnParsing(version, dialect, "SCN_TO_TIMESTAMP(amount)", "SCN_TO_TIMESTAMP");
-        AssertOracleScnParsing(version, dialect, "TIMESTAMP_TO_SCN(amount)", "TIMESTAMP_TO_SCN");
-        AssertOracleAnalyticsParsing(version, dialect, "FEATURE_COMPARE(amount)", "FEATURE_COMPARE", 18);
-        AssertOracleAnalyticsParsing(version, dialect, "FEATURE_DETAILS(amount)", "FEATURE_DETAILS", 12);
-        AssertOracleAnalyticsParsing(version, dialect, "FEATURE_ID(amount)", "FEATURE_ID", 10);
-        AssertOracleAnalyticsParsing(version, dialect, "FEATURE_SET(amount)", "FEATURE_SET", 10);
-        AssertOracleAnalyticsParsing(version, dialect, "FEATURE_VALUE(amount)", "FEATURE_VALUE", 10);
-        AssertOracleAnalyticsParsing(version, dialect, "NCGR(amount)", "NCGR", 18);
-        AssertOracleAnalyticsParsing(version, dialect, "POWERMULTISET(amount, amount)", "POWERMULTISET", 10);
-        AssertOracleAnalyticsParsing(version, dialect, "POWERMULTISET_BY_CARDINALITY(amount, amount)", "POWERMULTISET_BY_CARDINALITY", 10);
-        AssertOracleAnalyticsParsing(version, dialect, "PREDICTION(amount)", "PREDICTION", 10);
-        AssertOracleAnalyticsParsing(version, dialect, "PREDICTION_BOUNDS(amount)", "PREDICTION_BOUNDS", 11);
-        AssertOracleAnalyticsParsing(version, dialect, "PREDICTION_COST(amount)", "PREDICTION_COST", 10);
-        AssertOracleAnalyticsParsing(version, dialect, "PREDICTION_DETAILS(amount)", "PREDICTION_DETAILS", 10);
-        AssertOracleAnalyticsParsing(version, dialect, "PREDICTION_PROBABILITY(amount)", "PREDICTION_PROBABILITY", 10);
-        AssertOracleAnalyticsParsing(version, dialect, "PREDICTION_SET(amount)", "PREDICTION_SET", 10);
-        AssertOracleAnalyticsParsing(version, dialect, "PRESENTNNV(amount)", "PRESENTNNV", 10);
-        AssertOracleAnalyticsParsing(version, dialect, "PRESENTV(amount)", "PRESENTV", 10);
-        AssertOracleAnalyticsParsing(version, dialect, "RATIO_TO_REPORT(amount)", "RATIO_TO_REPORT", 8);
-        AssertOracleVersionedParsing(version, dialect, "CLUSTER_DETAILS(amount, amount, amount)", "CLUSTER_DETAILS", OracleDialect.OracleAdvancedClusterFunctionMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "CLUSTER_DISTANCE(amount, amount, amount)", "CLUSTER_DISTANCE", OracleDialect.OracleAdvancedClusterFunctionMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "CLUSTER_ID(amount, amount, amount)", "CLUSTER_ID", OracleDialect.OracleClusterFunctionMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "CLUSTER_PROBABILITY(amount, amount, amount)", "CLUSTER_PROBABILITY", OracleDialect.OracleClusterFunctionMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "CLUSTER_SET(amount, amount, amount)", "CLUSTER_SET", OracleDialect.OracleClusterFunctionMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "CON_DBID_TO_ID(amount)", "CON_DBID_TO_ID", OracleDialect.OracleContainerFunctionMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "CON_GUID_TO_ID(amount)", "CON_GUID_TO_ID", OracleDialect.OracleContainerFunctionMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "CON_NAME_TO_ID(amount)", "CON_NAME_TO_ID", OracleDialect.OracleContainerFunctionMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "CON_UID_TO_ID(amount)", "CON_UID_TO_ID", OracleDialect.OracleContainerFunctionMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "ROWIDTOCHAR(amount)", "ROWIDTOCHAR", 7);
-        AssertOracleVersionedParsing(version, dialect, "ROWTONCHAR(amount)", "ROWTONCHAR", OracleDialect.OracleRowToNCharFunctionMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "USERENV(amount)", "USERENV", 7);
-        AssertOracleVersionedParsing(version, dialect, "ORA_INVOKING_USER()", "ORA_INVOKING_USER", OracleDialect.OracleUserEnvMetadataMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "ORA_INVOKING_USERID()", "ORA_INVOKING_USERID", OracleDialect.OracleUserEnvMetadataMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "ORA_DST_AFFECTED(amount)", "ORA_DST_AFFECTED", OracleDialect.OracleUserEnvMetadataMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "ORA_DST_CONVERT(amount)", "ORA_DST_CONVERT", OracleDialect.OracleUserEnvMetadataMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "ORA_DST_ERROR(amount)", "ORA_DST_ERROR", OracleDialect.OracleUserEnvMetadataMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "ORA_DM_PARTITION_NAME()", "ORA_DM_PARTITION_NAME", OracleDialect.OraclePartitionMetadataMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "VALIDATE_CONVERSION(amount, 'NUMBER')", "VALIDATE_CONVERSION", OracleDialect.OracleValidateConversionMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "JSON_TRANSFORM(amount)", "JSON_TRANSFORM", OracleDialect.OracleJsonTransformMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "JSON_VALUE(amount, '$.a')", "JSON_VALUE", OracleDialect.OracleJsonSqlFunctionMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "JSON_QUERY(amount, '$.a')", "JSON_QUERY", OracleDialect.OracleJsonSqlFunctionMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "COLLATION(amount)", "COLLATION", OracleDialect.OracleCollationFunctionMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "NLS_CHARSET_DECL_LEN(amount)", "NLS_CHARSET_DECL_LEN", 7);
-        AssertOracleVersionedParsing(version, dialect, "NLS_CHARSET_ID(amount)", "NLS_CHARSET_ID", 7);
-        AssertOracleVersionedParsing(version, dialect, "NLS_CHARSET_NAME(amount)", "NLS_CHARSET_NAME", 7);
-        AssertOracleVersionedParsing(version, dialect, "NLS_COLLATION_ID(amount)", "NLS_COLLATION_ID", OracleDialect.OracleCollationFunctionMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "NLS_COLLATION_NAME(amount)", "NLS_COLLATION_NAME", OracleDialect.OracleCollationFunctionMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "NLS_INITCAP(amount)", "NLS_INITCAP", 7);
-        AssertOracleVersionedParsing(version, dialect, "NLS_LOWER(amount)", "NLS_LOWER", 7);
-        AssertOracleVersionedParsing(version, dialect, "NLS_UPPER(amount)", "NLS_UPPER", 7);
-        AssertOracleVersionedParsing(version, dialect, "NLSSORT(amount)", "NLSSORT", 7);
-        AssertOracleVersionedParsing(version, dialect, "ORA_HASH(amount)", "ORA_HASH", OracleDialect.OracleOraHashMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "STANDARD_HASH(amount)", "STANDARD_HASH", OracleDialect.OracleStandardHashMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "SYS_GUID()", "SYS_GUID", 7);
-        AssertOracleVersionedParsing(version, dialect, "SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA')", "SYS_CONTEXT", 7);
-        AssertOracleVersionedParsing(version, dialect, "SYS_CONNECT_BY_PATH(amount, '/')", "SYS_CONNECT_BY_PATH", OracleDialect.OracleSysFamilyMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "SYS_DBURIGEN(amount, amount)", "SYS_DBURIGEN", OracleDialect.OracleSysFamilyMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "SYS_EXTRACT_UTC(amount)", "SYS_EXTRACT_UTC", OracleDialect.OracleSysFamilyMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "SYS_OP_ZONE_ID(amount)", "SYS_OP_ZONE_ID", OracleDialect.OracleSysZoneIdMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "SYS_TYPEID(amount)", "SYS_TYPEID", OracleDialect.OracleSysFamilyMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "SYS_XMLAGG(amount)", "SYS_XMLAGG", OracleDialect.OracleSysFamilyMinVersion);
-        AssertOracleVersionedParsing(version, dialect, "SYS_XMLGEN(amount)", "SYS_XMLGEN", OracleDialect.OracleSysFamilyMinVersion);
+        AssertOracleSpecificConversionParsing(version, db, dialect, "TO_BINARY_DOUBLE(amount)", "TO_BINARY_DOUBLE", OracleDialect.OracleBinaryConversionMinVersion);
+        AssertOracleSpecificConversionParsing(version, db, dialect, "TO_BINARY_FLOAT(amount)", "TO_BINARY_FLOAT", OracleDialect.OracleBinaryConversionMinVersion);
+        AssertOracleSpecificConversionParsing(version, db, dialect, "TO_BLOB(amount)", "TO_BLOB", OracleDialect.OracleBlobConversionMinVersion);
+        AssertOracleSpecificConversionParsing(version, db, dialect, "TO_CLOB(amount)", "TO_CLOB", OracleDialect.OracleTextConversionMinVersion);
+        AssertOracleSpecificConversionParsing(version, db, dialect, "TO_DSINTERVAL(amount)", "TO_DSINTERVAL", OracleDialect.OracleTextConversionMinVersion);
+        AssertOracleSpecificConversionParsing(version, db, dialect, "TO_LOB(amount)", "TO_LOB", 7);
+        AssertOracleSpecificConversionParsing(version, db, dialect, "TO_MULTI_BYTE(amount)", "TO_MULTI_BYTE", 7);
+        AssertOracleSpecificConversionParsing(version, db, dialect, "TO_NCHAR(amount)", "TO_NCHAR", OracleDialect.OracleTextConversionMinVersion);
+        AssertOracleSpecificConversionParsing(version, db, dialect, "TO_NCLOB(amount)", "TO_NCLOB", OracleDialect.OracleTextConversionMinVersion);
+        AssertOracleSpecificConversionParsing(version, db, dialect, "TO_SINGLE_BYTE(amount)", "TO_SINGLE_BYTE", 7);
+        AssertOracleSpecificConversionParsing(version, db, dialect, "TO_TIMESTAMP_TZ(amount)", "TO_TIMESTAMP_TZ", OracleDialect.OracleTextConversionMinVersion);
+        AssertOracleSpecificConversionParsing(version, db, dialect, "TO_YMINTERVAL(amount)", "TO_YMINTERVAL", OracleDialect.OracleTextConversionMinVersion);
+        AssertOracleScnParsing(version, db, dialect, "SCN_TO_TIMESTAMP(amount)", "SCN_TO_TIMESTAMP");
+        AssertOracleScnParsing(version, db, dialect, "TIMESTAMP_TO_SCN(amount)", "TIMESTAMP_TO_SCN");
+        AssertOracleAnalyticsParsing(version, db, dialect, "FEATURE_COMPARE(amount)", "FEATURE_COMPARE", 18);
+        AssertOracleAnalyticsParsing(version, db, dialect, "FEATURE_DETAILS(amount)", "FEATURE_DETAILS", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsParsing(version, db, dialect, "FEATURE_ID(amount)", "FEATURE_ID", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsParsing(version, db, dialect, "FEATURE_SET(amount)", "FEATURE_SET", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsParsing(version, db, dialect, "FEATURE_VALUE(amount)", "FEATURE_VALUE", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsParsing(version, db, dialect, "NCGR(amount)", "NCGR", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsParsing(version, db, dialect, "POWERMULTISET(amount, amount)", "POWERMULTISET", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsParsing(version, db, dialect, "POWERMULTISET_BY_CARDINALITY(amount, amount)", "POWERMULTISET_BY_CARDINALITY", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsParsing(version, db, dialect, "PREDICTION(amount)", "PREDICTION", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsParsing(version, db, dialect, "PREDICTION_BOUNDS(amount)", "PREDICTION_BOUNDS", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsParsing(version, db, dialect, "PREDICTION_COST(amount)", "PREDICTION_COST", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsParsing(version, db, dialect, "PREDICTION_DETAILS(amount)", "PREDICTION_DETAILS", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsParsing(version, db, dialect, "PREDICTION_PROBABILITY(amount)", "PREDICTION_PROBABILITY", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsParsing(version, db, dialect, "PREDICTION_SET(amount)", "PREDICTION_SET", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsParsing(version, db, dialect, "PRESENTNNV(amount)", "PRESENTNNV", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsParsing(version, db, dialect, "PRESENTV(amount)", "PRESENTV", OracleDialect.ApproximateAnalyticsMinVersion);
+        AssertOracleAnalyticsParsing(version, db, dialect, "RATIO_TO_REPORT(amount)", "RATIO_TO_REPORT", 8);
+        AssertOracleVersionedParsing(version, db, dialect, "CLUSTER_DETAILS(amount, amount, amount)", "CLUSTER_DETAILS", OracleDialect.OracleAdvancedClusterFunctionMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "CLUSTER_DISTANCE(amount, amount, amount)", "CLUSTER_DISTANCE", OracleDialect.OracleAdvancedClusterFunctionMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "CLUSTER_ID(amount, amount, amount)", "CLUSTER_ID", OracleDialect.OracleClusterFunctionMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "CLUSTER_PROBABILITY(amount, amount, amount)", "CLUSTER_PROBABILITY", OracleDialect.OracleClusterFunctionMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "CLUSTER_SET(amount, amount, amount)", "CLUSTER_SET", OracleDialect.OracleClusterFunctionMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "CON_DBID_TO_ID(amount)", "CON_DBID_TO_ID", OracleDialect.OracleContainerFunctionMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "CON_GUID_TO_ID(amount)", "CON_GUID_TO_ID", OracleDialect.OracleContainerFunctionMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "CON_NAME_TO_ID(amount)", "CON_NAME_TO_ID", OracleDialect.OracleContainerFunctionMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "CON_UID_TO_ID(amount)", "CON_UID_TO_ID", OracleDialect.OracleContainerFunctionMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "ROWIDTOCHAR(amount)", "ROWIDTOCHAR", 7);
+        AssertOracleVersionedParsing(version, db, dialect, "ROWTONCHAR(amount)", "ROWTONCHAR", 0);
+        AssertOracleVersionedParsing(version, db, dialect, "USERENV(amount)", "USERENV", 7);
+        AssertOracleVersionedParsing(version, db, dialect, "ORA_INVOKING_USER()", "ORA_INVOKING_USER", OracleDialect.OracleUserEnvMetadataMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "ORA_INVOKING_USERID()", "ORA_INVOKING_USERID", OracleDialect.OracleUserEnvMetadataMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "ORA_DST_AFFECTED(amount)", "ORA_DST_AFFECTED", OracleDialect.OracleUserEnvMetadataMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "ORA_DST_CONVERT(amount)", "ORA_DST_CONVERT", OracleDialect.OracleUserEnvMetadataMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "ORA_DST_ERROR(amount)", "ORA_DST_ERROR", OracleDialect.OracleUserEnvMetadataMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "ORA_DM_PARTITION_NAME()", "ORA_DM_PARTITION_NAME", OracleDialect.OraclePartitionMetadataMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "VALIDATE_CONVERSION(amount, 'NUMBER')", "VALIDATE_CONVERSION", OracleDialect.OracleValidateConversionMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "JSON_TRANSFORM(amount)", "JSON_TRANSFORM", OracleDialect.OracleJsonTransformMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "JSON_VALUE(amount, '$.a')", "JSON_VALUE", OracleDialect.OracleJsonSqlFunctionMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "JSON_QUERY(amount, '$.a')", "JSON_QUERY", OracleDialect.OracleJsonSqlFunctionMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "COLLATION(amount)", "COLLATION", OracleDialect.OracleCollationFunctionMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "NLS_CHARSET_DECL_LEN(amount)", "NLS_CHARSET_DECL_LEN", 7);
+        AssertOracleVersionedParsing(version, db, dialect, "NLS_CHARSET_ID(amount)", "NLS_CHARSET_ID", 7);
+        AssertOracleVersionedParsing(version, db, dialect, "NLS_CHARSET_NAME(amount)", "NLS_CHARSET_NAME", 7);
+        AssertOracleVersionedParsing(version, db, dialect, "NLS_COLLATION_ID(amount)", "NLS_COLLATION_ID", OracleDialect.OracleCollationFunctionMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "NLS_COLLATION_NAME(amount)", "NLS_COLLATION_NAME", OracleDialect.OracleCollationFunctionMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "NLS_INITCAP(amount)", "NLS_INITCAP", 7);
+        AssertOracleVersionedParsing(version, db, dialect, "NLS_LOWER(amount)", "NLS_LOWER", 7);
+        AssertOracleVersionedParsing(version, db, dialect, "NLS_UPPER(amount)", "NLS_UPPER", 7);
+        AssertOracleVersionedParsing(version, db, dialect, "NLSSORT(amount)", "NLSSORT", 7);
+        AssertOracleVersionedParsing(version, db, dialect, "ORA_HASH(amount)", "ORA_HASH", OracleDialect.OracleOraHashMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "STANDARD_HASH(amount)", "STANDARD_HASH", OracleDialect.OracleStandardHashMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "SYS_GUID()", "SYS_GUID", 7);
+        AssertOracleVersionedParsing(version, db, dialect, "SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA')", "SYS_CONTEXT", 7);
+        AssertOracleVersionedParsing(version, db, dialect, "SYS_CONNECT_BY_PATH(amount, '/')", "SYS_CONNECT_BY_PATH", OracleDialect.OracleSysFamilyMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "SYS_DBURIGEN(amount, amount)", "SYS_DBURIGEN", OracleDialect.OracleSysFamilyMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "SYS_EXTRACT_UTC(amount)", "SYS_EXTRACT_UTC", OracleDialect.OracleSysFamilyMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "SYS_OP_ZONE_ID(amount)", "SYS_OP_ZONE_ID", OracleDialect.OracleSysZoneIdMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "SYS_TYPEID(amount)", "SYS_TYPEID", OracleDialect.OracleSysFamilyMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "SYS_XMLAGG(amount)", "SYS_XMLAGG", OracleDialect.OracleSysFamilyMinVersion);
+        AssertOracleVersionedParsing(version, db, dialect, "SYS_XMLGEN(amount)", "SYS_XMLGEN", OracleDialect.OracleSysFamilyMinVersion);
     }
 
-    private static void AssertOracleSpecificConversionParsing(int version, OracleDialect dialect, string sql, string functionName, int minVersion)
+    private static void AssertOracleSpecificConversionParsing(int version, OracleDbMock db, OracleDialect dialect, string sql, string functionName, int minVersion)
     {
         if (version < minVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, db, dialect));
             Assert.Contains(functionName, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
         Assert.Equal(
             functionName,
-            Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect)).Name,
+            Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, db, dialect)).Name,
             StringComparer.OrdinalIgnoreCase);
     }
 
-    private static void AssertOracleScnParsing(int version, OracleDialect dialect, string sql, string functionName)
+    private static void AssertOracleScnParsing(int version, OracleDbMock db, OracleDialect dialect, string sql, string functionName)
     {
         if (version < OracleDialect.OracleScnFunctionMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, db, dialect));
             Assert.Contains(functionName, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
         Assert.Equal(
             functionName,
-            Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect)).Name,
+            Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, db, dialect)).Name,
             StringComparer.OrdinalIgnoreCase);
     }
 
-    private static void AssertOracleAnalyticsParsing(int version, OracleDialect dialect, string sql, string functionName, int minVersion)
+    private static void AssertOracleAnalyticsParsing(int version, OracleDbMock db, OracleDialect dialect, string sql, string functionName, int minVersion)
     {
         if (version < minVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, db, dialect));
             Assert.Contains(functionName, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
         Assert.Equal(
             functionName,
-            Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect)).Name,
+            Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, db, dialect)).Name,
             StringComparer.OrdinalIgnoreCase);
     }
 
-    private static void AssertOracleVersionedParsing(int version, OracleDialect dialect, string sql, string functionName, int minVersion)
+    private static void AssertOracleVersionedParsing(int version, OracleDbMock db, OracleDialect dialect, string sql, string functionName, int minVersion)
     {
         if (version < minVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, db, dialect));
             Assert.Contains(functionName, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
         Assert.Equal(
             functionName,
-            Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect)).Name,
+            Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, db, dialect)).Name,
             StringComparer.OrdinalIgnoreCase);
     }
 
@@ -901,9 +932,11 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.MergeMinVersion)]
     public void ParseMerge_WithUsingAliasNamedWhen_ShouldProvideActionableMessage(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         const string sql = "MERGE INTO users target USING users when ON target.id = when.id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("MERGE requer ao menos uma cláusula WHEN", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -918,9 +951,11 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.MergeMinVersion)]
     public void ParseMerge_WithWhenOnlyInsideUsingSubquery_ShouldProvideActionableMessage(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         const string sql = "MERGE INTO users target USING (SELECT CASE WHEN id > 0 THEN id ELSE 0 END AS id FROM users) src ON target.id = src.id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("MERGE requer ao menos uma cláusula WHEN", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -936,9 +971,11 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.MergeMinVersion)]
     public void ParseMerge_WithInvalidTopLevelWhenForm_ShouldProvideActionableMessage(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         const string sql = "MERGE INTO users target USING users src ON target.id = src.id WHEN src.id > 0 THEN UPDATE SET name = 'x'";
 
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("MERGE requer ao menos uma cláusula WHEN", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -953,8 +990,10 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseSelect_WithBacktickQuotedAlias_ShouldProvideActionableMessage(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse("SELECT name `User Name` FROM users", GetDialect(version, v => new OracleDialect(v))));
+            SqlQueryParser.Parse("SELECT name `User Name` FROM users", db, d));
 
         Assert.Contains("alias/identificadores", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("'`'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -970,9 +1009,11 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseSelect_WithDoubleQuotedAlias_ShouldParseAndNormalizeAlias(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT name \"User Name\" FROM users",
-            GetDialect(version, v => new OracleDialect(v))));
+            db, d));
 
         var item = Assert.Single(parsed.SelectItems);
         Assert.Equal("User Name", item.Alias);
@@ -988,9 +1029,11 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseSelect_WithEscapedDoubleQuotedAlias_ShouldNormalizeEscapedQuote(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT name \"User\"\"Name\" FROM users",
-            GetDialect(version, v => new OracleDialect(v))));
+            db, d));
 
         var item = Assert.Single(parsed.SelectItems);
         Assert.Equal("User\"Name", item.Alias);
@@ -1006,9 +1049,11 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseSelect_WithSqlServerTableHints_ShouldBeRejected(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         var sql = "SELECT id FROM users WITH (NOLOCK)";
 
-        Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
+        Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
     }
 
     /// <summary>
@@ -1021,9 +1066,11 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseSelect_WithSqlServerOptionHints_ShouldBeRejected(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         var sql = "SELECT id FROM users OPTION (MAXDOP 1)";
 
-        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("OPTION(query hints)", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Use hints compatíveis", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1038,9 +1085,11 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseUnion_WithSqlServerOptionHints_ShouldBeRejected(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         var sql = "SELECT id FROM users UNION SELECT id FROM users OPTION (MAXDOP 1)";
 
-        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v))));
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("OPTION(query hints)", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -1056,9 +1105,11 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseSelect_WithPivot_ShouldParse(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         var sql = "SELECT t10 FROM (SELECT tenantid, id FROM users) src PIVOT (COUNT(id) FOR tenantid IN (10 AS t10)) p";
 
-        var parsed = SqlQueryParser.Parse(sql, GetDialect(version, v => new OracleDialect(v)));
+        var parsed = SqlQueryParser.Parse(sql, db, d);
 
         Assert.IsType<SqlSelectQuery>(parsed);
     }
@@ -1075,8 +1126,10 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseDelete_WithoutFrom_ShouldProvideActionableMessage(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse("DELETE users WHERE id = 1", GetDialect(version, v => new OracleDialect(v))));
+            SqlQueryParser.Parse("DELETE users WHERE id = 1", db, d));
 
         Assert.Contains("DELETE FROM", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1091,8 +1144,10 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseDelete_TargetAliasBeforeFrom_ShouldProvideActionableMessage(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse("DELETE u FROM users u", GetDialect(version, v => new OracleDialect(v))));
+            SqlQueryParser.Parse("DELETE u FROM users u", db, d));
 
         Assert.Contains("DELETE FROM", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1109,8 +1164,10 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseUnsupportedTopLevelStatement_ShouldUseActionableMessage(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse("UPSERT INTO users VALUES (1)", GetDialect(version, v => new OracleDialect(v))));
+            SqlQueryParser.Parse("UPSERT INTO users VALUES (1)", db, d));
 
         Assert.Contains("token inicial", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("SELECT/INSERT/UPDATE/DELETE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1126,7 +1183,7 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void RuntimeDialectRules_ShouldRemainStable(int version)
     {
-        var d = GetDialect(version, v => new OracleDialect(v));
+        var d = Get(version, v => new OracleDialect(v));
 
         Assert.True(d.AreUnionColumnTypesCompatible(DbType.Int32, DbType.Decimal));
         Assert.True(d.AreUnionColumnTypesCompatible(DbType.String, DbType.AnsiString));
@@ -1150,8 +1207,10 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseUnsupportedSql_ShouldUseStandardNotSupportedMessage(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse("SELECT id FROM users WITH (NOLOCK)", GetDialect(version, v => new OracleDialect(v))));
+            SqlQueryParser.Parse("SELECT id FROM users WITH (NOLOCK)", db, d));
 
         Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.Ordinal);
         Assert.Contains("oracle", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1166,7 +1225,7 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void WindowFunctionCapability_ShouldRespectVersionAndKnownFunctions(int version)
     {
-        var dialect = GetDialect(version, v => new OracleDialect(v));
+        var dialect = Get(version, v => new OracleDialect(v));
 
         var expected = version >= OracleDialect.WindowFunctionsMinVersion;
         Assert.Equal(expected, dialect.SupportsWindowFunction("ROW_NUMBER"));
@@ -1183,19 +1242,20 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseScalar_WindowFunctionName_ShouldRespectDialectCapability(int version)
     {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         var supported = "ROW_NUMBER() OVER (ORDER BY id)";
         var unsupported = "PERCENTILE_CONT(0.5) OVER (ORDER BY id)";
-        var dialect = GetDialect(version, v => new OracleDialect(v));
 
         if (version < OracleDialect.WindowFunctionsMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(supported, dialect));
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(supported, db, d));
             return;
         }
 
-        var expr = SqlExpressionParser.ParseScalar(supported, dialect);
+        var expr = SqlExpressionParser.ParseScalar(supported, db, d);
         Assert.IsType<WindowFunctionExpr>(expr);
-        Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(unsupported, dialect));
+        Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(unsupported, db, d));
     }
 
 
@@ -1208,16 +1268,17 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseScalar_WindowFunctionWithoutOrderBy_ShouldRespectDialectRules(int version)
     {
-        var dialect = GetDialect(version, v => new OracleDialect(v));
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
 
         if (version < OracleDialect.WindowFunctionsMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER ()", dialect));
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER ()", db, d));
             return;
         }
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER ()", dialect));
+            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER ()", db, d));
 
         Assert.Contains("requires ORDER BY", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1232,24 +1293,25 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseScalar_WindowFunctionArguments_ShouldValidateArity(int version)
     {
-        var dialect = GetDialect(version, v => new OracleDialect(v));
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
 
         if (version < OracleDialect.WindowFunctionsMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER(1) OVER (ORDER BY id)", dialect));
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER(1) OVER (ORDER BY id)", db, d));
             return;
         }
 
         var exRowNumber = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("ROW_NUMBER(1) OVER (ORDER BY id)", dialect));
+            SqlExpressionParser.ParseScalar("ROW_NUMBER(1) OVER (ORDER BY id)", db, d));
         Assert.Contains("does not accept arguments", exRowNumber.Message, StringComparison.OrdinalIgnoreCase);
 
         var exNtile = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("NTILE() OVER (ORDER BY id)", dialect));
+            SqlExpressionParser.ParseScalar("NTILE() OVER (ORDER BY id)", db, d));
         Assert.Contains("exactly 1 argument", exNtile.Message, StringComparison.OrdinalIgnoreCase);
 
         var exLag = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("LAG(id, 1, 0, 99) OVER (ORDER BY id)", dialect));
+            SqlExpressionParser.ParseScalar("LAG(id, 1, 0, 99) OVER (ORDER BY id)", db, d));
         Assert.Contains("between 1 and 3 arguments", exLag.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -1263,24 +1325,25 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseScalar_WindowFunctionLiteralArguments_ShouldValidateSemanticRange(int version)
     {
-        var dialect = GetDialect(version, v => new OracleDialect(v));
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         if (version < OracleDialect.WindowFunctionsMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("NTILE(0) OVER (ORDER BY id)", dialect));
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("NTILE(0) OVER (ORDER BY id)", db, d));
             return;
         }
 
 
         var exNtile = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("NTILE(0) OVER (ORDER BY id)", dialect));
-        Assert.Contains("positive bucket count", exNtile.Message, StringComparison.OrdinalIgnoreCase);
+            SqlExpressionParser.ParseScalar("NTILE(0) OVER (ORDER BY id)", db, d));
+        Assert.Contains("positive integer literal", exNtile.Message, StringComparison.OrdinalIgnoreCase);
 
         var exLag = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("LAG(id, -1, 0) OVER (ORDER BY id)", dialect));
-        Assert.Contains("non-negative offset", exLag.Message, StringComparison.OrdinalIgnoreCase);
+            SqlExpressionParser.ParseScalar("LAG(id, -1, 0) OVER (ORDER BY id)", db, d));
+        Assert.Contains("offset must be non-negative", exLag.Message, StringComparison.OrdinalIgnoreCase);
 
         var exNthValue = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("NTH_VALUE(id, 0) OVER (ORDER BY id)", dialect));
+            SqlExpressionParser.ParseScalar("NTH_VALUE(id, 0) OVER (ORDER BY id)", db, d));
         Assert.Contains("greater than zero", exNthValue.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -1293,7 +1356,7 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void WindowFunctionOrderByRequirementHook_ShouldRespectVersion(int version)
     {
-        var dialect = GetDialect(version, v => new OracleDialect(v));
+        var dialect = Get(version, v => new OracleDialect(v));
 
         var expected = version >= OracleDialect.WindowFunctionsMinVersion;
         Assert.Equal(expected, dialect.RequiresOrderByInWindowFunction("ROW_NUMBER"));
@@ -1312,7 +1375,7 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void WindowFunctionArgumentArityHook_ShouldRespectVersion(int version)
     {
-        var dialect = GetDialect(version, v => new OracleDialect(v));
+        var dialect = Get(version, v => new OracleDialect(v));
 
         if (version < OracleDialect.WindowFunctionsMinVersion)
         {
@@ -1328,7 +1391,9 @@ public sealed class OracleDialectFeatureParserTests(
         Assert.Equal(1, lagMin);
         Assert.Equal(3, lagMax);
 
-        Assert.False(dialect.TryGetWindowFunctionArgumentArity(SqlConst.COUNT, out _, out _));
+        Assert.True(dialect.TryGetWindowFunctionArgumentArity(SqlConst.COUNT, out var countMin, out var countMax));
+        Assert.Equal(1, countMin);
+        Assert.Equal(1, countMax);
     }
 
 
@@ -1341,18 +1406,19 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseScalar_WindowFrameClause_ShouldRespectDialectCapabilities(int version)
     {
-        var dialect = GetDialect(version, v => new OracleDialect(v));
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
 
         if (version < OracleDialect.WindowFunctionsMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect));
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, d));
             return;
         }
 
-        var expr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
+        var expr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, d);
         Assert.IsType<WindowFunctionExpr>(expr);
 
-        expr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
+        expr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, d);
         Assert.IsType<WindowFunctionExpr>(expr);
     }
 
@@ -1367,16 +1433,17 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseScalar_WindowFrameClauseInvalidBounds_ShouldBeRejected(int version)
     {
-        var dialect = GetDialect(version, v => new OracleDialect(v));
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
 
         if (version < OracleDialect.WindowFunctionsMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 PRECEDING)", dialect));
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 PRECEDING)", db, d));
             return;
         }
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 PRECEDING)", dialect));
+            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 PRECEDING)", db, d));
 
         Assert.Contains("start bound cannot be greater", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1390,10 +1457,11 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseScalar_StringAggWithinGroup_ShouldThrowNotSupported(int version)
     {
-        var dialect = GetDialect(version, v => new OracleDialect(v));
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", db, d));
 
         Assert.Contains(SqlConst.STRING_AGG, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1407,10 +1475,18 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseScalar_ListAggWithinGroupWithoutOrderBy_ShouldThrowActionableError(int version)
     {
-        var dialect = GetDialect(version, v => new OracleDialect(v));
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
+
+        if (version < OracleDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (amount DESC)", db, d));
+            return;
+        }
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (amount DESC)", dialect));
+            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (amount DESC)", db, d));
 
         Assert.Contains("WITHIN GROUP requires ORDER BY", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1424,10 +1500,18 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseScalar_WithinGroupOrderByTrailingComma_ShouldThrowActionableError(int version)
     {
-        var dialect = GetDialect(version, v => new OracleDialect(v));
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
+
+        if (version < OracleDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC,)", db, d));
+            return;
+        }
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC,)", dialect));
+            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC,)", db, d));
 
         Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1441,10 +1525,18 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseScalar_WithinGroupOrderByEmptyList_ShouldThrowActionableError(int version)
     {
-        var dialect = GetDialect(version, v => new OracleDialect(v));
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
+
+        if (version < OracleDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY)", db, d));
+            return;
+        }
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY)", dialect));
+            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY)", db, d));
 
         Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1458,10 +1550,18 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseScalar_WithinGroupOrderByLeadingComma_ShouldThrowActionableError(int version)
     {
-        var dialect = GetDialect(version, v => new OracleDialect(v));
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
+
+        if (version < OracleDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY, amount DESC)", db, d));
+            return;
+        }
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY, amount DESC)", dialect));
+            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY, amount DESC)", db, d));
 
         Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1476,10 +1576,18 @@ public sealed class OracleDialectFeatureParserTests(
     [MemberDataOracleVersion]
     public void ParseScalar_WithinGroupOrderByMissingCommaBetweenExpressions_ShouldThrowActionableError(int version)
     {
-        var dialect = GetDialect(version, v => new OracleDialect(v));
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
+
+        if (version < OracleDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC id ASC)", db, d));
+            return;
+        }
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC id ASC)", dialect));
+            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC id ASC)", db, d));
 
         Assert.Contains("requires commas", ex.Message, StringComparison.OrdinalIgnoreCase);
     }

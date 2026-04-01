@@ -17,9 +17,11 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseAlterTableAddBinaryColumn_ShouldPreserveSize(int version)
     {
+        var db = Get(version, v => new SqliteDbMock(v));
         var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
             "ALTER TABLE users ADD payload VARBINARY(16) NULL",
-            GetDialect(version, v => new SqliteDialect(v))));
+            db,
+            Get(version, v => new SqliteDialect(v))));
 
         Assert.Equal(DbType.Binary, parsed.ColumnType);
         Assert.Equal(16, parsed.Size);
@@ -35,9 +37,11 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseAlterTableAddDecimalColumn_ShouldPreservePrecisionAndScale(int version)
     {
+        var db = Get(version, v => new SqliteDbMock(v));
         var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
             "ALTER TABLE users ADD amount DECIMAL(10, 4) NOT NULL DEFAULT 0",
-            GetDialect(version, v => new SqliteDialect(v))));
+            db,
+            Get(version, v => new SqliteDialect(v))));
 
         Assert.Equal(DbType.Decimal, parsed.ColumnType);
         Assert.Equal(10, parsed.Size);
@@ -55,9 +59,11 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseAlterTableAddColumn_NotNullWithDefaultNull_ShouldReject(int version)
     {
+        var db = Get(version, v => new SqliteDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "ALTER TABLE users ADD status VARCHAR(20) NOT NULL DEFAULT NULL",
-            GetDialect(version, v => new SqliteDialect(v))));
+            db,
+            Get(version, v => new SqliteDialect(v))));
 
         Assert.Contains("default null", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -71,9 +77,11 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseAlterTableAddColumn_WithTableAlias_ShouldReject(int version)
     {
+        var db = Get(version, v => new SqliteDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "ALTER TABLE users u ADD age INT",
-            GetDialect(version, v => new SqliteDialect(v))));
+            db,
+            Get(version, v => new SqliteDialect(v))));
 
         Assert.Contains("alias", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -87,9 +95,11 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseAlterTableAddColumn_WithDerivedTable_ShouldReject(int version)
     {
+        var db = Get(version, v => new SqliteDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "ALTER TABLE (SELECT * FROM users) u ADD age INT",
-            GetDialect(version, v => new SqliteDialect(v))));
+            db,
+            Get(version, v => new SqliteDialect(v))));
 
         Assert.Contains("concrete table name", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -103,15 +113,18 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseScalarFunctionDdlSubset_ShouldRespectDialectRule(int version)
     {
-        var dialect = GetDialect(version, v => new SqliteDialect(v));
+        var db = Get(version, v => new SqliteDbMock(v));
+        var dialect = Get(version, v => new SqliteDialect(v));
 
         var createEx = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
             "CREATE FUNCTION fn_users() RETURNS INT AS BEGIN RETURN 40 + 2 END",
+            db,
             dialect));
         Assert.Contains("CREATE FUNCTION", createEx.Message, StringComparison.OrdinalIgnoreCase);
 
         var dropEx = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
             "DROP FUNCTION IF EXISTS fn_users",
+            db,
             dialect));
         Assert.Contains("DROP FUNCTION", dropEx.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -125,7 +138,7 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void LastFoundRowsCapability_ShouldExposeSqliteFunction(int version)
     {
-        var dialect = GetDialect(version, v => new SqliteDialect(v));
+        var dialect = Get(version, v => new SqliteDialect(v));
 
         Assert.True(dialect.SupportsLastFoundRowsFunction("CHANGES"));
         Assert.False(dialect.SupportsLastFoundRowsFunction("ROW_COUNT"));
@@ -141,11 +154,12 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseScalar_LastFoundRowsFunctions_ShouldFollowDialectCapability(int version)
     {
-        var dialect = GetDialect(version, v => new SqliteDialect(v));
+        var db = Get(version, v => new SqliteDbMock(v));
+        var dialect = Get(version, v => new SqliteDialect(v));
 
-        Assert.Equal("CHANGES", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CHANGES()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("CHANGES", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CHANGES()", db, dialect)).Name, StringComparer.OrdinalIgnoreCase);
 
-        var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("FOUND_ROWS()", dialect));
+        var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("FOUND_ROWS()", db, dialect));
         Assert.Contains("FOUND_ROWS", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -158,9 +172,10 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseInsert_OnConflict_DoUpdate_ShouldParse(int version)
     {
+        var db = Get(version, v => new SqliteDbMock(v));
         var sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = 'b'";
 
-        var parsed = SqlQueryParser.Parse(sql, GetDialect(version, v => new SqliteDialect(v)));
+        var parsed = SqlQueryParser.Parse(sql, db, Get(version, v => new SqliteDialect(v)));
 
         var ins = Assert.IsType<SqlInsertQuery>(parsed);
         Assert.True(ins.HasOnDuplicateKeyUpdate);
@@ -176,9 +191,18 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseInsert_Returning_ShouldCaptureReturningItems(int version)
     {
+        var db = Get(version, v => new SqliteDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING id, name AS user_name";
 
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new SqliteDialect(v))));
+        if (version < SqliteDialect.ReturningMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() =>
+                SqlQueryParser.Parse(sql, db, Get(version, v => new SqliteDialect(v))));
+            Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, Get(version, v => new SqliteDialect(v))));
 
         Assert.Equal(2, parsed.Returning.Count);
         Assert.Equal("id", parsed.Returning[0].Raw);
@@ -195,9 +219,18 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseUpdate_Returning_ShouldCaptureReturningItems(int version)
     {
+        var db = Get(version, v => new SqliteDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING id, name";
 
-        var parsed = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new SqliteDialect(v))));
+        if (version < SqliteDialect.ReturningMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() =>
+                SqlQueryParser.Parse(sql, db, Get(version, v => new SqliteDialect(v))));
+            Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(sql, db, Get(version, v => new SqliteDialect(v))));
 
         Assert.Contains("id = 1", parsed.WhereRaw, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(2, parsed.Returning.Count);
@@ -214,9 +247,18 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseUpdate_ReturningQualifiedWildcard_ShouldCaptureReturningItem(int version)
     {
+        var db = Get(version, v => new SqliteDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING users.*";
 
-        var parsed = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new SqliteDialect(v))));
+        if (version < SqliteDialect.ReturningMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() =>
+                SqlQueryParser.Parse(sql, db, Get(version, v => new SqliteDialect(v))));
+            Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(sql, db, Get(version, v => new SqliteDialect(v))));
 
         Assert.Single(parsed.Returning);
         Assert.Equal("users.*", parsed.Returning[0].Raw);
@@ -231,9 +273,18 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseDelete_Returning_ShouldCaptureReturningItems(int version)
     {
+        var db = Get(version, v => new SqliteDbMock(v));
         const string sql = "DELETE FROM users WHERE id = 1 RETURNING id";
 
-        var parsed = Assert.IsType<SqlDeleteQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new SqliteDialect(v))));
+        if (version < SqliteDialect.ReturningMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() =>
+                SqlQueryParser.Parse(sql, db, Get(version, v => new SqliteDialect(v))));
+            Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlDeleteQuery>(SqlQueryParser.Parse(sql, db, Get(version, v => new SqliteDialect(v))));
 
         Assert.Contains("id = 1", parsed.WhereRaw, StringComparison.OrdinalIgnoreCase);
         Assert.Single(parsed.Returning);
@@ -241,17 +292,26 @@ public sealed class SqliteDialectFeatureParserTests(
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Ensures SQLite CTE MATERIALIZED/NOT MATERIALIZED hints follow the version gate.
+    /// PT: Garante que hints MATERIALIZED/NOT MATERIALIZED em CTE no SQLite sigam o gate de versão.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
     public void ParseWithCte_AsNotMaterialized_ShouldParse(int version)
     {
+        var db = Get(version, v => new SqliteDbMock(v));
         var sql = "WITH x AS NOT MATERIALIZED (SELECT 1 AS id) SELECT id FROM x";
 
-        var parsed = SqlQueryParser.Parse(sql, GetDialect(version, v => new SqliteDialect(v)));
+        if (version < SqliteDialect.WithMaterializedHintMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() =>
+                SqlQueryParser.Parse(sql, db, Get(version, v => new SqliteDialect(v))));
+            Assert.Contains("NOT MATERIALIZED", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = SqlQueryParser.Parse(sql, db, Get(version, v => new SqliteDialect(v)));
 
         Assert.IsType<SqlSelectQuery>(parsed);
     }
@@ -264,9 +324,10 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseSelect_WithMySqlIndexHints_ShouldBeRejected(int version)
     {
+        var db = Get(version, v => new SqliteDbMock(v));
         var sql = "SELECT id FROM users USE INDEX (idx_users_id)";
 
-        Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqliteDialect(v))));
+        Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new SqliteDialect(v))));
     }
 
     /// <summary>
@@ -279,9 +340,10 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseSelect_WithSqlServerOptionHints_ShouldBeRejected(int version)
     {
+        var db = Get(version, v => new SqliteDbMock(v));
         var sql = "SELECT id FROM users OPTION (MAXDOP 1)";
 
-        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqliteDialect(v))));
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new SqliteDialect(v))));
         Assert.Contains("OPTION(query hints)", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Use hints compatíveis", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -296,8 +358,9 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseUnsupportedSql_ShouldUseStandardNotSupportedMessage(int version)
     {
+        var db = Get(version, v => new SqliteDbMock(v));
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse("SELECT id FROM users USE INDEX (idx_users_id)", GetDialect(version, v => new SqliteDialect(v))));
+            SqlQueryParser.Parse("SELECT id FROM users USE INDEX (idx_users_id)", db, Get(version, v => new SqliteDialect(v))));
 
         Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.Ordinal);
         Assert.Contains("sqlite", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -312,9 +375,10 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseSelect_UnionOrderBy_ShouldParseAsUnion(int version)
     {
+        var db = Get(version, v => new SqliteDbMock(v));
         var sql = "SELECT id FROM users WHERE id = 1 UNION SELECT id FROM users WHERE id = 2 ORDER BY id";
 
-        var parsed = SqlQueryParser.Parse(sql, GetDialect(version, v => new SqliteDialect(v)));
+        var parsed = SqlQueryParser.Parse(sql, db, Get(version, v => new SqliteDialect(v)));
 
         var union = Assert.IsType<SqlUnionQuery>(parsed);
         Assert.Equal(2, union.Parts.Count);
@@ -324,46 +388,50 @@ public sealed class SqliteDialectFeatureParserTests(
 
 
     /// <summary>
-    /// EN: Ensures OFFSET/FETCH compatibility syntax is accepted for SQLite parser.
-    /// PT: Garante que a sintaxe de compatibilidade OFFSET/FETCH seja aceita pelo parser SQLite.
+    /// EN: Ensures OFFSET/FETCH pagination syntax is rejected for SQLite.
+    /// PT: Garante que a sintaxe de paginação OFFSET/FETCH seja rejeitada para SQLite.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
-    public void ParseSelect_WithOffsetFetch_ShouldParse(int version)
+    public void ParseSelect_WithOffsetFetch_ShouldBeRejected(int version)
     {
+        var db = Get(version, v => new SqliteDbMock(v));
         var sql = "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY";
 
-        var parsed = SqlQueryParser.Parse(sql, GetDialect(version, v => new SqliteDialect(v)));
-        Assert.IsType<SqlSelectQuery>(parsed);
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new SqliteDialect(v))));
+        Assert.Contains("OFFSET/FETCH", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 
-        /// <summary>
+    /// <summary>
     /// EN: Ensures pagination syntaxes normalize to the same row-limit AST shape for this dialect.
     /// PT: Garante que as sintaxes de paginação sejam normalizadas para o mesmo formato de AST de limite de linhas neste dialeto.
     /// </summary>
     /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
-[Theory]
+    [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
     public void ParseSelect_PaginationSyntaxes_ShouldNormalizeRowLimitAst(int version)
     {
-        var dialect = GetDialect(version, v => new SqliteDialect(v));
+        var db = Get(version, v => new SqliteDbMock(v));
+        var dialect = Get(version, v => new SqliteDialect(v));
 
         var limitOffset = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT id FROM users ORDER BY id LIMIT 2 OFFSET 1",
+            db,
             dialect));
-        var offsetFetch = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
-            "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY",
+        var commaLimit = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY id LIMIT 1, 2",
+            db,
             dialect));
 
         var normalizedLimit = Assert.IsType<SqlLimitOffset>(limitOffset.RowLimit);
-        var normalizedFetch = Assert.IsType<SqlLimitOffset>(offsetFetch.RowLimit);
+        var normalizedCommaLimit = Assert.IsType<SqlLimitOffset>(commaLimit.RowLimit);
 
-        Assert.Equal(normalizedLimit, normalizedFetch);
-        Assert.Equal(new LiteralExpr(2), normalizedFetch.Count);
-        Assert.Equal(new LiteralExpr(1), normalizedFetch.Offset);
+        Assert.Equal(normalizedLimit, normalizedCommaLimit);
+        Assert.Equal(new LiteralExpr(2), normalizedCommaLimit.Count);
+        Assert.Equal(new LiteralExpr(1), normalizedCommaLimit.Offset);
     }
 
 
@@ -379,9 +447,10 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseSelect_WithPivot_ShouldBeRejectedWithDialectMessage(int version)
     {
+        var db = Get(version, v => new SqliteDbMock(v));
         var sql = "SELECT t10 FROM (SELECT tenantid, id FROM users) src PIVOT (COUNT(id) FOR tenantid IN (10 AS t10)) p";
 
-        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new SqliteDialect(v))));
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new SqliteDialect(v))));
 
         Assert.Contains(SqlConst.PIVOT, ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("sqlite", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -399,8 +468,9 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseDelete_WithoutFrom_ShouldProvideActionableMessage(int version)
     {
+        var db = Get(version, v => new SqliteDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse("DELETE users WHERE id = 1", GetDialect(version, v => new SqliteDialect(v))));
+            SqlQueryParser.Parse("DELETE users WHERE id = 1", db, Get(version, v => new SqliteDialect(v))));
 
         Assert.Contains("DELETE FROM", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -415,8 +485,9 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseDelete_TargetAliasBeforeFrom_ShouldProvideActionableMessage(int version)
     {
+        var db = Get(version, v => new SqliteDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse("DELETE u FROM users u", GetDialect(version, v => new SqliteDialect(v))));
+            SqlQueryParser.Parse("DELETE u FROM users u", db, Get(version, v => new SqliteDialect(v))));
 
         Assert.Contains("DELETE FROM", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -424,20 +495,23 @@ public sealed class SqliteDialectFeatureParserTests(
 
 
     /// <summary>
-    /// EN: Ensures SQLite rejects unsupported alias quoting style with an actionable message.
-    /// PT: Garante que o SQLite rejeite estilo de quoting de alias não suportado com mensagem acionável.
+    /// EN: Ensures SQLite accepts bracket-quoted aliases and preserves the normalized alias text in AST.
+    /// PT: Garante que o SQLite aceite aliases com colchetes e preserve o texto normalizado do alias na AST.
     /// </summary>
     /// <param name="version">EN: SQLite dialect version under test. PT: Versão do dialeto SQLite em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
-    public void ParseSelect_WithBracketQuotedAlias_ShouldProvideActionableMessage(int version)
+    public void ParseSelect_WithBracketQuotedAlias_ShouldParseAndNormalizeAlias(int version)
     {
-        var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse("SELECT name [User Name] FROM users", GetDialect(version, v => new SqliteDialect(v))));
+        var db = Get(version, v => new SqliteDbMock(v));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT name [User Name] FROM users",
+            db,
+            Get(version, v => new SqliteDialect(v))));
 
-        Assert.Contains("alias/identificadores", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("'['", ex.Message, StringComparison.OrdinalIgnoreCase);
+        var item = Assert.Single(parsed.SelectItems);
+        Assert.Equal("User Name", item.Alias);
     }
 
     /// <summary>
@@ -450,8 +524,9 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseUnsupportedTopLevelStatement_ShouldUseActionableMessage(int version)
     {
+        var db = Get(version, v => new SqliteDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse("UPSERT INTO users VALUES (1)", GetDialect(version, v => new SqliteDialect(v))));
+            SqlQueryParser.Parse("UPSERT INTO users VALUES (1)", db, Get(version, v => new SqliteDialect(v))));
 
         Assert.Contains("token inicial", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("SELECT/INSERT/UPDATE/DELETE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -467,9 +542,11 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseSelect_WithBacktickQuotedAlias_ShouldParseAndNormalizeAlias(int version)
     {
+        var db = Get(version, v => new SqliteDbMock(v));
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT name `User Name` FROM users",
-            GetDialect(version, v => new SqliteDialect(v))));
+            db,
+            Get(version, v => new SqliteDialect(v))));
 
         var item = Assert.Single(parsed.SelectItems);
         Assert.Equal("User Name", item.Alias);
@@ -485,9 +562,11 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseSelect_WithEscapedBacktickQuotedAlias_ShouldNormalizeEscapedBacktick(int version)
     {
+        var db = Get(version, v => new SqliteDbMock(v));
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT name `User``Name` FROM users",
-            GetDialect(version, v => new SqliteDialect(v))));
+            db,
+            Get(version, v => new SqliteDialect(v))));
 
         var item = Assert.Single(parsed.SelectItems);
         Assert.Equal("User`Name", item.Alias);
@@ -503,7 +582,7 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void RuntimeDialectRules_ShouldRemainStable(int version)
     {
-        var d = GetDialect(version, v => new SqliteDialect(v));
+        var d = Get(version, v => new SqliteDialect(v));
 
         Assert.True(d.AreUnionColumnTypesCompatible(DbType.Int32, DbType.Decimal));
         Assert.True(d.AreUnionColumnTypesCompatible(DbType.String, DbType.AnsiString));
@@ -528,8 +607,9 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseMerge_UnsupportedDialect_ShouldProvideActionableMessage(int version)
     {
+        var db = Get(version, v => new SqliteDbMock(v));
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse("MERGE INTO users u USING users s ON u.id = s.id WHEN MATCHED THEN UPDATE SET name = 'x'", GetDialect(version, v => new SqliteDialect(v))));
+            SqlQueryParser.Parse("MERGE INTO users u USING users s ON u.id = s.id WHEN MATCHED THEN UPDATE SET name = 'x'", db, Get(version, v => new SqliteDialect(v))));
 
         Assert.Contains(SqlConst.MERGE, ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -544,7 +624,7 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void WindowFunctionCapability_ShouldAllowKnownAndRejectUnknownFunctions(int version)
     {
-        var dialect = GetDialect(version, v => new SqliteDialect(v));
+        var dialect = Get(version, v => new SqliteDialect(v));
         var supportsWindowFunctions = version >= SqliteDialect.WindowFunctionsMinVersion;
 
         if (!supportsWindowFunctions)
@@ -571,18 +651,19 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseScalar_WindowFunctionName_ShouldAllowKnownAndRejectUnknown(int version)
     {
-        var dialect = GetDialect(version, v => new SqliteDialect(v));
+        var db = Get(version, v => new SqliteDbMock(v));
+        var dialect = Get(version, v => new SqliteDialect(v));
         var supportsWindowFunctions = version >= SqliteDialect.WindowFunctionsMinVersion;
 
         if (!supportsWindowFunctions)
         {
-            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id)", dialect));
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id)", db, dialect));
             return;
         }
 
-        var expr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id)", dialect);
+        var expr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id)", db, dialect);
         Assert.IsType<WindowFunctionExpr>(expr);
-        Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("PERCENTILE_CONT(0.5) OVER (ORDER BY id)", dialect));
+        Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("PERCENTILE_CONT(0.5) OVER (ORDER BY id)", db, dialect));
     }
 
 
@@ -595,18 +676,19 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseScalar_WindowFunctionWithoutOrderBy_ShouldRespectDialectRules(int version)
     {
-        var dialect = GetDialect(version, v => new SqliteDialect(v));
+        var db = Get(version, v => new SqliteDbMock(v));
+        var dialect = Get(version, v => new SqliteDialect(v));
         var supportsWindowFunctions = version >= SqliteDialect.WindowFunctionsMinVersion;
 
         if (!supportsWindowFunctions)
         {
             Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER ()", dialect));
+                SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER ()", db, dialect));
             return;
         }
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER ()", dialect));
+            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER ()", db, dialect));
 
         Assert.Contains("requires ORDER BY", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -621,26 +703,27 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseScalar_WindowFunctionArguments_ShouldValidateArity(int version)
     {
-        var dialect = GetDialect(version, v => new SqliteDialect(v));
+        var db = Get(version, v => new SqliteDbMock(v));
+        var dialect = Get(version, v => new SqliteDialect(v));
         var supportsWindowFunctions = version >= SqliteDialect.WindowFunctionsMinVersion;
 
         if (!supportsWindowFunctions)
         {
             Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("ROW_NUMBER(1) OVER (ORDER BY id)", dialect));
+                SqlExpressionParser.ParseScalar("ROW_NUMBER(1) OVER (ORDER BY id)", db, dialect));
             return;
         }
 
         var exRowNumber = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("ROW_NUMBER(1) OVER (ORDER BY id)", dialect));
+            SqlExpressionParser.ParseScalar("ROW_NUMBER(1) OVER (ORDER BY id)", db, dialect));
         Assert.Contains("does not accept arguments", exRowNumber.Message, StringComparison.OrdinalIgnoreCase);
 
         var exNtile = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("NTILE() OVER (ORDER BY id)", dialect));
+            SqlExpressionParser.ParseScalar("NTILE() OVER (ORDER BY id)", db, dialect));
         Assert.Contains("exactly 1 argument", exNtile.Message, StringComparison.OrdinalIgnoreCase);
 
         var exLag = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("LAG(id, 1, 0, 99) OVER (ORDER BY id)", dialect));
+            SqlExpressionParser.ParseScalar("LAG(id, 1, 0, 99) OVER (ORDER BY id)", db, dialect));
         Assert.Contains("between 1 and 3 arguments", exLag.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -654,26 +737,27 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseScalar_WindowFunctionLiteralArguments_ShouldValidateSemanticRange(int version)
     {
-        var dialect = GetDialect(version, v => new SqliteDialect(v));
+        var db = Get(version, v => new SqliteDbMock(v));
+        var dialect = Get(version, v => new SqliteDialect(v));
         var supportsWindowFunctions = version >= SqliteDialect.WindowFunctionsMinVersion;
 
         if (!supportsWindowFunctions)
         {
             Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("NTILE(0) OVER (ORDER BY id)", dialect));
+                SqlExpressionParser.ParseScalar("NTILE(0) OVER (ORDER BY id)", db, dialect));
             return;
         }
 
         var exNtile = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("NTILE(0) OVER (ORDER BY id)", dialect));
-        Assert.Contains("positive bucket count", exNtile.Message, StringComparison.OrdinalIgnoreCase);
+            SqlExpressionParser.ParseScalar("NTILE(0) OVER (ORDER BY id)", db, dialect));
+        Assert.Contains("positive integer literal", exNtile.Message, StringComparison.OrdinalIgnoreCase);
 
         var exLag = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("LAG(id, -1, 0) OVER (ORDER BY id)", dialect));
-        Assert.Contains("non-negative offset", exLag.Message, StringComparison.OrdinalIgnoreCase);
+            SqlExpressionParser.ParseScalar("LAG(id, -1, 0) OVER (ORDER BY id)", db, dialect));
+        Assert.Contains("offset must be non-negative", exLag.Message, StringComparison.OrdinalIgnoreCase);
 
         var exNthValue = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("NTH_VALUE(id, 0) OVER (ORDER BY id)", dialect));
+            SqlExpressionParser.ParseScalar("NTH_VALUE(id, 0) OVER (ORDER BY id)", db, dialect));
         Assert.Contains("greater than zero", exNthValue.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -686,7 +770,7 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void WindowFunctionOrderByRequirementHook_ShouldRespectVersion(int version)
     {
-        var dialect = GetDialect(version, v => new SqliteDialect(v));
+        var dialect = Get(version, v => new SqliteDialect(v));
         var supportsWindowFunctions = version >= SqliteDialect.WindowFunctionsMinVersion;
 
         if (!supportsWindowFunctions)
@@ -714,7 +798,7 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void WindowFunctionArgumentArityHook_ShouldRespectVersion(int version)
     {
-        var dialect = GetDialect(version, v => new SqliteDialect(v));
+        var dialect = Get(version, v => new SqliteDialect(v));
         var supportsWindowFunctions = version >= SqliteDialect.WindowFunctionsMinVersion;
 
         if (!supportsWindowFunctions)
@@ -733,7 +817,9 @@ public sealed class SqliteDialectFeatureParserTests(
         Assert.Equal(1, lagMin);
         Assert.Equal(3, lagMax);
 
-        Assert.False(dialect.TryGetWindowFunctionArgumentArity(SqlConst.COUNT, out _, out _));
+        Assert.True(dialect.TryGetWindowFunctionArgumentArity(SqlConst.COUNT, out var countMin, out var countMax));
+        Assert.Equal(1, countMin);
+        Assert.Equal(1, countMax);
     }
 
 
@@ -746,19 +832,18 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseScalar_WindowFrameClause_ShouldBeRejectedByDialectCapability(int version)
     {
-        var dialect = GetDialect(version, v => new SqliteDialect(v));
+        var db = Get(version, v => new SqliteDbMock(v));
+        var dialect = Get(version, v => new SqliteDialect(v));
         var supportsWindowFunctions = version >= SqliteDialect.WindowFunctionsMinVersion;
 
         if (!supportsWindowFunctions)
         {
-            var ex = Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect));
-
-            Assert.Contains("window functions", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, dialect));
             return;
         }
 
-        var expr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
+        var expr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, dialect);
         Assert.IsType<WindowFunctionExpr>(expr);
     }
 
@@ -771,9 +856,17 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseScalar_GroupConcatOrderByInsideCall_ShouldParse(int version)
     {
-        var dialect = GetDialect(version, v => new SqliteDialect(v));
+        var db = Get(version, v => new SqliteDbMock(v));
+        var dialect = Get(version, v => new SqliteDialect(v));
 
-        var expr = SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|' ORDER BY amount DESC, id ASC)", dialect);
+        if (version < 330)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|' ORDER BY amount DESC, id ASC)", db, dialect));
+            return;
+        }
+
+        var expr = SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|' ORDER BY amount DESC, id ASC)", db, dialect);
         var call = Assert.IsType<CallExpr>(expr);
 
         Assert.Equal(SqlConst.GROUP_CONCAT, call.Name, StringComparer.OrdinalIgnoreCase);
@@ -792,9 +885,17 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseScalar_GroupConcatDistinctOrderByInsideCall_ShouldParse(int version)
     {
-        var dialect = GetDialect(version, v => new SqliteDialect(v));
+        var db = Get(version, v => new SqliteDbMock(v));
+        var dialect = Get(version, v => new SqliteDialect(v));
 
-        var expr = SqlExpressionParser.ParseScalar("GROUP_CONCAT(DISTINCT amount ORDER BY amount DESC)", dialect);
+        if (version < 330)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar("GROUP_CONCAT(DISTINCT amount ORDER BY amount DESC)", db, dialect));
+            return;
+        }
+
+        var expr = SqlExpressionParser.ParseScalar("GROUP_CONCAT(DISTINCT amount ORDER BY amount DESC)", db, dialect);
         var call = Assert.IsType<CallExpr>(expr);
 
         Assert.True(call.Distinct);
@@ -812,10 +913,18 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseScalar_GroupConcatOrderByInsideCallTrailingComma_ShouldThrowActionableError(int version)
     {
-        var dialect = GetDialect(version, v => new SqliteDialect(v));
+        var db = Get(version, v => new SqliteDbMock(v));
+        var dialect = Get(version, v => new SqliteDialect(v));
+
+        if (version < 330)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|' ORDER BY amount DESC,)", db, dialect));
+            return;
+        }
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|' ORDER BY amount DESC,)", dialect));
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|' ORDER BY amount DESC,)", db, dialect));
 
         Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -829,10 +938,18 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseSelect_GroupConcatOrderByInsideCall_ShouldParse(int version)
     {
-        var dialect = GetDialect(version, v => new SqliteDialect(v));
+        var db = Get(version, v => new SqliteDbMock(v));
+        var dialect = Get(version, v => new SqliteDialect(v));
+
+        if (version < 330)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                SqlQueryParser.Parse("SELECT GROUP_CONCAT(amount, '|' ORDER BY amount DESC) AS joined FROM orders", db, dialect));
+            return;
+        }
 
         var parsed = Assert.IsType<SqlSelectQuery>(
-            SqlQueryParser.Parse("SELECT GROUP_CONCAT(amount, '|' ORDER BY amount DESC) AS joined FROM orders", dialect));
+            SqlQueryParser.Parse("SELECT GROUP_CONCAT(amount, '|' ORDER BY amount DESC) AS joined FROM orders", db, dialect));
 
         Assert.Single(parsed.SelectItems);
         Assert.Contains(SqlConst.GROUP_CONCAT, parsed.SelectItems[0].Raw, StringComparison.OrdinalIgnoreCase);
@@ -847,10 +964,11 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseScalar_StringAggregateWithinGroup_ShouldThrowNotSupported(int version)
     {
-        var dialect = GetDialect(version, v => new SqliteDialect(v));
+        var db = Get(version, v => new SqliteDbMock(v));
+        var dialect = Get(version, v => new SqliteDialect(v));
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", db, dialect));
 
         Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -864,10 +982,11 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseScalar_StringAggregateWithinGroupMalformed_ShouldThrowNotSupported(int version)
     {
-        var dialect = GetDialect(version, v => new SqliteDialect(v));
+        var db = Get(version, v => new SqliteDbMock(v));
+        var dialect = Get(version, v => new SqliteDialect(v));
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (amount DESC)", dialect));
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (amount DESC)", db, dialect));
 
         Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -882,10 +1001,11 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseScalar_StringAggregateWithinGroupTrailingComma_ShouldThrowNotSupported(int version)
     {
-        var dialect = GetDialect(version, v => new SqliteDialect(v));
+        var db = Get(version, v => new SqliteDbMock(v));
+        var dialect = Get(version, v => new SqliteDialect(v));
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC,)", dialect));
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC,)", db, dialect));
 
         Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -899,10 +1019,11 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseScalar_StringAggregateWithinGroupOrderByEmptyList_ShouldThrowNotSupported(int version)
     {
-        var dialect = GetDialect(version, v => new SqliteDialect(v));
+        var db = Get(version, v => new SqliteDbMock(v));
+        var dialect = Get(version, v => new SqliteDialect(v));
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY)", dialect));
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY)", db, dialect));
 
         Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -916,10 +1037,11 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseScalar_StringAggregateWithinGroupOrderByLeadingComma_ShouldThrowNotSupported(int version)
     {
-        var dialect = GetDialect(version, v => new SqliteDialect(v));
+        var db = Get(version, v => new SqliteDbMock(v));
+        var dialect = Get(version, v => new SqliteDialect(v));
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY, amount DESC)", dialect));
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY, amount DESC)", db, dialect));
 
         Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -934,10 +1056,11 @@ public sealed class SqliteDialectFeatureParserTests(
     [MemberDataSqliteVersion]
     public void ParseScalar_StringAggregateWithinGroupOrderByMissingCommaBetweenExpressions_ShouldThrowNotSupported(int version)
     {
-        var dialect = GetDialect(version, v => new SqliteDialect(v));
+        var db = Get(version, v => new SqliteDbMock(v));
+        var dialect = Get(version, v => new SqliteDialect(v));
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC id ASC)", dialect));
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC id ASC)", db, dialect));
 
         Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
     }

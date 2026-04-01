@@ -9,9 +9,6 @@ internal static class SqlProcedureParserHelper
         if (!ctx.Dialect.SupportsDb2ProcedureDdl)
             throw ctx.NotSupported("CREATE PROCEDURE");
 
-        if (orReplace)
-            throw new InvalidOperationException("CREATE OR REPLACE is not supported for PROCEDURE statements in the mock.");
-
         if (!ctx.IsWord(SqlConst.PROCEDURE))
             throw new InvalidOperationException("CREATE PROCEDURE requires PROCEDURE keyword.");
 

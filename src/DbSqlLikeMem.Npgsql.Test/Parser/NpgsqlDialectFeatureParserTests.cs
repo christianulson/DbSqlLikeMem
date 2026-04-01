@@ -18,9 +18,11 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseAlterTableAddBinaryColumn_ShouldPreserveSize(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
             "ALTER TABLE public.users ADD payload VARBINARY(16) NULL",
-            GetDialect(version, v => new NpgsqlDialect(v))));
+            db, d));
 
         Assert.Equal(DbType.Binary, parsed.ColumnType);
         Assert.Equal(16, parsed.Size);
@@ -37,9 +39,11 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseAlterTableAddDecimalColumn_ShouldPreservePrecisionAndScale(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
             "ALTER TABLE public.users ADD amount DECIMAL(10, 4) NOT NULL DEFAULT 0",
-            GetDialect(version, v => new NpgsqlDialect(v))));
+            db, d));
 
         Assert.Equal(DbType.Decimal, parsed.ColumnType);
         Assert.Equal(10, parsed.Size);
@@ -58,9 +62,11 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseAlterTableAddColumn_NotNullWithDefaultNull_ShouldReject(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "ALTER TABLE public.users ADD status VARCHAR(20) NOT NULL DEFAULT NULL",
-            GetDialect(version, v => new NpgsqlDialect(v))));
+            db, d));
 
         Assert.Contains("default null", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -75,9 +81,11 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseAlterTableAddColumn_WithTableAlias_ShouldReject(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "ALTER TABLE public.users u ADD age INT",
-            GetDialect(version, v => new NpgsqlDialect(v))));
+            db, d));
 
         Assert.Contains("alias", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -92,9 +100,11 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseAlterTableAddColumn_WithDerivedTable_ShouldReject(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "ALTER TABLE (SELECT * FROM public.users) u ADD age INT",
-            GetDialect(version, v => new NpgsqlDialect(v))));
+            db, d));
 
         Assert.Contains("concrete table name", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -109,11 +119,12 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseScalarFunctionDdlSubset_ShouldParse(int version)
     {
-        var dialect = GetDialect(version, v => new NpgsqlDialect(v));
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
 
         var create = Assert.IsType<SqlCreateFunctionQuery>(SqlQueryParser.Parse(
             "CREATE FUNCTION fn_users(base_value integer, increment_value integer) RETURNS integer AS 'SELECT base_value + increment_value' LANGUAGE SQL",
-            dialect));
+            db, d));
 
         Assert.Equal("fn_users", create.Table?.Name, ignoreCase: true);
         Assert.Equal("integer", create.Definition.ReturnTypeSql, ignoreCase: true);
@@ -124,7 +135,7 @@ public sealed class NpgsqlDialectFeatureParserTests(
 
         var drop = Assert.IsType<SqlDropFunctionQuery>(SqlQueryParser.Parse(
             "DROP FUNCTION IF EXISTS fn_users(integer, integer)",
-            dialect));
+            db, d));
 
         Assert.True(drop.IfExists);
         Assert.Equal("fn_users", drop.Table?.Name, ignoreCase: true);
@@ -140,10 +151,11 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseCreateOrReplaceScalarFunctionDdlSubset_ShouldParse(int version)
     {
-        var dialect = GetDialect(version, v => new NpgsqlDialect(v));
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var create = Assert.IsType<SqlCreateFunctionQuery>(SqlQueryParser.Parse(
             "CREATE OR REPLACE FUNCTION fn_users(base_value integer, increment_value integer) RETURNS integer AS 'SELECT base_value + increment_value + 1' LANGUAGE SQL",
-            dialect));
+            db, d));
         Assert.True(create.OrReplace);
         Assert.Equal("fn_users", create.Table?.Name, ignoreCase: true);
         Assert.Equal(2, create.Definition.Parameters.Count);
@@ -160,7 +172,9 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseScalar_Ilike_ShouldParse(int version)
     {
-        var expr = SqlExpressionParser.ParseScalar("name ILIKE 'jo%'", GetDialect(version, v => new NpgsqlDialect(v)));
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
+        var expr = SqlExpressionParser.ParseScalar("name ILIKE 'jo%'", db, d);
         var like = Assert.IsType<LikeExpr>(expr);
 
         Assert.True(like.CaseInsensitive);
@@ -176,12 +190,13 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseScalar_SequenceFunctionCalls_ShouldParse(int version)
     {
-        var dialect = GetDialect(version, v => new NpgsqlDialect(v));
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
 
-        Assert.Equal(SqlConst.NEXTVAL, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("nextval('sales.seq_orders')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal(SqlConst.CURRVAL, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("currval('sales.seq_orders')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal(SqlConst.SETVAL, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("setval('sales.seq_orders', 30, false)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal(SqlConst.LASTVAL, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("lastval()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.NEXTVAL, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("nextval('sales.seq_orders')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.CURRVAL, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("currval('sales.seq_orders')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.SETVAL, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("setval('sales.seq_orders', 30, false)", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.LASTVAL, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("lastval()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -194,7 +209,7 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void LastFoundRowsCapability_ShouldExposePostgreSqlFunction(int version)
     {
-        var dialect = GetDialect(version, v => new NpgsqlDialect(v));
+        var dialect = Get(version, v => new NpgsqlDialect(v));
 
         Assert.True(dialect.SupportsLastFoundRowsFunction("ROW_COUNT"));
         Assert.False(dialect.SupportsLastFoundRowsFunction("FOUND_ROWS"));
@@ -211,7 +226,7 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void MutationCapabilities_ShouldExposePostgreSqlContract(int version)
     {
-        var dialect = GetDialect(version, v => new NpgsqlDialect(v));
+        var dialect = Get(version, v => new NpgsqlDialect(v));
 
         Assert.False(dialect.SupportsUpdateJoinFromSubquerySyntax);
         Assert.True(dialect.SupportsUpdateFromJoinSubquerySyntax);
@@ -231,8 +246,10 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseSelect_SqlCalcFoundRows_ShouldRespectDialectRule(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse("SELECT SQL_CALC_FOUND_ROWS name FROM users LIMIT 1", GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse("SELECT SQL_CALC_FOUND_ROWS name FROM users LIMIT 1", db, d));
 
         Assert.Contains(SqlConst.SQL_CALC_FOUND_ROWS, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -247,11 +264,12 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseScalar_LastFoundRowsFunctions_ShouldFollowDialectCapability(int version)
     {
-        var dialect = GetDialect(version, v => new NpgsqlDialect(v));
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
 
-        Assert.Equal("ROW_COUNT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROW_COUNT()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ROW_COUNT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROW_COUNT()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
 
-        var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("FOUND_ROWS()", dialect));
+        var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("FOUND_ROWS()", db, d));
         Assert.Contains("FOUND_ROWS", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -265,9 +283,11 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_DoNothing_ShouldParse(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING";
 
-        var parsed = SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v)));
+        var parsed = SqlQueryParser.Parse(sql, db, d);
 
         var ins = Assert.IsType<SqlInsertQuery>(parsed);
         Assert.True(ins.HasOnDuplicateKeyUpdate);
@@ -284,9 +304,11 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_DoNothingWithReturning_ShouldParse(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING id";
 
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, d));
 
         Assert.True(parsed.HasOnDuplicateKeyUpdate);
         Assert.True(parsed.IsOnConflictDoNothing);
@@ -304,9 +326,11 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_DoUpdateWithReturning_ShouldParse(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING id";
 
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, d));
 
         Assert.True(parsed.HasOnDuplicateKeyUpdate);
         Assert.False(parsed.IsOnConflictDoNothing);
@@ -324,10 +348,12 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_DoUpdateWithUnbalancedReturningExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING (id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unbalanced parentheses", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -341,10 +367,12 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_DoNothingWithInvalidReturningExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING id +";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING expression is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -358,10 +386,12 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_DoNothingWithUnbalancedReturningExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING (id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unbalanced parentheses", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -375,10 +405,12 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_DoNothingWithEmptyReturningList_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING;";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -393,121 +425,114 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnDuplicateKeyUpdate_ShouldProvideNpgsqlGuidance(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name)";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        AssertOnDuplicateKeyUpdateNotSupported(() => SqlQueryParser.Parse(sql, db, d));
+    }
 
+    private static NotSupportedException AssertOnDuplicateKeyUpdateNotSupported(Action parse)
+    {
+        var ex = Assert.Throws<NotSupportedException>(parse);
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        return ex;
     }
 
     /// <summary>
-    /// EN: Ensures ON DUPLICATE KEY UPDATE with RETURNING still provides Npgsql guidance to use ON CONFLICT.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE com RETURNING continue fornecendo guidance no Npgsql para uso de ON CONFLICT.
+    /// EN: Ensures ON DUPLICATE KEY UPDATE with RETURNING is rejected as unsupported by the Npgsql dialect.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE com RETURNING seja rejeitado como nao suportado pelo dialeto Npgsql.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnDuplicateKeyUpdateWithReturningClause_ShouldProvideNpgsqlGuidance(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
-
-        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        AssertOnDuplicateKeyUpdateNotSupported(() => SqlQueryParser.Parse(sql, db, d));
     }
 
     /// <summary>
-    /// EN: Ensures ON DUPLICATE KEY UPDATE with malformed RETURNING expression still provides Npgsql guidance to use ON CONFLICT.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE com expressão malformada em RETURNING continue fornecendo guidance no Npgsql para uso de ON CONFLICT.
+    /// EN: Ensures ON DUPLICATE KEY UPDATE with malformed RETURNING expression is rejected as unsupported by the Npgsql dialect.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE com expressão malformada em RETURNING seja rejeitado como nao suportado pelo dialeto Npgsql.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnDuplicateKeyUpdateWithInvalidReturningExpression_ShouldProvideNpgsqlGuidance(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING id +";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
-
-        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        AssertOnDuplicateKeyUpdateNotSupported(() => SqlQueryParser.Parse(sql, db, d));
     }
 
     /// <summary>
-    /// EN: Ensures ON DUPLICATE KEY UPDATE with empty RETURNING list still provides Npgsql guidance to use ON CONFLICT.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE com lista vazia em RETURNING continue fornecendo guidance no Npgsql para uso de ON CONFLICT.
+    /// EN: Ensures ON DUPLICATE KEY UPDATE with empty RETURNING list is rejected as unsupported by the Npgsql dialect.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE com lista vazia em RETURNING seja rejeitado como nao suportado pelo dialeto Npgsql.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnDuplicateKeyUpdateWithEmptyReturningList_ShouldProvideNpgsqlGuidance(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING;";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
-
-        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        AssertOnDuplicateKeyUpdateNotSupported(() => SqlQueryParser.Parse(sql, db, d));
     }
 
     /// <summary>
-    /// EN: Ensures ON DUPLICATE KEY UPDATE with unbalanced parentheses in RETURNING still provides Npgsql guidance to use ON CONFLICT.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE com parênteses desbalanceados em RETURNING continue fornecendo guidance no Npgsql para uso de ON CONFLICT.
+    /// EN: Ensures ON DUPLICATE KEY UPDATE with unbalanced parentheses in RETURNING is rejected as unsupported by the Npgsql dialect.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE com parênteses desbalanceados em RETURNING seja rejeitado como nao suportado pelo dialeto Npgsql.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnDuplicateKeyUpdateWithUnbalancedReturningExpression_ShouldProvideNpgsqlGuidance(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING (id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
-
-        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        AssertOnDuplicateKeyUpdateNotSupported(() => SqlQueryParser.Parse(sql, db, d));
     }
 
     /// <summary>
-    /// EN: Ensures ON DUPLICATE KEY UPDATE with leading comma in RETURNING still provides Npgsql guidance to use ON CONFLICT.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE com vírgula inicial em RETURNING continue fornecendo guidance no Npgsql para uso de ON CONFLICT.
+    /// EN: Ensures ON DUPLICATE KEY UPDATE with leading comma in RETURNING is rejected as unsupported by the Npgsql dialect.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE com vírgula inicial em RETURNING seja rejeitado como nao suportado pelo dialeto Npgsql.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnDuplicateKeyUpdateWithLeadingCommaReturning_ShouldProvideNpgsqlGuidance(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING, id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
-
-        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        AssertOnDuplicateKeyUpdateNotSupported(() => SqlQueryParser.Parse(sql, db, d));
     }
 
     /// <summary>
-    /// EN: Ensures ON DUPLICATE KEY UPDATE with trailing comma in RETURNING still provides Npgsql guidance to use ON CONFLICT.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE com vírgula final em RETURNING continue fornecendo guidance no Npgsql para uso de ON CONFLICT.
+    /// EN: Ensures ON DUPLICATE KEY UPDATE with trailing comma in RETURNING is rejected as unsupported by the Npgsql dialect.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE com vírgula final em RETURNING seja rejeitado como nao suportado pelo dialeto Npgsql.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnDuplicateKeyUpdateWithTrailingCommaReturning_ShouldProvideNpgsqlGuidance(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING id,";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
-
-        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        AssertOnDuplicateKeyUpdateNotSupported(() => SqlQueryParser.Parse(sql, db, d));
     }
 
     /// <summary>
@@ -519,13 +544,11 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnDuplicateKeyUpdateWithWhereClause_ShouldProvideNpgsqlGuidance(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) WHERE id = 1";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
-
-        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        AssertOnDuplicateKeyUpdateNotSupported(() => SqlQueryParser.Parse(sql, db, d));
     }
 
     /// <summary>
@@ -537,13 +560,11 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnDuplicateKeyUpdateWithoutAssignmentsWithWhereClause_ShouldProvideNpgsqlGuidance(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE WHERE id = 1";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
-
-        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        AssertOnDuplicateKeyUpdateNotSupported(() => SqlQueryParser.Parse(sql, db, d));
     }
 
     /// <summary>
@@ -555,13 +576,11 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnDuplicateKeyUpdateWithoutAssignmentsWithReturningClause_ShouldProvideNpgsqlGuidance(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE RETURNING id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
-
-        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        AssertOnDuplicateKeyUpdateNotSupported(() => SqlQueryParser.Parse(sql, db, d));
     }
 
     /// <summary>
@@ -573,13 +592,11 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnDuplicateKeyUpdateWithoutAssignmentsWithEmptyReturningList_ShouldProvideNpgsqlGuidance(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE RETURNING;";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
-
-        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        AssertOnDuplicateKeyUpdateNotSupported(() => SqlQueryParser.Parse(sql, db, d));
     }
 
     /// <summary>
@@ -591,13 +608,11 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnDuplicateKeyUpdateWithoutAssignmentsWithUnbalancedReturningExpression_ShouldProvideNpgsqlGuidance(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE RETURNING (id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
-
-        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        AssertOnDuplicateKeyUpdateNotSupported(() => SqlQueryParser.Parse(sql, db, d));
     }
 
     /// <summary>
@@ -609,13 +624,11 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnDuplicateKeyUpdateWithoutAssignmentsWithFromClause_ShouldProvideNpgsqlGuidance(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE FROM users";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
-
-        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        AssertOnDuplicateKeyUpdateNotSupported(() => SqlQueryParser.Parse(sql, db, d));
     }
 
     /// <summary>
@@ -627,13 +640,11 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnDuplicateKeyUpdateWithoutAssignmentsWithUsingClause_ShouldProvideNpgsqlGuidance(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE USING users";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
-
-        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        AssertOnDuplicateKeyUpdateNotSupported(() => SqlQueryParser.Parse(sql, db, d));
     }
 
     /// <summary>
@@ -645,13 +656,11 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnDuplicateKeyUpdateWithUsingClause_ShouldProvideNpgsqlGuidance(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) USING users";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
-
-        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        AssertOnDuplicateKeyUpdateNotSupported(() => SqlQueryParser.Parse(sql, db, d));
     }
 
     /// <summary>
@@ -663,13 +672,11 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnDuplicateKeyUpdateWithRepeatedSetKeyword_ShouldProvideNpgsqlGuidance(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE SET name = VALUES(name)";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
-
-        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        AssertOnDuplicateKeyUpdateNotSupported(() => SqlQueryParser.Parse(sql, db, d));
     }
 
     /// <summary>
@@ -681,13 +688,11 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnDuplicateKeyUpdateAssignmentWithoutEquals_ShouldProvideNpgsqlGuidance(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name VALUES(name)";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
-
-        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        AssertOnDuplicateKeyUpdateNotSupported(() => SqlQueryParser.Parse(sql, db, d));
     }
 
     /// <summary>
@@ -699,8 +704,10 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseDropIndex_WithOnTableClause_ShouldBeRejectedByDialectGate(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse("DROP INDEX ix_users_name ON public.users", GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse("DROP INDEX ix_users_name ON public.users", db, d));
 
         Assert.Contains("DROP INDEX", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("ON <table>", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -716,9 +723,11 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion(VersionGraterOrEqual = 12)]
     public void ParseWithCte_AsMaterialized_ShouldParse(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = "WITH x AS MATERIALIZED (SELECT 1 AS id) SELECT id FROM x";
 
-        var parsed = SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v)));
+        var parsed = SqlQueryParser.Parse(sql, db, d);
 
         Assert.IsType<SqlSelectQuery>(parsed);
     }
@@ -733,10 +742,12 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion(VersionLowerThan = 12)]
     public void ParseWithCte_AsMaterialized_BeforeMinVersion_ShouldThrowNotSupported(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = "WITH x AS MATERIALIZED (SELECT 1 AS id) SELECT id FROM x";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("WITH ... AS MATERIALIZED", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -751,12 +762,14 @@ public sealed class NpgsqlDialectFeatureParserTests(
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_DoUpdate_ShouldParse(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey
 DO UPDATE SET name = EXCLUDED.name";
 
-        var parsed = SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v)));
+        var parsed = SqlQueryParser.Parse(sql, db, d);
 
         var ins = Assert.IsType<SqlInsertQuery>(parsed);
         Assert.True(ins.HasOnDuplicateKeyUpdate);
@@ -775,13 +788,15 @@ DO UPDATE SET name = EXCLUDED.name";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_DoUpdateWithFromClause_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey
 DO UPDATE SET name = EXCLUDED.name FROM users";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'FROM'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -796,13 +811,15 @@ DO UPDATE SET name = EXCLUDED.name FROM users";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_DoUpdateWithUsingClause_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey
 DO UPDATE SET name = EXCLUDED.name USING users";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'USING'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -817,13 +834,15 @@ DO UPDATE SET name = EXCLUDED.name USING users";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_DoUpdateSetFromWithoutAssignments_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey
 DO UPDATE SET FROM users";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'FROM'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -838,13 +857,15 @@ DO UPDATE SET FROM users";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_DoUpdateSetUsingWithoutAssignments_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey
 DO UPDATE SET USING users";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'USING'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -859,13 +880,15 @@ DO UPDATE SET USING users";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_DoUpdateWithReturning_ShouldParse(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey
 DO UPDATE SET name = EXCLUDED.name
 RETURNING id";
 
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, d));
 
         Assert.True(parsed.HasOnDuplicateKeyUpdate);
         Assert.False(parsed.IsOnConflictDoNothing);
@@ -885,6 +908,8 @@ RETURNING id";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_DoUpdateWithInvalidReturningExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey
@@ -892,7 +917,7 @@ DO UPDATE SET name = EXCLUDED.name
 RETURNING id +";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING expression is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -906,6 +931,8 @@ RETURNING id +";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_DoUpdateWithUnbalancedReturningExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey
@@ -913,7 +940,7 @@ DO UPDATE SET name = EXCLUDED.name
 RETURNING (id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unbalanced parentheses", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -927,6 +954,8 @@ RETURNING (id";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_DoUpdateWithEmptyReturningList_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey
@@ -934,7 +963,7 @@ DO UPDATE SET name = EXCLUDED.name
 RETURNING;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -949,13 +978,15 @@ RETURNING;";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_DoNothingWithReturning_ShouldParse(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey
 DO NOTHING
 RETURNING id";
 
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, d));
 
         Assert.True(parsed.HasOnDuplicateKeyUpdate);
         Assert.True(parsed.IsOnConflictDoNothing);
@@ -973,6 +1004,8 @@ RETURNING id";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_DoNothingWithInvalidReturningExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey
@@ -980,7 +1013,7 @@ DO NOTHING
 RETURNING id +";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING expression is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -994,6 +1027,8 @@ RETURNING id +";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_DoNothingWithUnbalancedReturningExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey
@@ -1001,7 +1036,7 @@ DO NOTHING
 RETURNING (id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unbalanced parentheses", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1015,6 +1050,8 @@ RETURNING (id";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_DoNothingWithEmptyReturningList_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey
@@ -1022,7 +1059,7 @@ DO NOTHING
 RETURNING;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1037,12 +1074,14 @@ RETURNING;";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_TargetWhere_DoNothing_ShouldParse(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
 DO NOTHING";
 
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, d));
 
         Assert.True(parsed.HasOnDuplicateKeyUpdate);
         Assert.True(parsed.IsOnConflictDoNothing);
@@ -1059,13 +1098,15 @@ DO NOTHING";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_TargetWhere_DoNothingWithReturning_ShouldParse(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
 DO NOTHING
 RETURNING id";
 
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, d));
 
         Assert.True(parsed.HasOnDuplicateKeyUpdate);
         Assert.True(parsed.IsOnConflictDoNothing);
@@ -1083,6 +1124,8 @@ RETURNING id";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_TargetWhere_DoNothingWithInvalidReturningExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
@@ -1090,7 +1133,7 @@ DO NOTHING
 RETURNING id +";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING expression is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1104,6 +1147,8 @@ RETURNING id +";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_TargetWhere_DoNothingWithUnbalancedReturningExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
@@ -1111,7 +1156,7 @@ DO NOTHING
 RETURNING (id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unbalanced parentheses", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1125,6 +1170,8 @@ RETURNING (id";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_TargetWhere_DoNothingWithEmptyReturningList_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
@@ -1132,7 +1179,7 @@ DO NOTHING
 RETURNING;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1147,6 +1194,8 @@ RETURNING;";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_DoNothingWithFromClause_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey
@@ -1154,7 +1203,7 @@ DO NOTHING
 FROM users";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'FROM'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1169,6 +1218,8 @@ FROM users";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_DoNothingWithUsingClause_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey
@@ -1176,7 +1227,7 @@ DO NOTHING
 USING users";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'USING'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1191,6 +1242,8 @@ USING users";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_DoNothingWithSetClause_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey
@@ -1198,7 +1251,7 @@ DO NOTHING
 SET name = 'b'";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'SET'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1213,6 +1266,8 @@ SET name = 'b'";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_DoNothingWithUpdateClause_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey
@@ -1220,7 +1275,7 @@ DO NOTHING
 UPDATE SET name = 'b'";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'UPDATE'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1235,6 +1290,8 @@ UPDATE SET name = 'b'";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_DoNothingWithWhereClause_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey
@@ -1242,7 +1299,7 @@ DO NOTHING
 WHERE id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'WHERE'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1257,6 +1314,8 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_DoNothingWithUnexpectedContinuationToken_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey
@@ -1264,7 +1323,7 @@ DO NOTHING
 EXTRA";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'EXTRA'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1279,6 +1338,8 @@ EXTRA";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_TargetWhere_UpdateWhere_Returning_ShouldParse(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
@@ -1286,7 +1347,7 @@ DO UPDATE SET name = EXCLUDED.name
 WHERE users.id = EXCLUDED.id
 RETURNING id";
 
-        var parsed = SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v)));
+        var parsed = SqlQueryParser.Parse(sql, db, d);
 
         var ins = Assert.IsType<SqlInsertQuery>(parsed);
         Assert.True(ins.HasOnDuplicateKeyUpdate);
@@ -1308,6 +1369,8 @@ RETURNING id";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_TargetWhere_UpdateWhere_InvalidReturningExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
@@ -1316,7 +1379,7 @@ WHERE users.id = EXCLUDED.id
 RETURNING id +";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING expression is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1330,6 +1393,8 @@ RETURNING id +";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_TargetWhere_UpdateWhere_UnbalancedReturningExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
@@ -1338,7 +1403,7 @@ WHERE users.id = EXCLUDED.id
 RETURNING (id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unbalanced parentheses", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1352,6 +1417,8 @@ RETURNING (id";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_TargetWhere_UpdateWhere_EmptyReturningList_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
@@ -1360,7 +1427,7 @@ WHERE users.id = EXCLUDED.id
 RETURNING;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1375,13 +1442,15 @@ RETURNING;";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_TargetWhere_UpdateWhere_WithoutReturning_ShouldParse(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
 DO UPDATE SET name = EXCLUDED.name
 WHERE users.id = EXCLUDED.id";
 
-        var parsed = SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v)));
+        var parsed = SqlQueryParser.Parse(sql, db, d);
 
         var ins = Assert.IsType<SqlInsertQuery>(parsed);
         Assert.True(ins.HasOnDuplicateKeyUpdate);
@@ -1403,6 +1472,8 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_TargetWhere_UpdateWhere_Returning_ShouldParse(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT (id) WHERE id > 0
@@ -1410,7 +1481,7 @@ DO UPDATE SET name = EXCLUDED.name
 WHERE users.id = EXCLUDED.id
 RETURNING id";
 
-        var parsed = SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v)));
+        var parsed = SqlQueryParser.Parse(sql, db, d);
 
         var ins = Assert.IsType<SqlInsertQuery>(parsed);
         Assert.True(ins.HasOnDuplicateKeyUpdate);
@@ -1433,6 +1504,8 @@ RETURNING id";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_TargetWhere_UpdateWhere_InvalidReturningExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT (id) WHERE id > 0
@@ -1441,7 +1514,7 @@ WHERE users.id = EXCLUDED.id
 RETURNING id +";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING expression is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1455,6 +1528,8 @@ RETURNING id +";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_TargetWhere_UpdateWhere_UnbalancedReturningExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT (id) WHERE id > 0
@@ -1463,7 +1538,7 @@ WHERE users.id = EXCLUDED.id
 RETURNING (id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unbalanced parentheses", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1478,6 +1553,8 @@ RETURNING (id";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_TargetWhere_UpdateWhere_EmptyReturningList_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT (id) WHERE id > 0
@@ -1486,7 +1563,7 @@ WHERE users.id = EXCLUDED.id
 RETURNING;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1502,13 +1579,15 @@ RETURNING;";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_TargetWhere_UpdateWhere_WithoutReturning_ShouldParse(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT (id) WHERE id > 0
 DO UPDATE SET name = EXCLUDED.name
 WHERE users.id = EXCLUDED.id";
 
-        var parsed = SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v)));
+        var parsed = SqlQueryParser.Parse(sql, db, d);
 
         var ins = Assert.IsType<SqlInsertQuery>(parsed);
         Assert.True(ins.HasOnDuplicateKeyUpdate);
@@ -1529,12 +1608,14 @@ WHERE users.id = EXCLUDED.id";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_TargetWhere_DoNothing_ShouldParse(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT (id) WHERE id > 0
 DO NOTHING";
 
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, d));
 
         Assert.True(parsed.HasOnDuplicateKeyUpdate);
         Assert.True(parsed.IsOnConflictDoNothing);
@@ -1551,13 +1632,15 @@ DO NOTHING";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_TargetWhere_DoNothingWithReturning_ShouldParse(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT (id) WHERE id > 0
 DO NOTHING
 RETURNING id";
 
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, d));
 
         Assert.True(parsed.HasOnDuplicateKeyUpdate);
         Assert.True(parsed.IsOnConflictDoNothing);
@@ -1575,6 +1658,8 @@ RETURNING id";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_TargetWhere_DoNothingWithInvalidReturningExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT (id) WHERE id > 0
@@ -1582,7 +1667,7 @@ DO NOTHING
 RETURNING id +";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING expression is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1596,6 +1681,8 @@ RETURNING id +";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_TargetWhere_DoNothingWithUnbalancedReturningExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT (id) WHERE id > 0
@@ -1603,7 +1690,7 @@ DO NOTHING
 RETURNING (id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unbalanced parentheses", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1617,6 +1704,8 @@ RETURNING (id";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_TargetWhere_DoNothingWithEmptyReturningList_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT (id) WHERE id > 0
@@ -1624,7 +1713,7 @@ DO NOTHING
 RETURNING;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1639,6 +1728,8 @@ RETURNING;";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_TargetWhere_DoNothingWithUnexpectedContinuationToken_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT (id) WHERE id > 0
@@ -1646,7 +1737,7 @@ DO NOTHING
 EXTRA";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'EXTRA'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1661,6 +1752,8 @@ EXTRA";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_TargetWhere_DoNothingWithFromClause_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT (id) WHERE id > 0
@@ -1668,7 +1761,7 @@ DO NOTHING
 FROM users";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'FROM'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1683,6 +1776,8 @@ FROM users";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_TargetWhere_DoNothingWithUsingClause_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT (id) WHERE id > 0
@@ -1690,7 +1785,7 @@ DO NOTHING
 USING users";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'USING'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1705,6 +1800,8 @@ USING users";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_TargetWhere_DoNothingWithSetClause_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT (id) WHERE id > 0
@@ -1712,7 +1809,7 @@ DO NOTHING
 SET name = 'b'";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'SET'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1727,6 +1824,8 @@ SET name = 'b'";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_TargetWhere_DoNothingWithUpdateClause_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT (id) WHERE id > 0
@@ -1734,7 +1833,7 @@ DO NOTHING
 UPDATE SET name = 'b'";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'UPDATE'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1749,6 +1848,8 @@ UPDATE SET name = 'b'";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_TargetWhere_DoNothingWithWhereClause_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT (id) WHERE id > 0
@@ -1756,7 +1857,7 @@ DO NOTHING
 WHERE id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'WHERE'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1771,10 +1872,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_EmptyTarget_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT () DO NOTHING";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ')'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1789,10 +1892,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_TargetLeadingComma_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (, id) DO NOTHING";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ','", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1807,10 +1912,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_TargetTrailingComma_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id,) DO NOTHING";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ')'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1826,10 +1933,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_TargetUnclosedBeforeSemicolon_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("not closed correctly", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1845,10 +1954,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_DoUpdateSetEmptyAssignments_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1863,10 +1974,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_DoUpdateSetWithoutAssignmentsBeforeReturning_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'RETURNING'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1881,10 +1994,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_DoUpdateSetLeadingComma_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET , name = EXCLUDED.name";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ','", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1899,10 +2014,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_DoUpdateSetTrailingComma_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name,";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1917,10 +2034,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_DoUpdateSetAssignmentWithoutExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = WHERE id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires an expression", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1935,10 +2054,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_DoUpdateSetMissingCommaBetweenAssignments_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name updated_at = NOW()";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("separate assignments with commas", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1952,9 +2073,11 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_DoUpdateSetWithSemicolonBoundary_ShouldParse(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;";
 
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, d));
 
         Assert.True(parsed.HasOnDuplicateKeyUpdate);
         Assert.Single(parsed.OnDupAssigns);
@@ -1971,10 +2094,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_WithoutDoBranch_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id)";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires DO NOTHING or DO UPDATE SET", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1989,10 +2114,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_DoInvalidContinuation_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO SKIP";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("must be followed by NOTHING or UPDATE SET", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'SKIP'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2007,10 +2134,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_DoNothingWithWhereClause_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING WHERE id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'WHERE'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2025,10 +2154,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_DoNothingWithFromClause_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING FROM users";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'FROM'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2043,10 +2174,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_DoNothingWithUsingClause_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING USING users";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'USING'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2061,10 +2194,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_DoNothingWithSetClause_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING SET name = 'b'";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'SET'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2079,10 +2214,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_DoNothingWithUpdateClause_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING UPDATE SET name = 'b'";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'UPDATE'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2097,10 +2234,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_DoNothingWithUnexpectedContinuation_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING EXTRA";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'EXTRA'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2115,10 +2254,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_DoUpdateWithoutSet_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires SET assignments", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2134,10 +2275,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictTargetWhereWithoutPredicate_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE DO NOTHING";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("target WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'DO'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2152,10 +2295,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictTargetWhereOnlySemicolon_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE; DO NOTHING";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("target WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2170,10 +2315,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictTargetWhereInvalidPredicate_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id = DO NOTHING";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("target WHERE predicate is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2187,10 +2334,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictTargetInvalidExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id +) DO NOTHING";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("target expression is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2205,10 +2354,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictOnConstraintWithoutName_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT DO NOTHING";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires a constraint name", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'DO'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2223,10 +2374,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictOnConstraintWithoutNameAtEndOfStatement_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires a constraint name", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2241,10 +2394,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictOnConstraintWithoutDoBranch_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires DO NOTHING or DO UPDATE SET", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2259,10 +2414,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictOnConstraintDoInvalidContinuation_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO SKIP";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("must be followed by NOTHING or UPDATE SET", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'SKIP'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2277,10 +2434,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictOnConstraintDoUpdateWithoutSet_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires SET assignments", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2295,10 +2454,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictOnConstraintDoUpdateSetWithoutAssignments_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2313,10 +2474,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictOnConstraintDoUpdateSetWithoutAssignmentsBeforeReturning_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'RETURNING'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2331,10 +2494,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictOnConstraintDoUpdateSetLeadingComma_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET , name = EXCLUDED.name";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unexpected comma before assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ','", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2349,10 +2514,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictOnConstraintDoUpdateSetTrailingComma_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name,";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("trailing comma without assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2367,10 +2534,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictOnConstraintDoUpdateSetAssignmentsWithoutCommaSeparator_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name updated_at = NOW()";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("must separate assignments with commas", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2384,10 +2553,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictOnConstraintDoUpdateSetRepeatedSetKeyword_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET SET name = EXCLUDED.name";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("must not repeat SET keyword", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'SET'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2402,10 +2573,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictOnConstraintDoUpdateSetAssignmentWithoutEquals_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name EXCLUDED.name";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires '=' between column and expression", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2419,10 +2592,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictOnConstraintDoUpdateSetInvalidAssignmentExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = (EXCLUDED.name";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("assignment for 'name' has an invalid expression", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2436,10 +2611,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictOnConstraintTargetWhereWithoutPredicate_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE DO NOTHING";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("target WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'DO'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2454,10 +2631,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictOnConstraintTargetWhereOnlySemicolon_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE; DO NOTHING";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("target WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2472,10 +2651,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictOnConstraintTargetWhereInvalidPredicate_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id = DO NOTHING";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("target WHERE predicate is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2489,10 +2670,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictOnConstraintTargetWhereInvalidPredicateBeforeDoUpdate_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id = DO UPDATE SET name = EXCLUDED.name";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("target WHERE predicate is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2506,10 +2689,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictOnConstraintDoUpdateWhereOnlySemicolon_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE; RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO UPDATE WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2524,10 +2709,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictOnConstraintDoUpdateWhereOnlySemicolonWithoutReturning_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO UPDATE WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2542,10 +2729,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictOnConstraintDoUpdateWhereWithoutPredicate_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO UPDATE WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'RETURNING'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2560,10 +2749,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictOnConstraintDoUpdateWhereInvalidPredicate_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE id = RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO UPDATE WHERE predicate is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2577,10 +2768,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictOnConstraintDoUpdateWhereInvalidReturningExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING id +";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING expression is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2594,10 +2787,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictOnConstraintDoUpdateWhereUnbalancedReturningExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING (id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unbalanced parentheses", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2611,10 +2806,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictOnConstraintDoUpdateWhereEmptyReturningList_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2629,10 +2826,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictDoUpdateWhereWithoutPredicate_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO UPDATE WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'RETURNING'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2647,10 +2846,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictDoUpdateWhereOnlySemicolon_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE; RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO UPDATE WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2665,10 +2866,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictDoUpdateWhereOnlySemicolonWithoutReturning_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO UPDATE WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2683,10 +2886,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictDoUpdateWhereInvalidPredicate_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE id = RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO UPDATE WHERE predicate is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2700,10 +2905,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictDoUpdateWhereInvalidReturningExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING id +";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING expression is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2717,10 +2924,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictDoUpdateWhereUnbalancedReturningExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING (id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unbalanced parentheses", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2734,10 +2943,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictDoUpdateWhereEmptyReturningList_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2752,10 +2963,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictDoUpdateWithInvalidReturningExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING id +";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING expression is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2769,10 +2982,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictDoUpdateWithUnbalancedReturningExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING (id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unbalanced parentheses", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2786,10 +3001,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictDoUpdateWithEmptyReturningList_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2804,10 +3021,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictDoUpdateWithFromClause_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name FROM users";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'FROM'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2822,10 +3041,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictDoUpdateSetFromWithoutAssignments_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET FROM users";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'FROM'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2840,10 +3061,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictDoUpdateSetUsingWithoutAssignments_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET USING users";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'USING'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2858,10 +3081,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictDoUpdateWithUsingClause_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name USING users";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'USING'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2876,10 +3101,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictDoUpdateSetInvalidAssignmentExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = (EXCLUDED.name WHERE id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("assignment for 'name' has an invalid expression", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2893,10 +3120,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictDoUpdateSetRepeatedSetKeyword_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET SET name = EXCLUDED.name";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("must not repeat SET keyword", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'SET'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2911,10 +3140,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflictDoUpdateSetAssignmentWithoutEquals_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name EXCLUDED.name";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires '=' between column and expression", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2929,9 +3160,11 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_Returning_ShouldCaptureReturningItems(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING id, name AS user_name";
 
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, d));
 
         Assert.Equal(2, parsed.Returning.Count);
         Assert.Equal("id", parsed.Returning[0].Raw);
@@ -2949,10 +3182,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_WithUnexpectedTrailingToken_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') EXTRA";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("Unexpected token after INSERT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2967,10 +3202,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_ValuesTrailingComma_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id) VALUES (1),";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -2985,10 +3222,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_ValuesTuplesWithoutCommaSeparator_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id) VALUES (1) (2)";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("separate row tuples with commas", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3002,10 +3241,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_ValuesLeadingComma_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id) VALUES , (1)";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ','", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3020,10 +3261,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_ValuesInvalidExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1 +, 'a')";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("row 1 expression 1 is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3037,10 +3280,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_ValuesSecondRowInvalidExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a'), (2 +, 'b')";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("row 2 expression 1 is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3055,10 +3300,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_ColumnListTrailingComma_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id,) VALUES (1)";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3072,10 +3319,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_EmptyColumnList_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users () VALUES (1)";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("at least one column", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3090,10 +3339,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_ColumnListLeadingComma_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (,id) VALUES (1)";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3107,10 +3358,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_ColumnListUnclosedBeforeSemicolon_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("not closed correctly", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3124,10 +3377,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_ValuesEmptyRowTuple_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id) VALUES ()";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3142,10 +3397,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_ValuesTupleMissingExpressionBetweenCommas_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users VALUES (1,,2)";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("empty expression", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3159,10 +3416,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_ValuesTupleTrailingComma_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users VALUES (1,)";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("empty expression", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3177,10 +3436,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_ValuesTupleUnclosedParenthesis_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users VALUES (1, 2";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("not closed correctly", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3195,10 +3456,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_ValuesColumnCountMismatch_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1)";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("column count", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("row 1", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3214,10 +3477,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_ValuesRowArityMismatch_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users VALUES (1, 'a'), (2)";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("row 2", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("row 1", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3233,9 +3498,11 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_SelectReturning_ShouldCaptureReturningItems(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) SELECT id, name FROM users RETURNING id";
 
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, d));
 
         Assert.NotNull(parsed.InsertSelect);
         Assert.Single(parsed.Returning);
@@ -3252,9 +3519,11 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_SelectWhereReturning_ShouldPreserveWhereBoundary(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) SELECT id, name FROM users WHERE id IN (1, 2) RETURNING id";
 
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, d));
 
         Assert.NotNull(parsed.InsertSelect);
         Assert.NotNull(parsed.InsertSelect!.Where);
@@ -3272,9 +3541,11 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseUpdate_Returning_ShouldCaptureReturningItems(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING id, name";
 
-        var parsed = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        var parsed = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("id = 1", parsed.WhereRaw, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(2, parsed.Returning.Count);
@@ -3292,9 +3563,11 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseUpdate_ReturningWithoutWhere_ShouldCaptureReturningItems(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "UPDATE users SET name = 'b' RETURNING id";
 
-        var parsed = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        var parsed = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(sql, db, d));
 
         Assert.Null(parsed.WhereRaw);
         Assert.Single(parsed.Set);
@@ -3312,9 +3585,11 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseUpdate_SetValidAssignments_ShouldMaterializeParsedExpressions(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "UPDATE users SET name = upper('b'), updated_at = now() WHERE id = 1";
 
-        var parsed = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        var parsed = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(sql, db, d));
 
         Assert.Equal(2, parsed.SetParsed.Count);
         Assert.All(parsed.SetParsed, a => Assert.NotNull(a.ValueExpr));
@@ -3329,10 +3604,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseUpdate_SetWithoutAssignmentsBeforeReturning_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "UPDATE users SET RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'RETURNING'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3347,10 +3624,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseUpdate_SetTrailingComma_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "UPDATE users SET name = 'b', RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'RETURNING'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3365,10 +3644,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseUpdate_SetLeadingComma_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "UPDATE users SET , name = 'b' WHERE id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unexpected comma before assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ','", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3383,10 +3664,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseUpdate_SetAssignmentsWithoutCommaSeparator_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "UPDATE users SET name = 'b' updated_at = NOW() WHERE id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("must separate assignments with commas", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3400,10 +3683,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseUpdate_SetInvalidAssignmentExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "UPDATE users SET name = (upper('a') WHERE id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("assignment for 'name' has an invalid expression", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3417,10 +3702,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseUpdate_SetAssignmentWithoutEquals_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "UPDATE users SET name 'b' WHERE id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires '=' between column and expression", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3434,10 +3721,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseUpdate_SetRepeatedSetKeyword_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "UPDATE users SET SET name = 'b' WHERE id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("must not repeat SET keyword", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'SET'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3453,10 +3742,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseUpdate_WithUnexpectedTrailingToken_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 EXTRA";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("Unexpected token after UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3471,10 +3762,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseUpdate_WhereWithoutPredicate_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3489,10 +3782,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseUpdate_WhereOnlySemicolon_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3507,10 +3802,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseUpdate_WhereWithoutPredicateBeforeReturning_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'RETURNING'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3525,10 +3822,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseUpdate_WhereInvalidPredicate_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE (id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("UPDATE WHERE predicate is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3543,9 +3842,11 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseUpdate_ReturningQualifiedWildcard_ShouldCaptureReturningItem(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING users.*";
 
-        var parsed = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        var parsed = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(sql, db, d));
 
         Assert.Single(parsed.Returning);
         Assert.Equal("users.*", parsed.Returning[0].Raw);
@@ -3561,9 +3862,11 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseDelete_Returning_ShouldCaptureReturningItems(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "DELETE FROM users WHERE id = 1 RETURNING id";
 
-        var parsed = Assert.IsType<SqlDeleteQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        var parsed = Assert.IsType<SqlDeleteQuery>(SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("id = 1", parsed.WhereRaw, StringComparison.OrdinalIgnoreCase);
         Assert.Single(parsed.Returning);
@@ -3580,10 +3883,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseDelete_WithUnexpectedTrailingToken_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "DELETE FROM users WHERE id = 1 EXTRA";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("Unexpected token after DELETE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3598,10 +3903,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseDelete_WhereWithoutPredicate_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "DELETE FROM users WHERE";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3616,10 +3923,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseDelete_WhereOnlySemicolon_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "DELETE FROM users WHERE;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3634,10 +3943,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseDelete_WhereWithoutPredicateBeforeReturning_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "DELETE FROM users WHERE RETURNING id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'RETURNING'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3652,10 +3963,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseDelete_WhereInvalidPredicate_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "DELETE FROM users WHERE (id = 1";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DELETE WHERE predicate is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3670,10 +3983,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_EmptyReturning_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3688,10 +4003,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_ReturningAliasWithoutExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING AS user_id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'AS'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3706,10 +4023,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_EmptyReturningList_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3724,10 +4043,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseUpdate_EmptyReturningList_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3742,10 +4063,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseDelete_EmptyReturningList_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "DELETE FROM users WHERE id = 1 RETURNING;";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3760,10 +4083,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseUpdate_ReturningAliasWithoutExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING AS user_id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'AS'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3778,10 +4103,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseDelete_ReturningAliasWithoutExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "DELETE FROM users WHERE id = 1 RETURNING AS user_id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found 'AS'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3796,10 +4123,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseUpdate_ReturningLeadingComma_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING, id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ','", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3814,10 +4143,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_ReturningLeadingComma_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING, id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ','", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3832,10 +4163,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_ReturningTrailingComma_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING id,";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3850,10 +4183,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseUpdate_ReturningTrailingComma_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING id,";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3868,10 +4203,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseDelete_ReturningTrailingComma_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "DELETE FROM users WHERE id = 1 RETURNING id,";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3886,10 +4223,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseDelete_ReturningLeadingComma_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "DELETE FROM users WHERE id = 1 RETURNING, id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("found ','", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -3904,9 +4243,11 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_ReturningNestedExpressionsWithSemicolon_ShouldCaptureItems(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING COALESCE((SELECT max(id) FROM users), 0) AS next_id, concat(name, ',x') AS decorated;";
 
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, d));
 
         Assert.Equal(2, parsed.Returning.Count);
         Assert.Equal("COALESCE((SELECT max(id) FROM users), 0)", parsed.Returning[0].Raw);
@@ -3924,10 +4265,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_ReturningUnbalancedParenthesis_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING (id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unbalanced parentheses", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3941,10 +4284,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseUpdate_ReturningUnbalancedParenthesis_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING (id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unbalanced parentheses", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3958,10 +4303,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseUpdate_ReturningInvalidExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING id +";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING expression is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3975,10 +4322,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseInsert_ReturningInvalidExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING id +";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING expression is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -3992,10 +4341,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseDelete_ReturningInvalidExpression_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "DELETE FROM users WHERE id = 1 RETURNING id +";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING expression is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -4009,10 +4360,12 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseDelete_ReturningUnbalancedParenthesis_ShouldThrowActionableError(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "DELETE FROM users WHERE id = 1 RETURNING (id";
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unbalanced parentheses", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -4027,9 +4380,11 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseSelect_WithSqlServerTableHints_ShouldBeRejected(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = "SELECT id FROM users WITH (NOLOCK)";
 
-        Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
     }
 
     /// <summary>
@@ -4042,17 +4397,18 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseSelect_PaginationSyntaxes_ShouldNormalizeRowLimitAst(int version)
     {
-        var dialect = GetDialect(version, v => new NpgsqlDialect(v));
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
 
         var limitOffset = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT id FROM users ORDER BY id LIMIT 2 OFFSET 1",
-            dialect));
+            db, d));
         var offsetFetch = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY",
-            dialect));
+            db, d));
         var fetchFirst = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT id FROM users ORDER BY id FETCH FIRST 2 ROWS ONLY",
-            dialect));
+            db, d));
 
         var normalizedLimit = Assert.IsType<SqlLimitOffset>(limitOffset.RowLimit);
         var normalizedOffsetFetch = Assert.IsType<SqlLimitOffset>(offsetFetch.RowLimit);
@@ -4073,9 +4429,11 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseSelect_WithSqlServerOptionHints_ShouldBeRejected(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = "SELECT id FROM users OPTION (MAXDOP 1)";
 
-        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
         Assert.Contains("OPTION(query hints)", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Use hints compatíveis", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -4091,8 +4449,10 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseSelect_WithBacktickQuotedAlias_ShouldProvideActionableMessage(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse("SELECT name `User Name` FROM users", GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse("SELECT name `User Name` FROM users", db, d));
 
         Assert.Contains("alias/identificadores", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("'`'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -4108,9 +4468,11 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseSelect_WithDoubleQuotedAlias_ShouldParseAndNormalizeAlias(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT name \"User Name\" FROM users",
-            GetDialect(version, v => new NpgsqlDialect(v))));
+            db, d));
 
         var item = Assert.Single(parsed.SelectItems);
         Assert.Equal("User Name", item.Alias);
@@ -4126,9 +4488,11 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseSelect_WithEscapedDoubleQuotedAlias_ShouldNormalizeEscapedQuote(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT name \"User\"\"Name\" FROM users",
-            GetDialect(version, v => new NpgsqlDialect(v))));
+            db, d));
 
         var item = Assert.Single(parsed.SelectItems);
         Assert.Equal("User\"Name", item.Alias);
@@ -4145,9 +4509,11 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseSelect_WithPivot_ShouldBeRejectedWithDialectMessage(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var sql = "SELECT t10 FROM (SELECT tenantid, id FROM users) src PIVOT (COUNT(id) FOR tenantid IN (10 AS t10)) p";
 
-        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains(SqlConst.PIVOT, ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("npgsql", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -4165,8 +4531,10 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseDelete_WithoutFrom_ShouldProvideActionableMessage(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse("DELETE users WHERE id = 1", GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse("DELETE users WHERE id = 1", db, d));
 
         Assert.Contains("DELETE FROM", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -4181,8 +4549,10 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseDelete_TargetAliasBeforeFrom_ShouldProvideActionableMessage(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse("DELETE u FROM users u", GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse("DELETE u FROM users u", db, d));
 
         Assert.Contains("DELETE FROM", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -4199,8 +4569,10 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseUnsupportedTopLevelStatement_ShouldUseActionableMessage(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse("UPSERT INTO users VALUES (1)", GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse("UPSERT INTO users VALUES (1)", db, d));
 
         Assert.Contains("token inicial", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("SELECT/INSERT/UPDATE/DELETE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -4217,11 +4589,13 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseMerge_UnsupportedDialect_ShouldProvideActionableMessage(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "MERGE INTO users u USING users s ON u.id = s.id WHEN MATCHED THEN UPDATE SET name = 'x'";
 
         if (version < NpgsqlDialect.MergeMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v))));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
 
             Assert.Contains(SqlConst.MERGE, ex.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("npgsql", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -4229,7 +4603,7 @@ WHERE id = 1";
             return;
         }
 
-        var parsed = SqlQueryParser.Parse(sql, GetDialect(version, v => new NpgsqlDialect(v)));
+        var parsed = SqlQueryParser.Parse(sql, db, d);
         Assert.IsType<SqlMergeQuery>(parsed);
     }
 
@@ -4243,7 +4617,7 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void RuntimeDialectRules_ShouldRemainStable(int version)
     {
-        var d = GetDialect(version, v => new NpgsqlDialect(v));
+        var d = Get(version, v => new NpgsqlDialect(v));
 
         Assert.True(d.AreUnionColumnTypesCompatible(DbType.Int32, DbType.Decimal));
         Assert.True(d.AreUnionColumnTypesCompatible(DbType.String, DbType.AnsiString));
@@ -4267,8 +4641,10 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseUnsupportedSql_ShouldUseStandardNotSupportedMessage(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse("SELECT id FROM users WITH (NOLOCK)", GetDialect(version, v => new NpgsqlDialect(v))));
+            SqlQueryParser.Parse("SELECT id FROM users WITH (NOLOCK)", db, d));
 
         Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.Ordinal);
         Assert.Contains("npgsql", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -4283,7 +4659,7 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void WindowFunctionCapability_ShouldRespectVersionAndKnownFunctions(int version)
     {
-        var dialect = GetDialect(version, v => new NpgsqlDialect(v));
+        var dialect = Get(version, v => new NpgsqlDialect(v));
 
         var expected = version >= NpgsqlDialect.WindowFunctionsMinVersion;
         Assert.Equal(expected, dialect.SupportsWindowFunction("ROW_NUMBER"));
@@ -4300,19 +4676,20 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseScalar_WindowFunctionName_ShouldRespectDialectCapability(int version)
     {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         var supported = "ROW_NUMBER() OVER (ORDER BY id)";
         var unsupported = "PERCENTILE_CONT(0.5) OVER (ORDER BY id)";
-        var dialect = GetDialect(version, v => new NpgsqlDialect(v));
 
         if (version < NpgsqlDialect.WindowFunctionsMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(supported, dialect));
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(supported, db, d));
             return;
         }
 
-        var expr = SqlExpressionParser.ParseScalar(supported, dialect);
+        var expr = SqlExpressionParser.ParseScalar(supported, db, d);
         Assert.IsType<WindowFunctionExpr>(expr);
-        Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(unsupported, dialect));
+        Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(unsupported, db, d));
     }
 
 
@@ -4325,16 +4702,17 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseScalar_WindowFunctionWithoutOrderBy_ShouldRespectDialectRules(int version)
     {
-        var dialect = GetDialect(version, v => new NpgsqlDialect(v));
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
 
         if (version < NpgsqlDialect.WindowFunctionsMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER ()", dialect));
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER ()", db, d));
             return;
         }
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER ()", dialect));
+            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER ()", db, d));
 
         Assert.Contains("requires ORDER BY", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -4349,24 +4727,25 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseScalar_WindowFunctionArguments_ShouldValidateArity(int version)
     {
-        var dialect = GetDialect(version, v => new NpgsqlDialect(v));
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
 
         if (version < NpgsqlDialect.WindowFunctionsMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER(1) OVER (ORDER BY id)", dialect));
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER(1) OVER (ORDER BY id)", db, d));
             return;
         }
 
         var exRowNumber = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("ROW_NUMBER(1) OVER (ORDER BY id)", dialect));
+            SqlExpressionParser.ParseScalar("ROW_NUMBER(1) OVER (ORDER BY id)", db, d));
         Assert.Contains("does not accept arguments", exRowNumber.Message, StringComparison.OrdinalIgnoreCase);
 
         var exNtile = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("NTILE() OVER (ORDER BY id)", dialect));
+            SqlExpressionParser.ParseScalar("NTILE() OVER (ORDER BY id)", db, d));
         Assert.Contains("exactly 1 argument", exNtile.Message, StringComparison.OrdinalIgnoreCase);
 
         var exLag = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("LAG(id, 1, 0, 99) OVER (ORDER BY id)", dialect));
+            SqlExpressionParser.ParseScalar("LAG(id, 1, 0, 99) OVER (ORDER BY id)", db, d));
         Assert.Contains("between 1 and 3 arguments", exLag.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4380,24 +4759,25 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseScalar_WindowFunctionLiteralArguments_ShouldValidateSemanticRange(int version)
     {
-        var dialect = GetDialect(version, v => new NpgsqlDialect(v));
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         if (version < NpgsqlDialect.WindowFunctionsMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("NTILE(0) OVER (ORDER BY id)", dialect));
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("NTILE(0) OVER (ORDER BY id)", db, d));
             return;
         }
 
 
         var exNtile = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("NTILE(0) OVER (ORDER BY id)", dialect));
-        Assert.Contains("positive bucket count", exNtile.Message, StringComparison.OrdinalIgnoreCase);
+            SqlExpressionParser.ParseScalar("NTILE(0) OVER (ORDER BY id)", db, d));
+        Assert.Contains("positive integer literal", exNtile.Message, StringComparison.OrdinalIgnoreCase);
 
         var exLag = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("LAG(id, -1, 0) OVER (ORDER BY id)", dialect));
-        Assert.Contains("non-negative offset", exLag.Message, StringComparison.OrdinalIgnoreCase);
+            SqlExpressionParser.ParseScalar("LAG(id, -1, 0) OVER (ORDER BY id)", db, d));
+        Assert.Contains("offset must be non-negative", exLag.Message, StringComparison.OrdinalIgnoreCase);
 
         var exNthValue = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("NTH_VALUE(id, 0) OVER (ORDER BY id)", dialect));
+            SqlExpressionParser.ParseScalar("NTH_VALUE(id, 0) OVER (ORDER BY id)", db, d));
         Assert.Contains("greater than zero", exNthValue.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4410,7 +4790,7 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void WindowFunctionOrderByRequirementHook_ShouldRespectVersion(int version)
     {
-        var dialect = GetDialect(version, v => new NpgsqlDialect(v));
+        var dialect = Get(version, v => new NpgsqlDialect(v));
 
         var expected = version >= NpgsqlDialect.WindowFunctionsMinVersion;
         Assert.Equal(expected, dialect.RequiresOrderByInWindowFunction("ROW_NUMBER"));
@@ -4429,7 +4809,7 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void WindowFunctionArgumentArityHook_ShouldRespectVersion(int version)
     {
-        var dialect = GetDialect(version, v => new NpgsqlDialect(v));
+        var dialect = Get(version, v => new NpgsqlDialect(v));
 
         if (version < NpgsqlDialect.WindowFunctionsMinVersion)
         {
@@ -4458,21 +4838,22 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseScalar_WindowFrameClause_ShouldRespectDialectCapabilities(int version)
     {
-        var dialect = GetDialect(version, v => new NpgsqlDialect(v));
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
 
         if (version < NpgsqlDialect.WindowFunctionsMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect));
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, d));
             return;
         }
 
-        var rowsExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
+        var rowsExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, d);
         Assert.IsType<WindowFunctionExpr>(rowsExpr);
 
-        var rangeExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
+        var rangeExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, d);
         Assert.IsType<WindowFunctionExpr>(rangeExpr);
 
-        var groupsExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id GROUPS BETWEEN 1 PRECEDING AND CURRENT ROW)", dialect);
+        var groupsExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id GROUPS BETWEEN 1 PRECEDING AND CURRENT ROW)", db, d);
         Assert.IsType<WindowFunctionExpr>(groupsExpr);
     }
 
@@ -4487,16 +4868,17 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseScalar_WindowFrameClauseInvalidBounds_ShouldBeRejected(int version)
     {
-        var dialect = GetDialect(version, v => new NpgsqlDialect(v));
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
 
         if (version < NpgsqlDialect.WindowFunctionsMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 PRECEDING)", dialect));
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 PRECEDING)", db, d));
             return;
         }
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 PRECEDING)", dialect));
+            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 PRECEDING)", db, d));
 
         Assert.Contains("start bound cannot be greater", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -4510,9 +4892,10 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseScalar_StringAggWithinGroup_ShouldParse(int version)
     {
-        var dialect = GetDialect(version, v => new NpgsqlDialect(v));
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
 
-        var expr = SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect);
+        var expr = SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", db, d);
         var call = Assert.IsType<CallExpr>(expr);
 
         Assert.Equal(SqlConst.STRING_AGG, call.Name, StringComparer.OrdinalIgnoreCase);
@@ -4530,10 +4913,11 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseScalar_ListAggWithinGroup_ShouldThrowNotSupported(int version)
     {
-        var dialect = GetDialect(version, v => new NpgsqlDialect(v));
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
+            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", db, d));
 
         Assert.Contains(SqlConst.LISTAGG, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -4547,10 +4931,11 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseScalar_StringAggWithinGroupWithoutOrderBy_ShouldThrowActionableError(int version)
     {
-        var dialect = GetDialect(version, v => new NpgsqlDialect(v));
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (amount DESC)", dialect));
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (amount DESC)", db, d));
 
         Assert.Contains("WITHIN GROUP requires ORDER BY", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -4564,10 +4949,11 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseScalar_WithinGroupOrderByTrailingComma_ShouldThrowActionableError(int version)
     {
-        var dialect = GetDialect(version, v => new NpgsqlDialect(v));
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC,)", dialect));
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC,)", db, d));
 
         Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -4581,10 +4967,11 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseScalar_WithinGroupOrderByEmptyList_ShouldThrowActionableError(int version)
     {
-        var dialect = GetDialect(version, v => new NpgsqlDialect(v));
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY)", dialect));
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY)", db, d));
 
         Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -4598,10 +4985,11 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseScalar_WithinGroupOrderByLeadingComma_ShouldThrowActionableError(int version)
     {
-        var dialect = GetDialect(version, v => new NpgsqlDialect(v));
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY, amount DESC)", dialect));
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY, amount DESC)", db, d));
 
         Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -4616,10 +5004,11 @@ WHERE id = 1";
     [MemberDataNpgsqlVersion]
     public void ParseScalar_WithinGroupOrderByMissingCommaBetweenExpressions_ShouldThrowActionableError(int version)
     {
-        var dialect = GetDialect(version, v => new NpgsqlDialect(v));
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC id ASC)", dialect));
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC id ASC)", db, d));
 
         Assert.Contains("requires commas", ex.Message, StringComparison.OrdinalIgnoreCase);
     }

@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.Oracle.Test;
 /// <summary>
 /// EN: Verifies LINQ query translation and provider metadata behavior for Oracle connections.
@@ -44,8 +46,8 @@ public sealed class OracleLinqProviderTest(
                       .Where(u => u.Id == 2)
                       .ToList();
 
-        Assert.Single(list);
-        Assert.Equal("B", list[0].Name);
+        list.Should().ContainSingle();
+        list[0].Name.Should().Be("B");
     }
 
 }

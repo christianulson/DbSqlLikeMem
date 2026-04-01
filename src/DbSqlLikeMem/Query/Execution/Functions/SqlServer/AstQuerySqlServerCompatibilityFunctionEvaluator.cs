@@ -57,9 +57,11 @@ internal sealed class AstQuerySqlServerCompatibilityFunctionEvaluator(
             || _sqlServerIdentityFunctionEvaluator.TryEvaluate(fn, evalArg, out result)
             || _sqlServerUtilityFunctionEvaluator.TryEvaluate(fn, context, evalArg, out result)
             || context.TryEvaluateSqlServerDateConstructionFunction(fn, evalArg, out result)
+            || TryEvalDateAddFunction(fn, row, group, ctes, evalArg, _getTemporalUnit, out result)
             || AstQuerySqlServerTemporalAccessorFunctionEvaluator.TryEvaluate(fn, row, group, ctes, evalArg, _getTemporalUnit, _resolveTemporalUnit, out result)
             || AstQueryTemporalAccessorFunctionEvaluator.TryEvaluate(fn, row, group, ctes, evalArg, _getTemporalUnit, _resolveTemporalUnit, out result)
             || context.TryEvaluateDb2DateFunction(fn, evalArg, _resolveTemporalUnit, out result)
+            || TryEvalSequenceFunction(context, fn, row, group, ctes, out result)
             || AstQuerySharedNumericFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result)
             || context.TryEvaluate(fn, row, group, ctes, evalArg, _eval, _getTemporalUnit, out result))
         {
@@ -91,7 +93,30 @@ internal sealed class AstQuerySqlServerCompatibilityFunctionEvaluator(
         return false;
     }
 
-    private static bool TryEvalEomonthFunction(
+    private bool TryEvalSequenceFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        out object? result)
+    {
+        if (!fn.Name.Equals("NEXT_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
+            && !fn.Name.Equals("PREVIOUS_VALUE_FOR", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        return SqlSequenceEvaluator.TryEvaluateCall(
+            context.Connection,
+            fn.Name,
+            fn.Args,
+            expr => _eval(expr, row, group, ctes),
+            out result);
+    }
+
+    internal static bool TryEvalEomonthFunction(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
@@ -115,6 +140,46 @@ internal sealed class AstQuerySqlServerCompatibilityFunctionEvaluator(
 
         var lastDay = DateTime.DaysInMonth(dateTime.Year, dateTime.Month);
         result = new DateTime(dateTime.Year, dateTime.Month, lastDay, dateTime.Hour, dateTime.Minute, dateTime.Second, dateTime.Kind);
+        return true;
+    }
+    private static bool TryEvalDateAddFunction(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        Func<int, object?> evalArg,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, TemporalUnit> getTemporalUnit,
+        out object? result)
+    {
+        if (!fn.Name.Equals("DATEADD", StringComparison.OrdinalIgnoreCase) || fn.Args.Count < 3)
+        {
+            result = null;
+            return false;
+        }
+
+        var baseValue = evalArg(2);
+        if (IsNullish(baseValue) || !TryCoerceDateTime(baseValue, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        var amountValue = evalArg(1);
+        if (IsNullish(amountValue))
+        {
+            result = null;
+            return true;
+        }
+
+        var unit = getTemporalUnit(fn.Args[0], row, group, ctes);
+        if (unit == TemporalUnit.Unknown)
+        {
+            result = dateTime;
+            return true;
+        }
+
+        var amount = Convert.ToInt32(amountValue!.ToDec(), CultureInfo.InvariantCulture);
+        result = ApplyDateDelta(dateTime, unit, amount);
         return true;
     }
 }

@@ -20,7 +20,7 @@ internal sealed record QuantifiedComparisonExpr(
     SqlExpr Left,
     SqlQuantifier Quantifier,
     SubqueryExpr Subquery) : SqlExpr;
-internal sealed record FunctionCallExpr(string Name, IReadOnlyList<SqlExpr> Args) : SqlExpr
+internal sealed record FunctionCallExpr(string Name, IReadOnlyList<SqlExpr> Args, bool Distinct = false) : SqlExpr
 {
     internal DbFunctionDef? ResolvedScalarFunction { get; init; }
 

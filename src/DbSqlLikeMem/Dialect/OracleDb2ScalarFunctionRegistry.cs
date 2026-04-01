@@ -29,6 +29,26 @@ internal static class OracleDb2ScalarFunctionRegistry
                 QueryOracleDb2ScalarFunctionHelper.TryEvalCoreFunctions);
         }
         dialect.AddScalarFunction(
+            "BITOR",
+            "BIGINT",
+            QueryOracleDb2ScalarFunctionHelper.TryEvalCoreFunctions);
+        dialect.AddScalarFunction(
+            "BITXOR",
+            "BIGINT",
+            QueryOracleDb2ScalarFunctionHelper.TryEvalCoreFunctions);
+        dialect.AddScalarFunction(
+            "BITNOT",
+            "BIGINT",
+            QueryOracleDb2ScalarFunctionHelper.TryEvalCoreFunctions);
+        dialect.AddScalarFunction(
+            "BITANDNOT",
+            "BIGINT",
+            QueryOracleDb2ScalarFunctionHelper.TryEvalCoreFunctions);
+        dialect.AddScalarFunction(
+            "TRUNC",
+            "DECIMAL",
+            QueryOracleDb2ScalarFunctionHelper.TryEvalCoreFunctions);
+        dialect.AddScalarFunction(
             "MONTHS_BETWEEN",
             "DECIMAL",
             AstQueryOracleDb2SpecialFunctionEvaluator.TryEvaluate);
@@ -186,6 +206,11 @@ internal static class OracleDb2ScalarFunctionRegistry
 
         dialect.AddScalarFunction(
             "NVL2",
+            "VARCHAR",
+            QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions);
+
+        dialect.AddScalarFunction(
+            "DECODE",
             "VARCHAR",
             QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions);
     }

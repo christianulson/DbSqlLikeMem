@@ -1,3 +1,5 @@
+using Google.Protobuf.Compiler;
+
 namespace DbSqlLikeMem.MariaDb.Test.Parser;
 
 /// <summary>
@@ -16,7 +18,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void DialectMetadata_ShouldExposeMariaDbFamilyIdentity()
     {
-        var dialect = new MariaDbDialect(MariaDbDbVersions.Version11_0);
+        var dialect = Get(MariaDbDbVersions.Version11_0,v => new MariaDbDialect(v));
 
         dialect.Name.Equals("mariadb", StringComparison.OrdinalIgnoreCase).Should().BeTrue();
         Assert.True(dialect.SupportsOnDuplicateKeyUpdate);
@@ -39,16 +41,17 @@ public sealed class MariaDbDialectFeatureParserTests(
     public void ParseInsert_Returning_ShouldRespectMariaDbVersionGate(int version)
     {
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING id, name AS user_name";
-        var dialect = GetDialect(version, v => new MariaDbDialect(v));
+        var dialect = Get(version, v => new MariaDbDialect(v));
+        var db = Get(MariaDbDbVersions.Version11_0, v => new MariaDbDbMock(v));
 
         if (version < MariaDbDialect.ReturningMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, dialect));
             Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, dialect));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, dialect));
         Assert.Equal(2, parsed.Returning.Count);
         Assert.Equal("id", parsed.Returning[0].Raw);
         Assert.Equal("name", parsed.Returning[1].Raw);
@@ -63,9 +66,10 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseInsert_Returning_ShouldRejectAggregateFunctions()
     {
+        var db = Get(MariaDbDbVersions.Version11_0, v => new MariaDbDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING COUNT(*)";
 
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_5)));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_5, v => new MariaDbDialect(v))));
 
         Assert.Contains("aggregate", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -78,10 +82,11 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseInsert_ValuePartition_ShouldAcceptMariaDbSyntax()
     {
+        var db = Get(MariaDbDbVersions.Version11_0, v => new MariaDbDbMock(v));
         const string sql = "INSERT LOW_PRIORITY INTO users PARTITION (p0) VALUE (1, 'a') RETURNING id";
-        var dialect = new MariaDbDialect(MariaDbDbVersions.Version10_5);
+        var dialect = Get(MariaDbDbVersions.Version10_5, v => new MariaDbDialect(v));
 
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, dialect));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, dialect));
 
         Assert.False(parsed.IsReplace);
         Assert.Single(parsed.ValuesRaw);
@@ -99,14 +104,15 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseInsertAndReplace_Delayed_ShouldAcceptMariaDbSyntax()
     {
-        var dialect = new MariaDbDialect(MariaDbDbVersions.Version10_5);
+        var dialect = Get(MariaDbDbVersions.Version10_5, v => new MariaDbDialect(v));
+        var db = Get(MariaDbDbVersions.Version10_5, v => new MariaDbDbMock(v));
 
-        var insert = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse("INSERT DELAYED INTO users VALUE (1, 'a') RETURNING id", dialect));
+        var insert = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse("INSERT DELAYED INTO users VALUE (1, 'a') RETURNING id", db, dialect));
         Assert.False(insert.IsReplace);
         Assert.Single(insert.Returning);
         Assert.Equal("id", insert.Returning[0].Raw);
 
-        var replace = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse("REPLACE DELAYED INTO users VALUE (1, 'a') RETURNING id", dialect));
+        var replace = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse("REPLACE DELAYED INTO users VALUE (1, 'a') RETURNING id", db, dialect));
         Assert.True(replace.IsReplace);
         Assert.Single(replace.Returning);
         Assert.Equal("id", replace.Returning[0].Raw);
@@ -120,8 +126,9 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseInsert_Ignore_ShouldMapToDoNothingSemantics()
     {
+        var db = Get(MariaDbDbVersions.Version10_5, v => new MariaDbDbMock(v));
         const string sql = "INSERT IGNORE INTO users VALUES (1, 'a'), (2, 'b') RETURNING id, name";
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_5)));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_5, v => new MariaDbDialect(v))));
 
         Assert.False(parsed.IsReplace);
         Assert.True(parsed.IsOnConflictDoNothing);
@@ -139,8 +146,9 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseInsert_Set_ShouldAcceptMariaDbSyntax()
     {
+        var db = Get(MariaDbDbVersions.Version10_5, v => new MariaDbDbMock(v));
         const string sql = "INSERT INTO users SET id = 1, name = 'a', email = 'a@maria.test' RETURNING id";
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_5)));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_5, v => new MariaDbDialect(v))));
 
         Assert.False(parsed.IsReplace);
         Assert.Equal(3, parsed.Columns.Count);
@@ -162,6 +170,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseInsert_Set_WithModifiersAndOnDuplicateKeyUpdate_Returning_ShouldCaptureProjection()
     {
+        var db = Get(MariaDbDbVersions.Version10_5, v => new MariaDbDbMock(v));
         const string sql = """
             INSERT LOW_PRIORITY INTO users PARTITION (p0)
             SET id = 1, name = 'a', email = 'a@maria.test'
@@ -171,7 +180,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             RETURNING id, name, email
             """;
 
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_5)));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_5, v => new MariaDbDialect(v))));
 
         Assert.False(parsed.IsReplace);
         Assert.Equal(3, parsed.Columns.Count);
@@ -191,6 +200,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseInsert_Set_OnDuplicateKeyUpdate_Returning_ShouldCaptureProjection()
     {
+        var db = Get(MariaDbDbVersions.Version10_5, v => new MariaDbDbMock(v));
         const string sql = """
             INSERT INTO users SET id = 1, name = 'a', email = 'a@maria.test'
             ON DUPLICATE KEY UPDATE
@@ -199,7 +209,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             RETURNING id, name, email
             """;
 
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_5)));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_5, v => new MariaDbDialect(v))));
 
         Assert.NotNull(parsed);
         Assert.True(parsed.HasOnDuplicateKeyUpdate);
@@ -218,6 +228,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseInsert_Select_Returning_ShouldCaptureProjection()
     {
+        var db = Get(MariaDbDbVersions.Version10_5, v => new MariaDbDbMock(v));
         const string sql = """
             INSERT INTO archive_users (Id, Name, Email)
             SELECT Id, Name, Email
@@ -226,7 +237,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             RETURNING Id, Name
             """;
 
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_5)));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_5, v => new MariaDbDialect(v))));
 
         Assert.NotNull(parsed.InsertSelect);
         Assert.Empty(parsed.ValuesRaw);
@@ -243,6 +254,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseInsert_Select_Ignore_Returning_ShouldMapToDoNothingSemantics()
     {
+        var db = Get(MariaDbDbVersions.Version10_5, v => new MariaDbDbMock(v));
         const string sql = """
             INSERT IGNORE INTO archive_users (Id, Name, Email)
             SELECT Id, Name, Email
@@ -251,7 +263,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             RETURNING Id, Name
             """;
 
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_5)));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_5, v => new MariaDbDialect(v))));
 
         Assert.NotNull(parsed.InsertSelect);
         Assert.True(parsed.IsOnConflictDoNothing);
@@ -269,6 +281,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseInsert_Select_OnDuplicateKeyUpdate_Returning_ShouldCaptureProjection()
     {
+        var db = Get(MariaDbDbVersions.Version10_5, v => new MariaDbDbMock(v));
         const string sql = """
             INSERT INTO archive_users (Id, Name, Email)
             SELECT Id, Name, Email
@@ -280,7 +293,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             RETURNING Id, Name, Email
             """;
 
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_5)));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_5, v => new MariaDbDialect(v))));
 
         Assert.NotNull(parsed.InsertSelect);
         Assert.True(parsed.HasOnDuplicateKeyUpdate);
@@ -299,6 +312,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseReplace_Select_Returning_ShouldCaptureProjection()
     {
+        var db = Get(MariaDbDbVersions.Version10_5, v => new MariaDbDbMock(v));
         const string sql = """
             REPLACE INTO archive_users (Id, Name, Email)
             SELECT Id, Name, Email
@@ -307,7 +321,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             RETURNING Id, Name
             """;
 
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_5)));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_5, v => new MariaDbDialect(v))));
 
         Assert.True(parsed.IsReplace);
         Assert.NotNull(parsed.InsertSelect);
@@ -327,17 +341,18 @@ public sealed class MariaDbDialectFeatureParserTests(
     [MemberDataMariaDbVersion]
     public void ParseInsert_OnDuplicateKeyUpdate_Returning_ShouldRespectMariaDbVersionGate(int version)
     {
+        var db = Get(version, v => new MariaDbDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING id, name";
-        var dialect = GetDialect(version, v => new MariaDbDialect(v));
+        var dialect = Get(version, v => new MariaDbDialect(v));
 
         if (version < MariaDbDialect.ReturningMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, dialect));
             Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, dialect));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, dialect));
         Assert.True(parsed.HasOnDuplicateKeyUpdate);
         Assert.Equal(2, parsed.Returning.Count);
         Assert.Equal("id", parsed.Returning[0].Raw);
@@ -352,8 +367,9 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseInsert_OnDuplicateKeyUpdate_MultiRowReturning_ShouldCaptureProjection()
     {
+        var db = Get(MariaDbDbVersions.Version10_5, v => new MariaDbDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a'), (2, 'b') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING id, name";
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_5)));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_5, v => new MariaDbDialect(v))));
 
         Assert.True(parsed.HasOnDuplicateKeyUpdate);
         Assert.Equal(2, parsed.ValuesRaw.Count);
@@ -372,17 +388,18 @@ public sealed class MariaDbDialectFeatureParserTests(
     [MemberDataMariaDbVersion]
     public void ParseDelete_Returning_ShouldRespectMariaDbVersionGate(int version)
     {
+        var db = Get(version, v => new MariaDbDbMock(v));
         const string sql = "DELETE FROM users WHERE id = 1 RETURNING id";
-        var dialect = GetDialect(version, v => new MariaDbDialect(v));
+        var dialect = Get(version, v => new MariaDbDialect(v));
 
         if (version < MariaDbDialect.ReturningMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, dialect));
             Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlDeleteQuery>(SqlQueryParser.Parse(sql, dialect));
+        var parsed = Assert.IsType<SqlDeleteQuery>(SqlQueryParser.Parse(sql, db, dialect));
         Assert.Single(parsed.Returning);
         Assert.Equal("id", parsed.Returning[0].Raw);
     }
@@ -395,9 +412,10 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseDelete_Returning_ShouldRejectMultiTableDelete()
     {
+        var db = Get(MariaDbDbVersions.Version10_5, v => new MariaDbDbMock(v));
         const string sql = "DELETE u FROM users u JOIN audit a ON a.user_id = u.id RETURNING u.id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_5)));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_5, v => new MariaDbDialect(v))));
 
         Assert.Contains("multi-table DELETE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -412,17 +430,18 @@ public sealed class MariaDbDialectFeatureParserTests(
     [MemberDataMariaDbVersion]
     public void ParseReplace_Returning_ShouldRespectMariaDbVersionGate(int version)
     {
+        var db = Get(version, v => new MariaDbDbMock(v));
         const string sql = "REPLACE INTO users (id, name) VALUES (1, 'a') RETURNING id";
-        var dialect = GetDialect(version, v => new MariaDbDialect(v));
+        var dialect = Get(version, v => new MariaDbDialect(v));
 
         if (version < MariaDbDialect.ReturningMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, dialect));
             Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, dialect));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, dialect));
         Assert.True(parsed.IsReplace);
         Assert.Single(parsed.Returning);
         Assert.Equal("id", parsed.Returning[0].Raw);
@@ -436,12 +455,13 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseReplace_Set_Returning_ShouldCaptureProjection()
     {
+        var db = Get(MariaDbDbVersions.Version10_5, v => new MariaDbDbMock(v));
         const string sql = """
             REPLACE INTO users SET id = 1, name = 'a', email = 'a@maria.test'
             RETURNING id, name, email
             """;
 
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_5)));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_5, v => new MariaDbDialect(v))));
 
         Assert.True(parsed.IsReplace);
         Assert.Equal(3, parsed.Columns.Count);
@@ -460,8 +480,9 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseReplace_MultiRowReturning_ShouldCaptureProjection()
     {
+        var db = Get(MariaDbDbVersions.Version10_5, v => new MariaDbDbMock(v));
         const string sql = "REPLACE INTO users (id, name) VALUES (1, 'a'), (2, 'b') RETURNING id, name";
-        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_5)));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_5, v => new MariaDbDialect(v))));
 
         Assert.True(parsed.IsReplace);
         Assert.Equal(2, parsed.ValuesRaw.Count);
@@ -480,9 +501,10 @@ public sealed class MariaDbDialectFeatureParserTests(
     [MemberDataMariaDbVersion]
     public void ParseUpdate_Returning_ShouldRemainRejected(int version)
     {
+        var db = Get(version, v => new MariaDbDbMock(v));
         const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING id";
 
-        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new MariaDbDialect(v))));
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new MariaDbDialect(v))));
 
         Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -495,7 +517,8 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseScalar_SoundsLike_ShouldBuildBinaryExpression()
     {
-        var expr = Assert.IsType<BinaryExpr>(SqlExpressionParser.ParseScalar("'Robert' SOUNDS LIKE 'Rupert'", new MariaDbDialect(MariaDbDbVersions.Version10_5)));
+        var db = Get(MariaDbDbVersions.Version10_5, v => new MariaDbDbMock(v));
+        var expr = Assert.IsType<BinaryExpr>(SqlExpressionParser.ParseScalar("'Robert' SOUNDS LIKE 'Rupert'", db, Get(MariaDbDbVersions.Version10_5, v => new MariaDbDialect(v))));
 
         Assert.Equal(SqlBinaryOp.SoundLike, expr.Op);
         Assert.IsType<LiteralExpr>(expr.Left);
@@ -512,17 +535,18 @@ public sealed class MariaDbDialectFeatureParserTests(
     [MemberDataMariaDbVersion]
     public void ParseCreateSequence_ShouldRespectMariaDbVersionGate(int version)
     {
+        var db = Get(MariaDbDbVersions.Version10_5, v => new MariaDbDbMock(v));
         const string sql = "CREATE SEQUENCE seq_orders START WITH 1 INCREMENT BY 1";
-        var dialect = GetDialect(version, v => new MariaDbDialect(v));
+        var dialect = Get(version, v => new MariaDbDialect(v));
 
         if (version < MariaDbDialect.SequenceMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, dialect));
             Assert.Contains("CREATE SEQUENCE", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlCreateSequenceQuery>(SqlQueryParser.Parse(sql, dialect));
+        var parsed = Assert.IsType<SqlCreateSequenceQuery>(SqlQueryParser.Parse(sql, db, dialect));
         Assert.Equal(sql, parsed.RawSql);
     }
 
@@ -536,17 +560,18 @@ public sealed class MariaDbDialectFeatureParserTests(
     [MemberDataMariaDbVersion]
     public void ParseScalar_NextValueFor_ShouldRespectMariaDbVersionGate(int version)
     {
+        var db = Get(MariaDbDbVersions.Version10_5, v => new MariaDbDbMock(v));
         const string sql = "NEXT VALUE FOR seq_orders";
-        var dialect = GetDialect(version, v => new MariaDbDialect(v));
+        var dialect = Get(version, v => new MariaDbDialect(v));
 
         if (version < MariaDbDialect.SequenceMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, db, dialect));
             Assert.Contains("NEXT VALUE FOR", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var expr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect));
+        var expr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, db, dialect));
         Assert.Equal("NEXT_VALUE_FOR", expr.Name, StringComparer.OrdinalIgnoreCase);
     }
 
@@ -560,17 +585,18 @@ public sealed class MariaDbDialectFeatureParserTests(
     [MemberDataMariaDbVersion]
     public void ParseScalar_PreviousValueFor_ShouldRespectMariaDbVersionGate(int version)
     {
+        var db = Get(MariaDbDbVersions.Version10_5, v => new MariaDbDbMock(v));
         const string sql = "PREVIOUS VALUE FOR seq_orders";
-        var dialect = GetDialect(version, v => new MariaDbDialect(v));
+        var dialect = Get(version, v => new MariaDbDialect(v));
 
         if (version < MariaDbDialect.SequenceMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, db, dialect));
             Assert.Contains("PREVIOUS VALUE FOR", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var expr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect));
+        var expr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, db, dialect));
         Assert.Equal("PREVIOUS_VALUE_FOR", expr.Name, StringComparer.OrdinalIgnoreCase);
     }
 
@@ -584,10 +610,11 @@ public sealed class MariaDbDialectFeatureParserTests(
     [MemberDataMariaDbVersion]
     public void ParseScalar_JsonTable_ShouldRemainUnsupported(int version)
     {
+        var db = Get(MariaDbDbVersions.Version10_5, v => new MariaDbDbMock(v));
         const string sql = "JSON_TABLE(payload, '$[*]' COLUMNS(x INT PATH '$'))";
-        var dialect = GetDialect(version, v => new MariaDbDialect(v));
+        var dialect = Get(version, v => new MariaDbDialect(v));
 
-        var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, dialect));
+        var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, db, dialect));
         Assert.Contains(SqlConst.JSON_TABLE, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -599,6 +626,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseSelect_FromJsonTable_ShouldCaptureColumnMetadata()
     {
+        var db = Get(MariaDbDbVersions.Version10_5, v => new MariaDbDbMock(v));
         const string sql = """
             SELECT jt.ord, jt.id, jt.name
             FROM JSON_TABLE(payload, '$[*]' COLUMNS(
@@ -608,7 +636,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             )) jt
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_6, v => new MariaDbDialect(v))));
         Assert.NotNull(parsed.Table);
         var source = parsed.Table;
         Assert.NotNull(source.JsonTableClause);
@@ -630,6 +658,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseSelect_FromCorrelatedJsonTable_ShouldCaptureOuterReference()
     {
+        var db = Get(MariaDbDbVersions.Version10_5, v => new MariaDbDbMock(v));
         const string sql = """
             SELECT o.Id, jt.tag
             FROM Orders o,
@@ -639,7 +668,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             ORDER BY o.Id, jt.tag
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_6, v => new MariaDbDialect(v))));
         Assert.Single(parsed.Joins);
 
         var joinSource = parsed.Joins[0].Table;
@@ -660,6 +689,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseSelect_FromCorrelatedJsonTable_WithNestedPath_ShouldCaptureNestedMetadata()
     {
+        var db = Get(MariaDbDbVersions.Version10_6, v => new MariaDbDbMock(v));
         const string sql = """
             SELECT o.Id, jt.tag_ord, jt.tag
             FROM Orders o,
@@ -673,7 +703,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             ORDER BY o.Id, jt.tag_ord
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_6, v => new MariaDbDialect(v))));
         var joinSource = Assert.Single(parsed.Joins).Table;
 
         Assert.NotNull(joinSource.JsonTableClause);
@@ -694,6 +724,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseSelect_FromCorrelatedJsonTable_WithNestedExistsPath_ShouldCaptureNestedExistsMetadata()
     {
+        var db = Get(MariaDbDbVersions.Version10_6, v => new MariaDbDbMock(v));
         const string sql = """
             SELECT o.Id, jt.item_id, jt.has_tag
             FROM Orders o,
@@ -706,7 +737,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             ORDER BY o.Id, jt.item_id
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_6, v => new MariaDbDialect(v))));
         var joinSource = Assert.Single(parsed.Joins).Table;
 
         Assert.NotNull(joinSource.JsonTableClause);
@@ -727,6 +758,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseSelect_FromCorrelatedJsonTable_WithNestedDefaultOnEmpty_ShouldCaptureFallbackMetadata()
     {
+        var db = Get(MariaDbDbVersions.Version10_6, v => new MariaDbDbMock(v));
         const string sql = """
             SELECT o.Id, jt.item_id, jt.tag_ord, jt.tag_name
             FROM Orders o,
@@ -740,7 +772,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             ORDER BY o.Id, jt.item_id, jt.tag_ord
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_6, v => new MariaDbDialect(v))));
         var joinSource = Assert.Single(parsed.Joins).Table;
 
         Assert.NotNull(joinSource.JsonTableClause);
@@ -764,6 +796,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseSelect_FromCorrelatedJsonTable_WithRootDefaultOnEmptyAndNestedPath_ShouldCaptureFallbackMetadata()
     {
+        var db = Get(MariaDbDbVersions.Version10_6, v => new MariaDbDbMock(v));
         const string sql = """
             SELECT o.Id, jt.item_id, jt.tag_ord, jt.tag_name
             FROM Orders o,
@@ -777,7 +810,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             ORDER BY o.Id, jt.item_id, jt.tag_ord
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_6, v => new MariaDbDialect(v))));
         var joinSource = Assert.Single(parsed.Joins).Table;
 
         Assert.NotNull(joinSource.JsonTableClause);
@@ -800,6 +833,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseSelect_FromCorrelatedJsonTable_WithRootOrdinalityAndExistsPath_ShouldCaptureMetadata()
     {
+        var db = Get(MariaDbDbVersions.Version10_6, v => new MariaDbDbMock(v));
         const string sql = """
             SELECT o.Id, jt.row_ord, jt.item_id, jt.has_tag
             FROM Orders o,
@@ -811,7 +845,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             ORDER BY o.Id, jt.row_ord
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_6, v => new MariaDbDialect(v))));
         var joinSource = Assert.Single(parsed.Joins).Table;
 
         Assert.NotNull(joinSource.JsonTableClause);
@@ -831,6 +865,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseSelect_FromCorrelatedJsonTable_WithStrictRowPathAndNestedFallbackBranches_ShouldCaptureMetadata()
     {
+        var db = Get(MariaDbDbVersions.Version10_6, v => new MariaDbDbMock(v));
         const string sql = """
             SELECT o.Id, jt.item_id, jt.tag_ord, jt.tag_name, jt.tag_value
             FROM Orders o,
@@ -848,7 +883,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             ORDER BY o.Id, jt.item_id
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_6, v => new MariaDbDialect(v))));
         var joinSource = Assert.Single(parsed.Joins).Table;
 
         Assert.NotNull(joinSource.JsonTableClause);
@@ -871,6 +906,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseSelect_FromCorrelatedJsonTable_WithNestedErrorOnEmpty_ShouldCaptureFallbackMetadata()
     {
+        var db = Get(MariaDbDbVersions.Version10_6, v => new MariaDbDbMock(v));
         const string sql = """
             SELECT o.Id, jt.item_id, jt.tag_name
             FROM Orders o,
@@ -883,7 +919,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             ORDER BY o.Id, jt.item_id
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_6, v => new MariaDbDialect(v))));
         var joinSource = Assert.Single(parsed.Joins).Table;
 
         Assert.NotNull(joinSource.JsonTableClause);
@@ -905,6 +941,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseSelect_FromCorrelatedJsonTable_WithNestedDefaultOnError_ShouldCaptureFallbackMetadata()
     {
+        var db = Get(MariaDbDbVersions.Version10_6, v => new MariaDbDbMock(v));
         const string sql = """
             SELECT o.Id, jt.item_id, jt.tag_ord, jt.tag_value
             FROM Orders o,
@@ -918,7 +955,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             ORDER BY o.Id, jt.item_id, jt.tag_ord
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_6, v => new MariaDbDialect(v))));
         var joinSource = Assert.Single(parsed.Joins).Table;
 
         Assert.NotNull(joinSource.JsonTableClause);
@@ -942,6 +979,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseSelect_FromCorrelatedJsonTable_WithNestedStrictPath_ShouldCaptureStrictMetadata()
     {
+        var db = Get(MariaDbDbVersions.Version10_6, v => new MariaDbDbMock(v));
         const string sql = """
             SELECT o.Id, jt.item_id, jt.tag_name
             FROM Orders o,
@@ -954,7 +992,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             ORDER BY o.Id, jt.item_id
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_6, v => new MariaDbDialect(v))));
         var joinSource = Assert.Single(parsed.Joins).Table;
 
         Assert.NotNull(joinSource.JsonTableClause);
@@ -973,6 +1011,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseSelect_FromCorrelatedJsonTable_WithStrictRowPath_ShouldCapturePath()
     {
+        var db = Get(MariaDbDbVersions.Version10_6, v => new MariaDbDbMock(v));
         const string sql = """
             SELECT o.Id, jt.item_id
             FROM Orders o,
@@ -982,7 +1021,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             ORDER BY o.Id
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_6, v => new MariaDbDialect(v))));
         var joinSource = Assert.Single(parsed.Joins).Table;
 
         Assert.NotNull(joinSource.JsonTableClause);
@@ -1002,6 +1041,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseSelect_FromCorrelatedJsonTable_WithSiblingNestedPaths_ShouldCaptureIndependentBranches()
     {
+        var db = Get(MariaDbDbVersions.Version10_6, v => new MariaDbDbMock(v));
         const string sql = """
             SELECT o.Id, jt.Size, jt.Color
             FROM Orders o,
@@ -1016,7 +1056,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             ORDER BY o.Id
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_6, v => new MariaDbDialect(v))));
         var joinSource = Assert.Single(parsed.Joins).Table;
 
         Assert.NotNull(joinSource.JsonTableClause);
@@ -1037,6 +1077,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseSelect_FromCorrelatedJsonTable_WithSiblingNestedPathsAndOrdinality_ShouldCaptureIndependentBranches()
     {
+        var db = Get(MariaDbDbVersions.Version10_6, v => new MariaDbDbMock(v));
         const string sql = """
             SELECT o.Id, jt.SizeOrd, jt.Size, jt.ColorOrd, jt.Color
             FROM Orders o,
@@ -1053,7 +1094,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             ORDER BY o.Id
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_6, v => new MariaDbDialect(v))));
         var joinSource = Assert.Single(parsed.Joins).Table;
 
         Assert.NotNull(joinSource.JsonTableClause);
@@ -1074,6 +1115,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseSelect_FromCorrelatedJsonTable_WithSiblingNestedExistsAndOrdinality_ShouldCaptureIndependentBranches()
     {
+        var db = Get(MariaDbDbVersions.Version10_6, v => new MariaDbDbMock(v));
         const string sql = """
             SELECT o.Id, jt.SizeOrd, jt.Size, jt.ColorOrd, jt.HasColor
             FROM Orders o,
@@ -1090,7 +1132,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             ORDER BY o.Id
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_6, v => new MariaDbDialect(v))));
         var joinSource = Assert.Single(parsed.Joins).Table;
 
         Assert.NotNull(joinSource.JsonTableClause);
@@ -1112,6 +1154,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseSelect_FromJsonTable_WithExistsPath_ShouldCaptureExistsMetadata()
     {
+        var db = Get(MariaDbDbVersions.Version10_6, v => new MariaDbDbMock(v));
         const string sql = """
             SELECT jt.has_email
             FROM JSON_TABLE(payload, '$[*]' COLUMNS(
@@ -1119,7 +1162,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             )) jt
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_6, v => new MariaDbDialect(v))));
         Assert.NotNull(parsed.Table);
         var source = parsed.Table;
         Assert.NotNull(source.JsonTableClause);
@@ -1139,6 +1182,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseSelect_FromJsonTable_WithNestedPath_ShouldCaptureNestedMetadata()
     {
+        var db = Get(MariaDbDbVersions.Version10_6, v => new MariaDbDbMock(v));
         const string sql = """
             SELECT jt.id, jt.tag_ord, jt.tag_name
             FROM JSON_TABLE(payload, '$[*]' COLUMNS(
@@ -1150,7 +1194,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             )) jt
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_6, v => new MariaDbDialect(v))));
         Assert.NotNull(parsed.Table);
         var source = parsed.Table;
         Assert.NotNull(source.JsonTableClause);
@@ -1174,6 +1218,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseSelect_FromJsonTable_WithNestedExistsPath_ShouldCaptureNestedExistsMetadata()
     {
+        var db = Get(MariaDbDbVersions.Version10_6, v => new MariaDbDbMock(v));
         const string sql = """
             SELECT jt.id, jt.has_tag
             FROM JSON_TABLE(payload, '$[*]' COLUMNS(
@@ -1184,7 +1229,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             )) jt
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_6, v => new MariaDbDialect(v))));
         Assert.NotNull(parsed.Table?.JsonTableClause);
         var clause = parsed.Table?.JsonTableClause!;
         var nested = Assert.Single(clause.NestedPaths);
@@ -1203,6 +1248,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseSelect_FromJsonTable_WithStrictRowPath_ShouldCapturePath()
     {
+        var db = Get(MariaDbDbVersions.Version10_6, v => new MariaDbDbMock(v));
         const string sql = """
             SELECT jt.id
             FROM JSON_TABLE(payload, 'strict $.items[*]' COLUMNS(
@@ -1210,7 +1256,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             )) jt
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_6, v => new MariaDbDialect(v))));
         Assert.NotNull(parsed.Table);
         var source = parsed.Table;
 
@@ -1227,6 +1273,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseSelect_FromJsonTable_WithStrictNestedPath_ShouldCapturePath()
     {
+        var db = Get(MariaDbDbVersions.Version10_6, v => new MariaDbDbMock(v));
         const string sql = """
             SELECT jt.id, jt.tag_name
             FROM JSON_TABLE(payload, '$[*]' COLUMNS(
@@ -1237,7 +1284,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             )) jt
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_6, v => new MariaDbDialect(v))));
         Assert.NotNull(parsed.Table?.JsonTableClause);
         var nested = Assert.Single(parsed.Table!.JsonTableClause!.NestedPaths);
         Assert.Equal("strict $.tags[*]", nested.Path);
@@ -1251,6 +1298,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseSelect_FromJsonTable_WithNestedFallbackClauses_ShouldCaptureFallbackMetadata()
     {
+        var db = Get(MariaDbDbVersions.Version10_6, v => new MariaDbDbMock(v));
         const string sql = """
             SELECT jt.id, jt.tag_name
             FROM JSON_TABLE(payload, '$[*]' COLUMNS(
@@ -1261,7 +1309,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             )) jt
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_6, v => new MariaDbDialect(v))));
         var nested = Assert.Single(parsed.Table!.JsonTableClause!.NestedPaths);
         var nestedColumn = Assert.Single(nested.Clause.Columns);
 
@@ -1277,6 +1325,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseSelect_FromJsonTable_WithNestedErrorClauses_ShouldCaptureFallbackMetadata()
     {
+        var db = Get(MariaDbDbVersions.Version10_6, v => new MariaDbDbMock(v));
         const string sql = """
             SELECT jt.id, jt.tag_value
             FROM JSON_TABLE(payload, '$[*]' COLUMNS(
@@ -1287,7 +1336,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             )) jt
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_6, v => new MariaDbDialect(v))));
         var nested = Assert.Single(parsed.Table!.JsonTableClause!.NestedPaths);
         var nestedColumn = Assert.Single(nested.Clause.Columns);
 
@@ -1303,6 +1352,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseSelect_FromJsonTable_WithNestedErrorOnError_ShouldCaptureFallbackMetadata()
     {
+        var db = Get(MariaDbDbVersions.Version10_6, v => new MariaDbDbMock(v));
         const string sql = """
             SELECT jt.id, jt.tag_value
             FROM JSON_TABLE(payload, '$[*]' COLUMNS(
@@ -1313,7 +1363,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             )) jt
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_6, v => new MariaDbDialect(v))));
         var nested = Assert.Single(parsed.Table!.JsonTableClause!.NestedPaths);
         var nestedColumn = Assert.Single(nested.Clause.Columns);
 
@@ -1329,6 +1379,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseSelect_FromJsonTable_WithNestedErrorOnEmpty_ShouldCaptureFallbackMetadata()
     {
+        var db = Get(MariaDbDbVersions.Version10_6, v => new MariaDbDbMock(v));
         const string sql = """
             SELECT jt.id, jt.tag_name
             FROM JSON_TABLE(payload, '$[*]' COLUMNS(
@@ -1339,7 +1390,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             )) jt
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_6, v => new MariaDbDialect(v))));
         var nested = Assert.Single(parsed.Table!.JsonTableClause!.NestedPaths);
         var nestedColumn = Assert.Single(nested.Clause.Columns);
 
@@ -1355,6 +1406,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseSelect_FromJsonTable_WithFallbackClauses_ShouldCaptureFallbackMetadata()
     {
+        var db = Get(MariaDbDbVersions.Version10_6, v => new MariaDbDbMock(v));
         const string sql = """
             SELECT jt.id, jt.title
             FROM JSON_TABLE(payload, '$[*]' COLUMNS(
@@ -1363,7 +1415,7 @@ public sealed class MariaDbDialectFeatureParserTests(
             )) jt
             """;
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_6)));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_6, v => new MariaDbDialect(v))));
         Assert.NotNull(parsed.Table?.JsonTableClause);
         var clause = parsed.Table?.JsonTableClause!;
 
@@ -1387,9 +1439,10 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void ParseSelect_FromJsonTable_BeforeGate_ShouldThrow()
     {
+        var db = Get(MariaDbDbVersions.Version10_6, v => new MariaDbDbMock(v));
         const string sql = "SELECT * FROM JSON_TABLE(payload, '$[*]' COLUMNS(id INT PATH '$.id')) jt";
 
-        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new MariaDbDialect(MariaDbDbVersions.Version10_5)));
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, Get(MariaDbDbVersions.Version10_5, v => new MariaDbDialect(v))));
 
         Assert.Contains(SqlConst.JSON_TABLE, ex.Message, StringComparison.OrdinalIgnoreCase);
     }

@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.Sqlite.Test.Parser;
 
 
@@ -46,7 +48,7 @@ public sealed class SqlQueryParserCorpusTests(
         {
             var sql = (string)row[0];
             var why = row.Length > 1 ? (string)row[1] : "valid statement";
-            var minVersion = 0;
+            var minVersion = row.Length > 3 && row[3] is int rowMinVersion ? rowMinVersion : 0;
             var expectation = why.StartsWith("invalid:", StringComparison.OrdinalIgnoreCase)
                 ? SqlCaseExpectation.ThrowInvalid
                 : SqlCaseExpectation.ParseOk;
@@ -54,8 +56,11 @@ public sealed class SqlQueryParserCorpusTests(
             var trimmed = sql.TrimStart();
             if (trimmed.StartsWith(SqlConst.MERGE, StringComparison.OrdinalIgnoreCase))
                 minVersion = SqliteDialect.MergeMinVersion;
-            else if (trimmed.Contains(SqlConst.WITH, StringComparison.OrdinalIgnoreCase))
+            else if (trimmed.Contains(SqlConst.WITH, StringComparison.OrdinalIgnoreCase) && minVersion == 0)
                 minVersion = SqliteDialect.WithCteMinVersion;
+            else if ((trimmed.Contains("->>", StringComparison.Ordinal) || trimmed.Contains("->", StringComparison.Ordinal))
+                && minVersion == 0)
+                minVersion = SqliteDialect.JsonArrowOperatorsMinVersion;
 
             yield return Case(sql, why, expectation, minVersion);
         }
@@ -65,6 +70,49 @@ public sealed class SqlQueryParserCorpusTests(
         yield return Case(
             "SELECT t10, t20 FROM (SELECT tenantid, id FROM users) src PIVOT (COUNT(id) FOR tenantid IN (10 AS t10, 20 AS t20)) p",
             "unsupported: PIVOT clause",
+            SqlCaseExpectation.ThrowNotSupported);
+        yield return Case(
+            "SELECT id FROM users WHERE FIND_IN_SET('b', tags)",
+            "unsupported: MySQL-only function in WHERE",
+            SqlCaseExpectation.ThrowNotSupported);
+        yield return Case(
+            "select * from users where a <=> b",
+            "unsupported: MySQL-only null-safe equality <=>",
+            SqlCaseExpectation.ThrowInvalid);
+        yield return Case(
+            @"INSERT INTO users (id, name)
+              SELECT id, name FROM users_tmp
+              ON DUPLICATE KEY UPDATE name = VALUES(name)",
+            "unsupported: MySQL-only ON DUPLICATE KEY UPDATE using VALUES",
+            SqlCaseExpectation.ThrowNotSupported);
+        yield return Case(
+            @"INSERT INTO users (id, name)
+              SELECT id, name FROM users_tmp
+              ON DUPLICATE KEY UPDATE name = 'fixed'",
+            "unsupported: MySQL-only ON DUPLICATE KEY UPDATE using literal",
+            SqlCaseExpectation.ThrowNotSupported);
+        yield return Case(
+            @"INSERT INTO users (id, name)
+              SELECT id, name FROM users_tmp
+              ON DUPLICATE KEY UPDATE name = @name",
+            "unsupported: MySQL-only ON DUPLICATE KEY UPDATE using parameter",
+            SqlCaseExpectation.ThrowNotSupported);
+        yield return Case(
+            @"INSERT INTO users (id, name)
+              SELECT id, name FROM users_tmp
+              WHERE active = 1
+              ON DUPLICATE KEY UPDATE
+                  name = VALUES(name),
+                  updated_at = NOW()",
+            "unsupported: MySQL-only ON DUPLICATE KEY UPDATE with WHERE and multi-column update",
+            SqlCaseExpectation.ThrowNotSupported);
+        yield return Case(
+            @"INSERT INTO stats (grp, total)
+              SELECT grp, SUM(val)
+              FROM t
+              GROUP BY grp
+              ON DUPLICATE KEY UPDATE total = VALUES(total)",
+            "unsupported: MySQL-only ON DUPLICATE KEY UPDATE aggregate",
             SqlCaseExpectation.ThrowNotSupported);
         // Inválidas (ThrowInvalid)
         foreach (var row in InvalidSelectStatements())
@@ -138,7 +186,7 @@ public sealed class SqlQueryParserCorpusTests(
         yield return new object[] { "SELECT id FROM users WHERE id IN (1,3)", "IN list (id)" };
         yield return new object[] { "SELECT * FROM t WHERE name LIKE 'a%'", "LIKE pattern prefix" };
         yield return new object[] { "SELECT id FROM users WHERE name LIKE '%oh%'", "LIKE pattern contains" };
-        yield return new object[] { "SELECT id FROM users WHERE FIND_IN_SET('b', tags)", "function call in WHERE" };
+        // MySQL-only functions are covered in provider-specific corpora.
 
         // SELECT list aliasing (including SQLite 'name `alias`' style)
         yield return new object[] { "SELECT name `User Name` FROM users", "alias without AS using backtick string" };
@@ -231,11 +279,10 @@ ORDER BY u.Id, o.Amount", "JOIN with derived subquery + ORDER BY multiple keys" 
 
         // JSON operators (parser support)
         yield return new object[] { "select json_extract(data, '$.name') from users", "JSON_EXTRACT function call" };
-        yield return new object[] { "select data->'$.name' from users", "SQLite JSON -> operator" };
-        yield return new object[] { "select data->>'$.name' from users", "SQLite JSON ->> operator" };
+        yield return new object[] { "select data->'$.name' from users", "SQLite JSON -> operator", SqlCaseExpectation.ParseOk, 338 };
+        yield return new object[] { "select data->>'$.name' from users", "SQLite JSON ->> operator", SqlCaseExpectation.ParseOk, 338 };
 
         // Regex / null-safe equality
-        yield return new object[] { "select * from users where a <=> b", "null-safe equality <=>" };
         yield return new object[] { "select * from users where name regexp '^[A-Z]+'", "REGEXP operator" };
         yield return new object[] { "select * from users where name not regexp '[0-9]'", "NOT REGEXP operator" };
 
@@ -397,46 +444,6 @@ WHERE dt.total >= 10;
             @"INSERT INTO t (a)
               SELECT 1",
             "INSERT INTO ... SELECT constant without FROM"
-        };
-
-        yield return new object[] {
-            @"INSERT INTO users (id, name)
-              SELECT id, name FROM users_tmp
-              ON DUPLICATE KEY UPDATE name = VALUES(name)",
-            "INSERT INTO ... SELECT with ON DUPLICATE KEY UPDATE using VALUES"
-        };
-
-        yield return new object[] {
-            @"INSERT INTO users (id, name)
-              SELECT id, name FROM users_tmp
-              ON DUPLICATE KEY UPDATE name = 'fixed'",
-            "INSERT INTO ... SELECT with ON DUPLICATE KEY UPDATE using literal"
-        };
-
-        yield return new object[] {
-            @"INSERT INTO users (id, name)
-              SELECT id, name FROM users_tmp
-              ON DUPLICATE KEY UPDATE name = @name",
-            "INSERT INTO ... SELECT with ON DUPLICATE KEY UPDATE using parameter"
-        };
-
-        yield return new object[] {
-            @"INSERT INTO users (id, name)
-              SELECT id, name FROM users_tmp
-              WHERE active = 1
-              ON DUPLICATE KEY UPDATE
-                  name = VALUES(name),
-                  updated_at = NOW()",
-            "INSERT INTO ... SELECT with WHERE and multi-column ON DUPLICATE"
-        };
-
-        yield return new object[] {
-            @"INSERT INTO stats (grp, total)
-              SELECT grp, SUM(val)
-              FROM t
-              GROUP BY grp
-              ON DUPLICATE KEY UPDATE total = VALUES(total)",
-            "INSERT INTO ... SELECT aggregate with ON DUPLICATE"
         };
 
         yield return new object[] {
@@ -642,19 +649,20 @@ select id
     [MemberDataSqliteVersion]
     public void Parse_ShouldHandle_MultiStatementStrings_BySplitting(int version)
     {
-        var d = GetDialect(version, v => new SqliteDialect(v));
+        var db = Get(version, v => new SqliteDbMock(v));
+        var d = Get(version, v => new SqliteDialect(v));
         const string multi = "SELECT 1; SELECT 2 FROM t WHERE id = 1; INSERT INTO t(id) VALUES(1);";
         var stmts = SqlStatementSplitter.SplitStatementsTopLevel(multi, d);
 
-        Assert.Equal(3, stmts.Count);
+        stmts.Should().HaveCount(3);
 
-        Assert.NotNull(SqlQueryParser.Parse(stmts[0], d));
-        Assert.NotNull(SqlQueryParser.Parse(stmts[1], d));
-        var q3 = SqlQueryParser.Parse(stmts[2], d);
-        Assert.NotNull(q3);
+        SqlQueryParser.Parse(stmts[0], db, d).Should().NotBeNull();
+        SqlQueryParser.Parse(stmts[1], db, d).Should().NotBeNull();
+        var q3 = SqlQueryParser.Parse(stmts[2], db, d);
+        q3.Should().NotBeNull();
 
         // exemplo (ajuste pro seu modelo):
-        Assert.True(q3 is SqlInsertQuery);
+        q3.Should().BeOfType<SqlInsertQuery>();
     }
 
     /// <summary>
@@ -666,6 +674,7 @@ select id
     [MemberDataBySqliteVersion(nameof(Statements))]
     public void Parse_Corpus(string sql, string why, SqlCaseExpectation expectation, int minVersion, int version)
     {
+        var db = Get(version, v => new SqliteDbMock(v));
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sql, nameof(sql));
 
         Console.WriteLine($"Version: {version}, MinVersion: {minVersion}");
@@ -673,7 +682,7 @@ select id
         Console.WriteLine("Query: @\"" + sql + "\"");
         ConsoleWriter.Flush();
 
-        var dialect = GetDialect(version, v => new SqliteDialect(v));
+        var dialect = Get(version, v => new SqliteDialect(v));
 
         // regra: se precisa de minVersion e versão atual é menor, então é NotSupported (não é inválido)
         if (minVersion > 0
@@ -685,26 +694,23 @@ select id
 #pragma warning disable CA1031 // Do not catch general exception types
         try
         {
-            var parsed = SqlQueryParser.ParseMulti(sql, dialect).ToList();
+            var parsed = SqlQueryParser.ParseMulti(sql, db, dialect).ToList();
 
-            Assert.True(expectation == SqlCaseExpectation.ParseOk,
-                $"Esperava {expectation} mas parseou.");
+            expectation.Should().Be(SqlCaseExpectation.ParseOk, $"Esperava {expectation} mas parseou.");
 
-            Assert.NotEmpty(parsed);
+            parsed.Should().NotBeEmpty();
             foreach (var q in parsed)
-                Assert.NotNull(q);
+                q.Should().NotBeNull();
         }
         catch (NotSupportedException e)
         {
             Console.WriteLine($"NotSupportedException: {e}");
-            Assert.True(expectation == SqlCaseExpectation.ThrowNotSupported,
-                $"Esperava {expectation} mas veio NotSupported.");
+            expectation.Should().Be(SqlCaseExpectation.ThrowNotSupported, $"Esperava {expectation} mas veio NotSupported.");
         }
         catch (Exception e)
         {
             Console.WriteLine($"Exception: {e}");
-            Assert.True(expectation == SqlCaseExpectation.ThrowInvalid,
-                $"Esperava {expectation} mas veio Exception.");
+            expectation.Should().Be(SqlCaseExpectation.ThrowInvalid, $"Esperava {expectation} mas veio Exception.");
         }
 #pragma warning restore CA1031 // Do not catch general exception types
     }

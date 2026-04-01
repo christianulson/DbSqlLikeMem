@@ -55,6 +55,8 @@ public sealed class SqlQueryParserCorpusTests(
                 minVersion = NpgsqlDialect.MergeMinVersion;
             else if (trimmed.Contains(SqlConst.WITH, StringComparison.OrdinalIgnoreCase))
                 minVersion = NpgsqlDialect.WithCteMinVersion;
+            if (ContainsJsonArrowOperators(sql))
+                minVersion = Math.Max(minVersion, NpgsqlDialect.JsonbMinVersion);
 
             yield return Case(sql, why, expectation, minVersion);
         }
@@ -74,6 +76,14 @@ public sealed class SqlQueryParserCorpusTests(
             "SELECT id FROM users WHERE FIND_IN_SET('b', tags)",
             "unsupported: FIND_IN_SET function",
             SqlCaseExpectation.ThrowNotSupported);
+        yield return Case(
+            "SELECT id, IF(email IS NULL, 'no', 'yes') AS flag FROM users ORDER BY id",
+            "unsupported: IF(cond, a, b)",
+            SqlCaseExpectation.ThrowNotSupported);
+        yield return Case(
+            "SELECT id, IIF(email IS NULL, 0, 1) AS hasEmail FROM users ORDER BY id",
+            "unsupported: IIF(cond,a,b)",
+            SqlCaseExpectation.ThrowNotSupported);
         // Inválidas (ThrowInvalid)
         foreach (var row in InvalidSelectStatements())
         {
@@ -84,6 +94,8 @@ public sealed class SqlQueryParserCorpusTests(
             var trimmed = sql.TrimStart();
             if (trimmed.Contains(SqlConst.WITH, StringComparison.OrdinalIgnoreCase))
                 minVersion = NpgsqlDialect.WithCteMinVersion;
+            if (ContainsJsonArrowOperators(sql))
+                minVersion = Math.Max(minVersion, NpgsqlDialect.JsonbMinVersion);
 
             yield return Case(sql, why, SqlCaseExpectation.ThrowInvalid, minVersion);
         }
@@ -98,6 +110,8 @@ public sealed class SqlQueryParserCorpusTests(
             var trimmed = sql.TrimStart();
             if (trimmed.Contains(SqlConst.WITH, StringComparison.OrdinalIgnoreCase))
                 minVersion = NpgsqlDialect.WithCteMinVersion;
+            if (ContainsJsonArrowOperators(sql))
+                minVersion = Math.Max(minVersion, NpgsqlDialect.JsonbMinVersion);
 
 
             yield return Case(sql, why, SqlCaseExpectation.ThrowInvalid, minVersion);
@@ -165,13 +179,11 @@ public sealed class SqlQueryParserCorpusTests(
         yield return new object[] { "SELECT id, id + 1 AS x FROM users ORDER BY x DESC", "ORDER BY select-item alias" };
         yield return new object[] { "SELECT id, name FROM users ORDER BY 2 ASC, 1 DESC", "ORDER BY ordinal positions" };
 
-        // CASE/COALESCE/CONCAT/IF/IFNULL/IIF
+        // CASE/COALESCE/CONCAT/IFNULL
         yield return new object[] { "SELECT id, CASE WHEN email IS NULL THEN 0 ELSE 1 END AS hasEmail FROM users ORDER BY id", "CASE WHEN expression" };
         yield return new object[] { "SELECT id, COALESCE(email, 'none') AS em FROM users ORDER BY id", "COALESCE function" };
         yield return new object[] { "SELECT id, CONCAT(name, '#', id) AS tag FROM users ORDER BY id", "CONCAT function with mixed args" };
-        yield return new object[] { "SELECT id, IF(email IS NULL, 'no', 'yes') AS flag FROM users ORDER BY id", "IF(cond, a, b)" };
         yield return new object[] { "SELECT id, COALESCE(email, 'none') AS em FROM users ORDER BY id", "IFNULL(a,b)" };
-        yield return new object[] { "SELECT id, IIF(email IS NULL, 0, 1) AS hasEmail FROM users ORDER BY id", "IIF(cond,a,b)" };
 
         // JOINs
         yield return new object[] { @"SELECT U.*, UT.TenantId 
@@ -623,15 +635,16 @@ select id
     [MemberDataNpgsqlVersion]
     public void Parse_ShouldHandle_MultiStatementStrings_BySplitting(int version)
     {
-        var d = GetDialect(version, v => new NpgsqlDialect(v));
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
         const string multi = "SELECT 1; SELECT 2 FROM t WHERE id = 1; INSERT INTO t(id) VALUES(1);";
         var stmts = SqlStatementSplitter.SplitStatementsTopLevel(multi, d);
 
         Assert.Equal(3, stmts.Count);
 
-        Assert.NotNull(SqlQueryParser.Parse(stmts[0], d));
-        Assert.NotNull(SqlQueryParser.Parse(stmts[1], d));
-        var q3 = SqlQueryParser.Parse(stmts[2], d);
+        Assert.NotNull(SqlQueryParser.Parse(stmts[0], db, d));
+        Assert.NotNull(SqlQueryParser.Parse(stmts[1], db, d));
+        var q3 = SqlQueryParser.Parse(stmts[2], db, d);
         Assert.NotNull(q3);
 
         // exemplo (ajuste pro seu modelo):
@@ -654,7 +667,8 @@ select id
         Console.WriteLine("Query: @\"" + sql + "\"");
         ConsoleWriter.Flush();
 
-        var dialect = GetDialect(version, v => new NpgsqlDialect(v));
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
 
         // regra: se precisa de minVersion e versão atual é menor, então é NotSupported (não é inválido)
         if (minVersion > 0
@@ -666,7 +680,7 @@ select id
 #pragma warning disable CA1031 // Do not catch general exception types
         try
         {
-            var parsed = SqlQueryParser.ParseMulti(sql, dialect).ToList();
+            var parsed = SqlQueryParser.ParseMulti(sql, db, d).ToList();
 
             Assert.True(expectation == SqlCaseExpectation.ParseOk,
                 $"Esperava {expectation} mas parseou. Why={why}. Version={version}");
@@ -689,5 +703,9 @@ select id
         }
 #pragma warning restore CA1031 // Do not catch general exception types
     }
+
+    private static bool ContainsJsonArrowOperators(string sql)
+        => sql.Contains("->", StringComparison.Ordinal)
+            || sql.Contains("#>", StringComparison.Ordinal);
 }
 

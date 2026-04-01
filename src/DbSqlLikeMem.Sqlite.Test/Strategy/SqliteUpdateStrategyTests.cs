@@ -1,4 +1,6 @@
-﻿namespace DbSqlLikeMem.Sqlite.Test.Strategy;
+using FluentAssertions;
+
+namespace DbSqlLikeMem.Sqlite.Test.Strategy;
 
 /// <summary>
 /// EN: Covers UPDATE execution scenarios in the Sqlite mock.
@@ -31,10 +33,10 @@ public sealed class SqliteUpdateStrategyTests(
         var rowsAffected = command.ExecuteNonQuery();
 
         // Assert
-        Assert.Equal(1, rowsAffected);
-        Assert.Single(table);
-        Assert.Equal("Jane Doe", table[0][1]);
-        Assert.Equal(1, connection.Metrics.Updates);
+        rowsAffected.Should().Be(1);
+        table.Should().ContainSingle();
+        table[0][1].Should().Be("Jane Doe");
+        connection.Metrics.Updates.Should().Be(1);
     }
 
     /// <summary>
@@ -57,10 +59,10 @@ public sealed class SqliteUpdateStrategyTests(
 
         var rowsAffected = command.ExecuteNonQuery();
 
-        Assert.Equal(0, rowsAffected);
-        Assert.Single(table);
-        Assert.Equal("John Doe", table[0][1]);
-        Assert.Equal(0, connection.Metrics.Updates);
+        rowsAffected.Should().Be(0);
+        table.Should().ContainSingle();
+        table[0][1].Should().Be("John Doe");
+        connection.Metrics.Updates.Should().Be(0);
     }
 
     /// <summary>
@@ -85,11 +87,11 @@ public sealed class SqliteUpdateStrategyTests(
 
         var rowsAffected = command.ExecuteNonQuery();
 
-        Assert.Equal(2, rowsAffected);
-        Assert.Equal("Z", table[0][1]);
-        Assert.Equal("Z", table[1][1]);
-        Assert.Equal("C", table[2][1]);
-        Assert.Equal(2, connection.Metrics.Updates);
+        rowsAffected.Should().Be(2);
+        table[0][1].Should().Be("Z");
+        table[1][1].Should().Be("Z");
+        table[2][1].Should().Be("C");
+        connection.Metrics.Updates.Should().Be(2);
     }
 
     /// <summary>
@@ -114,11 +116,11 @@ public sealed class SqliteUpdateStrategyTests(
 
         var rowsAffected = command.ExecuteNonQuery();
 
-        Assert.Equal(1, rowsAffected);
-        Assert.Equal("ok@ok.com", table[0][2]);
-        Assert.Equal("b@a.com", table[1][2]);
-        Assert.Equal("c@a.com", table[2][2]);
-        Assert.Equal(1, connection.Metrics.Updates);
+        rowsAffected.Should().Be(1);
+        table[0][2].Should().Be("ok@ok.com");
+        table[1][2].Should().Be("b@a.com");
+        table[2][2].Should().Be("c@a.com");
+        connection.Metrics.Updates.Should().Be(1);
     }
 
     /// <summary>
@@ -141,10 +143,10 @@ public sealed class SqliteUpdateStrategyTests(
 
         var rowsAffected = command.ExecuteNonQuery();
 
-        Assert.Equal(1, rowsAffected);
-        Assert.Equal("X", table[0][1]);
-        Assert.Equal("x@x.com", table[0][2]);
-        Assert.Equal(1, connection.Metrics.Updates);
+        rowsAffected.Should().Be(1);
+        table[0][1].Should().Be("X");
+        table[0][2].Should().Be("x@x.com");
+        connection.Metrics.Updates.Should().Be(1);
     }
 
     /// <summary>
@@ -167,9 +169,9 @@ public sealed class SqliteUpdateStrategyTests(
 
         var rowsAffected = command.ExecuteNonQuery();
 
-        Assert.Equal(1, rowsAffected);
-        Assert.Equal("Z", table[0][1]);
-        Assert.Equal(1, connection.Metrics.Updates);
+        rowsAffected.Should().Be(1);
+        table[0][1].Should().Be("Z");
+        connection.Metrics.Updates.Should().Be(1);
     }
 
     /// <summary>
@@ -194,9 +196,9 @@ public sealed class SqliteUpdateStrategyTests(
 
         var rowsAffected = command.ExecuteNonQuery();
 
-        Assert.Equal(1, rowsAffected);
-        Assert.Equal("Z", table[0][1]);
-        Assert.Equal(1, connection.Metrics.Updates);
+        rowsAffected.Should().Be(1);
+        table[0][1].Should().Be("Z");
+        connection.Metrics.Updates.Should().Be(1);
     }
 
     /// <summary>
@@ -214,8 +216,9 @@ public sealed class SqliteUpdateStrategyTests(
             CommandText = "UPDATE users SET name = 'Z' WHERE id = 1"
         };
 
-        var ex = Assert.ThrowsAny<Exception>(() => command.ExecuteNonQuery());
-        Assert.Contains("does not exist", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Action act = () => command.ExecuteNonQuery();
+        act.Should().Throw<Exception>()
+            .Which.Message.Should().Contain("does not exist");
     }
 
     /// <summary>
@@ -236,8 +239,9 @@ public sealed class SqliteUpdateStrategyTests(
             CommandText = "UPD users SET name = 'Z' WHERE id = 1"
         };
 
-        var ex = Assert.ThrowsAny<Exception>(() => command.ExecuteNonQuery());
-        Assert.Contains("upd", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Action act = () => command.ExecuteNonQuery();
+        act.Should().Throw<Exception>()
+            .Which.Message.Should().ContainEquivalentOf("upd");
     }
 
     /// <summary>
@@ -260,10 +264,10 @@ public sealed class SqliteUpdateStrategyTests(
 
         var rowsAffected = command.ExecuteNonQuery();
 
-        Assert.Equal(1, rowsAffected);
-        Assert.Equal(20, table[0][1]);    // base atualiza
-        Assert.Equal(999, table[0][2]);   // gen ignora (GetGenValue != null)
-        Assert.Equal(1, connection.Metrics.Updates);
+        rowsAffected.Should().Be(1);
+        table[0][1].Should().Be(20);    // base atualiza
+        table[0][2].Should().Be(999);   // gen ignora (GetGenValue != null)
+        connection.Metrics.Updates.Should().Be(1);
     }
 
     /// <summary>
@@ -291,10 +295,10 @@ public sealed class SqliteUpdateStrategyTests(
 
         var rowsAffected = command.ExecuteNonQuery();
 
-        Assert.Equal(1, rowsAffected);
-        Assert.Equal("John", table[0][1]);
-        Assert.Equal("Z", table[1][1]);
-        Assert.Equal(1, connection.Metrics.Updates);
+        rowsAffected.Should().Be(1);
+        table[0][1].Should().Be("John");
+        table[1][1].Should().Be("Z");
+        connection.Metrics.Updates.Should().Be(1);
     }
 
     // ============================================================
@@ -324,8 +328,9 @@ public sealed class SqliteUpdateStrategyTests(
             CommandText = "UPDATE users SET email = 'a@a.com', name = 'John' WHERE id = 2"
         };
 
-        var ex = Assert.ThrowsAny<SqliteMockException>(() => command.ExecuteNonQuery());
-        Assert.Contains(SqlExceptionMessages.DuplicateKey(string.Empty, string.Empty).Split('\'')[0].Trim(), ex.Message, StringComparison.OrdinalIgnoreCase);
+        Action act = () => command.ExecuteNonQuery();
+        act.Should().Throw<SqliteMockException>()
+            .Which.Message.Should().Contain(SqlExceptionMessages.DuplicateKey(string.Empty, string.Empty).Split('\'')[0].Trim());
     }
 
     // ---------------- helpers ----------------

@@ -17,9 +17,11 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseAlterTableAddBinaryColumn_ShouldPreserveSize(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
             "ALTER TABLE users ADD payload VARBINARY(16) NULL",
-            GetDialect(version, v => new Db2Dialect(v))));
+            db,
+            Get(version, v => new Db2Dialect(v))));
 
         Assert.Equal(DbType.Binary, parsed.ColumnType);
         Assert.Equal(16, parsed.Size);
@@ -35,9 +37,11 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseAlterTableAddDecimalColumn_ShouldPreservePrecisionAndScale(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
             "ALTER TABLE users ADD amount DECIMAL(10, 4) NOT NULL DEFAULT 0",
-            GetDialect(version, v => new Db2Dialect(v))));
+            db,
+            Get(version, v => new Db2Dialect(v))));
 
         Assert.Equal(DbType.Decimal, parsed.ColumnType);
         Assert.Equal(10, parsed.Size);
@@ -55,9 +59,11 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseAlterTableAddColumn_NotNullWithDefaultNull_ShouldReject(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "ALTER TABLE users ADD status VARCHAR(20) NOT NULL DEFAULT NULL",
-            GetDialect(version, v => new Db2Dialect(v))));
+            db,
+            Get(version, v => new Db2Dialect(v))));
 
         Assert.Contains("default null", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -71,9 +77,11 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseAlterTableAddColumn_WithTableAlias_ShouldReject(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "ALTER TABLE users u ADD age INT",
-            GetDialect(version, v => new Db2Dialect(v))));
+            db,
+            Get(version, v => new Db2Dialect(v))));
 
         Assert.Contains("alias", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -87,9 +95,11 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseAlterTableAddColumn_WithDerivedTable_ShouldReject(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "ALTER TABLE (SELECT * FROM users) u ADD age INT",
-            GetDialect(version, v => new Db2Dialect(v))));
+            db,
+            Get(version, v => new Db2Dialect(v))));
 
         Assert.Contains("concrete table name", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -104,10 +114,12 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseScalarFunctionDdlSubset_ShouldParse(int version)
     {
-        var dialect = GetDialect(version, v => new Db2Dialect(v));
+        var db = Get(version, v => new Db2DbMock(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
 
         var create = Assert.IsType<SqlCreateFunctionQuery>(SqlQueryParser.Parse(
             "CREATE FUNCTION fn_users(baseValue INT, incrementValue INT) RETURNS INT RETURN baseValue + incrementValue",
+            db,
             dialect));
 
         Assert.Equal("fn_users", create.Table?.Name, ignoreCase: true);
@@ -119,6 +131,7 @@ public sealed class Db2DialectFeatureParserTests(
 
         var drop = Assert.IsType<SqlDropFunctionQuery>(SqlQueryParser.Parse(
             "DROP FUNCTION IF EXISTS fn_users(INT, INT)",
+            db,
             dialect));
 
         Assert.True(drop.IfExists);
@@ -135,10 +148,11 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseCreateOrReplaceScalarFunctionDdlSubset_ShouldParse(int version)
     {
-        var dialect = GetDialect(version, v => new Db2Dialect(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
 
         var create = Assert.IsType<SqlCreateFunctionQuery>(SqlQueryParser.Parse(
             "CREATE OR REPLACE FUNCTION fn_users(baseValue INT, incrementValue INT) RETURNS INT RETURN baseValue + incrementValue",
+            new Db2DbMock(),
             dialect));
 
         Assert.True(create.OrReplace);
@@ -160,10 +174,11 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseCreateOrReplaceProcedureDdlSubset_ShouldParse(int version)
     {
-        var dialect = GetDialect(version, v => new Db2Dialect(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
 
         var create = Assert.IsType<SqlCreateProcedureQuery>(SqlQueryParser.Parse(
             "CREATE OR REPLACE PROCEDURE sp_echo(IN tenantId INT) BEGIN END",
+            new Db2DbMock(),
             dialect));
 
         Assert.True(create.OrReplace);
@@ -184,10 +199,11 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseCreateOrReplaceTriggerDdlSubset_ShouldParse(int version)
     {
-        var dialect = GetDialect(version, v => new Db2Dialect(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
 
         var create = Assert.IsType<SqlCreateTriggerQuery>(SqlQueryParser.Parse(
             "CREATE OR REPLACE TRIGGER trg_users_ai AFTER INSERT ON users BEGIN ATOMIC END",
+            new Db2DbMock(),
             dialect));
 
         Assert.True(create.OrReplace);
@@ -205,7 +221,7 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void LastFoundRowsCapability_ShouldExposeDb2Function(int version)
     {
-        var dialect = GetDialect(version, v => new Db2Dialect(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
 
         Assert.True(dialect.SupportsLastFoundRowsFunction("ROW_COUNT"));
         Assert.False(dialect.SupportsLastFoundRowsFunction("FOUND_ROWS"));
@@ -221,11 +237,12 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseScalar_LastFoundRowsFunctions_ShouldFollowDialectCapability(int version)
     {
-        var dialect = GetDialect(version, v => new Db2Dialect(v));
+        var db = Get(version, v => new Db2DbMock(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
 
-        Assert.Equal("ROW_COUNT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROW_COUNT()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ROW_COUNT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROW_COUNT()", db, dialect)).Name, StringComparer.OrdinalIgnoreCase);
 
-        var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("FOUND_ROWS()", dialect));
+        var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("FOUND_ROWS()", db, dialect));
         Assert.Contains("FOUND_ROWS", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -243,15 +260,16 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseSelect_WithRecursive_ShouldFollowDb2VersionSupport(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         var sql = "WITH RECURSIVE cte(n) AS (SELECT 1 FROM SYSIBM.SYSDUMMY1) SELECT n FROM cte";
 
         if (version < Db2Dialect.WithCteMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new Db2Dialect(v))));
+            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new Db2Dialect(v))));
             return;
         }
 
-        var parsed = SqlQueryParser.Parse(sql, GetDialect(version, v => new Db2Dialect(v)));
+        var parsed = SqlQueryParser.Parse(sql, db, Get(version, v => new Db2Dialect(v)));
         Assert.IsType<SqlSelectQuery>(parsed);
     }
 
@@ -269,9 +287,10 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseInsert_OnConflict_ShouldBeRejected(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         var sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING";
 
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new Db2Dialect(v))));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new Db2Dialect(v))));
 
         Assert.Contains(SqlConst.MERGE, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -286,15 +305,16 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseMerge_ShouldFollowDb2VersionSupport(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         const string sql = "MERGE INTO users target USING users src ON target.id = src.id WHEN MATCHED THEN UPDATE SET name = 'x'";
 
         if (version < Db2Dialect.MergeMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new Db2Dialect(v))));
+            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new Db2Dialect(v))));
             return;
         }
 
-        var parsed = Assert.IsType<SqlMergeQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new Db2Dialect(v))));
+        var parsed = Assert.IsType<SqlMergeQuery>(SqlQueryParser.Parse(sql, db, Get(version, v => new Db2Dialect(v))));
         Assert.NotNull(parsed.Table);
         Assert.Equal("users", parsed.Table!.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("target", parsed.Table.Alias, StringComparer.OrdinalIgnoreCase);
@@ -311,9 +331,10 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version(VersionGraterOrEqual = Db2Dialect.MergeMinVersion)]
     public void ParseMerge_WithWhenNotMatched_ShouldParse(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         const string sql = "MERGE INTO users target USING users src ON target.id = src.id WHEN NOT MATCHED THEN INSERT (id) VALUES (src.id)";
 
-        var query = Assert.IsType<SqlMergeQuery>(SqlQueryParser.Parse(sql, GetDialect(version, v => new Db2Dialect(v))));
+        var query = Assert.IsType<SqlMergeQuery>(SqlQueryParser.Parse(sql, db, Get(version, v => new Db2Dialect(v))));
 
         Assert.Equal("users", query.Table?.Name, ignoreCase: true);
     }
@@ -328,8 +349,9 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version(VersionGraterOrEqual = Db2Dialect.MergeMinVersion)]
     public void ParseMerge_WithoutUsing_ShouldProvideActionableMessage(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse("MERGE INTO users target ON target.id = 1 WHEN MATCHED THEN UPDATE SET name = 'x'", GetDialect(version, v => new Db2Dialect(v))));
+            SqlQueryParser.Parse("MERGE INTO users target ON target.id = 1 WHEN MATCHED THEN UPDATE SET name = 'x'", db, Get(version, v => new Db2Dialect(v))));
 
         Assert.Contains("MERGE requer cláusula USING", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -344,8 +366,9 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version(VersionGraterOrEqual = Db2Dialect.MergeMinVersion)]
     public void ParseMerge_WithoutOn_ShouldProvideActionableMessage(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse("MERGE INTO users target USING users src WHEN MATCHED THEN UPDATE SET name = 'x'", GetDialect(version, v => new Db2Dialect(v))));
+            SqlQueryParser.Parse("MERGE INTO users target USING users src WHEN MATCHED THEN UPDATE SET name = 'x'", db, Get(version, v => new Db2Dialect(v))));
 
         Assert.Contains("MERGE requer cláusula ON", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -360,9 +383,10 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version(VersionGraterOrEqual = Db2Dialect.MergeMinVersion)]
     public void ParseMerge_WithOnOnlyInsideUsingSubquery_ShouldProvideActionableMessage(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         const string sql = "MERGE INTO users target USING (SELECT id FROM users WHERE id IN (SELECT id FROM users WHERE id > 0)) src WHEN MATCHED THEN UPDATE SET name = 'x'";
 
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new Db2Dialect(v))));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new Db2Dialect(v))));
 
         Assert.Contains("MERGE requer cláusula ON", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -377,8 +401,9 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version(VersionGraterOrEqual = Db2Dialect.MergeMinVersion)]
     public void ParseMerge_WithoutWhen_ShouldProvideActionableMessage(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse("MERGE INTO users target USING users src ON target.id = src.id", GetDialect(version, v => new Db2Dialect(v))));
+            SqlQueryParser.Parse("MERGE INTO users target USING users src ON target.id = src.id", db, Get(version, v => new Db2Dialect(v))));
 
         Assert.Contains("MERGE requer ao menos uma cláusula WHEN", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -395,9 +420,10 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version(VersionGraterOrEqual = Db2Dialect.MergeMinVersion)]
     public void ParseMerge_WithUsingAliasNamedWhen_ShouldProvideActionableMessage(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         const string sql = "MERGE INTO users target USING users when ON target.id = when.id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new Db2Dialect(v))));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new Db2Dialect(v))));
 
         Assert.Contains("MERGE requer ao menos uma cláusula WHEN", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -412,9 +438,10 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version(VersionGraterOrEqual = Db2Dialect.MergeMinVersion)]
     public void ParseMerge_WithWhenOnlyInsideUsingSubquery_ShouldProvideActionableMessage(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         const string sql = "MERGE INTO users target USING (SELECT CASE WHEN id > 0 THEN id ELSE 0 END AS id FROM users) src ON target.id = src.id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new Db2Dialect(v))));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new Db2Dialect(v))));
 
         Assert.Contains("MERGE requer ao menos uma cláusula WHEN", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -430,9 +457,10 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version(VersionGraterOrEqual = Db2Dialect.MergeMinVersion)]
     public void ParseMerge_WithInvalidTopLevelWhenForm_ShouldProvideActionableMessage(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         const string sql = "MERGE INTO users target USING users src ON target.id = src.id WHEN src.id > 0 THEN UPDATE SET name = 'x'";
 
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new Db2Dialect(v))));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new Db2Dialect(v))));
 
         Assert.Contains("MERGE requer ao menos uma cláusula WHEN", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -447,17 +475,18 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseScalar_JsonQuery_ShouldFollowDb2VersionSupport(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         const string sql = "JSON_QUERY(payload, '$.profile')";
-        var dialect = GetDialect(version, v => new Db2Dialect(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
 
         if (version < Db2Dialect.JsonFunctionsMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, db, dialect));
             Assert.Contains("JSON_QUERY", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect));
+        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, db, dialect));
         Assert.Equal("JSON_QUERY", call.Name, StringComparer.OrdinalIgnoreCase);
     }
 
@@ -471,17 +500,18 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseScalar_JsonValue_ShouldFollowDb2VersionSupport(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         const string sql = "JSON_VALUE(payload, '$.profile.name')";
-        var dialect = GetDialect(version, v => new Db2Dialect(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
 
         if (version < Db2Dialect.JsonFunctionsMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, db, dialect));
             Assert.Contains("JSON_VALUE", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect));
+        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, db, dialect));
         Assert.Equal("JSON_VALUE", call.Name, StringComparer.OrdinalIgnoreCase);
     }
 
@@ -495,6 +525,7 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseSelect_FromJsonTable_ShouldFollowDb2VersionSupport(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         const string sql = """
             SELECT jt.ord, jt.id, jt.name
             FROM JSON_TABLE(payload, '$[*]' COLUMNS(
@@ -504,16 +535,16 @@ public sealed class Db2DialectFeatureParserTests(
             )) jt
             """;
 
-        var dialect = GetDialect(version, v => new Db2Dialect(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
 
         if (version < Db2Dialect.JsonFunctionsMinVersion)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, dialect));
             Assert.Contains(SqlConst.JSON_TABLE, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, dialect));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, dialect));
         Assert.NotNull(parsed.Table);
         Assert.Equal(SqlConst.JSON_TABLE, parsed.Table!.TableFunction?.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("jt", parsed.Table.Alias);
@@ -538,9 +569,10 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseSelect_WithMySqlIndexHints_ShouldBeRejected(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         var sql = "SELECT id FROM users USE INDEX (idx_users_id)";
 
-        Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new Db2Dialect(v))));
+        Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new Db2Dialect(v))));
     }
 
     /// <summary>
@@ -553,9 +585,10 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseSelect_WithSqlServerOptionHints_ShouldBeRejected(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         var sql = "SELECT id FROM users OPTION (MAXDOP 1)";
 
-        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new Db2Dialect(v))));
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new Db2Dialect(v))));
         Assert.Contains("OPTION(query hints)", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Use hints compatíveis", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -570,8 +603,9 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseSelect_WithBacktickQuotedAlias_ShouldProvideActionableMessage(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse("SELECT name `User Name` FROM users", GetDialect(version, v => new Db2Dialect(v))));
+            SqlQueryParser.Parse("SELECT name `User Name` FROM users", db, Get(version, v => new Db2Dialect(v))));
 
         Assert.Contains("alias/identificadores", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("'`'", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -587,8 +621,9 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseUnsupportedTopLevelStatement_ShouldUseActionableMessage(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse("UPSERT INTO users VALUES (1)", GetDialect(version, v => new Db2Dialect(v))));
+            SqlQueryParser.Parse("UPSERT INTO users VALUES (1)", db, Get(version, v => new Db2Dialect(v))));
 
         Assert.Contains("token inicial", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("SELECT/INSERT/UPDATE/DELETE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -605,9 +640,11 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseSelect_WithDoubleQuotedAlias_ShouldParseAndNormalizeAlias(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT name \"User Name\" FROM users",
-            GetDialect(version, v => new Db2Dialect(v))));
+            db,
+            Get(version, v => new Db2Dialect(v))));
 
         var item = Assert.Single(parsed.SelectItems);
         Assert.Equal("User Name", item.Alias);
@@ -623,9 +660,11 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseSelect_WithEscapedDoubleQuotedAlias_ShouldNormalizeEscapedQuote(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT name \"User\"\"Name\" FROM users",
-            GetDialect(version, v => new Db2Dialect(v))));
+            db,
+            Get(version, v => new Db2Dialect(v))));
 
         var item = Assert.Single(parsed.SelectItems);
         Assert.Equal("User\"Name", item.Alias);
@@ -640,8 +679,11 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseUnsupportedSql_ShouldUseStandardNotSupportedMessage(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse("SELECT id FROM users USE INDEX (idx_users_id)", GetDialect(version, v => new Db2Dialect(v))));
+            SqlQueryParser.Parse("SELECT id FROM users USE INDEX (idx_users_id)",
+            db,
+            Get(version, v => new Db2Dialect(v))));
 
         Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.Ordinal);
         Assert.Contains("db2", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -656,9 +698,12 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseSelect_UnionOrderBy_ShouldParseAsUnion(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         var sql = "SELECT id FROM users WHERE id = 1 UNION SELECT id FROM users WHERE id = 2 ORDER BY id";
 
-        var parsed = SqlQueryParser.Parse(sql, GetDialect(version, v => new Db2Dialect(v)));
+        var parsed = SqlQueryParser.Parse(sql,
+            db,
+            Get(version, v => new Db2Dialect(v)));
 
         var union = Assert.IsType<SqlUnionQuery>(parsed);
         Assert.Equal(2, union.Parts.Count);
@@ -675,15 +720,18 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseSelect_WithCteSimple_ShouldParse(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         var sql = "WITH u AS (SELECT id FROM users) SELECT id FROM u";
 
         if (version < Db2Dialect.WithCteMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new Db2Dialect(v))));
+            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql,
+                db, Get(version, v => new Db2Dialect(v))));
             return;
         }
 
-        var parsed = SqlQueryParser.Parse(sql, GetDialect(version, v => new Db2Dialect(v)));
+        var parsed = SqlQueryParser.Parse(sql,
+            db, Get(version, v => new Db2Dialect(v)));
         Assert.IsType<SqlSelectQuery>(parsed);
     }
 
@@ -696,9 +744,17 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseSelect_WithOffsetFetch_ShouldParse(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         var sql = "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY";
+        var dialect = Get(version, v => new Db2Dialect(v));
 
-        var parsed = SqlQueryParser.Parse(sql, GetDialect(version, v => new Db2Dialect(v)));
+        if (version < Db2Dialect.OffsetFetchMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, dialect));
+            return;
+        }
+
+        var parsed = SqlQueryParser.Parse(sql, db, dialect);
         Assert.IsType<SqlSelectQuery>(parsed);
     }
 
@@ -712,13 +768,26 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseSelect_PaginationSyntaxes_ShouldNormalizeRowLimitAst(int version)
     {
-        var dialect = GetDialect(version, v => new Db2Dialect(v));
+        var db = Get(version, v => new Db2DbMock(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
 
         var limitOffset = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT id FROM users ORDER BY id LIMIT 2 OFFSET 1",
+            db,
             dialect));
+
+        if (version < Db2Dialect.OffsetFetchMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
+                "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY",
+                db,
+                dialect));
+            return;
+        }
+
         var offsetFetch = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY",
+            db,
             dialect));
 
         var normalizedLimit = Assert.IsType<SqlLimitOffset>(limitOffset.RowLimit);
@@ -739,9 +808,12 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseSelect_WithPivot_ShouldBeRejectedWithDialectMessage(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         var sql = "SELECT t10 FROM (SELECT tenantid, id FROM users) src PIVOT (COUNT(id) FOR tenantid IN (10 AS t10)) p";
 
-        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, GetDialect(version, v => new Db2Dialect(v))));
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql,
+            db,
+            Get(version, v => new Db2Dialect(v))));
 
         Assert.Contains(SqlConst.PIVOT, ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("db2", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -759,8 +831,11 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseDelete_WithoutFrom_ShouldProvideActionableMessage(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse("DELETE users WHERE id = 1", GetDialect(version, v => new Db2Dialect(v))));
+            SqlQueryParser.Parse("DELETE users WHERE id = 1",
+            db,
+            Get(version, v => new Db2Dialect(v))));
 
         Assert.Contains("DELETE FROM", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -775,8 +850,11 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseDelete_TargetAliasBeforeFrom_ShouldProvideActionableMessage(int version)
     {
+        var db = Get(version, v => new Db2DbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlQueryParser.Parse("DELETE u FROM users u", GetDialect(version, v => new Db2Dialect(v))));
+            SqlQueryParser.Parse("DELETE u FROM users u",
+            db,
+            Get(version, v => new Db2Dialect(v))));
 
         Assert.Contains("DELETE FROM", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -791,7 +869,7 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void RuntimeDialectRules_ShouldRemainStable(int version)
     {
-        var d = GetDialect(version, v => new Db2Dialect(v));
+        var d = Get(version, v => new Db2Dialect(v));
 
         Assert.True(d.AreUnionColumnTypesCompatible(DbType.Int32, DbType.Decimal));
         Assert.True(d.AreUnionColumnTypesCompatible(DbType.String, DbType.AnsiString));
@@ -813,7 +891,7 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void WindowFunctionCapability_ShouldAllowKnownAndRejectUnknownFunctions(int version)
     {
-        var dialect = GetDialect(version, v => new Db2Dialect(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
 
         Assert.True(dialect.SupportsWindowFunction("ROW_NUMBER"));
         Assert.True(dialect.SupportsWindowFunction("CUME_DIST"));
@@ -829,11 +907,12 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseScalar_WindowFunctionName_ShouldAllowKnownAndRejectUnknown(int version)
     {
-        var dialect = GetDialect(version, v => new Db2Dialect(v));
+        var db = Get(version, v => new Db2DbMock(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
 
-        var expr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id)", dialect);
+        var expr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id)", db, dialect);
         Assert.IsType<WindowFunctionExpr>(expr);
-        Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("PERCENTILE_CONT(0.5) OVER (ORDER BY id)", dialect));
+        Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("PERCENTILE_CONT(0.5) OVER (ORDER BY id)", db, dialect));
     }
 
 
@@ -846,10 +925,11 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseScalar_WindowFunctionWithoutOrderBy_ShouldRespectDialectRules(int version)
     {
-        var dialect = GetDialect(version, v => new Db2Dialect(v));
+        var db = Get(version, v => new Db2DbMock(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER ()", dialect));
+            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER ()", db, dialect));
 
         Assert.Contains("requires ORDER BY", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -864,18 +944,19 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseScalar_WindowFunctionArguments_ShouldValidateArity(int version)
     {
-        var dialect = GetDialect(version, v => new Db2Dialect(v));
+        var db = Get(version, v => new Db2DbMock(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
 
         var exRowNumber = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("ROW_NUMBER(1) OVER (ORDER BY id)", dialect));
+            SqlExpressionParser.ParseScalar("ROW_NUMBER(1) OVER (ORDER BY id)", db, dialect));
         Assert.Contains("does not accept arguments", exRowNumber.Message, StringComparison.OrdinalIgnoreCase);
 
         var exNtile = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("NTILE() OVER (ORDER BY id)", dialect));
+            SqlExpressionParser.ParseScalar("NTILE() OVER (ORDER BY id)", db, dialect));
         Assert.Contains("exactly 1 argument", exNtile.Message, StringComparison.OrdinalIgnoreCase);
 
         var exLag = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("LAG(id, 1, 0, 99) OVER (ORDER BY id)", dialect));
+            SqlExpressionParser.ParseScalar("LAG(id, 1, 0, 99) OVER (ORDER BY id)", db, dialect));
         Assert.Contains("between 1 and 3 arguments", exLag.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -889,18 +970,19 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseScalar_WindowFunctionLiteralArguments_ShouldValidateSemanticRange(int version)
     {
-        var dialect = GetDialect(version, v => new Db2Dialect(v));
+        var db = Get(version, v => new Db2DbMock(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
 
         var exNtile = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("NTILE(0) OVER (ORDER BY id)", dialect));
-        Assert.Contains("positive bucket count", exNtile.Message, StringComparison.OrdinalIgnoreCase);
+            SqlExpressionParser.ParseScalar("NTILE(0) OVER (ORDER BY id)", db, dialect));
+        Assert.Contains("positive integer literal", exNtile.Message, StringComparison.OrdinalIgnoreCase);
 
         var exLag = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("LAG(id, -1, 0) OVER (ORDER BY id)", dialect));
-        Assert.Contains("non-negative offset", exLag.Message, StringComparison.OrdinalIgnoreCase);
+            SqlExpressionParser.ParseScalar("LAG(id, -1, 0) OVER (ORDER BY id)", db, dialect));
+        Assert.Contains("offset must be non-negative", exLag.Message, StringComparison.OrdinalIgnoreCase);
 
         var exNthValue = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("NTH_VALUE(id, 0) OVER (ORDER BY id)", dialect));
+            SqlExpressionParser.ParseScalar("NTH_VALUE(id, 0) OVER (ORDER BY id)", db, dialect));
         Assert.Contains("greater than zero", exNthValue.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -913,7 +995,7 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void WindowFunctionOrderByRequirementHook_ShouldRespectVersion(int version)
     {
-        var dialect = GetDialect(version, v => new Db2Dialect(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
 
         Assert.True(dialect.RequiresOrderByInWindowFunction("ROW_NUMBER"));
         Assert.True(dialect.RequiresOrderByInWindowFunction("LAG"));
@@ -931,7 +1013,7 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void WindowFunctionArgumentArityHook_ShouldRespectVersion(int version)
     {
-        var dialect = GetDialect(version, v => new Db2Dialect(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
 
         Assert.True(dialect.TryGetWindowFunctionArgumentArity("ROW_NUMBER", out var rnMin, out var rnMax));
         Assert.Equal(0, rnMin);
@@ -941,7 +1023,9 @@ public sealed class Db2DialectFeatureParserTests(
         Assert.Equal(1, lagMin);
         Assert.Equal(3, lagMax);
 
-        Assert.False(dialect.TryGetWindowFunctionArgumentArity(SqlConst.COUNT, out _, out _));
+        Assert.True(dialect.TryGetWindowFunctionArgumentArity(SqlConst.COUNT, out var countMin, out var countMax));
+        Assert.Equal(1, countMin);
+        Assert.Equal(1, countMax);
     }
 
 
@@ -954,21 +1038,22 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseScalar_WindowFrameClause_ShouldRespectDialectCapabilities(int version)
     {
-        var dialect = GetDialect(version, v => new Db2Dialect(v));
+        var db = Get(version, v => new Db2DbMock(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
 
         if (version < Db2Dialect.WindowFunctionsMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect));
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, dialect));
             return;
         }
 
-        var rowsExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
+        var rowsExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, dialect);
         Assert.IsType<WindowFunctionExpr>(rowsExpr);
 
-        var rangeExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
+        var rangeExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, dialect);
         Assert.IsType<WindowFunctionExpr>(rangeExpr);
 
-        var groupsExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id GROUPS BETWEEN 1 PRECEDING AND CURRENT ROW)", dialect);
+        var groupsExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id GROUPS BETWEEN 1 PRECEDING AND CURRENT ROW)", db, dialect);
         Assert.IsType<WindowFunctionExpr>(groupsExpr);
     }
 
@@ -981,9 +1066,9 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseScalar_ListAggWithinGroup_ShouldParse(int version)
     {
-        var dialect = GetDialect(version, v => new Db2Dialect(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
 
-        var expr = SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect);
+        var expr = SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", new Db2DbMock(), dialect);
         var call = Assert.IsType<CallExpr>(expr);
 
         Assert.Equal(SqlConst.LISTAGG, call.Name, StringComparer.OrdinalIgnoreCase);
@@ -1001,10 +1086,10 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseScalar_StringAggWithinGroup_ShouldThrowNotSupported(int version)
     {
-        var dialect = GetDialect(version, v => new Db2Dialect(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
 
         var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", new Db2DbMock(), dialect));
 
         Assert.Contains("SQL não suportado", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1018,10 +1103,10 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseScalar_ListAggWithinGroupWithoutOrderBy_ShouldThrowActionableError(int version)
     {
-        var dialect = GetDialect(version, v => new Db2Dialect(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (amount DESC)", dialect));
+            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (amount DESC)", new Db2DbMock(), dialect));
 
         Assert.Contains("WITHIN GROUP requires ORDER BY", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1035,10 +1120,10 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseScalar_WithinGroupOrderByTrailingComma_ShouldThrowActionableError(int version)
     {
-        var dialect = GetDialect(version, v => new Db2Dialect(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC,)", dialect));
+            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC,)", new Db2DbMock(), dialect));
 
         Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1052,10 +1137,10 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseScalar_WithinGroupOrderByEmptyList_ShouldThrowActionableError(int version)
     {
-        var dialect = GetDialect(version, v => new Db2Dialect(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY)", dialect));
+            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY)", new Db2DbMock(), dialect));
 
         Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1069,10 +1154,10 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseScalar_WithinGroupOrderByLeadingComma_ShouldThrowActionableError(int version)
     {
-        var dialect = GetDialect(version, v => new Db2Dialect(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY, amount DESC)", dialect));
+            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY, amount DESC)", new Db2DbMock(), dialect));
 
         Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1087,10 +1172,10 @@ public sealed class Db2DialectFeatureParserTests(
     [MemberDataDb2Version]
     public void ParseScalar_WithinGroupOrderByMissingCommaBetweenExpressions_ShouldThrowActionableError(int version)
     {
-        var dialect = GetDialect(version, v => new Db2Dialect(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC id ASC)", dialect));
+            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC id ASC)", new Db2DbMock(), dialect));
 
         Assert.Contains("requires commas", ex.Message, StringComparison.OrdinalIgnoreCase);
     }

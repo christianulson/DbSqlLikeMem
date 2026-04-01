@@ -49,7 +49,7 @@ public abstract class SchemaMock
                 Procedures.Add(it.Name.NormalizeName(), it);
         if (views != null)
             foreach (var it in views)
-                Views.Add(it.Key, ((SqlCreateViewQuery)SqlQueryParser.Parse(it.Value, db.Dialect)).Select);
+                Views.Add(it.Key, ((SqlCreateViewQuery)SqlQueryParser.Parse(it.Value, db, db.Dialect)).Select);
     }
 
     /// <summary>
@@ -149,10 +149,17 @@ public abstract class SchemaMock
         ArgumentNullExceptionCompatible.ThrowIfNull(function, nameof(function));
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(function.Name, nameof(function.Name));
 
-        if (Functions.ContainsKey(function.Name) && !orReplace)
-            throw new InvalidOperationException($"Function '{function.Name}' already exists.");
+        var normalized = function.Name.NormalizeName();
+        if (Functions.ContainsKey(normalized))
+        {
+            if (!orReplace)
+                throw new InvalidOperationException($"Function '{function.Name}' already exists.");
 
-        Functions.Add(function.Name, function);
+            Functions[normalized] = function;
+            return;
+        }
+
+        Functions.Add(normalized, function);
     }
 
     internal void DropFunction(

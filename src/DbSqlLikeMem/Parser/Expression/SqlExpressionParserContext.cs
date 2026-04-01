@@ -2,50 +2,45 @@ namespace DbSqlLikeMem;
 
 internal sealed class SqlExpressionParserContext
 {
-    private readonly IReadOnlyList<SqlToken> _toks;
-    private readonly ISqlDialect _dialect;
-    private readonly IDataParameterCollection? _parameters;
-    private readonly Func<string, bool>? _customFunctionSupported;
-    private int _i;
-
     internal SqlExpressionParserContext(
         IReadOnlyList<SqlToken> toks,
+        DbMock db,
         ISqlDialect dialect,
         IDataParameterCollection? parameters,
         Func<string, bool>? customFunctionSupported)
     {
-        _toks = toks ?? throw new ArgumentNullException(nameof(toks));
-        _dialect = dialect ?? throw new ArgumentNullException(nameof(dialect));
-        _parameters = parameters;
-        _customFunctionSupported = customFunctionSupported;
+        Toks = toks ?? throw new ArgumentNullException(nameof(toks));
+        Db = db ?? throw new ArgumentNullException(nameof(db));
+        Dialect = dialect ?? throw new ArgumentNullException(nameof(dialect));
+        Parameters = parameters;
+        CustomFunctionSupported = customFunctionSupported;
     }
-    internal IReadOnlyList<SqlToken> Toks => _toks;
 
-    internal ISqlDialect Dialect => _dialect;
+    internal IReadOnlyList<SqlToken> Toks { get; }
 
-    internal IDataParameterCollection? Parameters => _parameters;
+    public DbMock Db { get; }
 
-    internal Func<string, bool>? CustomFunctionSupported => _customFunctionSupported;
+    internal ISqlDialect Dialect { get; }
 
-    internal int Index
-    {
-        get => _i;
-        set => _i = value;
-    }
+    internal IDataParameterCollection? Parameters { get; }
+
+    internal Func<string, bool>? CustomFunctionSupported { get; }
+
+    internal int Index { get; set; }
 
     internal SqlToken Peek(int offset = 0)
     {
-        var idx = _i + offset;
+        var idx = Index + offset;
         if (idx < 0)
             idx = 0;
 
-        return idx < _toks.Count ? _toks[idx] : SqlToken.EOF;
+        return idx < Toks.Count ? Toks[idx] : SqlToken.EOF;
     }
 
     internal SqlToken PeekTokenFrom(int index)
-        => (index >= 0 && index < _toks.Count) ? _toks[index] : SqlToken.EOF;
+        => (index >= 0 && index < Toks.Count) ? Toks[index] : SqlToken.EOF;
 
-    internal SqlToken Consume() => _toks[_i++];
+    internal SqlToken Consume() => Toks[Index++];
 
     internal static bool IsEnd(SqlToken t) => t.Kind == SqlTokenKind.EndOfFile;
 
@@ -111,7 +106,7 @@ internal sealed class SqlExpressionParserContext
 
         string EscapeStringLiteral(string value)
         {
-            if (_dialect.StringEscapeStyle == SqlStringEscapeStyle.backslash)
+            if (Dialect.StringEscapeStyle == SqlStringEscapeStyle.backslash)
             {
                 return value
                     .Replace("\\", "\\\\")
@@ -198,6 +193,45 @@ internal sealed class SqlExpressionParserContext
 
         return tokens;
     }
+
+    internal IReadOnlyList<SqlToken> ReadTokensUntilTopLevelStop(params string[] stopWords)
+    {
+        var tokens = new List<SqlToken>();
+        var depth = 0;
+        var caseDepth = 0;
+
+        while (!IsEnd(Peek()))
+        {
+            var token = Peek();
+
+            if (depth == 0)
+            {
+                if (IsKeywordOrIdentifierWord(token, "CASE"))
+                {
+                    caseDepth++;
+                }
+                else if (caseDepth > 0 && IsKeywordOrIdentifierWord(token, SqlConst.END))
+                {
+                    caseDepth--;
+                }
+
+                if (caseDepth == 0 && stopWords.Any(word => IsKeywordOrIdentifierWord(token, word)))
+                    break;
+            }
+
+            if (IsSymbol(token, "("))
+                depth++;
+            else if (IsSymbol(token, ")"))
+                depth = Math.Max(0, depth - 1);
+
+            tokens.Add(Consume());
+        }
+
+        return tokens;
+    }
+
+    internal string ReadClauseTextUntilTopLevelStop(params string[] stopWords)
+        => TokensToSql(ReadTokensUntilTopLevelStop(stopWords));
 
     public NotSupportedException NotSupported(string feature)
         => Dialect.NotSupported(feature);

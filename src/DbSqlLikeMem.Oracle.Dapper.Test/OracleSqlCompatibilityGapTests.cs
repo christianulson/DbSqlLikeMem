@@ -112,9 +112,10 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
     [Trait("Category", "OracleSqlCompatibilityGap")]
     public void Select_Expressions_IF_ShouldWork()
     {
-        // MySQL: IF(cond, then, else)
-        var rows = _cnn.Query<dynamic>("SELECT id, IF(email IS NULL, 'no', 'yes') AS flag FROM users ORDER BY id").ToList();
-        Assert.Equal(["yes", "no", "yes"], [.. rows.Select(r => (string)r.flag)]);
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            _cnn.Query<dynamic>("SELECT id, IF(email IS NULL, 'no', 'yes') AS flag FROM users ORDER BY id").ToList());
+
+        Assert.Contains("IF", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -125,9 +126,10 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
     [Trait("Category", "OracleSqlCompatibilityGap")]
     public void Select_Expressions_IIF_ShouldWork_AsAliasForIF()
     {
-        // Not native MySQL, but requested as convenience.
-        var rows = _cnn.Query<dynamic>("SELECT id, IIF(email IS NULL, 0, 1) AS hasEmail FROM users ORDER BY id").ToList();
-        Assert.Equal([1, 0, 1], [.. rows.Select(r => (int)r.hasEmail)]);
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            _cnn.Query<dynamic>("SELECT id, IIF(email IS NULL, 0, 1) AS hasEmail FROM users ORDER BY id").ToList());
+
+        Assert.Contains("IIF", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

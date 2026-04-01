@@ -48,7 +48,7 @@ public abstract class CrudTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunUpdateDeleteRoundTrip(tableName);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -95,7 +95,7 @@ public abstract class CrudTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = serviceTestContainer.RunTransactionalUpdateDeleteCommit(tableName);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -143,7 +143,7 @@ public abstract class CrudTestsBase<T, T2>(
                 updatedAt,
                 "{\"theme\":\"dark\"}",
                 2);
-            Assert.Equal(2, resultMock);
+            resultMock.Should().Be(2);
 
             if (IsInsertContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -168,7 +168,7 @@ public abstract class CrudTestsBase<T, T2>(
                         updatedAt,
                         "{\"theme\":\"dark\"}",
                         2);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -224,7 +224,7 @@ public abstract class CrudTestsBase<T, T2>(
                 updatedAt2,
                 "{\"theme\":\"dark\"}",
                 "{\"theme\":\"light\"}");
-            Assert.Equal(2, resultMock);
+            resultMock.Should().Be(2);
 
             if (IsInsertContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -254,7 +254,7 @@ public abstract class CrudTestsBase<T, T2>(
                         updatedAt2,
                         "{\"theme\":\"dark\"}",
                         "{\"theme\":\"light\"}");
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -299,7 +299,7 @@ public abstract class CrudTestsBase<T, T2>(
                 createdAt,
                 (DateTime?)null,
                 (string?)null);
-            Assert.Equal(1, resultMock);
+            resultMock.Should().Be(1);
 
             if (IsInsertContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -321,7 +321,7 @@ public abstract class CrudTestsBase<T, T2>(
                         createdAt,
                         (DateTime?)null,
                         (string?)null);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -365,7 +365,7 @@ public abstract class CrudTestsBase<T, T2>(
                 "bob@example.com",
                 createdAt1,
                 createdAt2);
-            Assert.Equal(2, resultMock);
+            resultMock.Should().Be(2);
 
             if (IsInsertContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -385,7 +385,7 @@ public abstract class CrudTestsBase<T, T2>(
                         "bob@example.com",
                         createdAt1,
                         createdAt2);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -429,7 +429,7 @@ public abstract class CrudTestsBase<T, T2>(
                 "bob@example.com",
                 createdAt1,
                 createdAt2);
-            Assert.Equal(0, resultMock);
+            resultMock.Should().Be(0);
 
             if (IsInsertContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -449,7 +449,7 @@ public abstract class CrudTestsBase<T, T2>(
                         "bob@example.com",
                         createdAt1,
                         createdAt2);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {

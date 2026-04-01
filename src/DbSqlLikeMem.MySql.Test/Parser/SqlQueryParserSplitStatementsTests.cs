@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.MySql.Test.Parser;
 
 /// <summary>
@@ -17,14 +19,14 @@ public sealed class SqlQueryParserSplitStatementsTests(
     [MemberDataMySqlVersion]
     public void SplitStatementsTopLevel_ShouldIgnoreSemicolonsInsideNestedContexts(int version)
     {
-        var dialect = GetDialect(version, v => new MySqlDialect(v));
+        var dialect = Get(version, v => new MySqlDialect(v));
         var sql = "SELECT ';' AS txt, CONCAT('a;', 'b') AS c FROM `semi;table`; SELECT 2;";
 
         var parts = SqlStatementSplitter.SplitStatementsTopLevel(sql, dialect);
 
-        Assert.Equal(2, parts.Count);
-        Assert.Equal("SELECT ';' AS txt, CONCAT('a;', 'b') AS c FROM `semi;table`", parts[0]);
-        Assert.Equal("SELECT 2", parts[1]);
+        parts.Should().HaveCount(2);
+        parts[0].Should().Be("SELECT ';' AS txt, CONCAT('a;', 'b') AS c FROM `semi;table`");
+        parts[1].Should().Be("SELECT 2");
     }
 
     /// <summary>
@@ -36,18 +38,19 @@ public sealed class SqlQueryParserSplitStatementsTests(
     [MemberDataMySqlVersion]
     public void ParseInsertSelectWithOnDuplicate_ShouldRemainSingleStatement(int version)
     {
-        var dialect = GetDialect(version, v => new MySqlDialect(v));
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
         var sql = "INSERT INTO users (Id, Name)\n"
                 + "SELECT Id, Name FROM users_archive\n"
                 + "ON DUPLICATE KEY UPDATE Name = VALUES(Name);\n"
                 + "SELECT COUNT(*) FROM users;";
 
-        var parts = SqlStatementSplitter.SplitStatementsTopLevel(sql, dialect);
+        var parts = SqlStatementSplitter.SplitStatementsTopLevel(sql, d);
 
-        Assert.Equal(2, parts.Count);
-        var insertAst = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(parts[0], dialect));
+        parts.Should().HaveCount(2);
+        var insertAst = SqlQueryParser.Parse(parts[0], db, d).Should().BeOfType<SqlInsertQuery>().Which;
 
-        Assert.NotNull(insertAst.InsertSelect);
-        Assert.True(insertAst.HasOnDuplicateKeyUpdate);
+        insertAst.InsertSelect.Should().NotBeNull();
+        insertAst.HasOnDuplicateKeyUpdate.Should().BeTrue();
     }
 }

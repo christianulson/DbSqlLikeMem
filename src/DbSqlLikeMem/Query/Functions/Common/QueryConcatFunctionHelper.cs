@@ -8,10 +8,11 @@ internal static class QueryConcatFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (context.TryEvalConcatFunction(fn, evalArg, out result))
-            return true;
+        if (fn.Name.Equals("CONCAT_WS", StringComparison.OrdinalIgnoreCase))
+            return TryEvalConcatWithSeparatorFunction(fn, evalArg, out result);
 
-        if (TryEvalConcatWithSeparatorFunction(fn, evalArg, out result))
+        if (fn.Name.Equals("CONCAT", StringComparison.OrdinalIgnoreCase)
+            && context.TryEvalConcatFunction(fn, evalArg, out result))
             return true;
 
         result = null;

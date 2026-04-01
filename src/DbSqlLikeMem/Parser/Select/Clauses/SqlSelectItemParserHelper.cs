@@ -4,6 +4,7 @@ internal static class SqlSelectItemParserHelper
 {
     internal static List<SqlSelectItem> ParseSelectItemsWithValidation(
         IReadOnlyList<string> raws,
+        DbMock db,
         ISqlDialect dialect,
         Func<string, bool>? customFunctionSupported = null)
     {
@@ -36,7 +37,7 @@ internal static class SqlSelectItemParserHelper
 
             // Validate select item expressions. This is what makes corpus tests catch
             // typos like "SELEC" inside subqueries, invalid EXISTS(), duplicated DISTINCT, etc.
-            _ = SqlExpressionParser.ParseScalar(expr, dialect, null, customFunctionSupported);
+            _ = SqlExpressionParser.ParseScalar(expr, db, dialect, null, customFunctionSupported);
             return new SqlSelectItem(expr, alias);
         })];
     }

@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace DbSqlLikeMem;
 
 internal static class AstQueryBinaryExpressionHelper
@@ -25,8 +27,8 @@ internal static class AstQueryBinaryExpressionHelper
             }
         }
 
-        var leftText = left is null or DBNull ? string.Empty : left.ToString() ?? string.Empty;
-        var rightText = right is null or DBNull ? string.Empty : right.ToString() ?? string.Empty;
+        var leftText = left is null or DBNull ? string.Empty : Convert.ToString(left, CultureInfo.InvariantCulture) ?? string.Empty;
+        var rightText = right is null or DBNull ? string.Empty : Convert.ToString(right, CultureInfo.InvariantCulture) ?? string.Empty;
         result = string.Concat(leftText, rightText);
         return true;
     }

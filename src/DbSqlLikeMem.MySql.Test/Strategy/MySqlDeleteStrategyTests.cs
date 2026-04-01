@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.MySql.Test.Strategy;
 
 /// <summary>
@@ -26,10 +28,10 @@ public sealed class MySqlCommandDeleteTests(
 
         var affected = cmd.ExecuteNonQuery();
 
-        Assert.Equal(1, affected);
-        Assert.Single(table);
-        Assert.Equal(2, table[0][0]); // id
-        Assert.Equal(1, conn.Metrics.Deletes);
+        affected.Should().Be(1);
+        table.Should().ContainSingle();
+        table[0][0].Should().Be(2); // id
+        conn.Metrics.Deletes.Should().Be(1);
     }
 
     /// <summary>
@@ -51,10 +53,10 @@ public sealed class MySqlCommandDeleteTests(
 
         var affected = cmd.ExecuteNonQuery();
 
-        Assert.Equal(2, affected);
-        Assert.Single(table);
-        Assert.Equal(1, table[0][0]);
-        Assert.Equal(2, conn.Metrics.Deletes);
+        affected.Should().Be(2);
+        table.Should().ContainSingle();
+        table[0][0].Should().Be(1);
+        conn.Metrics.Deletes.Should().Be(2);
     }
 
     /// <summary>
@@ -74,9 +76,9 @@ public sealed class MySqlCommandDeleteTests(
 
         var affected = cmd.ExecuteNonQuery();
 
-        Assert.Equal(0, affected);
-        Assert.Single(table);
-        Assert.Equal(0, conn.Metrics.Deletes);
+        affected.Should().Be(0);
+        table.Should().ContainSingle();
+        conn.Metrics.Deletes.Should().Be(0);
     }
 
     /// <summary>
@@ -91,8 +93,9 @@ public sealed class MySqlCommandDeleteTests(
         using var conn = NewConn(threadSafe: false, db);
         using var cmd = new MySqlCommandMock(conn) { CommandText = "DELETE FROM users WHERE id = 1" };
 
-        var ex = Assert.ThrowsAny<Exception>(() => cmd.ExecuteNonQuery());
-        Assert.Contains("does not exist", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Action act = () => cmd.ExecuteNonQuery();
+        act.Should().Throw<Exception>()
+            .Which.Message.Should().Contain("does not exist");
     }
 
     /// <summary>
@@ -113,10 +116,10 @@ public sealed class MySqlCommandDeleteTests(
 
         var affected = cmd.ExecuteNonQuery();
 
-        Assert.Equal(1, affected);
-        Assert.Single(table);
-        Assert.Equal(2, table[0][0]);
-        Assert.Equal(1, conn.Metrics.Deletes);
+        affected.Should().Be(1);
+        table.Should().ContainSingle();
+        table[0][0].Should().Be(2);
+        conn.Metrics.Deletes.Should().Be(1);
     }
 
     /// <summary>
@@ -139,11 +142,12 @@ public sealed class MySqlCommandDeleteTests(
         using var conn = NewConn(threadSafe: false, db);
         using var cmd = new MySqlCommandMock(conn) { CommandText = "DELETE FROM parent WHERE id = 10" };
 
-        var ex = Assert.ThrowsAny<Exception>(() => cmd.ExecuteNonQuery());
-        Assert.Contains("parent", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Action act = () => cmd.ExecuteNonQuery();
+        act.Should().Throw<Exception>()
+            .Which.Message.Should().Contain("parent");
 
-        Assert.Single(parent);              // não deletou
-        Assert.Equal(0, conn.Metrics.Deletes);
+        parent.Should().ContainSingle();              // não deletou
+        conn.Metrics.Deletes.Should().Be(0);
     }
 
     /// <summary>
@@ -169,11 +173,12 @@ public sealed class MySqlCommandDeleteTests(
         using var conn = NewConn(threadSafe: true, db);
         using var cmd = new MySqlCommandMock(conn) { CommandText = "DELETE FROM parent WHERE id >= 10" };
 
-        var ex = Assert.ThrowsAny<Exception>(() => cmd.ExecuteNonQuery());
+        Action act = () => cmd.ExecuteNonQuery();
+        act.Should().Throw<Exception>()
+            .Which.Message.Should().Contain("parent");
 
-        Assert.Contains("parent", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal(2, parent.Count);
-        Assert.Equal(0, conn.Metrics.Deletes);
+        parent.Count.Should().Be(2);
+        conn.Metrics.Deletes.Should().Be(0);
     }
 
     /// <summary>
@@ -195,8 +200,8 @@ public sealed class MySqlCommandDeleteTests(
 
         var affected = cmd.ExecuteNonQuery();
 
-        Assert.Equal(1, affected);
-        Assert.Empty(table);
+        affected.Should().Be(1);
+        table.Should().BeEmpty();
     }
 
     /// <summary>
@@ -216,8 +221,8 @@ public sealed class MySqlCommandDeleteTests(
 
         var affected = cmd.ExecuteNonQuery();
 
-        Assert.Equal(1, affected);
-        Assert.Empty(table);
+        affected.Should().Be(1);
+        table.Should().BeEmpty();
     }
 
     /// <summary>
@@ -243,9 +248,9 @@ public sealed class MySqlCommandDeleteTests(
 
         var affected = cmd.ExecuteNonQuery();
 
-        Assert.Equal(1, affected);
-        Assert.Single(table);
-        Assert.Equal(1, table[0][0]);
+        affected.Should().Be(1);
+        table.Should().ContainSingle();
+        table[0][0].Should().Be(1);
     }
 
     // ---------------- helpers ----------------

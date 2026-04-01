@@ -112,7 +112,7 @@ internal static class AstQuerySharedTextFunctionEvaluator
             return true;
         }
 
-        var text = value?.ToString() ?? string.Empty;
+        var text = ToInvariantText(value);
         result = text.Length == 0 ? 0 : (int)text[0];
         return true;
     }
@@ -139,7 +139,7 @@ internal static class AstQuerySharedTextFunctionEvaluator
             // Fall back to textual conversion when the argument is not numeric.
         }
 
-        result = value!.ToString() ?? string.Empty;
+        result = ToInvariantText(value) ?? string.Empty;
         return true;
     }
 
@@ -157,9 +157,9 @@ internal static class AstQuerySharedTextFunctionEvaluator
             return true;
         }
 
-        var escape = fn.Args.Count > 2 ? evalArg(2)?.ToString() : null;
-        var escapeText = string.IsNullOrEmpty(escape) ? null : escape![0].ToString();
-        var matches = context.Like(value?.ToString(), pattern?.ToString(), escapeText);
+        var escape = fn.Args.Count > 2 ? ToInvariantText(evalArg(2)) : null;
+        var escapeText = string.IsNullOrEmpty(escape) ? null : escape![0].ToString(CultureInfo.InvariantCulture);
+        var matches = context.Like(ToInvariantText(value), ToInvariantText(pattern), escapeText);
         result = matches ? 1 : 0;
         return true;
     }
@@ -175,7 +175,7 @@ internal static class AstQuerySharedTextFunctionEvaluator
             return true;
         }
 
-        var text = value?.ToString() ?? string.Empty;
+        var text = ToInvariantText(value);
         if (text.Length == 0)
         {
             result = null;
@@ -194,7 +194,7 @@ internal static class AstQuerySharedTextFunctionEvaluator
         out object? result)
     {
         var value = evalArg(0);
-        result = AstQueryExecutorBase.IsNullish(value) ? null : value!.ToString()!.ToLowerInvariant();
+        result = AstQueryExecutorBase.IsNullish(value) ? null : ToInvariantText(value).ToLowerInvariant();
         return true;
     }
 
@@ -203,7 +203,7 @@ internal static class AstQuerySharedTextFunctionEvaluator
         out object? result)
     {
         var value = evalArg(0);
-        result = AstQueryExecutorBase.IsNullish(value) ? null : value!.ToString()!.ToUpperInvariant();
+        result = AstQueryExecutorBase.IsNullish(value) ? null : ToInvariantText(value).ToUpperInvariant();
         return true;
     }
 
@@ -212,7 +212,7 @@ internal static class AstQuerySharedTextFunctionEvaluator
         out object? result)
     {
         var value = evalArg(0);
-        result = AstQueryExecutorBase.IsNullish(value) ? null : value!.ToString()!.Trim();
+        result = AstQueryExecutorBase.IsNullish(value) ? null : ToInvariantText(value).Trim();
         return true;
     }
 
@@ -221,7 +221,7 @@ internal static class AstQuerySharedTextFunctionEvaluator
         out object? result)
     {
         var value = evalArg(0);
-        result = AstQueryExecutorBase.IsNullish(value) ? null : value!.ToString()!.TrimEnd();
+        result = AstQueryExecutorBase.IsNullish(value) ? null : ToInvariantText(value).TrimEnd();
         return true;
     }
 
@@ -230,7 +230,7 @@ internal static class AstQuerySharedTextFunctionEvaluator
         out object? result)
     {
         var value = evalArg(0);
-        result = AstQueryExecutorBase.IsNullish(value) ? null : value!.ToString()!.TrimStart();
+        result = AstQueryExecutorBase.IsNullish(value) ? null : ToInvariantText(value).TrimStart();
         return true;
     }
 
@@ -239,7 +239,7 @@ internal static class AstQuerySharedTextFunctionEvaluator
         out object? result)
     {
         var value = evalArg(0);
-        result = AstQueryExecutorBase.IsNullish(value) ? null : (long)(value!.ToString()!.Length);
+        result = AstQueryExecutorBase.IsNullish(value) ? null : (long)ToInvariantText(value).Length;
         return true;
     }
 
@@ -251,8 +251,8 @@ internal static class AstQuerySharedTextFunctionEvaluator
     {
         _ = fn;
 
-        var needle = evalArg(0)?.ToString() ?? string.Empty;
-        var haystack = evalArg(1)?.ToString() ?? string.Empty;
+        var needle = ToInvariantText(evalArg(0));
+        var haystack = ToInvariantText(evalArg(1));
         var startPosition = fn.Args.Count > 2 ? evalArg(2) : null;
         var startIndex = 0;
 
@@ -291,7 +291,7 @@ internal static class AstQuerySharedTextFunctionEvaluator
             return true;
         }
 
-        var text = source!.ToString() ?? string.Empty;
+        var text = ToInvariantText(source);
         var position = evalArg(1);
         if (AstQueryExecutorBase.IsNullish(position))
         {
@@ -366,8 +366,8 @@ internal static class AstQuerySharedTextFunctionEvaluator
             return true;
         }
 
-        var haystackText = haystack?.ToString() ?? string.Empty;
-        var needleText = needle?.ToString() ?? string.Empty;
+        var haystackText = ToInvariantText(haystack);
+        var needleText = ToInvariantText(needle);
         if (needleText.Length == 0)
         {
             result = 1;
@@ -394,8 +394,8 @@ internal static class AstQuerySharedTextFunctionEvaluator
             return true;
         }
 
-        var text = value?.ToString() ?? string.Empty;
-        var padText = padValue?.ToString() ?? string.Empty;
+        var text = ToInvariantText(value);
+        var padText = ToInvariantText(padValue);
         var len = Convert.ToInt32(lenValue.ToDec());
 
         if (len < 0 || padText.Length == 0)
@@ -439,8 +439,8 @@ internal static class AstQuerySharedTextFunctionEvaluator
             return true;
         }
 
-        result = (source!.ToString() ?? string.Empty)
-            .Replace(from!.ToString() ?? string.Empty, to!.ToString() ?? string.Empty);
+        result = ToInvariantText(source)
+            .Replace(ToInvariantText(from), ToInvariantText(to));
         return true;
     }
 
@@ -455,7 +455,7 @@ internal static class AstQuerySharedTextFunctionEvaluator
             return true;
         }
 
-        var text = value?.ToString() ?? string.Empty;
+        var text = ToInvariantText(value);
         var chars = text.ToCharArray();
         Array.Reverse(chars);
         result = new string(chars);
@@ -481,7 +481,7 @@ internal static class AstQuerySharedTextFunctionEvaluator
             return true;
         }
 
-        var text = textValue?.ToString() ?? string.Empty;
+        var text = ToInvariantText(textValue);
         var length = Convert.ToInt32(lengthValue.ToDec());
         if (length <= 0)
         {
@@ -518,7 +518,7 @@ internal static class AstQuerySharedTextFunctionEvaluator
             return true;
         }
 
-        var text = textValue?.ToString() ?? string.Empty;
+        var text = ToInvariantText(textValue);
         var length = Convert.ToInt32(lengthValue.ToDec());
         if (length <= 0)
         {
@@ -548,7 +548,7 @@ internal static class AstQuerySharedTextFunctionEvaluator
             return true;
         }
 
-        var text = textValue?.ToString() ?? string.Empty;
+        var text = ToInvariantText(textValue);
         var count = Convert.ToInt32(countValue.ToDec());
         if (count <= 0)
         {
@@ -576,9 +576,9 @@ internal static class AstQuerySharedTextFunctionEvaluator
             return true;
         }
 
-        var source = evalArg(0)?.ToString() ?? string.Empty;
-        var from = evalArg(1)?.ToString() ?? string.Empty;
-        var to = evalArg(2)?.ToString() ?? string.Empty;
+        var source = ToInvariantText(evalArg(0));
+        var from = ToInvariantText(evalArg(1));
+        var to = ToInvariantText(evalArg(2));
 
         var builder = new StringBuilder(source.Length);
         foreach (var ch in source)
@@ -615,7 +615,7 @@ internal static class AstQuerySharedTextFunctionEvaluator
             return true;
         }
 
-        var text = value?.ToString() ?? string.Empty;
+        var text = ToInvariantText(value);
         result = text.Length * 8;
         return true;
     }
@@ -637,7 +637,7 @@ internal static class AstQuerySharedTextFunctionEvaluator
             return true;
         }
 
-        var text = value?.ToString() ?? string.Empty;
+        var text = ToInvariantText(value);
         result = Encoding.UTF8.GetByteCount(text);
         return true;
     }
@@ -646,8 +646,8 @@ internal static class AstQuerySharedTextFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        var needle = evalArg(0)?.ToString() ?? string.Empty;
-        var haystack = evalArg(1)?.ToString() ?? string.Empty;
+        var needle = ToInvariantText(evalArg(0));
+        var haystack = ToInvariantText(evalArg(1));
         if (needle.Length == 0)
         {
             result = 1;
@@ -680,8 +680,8 @@ internal static class AstQuerySharedTextFunctionEvaluator
             return true;
         }
 
-        var text = value?.ToString() ?? string.Empty;
-        var padText = padValue?.ToString() ?? string.Empty;
+        var text = ToInvariantText(value);
+        var padText = ToInvariantText(padValue);
         var len = Convert.ToInt32(lenValue.ToDec());
 
         if (len < 0 || padText.Length == 0)
@@ -710,5 +710,19 @@ internal static class AstQuerySharedTextFunctionEvaluator
 
         result = sb.ToString().Substring(0, len);
         return true;
+    }
+
+    private static string ToInvariantText(object? value)
+    {
+        if (value is null || value is DBNull)
+            return string.Empty;
+
+        if (value is string text)
+            return text;
+
+        if (value is IFormattable formattable)
+            return formattable.ToString(null, CultureInfo.InvariantCulture);
+
+        return value.ToString() ?? string.Empty;
     }
 }

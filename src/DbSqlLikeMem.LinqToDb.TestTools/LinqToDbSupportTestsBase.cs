@@ -15,6 +15,32 @@ public abstract class LinqToDbSupportTestsBase(
     protected abstract IDbSqlLikeMemLinqToDbConnectionFactory CreateFactory();
 
     /// <summary>
+    /// EN: Provides the provider-specific SQL dialect used by pagination helpers.
+    /// PT: Fornece o dialeto SQL especifico do provedor usado pelos helpers de paginacao.
+    /// </summary>
+    protected abstract ProviderSqlDialect Dialect { get; }
+
+    /// <summary>
+    /// EN: Builds the pagination query used by the shared LinqToDB smoke tests.
+    /// PT: Monta a query de paginação usada nos testes smoke compartilhados de LinqToDB.
+    /// </summary>
+    /// <param name="tableName">EN: Name of the table being paginated. PT: Nome da tabela paginada.</param>
+    /// <param name="orderByClause">EN: ORDER BY clause used to keep the page deterministic. PT: Clausula ORDER BY usada para manter a pagina deterministica.</param>
+    /// <param name="offset">EN: Number of rows to skip before the page starts. PT: Numero de linhas a ignorar antes do inicio da pagina.</param>
+    /// <param name="fetch">EN: Number of rows to return. PT: Numero de linhas a retornar.</param>
+    protected virtual string BuildPaginationQuery(string tableName, string orderByClause, int offset, int fetch)
+    {
+        if (Dialect.Provider == ProviderId.Sqlite)
+            return $"SELECT id FROM {tableName} ORDER BY {orderByClause} LIMIT {fetch} OFFSET {offset}";
+
+        var sample = Dialect.PagedNameProjection(tableName, offset, fetch);
+        if (sample.Contains("LIMIT", StringComparison.OrdinalIgnoreCase))
+            return $"SELECT id FROM {tableName} ORDER BY {orderByClause} LIMIT {fetch} OFFSET {offset}";
+
+        return $"SELECT id FROM {tableName} ORDER BY {orderByClause} OFFSET {offset} ROWS FETCH NEXT {fetch} ROWS ONLY";
+    }
+
+    /// <summary>
     /// EN: Verifies the factory returns an opened connection.
     /// PT: Verifica se a fábrica retorna uma conexão aberta.
     /// </summary>
@@ -535,7 +561,7 @@ public abstract class LinqToDbSupportTestsBase(
         }
 
         using var page = connection.CreateCommand();
-        page.CommandText = "SELECT id FROM l2db_page_users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY";
+        page.CommandText = BuildPaginationQuery("l2db_page_users", "id", 1, 2);
 
         var ids = new List<int>();
         using var reader = page.ExecuteReader();
@@ -869,7 +895,7 @@ WHERE u.id = 1";
         }
 
         using var page = connection.CreateCommand();
-        page.CommandText = "SELECT id FROM l2db_page_stable ORDER BY grp, id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY";
+        page.CommandText = BuildPaginationQuery("l2db_page_stable", "grp, id", 1, 2);
 
         var ids = new List<int>();
         using var reader = page.ExecuteReader();
@@ -956,7 +982,7 @@ WHERE u.id = 1";
         List<int> ReadWindow()
         {
             using var page = connection.CreateCommand();
-            page.CommandText = "SELECT id FROM l2db_page_repeatable ORDER BY grp, id OFFSET 2 ROWS FETCH NEXT 2 ROWS ONLY";
+            page.CommandText = BuildPaginationQuery("l2db_page_repeatable", "grp, id", 2, 2);
 
             var ids = new List<int>();
             using var reader = page.ExecuteReader();
@@ -1012,13 +1038,13 @@ WHERE u.id = 1";
 
         using (var create = connection.CreateCommand())
         {
-            create.CommandText = "CREATE TABLE l2db_tx_read_write (id INT PRIMARY KEY, value INT)";
+            create.CommandText = "CREATE TABLE l2db_tx_read_write (id INT PRIMARY KEY, amount INT)";
             _ = create.ExecuteNonQuery();
         }
 
         using (var seed = connection.CreateCommand())
         {
-            seed.CommandText = "INSERT INTO l2db_tx_read_write (id, value) VALUES (1, 10)";
+            seed.CommandText = "INSERT INTO l2db_tx_read_write (id, amount) VALUES (1, 10)";
             _ = seed.ExecuteNonQuery();
         }
 
@@ -1027,13 +1053,13 @@ WHERE u.id = 1";
         using (var update = connection.CreateCommand())
         {
             update.Transaction = tx;
-            update.CommandText = "UPDATE l2db_tx_read_write SET value = value + 5 WHERE id = 1";
+            update.CommandText = "UPDATE l2db_tx_read_write SET amount = amount + 5 WHERE id = 1";
             _ = update.ExecuteNonQuery();
         }
 
         using var read = connection.CreateCommand();
         read.Transaction = tx;
-        read.CommandText = "SELECT value FROM l2db_tx_read_write WHERE id = 1";
+        read.CommandText = "SELECT amount FROM l2db_tx_read_write WHERE id = 1";
 
         Assert.Equal(15, Convert.ToInt32(read.ExecuteScalar()));
         tx.Rollback();
@@ -1098,7 +1124,7 @@ WHERE u.id = 1";
         List<int> ReadPage(int offset)
         {
             using var page = connection.CreateCommand();
-            page.CommandText = $"SELECT id FROM l2db_page_disjoint ORDER BY grp, id OFFSET {offset} ROWS FETCH NEXT 3 ROWS ONLY";
+            page.CommandText = BuildPaginationQuery("l2db_page_disjoint", "grp, id", offset, 3);
 
             var ids = new List<int>();
             using var reader = page.ExecuteReader();
@@ -1271,7 +1297,7 @@ WHERE u.id = 1";
 
         using (var create = connection.CreateCommand())
         {
-            create.CommandText = "CREATE TABLE l2db_tx_sequence (id INT PRIMARY KEY, value INT)";
+            create.CommandText = "CREATE TABLE l2db_tx_sequence (id INT PRIMARY KEY, amount INT)";
             _ = create.ExecuteNonQuery();
         }
 
@@ -1279,12 +1305,12 @@ WHERE u.id = 1";
         {
             using var insert = connection.CreateCommand();
             insert.Transaction = txRollback;
-            insert.CommandText = "INSERT INTO l2db_tx_sequence (id, value) VALUES (1, 10), (2, 20)";
+            insert.CommandText = "INSERT INTO l2db_tx_sequence (id, amount) VALUES (1, 10), (2, 20)";
             _ = insert.ExecuteNonQuery();
 
             using var update = connection.CreateCommand();
             update.Transaction = txRollback;
-            update.CommandText = "UPDATE l2db_tx_sequence SET value = value + 5 WHERE id = 1";
+            update.CommandText = "UPDATE l2db_tx_sequence SET amount = amount + 5 WHERE id = 1";
             _ = update.ExecuteNonQuery();
 
             using var delete = connection.CreateCommand();
@@ -1305,12 +1331,12 @@ WHERE u.id = 1";
         {
             using var insert = connection.CreateCommand();
             insert.Transaction = txCommit;
-            insert.CommandText = "INSERT INTO l2db_tx_sequence (id, value) VALUES (1, 10), (2, 20)";
+            insert.CommandText = "INSERT INTO l2db_tx_sequence (id, amount) VALUES (1, 10), (2, 20)";
             _ = insert.ExecuteNonQuery();
 
             using var update = connection.CreateCommand();
             update.Transaction = txCommit;
-            update.CommandText = "UPDATE l2db_tx_sequence SET value = value + 5 WHERE id = 1";
+            update.CommandText = "UPDATE l2db_tx_sequence SET amount = amount + 5 WHERE id = 1";
             _ = update.ExecuteNonQuery();
 
             using var delete = connection.CreateCommand();
@@ -1322,7 +1348,7 @@ WHERE u.id = 1";
         }
 
         using var verify = connection.CreateCommand();
-        verify.CommandText = "SELECT value FROM l2db_tx_sequence ORDER BY id";
+        verify.CommandText = "SELECT amount FROM l2db_tx_sequence ORDER BY id";
         using var reader = verify.ExecuteReader();
         Assert.True(reader.Read());
         Assert.Equal(15, Convert.ToInt32(reader[0]));
@@ -1357,7 +1383,7 @@ WHERE u.id = 1";
         List<int> ReadPage(int offset)
         {
             using var page = connection.CreateCommand();
-            page.CommandText = $"SELECT id FROM l2db_page_three ORDER BY grp, id OFFSET {offset} ROWS FETCH NEXT 3 ROWS ONLY";
+            page.CommandText = BuildPaginationQuery("l2db_page_three", "grp, id", offset, 3);
             var ids = new List<int>();
             using var reader = page.ExecuteReader();
             while (reader.Read()) ids.Add(Convert.ToInt32(reader[0]));
@@ -1638,7 +1664,7 @@ ORDER BY category";
         List<int> ReadPage(int offset)
         {
             using var page = connection.CreateCommand();
-            page.CommandText = $"SELECT id FROM l2db_page_tail ORDER BY grp, id OFFSET {offset} ROWS FETCH NEXT 3 ROWS ONLY";
+            page.CommandText = BuildPaginationQuery("l2db_page_tail", "grp, id", offset, 3);
             var ids = new List<int>();
             using var reader = page.ExecuteReader();
             while (reader.Read()) ids.Add(Convert.ToInt32(reader[0]));
@@ -1671,7 +1697,7 @@ ORDER BY category";
 
         using (var create = connection.CreateCommand())
         {
-            create.CommandText = "CREATE TABLE l2db_tx_intermediate (id INT PRIMARY KEY, value INT)";
+            create.CommandText = "CREATE TABLE l2db_tx_intermediate (id INT PRIMARY KEY, amount INT)";
             _ = create.ExecuteNonQuery();
         }
 
@@ -1679,12 +1705,12 @@ ORDER BY category";
         {
             using var insert = connection.CreateCommand();
             insert.Transaction = tx;
-            insert.CommandText = "INSERT INTO l2db_tx_intermediate (id, value) VALUES (1, 10), (2, 20)";
+            insert.CommandText = "INSERT INTO l2db_tx_intermediate (id, amount) VALUES (1, 10), (2, 20)";
             _ = insert.ExecuteNonQuery();
 
             using var update = connection.CreateCommand();
             update.Transaction = tx;
-            update.CommandText = "UPDATE l2db_tx_intermediate SET value = value + 7 WHERE id = 1";
+            update.CommandText = "UPDATE l2db_tx_intermediate SET amount = amount + 7 WHERE id = 1";
             _ = update.ExecuteNonQuery();
 
             using var delete = connection.CreateCommand();
@@ -1694,7 +1720,7 @@ ORDER BY category";
 
             using var readInside = connection.CreateCommand();
             readInside.Transaction = tx;
-            readInside.CommandText = "SELECT value FROM l2db_tx_intermediate ORDER BY id";
+            readInside.CommandText = "SELECT amount FROM l2db_tx_intermediate ORDER BY id";
             using var insideReader = readInside.ExecuteReader();
             Assert.True(insideReader.Read());
             Assert.Equal(17, Convert.ToInt32(insideReader[0]));
@@ -1713,12 +1739,12 @@ ORDER BY category";
         {
             using var insert = connection.CreateCommand();
             insert.Transaction = txCommit;
-            insert.CommandText = "INSERT INTO l2db_tx_intermediate (id, value) VALUES (1, 10), (2, 20)";
+            insert.CommandText = "INSERT INTO l2db_tx_intermediate (id, amount) VALUES (1, 10), (2, 20)";
             _ = insert.ExecuteNonQuery();
 
             using var update = connection.CreateCommand();
             update.Transaction = txCommit;
-            update.CommandText = "UPDATE l2db_tx_intermediate SET value = value + 7 WHERE id = 1";
+            update.CommandText = "UPDATE l2db_tx_intermediate SET amount = amount + 7 WHERE id = 1";
             _ = update.ExecuteNonQuery();
 
             using var delete = connection.CreateCommand();
@@ -1730,7 +1756,7 @@ ORDER BY category";
         }
 
         using var finalRead = connection.CreateCommand();
-        finalRead.CommandText = "SELECT value FROM l2db_tx_intermediate ORDER BY id";
+        finalRead.CommandText = "SELECT amount FROM l2db_tx_intermediate ORDER BY id";
         using var finalReader = finalRead.ExecuteReader();
         Assert.True(finalReader.Read());
         Assert.Equal(17, Convert.ToInt32(finalReader[0]));
@@ -1850,7 +1876,7 @@ ORDER BY u.id";
         List<int> ReadPage(int offset)
         {
             using var page = connection.CreateCommand();
-            page.CommandText = $"SELECT id FROM l2db_page_repeat_three ORDER BY grp, id OFFSET {offset} ROWS FETCH NEXT 3 ROWS ONLY";
+            page.CommandText = BuildPaginationQuery("l2db_page_repeat_three", "grp, id", offset, 3);
             var ids = new List<int>();
             using var reader = page.ExecuteReader();
             while (reader.Read()) ids.Add(Convert.ToInt32(reader[0]));

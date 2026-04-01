@@ -162,7 +162,8 @@ public class NpgsqlCommandMock(
                 continue;
             }
 
-            var query = SqlQueryParser.Parse(sqlRaw, connection.ExecutionDialect, Parameters);
+            var customFunctionSupported = SqlCustomFunctionResolverFactory.Create(QueryExecutionContext.FromConnection(connection!, Parameters));
+            var query = SqlQueryParser.Parse(sqlRaw, connection.Db, connection.ExecutionDialect, Parameters, customFunctionSupported);
             parsedStatementCount++;
 
             using var currentQueryScope = connection.BeginCurrentQueryScope(sqlRaw);
@@ -398,7 +399,7 @@ public class NpgsqlCommandMock(
                 continue;
             }
 
-            var expr = SqlExpressionParser.ParseScalar(raw, connection!.Db.Dialect);
+            var expr = SqlExpressionParser.ParseScalar(raw, connection!.Db, connection!.Db.Dialect);
             switch (expr)
             {
                 case IdentifierExpr id:

@@ -61,7 +61,10 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
     {
         Assert.Equal("fallback", ExecuteScalar("SELECT VALUE(NULL, 'fallback') FROM Users WHERE Id = 1"));
         Assert.Equal("fallback", ExecuteScalar("SELECT IFNULL(NULL, 'fallback') FROM Users WHERE Id = 1"));
-        Assert.Equal("yes", ExecuteScalar("SELECT IIF(Id = 1, 'yes', 'no') FROM Users WHERE Id = 1"));
+        Assert.Contains(
+            "IIF",
+            Assert.Throws<NotSupportedException>(() => ExecuteScalar("SELECT IIF(Id = 1, 'yes', 'no') FROM Users WHERE Id = 1")).Message,
+            StringComparison.OrdinalIgnoreCase);
         Assert.Equal("Ana", ExecuteScalar("SELECT COALESCE(Name, 'fallback') FROM Users WHERE Id = 1"));
         Assert.Equal("fallback", ExecuteScalar("SELECT NVL(NULL, 'fallback') FROM Users WHERE Id = 1"));
         Assert.Equal(DBNull.Value, ExecuteScalar("SELECT NULLIF('Ana', 'Ana') FROM Users WHERE Id = 1"));
@@ -110,7 +113,7 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
         Assert.Equal(11, Convert.ToInt32(ExecuteScalar("SELECT MINUTE('2020-02-14 10:11:12') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(12, Convert.ToInt32(ExecuteScalar("SELECT SECOND('2020-02-14 10:11:12') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(737469, Convert.ToInt32(ExecuteScalar("SELECT DAYS('2020-02-14') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
-        Assert.Equal(new DateTime(2020, 2, 16), Convert.ToDateTime(ExecuteScalar("SELECT TIMESTAMPADD(DAY, 2, '2020-02-14') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(new DateTime(2020, 2, 16), Convert.ToDateTime(ExecuteScalar("SELECT TIMESTAMPADD(16, 2, '2020-02-14') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(10m, Convert.ToDecimal(ExecuteScalar("SELECT ABS(-10) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(0d, Convert.ToDouble(ExecuteScalar("SELECT ACOS(1) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture), 12);
         Assert.Equal(Math.PI / 2d, Convert.ToDouble(ExecuteScalar("SELECT ASIN(1) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture), 12);
@@ -437,7 +440,7 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
         using var connection = CreateOpenConnection(version);
 
         Assert.Equal(0d, Convert.ToDouble(ExecuteScalar(connection, "SELECT LOG(1) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture), 12);
-        Assert.Equal(2, Convert.ToInt32(ExecuteScalar(connection, "SELECT TIMESTAMPDIFF(DAY, '2020-02-14', '2020-02-16') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(2, Convert.ToInt32(ExecuteScalar(connection, "SELECT TIMESTAMPDIFF(16, '2020-02-14', '2020-02-16') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
 
         Assert.Equal(new DateTime(2020, 2, 14), Convert.ToDateTime(ExecuteScalar(connection, "SELECT TO_DATE('2020-02-14') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(new DateTime(2020, 2, 14, 10, 11, 12), Convert.ToDateTime(ExecuteScalar(connection, "SELECT TO_TIMESTAMP('2020-02-14 10:11:12') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));

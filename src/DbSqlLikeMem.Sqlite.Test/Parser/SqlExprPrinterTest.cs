@@ -1,4 +1,6 @@
-﻿namespace DbSqlLikeMem.Sqlite.Test.Parser;
+using FluentAssertions;
+
+namespace DbSqlLikeMem.Sqlite.Test.Parser;
 
 /// <summary>
 /// EN: Covers round-trip SQL expression printing in the Sqlite parser.
@@ -17,14 +19,15 @@ public sealed class SqlExprPrinterTest(
     [MemberDataBySqliteVersion(nameof(Expressions))]
     public void ExprPrinter_ShouldAllow_Roundtrip_Parse_Print_Parse(string expr, int version)
     {
-        var d = GetDialect(version, v => new SqliteDialect(v));
-        var ast1 = SqlExpressionParser.ParseWhere(expr, d);
+        var d = Get(version, v => new SqliteDialect(v));
+        var db = Get(version, v => new SqliteDbMock(v));
+        var ast1 = SqlExpressionParser.ParseWhere(expr, db, d);
         var printed = SqlExprPrinter.Print(ast1);
 
-        var ast2 = SqlExpressionParser.ParseWhere(printed, d);
+        var ast2 = SqlExpressionParser.ParseWhere(printed, db, d);
 
         // não compara árvore (chato), compara “print normalizado”
-        Assert.Equal(SqlExprPrinter.Print(ast1), SqlExprPrinter.Print(ast2));
+        SqlExprPrinter.Print(ast1).Should().Be(SqlExprPrinter.Print(ast2));
     }
 
     /// <summary>
@@ -38,7 +41,33 @@ public sealed class SqlExprPrinterTest(
         yield return new object[] { "a IN (1,2,3)" };
         yield return new object[] { "a IN ((SELECT 1 WHERE 0))" };
         yield return new object[] { "EXISTS(SELECT 1 WHERE 0)" };
+    }
+
+    /// <summary>
+    /// EN: Provides SQLite JSON arrow expressions that require a newer dialect version.
+    /// PT: Fornece expressoes JSON arrow do SQLite que exigem uma versao mais nova do dialeto.
+    /// </summary>
+    public static IEnumerable<object[]> Expressions_JsonArrowOperators()
+    {
         yield return new object[] { "data->'$.name' = 'x'" };
         yield return new object[] { "data->>'$.name' = 'x'" };
+    }
+
+    /// <summary>
+    /// EN: Verifies SQLite JSON arrow expressions round-trip only on supported versions.
+    /// PT: Verifica se expressoes JSON arrow do SQLite fazem round-trip apenas em versoes suportadas.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataBySqliteVersion(nameof(Expressions_JsonArrowOperators), VersionGraterOrEqual = 338)]
+    public void ExprPrinter_ShouldAllow_Roundtrip_Parse_Print_Parse_ForJsonArrowOperators(string expr, int version)
+    {
+        var d = Get(version, v => new SqliteDialect(v));
+        var db = Get(version, v => new SqliteDbMock(v));
+        var ast1 = SqlExpressionParser.ParseWhere(expr, db, d);
+        var printed = SqlExprPrinter.Print(ast1);
+
+        var ast2 = SqlExpressionParser.ParseWhere(printed, db, d);
+        SqlExprPrinter.Print(ast1).Should().Be(SqlExprPrinter.Print(ast2));
     }
 }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using DbSqlLikeMem.Models;
 
 namespace DbSqlLikeMem.Auto;
@@ -17,27 +18,28 @@ internal static class AutoScalarFunctionRegistry
         dialect.AddScalarFunction("GETUTCDATE", "DATETIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, DbInvocationStyle.Call, SqlTemporalFunctionKind.DateTime);
         dialect.AddScalarFunction("SYSDATETIME", "DATETIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, DbInvocationStyle.Call, SqlTemporalFunctionKind.DateTime);
         dialect.AddScalarFunction("SYSTIMESTAMP", "DATETIME", SqlDialectScalarFunctionRegistryExtensions.TryEvalZeroArgTemporalFunction, DbInvocationStyle.Call, SqlTemporalFunctionKind.DateTime);
+        var conditionalNullFunction = DbFunctionDef.CreateScalar("IIF", "VARCHAR") with
+        {
+            AstExecutor = QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions
+        };
         dialect.AddScalarFunctions(
-            DbFunctionDef.CreateScalar("IIF", "VARCHAR") with
-            {
-                AstExecutor = QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions
-            },
+            conditionalNullFunction,
             "IF",
             "IIF",
             "IFNULL",
             "ISNULL",
             "NVL");
 
-        dialect.AddScalarFunction(
-            DbFunctionDef.CreateScalar("ADDDATE", "DATETIME") with
-            {
-                AstExecutor = AstQueryGeneralDateArithmeticFunctionEvaluator.TryEvaluate
-            });
-        dialect.AddScalarFunction(
-            DbFunctionDef.CreateScalar("ADDTIME", "DATETIME") with
-            {
-                AstExecutor = AstQueryGeneralDateArithmeticFunctionEvaluator.TryEvaluate
-            });
+        var addDateFunction = DbFunctionDef.CreateScalar("ADDDATE", "DATETIME") with
+        {
+            AstExecutor = AstQueryGeneralDateArithmeticFunctionEvaluator.TryEvaluate
+        };
+        dialect.AddScalarFunction(addDateFunction);
+        var addTimeFunction = DbFunctionDef.CreateScalar("ADDTIME", "DATETIME") with
+        {
+            AstExecutor = AstQueryGeneralDateArithmeticFunctionEvaluator.TryEvaluate
+        };
+        dialect.AddScalarFunction(addTimeFunction);
         dialect.AddScalarFunctions(
             DbFunctionDef.CreateScalar("DATE_ADD", "DATETIME"),
             "DATE_ADD",
@@ -46,20 +48,31 @@ internal static class AutoScalarFunctionRegistry
 
         dialect.AddScalarFunction(DbFunctionDef.CreateScalar("TRY_CAST", "VARCHAR"));
         dialect.AddScalarFunction(DbFunctionDef.CreateScalar("TRY_CONVERT", "VARCHAR"));
-        dialect.AddScalarFunction(
-            DbFunctionDef.CreateScalar("EOMONTH", "DATE") with
-            {
-                AstExecutor = AstQueryGeneralDateArithmeticFunctionEvaluator.TryEvaluate
-            });
+        var eomonthFunction = DbFunctionDef.CreateScalar("EOMONTH", "DATE") with
+        {
+            AstExecutor = AstQueryGeneralDateArithmeticFunctionEvaluator.TryEvaluate
+        };
+        dialect.AddScalarFunction(eomonthFunction);
+        var jsonExtractFunction = DbFunctionDef.CreateScalar("JSON_EXTRACT", "VARCHAR") with
+        {
+            AstExecutor = AstQueryJsonExtractionFunctionEvaluator.TryEvalJsonExtractionFunction
+        };
         dialect.AddScalarFunctions(
-            DbFunctionDef.CreateScalar("JSON_EXTRACT", "VARCHAR") with
-            {
-                AstExecutor = AstQueryJsonExtractionFunctionEvaluator.TryEvalJsonExtractionFunction
-            },
+            jsonExtractFunction,
             "JSON_EXTRACT",
             "JSON_QUERY",
             "JSON_VALUE");
         dialect.AddScalarFunction(DbFunctionDef.CreateScalar("JSON_UNQUOTE", "VARCHAR"));
+        dialect.AddScalarFunction(
+            DbFunctionDef.CreateScalar(SqlConst.OPENJSON, "VARCHAR") with
+            {
+                AstExecutor = TryEvalOpenJsonFunction
+            });
+        dialect.AddScalarFunction(
+            DbFunctionDef.CreateScalar("JSON_OBJECT", "VARCHAR") with
+            {
+                AstExecutor = AstQueryJsonObjectFunctionEvaluator.TryEvalJsonObjectFunction
+            });
 
         dialect.AddScalarFunctions(
             DbFunctionDef.CreateScalar(SqlConst.GROUP_CONCAT, "VARCHAR") with
@@ -76,5 +89,35 @@ internal static class AutoScalarFunctionRegistry
             SqlConst.CURRVAL,
             SqlConst.SETVAL,
             SqlConst.LASTVAL);
+    }
+
+    private static bool TryEvalOpenJsonFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+
+        if (!string.Equals(fn.Name, SqlConst.OPENJSON, StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        result = value switch
+        {
+            string text => text,
+            IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
+            _ => value!.ToString()
+        };
+        return true;
     }
 }

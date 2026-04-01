@@ -180,14 +180,14 @@ public sealed class Db2AggregationTests(ITestOutputHelper helper) : AggregationH
     }
 
     /// <summary>
-    /// EN: Verifies LISTAGG WITHIN GROUP keeps casted numeric values in descending order.
-    /// PT: Verifica se LISTAGG WITHIN GROUP preserva valores numericos convertidos em ordem descendente.
+    /// EN: Verifies LISTAGG WITHIN GROUP keeps numerically converted text values in descending order.
+    /// PT: Verifica se LISTAGG WITHIN GROUP preserva valores textuais convertidos numericamente em ordem descendente.
     /// </summary>
     [Fact]
     [Trait("Category", "Aggregation")]
     public void ListAgg_WithinGroupWithCast_ShouldPreserveValues()
     {
-        AssertWithinGroupOrdersAggregation("SELECT LISTAGG(CAST(amount AS VARCHAR(20)), '|') WITHIN GROUP (ORDER BY amount DESC) AS joined FROM orders", "30|10|5");
+        AssertWithinGroupOrdersAggregation("SELECT LISTAGG(TO_CHAR(amount), '|') WITHIN GROUP (ORDER BY amount DESC) AS joined FROM orders", "30|10|5");
     }
 
     /// <summary>

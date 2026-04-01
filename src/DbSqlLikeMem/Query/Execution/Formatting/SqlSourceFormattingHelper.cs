@@ -62,14 +62,32 @@ internal static class SqlSourceFormattingHelper
             && source.TableFunction.Args.Count == 2)
         {
             var pathShape = TryFormatOpenJsonPathShape(source.TableFunction.Args[1]);
-            return source.JsonTableClause is null
-                ? $"{functionName}(..., {pathShape})"
-                : $"{functionName}(..., {pathShape}) COLUMNS (...)";
+            if (source.JsonTableClause is null)
+                return $"{functionName}(..., {pathShape})";
+
+            return $"{functionName}(..., {pathShape}) {FormatJsonTableClauseShape(source.JsonTableClause)}";
         }
 
         return source.OpenJsonWithClause is null && source.JsonTableClause is null
             ? $"{functionName}(...)"
             : $"{functionName}(...) WITH (...)";
+    }
+
+    private static string FormatJsonTableClauseShape(SqlJsonTableClause clause)
+    {
+        if (clause.NestedPaths.Count == 0)
+            return "COLUMNS (...)";
+
+        var nestedShapes = string.Join(", ", clause.NestedPaths.Select(FormatJsonTableNestedPathShape));
+        return $"COLUMNS (..., {nestedShapes})";
+    }
+
+    private static string FormatJsonTableNestedPathShape(SqlJsonTableNestedPath nestedPath)
+    {
+        if (nestedPath.Clause.NestedPaths.Count == 0)
+            return "NESTED PATH (...)";
+
+        return $"NESTED PATH (..., {string.Join(", ", nestedPath.Clause.NestedPaths.Select(FormatJsonTableNestedPathShape))})";
     }
 
     internal static string FormatQualifiedTableName(SqlTableSource source)

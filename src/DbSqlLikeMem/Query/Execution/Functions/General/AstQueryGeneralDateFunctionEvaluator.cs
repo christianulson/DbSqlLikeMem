@@ -22,6 +22,7 @@ internal static class AstQueryGeneralDateFunctionEvaluator
         var handlers = new Dictionary<string, AstQueryGeneralScalarFunctionHandler>(StringComparer.OrdinalIgnoreCase);
 
         Register(handlers, TryEvalDateConstructionFunction, "DATE", "TIMESTAMP", "DATETIME", "TIME");
+        Register(handlers, TryEvalDatePartFunction, "DAY", "MONTH", "YEAR", "HOUR", "MINUTE", "SECOND");
 
         return handlers;
     }
@@ -80,6 +81,41 @@ internal static class AstQueryGeneralDateFunctionEvaluator
         result = isDate
             ? dateTime.Date
             : dateTime;
+        return true;
+    }
+
+    private static bool TryEvalDatePartFunction(
+        this QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+
+        if (fn.Args.Count < 1)
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value) || !AstQueryExecutorBase.TryCoerceDateTime(value, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        result = fn.Name.ToUpperInvariant() switch
+        {
+            "DAY" => dateTime.Day,
+            "MONTH" => dateTime.Month,
+            "YEAR" => dateTime.Year,
+            "HOUR" => dateTime.Hour,
+            "MINUTE" => dateTime.Minute,
+            "SECOND" => dateTime.Second,
+            _ => null
+        };
+
         return true;
     }
 }

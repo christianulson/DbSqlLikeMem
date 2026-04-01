@@ -20,7 +20,7 @@ public class TemporaryTableTests(
 
     private static int InitializeBootstrap()
     {
-        global::DbSqlLikeMem.Sqlite.Test.SqliteBootstrap.Initialize();
+        Sqlite.Test.SqliteBootstrap.Initialize();
         return 0;
     }
 }

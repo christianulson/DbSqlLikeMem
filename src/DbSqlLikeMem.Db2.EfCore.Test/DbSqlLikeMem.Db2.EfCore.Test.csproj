@@ -8,12 +8,14 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\DbSqlLikeMem.EfCore.TestTools\DbSqlLikeMem.EfCore.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+		<ProjectReference Include="..\DbSqlLikeMem.Db2.TestTools\DbSqlLikeMem.Db2.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 		<ProjectReference Include="..\DbSqlLikeMem.Db2.EfCore\DbSqlLikeMem.Db2.EfCore.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<Using Include="DbSqlLikeMem.EfCore" />
 		<Using Include="DbSqlLikeMem.EfCore.TestTools" />
+		<Using Include="DbSqlLikeMem.Db2.TestTools" />
 		<Using Include="DbSqlLikeMem.Db2.EfCore" />
 	</ItemGroup>
 

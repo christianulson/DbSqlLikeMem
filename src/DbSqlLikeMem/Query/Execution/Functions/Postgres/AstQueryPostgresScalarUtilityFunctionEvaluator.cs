@@ -1,22 +1,41 @@
 namespace DbSqlLikeMem;
 
+internal delegate bool AstQueryTryEvalPostgresScalarUtilityFunction(
+    QueryExecutionContext context,
+    FunctionCallExpr fn,
+    Func<int, object?> evalArg,
+    out object? result);
+
 internal static class AstQueryPostgresScalarUtilityFunctionEvaluator
 {
+    private static readonly IReadOnlyDictionary<string, AstQueryTryEvalPostgresScalarUtilityFunction> _handlers =
+        CreateHandlers();
+
     internal static bool TryEvaluatePostgresScalarUtilityFunction(
         this QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
-        result = null;
-        if (context.Dialect.Functions.TryGetValue(fn.Name, out var handler)
-            && handler.AstExecutor != null)
-            return handler.AstExecutor(context, fn, evalArg, out result);
+        if (_handlers.TryGetValue(fn.Name, out var handler))
+            return handler(context, fn, evalArg, out result);
 
+        result = null;
         return false;
     }
 
-    internal static void CreateHandlers(
+    private static IReadOnlyDictionary<string, AstQueryTryEvalPostgresScalarUtilityFunction> CreateHandlers()
+    {
+        var handlers = new Dictionary<string, AstQueryTryEvalPostgresScalarUtilityFunction>(StringComparer.OrdinalIgnoreCase);
+        Register(handlers, TryEvalNumNullsFunction, "NUM_NULLS");
+        Register(handlers, TryEvalNumNonNullsFunction, "NUM_NONNULLS");
+        Register(handlers, TryEvalLcmFunction, "LCM");
+        Register(handlers, TryEvalMinScaleFunction, "MIN_SCALE");
+        Register(handlers, TryEvalParseIdentFunction, "PARSE_IDENT");
+        return handlers;
+    }
+
+    internal static void RegisterHandlers(
         this QueryExecutionContext context)
     {
         var dialect = context.Dialect;
@@ -25,6 +44,15 @@ internal static class AstQueryPostgresScalarUtilityFunctionEvaluator
         dialect.AddScalarFunctions("BIGINT", TryEvalLcmFunction, "LCM");
         dialect.AddScalarFunctions("INT", TryEvalMinScaleFunction, "MIN_SCALE");
         dialect.AddScalarFunctions("STRING_ARRAY", TryEvalParseIdentFunction, "PARSE_IDENT");
+    }
+
+    private static void Register(
+        IDictionary<string, AstQueryTryEvalPostgresScalarUtilityFunction> handlers,
+        AstQueryTryEvalPostgresScalarUtilityFunction handler,
+        params string[] names)
+    {
+        foreach (var name in names)
+            handlers[name] = handler;
     }
 
     private static bool TryEvalNumNullsFunction(

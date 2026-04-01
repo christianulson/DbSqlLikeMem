@@ -68,6 +68,11 @@ public sealed class SqlQueryParserCorpusTests(
             yield return Case(sql, why, expectation, minVersion);
         }
 
+        yield return Case(
+            "SELECT id FROM users WHERE FIND_IN_SET('b', tags)",
+            "unsupported: FIND_IN_SET function",
+            SqlCaseExpectation.ThrowNotSupported);
+
         // Inválidas (ThrowInvalid)
         foreach (var row in InvalidSelectStatements())
         {
@@ -140,8 +145,6 @@ public sealed class SqlQueryParserCorpusTests(
         yield return new object[] { "SELECT id FROM users WHERE id IN (1,3)", "IN list (id)" };
         yield return new object[] { "SELECT * FROM t WHERE name LIKE 'a%'", "LIKE pattern prefix" };
         yield return new object[] { "SELECT id FROM users WHERE name LIKE '%oh%'", "LIKE pattern contains" };
-        yield return new object[] { "SELECT id FROM users WHERE FIND_IN_SET('b', tags)", "function call in WHERE" };
-
         // SELECT list aliasing (including MySQL 'name `alias`' style)
         yield return new object[] { "SELECT name \"User Name\" FROM users", "alias without AS using backtick string" };
         yield return new object[] { "SELECT u.id AS uid, o.id AS oid FROM users u", "multiple select item aliases" };
@@ -159,14 +162,12 @@ public sealed class SqlQueryParserCorpusTests(
         yield return new object[] { "SELECT id, id + 1 AS x FROM users ORDER BY x DESC", "ORDER BY select-item alias" };
         yield return new object[] { "SELECT id, name FROM users ORDER BY 2 ASC, 1 DESC", "ORDER BY ordinal positions" };
 
-        // CASE/COALESCE/CONCAT/IF/IFNULL/IIF
+        // CASE/COALESCE/CONCAT/IFNULL
         yield return new object[] { "SELECT t10, t20 FROM (SELECT tenantid, id FROM users) src PIVOT (COUNT(id) FOR tenantid IN (10 AS t10, 20 AS t20)) p", "PIVOT count by tenant" };
         yield return new object[] { "SELECT id, CASE WHEN email IS NULL THEN 0 ELSE 1 END AS hasEmail FROM users ORDER BY id", "CASE WHEN expression" };
         yield return new object[] { "SELECT id, COALESCE(email, 'none') AS em FROM users ORDER BY id", "COALESCE function" };
         yield return new object[] { "SELECT id, CONCAT(name, '#', id) AS tag FROM users ORDER BY id", "CONCAT function with mixed args" };
-        yield return new object[] { "SELECT id, IF(email IS NULL, 'no', 'yes') AS flag FROM users ORDER BY id", "IF(cond, a, b)" };
         yield return new object[] { "SELECT id, COALESCE(email, 'none') AS em FROM users ORDER BY id", "IFNULL(a,b)" };
-        yield return new object[] { "SELECT id, IIF(email IS NULL, 0, 1) AS hasEmail FROM users ORDER BY id", "IIF(cond,a,b)" };
 
         // JOINs
         yield return new object[] { @"SELECT U.*, UT.TenantId 
@@ -631,15 +632,16 @@ select id
     [MemberDataOracleVersion]
     public void Parse_ShouldHandle_MultiStatementStrings_BySplitting(int version)
     {
-        var d = GetDialect(version, v => new OracleDialect(v));
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         const string multi = "SELECT 1; SELECT 2 FROM t WHERE id = 1; INSERT INTO t(id) VALUES(1);";
         var stmts = SqlStatementSplitter.SplitStatementsTopLevel(multi, d);
 
         Assert.Equal(3, stmts.Count);
 
-        Assert.NotNull(SqlQueryParser.Parse(stmts[0], d));
-        Assert.NotNull(SqlQueryParser.Parse(stmts[1], d));
-        var q3 = SqlQueryParser.Parse(stmts[2], d);
+        Assert.NotNull(SqlQueryParser.Parse(stmts[0], db,d));
+        Assert.NotNull(SqlQueryParser.Parse(stmts[1], db,d));
+        var q3 = SqlQueryParser.Parse(stmts[2], db,d);
         Assert.NotNull(q3);
 
         // exemplo (ajuste pro seu modelo):
@@ -662,7 +664,8 @@ select id
         Console.WriteLine("Query: @\"" + sql + "\"");
         ConsoleWriter.Flush();
 
-        var dialect = GetDialect(version, v => new OracleDialect(v));
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
         var trimmed = sql.TrimStart();
         if (minVersion == 0
             && (trimmed.Contains("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
@@ -683,7 +686,7 @@ select id
 #pragma warning disable CA1031 // Do not catch general exception types
         try
         {
-            var parsed = SqlQueryParser.ParseMulti(sql, dialect).ToList();
+            var parsed = SqlQueryParser.ParseMulti(sql, db,d).ToList();
 
             Assert.True(expectation == SqlCaseExpectation.ParseOk,
                 $"Esperava {expectation} mas parseou. Why={why}. Version={version}");

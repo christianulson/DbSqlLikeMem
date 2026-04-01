@@ -16,6 +16,18 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
     protected abstract DbConnectionMockBase CreateConnection();
 
     /// <summary>
+    /// EN: Indicates whether the provider supports DateTimeOffset input-output parameters in stored procedure signatures.
+    /// PT: Indica se o provedor suporta parametros input-output DateTimeOffset em assinaturas de procedure.
+    /// </summary>
+    protected virtual bool SupportsDateTimeOffsetInputOutputParameters => true;
+
+    /// <summary>
+    /// EN: Indicates whether the provider supports Guid input-output parameters in stored procedure signatures.
+    /// PT: Indica se o provedor suporta parametros input-output Guid em assinaturas de procedure.
+    /// </summary>
+    protected virtual bool SupportsGuidInputOutputParameters => true;
+
+    /// <summary>
     /// EN: Verifies stored procedure calls validate required input and output parameters.
     /// PT: Verifica se chamadas de procedure validam parametros de entrada e saida obrigatorios.
     /// </summary>
@@ -40,10 +52,10 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
         AddParameter(cmd, "resultCode", DbType.Int32, DBNull.Value, ParameterDirection.Output);
 
         var n = cmd.ExecuteNonQuery();
-        Assert.Equal(0, n);
-        Assert.Equal(0, Convert.ToInt32(
+        n.Should().Be(0);
+        Convert.ToInt32(
             cmd.Parameters["resultCode"].Value,
-            CultureInfo.InvariantCulture));
+            CultureInfo.InvariantCulture).Should().Be(0);
     }
 
     /// <summary>
@@ -55,13 +67,14 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
     public void StoredProcedure_ShouldPopulateMixedTypedOutParams()
     {
         using var c = CreateConnection();
+        var tokenDbType = SupportsGuidInputOutputParameters ? DbType.Guid : DbType.String;
         c.AddProdecure(new ProcedureDef(Name: "sp_demo",
             RequiredIn: [new ProcParam("tenantId", DbType.Int32, Required: true)],
             OptionalIn: [new ProcParam("note", DbType.String, Required: false)],
             OutParams:
             [
                 new ProcParam("resultCode", DbType.Int32, Required: true),
-                new ProcParam("token", DbType.Guid, Required: true),
+                new ProcParam("token", tokenDbType, Required: true),
                 new ProcParam("isActive", DbType.Boolean, Required: true),
                 new ProcParam("expiresAt", DbType.DateTime, Required: true),
                 new ProcParam("message", DbType.String, Required: true)
@@ -76,18 +89,25 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
         AddParameter(cmd, "tenantId", DbType.Int32, 10, ParameterDirection.Input);
         AddParameter(cmd, "note", DbType.String, "hello", ParameterDirection.Input);
         AddParameter(cmd, "resultCode", DbType.Int32, DBNull.Value, ParameterDirection.Output);
-        AddParameter(cmd, "token", DbType.Guid, DBNull.Value, ParameterDirection.Output);
+        AddParameter(cmd, "token", tokenDbType, DBNull.Value, ParameterDirection.Output);
         AddParameter(cmd, "isActive", DbType.Boolean, DBNull.Value, ParameterDirection.Output);
         AddParameter(cmd, "expiresAt", DbType.DateTime, DBNull.Value, ParameterDirection.Output);
         AddParameter(cmd, "message", DbType.String, DBNull.Value, ParameterDirection.Output);
 
         var n = cmd.ExecuteNonQuery();
-        Assert.Equal(0, n);
-        Assert.Equal(0, Convert.ToInt32(cmd.Parameters["resultCode"].Value, CultureInfo.InvariantCulture));
-        Assert.Equal(Guid.Empty, cmd.Parameters["token"].Value);
-        Assert.False(Convert.ToBoolean(cmd.Parameters["isActive"].Value, CultureInfo.InvariantCulture));
-        Assert.Equal(DateTime.MinValue, Convert.ToDateTime(cmd.Parameters["expiresAt"].Value, CultureInfo.InvariantCulture));
-        Assert.Equal(string.Empty, Convert.ToString(cmd.Parameters["message"].Value, CultureInfo.InvariantCulture));
+        n.Should().Be(0);
+        Convert.ToInt32(cmd.Parameters["resultCode"].Value, CultureInfo.InvariantCulture).Should().Be(0);
+        if (SupportsGuidInputOutputParameters)
+        {
+            cmd.Parameters["token"].Value.Should().Be(Guid.Empty);
+        }
+        else
+        {
+            Convert.ToString(cmd.Parameters["token"].Value, CultureInfo.InvariantCulture).Should().Be(string.Empty);
+        }
+        Convert.ToBoolean(cmd.Parameters["isActive"].Value, CultureInfo.InvariantCulture).Should().BeFalse();
+        Convert.ToDateTime(cmd.Parameters["expiresAt"].Value, CultureInfo.InvariantCulture).Should().Be(DateTime.MinValue);
+        Convert.ToString(cmd.Parameters["message"].Value, CultureInfo.InvariantCulture).Should().Be(string.Empty);
     }
 
     /// <summary>
@@ -129,10 +149,10 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
         AddParameter(cmd, "message", DbType.String, DBNull.Value, ParameterDirection.Output);
 
         var n = cmd.ExecuteNonQuery();
-        Assert.Equal(0, n);
-        Assert.Equal(41, Convert.ToInt32(cmd.Parameters["counter"].Value, CultureInfo.InvariantCulture));
-        Assert.Equal(0, Convert.ToInt32(cmd.Parameters["resultCode"].Value, CultureInfo.InvariantCulture));
-        Assert.Equal(string.Empty, Convert.ToString(cmd.Parameters["message"].Value, CultureInfo.InvariantCulture));
+        n.Should().Be(0);
+        Convert.ToInt32(cmd.Parameters["counter"].Value, CultureInfo.InvariantCulture).Should().Be(41);
+        Convert.ToInt32(cmd.Parameters["resultCode"].Value, CultureInfo.InvariantCulture).Should().Be(0);
+        Convert.ToString(cmd.Parameters["message"].Value, CultureInfo.InvariantCulture).Should().Be(string.Empty);
     }
 
     /// <summary>
@@ -166,8 +186,8 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
         AddParameter(cmd, "effectiveAt", DbType.DateTime, effectiveAt, ParameterDirection.InputOutput);
 
         var n = cmd.ExecuteNonQuery();
-        Assert.Equal(0, n);
-        Assert.Equal(effectiveAt, Convert.ToDateTime(cmd.Parameters["effectiveAt"].Value, CultureInfo.InvariantCulture));
+        n.Should().Be(0);
+        Convert.ToDateTime(cmd.Parameters["effectiveAt"].Value, CultureInfo.InvariantCulture).Should().Be(effectiveAt);
     }
 
     /// <summary>
@@ -178,6 +198,32 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
     [Trait("Category", "StoredProcedureSignature")]
     public void StoredProcedure_ShouldPopulateGuidInputOutputParam()
     {
+        if (!SupportsGuidInputOutputParameters)
+        {
+            using var cnn = CreateConnection();
+            cnn.AddProdecure(new ProcedureDef(Name: "sp_demo",
+                RequiredIn:
+                [
+                    new ProcParam("tenantId", DbType.Int32, Required: true),
+                    new ProcParam("token", DbType.Guid, Required: true)
+                ],
+                OptionalIn: [],
+                OutParams:
+                [
+                    new ProcParam("token", DbType.Guid, Required: true)
+                ],
+                ReturnParam: null));
+
+            using var cmd1 = cnn.CreateCommand();
+            cmd1.CommandType = CommandType.StoredProcedure;
+            cmd1.CommandText = "sp_demo";
+
+            AddParameter(cmd1, "tenantId", DbType.Int32, 10, ParameterDirection.Input);
+            FluentActions.Invoking(() => AddParameter(cmd1, "token", DbType.Guid, Guid.Parse("11111111-2222-3333-4444-555555555555"), ParameterDirection.InputOutput))
+                .Should().Throw<ArgumentException>();
+            return;
+        }
+
         using var c = CreateConnection();
         c.AddProdecure(new ProcedureDef(Name: "sp_demo",
             RequiredIn:
@@ -201,8 +247,8 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
         AddParameter(cmd, "token", DbType.Guid, token, ParameterDirection.InputOutput);
 
         var n = cmd.ExecuteNonQuery();
-        Assert.Equal(0, n);
-        Assert.Equal(token, cmd.Parameters["token"].Value);
+        n.Should().Be(0);
+        cmd.Parameters["token"].Value.Should().Be(token);
     }
 
     /// <summary>
@@ -235,8 +281,8 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
         AddParameter(cmd, "isActive", DbType.Boolean, true, ParameterDirection.InputOutput);
 
         var n = cmd.ExecuteNonQuery();
-        Assert.Equal(0, n);
-        Assert.True(Convert.ToBoolean(cmd.Parameters["isActive"].Value, CultureInfo.InvariantCulture));
+        n.Should().Be(0);
+        Convert.ToBoolean(cmd.Parameters["isActive"].Value, CultureInfo.InvariantCulture).Should().BeTrue();
     }
 
     /// <summary>
@@ -270,8 +316,8 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
         AddParameter(cmd, "balance", DbType.Decimal, balance, ParameterDirection.InputOutput);
 
         var n = cmd.ExecuteNonQuery();
-        Assert.Equal(0, n);
-        Assert.Equal(balance, Convert.ToDecimal(cmd.Parameters["balance"].Value, CultureInfo.InvariantCulture));
+        n.Should().Be(0);
+        Convert.ToDecimal(cmd.Parameters["balance"].Value, CultureInfo.InvariantCulture).Should().Be(balance);
     }
 
     /// <summary>
@@ -304,8 +350,8 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
         AddParameter(cmd, "message", DbType.String, "hello", ParameterDirection.InputOutput);
 
         var n = cmd.ExecuteNonQuery();
-        Assert.Equal(0, n);
-        Assert.Equal("hello", Convert.ToString(cmd.Parameters["message"].Value, CultureInfo.InvariantCulture));
+        n.Should().Be(0);
+        Convert.ToString(cmd.Parameters["message"].Value, CultureInfo.InvariantCulture).Should().Be("hello");
     }
 
     /// <summary>
@@ -316,6 +362,33 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
     [Trait("Category", "StoredProcedureSignature")]
     public void StoredProcedure_ShouldPopulateDateTimeOffsetInputOutputParam()
     {
+        if (!SupportsDateTimeOffsetInputOutputParameters)
+        {
+            using var cnn = CreateConnection();
+            cnn.AddProdecure(new ProcedureDef(Name: "sp_demo",
+                RequiredIn:
+                [
+                    new ProcParam("tenantId", DbType.Int32, Required: true),
+                    new ProcParam("scheduledAt", DbType.DateTimeOffset, Required: true)
+                ],
+                OptionalIn: [],
+                OutParams:
+                [
+                    new ProcParam("scheduledAt", DbType.DateTimeOffset, Required: true)
+                ],
+                ReturnParam: null));
+
+            using var cmd1 = cnn.CreateCommand();
+            cmd1.CommandType = CommandType.StoredProcedure;
+            cmd1.CommandText = "sp_demo";
+
+            var scheduledAt1 = new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.Zero);
+            AddParameter(cmd1, "tenantId", DbType.Int32, 10, ParameterDirection.Input);
+            FluentActions.Invoking(() => AddParameter(cmd1, "scheduledAt", DbType.DateTimeOffset, scheduledAt1, ParameterDirection.InputOutput))
+                .Should().Throw<InvalidCastException>();
+            return;
+        }
+
         using var c = CreateConnection();
         c.AddProdecure(new ProcedureDef(Name: "sp_demo",
             RequiredIn:
@@ -339,8 +412,8 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
         AddParameter(cmd, "scheduledAt", DbType.DateTimeOffset, scheduledAt, ParameterDirection.InputOutput);
 
         var n = cmd.ExecuteNonQuery();
-        Assert.Equal(0, n);
-        Assert.Equal(scheduledAt, cmd.Parameters["scheduledAt"].Value);
+        n.Should().Be(0);
+        cmd.Parameters["scheduledAt"].Value.Should().Be(scheduledAt);
     }
 
     /// <summary>
@@ -373,8 +446,8 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
         AddParameter(cmd, "tag", DbType.StringFixedLength, "ABCDE", ParameterDirection.InputOutput);
 
         var n = cmd.ExecuteNonQuery();
-        Assert.Equal(0, n);
-        Assert.Equal("ABCDE", Convert.ToString(cmd.Parameters["tag"].Value, CultureInfo.InvariantCulture));
+        n.Should().Be(0);
+        Convert.ToString(cmd.Parameters["tag"].Value, CultureInfo.InvariantCulture).Should().Be("ABCDE");
     }
 
     /// <summary>
@@ -417,11 +490,11 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
         AddParameter(cmd, "label", DbType.AnsiString, "ansi", ParameterDirection.InputOutput);
 
         var n = cmd.ExecuteNonQuery();
-        Assert.Equal(0, n);
-        Assert.Equal(1234567890123L, Convert.ToInt64(cmd.Parameters["bigCounter"].Value, CultureInfo.InvariantCulture));
-        Assert.Equal(12.5d, Convert.ToDouble(cmd.Parameters["ratio"].Value, CultureInfo.InvariantCulture));
-        Assert.Equal(payload, Assert.IsType<byte[]>(cmd.Parameters["payload"].Value));
-        Assert.Equal("ansi", Convert.ToString(cmd.Parameters["label"].Value, CultureInfo.InvariantCulture));
+        n.Should().Be(0);
+        Convert.ToInt64(cmd.Parameters["bigCounter"].Value, CultureInfo.InvariantCulture).Should().Be(1234567890123L);
+        Convert.ToDouble(cmd.Parameters["ratio"].Value, CultureInfo.InvariantCulture).Should().Be(12.5d);
+        cmd.Parameters["payload"].Value.Should().BeOfType<byte[]>().Which.Should().Equal(payload);
+        Convert.ToString(cmd.Parameters["label"].Value, CultureInfo.InvariantCulture).Should().Be("ansi");
     }
 
     /// <summary>
@@ -442,8 +515,8 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
         cmd.CommandType = CommandType.StoredProcedure;
         cmd.CommandText = "sp_demo";
 
-        var ex = Assert.Throws<TSqlMockException>(() => cmd.ExecuteNonQuery());
-        Assert.Equal(1318, ex.ErrorCode);
+        var ex = FluentActions.Invoking(() => cmd.ExecuteNonQuery()).Should().Throw<TSqlMockException>().Which;
+        ex.ErrorCode.Should().Be(1318);
     }
 
     /// <summary>
@@ -465,7 +538,7 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
         AddParameter(cmd, "tenantId", DbType.Int32, 10, ParameterDirection.Input);
 
         var n = cmd.ExecuteNonQuery();
-        Assert.Equal(0, n);
+        n.Should().Be(0);
     }
 
     private static void AddParameter(
@@ -477,7 +550,17 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
     {
         var parameter = cmd.CreateParameter();
         parameter.ParameterName = name;
-        parameter.DbType = dbType;
+        try
+        {
+            parameter.DbType = dbType;
+        }
+        catch (ArgumentException) when (parameter.GetType().FullName == "Oracle.ManagedDataAccess.Client.OracleParameter")
+        {
+            // EN: ODP.NET can reject some DbType values (e.g., Guid/DateTimeOffset) on OracleParameter.
+            // PT: ODP.NET pode rejeitar alguns valores de DbType (ex.: Guid/DateTimeOffset) no OracleParameter.
+            //
+            // Keep the default DbType and rely on the value payload for signature tests.
+        }
         TrySetDirection(parameter, direction);
         parameter.Value = value;
         cmd.Parameters.Add(parameter);

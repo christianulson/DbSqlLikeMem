@@ -37,6 +37,7 @@ internal static class QueryOracleDb2UtilityFunctionHelper
         Register(handlers, TryEvalInitCapFunction, "INITCAP");
         Register(handlers, TryEvalChartoRowidFunction, "CHARTOROWID");
         Register(handlers, TryEvalClusterFunctions, "CLUSTER_DETAILS", "CLUSTER_DISTANCE", "CLUSTER_ID", "CLUSTER_PROBABILITY", "CLUSTER_SET");
+        Register(handlers, TryEvalLastFoundRowsFunction, "ROW_COUNT", "FOUND_ROWS", "ROWCOUNT", "CHANGES");
         return handlers;
     }
 
@@ -286,6 +287,25 @@ internal static class QueryOracleDb2UtilityFunctionHelper
         result = null;
         return true;
 
+    }
+
+    private static bool TryEvalLastFoundRowsFunction(
+        this QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = evalArg;
+        context.EnsureOracleDb2FunctionSupported(fn);
+
+        if (fn.Args.Count != 0)
+        {
+            result = null;
+            return false;
+        }
+
+        result = context.Connection.GetLastFoundRows();
+        return true;
     }
 
     internal static void EnsureOracleDb2FunctionSupported(

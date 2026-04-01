@@ -10,6 +10,9 @@ public abstract class BaseServiceTest<T>(
     ProviderSqlDialect dialect)
     where T : DbConnection
 {
+    private object[]? currentScenarioArgs;
+    private bool rewriteScenarioSql = true;
+
     /// <summary>
     /// EN: Gets the connection used by the current scenario.
     /// PT: Obtem a conexao usada pelo cenario atual.
@@ -26,16 +29,42 @@ public abstract class BaseServiceTest<T>(
     /// EN: Creates the scenario data using the configured scenario object.
     /// PT: Cria os dados do cenario usando o objeto de cenario configurado.
     /// </summary>
-    public virtual void CreateScenario(params object[] pars) {
-        testScenario.CreateScenario(this, pars);
+    protected IReadOnlyList<object>? CurrentScenarioArgs => currentScenarioArgs;
+
+    /// <summary>
+    /// EN: Creates the scenario data using the configured scenario object.
+    /// PT: Cria os dados do cenario usando o objeto de cenario configurado.
+    /// </summary>
+    public virtual void CreateScenario(params object[] pars)
+    {
+        currentScenarioArgs = [.. pars];
+        rewriteScenarioSql = false;
+        try
+        {
+            testScenario.CreateScenario(this, pars);
+        }
+        finally
+        {
+            rewriteScenarioSql = true;
+        }
     }
 
     /// <summary>
     /// EN: Removes the scenario data using the configured scenario object.
     /// PT: Remove os dados do cenario usando o objeto de cenario configurado.
     /// </summary>
-    public virtual void DropScenario(params object[] pars) {
-        testScenario.DropScenario(this, pars);
+    public virtual void DropScenario(params object[] pars)
+    {
+        rewriteScenarioSql = false;
+        try
+        {
+            testScenario.DropScenario(this, pars);
+        }
+        finally
+        {
+            currentScenarioArgs = null;
+            rewriteScenarioSql = true;
+        }
     }
 
     /// <summary>
@@ -48,6 +77,7 @@ public abstract class BaseServiceTest<T>(
         string sql,
         DbTransaction? transaction = null)
     {
+        sql = NormalizeScenarioSql(sql);
         using var command = Connection.CreateCommand();
         command.CommandText = sql;
         if (transaction is not null)
@@ -66,6 +96,7 @@ public abstract class BaseServiceTest<T>(
         string sql,
         DbTransaction? transaction = null)
     {
+        sql = NormalizeScenarioSql(sql);
         using var command = Connection.CreateCommand();
         command.CommandText = sql;
         if (transaction is not null)
@@ -84,6 +115,7 @@ public abstract class BaseServiceTest<T>(
         string sql,
         DbTransaction? transaction = null)
     {
+        sql = NormalizeScenarioSql(sql);
         using var command = Connection.CreateCommand();
         command.CommandText = sql;
         if (transaction is not null)
@@ -102,10 +134,49 @@ public abstract class BaseServiceTest<T>(
         string sql,
         DbTransaction? transaction = null)
     {
+        sql = NormalizeScenarioSql(sql);
         using var command = Connection.CreateCommand();
         command.CommandText = sql;
         if (transaction is not null)
             command.Transaction = transaction;
         return await command.ExecuteScalarAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// EN: Rewrites logical scenario table names in SQL to the physical names created for the current run.
+    /// PT: Reescreve nomes logicos de tabelas de cenario no SQL para os nomes fisicos criados na execucao atual.
+    /// </summary>
+    protected string NormalizeScenarioSql(string sql)
+    {
+        if (!rewriteScenarioSql)
+            return sql;
+
+        var scenarioArgs = currentScenarioArgs;
+        if (scenarioArgs is null || scenarioArgs.Length < 2)
+            return sql;
+
+        var uId = scenarioArgs[scenarioArgs.Length - 1]?.ToString();
+        if (string.IsNullOrWhiteSpace(uId))
+            return sql;
+
+        for (var i = 0; i < scenarioArgs.Length - 1; i++)
+        {
+            if (scenarioArgs[i] is not string tableName || string.IsNullOrWhiteSpace(tableName))
+                continue;
+
+            var resolved = dialect.Provider == ProviderId.Oracle
+                ? tableName.ToLowerInvariant()
+                : $"{tableName}_{uId}";
+
+            if (!string.Equals(tableName, resolved, StringComparison.Ordinal))
+            {
+                if (sql.Contains(resolved, StringComparison.Ordinal))
+                    continue;
+
+                sql = sql.Replace(tableName, resolved);
+            }
+        }
+
+        return sql;
     }
 }

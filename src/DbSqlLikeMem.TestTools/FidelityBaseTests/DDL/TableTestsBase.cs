@@ -107,7 +107,7 @@ public abstract class TableTestsBase<T, T2>(
             serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTable, usersTable, 10, 1, "first", "o-10", 12.34m, 2, true, orderedAt));
 
             var joinCount = Convert.ToInt32(serviceTest.ExecuteScalar(dialect.CountJoinForUser(usersTable, ordersTable, 1)));
-            Assert.Equal(1, joinCount);
+            joinCount.Should().Be(1);
 
             if (IsTableContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -124,7 +124,7 @@ public abstract class TableTestsBase<T, T2>(
                     serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTable, usersTable, 10, 1, "first", "o-10", 12.34m, 2, true, orderedAt));
 
                     var joinCountContainer = Convert.ToInt32(serviceTestContainer.ExecuteScalar(dialect.CountJoinForUser(usersTable, ordersTable, 1)));
-                    Assert.Equal(joinCount, joinCountContainer);
+                    joinCount.Should().Be(joinCountContainer);
                 }
                 finally
                 {

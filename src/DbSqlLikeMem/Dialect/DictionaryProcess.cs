@@ -3,7 +3,7 @@
 internal class DictionaryProcess<T> : IDictionaryProcess<T>
         where T : ProcessDef
 {
-    private readonly Dictionary<string, T> _inner = new(StringComparer.OrdinalIgnoreCase);
+    protected readonly Dictionary<string, T> _inner = new(StringComparer.OrdinalIgnoreCase);
 
     protected virtual string NormalizeKey(string key)
     {

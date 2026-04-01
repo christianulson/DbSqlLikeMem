@@ -36,10 +36,10 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
         try
         {
             var resultMock = RunScalarTemporalMatrix(serviceTest, users);
-            Assert.True(resultMock.DateAdd > resultMock.DateScalar);
-            Assert.True(resultMock.DateAdd > resultMock.CurrentTimestamp);
-            Assert.Equal(3, resultMock.WhereCount);
-            Assert.Equal("Aaron", resultMock.OrderedName);
+            (resultMock.DateAdd > resultMock.DateScalar).Should().BeTrue();
+            (resultMock.DateAdd > resultMock.CurrentTimestamp).Should().BeTrue();
+            resultMock.WhereCount.Should().Be(3);
+            resultMock.OrderedName.Should().Be("Aaron");
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -52,7 +52,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = RunScalarTemporalMatrix(serviceTestContainer, users);
-                    Assert.Equal(resultMock, resultContainer);
+                    resultMock.Should().Be(resultContainer);
                 }
                 finally
                 {
@@ -77,9 +77,9 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
         var whereCount = Convert.ToInt32(serviceTest.RunTemporalNowWhere(users), CultureInfo.InvariantCulture);
         var orderedName = Convert.ToString(serviceTest.RunTemporalNowOrderBy(users), CultureInfo.InvariantCulture) ?? string.Empty;
 
-        Assert.NotEqual(default, dateScalar);
-        Assert.NotEqual(default, currentTimestamp);
-        Assert.NotEqual(default, dateAdd);
+        dateScalar.Should().NotBe(default);
+        currentTimestamp.Should().NotBe(default);
+        dateAdd.Should().NotBe(default);
 
         return (dateScalar, currentTimestamp, dateAdd, whereCount, orderedName);
     }

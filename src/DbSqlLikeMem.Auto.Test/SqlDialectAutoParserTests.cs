@@ -1,6 +1,8 @@
+using DbSqlLikeMem.Oracle;
+using Google.Protobuf.Compiler;
 using System.Collections;
 
-namespace DbSqlLikeMem.Test;
+namespace DbSqlLikeMem.Auto.Test;
 
 /// <summary>
 /// EN: Covers the first parser slice of the automatic SQL dialect mode.
@@ -35,10 +37,11 @@ public sealed class SqlDialectAutoParserTests(
     public void AutoDialect_ShouldNormalizeTopLimitAndFetchFirst_ToCanonicalRowLimit()
     {
         var dialect = new AutoSqlDialect();
+        var db = Get(1, v => new AutoDbMock(v));
 
-        var top = ParseRowLimit("SELECT TOP 5 id FROM users", dialect);
-        var limit = ParseRowLimit("SELECT id FROM users LIMIT 5", dialect);
-        var fetch = ParseRowLimit("SELECT id FROM users FETCH FIRST 5 ROWS ONLY", dialect);
+        var top = ParseRowLimit("SELECT TOP 5 id FROM users", db, dialect);
+        var limit = ParseRowLimit("SELECT id FROM users LIMIT 5", db, dialect);
+        var fetch = ParseRowLimit("SELECT id FROM users FETCH FIRST 5 ROWS ONLY", db, dialect);
 
         Assert.Equal(new LiteralExpr(5), top.Count);
         Assert.Null(top.Offset);
@@ -56,8 +59,9 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldNormalizeOffsetFetch_ToCanonicalRowLimit()
     {
+        var db = Get(1, v => new AutoDbMock(v));
         var rowLimit = ParseRowLimit(
-            "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY",
+            "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY", db,
             new AutoSqlDialect());
 
         Assert.Equal(new LiteralExpr(2), rowLimit.Count);
@@ -72,8 +76,9 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldNormalizeRownumPredicate_ToCanonicalRowLimit()
     {
+        var db = Get(1, v => new AutoDbMock(v));
         var parsed = ParseSelect(
-            "SELECT id FROM users WHERE ROWNUM <= 5",
+            "SELECT id FROM users WHERE ROWNUM <= 5", db,
             new AutoSqlDialect());
 
         var rowLimit = Assert.IsType<SqlLimitOffset>(parsed.RowLimit);
@@ -90,8 +95,9 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldKeepRemainingWherePredicate_WhenRownumUsesAnd()
     {
+        var db = Get(1, v => new AutoDbMock(v));
         var parsed = ParseSelect(
-            "SELECT id FROM users WHERE status = 1 AND ROWNUM <= 5",
+            "SELECT id FROM users WHERE status = 1 AND ROWNUM <= 5", db,
             new AutoSqlDialect());
 
         var rowLimit = Assert.IsType<SqlLimitOffset>(parsed.RowLimit);
@@ -108,8 +114,9 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldTightenExistingLimit_WhenRownumAndTopAreCombined()
     {
+        var db = Get(1, v => new AutoDbMock(v));
         var parsed = ParseSelect(
-            "SELECT TOP 10 id FROM users WHERE ROWNUM < 4",
+            "SELECT TOP 10 id FROM users WHERE ROWNUM < 4", db,
             new AutoSqlDialect());
 
         var rowLimit = Assert.IsType<SqlLimitOffset>(parsed.RowLimit);
@@ -126,8 +133,9 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldNotRewriteUnsafeRownumPredicate_WhenCombinedWithOr()
     {
+        var db = Get(1, v => new AutoDbMock(v));
         var parsed = ParseSelect(
-            "SELECT id FROM users WHERE ROWNUM <= 5 OR status = 1",
+            "SELECT id FROM users WHERE ROWNUM <= 5 OR status = 1", db,
             new AutoSqlDialect());
 
         Assert.Null(parsed.RowLimit);
@@ -142,8 +150,9 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldNotRewriteRownum_WhenOffsetPaginationAlreadyExists()
     {
+        var db = Get(1, v => new AutoDbMock(v));
         var parsed = ParseSelect(
-            "SELECT id FROM users WHERE ROWNUM <= 5 ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY",
+            "SELECT id FROM users WHERE ROWNUM <= 5 ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY", db,
             new AutoSqlDialect());
 
         var rowLimit = Assert.IsType<SqlLimitOffset>(parsed.RowLimit);
@@ -167,6 +176,7 @@ public sealed class SqlDialectAutoParserTests(
 
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             "SELECT id FROM users WHERE ROWNUM <= @take",
+            new AutoDbMock(),
             new AutoSqlDialect(),
             parameters));
 
@@ -184,10 +194,12 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldExposeDedicatedParseHelpers()
     {
-        var single = Assert.IsType<SqlSelectQuery>(SqlQueryParser.ParseAuto("SELECT TOP 2 id FROM users"));
-        var batch = SqlQueryParser.ParseMultiAuto("SELECT TOP 1 id FROM users; SELECT id FROM users LIMIT 2").ToList();
-        var union = SqlQueryParser.ParseUnionChainAuto("SELECT TOP 1 id FROM users UNION ALL SELECT id FROM users LIMIT 2");
-        var statements = SqlQueryParser.SplitStatementsAuto("SELECT `id` FROM users; SELECT [name] FROM users").ToList();
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var single = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse("SELECT TOP 2 id FROM users", db, d));
+        var batch = SqlQueryParser.ParseMulti("SELECT TOP 1 id FROM users; SELECT id FROM users LIMIT 2", db, d).ToList();
+        var union = SqlQueryParser.ParseUnionChain("SELECT TOP 1 id FROM users UNION ALL SELECT id FROM users LIMIT 2", db, d);
+        var statements = SqlQueryParser.SplitStatements("SELECT `id` FROM users; SELECT [name] FROM users", d).ToList();
 
         Assert.IsType<SqlLimitOffset>(single.RowLimit);
         Assert.Equal(2, batch.Count);
@@ -203,13 +215,15 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldExposeDedicatedExpressionParseHelpers()
     {
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
         var parameters = new TestParameterCollection
         {
             new TestParameter("@take", 4)
         };
 
-        var scalar = SqlExpressionParser.ParseScalarAuto("`users`.`id`");
-        var where = SqlExpressionParser.ParseWhereAuto("ROWNUM <= @take AND [status] = 1", parameters);
+        var scalar = SqlExpressionParser.ParseScalar("`users`.`id`", db, d);
+        var where = SqlExpressionParser.ParseWhere("ROWNUM <= @take AND [status] = 1", db, d, parameters);
 
         Assert.IsType<ColumnExpr>(scalar);
         var binary = Assert.IsType<BinaryExpr>(where);
@@ -296,10 +310,12 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldParseSequenceDdl()
     {
-        var create = Assert.IsType<SqlCreateSequenceQuery>(SqlQueryParser.ParseAuto(
-            "CREATE SEQUENCE sales.seq_orders START WITH 10 INCREMENT BY 5"));
-        var drop = Assert.IsType<SqlDropSequenceQuery>(SqlQueryParser.ParseAuto(
-            "DROP SEQUENCE IF EXISTS sales.seq_orders"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var create = Assert.IsType<SqlCreateSequenceQuery>(SqlQueryParser.Parse(
+            "CREATE SEQUENCE sales.seq_orders START WITH 10 INCREMENT BY 5", db, d));
+        var drop = Assert.IsType<SqlDropSequenceQuery>(SqlQueryParser.Parse(
+            "DROP SEQUENCE IF EXISTS sales.seq_orders", db, d));
 
         Assert.Equal("seq_orders", create.Table?.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("sales", create.Table?.DbName, StringComparer.OrdinalIgnoreCase);
@@ -317,10 +333,12 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldParseIndexDdl()
     {
-        var create = Assert.IsType<SqlCreateIndexQuery>(SqlQueryParser.ParseAuto(
-            "CREATE UNIQUE INDEX ix_users_name ON sales.users (name, email)"));
-        var drop = Assert.IsType<SqlDropIndexQuery>(SqlQueryParser.ParseAuto(
-            "DROP INDEX IF EXISTS ix_users_name"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var create = Assert.IsType<SqlCreateIndexQuery>(SqlQueryParser.Parse(
+            "CREATE UNIQUE INDEX ix_users_name ON sales.users (name, email)", db, d));
+        var drop = Assert.IsType<SqlDropIndexQuery>(SqlQueryParser.Parse(
+            "DROP INDEX IF EXISTS ix_users_name", db, d));
 
         Assert.True(create.Unique);
         Assert.Equal("ix_users_name", create.IndexName, StringComparer.OrdinalIgnoreCase);
@@ -339,8 +357,10 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldParseAlterTableAddColumnDdl()
     {
-        var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.ParseAuto(
-            "ALTER TABLE sales.users ADD COLUMN nickname VARCHAR(40) NOT NULL DEFAULT 'guest'"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
+            "ALTER TABLE sales.users ADD COLUMN nickname VARCHAR(40) NOT NULL DEFAULT 'guest'", db, d));
 
         Assert.Equal("sales", parsed.Table?.DbName, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("users", parsed.Table?.Name, StringComparer.OrdinalIgnoreCase);
@@ -359,8 +379,10 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldParseAlterTableAddDecimalColumnPrecisionAndScale()
     {
-        var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.ParseAuto(
-            "ALTER TABLE sales.users ADD COLUMN amount DECIMAL(10, 4) NOT NULL DEFAULT 0"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
+            "ALTER TABLE sales.users ADD COLUMN amount DECIMAL(10, 4) NOT NULL DEFAULT 0", db, d));
 
         Assert.Equal(DbType.Decimal, parsed.ColumnType);
         Assert.Equal(10, parsed.Size);
@@ -377,8 +399,10 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldParseAlterTableAddBinaryColumnSize()
     {
-        var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.ParseAuto(
-            "ALTER TABLE sales.users ADD COLUMN payload VARBINARY(16) NULL"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
+            "ALTER TABLE sales.users ADD COLUMN payload VARBINARY(16) NULL", db, d));
 
         Assert.Equal(DbType.Binary, parsed.ColumnType);
         Assert.Equal(16, parsed.Size);
@@ -393,8 +417,10 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldRejectAlterTableWithTableAlias()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
-            "ALTER TABLE users u ADD COLUMN nickname VARCHAR(40)"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE users u ADD COLUMN nickname VARCHAR(40)", db, d));
 
         Assert.Contains("alias", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -407,8 +433,10 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldRejectAlterTableWithDerivedTable()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
-            "ALTER TABLE (SELECT * FROM users) u ADD COLUMN nickname VARCHAR(40)"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE (SELECT * FROM users) u ADD COLUMN nickname VARCHAR(40)", db, d));
 
         Assert.Contains("concrete table name", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -421,15 +449,17 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldParseScalarFunctionDdlSubset()
     {
-        var create = Assert.IsType<SqlCreateFunctionQuery>(SqlQueryParser.ParseAuto(
-            "CREATE FUNCTION fn_users() RETURNS INT AS BEGIN RETURN 40 + 2 END"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var create = Assert.IsType<SqlCreateFunctionQuery>(SqlQueryParser.Parse(
+            "CREATE FUNCTION fn_users(@baseValue INT, @incrementValue INT) RETURNS INT AS BEGIN RETURN 40 + 2 END", db, d));
 
         Assert.Equal("fn_users", create.Table?.Name, ignoreCase: true);
         Assert.Equal("INT", create.Definition.ReturnTypeSql, ignoreCase: true);
         Assert.IsType<BinaryExpr>(create.Definition.Body);
 
-        var drop = Assert.IsType<SqlDropFunctionQuery>(SqlQueryParser.ParseAuto(
-            "DROP FUNCTION IF EXISTS fn_users"));
+        var drop = Assert.IsType<SqlDropFunctionQuery>(SqlQueryParser.Parse(
+            "DROP FUNCTION IF EXISTS fn_users", db, d));
 
         Assert.True(drop.IfExists);
         Assert.Equal("fn_users", drop.Table?.Name, ignoreCase: true);
@@ -443,8 +473,10 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldRejectAlterTableNotNullWithDefaultNull()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
-            "ALTER TABLE users ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT NULL"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE users ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT NULL", db, d));
 
         Assert.Contains("default null", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -457,8 +489,10 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldRejectAlterTableWithInvalidVarcharTypeArguments()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
-            "ALTER TABLE users ADD COLUMN nickname VARCHAR(foo)"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE users ADD COLUMN nickname VARCHAR(foo)", db, d));
 
         Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -471,8 +505,10 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldRejectAlterTableWithInvalidDecimalTypeArguments()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
-            "ALTER TABLE users ADD COLUMN amount DECIMAL(10, foo)"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE users ADD COLUMN amount DECIMAL(10, foo)", db, d));
 
         Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -485,8 +521,10 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldRejectAlterTableWithEmptyVarcharTypeArguments()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
-            "ALTER TABLE users ADD COLUMN nickname VARCHAR()"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE users ADD COLUMN nickname VARCHAR()", db, d));
 
         Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -499,8 +537,10 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldRejectAlterTableWithEmptyDecimalTypeArguments()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
-            "ALTER TABLE users ADD COLUMN amount DECIMAL()"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE users ADD COLUMN amount DECIMAL()", db, d));
 
         Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -513,8 +553,10 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldRejectAlterTableWithTrailingCommaInVarcharTypeArguments()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
-            "ALTER TABLE users ADD COLUMN nickname VARCHAR(10,)"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE users ADD COLUMN nickname VARCHAR(10,)", db, d));
 
         Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -527,8 +569,10 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldRejectAlterTableWithTrailingCommaInDecimalTypeArguments()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
-            "ALTER TABLE users ADD COLUMN amount DECIMAL(10,)"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE users ADD COLUMN amount DECIMAL(10,)", db, d));
 
         Assert.Contains("type arguments", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -541,8 +585,10 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldRejectCreateIndexWithDuplicateKeyColumns()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
-            "CREATE INDEX ix_users_name_dup ON users (name, name)"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "CREATE INDEX ix_users_name_dup ON users (name, name)", db, d));
 
         Assert.Contains("duplicate", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -555,8 +601,10 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldRejectCreateIndexWithEmptyKeyColumnList()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
-            "CREATE INDEX ix_users_name ON users ()"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "CREATE INDEX ix_users_name ON users ()", db, d));
 
         Assert.Contains("at least one column", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -569,8 +617,10 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldRejectCreateIndexWithTableAlias()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
-            "CREATE INDEX ix_users_name ON users u (name)"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "CREATE INDEX ix_users_name ON users u (name)", db, d));
 
         Assert.Contains("alias", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -583,8 +633,10 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldRejectCreateIndexWithDerivedTable()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
-            "CREATE INDEX ix_users_name ON (SELECT * FROM users) u (name)"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "CREATE INDEX ix_users_name ON (SELECT * FROM users) u (name)", db, d));
 
         Assert.Contains("concrete table name", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -597,8 +649,10 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldRejectDropIndexOnWithoutTableName()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
-            "DROP INDEX ix_users_name ON ;"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "DROP INDEX ix_users_name ON ;", db, d));
 
         Assert.Contains("table name", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -611,8 +665,10 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldRejectDropIndexOnWithTableAlias()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
-            "DROP INDEX ix_users_name ON users u"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "DROP INDEX ix_users_name ON users u", db, d));
 
         Assert.Contains("alias", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -625,8 +681,10 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldRejectDropIndexOnWithDerivedTable()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.ParseAuto(
-            "DROP INDEX ix_users_name ON (SELECT * FROM users) u"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "DROP INDEX ix_users_name ON (SELECT * FROM users) u", db, d));
 
         Assert.Contains("concrete table name", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -639,13 +697,15 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldParseEquivalentSequenceExpressionFamilies()
     {
-        var nextValueFor = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("NEXT VALUE FOR sales.seq_orders"));
-        var previousValueFor = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("PREVIOUS VALUE FOR sales.seq_orders"));
-        var dotNextVal = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("sales.seq_orders.NEXTVAL"));
-        var dotCurrVal = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("sales.seq_orders.CURRVAL"));
-        var nextVal = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("NEXTVAL('sales.seq_orders')"));
-        var currVal = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("CURRVAL('sales.seq_orders')"));
-        var lastVal = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("LASTVAL()"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var nextValueFor = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("NEXT VALUE FOR sales.seq_orders", db, d));
+        var previousValueFor = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("PREVIOUS VALUE FOR sales.seq_orders", db, d));
+        var dotNextVal = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("sales.seq_orders.NEXTVAL", db, d));
+        var dotCurrVal = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("sales.seq_orders.CURRVAL", db, d));
+        var nextVal = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("NEXTVAL('sales.seq_orders')", db, d));
+        var currVal = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CURRVAL('sales.seq_orders')", db, d));
+        var lastVal = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LASTVAL()", db, d));
 
         Assert.Equal("NEXT_VALUE_FOR", nextValueFor.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("PREVIOUS_VALUE_FOR", previousValueFor.Name, StringComparer.OrdinalIgnoreCase);
@@ -678,8 +738,10 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldParseJsonArrowOperators()
     {
-        var extract = Assert.IsType<JsonAccessExpr>(SqlExpressionParser.ParseScalarAuto("payload->'$.tenant'"));
-        var unquote = Assert.IsType<JsonAccessExpr>(SqlExpressionParser.ParseScalarAuto("payload->>'$.tenant'"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var extract = Assert.IsType<JsonAccessExpr>(SqlExpressionParser.ParseScalar("payload->'$.tenant'", db, d));
+        var unquote = Assert.IsType<JsonAccessExpr>(SqlExpressionParser.ParseScalar("payload->>'$.tenant'", db, d));
 
         Assert.False(extract.Unquote);
         Assert.True(unquote.Unquote);
@@ -702,22 +764,24 @@ public sealed class SqlDialectAutoParserTests(
     }
 
     /// <summary>
-    /// EN: Verifies Auto mode parses shared JSON_EXTRACT and JSON_VALUE calls without provider-specific selection.
-    /// PT: Verifica se o modo Auto interpreta chamadas compartilhadas de JSON_EXTRACT e JSON_VALUE sem selecao especifica por provider.
+    /// EN: Verifies Auto mode parses shared JSON_EXTRACT and JSON_VALUE calls and the OPENJSON table function without provider-specific selection.
+    /// PT: Verifica se o modo Auto interpreta chamadas compartilhadas de JSON_EXTRACT e JSON_VALUE e a função de tabela OPENJSON sem seleção específica por provider.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldParseSharedJsonFunctions()
     {
-        var extract = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("JSON_EXTRACT(payload, '$.tenant')"));
-        var value = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("JSON_VALUE(payload, '$.tenant')"));
-        var valueReturning = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("JSON_VALUE(payload, '$.tenant' RETURNING NUMBER)"));
-        var openJson = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("OPENJSON(payload)"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var extract = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("JSON_EXTRACT(payload, '$.tenant')", db, d));
+        var value = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("JSON_VALUE(payload, '$.tenant')", db, d));
+        var valueReturning = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("JSON_VALUE(payload, '$.tenant' RETURNING NUMBER)", db, d));
+        var openJson = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse("SELECT * FROM OPENJSON(payload) j", db, d));
 
         Assert.Equal("JSON_EXTRACT", extract.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("JSON_VALUE", value.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("JSON_VALUE", valueReturning.Name, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal(SqlConst.OPENJSON, openJson.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.OPENJSON, openJson.Table!.TableFunction!.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("RETURNING NUMBER", Assert.IsType<RawSqlExpr>(valueReturning.Args[2]).Sql, ignoreCase: true);
     }
 
@@ -749,11 +813,13 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldParseSharedTemporalAliases()
     {
-        var currentDate = SqlExpressionParser.ParseScalarAuto("CURRENT_DATE");
-        var systemDate = SqlExpressionParser.ParseScalarAuto("SYSTEMDATE");
-        var sysDate = SqlExpressionParser.ParseScalarAuto("SYSDATE");
-        var now = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("NOW()"));
-        var getDate = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("GETDATE()"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var currentDate = SqlExpressionParser.ParseScalar("CURRENT_DATE", db, d);
+        var systemDate = SqlExpressionParser.ParseScalar("SYSTEMDATE", db, d);
+        var sysDate = SqlExpressionParser.ParseScalar("SYSDATE", db, d);
+        var now = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("NOW()", db, d));
+        var getDate = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("GETDATE()", db, d));
 
         Assert.IsType<IdentifierExpr>(currentDate);
         Assert.IsType<IdentifierExpr>(systemDate);
@@ -770,9 +836,11 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldParseSharedDateAddFamilies()
     {
-        var dateAdd = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("DATE_ADD(created_at, INTERVAL 1 DAY)"));
-        var sqlServerDateAdd = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("DATEADD(DAY, 1, created_at)"));
-        var timestampAdd = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("TIMESTAMPADD(DAY, 1, created_at)"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var dateAdd = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATE_ADD(created_at, INTERVAL 1 DAY)", db, d));
+        var sqlServerDateAdd = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATEADD(DAY, 1, created_at)", db, d));
+        var timestampAdd = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("TIMESTAMPADD(DAY, 1, created_at)", db, d));
 
         Assert.Equal("DATE_ADD", dateAdd.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("DATEADD", sqlServerDateAdd.Name, StringComparer.OrdinalIgnoreCase);
@@ -953,9 +1021,10 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldParseSharedStringAggregateFamilies()
     {
-        var groupConcat = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC)"));
-        var stringAgg = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)"));
-        var listAgg = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)"));
+        var db = Get(1, v => new AutoDbMock(v));
+        var groupConcat = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", db));
+        var stringAgg = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", db));
+        var listAgg = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", db));
 
         Assert.Equal(SqlConst.GROUP_CONCAT, groupConcat.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal(SqlConst.STRING_AGG, stringAgg.Name, StringComparer.OrdinalIgnoreCase);
@@ -973,11 +1042,12 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldParseSharedRowCountHelpers()
     {
-        var foundRows = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("FOUND_ROWS()"));
-        var rowCount = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("ROW_COUNT()"));
-        var changes = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("CHANGES()"));
-        var rowcount = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("ROWCOUNT()"));
-        var atAtRowcount = Assert.IsType<IdentifierExpr>(SqlExpressionParser.ParseScalarAuto("@@ROWCOUNT"));
+        var db = Get(1, v => new AutoDbMock(v));
+        var foundRows = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("FOUND_ROWS()", db));
+        var rowCount = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROW_COUNT()", db));
+        var changes = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CHANGES()", db));
+        var rowcount = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROWCOUNT()", db));
+        var atAtRowcount = Assert.IsType<IdentifierExpr>(SqlExpressionParser.ParseScalar("@@ROWCOUNT", db));
 
         Assert.Equal("FOUND_ROWS", foundRows.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("ROW_COUNT", rowCount.Name, StringComparer.OrdinalIgnoreCase);
@@ -994,7 +1064,9 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldParseNullSafeEquality()
     {
-        var where = Assert.IsType<BinaryExpr>(SqlExpressionParser.ParseWhereAuto("a <=> b"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var where = Assert.IsType<BinaryExpr>(SqlExpressionParser.ParseWhere("a <=> b", db, d));
 
         Assert.Equal(SqlBinaryOp.NullSafeEq, where.Op);
     }
@@ -1007,7 +1079,9 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldParseIlike()
     {
-        var where = Assert.IsType<LikeExpr>(SqlExpressionParser.ParseWhereAuto("name ILIKE 'jo%'"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var where = Assert.IsType<LikeExpr>(SqlExpressionParser.ParseWhere("name ILIKE 'jo%'", db, d));
 
         Assert.True(where.CaseInsensitive);
     }
@@ -1020,8 +1094,9 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldParseMatchAgainst()
     {
-        var expr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto(
-            "MATCH(title, body) AGAINST ('+john -maria' IN BOOLEAN MODE)"));
+        var db = Get(1, v => new AutoDbMock(v));
+        var expr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(
+            "MATCH(title, body) AGAINST ('+john -maria' IN BOOLEAN MODE)", db));
 
         Assert.Equal("MATCH_AGAINST", expr.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal(3, expr.Args.Count);
@@ -1036,13 +1111,14 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldParseConditionalAndNullSubstituteHelpers()
     {
-        var ifExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("IF(score > 0, 'yes', 'no')"));
-        var iifExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("IIF(score > 0, 'yes', 'no')"));
-        var ifNullExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("IFNULL(name, 'n/a')"));
-        var isNullExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("ISNULL(name, 'n/a')"));
-        var nvlExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("NVL(name, 'n/a')"));
-        var coalesceExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("COALESCE(name, 'n/a')"));
-        var nullIfExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("NULLIF(name, 'n/a')"));
+        var db = Get(1, v => new AutoDbMock(v));
+        var ifExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("IF(score > 0, 'yes', 'no')", db));
+        var iifExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("IIF(score > 0, 'yes', 'no')", db));
+        var ifNullExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("IFNULL(name, 'n/a')", db));
+        var isNullExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ISNULL(name, 'n/a')", db));
+        var nvlExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("NVL(name, 'n/a')", db));
+        var coalesceExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("COALESCE(name, 'n/a')", db));
+        var nullIfExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("NULLIF(name, 'n/a')", db));
 
         Assert.Equal(SqlConst.IF, ifExpr.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("IIF", iifExpr.Name, StringComparer.OrdinalIgnoreCase);
@@ -1061,10 +1137,11 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldParseSharedWindowFunctions()
     {
-        var rowNumber = Assert.IsType<WindowFunctionExpr>(SqlExpressionParser.ParseScalarAuto(
-            "ROW_NUMBER() OVER (ORDER BY id)"));
-        var lag = Assert.IsType<WindowFunctionExpr>(SqlExpressionParser.ParseScalarAuto(
-            "LAG(amount, 1, 0) OVER (PARTITION BY userid ORDER BY amount)"));
+        var db = Get(1, v => new AutoDbMock(v));
+        var rowNumber = Assert.IsType<WindowFunctionExpr>(SqlExpressionParser.ParseScalar(
+            "ROW_NUMBER() OVER (ORDER BY id)", db));
+        var lag = Assert.IsType<WindowFunctionExpr>(SqlExpressionParser.ParseScalar(
+            "LAG(amount, 1, 0) OVER (PARTITION BY userid ORDER BY amount)", db));
 
         Assert.Equal("ROW_NUMBER", rowNumber.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Empty(rowNumber.Args);
@@ -1083,8 +1160,10 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldParsePivot()
     {
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.ParseAuto(
-            "SELECT t10, t20 FROM (SELECT tenantid, id FROM users) src PIVOT (COUNT(id) FOR tenantid IN (10 AS t10, 20 AS t20)) p"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT t10, t20 FROM (SELECT tenantid, id FROM users) src PIVOT (COUNT(id) FOR tenantid IN (10 AS t10, 20 AS t20)) p", db, d));
 
         var source = parsed.Table;
         Assert.NotNull(source);
@@ -1106,8 +1185,10 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldParseUnpivot()
     {
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.ParseAuto(
-            "SELECT up.id, up.FieldName, up.FieldValue FROM (SELECT id, name, email FROM users) src UNPIVOT (FieldValue FOR FieldName IN (name, email)) up"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT up.id, up.FieldName, up.FieldValue FROM (SELECT id, name, email FROM users) src UNPIVOT (FieldValue FOR FieldName IN (name, email)) up", db, d));
 
         var source = parsed.Table;
         Assert.NotNull(source);
@@ -1129,8 +1210,10 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldParseForJsonPath()
     {
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.ParseAuto(
-            "SELECT id AS [User.Id], name AS [User.Name] FROM users ORDER BY id FOR JSON PATH, ROOT('users')"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT id AS [User.Id], name AS [User.Name] FROM users ORDER BY id FOR JSON PATH, ROOT('users')", db, d));
 
         var forJson = parsed.ForJson;
         Assert.NotNull(forJson);
@@ -1146,7 +1229,9 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldParseWithCte()
     {
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.ParseAuto(
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
             """
             WITH active_users AS (
                 SELECT Id, Name
@@ -1156,7 +1241,7 @@ public sealed class SqlDialectAutoParserTests(
             SELECT Name
             FROM active_users
             ORDER BY Id
-            """));
+            """, db, d));
 
         var cte = Assert.Single(parsed.Ctes);
         Assert.Equal("active_users", cte.Name, StringComparer.OrdinalIgnoreCase);
@@ -1171,12 +1256,14 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldParseReturning()
     {
-        var insert = Assert.IsType<SqlInsertQuery>(SqlQueryParser.ParseAuto(
-            "INSERT INTO users (id, name) VALUES (1, 'Ana') RETURNING id, name AS user_name"));
-        var update = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.ParseAuto(
-            "UPDATE users SET name = 'Bia' WHERE id = 1 RETURNING id, name"));
-        var delete = Assert.IsType<SqlDeleteQuery>(SqlQueryParser.ParseAuto(
-            "DELETE FROM users WHERE id = 1 RETURNING id"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var insert = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(
+            "INSERT INTO users (id, name) VALUES (1, 'Ana') RETURNING id, name AS user_name", db, d));
+        var update = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(
+            "UPDATE users SET name = 'Bia' WHERE id = 1 RETURNING id, name", db, d));
+        var delete = Assert.IsType<SqlDeleteQuery>(SqlQueryParser.Parse(
+            "DELETE FROM users WHERE id = 1 RETURNING id", db, d));
 
         Assert.Equal(2, insert.Returning.Count);
         Assert.Equal("user_name", insert.Returning[1].Alias, StringComparer.OrdinalIgnoreCase);
@@ -1192,10 +1279,12 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldParseOrderByNulls()
     {
-        var first = Assert.IsType<SqlSelectQuery>(SqlQueryParser.ParseAuto(
-            "SELECT Name FROM users ORDER BY Email NULLS FIRST"));
-        var last = Assert.IsType<SqlSelectQuery>(SqlQueryParser.ParseAuto(
-            "SELECT Name FROM users ORDER BY Email DESC NULLS LAST"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var first = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT Name FROM users ORDER BY Email NULLS FIRST", db, d));
+        var last = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT Name FROM users ORDER BY Email DESC NULLS LAST", db, d));
 
         Assert.Single(first.OrderBy);
         Assert.True(first.OrderBy[0].NullsFirst);
@@ -1212,8 +1301,10 @@ public sealed class SqlDialectAutoParserTests(
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldParseSqlCalcFoundRowsModifier()
     {
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.ParseAuto(
-            "SELECT SQL_CALC_FOUND_ROWS Name FROM users ORDER BY Id LIMIT 1"));
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT SQL_CALC_FOUND_ROWS Name FROM users ORDER BY Id LIMIT 1", db,d));
 
         Assert.Contains(SqlConst.SQL_CALC_FOUND_ROWS, parsed.RawSql ?? string.Empty, StringComparison.OrdinalIgnoreCase);
     }
@@ -1445,9 +1536,9 @@ public sealed class SqlDialectAutoParserTests(
         Assert.True((features & AutoSqlSyntaxFeatures.OrderByNulls) != 0);
     }
 
-    private static SqlLimitOffset ParseRowLimit(string sql, AutoSqlDialect dialect)
+    private static SqlLimitOffset ParseRowLimit(string sql, AutoDbMock db, AutoSqlDialect dialect)
     {
-        var parsed = ParseSelect(sql, dialect);
+        var parsed = ParseSelect(sql, db, dialect);
         return Assert.IsType<SqlLimitOffset>(parsed.RowLimit);
     }
 
@@ -1457,8 +1548,8 @@ public sealed class SqlDialectAutoParserTests(
         return SqlSyntaxDetector.Detect(sql, tokens);
     }
 
-    private static SqlSelectQuery ParseSelect(string sql, AutoSqlDialect dialect)
-        => Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, dialect));
+    private static SqlSelectQuery ParseSelect(string sql, AutoDbMock db, AutoSqlDialect dialect)
+        => Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, dialect));
 
     private sealed class TestParameterCollection : IDataParameterCollection
     {

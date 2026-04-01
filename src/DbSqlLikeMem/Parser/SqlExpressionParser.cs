@@ -15,95 +15,80 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
     /// PT: Faz o parsing de uma expressao WHERE usando o dialeto informado e sem parametros de comando.
     /// </summary>
     /// <param name="whereSql">EN: WHERE expression text. PT: Texto da expressao WHERE.</param>
+    /// <param name="db"></param>
     /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
     /// <returns>EN: Parsed expression AST. PT: AST da expressao parseada.</returns>
     public static SqlExpr ParseWhere(
         string whereSql,
+        DbMock db,
         ISqlDialect dialect)
-        => ParseWhere(whereSql, dialect, null);
-
-    /// <summary>
-    /// EN: Parses a WHERE expression using the automatic dialect compatibility mode.
-    /// PT: Faz o parsing de uma expressao WHERE usando o modo de compatibilidade automatica de dialeto.
-    /// </summary>
-    /// <param name="whereSql">EN: WHERE expression text. PT: Texto da expressao WHERE.</param>
-    /// <returns>EN: Parsed expression AST. PT: AST da expressao parseada.</returns>
-    public static SqlExpr ParseWhereAuto(string whereSql)
-        => ParseWhere(whereSql, AutoDialectFactory.Create(), null);
-
-    /// <summary>
-    /// EN: Parses a WHERE expression using the automatic dialect compatibility mode and optional parameters.
-    /// PT: Faz o parsing de uma expressao WHERE usando o modo de compatibilidade automatica de dialeto e parametros opcionais.
-    /// </summary>
-    /// <param name="whereSql">EN: WHERE expression text. PT: Texto da expressao WHERE.</param>
-    /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized values. PT: Parametros de comando opcionais usados por caminhos do parser que resolvem valores parametrizados.</param>
-    /// <returns>EN: Parsed expression AST. PT: AST da expressao parseada.</returns>
-    public static SqlExpr ParseWhereAuto(string whereSql, IDataParameterCollection? parameters)
-        => ParseWhere(whereSql, AutoDialectFactory.Create(), parameters);
+        => ParseWhere(whereSql, db, dialect, null);
 
     /// <summary>
     /// EN: Parses a WHERE expression using the provided dialect, parameters, and optional custom function resolver.
     /// PT: Faz o parsing de uma expressao WHERE usando o dialeto informado, parametros e um resolvedor opcional de funcoes customizadas.
     /// </summary>
     /// <param name="whereSql">EN: WHERE expression text. PT: Texto da expressao WHERE.</param>
+    /// <param name="db"></param>
     /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
     /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized values. PT: Parametros de comando opcionais usados por caminhos do parser que resolvem valores parametrizados.</param>
     /// <param name="customFunctionSupported">EN: Optional custom function resolver used to accept schema-defined functions during validation. PT: Resolver opcional de funcoes customizadas usado para aceitar funcoes definidas no schema durante a validacao.</param>
     /// <returns>EN: Parsed expression AST. PT: AST da expressao parseada.</returns>
     public static SqlExpr ParseWhere(
         string whereSql,
+        DbMock db,
         ISqlDialect dialect,
         IDataParameterCollection? parameters,
         Func<string, bool>? customFunctionSupported = null)
-        => ParseCore(whereSql, dialect, parameters, customFunctionSupported);
+        => ParseCore(whereSql, db, dialect, parameters, customFunctionSupported);
 
     /// <summary>
     /// EN: Parses a scalar expression using the provided dialect and no command parameters.
     /// PT: Faz o parsing de uma expressao escalar usando o dialeto informado e sem parametros de comando.
     /// </summary>
     /// <param name="sql">EN: Scalar SQL expression to parse. PT: Expressao SQL escalar para parsear.</param>
+    /// <param name="db"></param>
     /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
     /// <returns>EN: Parsed expression AST. PT: AST da expressao parseada.</returns>
-    public static SqlExpr ParseScalar(string sql, ISqlDialect dialect)
-        => ParseScalar(sql, dialect, null);
+    public static SqlExpr ParseScalar(
+        string sql,
+        DbMock db,
+        ISqlDialect dialect)
+        => ParseScalar(sql, db, dialect, null);
 
     /// <summary>
-    /// EN: Parses a scalar expression using the automatic dialect compatibility mode.
-    /// PT: Faz o parsing de uma expressao escalar usando o modo de compatibilidade automatica de dialeto.
+    /// EN: Parses a scalar expression using the provided dialect and no command parameters.
+    /// PT: Faz o parsing de uma expressao escalar usando o dialeto informado e sem parametros de comando.
     /// </summary>
     /// <param name="sql">EN: Scalar SQL expression to parse. PT: Expressao SQL escalar para parsear.</param>
+    /// <param name="db"></param>
     /// <returns>EN: Parsed expression AST. PT: AST da expressao parseada.</returns>
-    public static SqlExpr ParseScalarAuto(string sql)
-        => ParseScalar(sql, AutoDialectFactory.Create(), null);
-
-    /// <summary>
-    /// EN: Parses a scalar expression using the automatic dialect compatibility mode and optional parameters.
-    /// PT: Faz o parsing de uma expressao escalar usando o modo de compatibilidade automatica de dialeto e parametros opcionais.
-    /// </summary>
-    /// <param name="sql">EN: Scalar SQL expression to parse. PT: Expressao SQL escalar para parsear.</param>
-    /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized values. PT: Parametros de comando opcionais usados por caminhos do parser que resolvem valores parametrizados.</param>
-    /// <returns>EN: Parsed expression AST. PT: AST da expressao parseada.</returns>
-    public static SqlExpr ParseScalarAuto(string sql, IDataParameterCollection? parameters)
-        => ParseScalar(sql, AutoDialectFactory.Create(), parameters);
+    public static SqlExpr ParseScalar(
+        string sql,
+        DbMock db)
+        => ParseScalar(sql, db, AutoDialectFactory.Create() , null);
 
     /// <summary>
     /// EN: Parses a scalar expression using the provided dialect, parameters, and optional custom function resolver.
     /// PT: Faz o parsing de uma expressao escalar usando o dialeto informado, parametros e um resolvedor opcional de funcoes customizadas.
     /// </summary>
     /// <param name="sql">EN: Scalar SQL expression to parse. PT: Expressao SQL escalar para parsear.</param>
+    /// <param name="db"></param>
     /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
     /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized values. PT: Parametros de comando opcionais usados por caminhos do parser que resolvem valores parametrizados.</param>
     /// <param name="customFunctionSupported">EN: Optional custom function resolver used to accept schema-defined functions during validation. PT: Resolver opcional de funcoes customizadas usado para aceitar funcoes definidas no schema durante a validacao.</param>
     /// <returns>EN: Parsed expression AST. PT: AST da expressao parseada.</returns>
     public static SqlExpr ParseScalar(
         string sql,
+        DbMock db,
         ISqlDialect dialect,
         IDataParameterCollection? parameters,
         Func<string, bool>? customFunctionSupported = null)
-        => ParseCore(sql, dialect, parameters, customFunctionSupported);
+        => ParseCore(sql, db, dialect, parameters, customFunctionSupported);
 
     private static SqlExpr ParseCore(
         string sql,
+        DbMock db,
         ISqlDialect dialect,
         IDataParameterCollection? parameters,
         Func<string, bool>? customFunctionSupported)
@@ -112,7 +97,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
         var toks = new SqlTokenizer(sql, dialect).Tokenize();
         EnsureJsonArrowSupport(toks, dialect);
-        var ctx = new SqlExpressionParserContext(toks, dialect, parameters, customFunctionSupported);
+        var ctx = new SqlExpressionParserContext(toks, db, dialect, parameters, customFunctionSupported);
         var p = new SqlExpressionParser(ctx);
         var expr = p.ParseExpression(0);
         expr = p.TryConsumeTrailingLikeEscape(expr);
@@ -141,13 +126,16 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
     /// PT: Implementa ParseExpression.
     /// </summary>
     public SqlExpr ParseExpression(int minBp)
+        => ParseExpression(minBp, allowIsNullPostfix: true);
+
+    private SqlExpr ParseExpression(int minBp, bool allowIsNullPostfix)
     {
         var left = ParsePrefix();
 
         while (true)
         {
             // postfix: IS [NOT] NULL
-            if (TryParseIsNullPostfix(ref left)) continue;
+            if (allowIsNullPostfix && TryParseIsNullPostfix(ref left)) continue;
 
             // NOT IN / NOT LIKE / NOT REGEXP / NOT BETWEEN
             if (TryParseNotInfix(ref left, minBp)) continue;
@@ -559,7 +547,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         var op = _context.Consume().Text;
 
         // right side: geralmente string '$.path', mas aceita expressão
-        var right = ParseExpression(rbp);
+        var right = ParseExpression(rbp, allowIsNullPostfix: false);
 
         // Modela como nó neutro: o dialeto/executor decide como avaliar/imprimir.
         left = new JsonAccessExpr(left, right, Unquote: op == "->>" || op == "#>>");
@@ -818,6 +806,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
             subSql,
             contextToken,
             $"{quantifier.ToString().ToUpperInvariant()} quantified comparison",
+            _context.Db,
             _context.Dialect);
 
         quantifiedExpr = new QuantifiedComparisonExpr(op, left, quantifier, subquery);
@@ -887,7 +876,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
 
         // ✅ use o token t
         expr = new ExistsExpr(
-            SqlQueryParser.ParseSubqueryExprOrThrow(subSql, t, SqlConst.EXISTS, _context.Dialect)
+            SqlQueryParser.ParseSubqueryExprOrThrow(subSql, t, SqlConst.EXISTS,_context.Db, _context.Dialect)
         );
 
         return true;
@@ -904,16 +893,30 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
 
         SqlExpr? baseExpr = null;
         if (!_context.IsKeywordOrIdentifierWord(SqlConst.WHEN))
-            baseExpr = ParseExpression(0);
+        {
+            var baseTokens = _context.ReadTokensUntilTopLevelStop(SqlConst.WHEN);
+            if (baseTokens.Count == 0)
+                throw Error("CASE expression requires a base expression or WHEN clause", t);
+
+            baseExpr = ParseStandaloneExpression(baseTokens, baseTokens[0], "CASE base expression");
+        }
 
         var whens = new List<CaseWhenThen>();
         while (_context.IsKeywordOrIdentifierWord(SqlConst.WHEN))
         {
             _context.Consume(); // WHEN
-            var whenExpr = ParseExpression(0);
+            var whenTokens = _context.ReadTokensUntilTopLevelStop(SqlConst.THEN);
+            if (whenTokens.Count == 0)
+                throw Error("CASE WHEN expression requires a condition", _context.Peek());
+
+            var whenExpr = ParseStandaloneExpression(whenTokens, whenTokens[0], "CASE WHEN expression");
 
             _context.ExpectWord(SqlConst.THEN);
-            var thenExpr = ParseExpression(0);
+            var thenTokens = _context.ReadTokensUntilTopLevelStop(SqlConst.WHEN, SqlConst.ELSE, SqlConst.END);
+            if (thenTokens.Count == 0)
+                throw Error("CASE THEN expression requires a value", _context.Peek());
+
+            var thenExpr = ParseStandaloneExpression(thenTokens, thenTokens[0], "CASE THEN expression");
 
             whens.Add(new CaseWhenThen(whenExpr, thenExpr));
         }
@@ -922,7 +925,11 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         if (_context.IsKeywordOrIdentifierWord(SqlConst.ELSE))
         {
             _context.Consume(); // ELSE
-            elseExpr = ParseExpression(0);
+            var elseTokens = _context.ReadTokensUntilTopLevelStop(SqlConst.END);
+            if (elseTokens.Count == 0)
+                throw Error("CASE ELSE expression requires a value", _context.Peek());
+
+            elseExpr = ParseStandaloneExpression(elseTokens, elseTokens[0], "CASE ELSE expression");
         }
 
         _context.ExpectWord(SqlConst.END);
@@ -1080,7 +1087,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
             var subSql = ReadRawUntilMatchingParen(); // lê até antes do ')'
             _context.ExpectSymbol(")");
 
-            expr = SqlQueryParser.ParseSubqueryExprOrThrow(subSql, t, "SCALAR SUBQUERY", _context.Dialect);
+            expr = SqlQueryParser.ParseSubqueryExprOrThrow(subSql, t, "SCALAR SUBQUERY",_context.Db, _context.Dialect);
             return true;
         }
 
@@ -1329,7 +1336,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         {
             var localTokens = tokens.Concat([SqlToken.EOF]).ToArray();
             var parser = new SqlExpressionParser(
-                new SqlExpressionParserContext(localTokens, _context.Dialect, _context.Parameters, _context.CustomFunctionSupported));
+                new SqlExpressionParserContext(localTokens, _context.Db, _context.Dialect, _context.Parameters, _context.CustomFunctionSupported));
             var parsed = parser.ParseExpression(0);
             parser._context.ExpectEnd();
             return parsed;
@@ -1416,6 +1423,30 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         var args = new List<SqlExpr>();
         if (!_context.IsSymbol(")"))
         {
+            var expectsLeadingTemporalUnit = name.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TIMESTAMPDIFF", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("DATEDIFF_BIG", StringComparison.OrdinalIgnoreCase)
+                || (_context.Dialect.SupportsSqlServerDateFunction(name)
+                    && (name.Equals("DATEADD", StringComparison.OrdinalIgnoreCase)
+                        || name.Equals("DATEDIFF", StringComparison.OrdinalIgnoreCase)
+                        || name.Equals("DATEPART", StringComparison.OrdinalIgnoreCase)
+                        || name.Equals("DATENAME", StringComparison.OrdinalIgnoreCase)));
+
+            if (expectsLeadingTemporalUnit)
+            {
+                var unitTok = _context.Peek();
+                if (unitTok.Kind is not (SqlTokenKind.Identifier or SqlTokenKind.Keyword or SqlTokenKind.Number))
+                    throw Error($"{name} requires a unit", unitTok);
+
+                _context.Consume(); // unit
+                args.Add(new RawSqlExpr(unitTok.Text));
+
+                if (!_context.IsSymbol(","))
+                    throw Error($"{name} requires a comma after the unit", _context.Peek());
+
+                _context.Consume(); // ,
+            }
+
             while (true)
             {
                 // MySQL: DATE_ADD(x, INTERVAL 1 DAY) etc.
@@ -1614,7 +1645,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
             throw Error($"function '{functionName}' requires an expression", _context.Peek());
 
         var sql = string.Join(" ", _context.Toks.Skip(start).Take(_i - start).Select(TokenToSql)).Trim();
-        return ParseScalar(sql, _context.Dialect, _context.Parameters, _context.CustomFunctionSupported);
+        return ParseScalar(sql, _context.Db, _context.Dialect, _context.Parameters, _context.CustomFunctionSupported);
     }
 
     private CallExpr ParseWithinGroupOrderByIfPresent(CallExpr call)
@@ -1672,7 +1703,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         if (string.IsNullOrWhiteSpace(filterSql))
             throw Error("FILTER requires an expression", _context.Peek());
 
-        var filterExpr = ParseWhere(filterSql, _context.Dialect, _context.Parameters, _context.CustomFunctionSupported);
+        var filterExpr = ParseWhere(filterSql, _context.Db, _context.Dialect, _context.Parameters, _context.CustomFunctionSupported);
         return call with { Filter = filterExpr };
     }
 
@@ -1779,7 +1810,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
             }
 
             var sql = string.Join(" ", itemTokens.Select(TokenToSql)).Trim();
-            orderBy.Add(new WindowOrderItem(ParseScalar(sql, _context.Dialect, _context.Parameters, _context.CustomFunctionSupported), desc));
+            orderBy.Add(new WindowOrderItem(ParseScalar(sql, _context.Db, _context.Dialect, _context.Parameters, _context.CustomFunctionSupported), desc));
         }
 
         return orderBy;
@@ -1834,14 +1865,6 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         if (TryBuildSequenceDotCall(parts, out var sequenceCall))
             return sequenceCall;
 
-        if (parts.Count == 1
-            && _context.Dialect.TryGetScalarFunctionDefinition(parts[0], out var metadataDefinition)
-            && metadataDefinition is not null
-            && !metadataDefinition.AllowsIdentifier)
-        {
-            throw SqlUnsupported.NotSupported(_context.Dialect, parts[0].ToUpperInvariant());
-        }
-
         return parts.Count switch
         {
             1 => new IdentifierExpr(parts[0]),                 // col
@@ -1890,7 +1913,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
     {
         try
         {
-            return SqlQueryParser.ParseSubqueryExprOrThrow(subSql, contextToken, contextLabel, _context.Dialect);
+            return SqlQueryParser.ParseSubqueryExprOrThrow(subSql, contextToken, contextLabel,_context.Db, _context.Dialect);
         }
         catch (Exception ex)
         {

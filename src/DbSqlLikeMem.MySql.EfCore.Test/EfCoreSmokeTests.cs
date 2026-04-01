@@ -6,4 +6,9 @@ namespace DbSqlLikeMem.MySql.EfCore.Test;
 /// </summary>
 public sealed class EfCoreSmokeTests(
     ITestOutputHelper helper
-) : EfCoreSmokeTestsBase(helper, static () => new MySqlEfCoreConnectionFactory());
+) : EfCoreSmokeTestsBase(helper, static () => new MySqlEfCoreConnectionFactory())
+{
+    /// <inheritdoc />
+    protected override DbSqlLikeMem.TestTools.ProviderSqlDialect Dialect { get; } =
+        new DbSqlLikeMem.MySql.TestTools.MySqlProviderSqlDialect();
+}

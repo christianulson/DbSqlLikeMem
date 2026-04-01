@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.MySql.Test;
 
 /// <summary>
@@ -15,9 +17,9 @@ public sealed class MySqlExceptionFactoryTests(
     [Fact]
     public void CoreFactoryMethods_ShouldReturnExpectedCodes()
     {
-        var duplicate = Assert.IsType<MySqlMockException>(MySqlExceptionFactory.DuplicateKey("users", "PK_users", 1));
-        var unknownColumn = Assert.IsType<MySqlMockException>(MySqlExceptionFactory.UnknownColumn("missing_col"));
-        var columnCannotBeNull = Assert.IsType<MySqlMockException>(MySqlExceptionFactory.ColumnCannotBeNull("name"));
+        var duplicate = (MySqlMockException)MySqlExceptionFactory.DuplicateKey("users", "PK_users", 1);
+        var unknownColumn = (MySqlMockException)MySqlExceptionFactory.UnknownColumn("missing_col");
+        var columnCannotBeNull = (MySqlMockException)MySqlExceptionFactory.ColumnCannotBeNull("name");
 
         duplicate.ErrorCode.Should().Be(1062);
         duplicate.Message.Should().Contain("1");
@@ -35,8 +37,8 @@ public sealed class MySqlExceptionFactoryTests(
     [Fact]
     public void ForeignKeyFactoryMethods_ShouldReturnExpectedCodes()
     {
-        var foreignKeyFails = Assert.IsType<MySqlMockException>(MySqlExceptionFactory.ForeignKeyFails("user_id", "users"));
-        var referencedRow = Assert.IsType<MySqlMockException>(MySqlExceptionFactory.ReferencedRow("users"));
+        var foreignKeyFails = (MySqlMockException)MySqlExceptionFactory.ForeignKeyFails("user_id", "users");
+        var referencedRow = (MySqlMockException)MySqlExceptionFactory.ReferencedRow("users");
 
         foreignKeyFails.ErrorCode.Should().Be(1452);
         foreignKeyFails.Message.Should().Contain("user_id");

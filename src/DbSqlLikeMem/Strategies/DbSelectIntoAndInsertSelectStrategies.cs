@@ -474,7 +474,8 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             var executor = context.CreateExecutor();
             var q = SqlQueryParser.Parse(
                 selectSql,
-                context.Dialect,
+                connection.Db,
+                connection.ExecutionDialect,
                 null,
                 SqlCustomFunctionResolverFactory.Create(context));
             var res = executor.ExecuteSelect((SqlSelectQuery)q);
@@ -525,7 +526,13 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             var col = ParseColumnDefinition(columnSql);
             if (col is null)
                 continue;
-            table.AddColumn(col.Value.Name, col.Value.Type, nullable: col.Value.Nullable, size: col.Value.Size, decimalPlaces: col.Value.DecimalPlaces);
+            table.AddColumn(
+                col.Value.Name,
+                col.Value.Type,
+                nullable: col.Value.Nullable,
+                size: col.Value.Size,
+                decimalPlaces: col.Value.DecimalPlaces,
+                defaultValue: col.Value.DefaultValue);
             if (col.Value.PrimaryKey)
                 primaryKeyColumns.Add(col.Value.Name);
         }
@@ -626,7 +633,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             yield return last;
     }
 
-    private static (string Name, DbType Type, bool Nullable, bool PrimaryKey, int? Size, int? DecimalPlaces)? ParseColumnDefinition(string columnSql)
+    private static (string Name, DbType Type, bool Nullable, bool PrimaryKey, int? Size, int? DecimalPlaces, object? DefaultValue)? ParseColumnDefinition(string columnSql)
     {
         var m = Regex.Match(
             columnSql,
@@ -644,7 +651,48 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         var (size, decimalPlaces) = ParseTypeArgs(m.Groups["args"].Value, type);
         var nullable = !Regex.IsMatch(rest, @"\bNOT\s+NULL\b", RegexOptions.IgnoreCase);
         var primaryKey = Regex.IsMatch(rest, @"\bPRIMARY\s+KEY\b", RegexOptions.IgnoreCase);
-        return (name, type, nullable, primaryKey, size, decimalPlaces);
+        var defaultValue = ParseColumnDefaultValue(rest);
+        return (name, type, nullable, primaryKey, size, decimalPlaces, defaultValue);
+    }
+
+    private static object? ParseColumnDefaultValue(string rest)
+    {
+        var m = Regex.Match(
+            rest,
+            @"\bDEFAULT\b\s+(?<value>.+?)(?=\bNOT\s+NULL\b|\bNULL\b|\bPRIMARY\s+KEY\b|\bCONSTRAINT\b|\bUNIQUE\b|\bCHECK\b|$)",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        if (!m.Success)
+            return null;
+
+        var value = m.Groups["value"].Value.Trim().TrimEnd(',');
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        if (string.Equals(value, SqlConst.NULL, StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        if (string.Equals(value, SqlConst.TRUE, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (string.Equals(value, SqlConst.FALSE, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (string.Equals(value, "CURRENT_TIMESTAMP", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "CURRENT TIMESTAMP", StringComparison.OrdinalIgnoreCase))
+        {
+            return DateTime.Now;
+        }
+
+        if (value.Length >= 2 && value[0] == '\'' && value[^1] == '\'')
+            return value[1..^1].Replace("''", "'");
+
+        if (long.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsedLong))
+            return parsedLong;
+
+        if (decimal.TryParse(value, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var parsedDecimal))
+            return parsedDecimal;
+
+        return value;
     }
 
 
@@ -846,6 +894,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         var executor = context.CreateExecutor();
         var q = SqlQueryParser.Parse(
             plan.SelectSql,
+            context.Connection.Db, 
             context.Dialect,
             null,
             SqlCustomFunctionResolverFactory.Create(context));

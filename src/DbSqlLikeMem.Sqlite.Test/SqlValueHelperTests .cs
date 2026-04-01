@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+using FluentAssertions;
+using System.Text.Json;
 
 namespace DbSqlLikeMem.Sqlite.Test;
 
@@ -28,7 +29,7 @@ public sealed class SqlValueHelperTests(
 
         var v = SqliteValueHelper.Resolve("@p0", DbType.Int32, isNullable: false, cmd.Parameters, colDict: null);
 
-        Assert.Equal(123, v);
+        v.Should().Be(123);
     }
 
     /// <summary>
@@ -39,8 +40,8 @@ public sealed class SqlValueHelperTests(
     [Trait("Category", "SqlValueHelperTests ")]
     public void Resolve_ShouldThrow_WhenParameterMissing()
     {
-        Assert.Throws<SqliteMockException>(() =>
-            SqliteValueHelper.Resolve("@p404", DbType.Int32, isNullable: false, pars: null, colDict: null));
+        Action act = () => SqliteValueHelper.Resolve("@p404", DbType.Int32, isNullable: false, pars: null, colDict: null);
+        act.Should().Throw<SqliteMockException>();
     }
 
     /// <summary>
@@ -53,8 +54,8 @@ public sealed class SqlValueHelperTests(
     {
         var v = SqliteValueHelper.Resolve("(1, 2, 3)", DbType.Int32, isNullable: false, pars: null, colDict: null);
 
-        var list = Assert.IsType<List<object?>>(v);
-        Assert.Equal([1, 2, 3], [.. list.Cast<int>()]);
+        var list = v.Should().BeOfType<List<object?>>().Which;
+        list.Cast<int>().Should().Equal([1, 2, 3]);
     }
 
     /// <summary>
@@ -65,8 +66,8 @@ public sealed class SqlValueHelperTests(
     [Trait("Category", "SqlValueHelperTests ")]
     public void Resolve_NullOnNonNullable_ShouldThrow()
     {
-        Assert.Throws<SqliteMockException>(() =>
-            SqliteValueHelper.Resolve("null", DbType.Int32, isNullable: false, pars: null, colDict: null));
+        Action act = () => SqliteValueHelper.Resolve("null", DbType.Int32, isNullable: false, pars: null, colDict: null);
+        act.Should().Throw<SqliteMockException>();
     }
 
     /// <summary>
@@ -79,8 +80,8 @@ public sealed class SqlValueHelperTests(
     {
         var v = SqliteValueHelper.Resolve("{\"a\":1}", DbType.Object, isNullable: false, pars: null, colDict: null);
 
-        var doc = Assert.IsType<JsonDocument>(v);
-        Assert.Equal(1, doc.RootElement.GetProperty("a").GetInt32());
+        var doc = v.Should().BeOfType<JsonDocument>().Which;
+        doc.RootElement.GetProperty("a").GetInt32().Should().Be(1);
     }
 
     /// <summary>
@@ -96,7 +97,7 @@ public sealed class SqlValueHelperTests(
     [InlineData("John", "%OH%", true)] // ignore case
     public void Like_ShouldMatch_SqliteStyle(string value, string pattern, bool expected)
     {
-        Assert.Equal(expected, SqliteValueHelper.Like(value, pattern));
+        SqliteValueHelper.Like(value, pattern).Should().Be(expected);
     }
 
     /// <summary>
@@ -116,11 +117,10 @@ public sealed class SqlValueHelperTests(
         SqliteValueHelper.CurrentColumn = "Status";
 
         var ok = SqliteValueHelper.Resolve("'Active'", DbType.String, false, null, tb.Columns);
-        Assert.Equal("active", ok);
+        ok.Should().Be("active");
 
-        var ex = Assert.Throws<SqliteMockException>(() =>
-            SqliteValueHelper.Resolve("'blocked'", DbType.String, false, null, tb.Columns));
-        Assert.Equal(1265, ex.ErrorCode);
+        var ex = Record.Exception(() => SqliteValueHelper.Resolve("'blocked'", DbType.String, false, null, tb.Columns));
+        ex.Should().BeOfType<SqliteMockException>().Which.ErrorCode.Should().Be(1265);
     }
 
     /// <summary>
@@ -142,12 +142,11 @@ public sealed class SqlValueHelperTests(
             SqliteValueHelper.CurrentColumn = "Tags";
 
             var ok = SqliteValueHelper.Resolve("'a,b'", DbType.Int32, isNullable: false, pars: null, colDict: tb.Columns);
-            var hs = Assert.IsType<HashSet<string>>(ok);
-            Assert.True(hs.SetEquals(["a", "b"]));
+            var hs = ok.Should().BeOfType<HashSet<string>>().Which;
+            hs.Should().BeEquivalentTo(["a", "b"]);
 
-            var ex = Assert.Throws<SqliteMockException>(() =>
-                SqliteValueHelper.Resolve("'a,x'", DbType.Int32, isNullable: false, pars: null, colDict: tb.Columns));
-            Assert.Equal(1265, ex.ErrorCode);
+            var ex = Record.Exception(() => SqliteValueHelper.Resolve("'a,x'", DbType.Int32, isNullable: false, pars: null, colDict: tb.Columns));
+            ex.Should().BeOfType<SqliteMockException>().Which.ErrorCode.Should().Be(1265);
         }
         finally
         {
@@ -172,9 +171,8 @@ public sealed class SqlValueHelperTests(
         try
         {
             SqliteValueHelper.CurrentColumn = "Name";
-            var ex = Assert.Throws<SqliteMockException>(() =>
-                SqliteValueHelper.Resolve("'abcd'", DbType.String, false, null, tb.Columns));
-            Assert.Equal(1406, ex.ErrorCode);
+            var ex = Record.Exception(() => SqliteValueHelper.Resolve("'abcd'", DbType.String, false, null, tb.Columns));
+            ex.Should().BeOfType<SqliteMockException>().Which.ErrorCode.Should().Be(1406);
         }
         finally
         {
@@ -198,9 +196,8 @@ public sealed class SqlValueHelperTests(
         try
         {
             SqliteValueHelper.CurrentColumn = "Amount";
-            var ex = Assert.Throws<SqliteMockException>(() =>
-                SqliteValueHelper.Resolve("10.123", DbType.Decimal, false, null, tb.Columns));
-            Assert.Equal(1265, ex.ErrorCode);
+            var ex = Record.Exception(() => SqliteValueHelper.Resolve("10.123", DbType.Decimal, false, null, tb.Columns));
+            ex.Should().BeOfType<SqliteMockException>().Which.ErrorCode.Should().Be(1265);
         }
         finally
         {

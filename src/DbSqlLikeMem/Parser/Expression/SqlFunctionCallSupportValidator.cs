@@ -7,6 +7,15 @@ internal static class SqlFunctionCallSupportValidator
         string name)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(ctx, nameof(ctx));
+        if (ctx.CustomFunctionSupported?.Invoke(name) == true)
+            return;
+
+        if (ctx.Db.ContainsRuntimeFunction(name))
+            return;
+
+        if (ctx.Db.TryGetFunction(name, out _))
+            return;
+
         if (ctx.Dialect.TryGetScalarFunctionDefinition(name, out var definition))
         {
             if (definition is null || definition.AllowsCall)
@@ -40,10 +49,28 @@ internal static class SqlFunctionCallSupportValidator
             return;
 
         if (AggregateFunctionCatalog.Contains(name))
-            return;
+        {
+            if (name.StartsWith("APPROX_", StringComparison.OrdinalIgnoreCase)
+                && !ctx.Dialect.SupportsApproximateAggregateFunction(name))
+            {
+                throw ctx.NotSupported(name.ToUpperInvariant());
+            }
 
-        if (ctx.CustomFunctionSupported?.Invoke(name) == true)
+            if (name.Equals("RATIO_TO_REPORT", StringComparison.OrdinalIgnoreCase)
+                && !ctx.Dialect.SupportsOracleAnalyticsFunction(name))
+            {
+                throw ctx.NotSupported(name.ToUpperInvariant());
+            }
+
+            if (name is SqlConst.GROUP_CONCAT or SqlConst.STRING_AGG or SqlConst.LISTAGG
+                && !ctx.Dialect.TryGetScalarFunctionDefinition(name, out _)
+                && !ctx.Dialect.SupportsWithinGroupForStringAggregates)
+            {
+                throw ctx.NotSupported(name.ToUpperInvariant());
+            }
+
             return;
+        }
 
         throw ctx.NotSupported(name.ToUpperInvariant());
     }

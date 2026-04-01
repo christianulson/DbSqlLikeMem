@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
@@ -20,8 +22,8 @@ public sealed class TemplateFileNamePatternResolverTests
         var modelFile = TemplateFileNamePatternResolver.Resolve(null, "Model", connection, dbObject);
         var repositoryFile = TemplateFileNamePatternResolver.Resolve(string.Empty, "Repository", connection, dbObject);
 
-        Assert.Equal("SalesOrderModel.cs", modelFile);
-        Assert.Equal("SalesOrderRepository.cs", repositoryFile);
+        modelFile.Should().Be("SalesOrderModel.cs");
+        repositoryFile.Should().Be("SalesOrderRepository.cs");
     }
 
     /// <summary>
@@ -42,6 +44,6 @@ public sealed class TemplateFileNamePatternResolverTests
             dbObject,
             "Company.Project.Generated");
 
-        Assert.Equal("PostgreSql_Billing_sales_MonthlyReport_View_Company.Project.Generated.g.cs", fileName);
+        fileName.Should().Be("PostgreSql_Billing_sales_MonthlyReport_View_Company.Project.Generated.g.cs");
     }
 }

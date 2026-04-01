@@ -16,6 +16,8 @@ internal static class SelectPlanBuilderHelper
         var evaluators = new List<Func<AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, object?>>(projectedItemCount);
         var windowSlotIndexes = new List<int>(projectedItemCount);
         var windowSlots = new List<WindowSlot>(projectedItemCount);
+        var windowSlotLookup = new Dictionary<WindowFunctionExpr, int>(ReferenceEqualityComparer<WindowFunctionExpr>.Instance);
+        var hasNestedWindowExpressions = false;
         var usedAliases = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var sampleFirst = sampleRows.Count > 0 ? sampleRows[0] : null;
         var sampleSingleSource = sampleFirst is not null
@@ -51,6 +53,8 @@ internal static class SelectPlanBuilderHelper
                 evaluators,
                 windowSlotIndexes,
                 windowSlots,
+                windowSlotLookup,
+                ref hasNestedWindowExpressions,
                 usedAliases,
                 rawExpression,
                 selectItem.Alias,
@@ -70,7 +74,8 @@ internal static class SelectPlanBuilderHelper
             Columns = columns,
             Evaluators = evaluators,
             WindowSlotIndexes = windowSlotIndexes,
-            WindowSlots = windowSlots
+            WindowSlots = windowSlots,
+            HasNestedWindowExpressions = hasNestedWindowExpressions
         };
     }
 
@@ -110,6 +115,8 @@ internal static class SelectPlanBuilderHelper
         List<Func<AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, object?>> evaluators,
         List<int> windowSlotIndexes,
         List<WindowSlot> windowSlots,
+        Dictionary<WindowFunctionExpr, int> windowSlotLookup,
+        ref bool hasNestedWindowExpressions,
         HashSet<string> usedAliases,
         string rawExpression,
         string? selectItemAlias,
@@ -124,7 +131,7 @@ internal static class SelectPlanBuilderHelper
         var isJsonFragment = TryInferProjectedJsonFragment(expression, sampleFirst, sampleSingleSource);
 
         columns.Add(SelectPlanProjectionHelper.CreateSelectPlanColumn(tableAlias, columnAlias, columns.Count, inferredDbType, isNullable, isJsonFragment));
-        evaluators.Add(CreateSelectPlanEvaluator(expression, ctes, context, windowSlotIndexes, windowSlots, evalExpression));
+                evaluators.Add(CreateSelectPlanEvaluator(expression, ctes, context, windowSlotIndexes, windowSlots, windowSlotLookup, ref hasNestedWindowExpressions, evalExpression));
     }
 
     private static bool TryInferProjectedJsonFragment(
@@ -191,24 +198,33 @@ internal static class SelectPlanBuilderHelper
         QueryExecutionContext context,
         List<int> windowSlotIndexes,
         List<WindowSlot> windowSlots,
+        Dictionary<WindowFunctionExpr, int> windowSlotLookup,
+        ref bool hasNestedWindowExpressions,
         Func<SqlExpr, AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, IDictionary<string, AstQueryExecutorBase.Source>, object?> evalExpression)
     {
         if (expression is not WindowFunctionExpr windowFunction)
         {
             windowSlotIndexes.Add(-1);
+            if (ContainsWindowFunction(expression))
+            {
+                hasNestedWindowExpressions = true;
+                CollectNestedWindowSlots(expression, windowSlots, windowSlotLookup, context);
+                return (row, group) => EvaluateExpressionWithWindowSupport(
+                    expression,
+                    row,
+                    group,
+                    ctes,
+                    windowSlots,
+                    windowSlotLookup,
+                    evalExpression);
+            }
+
             return (row, group) => evalExpression(expression, row, group, ctes);
         }
 
-        WindowFunctionSupportValidator.EnsureSupported(context.Dialect, windowFunction);
-
-        var slot = new WindowSlot
-        {
-            Expr = windowFunction,
-            Map = new Dictionary<AstQueryExecutorBase.EvalRow, object?>(ReferenceEqualityComparer<AstQueryExecutorBase.EvalRow>.Instance)
-        };
-        windowSlots.Add(slot);
-        windowSlotIndexes.Add(windowSlots.Count - 1);
-        return (row, group) => slot.Map.TryGetValue(row, out var value) ? value : null;
+        var slotIndex = EnsureWindowSlot(windowFunction, windowSlots, windowSlotLookup, context);
+        windowSlotIndexes.Add(slotIndex);
+        return (row, group) => windowSlots[slotIndex].Map.TryGetValue(row, out var value) ? value : null;
     }
 
     private static DbType InferDbTypeFromExpression(
@@ -234,6 +250,20 @@ internal static class SelectPlanBuilderHelper
                 ?? DbType.Object;
         }
 
+        if (ContainsWindowFunction(expression))
+        {
+            if (TryInferDbTypeFromExpressionShape(expression, out var inferredDbType1))
+                return inferredDbType1;
+
+            return expression is FunctionCallExpr { Name: "ROUND" }
+                or CallExpr { Name: "ROUND" }
+                ? DbType.Decimal
+                : DbType.Object;
+        }
+
+        if (TryInferDbTypeFromNumericAggregate(expression, sampleRows, sampleFirst, sampleSingleSource, ctes, context, evalExpression, out var aggregateDbType))
+            return aggregateDbType;
+
         if (TryInferDbTypeFromExpressionShape(expression, out var inferredDbType))
             return inferredDbType;
 
@@ -256,6 +286,55 @@ internal static class SelectPlanBuilderHelper
 
         return DbType.Object;
     }
+
+    private static bool TryInferDbTypeFromNumericAggregate(
+        SqlExpr expression,
+        List<AstQueryExecutorBase.EvalRow> sampleRows,
+        AstQueryExecutorBase.EvalRow? sampleFirst,
+        AstQueryExecutorBase.Source? sampleSingleSource,
+        IDictionary<string, AstQueryExecutorBase.Source> ctes,
+        QueryExecutionContext context,
+        Func<SqlExpr, AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, IDictionary<string, AstQueryExecutorBase.Source>, object?> evalExpression,
+        out DbType dbType)
+    {
+        dbType = DbType.Object;
+
+        var call = expression switch
+        {
+            CallExpr callExpr => callExpr,
+            FunctionCallExpr functionCallExpr => new CallExpr(functionCallExpr.Name, functionCallExpr.Args, functionCallExpr.Distinct)
+                .BindScalarFunctionDefinition(functionCallExpr.ResolvedScalarFunction),
+            _ => null
+        };
+
+        if (call is null)
+            return false;
+
+        var aggregateName = call.Name;
+        if (aggregateName is not SqlConst.SUM and not SqlConst.AVG)
+            return false;
+
+        if (!context.Dialect.TryGetAggregateFunctionDefinition(aggregateName, out var aggregateDefinition)
+            || !aggregateDefinition!.PromotesIntegralInputsToDecimal)
+            return false;
+
+        if (call.Args.Count == 0)
+            return false;
+
+        var inputType = InferDbTypeFromExpression(call.Args[0], sampleRows, sampleFirst, sampleSingleSource, ctes, context, evalExpression);
+        dbType = PromoteIntegralAggregateDbType(inputType);
+        return true;
+    }
+
+    private static DbType PromoteIntegralAggregateDbType(DbType inputType)
+        => inputType switch
+        {
+            DbType.Byte or DbType.SByte or DbType.Int16 or DbType.UInt16 or DbType.Int32
+                or DbType.UInt32 or DbType.Int64 or DbType.UInt64 => DbType.Decimal,
+            DbType.Currency or DbType.Decimal or DbType.VarNumeric => DbType.Decimal,
+            DbType.Single or DbType.Double => DbType.Double,
+            _ => DbType.Object
+        };
 
     private static bool TryInferDbTypeFromColumnMetadata(
         SqlExpr expression,
@@ -426,11 +505,292 @@ internal static class SelectPlanBuilderHelper
             || call.Args.Count < 2
             || call.Args[1] is not RawSqlExpr rawType)
         {
+            if (expression is FunctionCallExpr fn
+                && fn.Name.Equals("ROUND", StringComparison.OrdinalIgnoreCase))
+            {
+                dbType = DbType.Decimal;
+                return true;
+            }
+
+            if (expression is CallExpr roundCall
+                && roundCall.Name.Equals("ROUND", StringComparison.OrdinalIgnoreCase))
+            {
+                dbType = DbType.Decimal;
+                return true;
+            }
+
             return false;
         }
 
         dbType = ParseDbTypeFromCastSqlType(rawType.Sql);
         return true;
+    }
+
+    private static bool ContainsWindowFunction(SqlExpr expression)
+    {
+        return expression switch
+        {
+            WindowFunctionExpr => true,
+            FunctionCallExpr fn => fn.Args.Any(ContainsWindowFunction),
+            CallExpr call => call.Args.Any(ContainsWindowFunction)
+                || call.WithinGroupOrderBy is not null && call.WithinGroupOrderBy.Any(item => ContainsWindowFunction(item.Expr))
+                || (call.Filter is not null && ContainsWindowFunction(call.Filter)),
+            UnaryExpr unary => ContainsWindowFunction(unary.Expr),
+            BinaryExpr binary => ContainsWindowFunction(binary.Left) || ContainsWindowFunction(binary.Right),
+            InExpr inExpr => ContainsWindowFunction(inExpr.Left) || inExpr.Items.Any(ContainsWindowFunction),
+            LikeExpr likeExpr => ContainsWindowFunction(likeExpr.Left)
+                || ContainsWindowFunction(likeExpr.Pattern)
+                || (likeExpr.Escape is not null && ContainsWindowFunction(likeExpr.Escape)),
+            IsNullExpr isNullExpr => ContainsWindowFunction(isNullExpr.Expr),
+            JsonAccessExpr jsonAccessExpr => ContainsWindowFunction(jsonAccessExpr.Target)
+                || ContainsWindowFunction(jsonAccessExpr.Path),
+            BetweenExpr betweenExpr => ContainsWindowFunction(betweenExpr.Expr)
+                || ContainsWindowFunction(betweenExpr.Low)
+                || ContainsWindowFunction(betweenExpr.High),
+            RowExpr rowExpr => rowExpr.Items.Any(ContainsWindowFunction),
+            CaseExpr caseExpr => (caseExpr.BaseExpr is not null && ContainsWindowFunction(caseExpr.BaseExpr))
+                || caseExpr.Whens.Any(when => ContainsWindowFunction(when.When) || ContainsWindowFunction(when.Then))
+                || (caseExpr.ElseExpr is not null && ContainsWindowFunction(caseExpr.ElseExpr)),
+            QuantifiedComparisonExpr quantified => ContainsWindowFunction(quantified.Left) || ContainsWindowFunction(quantified.Subquery),
+            _ => false
+        };
+    }
+
+    private static void CollectNestedWindowSlots(
+        SqlExpr expression,
+        List<WindowSlot> windowSlots,
+        Dictionary<WindowFunctionExpr, int> windowSlotLookup,
+        QueryExecutionContext context)
+    {
+        switch (expression)
+        {
+            case WindowFunctionExpr windowFunction:
+                _ = EnsureWindowSlot(windowFunction, windowSlots, windowSlotLookup, context);
+                return;
+            case FunctionCallExpr fn:
+                foreach (var arg in fn.Args)
+                    CollectNestedWindowSlots(arg, windowSlots, windowSlotLookup, context);
+                return;
+            case CallExpr call:
+                foreach (var arg in call.Args)
+                    CollectNestedWindowSlots(arg, windowSlots, windowSlotLookup, context);
+                if (call.WithinGroupOrderBy is not null)
+                {
+                    foreach (var orderItem in call.WithinGroupOrderBy)
+                        CollectNestedWindowSlots(orderItem.Expr, windowSlots, windowSlotLookup, context);
+                }
+                if (call.Filter is not null)
+                    CollectNestedWindowSlots(call.Filter, windowSlots, windowSlotLookup, context);
+                return;
+            case UnaryExpr unary:
+                CollectNestedWindowSlots(unary.Expr, windowSlots, windowSlotLookup, context);
+                return;
+            case BinaryExpr binary:
+                CollectNestedWindowSlots(binary.Left, windowSlots, windowSlotLookup, context);
+                CollectNestedWindowSlots(binary.Right, windowSlots, windowSlotLookup, context);
+                return;
+            case InExpr inExpr:
+                CollectNestedWindowSlots(inExpr.Left, windowSlots, windowSlotLookup, context);
+                foreach (var item in inExpr.Items)
+                    CollectNestedWindowSlots(item, windowSlots, windowSlotLookup, context);
+                return;
+            case LikeExpr likeExpr:
+                CollectNestedWindowSlots(likeExpr.Left, windowSlots, windowSlotLookup, context);
+                CollectNestedWindowSlots(likeExpr.Pattern, windowSlots, windowSlotLookup, context);
+                if (likeExpr.Escape is not null)
+                    CollectNestedWindowSlots(likeExpr.Escape, windowSlots, windowSlotLookup, context);
+                return;
+            case IsNullExpr isNullExpr:
+                CollectNestedWindowSlots(isNullExpr.Expr, windowSlots, windowSlotLookup, context);
+                return;
+            case JsonAccessExpr jsonAccessExpr:
+                CollectNestedWindowSlots(jsonAccessExpr.Target, windowSlots, windowSlotLookup, context);
+                CollectNestedWindowSlots(jsonAccessExpr.Path, windowSlots, windowSlotLookup, context);
+                return;
+            case BetweenExpr betweenExpr:
+                CollectNestedWindowSlots(betweenExpr.Expr, windowSlots, windowSlotLookup, context);
+                CollectNestedWindowSlots(betweenExpr.Low, windowSlots, windowSlotLookup, context);
+                CollectNestedWindowSlots(betweenExpr.High, windowSlots, windowSlotLookup, context);
+                return;
+            case RowExpr rowExpr:
+                foreach (var item in rowExpr.Items)
+                    CollectNestedWindowSlots(item, windowSlots, windowSlotLookup, context);
+                return;
+            case CaseExpr caseExpr:
+                if (caseExpr.BaseExpr is not null)
+                    CollectNestedWindowSlots(caseExpr.BaseExpr, windowSlots, windowSlotLookup, context);
+                foreach (var when in caseExpr.Whens)
+                {
+                    CollectNestedWindowSlots(when.When, windowSlots, windowSlotLookup, context);
+                    CollectNestedWindowSlots(when.Then, windowSlots, windowSlotLookup, context);
+                }
+                if (caseExpr.ElseExpr is not null)
+                    CollectNestedWindowSlots(caseExpr.ElseExpr, windowSlots, windowSlotLookup, context);
+                return;
+            case QuantifiedComparisonExpr quantified:
+                CollectNestedWindowSlots(quantified.Left, windowSlots, windowSlotLookup, context);
+                return;
+        }
+    }
+
+    private static int EnsureWindowSlot(
+        WindowFunctionExpr windowFunction,
+        List<WindowSlot> windowSlots,
+        Dictionary<WindowFunctionExpr, int> windowSlotLookup,
+        QueryExecutionContext context)
+    {
+        WindowFunctionSupportValidator.EnsureSupported(context.Dialect, windowFunction);
+
+        if (windowSlotLookup.TryGetValue(windowFunction, out var existingIndex))
+            return existingIndex;
+
+        var slot = new WindowSlot
+        {
+            Expr = windowFunction,
+            Map = new Dictionary<AstQueryExecutorBase.EvalRow, object?>(ReferenceEqualityComparer<AstQueryExecutorBase.EvalRow>.Instance)
+        };
+        windowSlots.Add(slot);
+        var slotIndex = windowSlots.Count - 1;
+        windowSlotLookup[windowFunction] = slotIndex;
+        return slotIndex;
+    }
+
+    private static object? EvaluateExpressionWithWindowSupport(
+        SqlExpr expression,
+        AstQueryExecutorBase.EvalRow row,
+        AstQueryExecutorBase.EvalGroup? group,
+        IDictionary<string, AstQueryExecutorBase.Source> ctes,
+        List<WindowSlot> windowSlots,
+        Dictionary<WindowFunctionExpr, int> windowSlotLookup,
+        Func<SqlExpr, AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, IDictionary<string, AstQueryExecutorBase.Source>, object?> evalExpression)
+    {
+        if (!ContainsWindowFunction(expression))
+            return evalExpression(expression, row, group, ctes);
+
+        var rewritten = RewriteWindowFunctionsToLiterals(
+            expression,
+            row,
+            windowSlots,
+            windowSlotLookup);
+        return evalExpression(rewritten, row, group, ctes);
+    }
+
+    private static SqlExpr RewriteWindowFunctionsToLiterals(
+        SqlExpr expression,
+        AstQueryExecutorBase.EvalRow row,
+        List<WindowSlot> windowSlots,
+        Dictionary<WindowFunctionExpr, int> windowSlotLookup)
+    {
+        return expression switch
+        {
+            WindowFunctionExpr windowFunction => new LiteralExpr(ResolveWindowSlotValue(windowFunction, row, windowSlots, windowSlotLookup)),
+            FunctionCallExpr functionCall when ContainsWindowFunction(functionCall)
+                => new FunctionCallExpr(
+                    functionCall.Name,
+                    RewriteExprList(functionCall.Args, row, windowSlots, windowSlotLookup),
+                    functionCall.Distinct).BindScalarFunctionDefinition(functionCall.ResolvedScalarFunction),
+            CallExpr call when ContainsWindowFunction(call)
+                => new CallExpr(
+                    call.Name,
+                    RewriteExprList(call.Args, row, windowSlots, windowSlotLookup),
+                    call.Distinct,
+                    call.WithinGroupOrderBy is null ? null : RewriteWindowOrderItems(call.WithinGroupOrderBy, row, windowSlots, windowSlotLookup),
+                    call.Filter is null ? null : RewriteWindowFunctionsToLiterals(call.Filter, row, windowSlots, windowSlotLookup)).BindScalarFunctionDefinition(call.ResolvedScalarFunction),
+            UnaryExpr unary when ContainsWindowFunction(unary)
+                => new UnaryExpr(unary.Op, RewriteWindowFunctionsToLiterals(unary.Expr, row, windowSlots, windowSlotLookup)),
+            BinaryExpr binary when ContainsWindowFunction(binary)
+                => new BinaryExpr(
+                    binary.Op,
+                    RewriteWindowFunctionsToLiterals(binary.Left, row, windowSlots, windowSlotLookup),
+                    RewriteWindowFunctionsToLiterals(binary.Right, row, windowSlots, windowSlotLookup)),
+            InExpr inExpr when ContainsWindowFunction(inExpr)
+                => new InExpr(
+                    RewriteWindowFunctionsToLiterals(inExpr.Left, row, windowSlots, windowSlotLookup),
+                    RewriteExprList(inExpr.Items, row, windowSlots, windowSlotLookup)),
+            LikeExpr likeExpr when ContainsWindowFunction(likeExpr)
+                => new LikeExpr(
+                    RewriteWindowFunctionsToLiterals(likeExpr.Left, row, windowSlots, windowSlotLookup),
+                    RewriteWindowFunctionsToLiterals(likeExpr.Pattern, row, windowSlots, windowSlotLookup),
+                    likeExpr.Escape is null ? null : RewriteWindowFunctionsToLiterals(likeExpr.Escape, row, windowSlots, windowSlotLookup),
+                    likeExpr.CaseInsensitive),
+            IsNullExpr isNullExpr when ContainsWindowFunction(isNullExpr)
+                => new IsNullExpr(RewriteWindowFunctionsToLiterals(isNullExpr.Expr, row, windowSlots, windowSlotLookup), isNullExpr.Negated),
+            JsonAccessExpr jsonAccessExpr when ContainsWindowFunction(jsonAccessExpr)
+                => new JsonAccessExpr(
+                    RewriteWindowFunctionsToLiterals(jsonAccessExpr.Target, row, windowSlots, windowSlotLookup),
+                    RewriteWindowFunctionsToLiterals(jsonAccessExpr.Path, row, windowSlots, windowSlotLookup),
+                    jsonAccessExpr.Unquote),
+            BetweenExpr betweenExpr when ContainsWindowFunction(betweenExpr)
+                => new BetweenExpr(
+                    RewriteWindowFunctionsToLiterals(betweenExpr.Expr, row, windowSlots, windowSlotLookup),
+                    RewriteWindowFunctionsToLiterals(betweenExpr.Low, row, windowSlots, windowSlotLookup),
+                    RewriteWindowFunctionsToLiterals(betweenExpr.High, row, windowSlots, windowSlotLookup),
+                    betweenExpr.Negated),
+            RowExpr rowExpr when ContainsWindowFunction(rowExpr)
+                => new RowExpr(RewriteExprList(rowExpr.Items, row, windowSlots, windowSlotLookup)),
+            CaseExpr caseExpr when ContainsWindowFunction(caseExpr)
+                => new CaseExpr(
+                    caseExpr.BaseExpr is null ? null : RewriteWindowFunctionsToLiterals(caseExpr.BaseExpr, row, windowSlots, windowSlotLookup),
+                    caseExpr.Whens.Select(when => new CaseWhenThen(
+                        RewriteWindowFunctionsToLiterals(when.When, row, windowSlots, windowSlotLookup),
+                        RewriteWindowFunctionsToLiterals(when.Then, row, windowSlots, windowSlotLookup))).ToList(),
+                    caseExpr.ElseExpr is null ? null : RewriteWindowFunctionsToLiterals(caseExpr.ElseExpr, row, windowSlots, windowSlotLookup)),
+            QuantifiedComparisonExpr quantified when ContainsWindowFunction(quantified)
+                => new QuantifiedComparisonExpr(
+                    quantified.Op,
+                    RewriteWindowFunctionsToLiterals(quantified.Left, row, windowSlots, windowSlotLookup),
+                    quantified.Quantifier,
+                    quantified.Subquery),
+            _ => expression
+        };
+    }
+
+    private static IReadOnlyList<SqlExpr> RewriteExprList(
+        IReadOnlyList<SqlExpr> expressions,
+        AstQueryExecutorBase.EvalRow row,
+        List<WindowSlot> windowSlots,
+        Dictionary<WindowFunctionExpr, int> windowSlotLookup)
+    {
+        if (expressions.Count == 0)
+            return expressions;
+
+        var rewritten = new List<SqlExpr>(expressions.Count);
+        foreach (var expr in expressions)
+            rewritten.Add(RewriteWindowFunctionsToLiterals(expr, row, windowSlots, windowSlotLookup));
+
+        return rewritten;
+    }
+
+    private static IReadOnlyList<WindowOrderItem> RewriteWindowOrderItems(
+        IReadOnlyList<WindowOrderItem> orderItems,
+        AstQueryExecutorBase.EvalRow row,
+        List<WindowSlot> windowSlots,
+        Dictionary<WindowFunctionExpr, int> windowSlotLookup)
+    {
+        if (orderItems.Count == 0)
+            return orderItems;
+
+        var rewritten = new List<WindowOrderItem>(orderItems.Count);
+        foreach (var item in orderItems)
+            rewritten.Add(new WindowOrderItem(RewriteWindowFunctionsToLiterals(item.Expr, row, windowSlots, windowSlotLookup), item.Desc));
+
+        return rewritten;
+    }
+
+    private static object? ResolveWindowSlotValue(
+        WindowFunctionExpr windowFunction,
+        AstQueryExecutorBase.EvalRow row,
+        List<WindowSlot> windowSlots,
+        Dictionary<WindowFunctionExpr, int> windowSlotLookup)
+    {
+        if (!windowSlotLookup.TryGetValue(windowFunction, out var slotIndex))
+            return null;
+
+        if (slotIndex < 0 || slotIndex >= windowSlots.Count)
+            return null;
+
+        var slot = windowSlots[slotIndex];
+        return slot.Map.TryGetValue(row, out var value) ? value : null;
     }
 
     private static bool TryInferDbTypeFromLiteralValue(object? value, out DbType dbType)
@@ -696,6 +1056,9 @@ internal static class SelectPlanBuilderHelper
     private static DbType ParseDbTypeFromCastSqlType(ReadOnlySpan<char> sqlType)
     {
         var normalized = sqlType.Trim();
+        if (normalized.Equals("SIGNED", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("UNSIGNED", StringComparison.OrdinalIgnoreCase))
+            return DbType.Int64;
         if (normalized.StartsWith("BIGINT", StringComparison.OrdinalIgnoreCase))
             return DbType.Int64;
         if (normalized.StartsWith("INT", StringComparison.OrdinalIgnoreCase)

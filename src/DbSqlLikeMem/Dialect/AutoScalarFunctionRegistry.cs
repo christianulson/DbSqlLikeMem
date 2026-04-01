@@ -43,11 +43,30 @@ internal static class AutoScalarFunctionRegistry
             "DATEADD",
             "TIMESTAMPADD");
 
-        dialect.AddScalarFunction(DbFunctionDef.CreateScalar("TRY_CAST", "VARCHAR"));
-        dialect.AddScalarFunction(DbFunctionDef.CreateScalar("TRY_CONVERT", "VARCHAR"));
+        var tryCastFunction = DbFunctionDef.CreateScalar("TRY_CAST", "VARCHAR") with
+        {
+            AstExecutor = AstQueryCastConversionFamilyEvaluator.TryEvalTryCastLikeFunction
+        };
+        dialect.AddScalarFunction(tryCastFunction);
+
+        var tryConvertFunction = DbFunctionDef.CreateScalar("TRY_CONVERT", "VARCHAR") with
+        {
+            AstExecutor = AstQueryCastConversionFamilyEvaluator.TryEvalTryConvertLikeFunction
+        };
+        dialect.AddScalarFunction(tryConvertFunction);
+        static bool TryEvalSqlServerEomonthFunction(
+            QueryExecutionContext context,
+            FunctionCallExpr fn,
+            Func<int, object?> evalArg,
+            out object? result)
+        {
+            _ = context;
+            return AstQuerySqlServerCompatibilityFunctionEvaluator.TryEvalEomonthFunction(fn, evalArg, out result);
+        }
+
         var eomonthFunction = DbFunctionDef.CreateScalar("EOMONTH", "DATE") with
         {
-            AstExecutor = AstQueryGeneralDateArithmeticFunctionEvaluator.TryEvaluate
+            AstExecutor = TryEvalSqlServerEomonthFunction
         };
         dialect.AddScalarFunction(eomonthFunction);
         var jsonExtractFunction = DbFunctionDef.CreateScalar("JSON_EXTRACT", "VARCHAR") with
