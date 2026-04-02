@@ -28,7 +28,7 @@ public class CreateTableWithFKScenario<T>
     /// <exception cref="NotImplementedException"></exception>
     public void DropScenario(BaseServiceTest<T> service, params object[] pars)
     {
-        service.ExecuteNonQuery(service.Dialect.DropTable((string)pars[1],(string)pars[2]));
+        service.ExecuteNonQuery(service.Dialect.DropTable((string)pars[1], (string)pars[2]));
         service.ExecuteNonQuery(service.Dialect.DropTable((string)pars[0], (string)pars[2]));
     }
 }

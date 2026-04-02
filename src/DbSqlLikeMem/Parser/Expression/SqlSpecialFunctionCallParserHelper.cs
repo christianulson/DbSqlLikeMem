@@ -40,7 +40,7 @@ internal static class SqlSpecialFunctionCallParserHelper
         expr = default!;
         var inner = parseExpression(0);
 
-        if (!ctx.IsKeywordOrIdentifierWord( SqlConst.AS))
+        if (!ctx.IsKeywordOrIdentifierWord(SqlConst.AS))
             throw ctx.Error("CAST requires AS", ctx.Peek());
 
         ctx.Consume(); // AS

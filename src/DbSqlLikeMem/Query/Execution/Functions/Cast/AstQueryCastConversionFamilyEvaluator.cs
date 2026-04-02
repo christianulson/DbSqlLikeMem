@@ -161,6 +161,47 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
         out object? result)
         => TryEvalTryConvertFunction(context, fn, evalArg, out result);
 
+    internal static bool TryEvalParseLikeFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalParseFunction(context, fn, evalArg, out result);
+
+    internal static bool TryEvalTryParseLikeFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalTryParseFunction(context, fn, evalArg, out result);
+
+    public static bool TryEvalCastLikeFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => new AstQueryCastConversionFamilyEvaluator(
+            AstQueryJsonExtractionFunctionEvaluator.TryEvalJsonAccessShimFunction,
+            AstQueryJsonExtractionFunctionEvaluator.TryEvalJsonExtractionFunction,
+            AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSqlServerJsonModifyFunction,
+            TryEvalOpenJsonFunction,
+            AstQueryJsonUnquoteFunctionEvaluator.TryEvalJsonUnquoteFunction,
+            AstQueryToNumberFunctionEvaluator.TryEvalToNumberFunction)
+            .TryEvaluate(fn, context, evalArg, out result);
+
+    private static bool TryEvalOpenJsonFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+        _ = fn;
+        _ = evalArg;
+        result = null;
+        return false;
+    }
+
     private static bool TryEvalParseFunction(
         QueryExecutionContext context,
         FunctionCallExpr fn,
@@ -372,6 +413,8 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var ix)) return ix;
                 if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var lx)) return (int)lx;
                 if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var dx)) return (int)dx;
+                if (IsSqlServerDialect(context.Dialect))
+                    throw new InvalidCastException();
                 return 0;
             }
 
@@ -380,6 +423,8 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
             {
                 if (v is decimal dd) return dd;
                 if (decimal.TryParse(v!.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var dx)) return dx;
+                if (IsSqlServerDialect(context.Dialect))
+                    throw new InvalidCastException();
                 return 0m;
             }
 
@@ -391,6 +436,8 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 if (v is float ffx) return (double)ffx;
                 if (v is decimal ddx) return (double)ddx;
                 if (double.TryParse(v!.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var fx)) return fx;
+                if (IsSqlServerDialect(context.Dialect))
+                    throw new InvalidCastException();
                 return 0d;
             }
 
@@ -399,7 +446,13 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 || type.StartsWith("SMALLDATETIME", StringComparison.OrdinalIgnoreCase)
                 || type.StartsWith("TIMESTAMP", StringComparison.OrdinalIgnoreCase))
             {
-                return AstQueryExecutionRuntimeHelper.TryCoerceDateTime(v, out var dt) ? dt : null;
+                if (AstQueryExecutionRuntimeHelper.TryCoerceDateTime(v, out var dt))
+                    return dt;
+
+                if (IsSqlServerDialect(context.Dialect))
+                    throw new InvalidCastException();
+
+                return null;
             }
 
             if (type.Equals("JSON", StringComparison.OrdinalIgnoreCase))
@@ -430,11 +483,17 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
 #pragma warning disable CA1031
         catch (Exception e)
         {
+            if (e is InvalidCastException && IsSqlServerDialect(context.Dialect))
+                throw;
+
             AstQueryExecutionRuntimeHelper.LogFunctionEvaluationFailure(e);
             return null;
         }
 #pragma warning restore CA1031
     }
+
+    private static bool IsSqlServerDialect(ISqlDialect? dialect)
+        => dialect is not null && string.Equals(dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsTextCastTypeName(string typeName)
     {

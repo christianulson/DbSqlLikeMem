@@ -21,42 +21,12 @@ public class SelectTableScenario<T>(
     {
         var users = (string)pars[0];
         var uId = (string)pars[1];
-        if (dialect.Provider == ProviderId.Oracle)
-        {
-            var tableName = users.ToLowerInvariant();
-            if (service.Connection is DbConnectionMockBase mockConnection)
-            {
-                var table = mockConnection.AddTable(
-                    tableName,
-                    [
-                        new Col("Id", DbType.Int32, false),
-                        new Col("Name", DbType.String, false)
-                    ],
-                    [
-                        new Dictionary<int, object?>
-                        {
-                            [0] = 1,
-                            [1] = "Alice"
-                        }
-                    ]);
-                table.AddPrimaryKeyIndexes("Id");
-            }
-            else
-            {
-                service.ExecuteNonQuery($@"
-CREATE TABLE {tableName} (
-    Id NUMBER(10) PRIMARY KEY,
-    Name VARCHAR2(100) NOT NULL
-)");
-                service.ExecuteNonQuery($"INSERT INTO {tableName} (Id, Name) VALUES (1, 'Alice')");
-            }
-        }
-        else
-        {
-            var tableName = $"{users}_{uId}";
-            service.ExecuteNonQuery(dialect.CreateUsersTable(users, uId));
-            service.ExecuteNonQuery(dialect.InsertUser(tableName, 1, "Alice"));
-        }
+        var tableName = dialect.Provider == ProviderId.Oracle
+            ? users.ToLowerInvariant()
+            : $"{users}_{uId}";
+
+        service.ExecuteNonQuery(dialect.CreateUsersTable(users, uId));
+        service.ExecuteNonQuery(dialect.InsertUser(tableName, 1, "Alice"));
     }
 
     /// <summary>

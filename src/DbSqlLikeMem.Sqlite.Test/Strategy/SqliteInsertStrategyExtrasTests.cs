@@ -96,10 +96,10 @@ public sealed class SqliteInsertStrategyExtrasTests(
     }
 }
 
-    /// <summary>
-    /// EN: Covers delete behavior when foreign keys reference the target row.
-    /// PT: Cobre o comportamento de delete quando chaves estrangeiras referenciam a linha alvo.
-    /// </summary>
+/// <summary>
+/// EN: Covers delete behavior when foreign keys reference the target row.
+/// PT: Cobre o comportamento de delete quando chaves estrangeiras referenciam a linha alvo.
+/// </summary>
 public class SqliteDeleteStrategyForeignKeyTests
 {
     /// <summary>
@@ -136,10 +136,10 @@ public class SqliteDeleteStrategyForeignKeyTests
     }
 }
 
-    /// <summary>
-    /// EN: Covers extra update scenarios in the Sqlite mock.
-    /// PT: Cobre cenarios extras de update no mock Sqlite.
-    /// </summary>
+/// <summary>
+/// EN: Covers extra update scenarios in the Sqlite mock.
+/// PT: Cobre cenarios extras de update no mock Sqlite.
+/// </summary>
 public class SqliteUpdateStrategyExtrasTests
 {
     /// <summary>

@@ -10,6 +10,18 @@ public partial class QueryServiceTest<T>
     WHERE o2.{usersTable}Id = u.Id
     ORDER BY o2.Note {orderByDirection}
 """
+            : Dialect.Provider == ProviderId.Oracle
+                ? orderByDirection.Equals("ASC", StringComparison.OrdinalIgnoreCase)
+                    ? $"""
+    SELECT MIN(o2.Note)
+    FROM {ordersTable} o2
+    WHERE o2.{usersTable}Id = u.Id
+"""
+                    : $"""
+    SELECT MAX(o2.Note)
+    FROM {ordersTable} o2
+    WHERE o2.{usersTable}Id = u.Id
+"""
             : $"""
     SELECT o2.Note
     FROM {ordersTable} o2
@@ -20,7 +32,9 @@ public partial class QueryServiceTest<T>
 
     private string BuildOrderCountExpression(string ordersTable, string usersTable)
         => Dialect.Provider == ProviderId.SqlServer
-            ? $"""
+            ? $"SUM(CASE WHEN o.Id IS NULL THEN 0 ELSE 1 END)"
+            : Dialect.Provider == ProviderId.Oracle
+                ? $"""
 (SELECT COUNT(*)
  FROM {ordersTable} o2
  WHERE o2.{usersTable}Id = u.Id)
@@ -268,7 +282,7 @@ ORDER BY u.Id
         var usersTable = ResolveScenarioTableName(users);
         var ordersTable = ResolveScenarioTableName(orders);
 
-        var nameLenExpr = Dialect.Provider == ProviderId.Db2
+        var nameLenExpr = Dialect.Provider is ProviderId.Db2 or ProviderId.Oracle
             ? "MAX(LENGTH(u.Name))"
             : Dialect.StringLengthExpression("u.Name");
         var noteLenSource = Dialect.Provider == ProviderId.Db2 ? "Note" : "o.Note";
@@ -323,7 +337,7 @@ ORDER BY u.Id
         var usersTable = ResolveScenarioTableName(users);
         var ordersTable = ResolveScenarioTableName(orders);
 
-        var nameLenExpr = Dialect.Provider == ProviderId.Db2
+        var nameLenExpr = Dialect.Provider is ProviderId.Db2 or ProviderId.Oracle
             ? "MAX(LENGTH(u.Name))"
             : Dialect.StringLengthExpression("u.Name");
         var noteLenSource = Dialect.Provider == ProviderId.Db2 ? "Note" : "o.Note";
@@ -1307,7 +1321,9 @@ ORDER BY u.Id
     {
         var users = (string)pars[0];
         var usersTable = ResolveScenarioTableName(users);
-        var sql = $"SELECT SUM(CASE WHEN Name LIKE 'A%' THEN 1 ELSE 0 END) + SUM(CASE WHEN Name LIKE 'B%' THEN 1 ELSE 0 END) FROM {usersTable}";
+        var sql = Dialect.Provider == ProviderId.Oracle
+            ? $"SELECT COUNT(*) FROM {usersTable} WHERE Name LIKE 'A%' OR Name LIKE 'B%'"
+            : $"SELECT SUM(CASE WHEN Name LIKE 'A%' THEN 1 ELSE 0 END) + SUM(CASE WHEN Name LIKE 'B%' THEN 1 ELSE 0 END) FROM {usersTable}";
         var value = Convert.ToInt32(ExecuteScalar(sql), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;

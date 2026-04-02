@@ -403,47 +403,47 @@ public class NpgsqlCommandMock(
             switch (expr)
             {
                 case IdentifierExpr id:
-                {
-                    AppendColumnTemplate(templates, tableAlias, table, item.Alias, id.Name);
-                    break;
-                }
+                    {
+                        AppendColumnTemplate(templates, tableAlias, table, item.Alias, id.Name);
+                        break;
+                    }
                 case ColumnExpr colExpr when colExpr.Name == "*":
-                {
-                    AppendAllColumnTemplates(templates, tableAlias, table);
-                    break;
-                }
+                    {
+                        AppendAllColumnTemplates(templates, tableAlias, table);
+                        break;
+                    }
                 case ColumnExpr colExpr:
-                {
-                    AppendColumnTemplate(templates, tableAlias, table, item.Alias, colExpr.Name);
-                    break;
-                }
+                    {
+                        AppendColumnTemplate(templates, tableAlias, table, item.Alias, colExpr.Name);
+                        break;
+                    }
                 case LiteralExpr literalExpr:
-                {
-                    var value = literalExpr.Value;
-                    templates.Add(new ReturningProjectionTemplate(
-                        TableAlias: tableAlias,
-                        ColumnAlias: item.Alias ?? raw,
-                        ColumnName: item.Alias ?? raw,
-                        DbType: value?.GetType().ConvertTypeToDbType() ?? DbType.Object,
-                        IsNullable: value is null,
-                        ColumnIndex: null,
-                        LiteralValue: value,
-                        ParameterName: null));
-                    break;
-                }
+                    {
+                        var value = literalExpr.Value;
+                        templates.Add(new ReturningProjectionTemplate(
+                            TableAlias: tableAlias,
+                            ColumnAlias: item.Alias ?? raw,
+                            ColumnName: item.Alias ?? raw,
+                            DbType: value?.GetType().ConvertTypeToDbType() ?? DbType.Object,
+                            IsNullable: value is null,
+                            ColumnIndex: null,
+                            LiteralValue: value,
+                            ParameterName: null));
+                        break;
+                    }
                 case ParameterExpr parameterExpr:
-                {
-                    templates.Add(new ReturningProjectionTemplate(
-                        TableAlias: tableAlias,
-                        ColumnAlias: item.Alias ?? parameterExpr.Name,
-                        ColumnName: item.Alias ?? parameterExpr.Name,
-                        DbType: DbType.Object,
-                        IsNullable: true,
-                        ColumnIndex: null,
-                        LiteralValue: null,
-                        ParameterName: parameterExpr.Name));
-                    break;
-                }
+                    {
+                        templates.Add(new ReturningProjectionTemplate(
+                            TableAlias: tableAlias,
+                            ColumnAlias: item.Alias ?? parameterExpr.Name,
+                            ColumnName: item.Alias ?? parameterExpr.Name,
+                            DbType: DbType.Object,
+                            IsNullable: true,
+                            ColumnIndex: null,
+                            LiteralValue: null,
+                            ParameterName: parameterExpr.Name));
+                        break;
+                    }
                 default:
                     throw SqlUnsupported.ForDmlProjectionExpressionNotSupportedInExecutor(SqlConst.RETURNING, raw);
             }

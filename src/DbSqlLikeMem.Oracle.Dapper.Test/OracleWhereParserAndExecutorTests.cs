@@ -183,10 +183,10 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
     public void Where_Operators_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id >= 2 AND id <= 3").ToList();
-        Assert.Equal([2, 3], [.. rows.Select(r => (int)r.id).OrderBy(_=>_)]);
+        Assert.Equal([2, 3], [.. rows.Select(r => (int)r.id).OrderBy(_ => _)]);
 
         var rows2 = _cnn.Query<dynamic>("SELECT id FROM users WHERE id != 2").ToList();
-        Assert.Equal([1, 3], [.. rows2.Select(r => (int)r.id).OrderBy(_=>_)]);
+        Assert.Equal([1, 3], [.. rows2.Select(r => (int)r.id).OrderBy(_ => _)]);
     }
 
     /// <summary>

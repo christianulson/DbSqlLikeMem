@@ -82,7 +82,7 @@ internal static class SqlReturningClauseHelper
     }
 
     private static void ValidateReturningExpression(
-        this SqlQueryParserContext ctx, 
+        this SqlQueryParserContext ctx,
         SqlExpr expr)
     {
         if (ctx.Dialect.SupportsAggregateFunctionsInReturningClause)

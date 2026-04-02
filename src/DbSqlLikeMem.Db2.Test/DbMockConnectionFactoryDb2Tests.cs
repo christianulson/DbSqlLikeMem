@@ -6,7 +6,7 @@ namespace DbSqlLikeMem.Db2.Test;
 /// </summary>
 public sealed class DbMockConnectionFactoryDb2Tests(
         ITestOutputHelper helper
-    ) : DbMockConnectionFactoryContractTestsBase(helper) 
+    ) : DbMockConnectionFactoryContractTestsBase(helper)
 {
     /// <inheritdoc />
     protected override string ProviderHint => "Db2";

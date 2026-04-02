@@ -28,7 +28,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
 SELECT * FROM tmp_users;
 ";
 
-        var queries = SqlQueryParser.ParseMulti(sql, db,d).ToList();
+        var queries = SqlQueryParser.ParseMulti(sql, db, d).ToList();
 
         // TDD contract: the parser must accept the batch and produce 2 statements.
         queries.Should().HaveCount(2);
@@ -80,7 +80,7 @@ WHERE `tenantid` = 10",
         var d = Get(version, v => new MySqlDialect(v));
         var db = Get(version, v => new MySqlDbMock(v));
         // TDD contract: these statements must parse without throwing.
-        var q = SqlQueryParser.Parse(sql, db,d);
+        var q = SqlQueryParser.Parse(sql, db, d);
         q.Should().NotBeNull();
         q.RawSql.Should().Contain(SqlConst.CREATE);
         q.RawSql.Should().Contain(SqlConst.TEMPORARY);
@@ -97,7 +97,7 @@ WHERE `tenantid` = 10",
     {
         var d = Get(version, v => new MySqlDialect(v));
         var db = Get(version, v => new MySqlDbMock(v));
-        var q = SqlQueryParser.Parse("CREATE GLOBAL TEMPORARY TABLE tmp_users AS SELECT id FROM users", db,d)
+        var q = SqlQueryParser.Parse("CREATE GLOBAL TEMPORARY TABLE tmp_users AS SELECT id FROM users", db, d)
             .Should().BeOfType<SqlCreateTemporaryTableQuery>().Subject;
 
         q.Scope.Should().Be(TemporaryTableScope.Global);
@@ -115,7 +115,7 @@ WHERE `tenantid` = 10",
         var d = Get(version, v => new MySqlDialect(v));
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "CREATE OR REPLACE TABLE tmp_users AS SELECT id FROM users";
-        Action act = () => SqlQueryParser.Parse(sql, db,d);
+        Action act = () => SqlQueryParser.Parse(sql, db, d);
         act.Should().Throw<InvalidOperationException>();
     }
 
@@ -131,7 +131,7 @@ WHERE `tenantid` = 10",
         var d = Get(version, v => new MySqlDialect(v));
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "CREATE TEMPORARY TABLE tmp_users AS SELECT id FROM users; SELECT 1";
-        Action act = () => SqlQueryParser.Parse(sql, db,d);
+        Action act = () => SqlQueryParser.Parse(sql, db, d);
         act.Should().Throw<InvalidOperationException>();
     }
 
@@ -147,7 +147,7 @@ WHERE `tenantid` = 10",
         var d = Get(version, v => new MySqlDialect(v));
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "CREATE TEMPORARY TABLE tmp_users AS ;";
-        Action act = () => SqlQueryParser.Parse(sql, db,d);
+        Action act = () => SqlQueryParser.Parse(sql, db, d);
         act.Should().Throw<InvalidOperationException>();
     }
 
@@ -179,7 +179,7 @@ WHERE `tenantid` = 10",
         var d = Get(version, v => new MySqlDialect(v));
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "CREATE TEMPORARY TABLE tmp_users (id INT,) AS SELECT id FROM users";
-        Action act = () => SqlQueryParser.Parse(sql, db,d);
+        Action act = () => SqlQueryParser.Parse(sql, db, d);
         act.Should().Throw<InvalidOperationException>();
     }
 
@@ -195,7 +195,7 @@ WHERE `tenantid` = 10",
         var d = Get(version, v => new MySqlDialect(v));
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "CREATE TEMPORARY TABLE tmp_users (,id INT) AS SELECT id FROM users";
-        Action act = () => SqlQueryParser.Parse(sql, db,d);
+        Action act = () => SqlQueryParser.Parse(sql, db, d);
         act.Should().Throw<InvalidOperationException>();
     }
 
@@ -211,7 +211,7 @@ WHERE `tenantid` = 10",
         var d = Get(version, v => new MySqlDialect(v));
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "CREATE TEMPORARY TABLE tmp_users (id INT AS SELECT id FROM users";
-        Action act = () => SqlQueryParser.Parse(sql, db,d);
+        Action act = () => SqlQueryParser.Parse(sql, db, d);
         act.Should().Throw<InvalidOperationException>();
     }
 
@@ -227,7 +227,7 @@ WHERE `tenantid` = 10",
         var d = Get(version, v => new MySqlDialect(v));
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "CREATE TEMPORARY TABLE tmp_users (id INT name VARCHAR(50)) AS SELECT id, name FROM users";
-        Action act = () => SqlQueryParser.Parse(sql, db,d);
+        Action act = () => SqlQueryParser.Parse(sql, db, d);
         act.Should().Throw<InvalidOperationException>();
     }
 

@@ -90,7 +90,7 @@ internal class DictionaryProcess<T> : IDictionaryProcess<T>
         }
 
         OnItemAdding(normalizedKey, value);
-            _inner.Add(normalizedKey, value);
+        _inner.Add(normalizedKey, value);
         OnItemAdded(normalizedKey, value);
     }
 

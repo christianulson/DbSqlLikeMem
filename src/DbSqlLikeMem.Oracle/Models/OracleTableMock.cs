@@ -10,7 +10,8 @@ internal class OracleTableMock(
         IEnumerable<Col> columns,
         IEnumerable<Dictionary<int, object?>>? rows = null
         ) : TableMock(tableName, schema, columns, rows)
-{    public override string? CurrentColumn
+{
+    public override string? CurrentColumn
     {
         get { return OracleValueHelper.CurrentColumn; }
         set { OracleValueHelper.CurrentColumn = value; }

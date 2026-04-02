@@ -1304,7 +1304,7 @@ public sealed class SqlDialectAutoParserTests(
         var d = Get(1, v => new AutoSqlDialect(v));
         var db = Get(1, v => new AutoDbMock(v));
         var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
-            "SELECT SQL_CALC_FOUND_ROWS Name FROM users ORDER BY Id LIMIT 1", db,d));
+            "SELECT SQL_CALC_FOUND_ROWS Name FROM users ORDER BY Id LIMIT 1", db, d));
 
         Assert.Contains(SqlConst.SQL_CALC_FOUND_ROWS, parsed.RawSql ?? string.Empty, StringComparison.OrdinalIgnoreCase);
     }

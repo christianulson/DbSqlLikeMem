@@ -175,7 +175,7 @@ public abstract class XUnitTestBase : IDisposable
     }
 
     private static readonly ConcurrentDictionary<string, object> ObjCache = [];
-    
+
     /// <summary>
     /// Retrieves a cached dialect instance for the specified version, or creates and caches a new instance if one does
     /// not exist.
@@ -187,8 +187,8 @@ public abstract class XUnitTestBase : IDisposable
     /// <param name="version">The version number used to identify the dialect instance.</param>
     /// <param name="fnCreate">A function that creates a new dialect instance for the specified version if one is not already cached.</param>
     /// <returns>A dialect instance of type T corresponding to the specified version.</returns>
-    protected static T Get<T>(int version, Func<int,T> fnCreate)
-        => (T)ObjCache.GetOrAdd($"{typeof(T).FullName}_v{version}", _=> fnCreate(version)!);
+    protected static T Get<T>(int version, Func<int, T> fnCreate)
+        => (T)ObjCache.GetOrAdd($"{typeof(T).FullName}_v{version}", _ => fnCreate(version)!);
 
     #region Dispose
 

@@ -14,7 +14,7 @@ public sealed class PostgreSqlCreateViewEngineTests : XUnitTestBase
     /// EN: Creates the users and orders tables used by the view tests.
     /// PT: Cria as tabelas users e orders usadas pelos testes de view.
     /// </summary>
-    public PostgreSqlCreateViewEngineTests(ITestOutputHelper helper): base(helper)
+    public PostgreSqlCreateViewEngineTests(ITestOutputHelper helper) : base(helper)
     {
         var db = new NpgsqlDbMock();
         _users = db.AddTable("users");
@@ -22,7 +22,7 @@ public sealed class PostgreSqlCreateViewEngineTests : XUnitTestBase
         _users.AddColumn("name", DbType.String, false);
         _users.AddColumn("tenantid", DbType.Int32, false);
         _users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John", [2] = 10 });
-        _users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Bob",  [2] = 10 });
+        _users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Bob", [2] = 10 });
         _users.Add(new Dictionary<int, object?> { [0] = 3, [1] = "Jane", [2] = 20 });
 
         _orders = db.AddTable("orders");
@@ -51,7 +51,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
 
         var rows = _cnn.QueryRows("SELECT id, name FROM v10 ORDER BY id");
         Assert.Equal([1, 2], [.. rows.Select(r => (int)r["id"]!)]);
-        Assert.Equal(["John", "Bob" ], [.. rows.Select(r => (string)r["name"]!)]);
+        Assert.Equal(["John", "Bob"], [.. rows.Select(r => (string)r["name"]!)]);
     }
 
     /// <summary>

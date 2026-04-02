@@ -462,7 +462,8 @@ public abstract partial class BenchmarkSessionBase(
 
         lock (_logSync)
         {
-            if (Errors.TryGetValue(root.Message, out int value)) {
+            if (Errors.TryGetValue(root.Message, out int value))
+            {
                 Errors[root.Message] = value + 1;
                 return;
             }

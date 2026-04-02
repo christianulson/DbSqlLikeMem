@@ -400,7 +400,7 @@ WHERE dt.total >= 10;
             "INSERT INTO ... SELECT constant without FROM"
         };
 
-        
+
         // Oracle UPSERT via MERGE
         yield return new object[] {
             @"MERGE INTO users target
@@ -503,7 +503,7 @@ WHEN NOT MATCHED THEN INSERT (grp, total) VALUES (src.grp, src.total)",
         yield return new object[] { "delete FrOm users wHeRe id = 1", "DELETE with mixed-case keywords" };
         yield return new object[] { "uPdAtE users sEt name = 'Z' wHeRe id = 1", "UPDATE with mixed-case keywords" };
 
-        
+
 
         // MERGE
         yield return new object[] {
@@ -639,9 +639,9 @@ select id
 
         Assert.Equal(3, stmts.Count);
 
-        Assert.NotNull(SqlQueryParser.Parse(stmts[0], db,d));
-        Assert.NotNull(SqlQueryParser.Parse(stmts[1], db,d));
-        var q3 = SqlQueryParser.Parse(stmts[2], db,d);
+        Assert.NotNull(SqlQueryParser.Parse(stmts[0], db, d));
+        Assert.NotNull(SqlQueryParser.Parse(stmts[1], db, d));
+        var q3 = SqlQueryParser.Parse(stmts[2], db, d);
         Assert.NotNull(q3);
 
         // exemplo (ajuste pro seu modelo):
@@ -677,7 +677,7 @@ select id
         }
 
         // regra: se precisa de minVersion e versão atual é menor, então é NotSupported (não é inválido)
-        if (minVersion > 0 
+        if (minVersion > 0
             && version < minVersion
             //&& expectation == SqlCaseExpectation.ParseOk
             )
@@ -686,7 +686,7 @@ select id
 #pragma warning disable CA1031 // Do not catch general exception types
         try
         {
-            var parsed = SqlQueryParser.ParseMulti(sql, db,d).ToList();
+            var parsed = SqlQueryParser.ParseMulti(sql, db, d).ToList();
 
             Assert.True(expectation == SqlCaseExpectation.ParseOk,
                 $"Esperava {expectation} mas parseou. Why={why}. Version={version}");

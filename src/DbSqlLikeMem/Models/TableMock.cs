@@ -1207,7 +1207,7 @@ public abstract class TableMock
         var batchPrimaryKeys = _primaryKeyIndexes.Count > 0
             ? new HashSet<IndexKey>()
             : null;
-        
+
         var previousNextIdentities = new int[values.Count];
         var batchUniqueDicts = new Dictionary<IndexDef, HashSet<IndexKey>>(uniqueIndexes.Length);
         foreach (var index in uniqueIndexes)
@@ -1236,7 +1236,7 @@ public abstract class TableMock
                 }
             }
 
-            for(int i=0; i < allIndexes.Length; i++)
+            for (int i = 0; i < allIndexes.Length; i++)
             {
                 var index = allIndexes[i];
                 var key = index.BuildIndexKey(row);
@@ -1252,7 +1252,7 @@ public abstract class TableMock
 
         var startIndex = _items.Count;
         _items.AddRange(values);
-        
+
         // Update indexes using PRE-CALCULATED keys
         var hasPrimaryKey = _primaryKeyIndexes.Count > 0;
         for (var rowOffset = 0; rowOffset < values.Count; rowOffset++)

@@ -73,7 +73,7 @@ public class OracleCommandMock(
     /// PT: Obtém ou define como os resultados do comando são aplicados ao DataRow.
     /// </summary>
     public override UpdateRowSource UpdatedRowSource { get; set; }
-    
+
     /// <summary>
     /// EN: Gets or sets design time visible.
     /// PT: Obtém ou define visível em tempo de design.
@@ -311,9 +311,9 @@ public class OracleCommandMock(
     }
 
     /// <summary>
-     /// EN: Populates Oracle output parameters from first affected row according to RETURNING INTO mapping.
-     /// PT: Preenche parâmetros de saída do Oracle a partir da primeira linha afetada conforme mapeamento RETURNING INTO.
-     /// </summary>
+    /// EN: Populates Oracle output parameters from first affected row according to RETURNING INTO mapping.
+    /// PT: Preenche parâmetros de saída do Oracle a partir da primeira linha afetada conforme mapeamento RETURNING INTO.
+    /// </summary>
     private void PopulateReturningIntoParameters(
         OracleReturningIntoClause clause,
         ITableMock table,

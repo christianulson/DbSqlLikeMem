@@ -120,7 +120,7 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunSchemaSnapshotCompareScenario(connContainer);
-                resultMock.Should().Be(resultContainer);
+            resultMock.Should().Be(resultContainer);
         }
     }
 

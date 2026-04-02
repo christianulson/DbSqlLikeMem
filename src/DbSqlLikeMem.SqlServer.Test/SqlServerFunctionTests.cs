@@ -138,8 +138,14 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
     public void TransactionStateFunctions_ShouldReturnExpectedValues()
     {
         using var transaction = _connection.BeginTransaction();
-        Assert.Equal(1, Convert.ToInt32(ExecuteScalar("SELECT XACT_STATE() FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
-        Assert.Equal(1L, Convert.ToInt64(ExecuteScalar("SELECT CURRENT_TRANSACTION_ID() FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        using var command = new SqlServerCommandMock(_connection, (SqlServerTransactionMock)transaction);
+
+        command.CommandText = "SELECT XACT_STATE() FROM Users WHERE Id = 1";
+        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT CURRENT_TRANSACTION_ID() FROM Users WHERE Id = 1";
+        Assert.Equal(1L, Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
         transaction.Rollback();
     }
 
@@ -316,7 +322,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
         Assert.Equal(new byte[] { 0x0A, 0x0B }, Assert.IsType<byte[]>(ExecuteScalar(connection, "SELECT CONTEXT_INFO() FROM Users WHERE Id = 1")));
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT HOST_ID() FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal("localhost", ExecuteScalar(connection, "SELECT HOST_NAME() FROM Users WHERE Id = 1"));
-        Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT IS_MEMBER('db_owner') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT IS_MEMBER('db_owner') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT IS_ROLEMEMBER('db_datareader') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT IS_SRVROLEMEMBER('sysadmin') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT ISDATE('2020-01-01') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
@@ -599,7 +605,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
         var connection = new SqlServerConnectionMock(db);
         connection.Open();
-        connection.AddProdecure( new ProcedureDef("sp_ping",[], [], [], null));
+        connection.AddProdecure(new ProcedureDef("sp_ping", [], [], [], null));
 
         ExecuteNonQuery(connection, "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', '{\"profile\":{\"active\":true,\"name\":\"Ana\"}}')");
         ExecuteNonQuery(connection, "INSERT INTO Users (Id, Name, Email) VALUES (2, 'Bob', '{\"profile\":{\"active\":false,\"name\":\"Bob\"}}')");

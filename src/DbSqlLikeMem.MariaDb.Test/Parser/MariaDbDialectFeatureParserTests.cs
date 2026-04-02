@@ -18,7 +18,7 @@ public sealed class MariaDbDialectFeatureParserTests(
     [Trait("Category", "Parser")]
     public void DialectMetadata_ShouldExposeMariaDbFamilyIdentity()
     {
-        var dialect = Get(MariaDbDbVersions.Version11_0,v => new MariaDbDialect(v));
+        var dialect = Get(MariaDbDbVersions.Version11_0, v => new MariaDbDialect(v));
 
         dialect.Name.Equals("mariadb", StringComparison.OrdinalIgnoreCase).Should().BeTrue();
         Assert.True(dialect.SupportsOnDuplicateKeyUpdate);

@@ -83,8 +83,8 @@ internal static class AstQueryDb2DateFunctionEvaluator
             return true;
         }
 
-            result = name switch
-            {
+        result = name switch
+        {
             "DAY" => dateTime.Day,
             "DAYNAME" => dateTime.ToString("dddd", CultureInfo.InvariantCulture),
             "DAYOFMONTH" => dateTime.Day,
@@ -99,7 +99,7 @@ internal static class AstQueryDb2DateFunctionEvaluator
             "WEEK_ISO" => AstQueryExecutorBase.GetIsoWeekOfYear(dateTime),
             "YEAR" => dateTime.Year,
             _ => null
-            };
+        };
         return true;
     }
 

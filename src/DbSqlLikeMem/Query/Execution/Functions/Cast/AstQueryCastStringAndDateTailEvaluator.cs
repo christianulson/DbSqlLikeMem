@@ -26,7 +26,7 @@ internal sealed class AstQueryCastStringAndDateTailEvaluator(
         out object? result)
     {
         if (_tryEvalCastConversionFamily(context, fn, row, group, ctes, evalArg, out result)
-            || _tryEvalCastConcatAndStringTail(context,fn, row, group, ctes,  evalArg, out result)
+            || _tryEvalCastConcatAndStringTail(context, fn, row, group, ctes, evalArg, out result)
             || _tryEvalCastDateTail(context, fn, row, group, ctes, evalArg, out result))
         {
             return true;

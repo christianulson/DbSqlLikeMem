@@ -45,7 +45,7 @@ internal static class MySqlValueHelper
 
         // ---------- literal NULL --------------------------------------
         if (token.Equals("null", StringComparison.OrdinalIgnoreCase))
-            return isNullable 
+            return isNullable
                 ? null
                 : throw new MySqlMockException(SqlExceptionMessages.ColumnDoesNotAcceptNull());
 
@@ -93,7 +93,7 @@ internal static class MySqlValueHelper
         // SET
         if (raw.Contains(','))
         {
-            var parts = raw.Split(',').Select(_=>_.Trim()).ToArray();
+            var parts = raw.Split(',').Select(_ => _.Trim()).ToArray();
             var hs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var p in parts)

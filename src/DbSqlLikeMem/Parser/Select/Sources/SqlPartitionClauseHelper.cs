@@ -4,11 +4,11 @@ internal static class SqlPartitionClauseHelper
 {
     internal static IReadOnlyList<string> ConsumeOptionalTablePartitionClause(SqlQueryParserContext ctx)
     {
-        if (!ctx.IsWord( SqlConst.PARTITION))
+        if (!ctx.IsWord(SqlConst.PARTITION))
             return [];
 
         ctx.Consume(); // PARTITION
-        if (!ctx.IsSymbol( "("))
+        if (!ctx.IsSymbol("("))
             throw new InvalidOperationException("PARTITION clause requires a partition list.");
 
         var rawPartitions = ctx.ReadBalancedParenRawTokens().Trim();

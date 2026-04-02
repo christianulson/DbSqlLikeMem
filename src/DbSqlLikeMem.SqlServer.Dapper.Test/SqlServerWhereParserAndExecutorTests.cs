@@ -183,10 +183,10 @@ public sealed class SqlServerWhereParserAndExecutorTests : XUnitTestBase
     public void Where_Operators_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id >= 2 AND id <= 3").ToList();
-        Assert.Equal([2, 3], [.. rows.Select(r => (int)r.id).OrderBy(_=>_)]);
+        Assert.Equal([2, 3], [.. rows.Select(r => (int)r.id).OrderBy(_ => _)]);
 
         var rows2 = _cnn.Query<dynamic>("SELECT id FROM users WHERE id != 2").ToList();
-        Assert.Equal([1, 3], [.. rows2.Select(r => (int)r.id).OrderBy(_=>_)]);
+        Assert.Equal([1, 3], [.. rows2.Select(r => (int)r.id).OrderBy(_ => _)]);
     }
 
     /// <summary>
@@ -203,16 +203,15 @@ public sealed class SqlServerWhereParserAndExecutorTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Verifies FIND_IN_SET filters rows as expected.
-    /// PT: Verifica se FIND_IN_SET filtra as linhas como esperado.
+    /// EN: Verifies SQL Server rejects the MySQL-only <c>FIND_IN_SET</c> function.
+    /// PT: Verifica se o SQL Server rejeita a funcao <c>FIND_IN_SET</c>, que eh especifica do MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerWhereParserAndExecutor")]
-    public void Where_FindInSet_ShouldWork()
+    public void Where_FindInSet_ShouldThrowNotSupported()
     {
-        // FIND_IN_SET('b', tags) -> John(a,b) e Jane(b,c)
-        var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE FIND_IN_SET('b', tags)").ToList();
-        Assert.Equal([1, 2], [.. rows.Select(r => (int)r.id).OrderBy(_=>_)]);
+        Assert.Throws<NotSupportedException>(() =>
+            _cnn.Query<dynamic>("SELECT id FROM users WHERE FIND_IN_SET('b', tags)").ToList());
     }
 
     /// <summary>

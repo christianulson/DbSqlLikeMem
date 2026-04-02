@@ -41,7 +41,7 @@ public abstract class SchemaMock
         if (sequences != null)
             foreach (var it in sequences)
                 this.sequences.Add(it.Key, it.Value);
-        if(functions != null)
+        if (functions != null)
             foreach (var it in functions)
                 Functions.Add(it.Name, it);
         if (procedures != null)

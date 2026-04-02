@@ -106,7 +106,7 @@ public abstract class SqliteStoredProcedureExecutionTestsBase(
     public void ExecuteNonQuery_StoredProcedure_ShouldThrow_WhenRequiredInputIsNull()
     {
         using var c = CreateOpenConnection();
-        c.AddProdecure(new ProcedureDef("sp_add_user", 
+        c.AddProdecure(new ProcedureDef("sp_add_user",
             RequiredIn:
             [
                 new ProcParam("p_name", DbType.String),
@@ -166,7 +166,7 @@ public abstract class SqliteStoredProcedureExecutionTestsBase(
     public void ExecuteReader_CallSyntax_ShouldValidateAndReturnEmptyResultset()
     {
         using var c = CreateOpenConnection();
-        c.AddProdecure(new ProcedureDef("sp_ping", 
+        c.AddProdecure(new ProcedureDef("sp_ping",
             RequiredIn: [new ProcParam("p_id", DbType.Int32)],
             OptionalIn: [],
             OutParams: [],
@@ -214,7 +214,7 @@ public abstract class SqliteStoredProcedureExecutionTestsBase(
     public void ExecuteNonQuery_StoredProcedure_ShouldNotThrow_WhenProviderCannotRepresentOutputDirection()
     {
         using var c = CreateOpenConnection();
-        c.AddProdecure(new ProcedureDef("sp_with_input", 
+        c.AddProdecure(new ProcedureDef("sp_with_input",
             RequiredIn: [new ProcParam("p_id", DbType.Int32)],
             OptionalIn: [],
             OutParams: [],

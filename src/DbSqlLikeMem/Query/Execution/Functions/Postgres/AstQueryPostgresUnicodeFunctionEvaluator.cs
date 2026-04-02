@@ -27,7 +27,7 @@ internal static class AstQueryPostgresUnicodeFunctionEvaluator
             return false;
         }
 
-        return handler(context,fn,  evalArg, out result);
+        return handler(context, fn, evalArg, out result);
     }
 
     private static IReadOnlyDictionary<string, AstQueryTryEvalPostgresUnicodeFunction> CreateHandlers()

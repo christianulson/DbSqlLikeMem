@@ -414,7 +414,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
     /// EN: Gets or sets null substitute function names.
     /// PT: Obtém ou define null substitute function names.
     /// </summary>
-        public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["ISNULL"];
+    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["ISNULL"];
 
     //TODO: implementar + → NULL contamina, CONCAT() → não contamina
     /// <summary>

@@ -22,7 +22,7 @@ public static class NpgsqlLinqExtensions
         string tableName)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(cnn, nameof(cnn));
-        ArgumentNullExceptionCompatible.ThrowIfNull(tableName,nameof(tableName));
+        ArgumentNullExceptionCompatible.ThrowIfNull(tableName, nameof(tableName));
 
         var provider = new NpgsqlQueryProvider(cnn);
         return new NpgsqlQueryable<T>(provider, tableName);

@@ -478,7 +478,7 @@ public abstract class EfCoreSupportTestsBase(
             _ = create.ExecuteNonQuery();
         }
 
-        (int id, string category, int amount)[] rows = [(1,"A",30),(2,"A",40),(3,"B",20),(4,"B",15),(5,"C",10)];
+        (int id, string category, int amount)[] rows = [(1, "A", 30), (2, "A", 40), (3, "B", 20), (4, "B", 15), (5, "C", 10)];
         foreach (var row in rows)
         {
             using var insert = connection.CreateCommand();
@@ -493,12 +493,12 @@ public abstract class EfCoreSupportTestsBase(
         query.CommandText = "SELECT category, SUM(amount) total FROM ef_sales GROUP BY category HAVING SUM(amount) >= @minTotal ORDER BY total DESC";
         var min = query.CreateParameter(); min.ParameterName = "@minTotal"; min.Value = 35; query.Parameters.Add(min);
 
-        var result = new List<(string category,int total)>();
+        var result = new List<(string category, int total)>();
         using var reader = query.ExecuteReader();
         while (reader.Read()) result.Add((Convert.ToString(reader[0])!, Convert.ToInt32(reader[1])));
 
-        Assert.Equal(("A",70), result[0]);
-        Assert.Equal(("B",35), result[1]);
+        Assert.Equal(("A", 70), result[0]);
+        Assert.Equal(("B", 35), result[1]);
     }
 
     /// <summary>
@@ -517,7 +517,7 @@ public abstract class EfCoreSupportTestsBase(
             _ = create.ExecuteNonQuery();
         }
 
-        for (var i=1;i<=5;i++)
+        for (var i = 1; i <= 5; i++)
         {
             using var insert = connection.CreateCommand();
             insert.CommandText = "INSERT INTO ef_page_users (id, name) VALUES (@id, @name)";
@@ -533,7 +533,7 @@ public abstract class EfCoreSupportTestsBase(
         using var reader = page.ExecuteReader();
         while (reader.Read()) ids.Add(Convert.ToInt32(reader[0]));
 
-        Assert.Equal([2,3], ids);
+        Assert.Equal([2, 3], ids);
     }
 
     /// <summary>

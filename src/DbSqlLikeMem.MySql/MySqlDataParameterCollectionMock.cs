@@ -147,7 +147,7 @@ public class MySqlDataParameterCollectionMock
     /// </summary>
     public override int Add(object value)
     {
-        ArgumentNullExceptionCompatible.ThrowIfNull(value,nameof(value));
+        ArgumentNullExceptionCompatible.ThrowIfNull(value, nameof(value));
         AddParameter((MySqlParameter)value, Items.Count);
         return Items.Count - 1;
     }

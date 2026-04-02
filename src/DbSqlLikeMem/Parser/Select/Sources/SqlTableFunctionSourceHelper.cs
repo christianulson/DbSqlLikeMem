@@ -25,7 +25,7 @@ internal static class SqlTableFunctionSourceHelper
         ValidateTableFunctionSource(function, ctx.Dialect);
 
         if (function.Name.Equals(SqlConst.OPENJSON, StringComparison.OrdinalIgnoreCase)
-            && ctx.IsWord( SqlConst.WITH)
+            && ctx.IsWord(SqlConst.WITH)
             && SqlQueryParserContext.IsSymbol(ctx.Peek(1), "("))
         {
             ctx.Consume(); // WITH
@@ -83,7 +83,7 @@ internal static class SqlTableFunctionSourceHelper
         ValidateTableFunctionSource(function, ctx.Dialect);
 
         if (function.Name.Equals(SqlConst.OPENJSON, StringComparison.OrdinalIgnoreCase)
-            && ctx.IsWord( SqlConst.WITH)
+            && ctx.IsWord(SqlConst.WITH)
             && ctx.IsSymbol(1, "("))
         {
             ctx.Consume(); // WITH

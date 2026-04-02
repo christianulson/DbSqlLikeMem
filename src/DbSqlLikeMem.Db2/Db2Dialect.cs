@@ -27,14 +27,14 @@ internal sealed class Db2Dialect : SqlDialectBase, ISqlDialect
             ">=", "<=", "<>", "!=",
             "||"
         ])
-        {
+    {
         Db2ScalarFunctionRegistry.Register(this, version);
         Db2WindowFunctionRegistry.Register(this);
         Db2TableFunctionRegistry.Register(this, version);
         SqlSharedWindowFunctionRegistry.Register(this);
     }
 
- 
+
     internal const int WithCteMinVersion = 8;
     internal const int MergeMinVersion = 9;
     internal const int JsonFunctionsMinVersion = 11;
@@ -52,7 +52,7 @@ internal sealed class Db2Dialect : SqlDialectBase, ISqlDialect
     /// PT: Determina se o caractere é tratado como delimitador de string.
     /// </summary>
     public override bool IsStringQuote(char ch) => ch == '\'';
-    
+
     /// <summary>
     /// EN: Gets or sets string escape style.
     /// PT: Obtém ou define string escape style.
@@ -77,7 +77,7 @@ internal sealed class Db2Dialect : SqlDialectBase, ISqlDialect
         => functionName.Equals("ROW_NUMBER", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("ROWNUMBER", StringComparison.OrdinalIgnoreCase);
 
-    
+
 
     /// <summary>
     /// EN: Indicates whether SQL window functions are supported by the configured DB2 version.

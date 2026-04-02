@@ -239,7 +239,7 @@ public sealed class SqlExpressionParserTests(
     {
         var d = Get(version, v => new SqliteDialect(v));
         var db = Get(version, v => new SqliteDbMock(v));
-        var ast = SqlExpressionParser.ParseWhere("email IS NOT NULL", db,d);
+        var ast = SqlExpressionParser.ParseWhere("email IS NOT NULL", db, d);
         var n = ast.Should().BeOfType<IsNullExpr>().Subject;
         n.Negated.Should().BeTrue();
     }

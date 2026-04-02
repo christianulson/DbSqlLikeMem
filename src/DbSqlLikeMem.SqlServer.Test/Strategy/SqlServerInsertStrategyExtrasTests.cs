@@ -93,10 +93,10 @@ public sealed class SqlServerInsertStrategyExtrasTests(
     }
 }
 
-    /// <summary>
-    /// EN: Covers DELETE behavior when foreign keys reference the target row.
-    /// PT: Cobre o comportamento de DELETE quando chaves estrangeiras referenciam a linha alvo.
-    /// </summary>
+/// <summary>
+/// EN: Covers DELETE behavior when foreign keys reference the target row.
+/// PT: Cobre o comportamento de DELETE quando chaves estrangeiras referenciam a linha alvo.
+/// </summary>
 public class SqlServerDeleteStrategyForeignKeyTests
 {
     /// <summary>
@@ -133,10 +133,10 @@ public class SqlServerDeleteStrategyForeignKeyTests
     }
 }
 
-    /// <summary>
-    /// EN: Covers extra UPDATE scenarios in the SqlServer mock.
-    /// PT: Cobre cenarios extras de UPDATE no mock SqlServer.
-    /// </summary>
+/// <summary>
+/// EN: Covers extra UPDATE scenarios in the SqlServer mock.
+/// PT: Cobre cenarios extras de UPDATE no mock SqlServer.
+/// </summary>
 public class SqlServerUpdateStrategyExtrasTests
 {
     /// <summary>

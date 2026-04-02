@@ -225,7 +225,7 @@ internal static class DbUpdateStrategy
         foreach (var (Col, Val) in setPairs)
         {
             var info = table.GetColumn(Col);
-            if (info.GetGenValue != null) continue; 
+            if (info.GetGenValue != null) continue;
 
             var raw = ResolveSetValue(table, pars, row, info, Col, Val, context);
             table.UpdateRowColumn(rowIdx, info.Index, raw);
@@ -243,7 +243,7 @@ internal static class DbUpdateStrategy
         foreach (var (Col, Val) in setPairs)
         {
             var info = table.GetColumn(Col);
-            if (info.GetGenValue != null) continue; 
+            if (info.GetGenValue != null) continue;
             var raw = ResolveSetValue(table, pars, readOnlyRow, info, Col, Val, context);
             row[info.Index] = raw;
         }

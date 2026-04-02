@@ -12,7 +12,7 @@ namespace DbSqlLikeMem.MariaDb;
 public class MariaDbDbMock(
     int? version = null
     ) : MySqlDbMock(
-        version ?? MariaDbDbVersions.Default, 
+        version ?? MariaDbDbVersions.Default,
         static currentVersion => new MariaDbDialect(currentVersion))
 {
 }

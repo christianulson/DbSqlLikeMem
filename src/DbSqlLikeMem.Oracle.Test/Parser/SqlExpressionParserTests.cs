@@ -304,9 +304,9 @@ public sealed class SqlExpressionParserTests(
     {
         var d = Get(version, v => new OracleDialect(v));
         var db = Get(version, v => new OracleDbMock(v));
-        Assert.NotNull(SqlExpressionParser.ParseWhere("a = @p", db,d));
-        Assert.NotNull(SqlExpressionParser.ParseWhere("a = :p", db,d));
-        Assert.NotNull(SqlExpressionParser.ParseWhere("a = ?", db,d));
+        Assert.NotNull(SqlExpressionParser.ParseWhere("a = @p", db, d));
+        Assert.NotNull(SqlExpressionParser.ParseWhere("a = :p", db, d));
+        Assert.NotNull(SqlExpressionParser.ParseWhere("a = ?", db, d));
     }
 
     /// <summary>

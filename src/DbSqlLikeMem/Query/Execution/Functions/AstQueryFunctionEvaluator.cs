@@ -58,7 +58,7 @@ internal sealed class AstQueryFunctionEvaluator(
 
         if (_tryEvalBoundScalarFunction(context, fn, evalArg, out var boundScalarResult))
             return boundScalarResult;
- 
+
         if (fn.Args.Count == 0
             && context.TryEvaluateZeroArgCall(
                 fn.Name,
@@ -68,13 +68,13 @@ internal sealed class AstQueryFunctionEvaluator(
         {
             return temporalValue;
         }
- 
+
         foreach (var tryEvalScalarFunctionFamily in _tryEvalScalarFunctionFamilies)
         {
             if (tryEvalScalarFunctionFamily(context, fn, row, group, ctes, evalArg, out var scalarResult))
                 return scalarResult;
         }
- 
+
         if (fn.Args.Count == 0
             && context.IsKnownTemporalFunctionName(fn.Name))
             throw new InvalidOperationException($"Temporal function '{fn.Name}' is not supported for context.Dialect '{context.Dialect.Name}'.");

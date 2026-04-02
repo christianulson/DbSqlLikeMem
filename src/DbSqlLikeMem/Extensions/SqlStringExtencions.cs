@@ -90,7 +90,7 @@ internal static class SqlStringExtencions
         if (!trimmed.Contains('.'))
             return StripIdentifierWrappers(trimmed);
 
-        var parts = trimmed.Split('.').Select(_=>_.Trim()).Where(_=>!string.IsNullOrEmpty(_)).ToArray();
+        var parts = trimmed.Split('.').Select(_ => _.Trim()).Where(_ => !string.IsNullOrEmpty(_)).ToArray();
         for (var i = 0; i < parts.Length; i++)
             parts[i] = StripIdentifierWrappers(parts[i]);
 

@@ -212,7 +212,7 @@ internal static class QueryConditionalNullFunctionHelper
             return true;
         }
 
-        result =context.Compare(left, right) == 0 ? null : left;
+        result = context.Compare(left, right) == 0 ? null : left;
         return true;
     }
 

@@ -125,41 +125,20 @@ CREATE TABLE {NormalizeScenarioTableName(tableName)} (
     public override string InsertUser(string tableName, int id, string name) =>
         $@"INSERT INTO {NormalizeScenarioTableName(tableName)} (
     Id,
-    Name,
-    Email,
-    IsActive,
-    Age,
-    Balance,
-    CreatedAt,
-    UpdatedAt,
-    ProfileJson
+    Name
 ) VALUES (
     {id},
-    '{name}',
-    NULL,
-    1,
-    NULL,
-    0.00,
-    CURRENT_TIMESTAMP,
-    NULL,
-    NULL
+    '{name}'
 )";
 
     /// <inheritdoc />
     public override string InsertUsers(string tableName, params (int id, string name)[] values) =>
         $@"INSERT INTO {NormalizeScenarioTableName(tableName)} (
     Id,
-    Name,
-    Email,
-    IsActive,
-    Age,
-    Balance,
-    CreatedAt,
-    UpdatedAt,
-    ProfileJson
+    Name
 ) VALUES {string.Join(",",
             values.Select(_ =>
-                $"({_.id}, '{_.name}', NULL, 1, NULL, 0.00, CURRENT_TIMESTAMP, NULL, NULL)"))}";
+                $"({_.id}, '{_.name}')"))}";
 
     /// <inheritdoc />
     public override string InsertOrder(
@@ -177,19 +156,19 @@ CREATE TABLE {NormalizeScenarioTableName(tableName)} (
 
     /// <inheritdoc />
     public override string SelectUserNameById(string tableName, int id) =>
-        $"select name from {NormalizeScenarioTableName(tableName)} where TO_NUMBER(id) = {id}";
+        $"select name from {NormalizeScenarioTableName(tableName)} where Id = {id}";
 
     /// <inheritdoc />
     public override string CountJoinForUser(string usersTable, string ordersTable, int userId) =>
-        $"SELECT COUNT(*) FROM {NormalizeScenarioTableName(usersTable)} u INNER JOIN {NormalizeScenarioTableName(ordersTable)} o ON TO_NUMBER(o.{NormalizeScenarioTableName(usersTable)}Id) = TO_NUMBER(u.Id) WHERE TO_NUMBER(u.Id) = {userId}";
+        $"SELECT COUNT(*) FROM {NormalizeScenarioTableName(usersTable)} u INNER JOIN {NormalizeScenarioTableName(ordersTable)} o ON o.{NormalizeScenarioTableName(usersTable)}Id = u.Id WHERE u.Id = {userId}";
 
     /// <inheritdoc />
     public override string UpdateUserNameById(string tableName, int id, string newName) =>
-        $"UPDATE {NormalizeScenarioTableName(tableName)} SET Name = '{newName}' WHERE TO_NUMBER(Id) = {id}";
+        $"UPDATE {NormalizeScenarioTableName(tableName)} SET Name = '{newName}' WHERE Id = {id}";
 
     /// <inheritdoc />
     public override string DeleteUserById(string tableName, int id) =>
-        $"DELETE FROM {NormalizeScenarioTableName(tableName)} WHERE TO_NUMBER(Id) = {id}";
+        $"DELETE FROM {NormalizeScenarioTableName(tableName)} WHERE Id = {id}";
 
     /// <inheritdoc />
     public override string CountRows(string tableName) =>
@@ -260,15 +239,22 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
         $"LENGTH({expression})";
 
     /// <inheritdoc />
+    public override string StringCastExpression(string expression, int length = 10)
+    {
+        _ = length;
+        return $"CAST({expression} AS VARCHAR2({length}))";
+    }
+
+    /// <inheritdoc />
     public override string TemporalDateAdd() =>
-        "SELECT CURRENT_TIMESTAMP + INTERVAL '1' DAY FROM DUAL";
+        "SELECT CAST(CURRENT_TIMESTAMP AS DATE) + 1 FROM DUAL";
 
     /// <inheritdoc />
     public override string TemporalCurrentTimestampExpression() => "CURRENT_TIMESTAMP";
 
     /// <inheritdoc />
     public override string TemporalDateAddExpression() =>
-        "CURRENT_TIMESTAMP + INTERVAL '1' DAY";
+        "CAST(CURRENT_TIMESTAMP AS DATE) + 1";
 
     /// <inheritdoc />
     public override string StringPrefixExpression(string expression, int length) =>

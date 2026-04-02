@@ -7,7 +7,7 @@ internal static class SqlAlterParserHelper
     {
         ctx.Consume(); // ALTER
 
-        if (ctx.IsWord( SqlConst.TABLE))
+        if (ctx.IsWord(SqlConst.TABLE))
             return ctx.ParseAlterTable();
 
         throw new InvalidOperationException("Apenas ALTER TABLE pragmático é suportado no mock no momento.");
@@ -26,7 +26,7 @@ internal static class SqlAlterParserHelper
             throw new InvalidOperationException("Only ALTER TABLE ... ADD [COLUMN] is supported in the mock.");
 
         ctx.Consume(); // ADD
-        if (ctx.IsWord( SqlConst.COLUMN))
+        if (ctx.IsWord(SqlConst.COLUMN))
             ctx.Consume();
 
         var columnNameToken = ctx.Peek();

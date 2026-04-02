@@ -29,7 +29,7 @@ public sealed class MySqlSqlCompatibilityGapTests : XUnitTestBase
         users.AddColumn("email", DbType.String, true);
 
         users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John", [2] = "john@x.com" });
-        users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Bob",  [2] = null });
+        users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Bob", [2] = null });
         users.Add(new Dictionary<int, object?> { [0] = 3, [1] = "Jane", [2] = "jane@x.com" });
 
         // orders
@@ -271,8 +271,8 @@ LIMIT @Take OFFSET @Offset;",
             "WHERE u.id IN (1,2) ORDER BY u.id, o.id").ToList();
 
         // For uid=1: orders 10 and 13; for uid=2: orders 11,12,13
-        Assert.Equal([(1,10),(1,13),(2,11),(2,12),(2,13)],
-            [.. rows.Select(r => ((int)r.uid,(int)r.oid))]);
+        Assert.Equal([(1, 10), (1, 13), (2, 11), (2, 12), (2, 13)],
+            [.. rows.Select(r => ((int)r.uid, (int)r.oid))]);
     }
 
     /// <summary>
@@ -302,11 +302,11 @@ LIMIT @Take OFFSET @Offset;",
     public void OrderBy_ShouldSupportAlias_And_Ordinal()
     {
         var rows1 = _cnn.Query<dynamic>("SELECT id, id + 1 AS x FROM users ORDER BY x DESC").ToList();
-        Assert.Equal([3,2,1], [.. rows1.Select(r => (int)r.id)]);
+        Assert.Equal([3, 2, 1], [.. rows1.Select(r => (int)r.id)]);
 
         var rows2 = _cnn.Query<dynamic>("SELECT id, name FROM users ORDER BY 2 ASC, 1 DESC").ToList();
         // order by name asc, then id desc
-        Assert.Equal([(2,"Bob"),(3,"Jane"),(1,"John")], [.. rows2.Select(r => ((int)r.id,(string)r.name))]);
+        Assert.Equal([(2, "Bob"), (3, "Jane"), (1, "John")], [.. rows2.Select(r => ((int)r.id, (string)r.name))]);
     }
 
     /// <summary>
@@ -322,7 +322,7 @@ LIMIT @Take OFFSET @Offset;",
             "UNION " +
             "SELECT id FROM users WHERE id = 2 " +
             "ORDER BY id").ToList();
-        Assert.Equal([1,2], [.. rows.Select(r => (int)r.id)]);
+        Assert.Equal([1, 2], [.. rows.Select(r => (int)r.id)]);
     }
 
     /// <summary>
@@ -406,7 +406,7 @@ ORDER BY id
         var rows = cnn.Query<dynamic>(
             "WITH u AS (SELECT id, name FROM users WHERE id <= 2) " +
             "SELECT id FROM u ORDER BY id DESC").ToList();
-        Assert.Equal([2,1], [.. rows.Select(r => (int)r.id)]);
+        Assert.Equal([2, 1], [.. rows.Select(r => (int)r.id)]);
     }
 
     /// <summary>

@@ -259,7 +259,7 @@ WHERE tenantid = 10",
     {
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "CREATE TEMPORARY TABLE tmp_users (id INT,) AS SELECT id FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql,db, Get(version, v => new NpgsqlDialect(v))));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new NpgsqlDialect(v))));
     }
 
     /// <summary>
@@ -273,7 +273,7 @@ WHERE tenantid = 10",
     {
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "CREATE TEMPORARY TABLE tmp_users (,id INT) AS SELECT id FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql,db, Get(version, v => new NpgsqlDialect(v))));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new NpgsqlDialect(v))));
     }
 
     /// <summary>
@@ -287,7 +287,7 @@ WHERE tenantid = 10",
     {
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "CREATE TEMPORARY TABLE tmp_users (id INT AS SELECT id FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql,db, Get(version, v => new NpgsqlDialect(v))));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new NpgsqlDialect(v))));
     }
 
     /// <summary>
@@ -301,7 +301,7 @@ WHERE tenantid = 10",
     {
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "CREATE TEMPORARY TABLE tmp_users (id INT name VARCHAR(50)) AS SELECT id, name FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql,db, Get(version, v => new NpgsqlDialect(v))));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new NpgsqlDialect(v))));
     }
 
     /// <summary>

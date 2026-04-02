@@ -51,7 +51,7 @@ internal static class SqlPivotHelper
     }
 
     internal static SqlTableSource TryParseUnpivot(
-        this SqlQueryParserContext ctx, 
+        this SqlQueryParserContext ctx,
         SqlTableSource source)
     {
         if (!IsWord(ctx.Peek(), SqlConst.UNPIVOT))

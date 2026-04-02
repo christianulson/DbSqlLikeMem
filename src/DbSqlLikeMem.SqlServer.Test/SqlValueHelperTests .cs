@@ -133,7 +133,7 @@ public sealed class SqlValueHelperTests(
         var tb = new SqlServerDbMock().AddTable("tb");
 
         tb.AddColumn("Tags", DbType.Int32, false,
-            enumValues:[ "a", "b", "c" ]);
+            enumValues: ["a", "b", "c"]);
 
         var prev = SqlServerValueHelper.CurrentColumn;
         try

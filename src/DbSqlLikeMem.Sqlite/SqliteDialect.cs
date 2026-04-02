@@ -35,7 +35,7 @@ internal sealed class SqliteDialect : SqlDialectBase
         SqlSharedWindowFunctionRegistry.Register(this);
     }
 
- 
+
     internal const int WithCteMinVersion = 300;
     internal const int OnUpsertMinVersion = 324;
     internal const int ReturningMinVersion = 335;

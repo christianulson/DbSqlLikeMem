@@ -15,7 +15,8 @@ public class SqlServerTableMock(
     /// EN: Gets or sets the column name currently being resolved by value conversion helpers.
     /// PT: Obtém ou define o nome da coluna que está sendo resolvida pelos auxiliares de conversão de valor.
     /// </summary>
-    public override string? CurrentColumn {
+    public override string? CurrentColumn
+    {
         get { return SqlServerValueHelper.CurrentColumn; }
         set { SqlServerValueHelper.CurrentColumn = value; }
     }

@@ -267,21 +267,21 @@ SELECT id, name, tenantid, normalized_id, shifted_created, days_from_anchor, use
 FROM ranked_orders
 ORDER BY tenantid, rn, id").ToList();
 
-        Assert.Equal([2, 1, 3], [.. rows.Select(r => (int)r.id)]);
-        Assert.Equal(["Bob", "John", "Jane"], [.. rows.Select(r => (string)r.name)]);
+        Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.id)]);
+        Assert.Equal(["John", "Bob", "Jane"], [.. rows.Select(r => (string)r.name)]);
         Assert.Equal([10, 10, 20], [.. rows.Select(r => (int)r.tenantid)]);
-        Assert.Equal([2, 1, 3], [.. rows.Select(r => (int)r.normalized_id)]);
+        Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.normalized_id)]);
         Assert.Equal(
-            [new DateTime(2020, 1, 3, 0, 0, 0, DateTimeKind.Local), new DateTime(2020, 1, 2, 0, 0, 0, DateTimeKind.Local), new DateTime(2020, 1, 4, 0, 0, 0, DateTimeKind.Local)],
+            [new DateTime(2020, 1, 2, 0, 0, 0, DateTimeKind.Local), new DateTime(2020, 1, 3, 0, 0, 0, DateTimeKind.Local), new DateTime(2020, 1, 4, 0, 0, 0, DateTimeKind.Local)],
             [.. rows.Select(r => (DateTime)r.shifted_created)]);
-        Assert.Equal([1, 0, 2], [.. rows.Select(r => (int?)r.days_from_anchor)]);
-        Assert.Equal(["10-2", "10-1", "20-3"], [.. rows.Select(r => (string)r.user_code)]);
-        Assert.Equal([1, 2, 0], [.. rows.Select(r => Convert.ToInt32(r.order_count))]);
-        Assert.Equal([7m, 15m, 0m], [.. rows.Select(r => Convert.ToDecimal(r.total_amount))]);
-        Assert.Equal(["12", "11|10", string.Empty], [.. rows.Select(r => (string)r.order_ids)]);
-        Assert.Equal([12, 11, null], [.. rows.Select(r => (int?)r.last_order_id)]);
-        Assert.Equal([7m, 5m, 0m], [.. rows.Select(r => Convert.ToDecimal(r.last_order_amount))]);
-        Assert.Equal([false, true, false], [.. rows.Select(r => Convert.ToBoolean(r.has_big_order))]);
+        Assert.Equal([0, 1, 2], [.. rows.Select(r => (int?)r.days_from_anchor)]);
+        Assert.Equal(["10-1", "10-2", "20-3"], [.. rows.Select(r => (string)r.user_code)]);
+        Assert.Equal([2, 1, 0], [.. rows.Select(r => Convert.ToInt32(r.order_count))]);
+        Assert.Equal([4.00m, 5.50m, 0m], [.. rows.Select(r => Convert.ToDecimal(r.total_amount))]);
+        Assert.Equal(["11|10", "12", string.Empty], [.. rows.Select(r => (string)r.order_ids)]);
+        Assert.Equal([11, 12, null], [.. rows.Select(r => (int?)r.last_order_id)]);
+        Assert.Equal([2.75m, 5.50m, 0m], [.. rows.Select(r => Convert.ToDecimal(r.last_order_amount))]);
+        Assert.Equal([false, false, false], [.. rows.Select(r => Convert.ToBoolean(r.has_big_order))]);
         Assert.Equal([1, 2, 1], [.. rows.Select(r => (int)r.rn)]);
     }
 
@@ -623,7 +623,7 @@ ORDER BY id").ToList();
     [Trait("Category", "SqlServerAdvancedSqlGap")]
     public void Cast_StringToInt_ShouldWork()
     {
-        var rows = _cnn.Query<dynamic>("SELECT CAST('42' AS INTEGER) AS v").ToList();
+        var rows = _cnn.Query<dynamic>("SELECT CAST('42' AS INT) AS v").ToList();
         Assert.Single(rows);
         Assert.Equal(42, (int)rows[0].v);
     }

@@ -215,15 +215,15 @@ ORDER BY id").ToList();
     }
 
     /// <summary>
-    /// EN: Verifies a SQLite reference query combining WITH RECURSIVE, JOIN, LEFT JOIN, correlated subquery, GROUP_CONCAT, IFNULL, JULIANDAY, DATETIME, CASE, CAST and ROW_NUMBER returns the expected rows.
-    /// PT: Verifica se uma query de referencia do SQLite combinando WITH RECURSIVE, JOIN, LEFT JOIN, subquery correlacionada, GROUP_CONCAT, IFNULL, JULIANDAY, DATETIME, CASE, CAST e ROW_NUMBER retorna as linhas esperadas.
+    /// EN: Verifies a SQLite reference query combining WITH, JOIN, LEFT JOIN, correlated subquery, GROUP_CONCAT, IFNULL, JULIANDAY, DATETIME, CASE, CAST and ROW_NUMBER returns the expected rows.
+    /// PT: Verifica se uma query de referencia do SQLite combinando WITH, JOIN, LEFT JOIN, subquery correlacionada, GROUP_CONCAT, IFNULL, JULIANDAY, DATETIME, CASE, CAST e ROW_NUMBER retorna as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteAdvancedSqlGap")]
     public void ProviderSignature_CteAggregateAndWindow_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>(@"
-WITH RECURSIVE tenant_scope AS (
+WITH tenant_scope AS (
     SELECT 10 AS tenantid
     UNION ALL
     SELECT 20
@@ -379,12 +379,12 @@ ORDER BY id").ToList();
 
 
     /// <summary>
-    /// EN: Verifies LAG and LEAD respect per-row boundaries in a ROWS frame.
-    /// PT: Verifica se LAG e LEAD respeitam os limites por linha em um frame ROWS.
+    /// EN: Verifies LAG and LEAD ignore the frame specification and use partition order only.
+    /// PT: Verifica se LAG e LEAD ignoram a especificacao do frame e usam apenas a ordem da particao.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteAdvancedSqlGap")]
-    public void Window_Lag_Lead_WithRowsFrame_ShouldRespectPerRowBoundaries()
+    public void Window_Lag_Lead_WithRowsFrame_ShouldIgnoreFrameBoundaries()
     {
         var rows = _cnn.Query<dynamic>(@"
 SELECT id,
@@ -397,21 +397,21 @@ SELECT id,
 FROM users
 ORDER BY id").ToList();
 
-        Assert.Equal([-1, -1, -1], [.. rows.Select(r => (int)r.lag_current)]);
-        Assert.Equal([99, 99, 99], [.. rows.Select(r => (int)r.lead_current)]);
-        Assert.Equal([-1, -1, -1], [.. rows.Select(r => (int)r.lag_sliding)]);
-        Assert.Equal([99, 99, 99], [.. rows.Select(r => (int)r.lead_sliding)]);
-        Assert.Equal([-1, -1, -1], [.. rows.Select(r => (int)r.lag_forward)]);
+        Assert.Equal([-1, 1, 2], [.. rows.Select(r => (int)r.lag_current)]);
+        Assert.Equal([2, 3, 99], [.. rows.Select(r => (int)r.lead_current)]);
+        Assert.Equal([-1, 1, 2], [.. rows.Select(r => (int)r.lag_sliding)]);
+        Assert.Equal([2, 3, 99], [.. rows.Select(r => (int)r.lead_sliding)]);
+        Assert.Equal([-1, 1, 2], [.. rows.Select(r => (int)r.lag_forward)]);
         Assert.Equal([2, 3, 99], [.. rows.Select(r => (int)r.lead_forward)]);
     }
 
     /// <summary>
-    /// EN: Verifies ranking functions respect per-row boundaries in a ROWS frame.
-    /// PT: Verifica se funcoes de ranking respeitam os limites por linha em um frame ROWS.
+    /// EN: Verifies ranking functions ignore the frame specification in a ROWS frame.
+    /// PT: Verifica se funcoes de ranking ignoram a especificacao do frame em um frame ROWS.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteAdvancedSqlGap")]
-    public void Window_RankingFunctions_WithRowsFrame_ShouldRespectPerRowBoundaries()
+    public void Window_RankingFunctions_WithRowsFrame_ShouldIgnoreFrameBoundaries()
     {
         var rows = _cnn.Query<dynamic>(@"
 SELECT id,
@@ -433,32 +433,32 @@ SELECT id,
 FROM users
 ORDER BY id").ToList();
 
-        Assert.Equal([1, 1, 3], [.. rows.Select(r => (int)r.rank_current)]);
+        Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.rank_current)]);
         Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.dense_current)]);
         Assert.Equal([0d, 0d, 1d], [.. rows.Select(r => Convert.ToDouble(r.pr_current))]);
         Assert.Equal([2d / 3d, 2d / 3d, 1d], [.. rows.Select(r => Convert.ToDouble(r.cd_current))]);
         Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.tile_current)]);
-        Assert.Equal([1, 1, 3], [.. rows.Select(r => (int)r.rank_sliding)]);
+        Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.rank_sliding)]);
         Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.dense_sliding)]);
         Assert.Equal([0d, 0d, 1d], [.. rows.Select(r => Convert.ToDouble(r.pr_sliding))]);
         Assert.Equal([2d / 3d, 2d / 3d, 1d], [.. rows.Select(r => Convert.ToDouble(r.cd_sliding))]);
         Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.tile_sliding)]);
-        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.rank_forward)]);
-        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.dense_forward)]);
-        Assert.Equal([0d, 0d, 0d], [.. rows.Select(r => Convert.ToDouble(r.pr_forward))]);
-        Assert.Equal([1d, 0.5d, 1d], [.. rows.Select(r => Convert.ToDouble(r.cd_forward))]);
-        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.tile_forward)]);
+        Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.rank_forward)]);
+        Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.dense_forward)]);
+        Assert.Equal([0d, 0d, 1d], [.. rows.Select(r => Convert.ToDouble(r.pr_forward))]);
+        Assert.Equal([2d / 3d, 2d / 3d, 1d], [.. rows.Select(r => Convert.ToDouble(r.cd_forward))]);
+        Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.tile_forward)]);
     }
 
 
 
     /// <summary>
-    /// EN: Verifies ranking functions respect descending order within a ROWS frame.
-    /// PT: Verifica se funcoes de ranking respeitam a ordem decrescente em um frame ROWS.
+    /// EN: Verifies ranking functions ignore the frame specification even with descending order.
+    /// PT: Verifica se funcoes de ranking ignoram a especificacao do frame mesmo com ordem decrescente.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteAdvancedSqlGap")]
-    public void Window_RankingFunctions_WithRowsFrame_AndDescendingOrder_ShouldRespectFrame()
+    public void Window_RankingFunctions_WithRowsFrame_AndDescendingOrder_ShouldIgnoreFrame()
     {
         var rows = _cnn.Query<dynamic>(@"
 SELECT id,
@@ -469,20 +469,20 @@ SELECT id,
 FROM users
 ORDER BY id").ToList();
 
-        Assert.Equal([2, 3, -1], [.. rows.Select(r => (int)r.rank_sliding_desc)]);
+        Assert.Equal([2, 2, 1], [.. rows.Select(r => (int)r.rank_sliding_desc)]);
         Assert.Equal([2, 2, 1], [.. rows.Select(r => (int)r.dense_sliding_desc)]);
-        Assert.Equal([0d, 0d, 0d], [.. rows.Select(r => Convert.ToDouble(r.pr_sliding_desc))]);
-        Assert.Equal([1d, 1d, 1d], [.. rows.Select(r => Convert.ToDouble(r.cd_sliding_desc))]);
+        Assert.Equal([0.5d, 0.5d, 0d], [.. rows.Select(r => Convert.ToDouble(r.pr_sliding_desc))]);
+        Assert.Equal([1d, 1d, 1d / 3d], [.. rows.Select(r => Convert.ToDouble(r.cd_sliding_desc))]);
     }
 
 
     /// <summary>
-    /// EN: Verifies PERCENT_RANK and CUME_DIST respect descending peers within a ROWS frame.
-    /// PT: Verifica se PERCENT_RANK e CUME_DIST respeitam os peers decrescentes em um frame ROWS.
+    /// EN: Verifies PERCENT_RANK and CUME_DIST ignore the frame specification even with descending peers.
+    /// PT: Verifica se PERCENT_RANK e CUME_DIST ignoram a especificacao do frame mesmo com peers decrescentes.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteAdvancedSqlGap")]
-    public void Window_PercentRank_CumeDist_WithRowsFrame_AndDescendingPeers_ShouldRespectFrame()
+    public void Window_PercentRank_CumeDist_WithRowsFrame_AndDescendingPeers_ShouldIgnoreFrame()
     {
         var rows = _cnn.Query<dynamic>(@"
 SELECT id,
@@ -491,18 +491,18 @@ SELECT id,
 FROM users
 ORDER BY id").ToList();
 
-        Assert.Equal([0d, 0d, 0d], [.. rows.Select(r => Convert.ToDouble(r.pr_desc_forward))]);
-        Assert.Equal([1d, 1d, 0.5d], [.. rows.Select(r => Convert.ToDouble(r.cd_desc_forward))]);
+        Assert.Equal([0.5d, 0.5d, 0d], [.. rows.Select(r => Convert.ToDouble(r.pr_desc_forward))]);
+        Assert.Equal([1d, 1d, 1d / 3d], [.. rows.Select(r => Convert.ToDouble(r.cd_desc_forward))]);
     }
 
 
     /// <summary>
-    /// EN: Verifies LAG and LEAD respect descending order within a ROWS frame.
-    /// PT: Verifica se LAG e LEAD respeitam a ordem decrescente em um frame ROWS.
+    /// EN: Verifies LAG and LEAD ignore the frame specification even with descending order.
+    /// PT: Verifica se LAG e LEAD ignoram a especificacao do frame mesmo com ordem decrescente.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteAdvancedSqlGap")]
-    public void Window_LagLead_WithRowsFrame_AndDescendingOrder_ShouldRespectFrame()
+    public void Window_LagLead_WithRowsFrame_AndDescendingOrder_ShouldIgnoreFrame()
     {
         var rows = _cnn.Query<dynamic>(@"
 SELECT id,
@@ -515,18 +515,18 @@ ORDER BY id").ToList();
 
         Assert.Equal([2, 3, -1], [.. rows.Select(r => (int)r.lag_desc_sliding)]);
         Assert.Equal([99, 1, 2], [.. rows.Select(r => (int)r.lead_desc_sliding)]);
-        Assert.Equal([-1, -1, -1], [.. rows.Select(r => (int)r.lag_desc_forward)]);
+        Assert.Equal([2, 3, -1], [.. rows.Select(r => (int)r.lag_desc_forward)]);
         Assert.Equal([99, 1, 2], [.. rows.Select(r => (int)r.lead_desc_forward)]);
     }
 
 
     /// <summary>
-    /// EN: Verifies NTILE respects descending order within a ROWS frame.
-    /// PT: Verifica se NTILE respeita a ordem decrescente em um frame ROWS.
+    /// EN: Verifies NTILE ignores the frame specification even with descending order.
+    /// PT: Verifica se NTILE ignora a especificacao do frame mesmo com ordem decrescente.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteAdvancedSqlGap")]
-    public void Window_Ntile_WithRowsFrame_AndDescendingOrder_ShouldRespectFrame()
+    public void Window_Ntile_WithRowsFrame_AndDescendingOrder_ShouldIgnoreFrame()
     {
         var rows = _cnn.Query<dynamic>(@"
 SELECT id,
@@ -535,8 +535,8 @@ SELECT id,
 FROM users
 ORDER BY id").ToList();
 
-        Assert.Equal([2, 2, 1], [.. rows.Select(r => (int)r.tile_desc_sliding)]);
-        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.tile_desc_forward)]);
+        Assert.Equal([2, 1, 1], [.. rows.Select(r => (int)r.tile_desc_sliding)]);
+        Assert.Equal([2, 1, 1], [.. rows.Select(r => (int)r.tile_desc_forward)]);
     }
 
 

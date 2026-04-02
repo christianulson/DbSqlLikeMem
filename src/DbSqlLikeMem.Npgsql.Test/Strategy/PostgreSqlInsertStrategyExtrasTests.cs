@@ -17,7 +17,7 @@ public sealed class PostgreSqlInsertStrategyExtrasTests(
     {
         // Arrange
         var db = new NpgsqlDbMock();
-        var table = db.AddTable( "t");
+        var table = db.AddTable("t");
         table.AddColumn("id", DbType.Int32, false, identity: false);
         table.AddColumn("val", DbType.String, true);
         using var cnn = new NpgsqlConnectionMock(db);

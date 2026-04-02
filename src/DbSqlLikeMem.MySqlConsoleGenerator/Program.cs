@@ -320,11 +320,11 @@ SELECT KCU.CONSTRAINT_NAME
         foreach (var c in columns.OrderBy(c => c.Ordinal))
         {
             var dbType = GenerationRuleSet.MapDbType(
-            	c.DataType,
-            	c.CharMaxLen,
-            	c.NumPrecision,
-            	c.ColumnName,
-            	DatabaseType);
+                c.DataType,
+                c.CharMaxLen,
+                c.NumPrecision,
+                c.ColumnName,
+                DatabaseType);
             var nullable = c.IsNullable ? "true" : "false";
             var ctor = $"DbType.{dbType}, {nullable}";
 
@@ -372,12 +372,12 @@ SELECT KCU.CONSTRAINT_NAME
 
         // FKs
         if (foreignKeys.Count != 0) w.WriteLine($"        if (addForeignKeys) {{");
-        foreach (var (key, value) in foreignKeys.OrderBy(_=>_.Key))
+        foreach (var (key, value) in foreignKeys.OrderBy(_ => _.Key))
         {
             w.WriteLine($@"            table.CreateForeignKey(
                 {GenerationRuleSet.Literal(key)},
                 {GenerationRuleSet.Literal(value.RefTable)},
-                [{string.Join(",", value.Cols.Select(_=>$"({GenerationRuleSet.Literal(_.Col)}, {GenerationRuleSet.Literal(_.RefCol)})"))}]);");
+                [{string.Join(",", value.Cols.Select(_ => $"({GenerationRuleSet.Literal(_.Col)}, {GenerationRuleSet.Literal(_.RefCol)})"))}]);");
         }
         if (foreignKeys.Count != 0) w.WriteLine("        }");
 

@@ -128,7 +128,7 @@ internal static class SqlInsertConflictHelper
             isClauseStop: token => SqlQueryParserContext.IsWord(token, SqlConst.WHERE)
                                 || SqlQueryParserContext.IsWord(token, SqlConst.FROM)
                                 || SqlQueryParserContext.IsWord(token, SqlConst.USING)
-                                || SqlQueryParserContext.IsWord(token, SqlConst.RETURNING) 
+                                || SqlQueryParserContext.IsWord(token, SqlConst.RETURNING)
                                 || SqlQueryParserContext.IsWord(token, SqlConst.ON),
             expressionStopWords: [",", SqlConst.WHERE, SqlConst.FROM, SqlConst.USING, SqlConst.RETURNING, SqlConst.ON, ";"],
             normalizeRaw: raw => NormalizeInsertValueRaw(raw, ctx.Dialect));

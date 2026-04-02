@@ -7,14 +7,14 @@ internal static class SqlCteParserHelper
         Func<string, SqlQueryBase> parseQuery)
     {
         var list = new List<SqlCte>();
-        if (!ctx.IsWord( SqlConst.WITH))
+        if (!ctx.IsWord(SqlConst.WITH))
             return list;
 
         ctx.Consume();
         if (!ctx.Dialect.SupportsWithCte)
             throw SqlUnsupported.NotSupported(ctx.Dialect, SqlConst.WITH_CTE);
 
-        if (ctx.IsWord( SqlConst.RECURSIVE))
+        if (ctx.IsWord(SqlConst.RECURSIVE))
         {
             if (!ctx.Dialect.SupportsWithRecursive)
                 throw SqlUnsupported.NotSupportedWithRecursive(ctx.Dialect);
@@ -24,26 +24,26 @@ internal static class SqlCteParserHelper
         while (true)
         {
             var name = ctx.ExpectIdentifier();
-            if (ctx.IsSymbol( "("))
+            if (ctx.IsSymbol("("))
             {
                 ctx.Consume();
-                while (!ctx.IsSymbol( ")"))
+                while (!ctx.IsSymbol(")"))
                     ctx.Consume();
                 ctx.Consume();
             }
 
-            if (!ctx.IsWord( SqlConst.AS))
+            if (!ctx.IsWord(SqlConst.AS))
                 throw new InvalidOperationException("CTE requires AS.");
 
             ctx.Consume();
-            if (ctx.IsWord( SqlConst.NOT) && ctx.IsWord(1, SqlConst.MATERIALIZED))
+            if (ctx.IsWord(SqlConst.NOT) && ctx.IsWord(1, SqlConst.MATERIALIZED))
             {
                 if (!ctx.Dialect.SupportsWithMaterializedHint)
                     throw SqlUnsupported.NotSupported(ctx.Dialect, "WITH ... AS NOT MATERIALIZED");
                 ctx.Consume();
                 ctx.Consume();
             }
-            else if (ctx.IsWord( SqlConst.MATERIALIZED))
+            else if (ctx.IsWord(SqlConst.MATERIALIZED))
             {
                 if (!ctx.Dialect.SupportsWithMaterializedHint)
                     throw SqlUnsupported.NotSupported(ctx.Dialect, "WITH ... AS MATERIALIZED");
@@ -55,7 +55,7 @@ internal static class SqlCteParserHelper
             if (q is SqlSelectQuery or SqlUnionQuery)
                 list.Add(new SqlCte(name, q));
 
-            if (ctx.IsSymbol( ","))
+            if (ctx.IsSymbol(","))
             {
                 ctx.Consume();
                 continue;

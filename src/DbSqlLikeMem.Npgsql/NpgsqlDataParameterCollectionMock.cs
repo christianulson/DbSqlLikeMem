@@ -146,7 +146,7 @@ public class NpgsqlDataParameterCollectionMock
     /// </summary>
     public override int Add(object value)
     {
-        ArgumentNullExceptionCompatible.ThrowIfNull(value,nameof(value));
+        ArgumentNullExceptionCompatible.ThrowIfNull(value, nameof(value));
         AddParameter((NpgsqlParameter)value, Items.Count);
         return Items.Count - 1;
     }

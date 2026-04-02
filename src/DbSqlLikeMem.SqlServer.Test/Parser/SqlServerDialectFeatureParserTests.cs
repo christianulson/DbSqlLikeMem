@@ -1308,7 +1308,7 @@ public sealed class SqlServerDialectFeatureParserTests(
         var db = Get(version, v => new SqlServerDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "CREATE INDEX IX_Users_Name ON dbo.Users ()",
-            db,d));
+            db, d));
 
         Assert.Contains("at least one column", ex.Message, StringComparison.OrdinalIgnoreCase);
     }

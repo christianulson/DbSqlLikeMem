@@ -27,11 +27,11 @@ public sealed class SqliteMockTests
             new("Name", DbType.String, false) ,
             new ("Email", DbType.String, true)
         ]);
-                db.AddTable("Orders", [
-                    new("OrderId",  DbType.Int32, false),
+        db.AddTable("Orders", [
+            new("OrderId",  DbType.Int32, false),
             new("UserId",  DbType.Int32, false),
             new("Amount",  DbType.Decimal, false, decimalPlaces: 2)
-        ]);
+]);
 
         _connection = new SqliteConnectionMock(db);
         _connection.Open();
@@ -816,12 +816,12 @@ public sealed class SqliteMockTests
     }
 
     /// <summary>
-    /// EN: Verifies automatic dialect mode executes SQL_CALC_FOUND_ROWS with FOUND_ROWS through the shared runtime pipeline.
-    /// PT: Verifica se o modo automatico de dialeto executa SQL_CALC_FOUND_ROWS com FOUND_ROWS pelo pipeline compartilhado de runtime.
+    /// EN: Verifies automatic dialect mode exposes the full row count after SQL_CALC_FOUND_ROWS and FOUND_ROWS.
+    /// PT: Verifica se o modo automatico de dialeto expõe a contagem total apos SQL_CALC_FOUND_ROWS e FOUND_ROWS.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
-    public void ExecuteReader_WithAutoSqlDialect_ShouldAcceptSqlCalcFoundRowsModifier()
+    public void ExecuteReader_WithAutoSqlDialect_ShouldExposeSqlCalcFoundRowsCount()
     {
         _connection.UseAutoSqlDialect = true;
 
@@ -840,9 +840,14 @@ public sealed class SqliteMockTests
             CommandText = "SELECT SQL_CALC_FOUND_ROWS Name FROM Users ORDER BY Id LIMIT 1; SELECT FOUND_ROWS();"
         };
 
-        Action act = () => command.ExecuteReader();
-        act.Should().Throw<NotSupportedException>()
-            .Which.Message.Should().Contain("SQL_CALC_FOUND_ROWS");
+        using var reader = command.ExecuteReader();
+
+        reader.Read().Should().BeTrue();
+        reader.GetString(0).Should().Be("Ana");
+
+        reader.NextResult().Should().BeTrue();
+        reader.Read().Should().BeTrue();
+        Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(3L);
     }
 
     /// <summary>

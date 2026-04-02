@@ -46,7 +46,7 @@ public sealed class SqlServerMockTests
         };
         var rowsAffected = command.ExecuteNonQuery();
         Assert.Equal(1, rowsAffected);
-        Assert.Equal("John Doe",_connection.GetTable("Users")[0][1]);
+        Assert.Equal("John Doe", _connection.GetTable("Users")[0][1]);
     }
 
     /// <summary>
@@ -93,7 +93,7 @@ public sealed class SqlServerMockTests
         command.CommandText = "UPDATE Users SET Name = 'Jane Doe' WHERE Id = 1";
         var rowsAffected = command.ExecuteNonQuery();
         Assert.Equal(1, rowsAffected);
-        Assert.Equal("Jane Doe",_connection.GetTable("Users")[0][1]);
+        Assert.Equal("Jane Doe", _connection.GetTable("Users")[0][1]);
     }
 
     /// <summary>
@@ -1262,10 +1262,10 @@ public sealed class SqlServerMockTests
             => $"""
                 SELECT p.T10, p.T20
                 FROM (
-                    SELECT 10 AS TenantId, CAST(2.0 AS FLOAT) AS Amount
-                    UNION ALL SELECT 10, CAST(4.0 AS FLOAT)
-                    UNION ALL SELECT 20, CAST(1.0 AS FLOAT)
-                    UNION ALL SELECT 20, CAST(5.0 AS FLOAT)
+                    SELECT 10 AS TenantId, CAST(2.0 AS DECIMAL(10,2)) AS Amount
+                    UNION ALL SELECT 10, CAST(4.0 AS DECIMAL(10,2))
+                    UNION ALL SELECT 20, CAST(1.0 AS DECIMAL(10,2))
+                    UNION ALL SELECT 20, CAST(5.0 AS DECIMAL(10,2))
                 ) src
                 PIVOT (
                     {aggregateName}(Amount) FOR TenantId IN (10 AS T10, 20 AS T20)
@@ -1309,10 +1309,10 @@ public sealed class SqlServerMockTests
             CommandText = """
                 SELECT p.T10, p.T20
                 FROM (
-                    SELECT 10 AS TenantId, CAST(2.0 AS FLOAT) AS Amount
-                    UNION ALL SELECT 10, CAST(NULL AS FLOAT)
-                    UNION ALL SELECT 10, CAST(4.0 AS FLOAT)
-                    UNION ALL SELECT 20, CAST(1.0 AS FLOAT)
+                SELECT 10 AS TenantId, CAST(2.0 AS FLOAT) AS Amount
+                UNION ALL SELECT 10, CAST(NULL AS FLOAT)
+                UNION ALL SELECT 10, CAST(4.0 AS FLOAT)
+                UNION ALL SELECT 20, CAST(1.0 AS FLOAT)
                     UNION ALL SELECT 20, CAST(5.0 AS FLOAT)
                 ) src
                 PIVOT (
@@ -1384,7 +1384,7 @@ public sealed class SqlServerMockTests
                 SELECT p.T10
                 FROM (
                     SELECT 10 AS TenantId, CAST(2.0 AS FLOAT) AS Amount
-                    UNION ALL SELECT 10, CAST(NULL AS FLOAT)
+                    UNION ALL SELECT 10, NULL
                 ) src
                 PIVOT (
                     COUNT(*) FOR TenantId IN (10 AS T10)
@@ -1458,8 +1458,8 @@ public sealed class SqlServerMockTests
             CommandText = """
                 SELECT p.T10
                 FROM (
-                    SELECT 10 AS TenantId, CAST(2 AS SMALLINT) AS Amount
-                    UNION ALL SELECT 10, CAST(4 AS SMALLINT)
+                    SELECT 10 AS TenantId, CAST(2 AS INT) AS Amount
+                    UNION ALL SELECT 10, CAST(4 AS INT)
                 ) src
                 PIVOT (
                     SUM(Amount) FOR TenantId IN (10 AS T10)
@@ -1480,8 +1480,8 @@ public sealed class SqlServerMockTests
             CommandText = """
                 SELECT p.T10
                 FROM (
-                    SELECT 10 AS TenantId, CAST(2 AS TINYINT) AS Amount
-                    UNION ALL SELECT 10, CAST(4 AS TINYINT)
+                    SELECT 10 AS TenantId, CAST(2 AS INT) AS Amount
+                    UNION ALL SELECT 10, CAST(4 AS INT)
                 ) src
                 PIVOT (
                     SUM(Amount) FOR TenantId IN (10 AS T10)
@@ -1523,8 +1523,8 @@ public sealed class SqlServerMockTests
             CommandText = """
                 SELECT p.T10
                 FROM (
-                    SELECT 10 AS TenantId, CAST(2 AS SMALLINT) AS Amount
-                    UNION ALL SELECT 10, CAST(4 AS SMALLINT)
+                    SELECT 10 AS TenantId, CAST(2 AS INT) AS Amount
+                    UNION ALL SELECT 10, CAST(4 AS INT)
                 ) src
                 PIVOT (
                     AVG(Amount) FOR TenantId IN (10 AS T10)
@@ -1545,8 +1545,8 @@ public sealed class SqlServerMockTests
             CommandText = """
                 SELECT p.T10
                 FROM (
-                    SELECT 10 AS TenantId, CAST(2 AS TINYINT) AS Amount
-                    UNION ALL SELECT 10, CAST(4 AS TINYINT)
+                    SELECT 10 AS TenantId, CAST(2 AS INT) AS Amount
+                    UNION ALL SELECT 10, CAST(4 AS INT)
                 ) src
                 PIVOT (
                     AVG(Amount) FOR TenantId IN (10 AS T10)
@@ -1567,8 +1567,8 @@ public sealed class SqlServerMockTests
             CommandText = """
                 SELECT p.T10
                 FROM (
-                    SELECT 10 AS TenantId, CAST(1 AS TINYINT) AS Amount
-                    UNION ALL SELECT 10, CAST(2 AS TINYINT)
+                    SELECT 10 AS TenantId, CAST(1 AS INT) AS Amount
+                    UNION ALL SELECT 10, CAST(2 AS INT)
                 ) src
                 PIVOT (
                     AVG(Amount) FOR TenantId IN (10 AS T10)

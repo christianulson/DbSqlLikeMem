@@ -43,7 +43,7 @@ public abstract class MemberDataVersionAttribute
 #else
     public override IEnumerable<object[]> GetData(MethodInfo testMethod)
 #endif
-    { 
+    {
         var versions = SpecificVersions ?? Versions;
 
         if (VersionGraterOrEqual != int.MinValue)

@@ -9,7 +9,7 @@ internal static class SqlInsertValuesParserHelper
     {
         while (true)
         {
-            if (ctx.IsEnd() || ctx.IsSymbol( ";"))
+            if (ctx.IsEnd() || ctx.IsSymbol(";"))
             {
                 if (valuesRaw.Count == 0)
                     throw new InvalidOperationException("INSERT VALUES requires at least one row.");
@@ -17,7 +17,7 @@ internal static class SqlInsertValuesParserHelper
                 return;
             }
 
-            if (ctx.IsSymbol( ","))
+            if (ctx.IsSymbol(","))
                 throw new InvalidOperationException("INSERT VALUES has an unexpected comma before row (found ',').");
 
             if (!ctx.IsSymbol("("))

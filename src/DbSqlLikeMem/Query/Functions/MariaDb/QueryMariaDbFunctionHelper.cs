@@ -24,7 +24,7 @@ internal static class QueryMariaDbFunctionHelper
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler( context,fn, evalArg, out result);
+            return handler(context, fn, evalArg, out result);
 
         result = null;
         return false;
@@ -944,8 +944,8 @@ internal static class QueryMariaDbFunctionHelper
 
         foreach (var part in value.ToString()!
             .Split(',')
-            .Select(_=>_.Trim())
-            .Where(_=>!string.IsNullOrWhiteSpace(_)))
+            .Select(_ => _.Trim())
+            .Where(_ => !string.IsNullOrWhiteSpace(_)))
             set.Add(part);
 
         return set;

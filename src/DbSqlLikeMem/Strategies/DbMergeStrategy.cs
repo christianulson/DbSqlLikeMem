@@ -16,7 +16,7 @@ internal static class DbMergeStrategy
         var affected = connection.Db.ThreadSafe
             ? ExecuteMergeImpl(context, query)
             : ExecuteMergeImplNotThreadSafe(connection, context, query);
-        
+
         connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
     }
@@ -38,7 +38,7 @@ internal static class DbMergeStrategy
         var affected = connection.Db.ThreadSafe
             ? ExecuteMergeImpl(context, query)
             : ExecuteMergeImplNotThreadSafe(connection, context, query);
-        
+
         connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
     }
@@ -310,7 +310,7 @@ internal static class DbMergeStrategy
     {
         var executor = context.CreateExecutor();
         var customFunctionSupported = SqlCustomFunctionResolverFactory.Create(context);
-        var parsedSource = SqlQueryParser.Parse(selectSql, context.Connection.Db,context.Dialect, null, customFunctionSupported) as SqlSelectQuery
+        var parsedSource = SqlQueryParser.Parse(selectSql, context.Connection.Db, context.Dialect, null, customFunctionSupported) as SqlSelectQuery
             ?? throw new InvalidOperationException(SqlExceptionMessages.MergeSourceSelectInvalid());
 
         return executor.ExecuteSelect(parsedSource);

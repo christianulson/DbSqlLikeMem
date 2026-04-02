@@ -24,6 +24,6 @@ public interface ITestScenario<T>
     /// <param name="service">EN: The test service that executes SQL commands. PT: O servico de teste que executa comandos SQL.</param>
     /// <param name="pars">EN: The scenario parameters. PT: Os parametros do cenario.</param>
     void DropScenario(
-        BaseServiceTest<T> service, 
+        BaseServiceTest<T> service,
         params object[] pars);
 }

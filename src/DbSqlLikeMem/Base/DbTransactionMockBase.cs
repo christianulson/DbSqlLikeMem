@@ -48,49 +48,49 @@ public abstract class DbTransactionMockBase<TConnection>(
         }
     }
 
-    #if NET6_0_OR_GREATER
+#if NET6_0_OR_GREATER
     /// <inheritdoc />
     public override void Save(string savepointName)
-    #else
+#else
     /// <summary>
     /// EN: Creates a savepoint in the active transaction.
     /// PT: Cria um savepoint na transacao ativa.
     /// </summary>
     /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
     public void Save(string savepointName)
-    #endif
+#endif
     {
         lock (Connection.Db.SyncRoot)
             Connection.CreateSavepoint(savepointName);
     }
 
-    #if NET6_0_OR_GREATER
+#if NET6_0_OR_GREATER
     /// <inheritdoc />
     public override void Rollback(string savepointName)
-    #else
+#else
     /// <summary>
     /// EN: Rolls back to a named savepoint.
     /// PT: Executa rollback para um savepoint nomeado.
     /// </summary>
     /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
     public void Rollback(string savepointName)
-    #endif
+#endif
     {
         lock (Connection.Db.SyncRoot)
             Connection.RollbackTransaction(savepointName);
     }
 
-    #if NET6_0_OR_GREATER
+#if NET6_0_OR_GREATER
     /// <inheritdoc />
     public override void Release(string savepointName)
-    #else
+#else
     /// <summary>
     /// EN: Releases a named savepoint.
     /// PT: Libera um savepoint nomeado.
     /// </summary>
     /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
     public void Release(string savepointName)
-    #endif
+#endif
     {
         lock (Connection.Db.SyncRoot)
             Connection.ReleaseSavepoint(savepointName);

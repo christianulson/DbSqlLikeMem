@@ -108,6 +108,10 @@ internal static class SqliteScalarFunctionRegistry
             AstExecutor = AstQueryJsonUnquoteFunctionEvaluator.TryEvalJsonUnquoteFunction
         };
         dialect.AddScalarFunction(jsonUnquoteDefinition);
-        dialect.AddScalarFunction(DbFunctionDef.CreateScalar("DATE_ADD", "DATETIME"));
+        var dateAddDefinition = DbFunctionDef.CreateScalar("DATE_ADD", "DATETIME") with
+        {
+            AstExecutor = AstQueryGeneralDateArithmeticFunctionEvaluator.TryEvaluate
+        };
+        dialect.AddScalarFunction(dateAddDefinition);
     }
 }

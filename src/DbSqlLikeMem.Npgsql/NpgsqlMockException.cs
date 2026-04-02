@@ -13,7 +13,7 @@ public sealed class NpgsqlMockException : SqlMockException
     /// PT: Representa uma exceção simulada do Npgsql.
     /// </summary>
     public NpgsqlMockException(string message, int code)
-        : base(message, code) 
+        : base(message, code)
     { }
 
     /// <summary>

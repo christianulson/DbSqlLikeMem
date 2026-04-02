@@ -33,7 +33,7 @@ public sealed class ColumnDef
     /// <param name="enumValues">EN: Optional enum values. PT: Valores de enum opcionais.</param>
     internal ColumnDef(
         ITableMock table,
-        string name, 
+        string name,
         int index,
         DbType dbType,
         bool nullable,

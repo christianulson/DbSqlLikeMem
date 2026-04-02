@@ -894,7 +894,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         var executor = context.CreateExecutor();
         var q = SqlQueryParser.Parse(
             plan.SelectSql,
-            context.Connection.Db, 
+            context.Connection.Db,
             context.Dialect,
             null,
             SqlCustomFunctionResolverFactory.Create(context));

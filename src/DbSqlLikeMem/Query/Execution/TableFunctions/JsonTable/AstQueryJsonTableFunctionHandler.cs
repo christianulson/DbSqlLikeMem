@@ -96,21 +96,21 @@ internal sealed class AstQueryJsonTableFunctionHandler(
             switch (entry)
             {
                 case SqlJsonTableColumn column:
-                {
-                    var layout = new JsonTableColumnLayout(nextOrdinal++, column);
-                    columns.Add(layout);
-                    allColumns.Add(layout);
-                    allOrdinals.Add(layout.Ordinal);
-                    break;
-                }
+                    {
+                        var layout = new JsonTableColumnLayout(nextOrdinal++, column);
+                        columns.Add(layout);
+                        allColumns.Add(layout);
+                        allOrdinals.Add(layout.Ordinal);
+                        break;
+                    }
                 case SqlJsonTableNestedPath nestedPath:
-                {
-                    var nestedLayout = BuildJsonTableClauseLayout(nestedPath.Clause, ref nextOrdinal);
-                    nestedPaths.Add(new JsonTableNestedPathLayout(nestedPath, nestedLayout));
-                    allColumns.AddRange(nestedLayout.AllColumns);
-                    allOrdinals.AddRange(nestedLayout.AllOrdinals);
-                    break;
-                }
+                    {
+                        var nestedLayout = BuildJsonTableClauseLayout(nestedPath.Clause, ref nextOrdinal);
+                        nestedPaths.Add(new JsonTableNestedPathLayout(nestedPath, nestedLayout));
+                        allColumns.AddRange(nestedLayout.AllColumns);
+                        allOrdinals.AddRange(nestedLayout.AllOrdinals);
+                        break;
+                    }
             }
         }
 

@@ -40,7 +40,7 @@ internal partial class MySqlDialect : SqlDialectBase
             new KeyValuePair<string, SqlBinaryOp>(SqlConst.AND, SqlBinaryOp.And),
             new KeyValuePair<string, SqlBinaryOp>("&&", SqlBinaryOp.And),
             new KeyValuePair<string, SqlBinaryOp>(SqlConst.OR, SqlBinaryOp.Or),
-            new KeyValuePair<string, SqlBinaryOp>("||", SqlBinaryOp.Or), 
+            new KeyValuePair<string, SqlBinaryOp>("||", SqlBinaryOp.Or),
             new KeyValuePair<string, SqlBinaryOp>("=", SqlBinaryOp.Eq),
             new KeyValuePair<string, SqlBinaryOp>("<>", SqlBinaryOp.Neq),
             new KeyValuePair<string, SqlBinaryOp>("!=", SqlBinaryOp.Neq),

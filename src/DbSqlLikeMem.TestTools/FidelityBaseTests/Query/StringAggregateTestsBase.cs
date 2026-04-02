@@ -25,6 +25,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
     {
         var users = "Users";
         var uId = NewToken();
+        var tableName = ResolveUsersTableName(users, uId);
 
         using var connMock = connectionMock();
         connMock.Open();
@@ -35,7 +36,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
 
         try
         {
-            var resultMock = RunStringAggregationVariants(serviceTest, $"{users}_{uId}");
+            var resultMock = RunStringAggregationVariants(serviceTest, tableName);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -47,7 +48,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
                 serviceTestContainer.CreateScenario(users, uId);
                 try
                 {
-                    var resultContainer = RunStringAggregationVariants(serviceTestContainer, $"{users}_{uId}");
+                    var resultContainer = RunStringAggregationVariants(serviceTestContainer, tableName);
                     resultMock.Should().Be(resultContainer);
                 }
                 finally
@@ -71,6 +72,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
     {
         var users = "Users";
         var uId = NewToken();
+        var tableName = ResolveUsersTableName(users, uId);
 
         using var connMock = connectionMock();
         connMock.Open();
@@ -81,7 +83,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
 
         try
         {
-            var resultMock = RunStringAggregationSummary(serviceTest, $"{users}_{uId}");
+            var resultMock = RunStringAggregationSummary(serviceTest, tableName);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -93,7 +95,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
                 serviceTestContainer.CreateScenario(users, uId);
                 try
                 {
-                    var resultContainer = RunStringAggregationSummary(serviceTestContainer, $"{users}_{uId}");
+                    var resultContainer = RunStringAggregationSummary(serviceTestContainer, tableName);
                     resultMock.Should().Be(resultContainer);
                 }
                 finally
@@ -117,6 +119,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
     {
         var users = "Users";
         var uId = NewToken();
+        var tableName = ResolveUsersTableName(users, uId);
 
         using var connMock = connectionMock();
         connMock.Open();
@@ -127,7 +130,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
 
         try
         {
-            var resultMock = RunStringAggregationGroupCase(serviceTest, $"{users}_{uId}");
+            var resultMock = RunStringAggregationGroupCase(serviceTest, tableName);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -139,7 +142,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
                 serviceTestContainer.CreateScenario(users, uId);
                 try
                 {
-                    var resultContainer = RunStringAggregationGroupCase(serviceTestContainer, $"{users}_{uId}");
+                    var resultContainer = RunStringAggregationGroupCase(serviceTestContainer, tableName);
                     resultMock.Should().Be(resultContainer);
                 }
                 finally
@@ -154,16 +157,17 @@ public abstract class StringAggregateTestsBase<T, T2>(
         }
     }
 
-    private static (string? Plain, string? Ordered, string? Distinct, string? Separator, string? LargeGroup) RunStringAggregationVariants<TConnection>(
+    private (string? Plain, string? Ordered, string? Distinct, string? Separator, string? LargeGroup) RunStringAggregationVariants<TConnection>(
         QueryServiceTest<TConnection> serviceTest,
         string users)
         where TConnection : DbConnection
     {
-        var plain = serviceTest.RunStringAggregate(users);
-        var ordered = serviceTest.RunStringAggregateOrdered(users);
-        var distinct = serviceTest.RunStringAggregateDistinct(users);
-        var separator = serviceTest.RunStringAggregateCustomSeparator(users);
-        var largeGroup = serviceTest.RunStringAggregateLargeGroup(users);
+        var tableName = ResolveUsersTableName(users);
+        var plain = serviceTest.RunStringAggregate(tableName);
+        var ordered = serviceTest.RunStringAggregateOrdered(tableName);
+        var distinct = serviceTest.RunStringAggregateDistinct(tableName);
+        var separator = serviceTest.RunStringAggregateCustomSeparator(tableName);
+        var largeGroup = serviceTest.RunStringAggregateLargeGroup(tableName);
 
         plain.Should().NotBeNull();
         ordered.Should().NotBeNull();
@@ -174,12 +178,13 @@ public abstract class StringAggregateTestsBase<T, T2>(
         return (plain, ordered, distinct, separator, largeGroup);
     }
 
-    private static (string? Ordered, int TotalCount, int DistinctCount, int BobCount) RunStringAggregationSummary<TConnection>(
+    private (string? Ordered, int TotalCount, int DistinctCount, int BobCount) RunStringAggregationSummary<TConnection>(
         QueryServiceTest<TConnection> serviceTest,
         string users)
         where TConnection : DbConnection
     {
-        var result = serviceTest.RunStringAggregateSummaryMatrix(users);
+        var tableName = ResolveUsersTableName(users);
+        var result = serviceTest.RunStringAggregateSummaryMatrix(tableName);
 
         result.Ordered.Should().NotBeNull();
         result.TotalCount.Should().Be(5);
@@ -189,16 +194,58 @@ public abstract class StringAggregateTestsBase<T, T2>(
         return result;
     }
 
-    private static int RunStringAggregationGroupCase<TConnection>(
+    private int RunStringAggregationGroupCase<TConnection>(
         QueryServiceTest<TConnection> serviceTest,
         string users)
         where TConnection : DbConnection
     {
-        var result = serviceTest.RunStringAggregateGroupCaseMatrix(users);
+        var tableName = ResolveUsersTableName(users);
+        var result = serviceTest.RunStringAggregateGroupCaseMatrix(tableName);
         result.Should().Be(2);
         return result;
     }
 
     private static string NewToken()
         => Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+
+    private string ResolveUsersTableName(string users, string uId) =>
+        dialect.Provider == ProviderId.Oracle
+            ? users.ToLowerInvariant()
+            : $"{users}_{uId}";
+
+    private string ResolveUsersTableName(string tableName)
+    {
+        if (dialect.Provider != ProviderId.Oracle)
+            return tableName;
+
+        if (TryStripScenarioTokenSuffix(tableName, out var stripped))
+            return stripped.ToLowerInvariant();
+
+        return tableName.ToLowerInvariant();
+    }
+
+    private static bool TryStripScenarioTokenSuffix(string tableName, out string stripped)
+    {
+        stripped = tableName;
+
+        var underscoreIndex = tableName.LastIndexOf('_');
+        if (underscoreIndex < 0)
+            return false;
+
+        var suffixLength = tableName.Length - underscoreIndex - 1;
+        if (suffixLength != 8)
+            return false;
+
+        for (var i = underscoreIndex + 1; i < tableName.Length; i++)
+        {
+            var ch = tableName[i];
+            var isHexUpper = ch is >= 'A' and <= 'F';
+            var isHexDigit = ch is >= '0' and <= '9';
+            if (!isHexUpper && !isHexDigit)
+                return false;
+        }
+
+        stripped = tableName[..underscoreIndex];
+        return true;
+    }
 }

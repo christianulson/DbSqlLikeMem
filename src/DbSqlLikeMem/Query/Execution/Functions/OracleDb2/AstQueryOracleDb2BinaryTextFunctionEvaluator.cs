@@ -63,7 +63,7 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
         out object? result)
     {
         if (_handlers.TryGetValue(fn.Name, out var handler))
-            return handler( context,fn, evalArg, out result);
+            return handler(context, fn, evalArg, out result);
 
         result = null;
         return false;

@@ -12,7 +12,7 @@ internal static class SqlAlterTableHelper
         var typeName = ctx.Consume().Text;
         string? rawArgs = null;
 
-        if (ctx.IsSymbol( "("))
+        if (ctx.IsSymbol("("))
         {
             ctx.Consume();
             var args = new List<SqlToken>();

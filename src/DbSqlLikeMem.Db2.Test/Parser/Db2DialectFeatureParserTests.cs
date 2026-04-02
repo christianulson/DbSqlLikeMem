@@ -758,7 +758,7 @@ public sealed class Db2DialectFeatureParserTests(
         Assert.IsType<SqlSelectQuery>(parsed);
     }
 
-        /// <summary>
+    /// <summary>
     /// EN: Ensures pagination syntaxes normalize to the same row-limit AST shape for this dialect.
     /// PT: Garante que as sintaxes de paginação sejam normalizadas para o mesmo formato de AST de limite de linhas neste dialeto.
     /// </summary>

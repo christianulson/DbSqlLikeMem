@@ -1,3 +1,4 @@
+using System.Globalization;
 using DbSqlLikeMem.Models;
 
 namespace DbSqlLikeMem.Oracle;
@@ -171,6 +172,86 @@ internal static class OracleScalarFunctionRegistry
 
     private static void RegisterConversionFunctions(ISqlDialect dialect, int version)
     {
+        static bool TryEvalOracleCastFunction(
+            QueryExecutionContext context,
+            FunctionCallExpr fn,
+            Func<int, object?> evalArg,
+            out object? result)
+        {
+            if (fn.Args.Count < 2)
+            {
+                result = null;
+                return false;
+            }
+
+            var value = evalArg(0);
+            if (AstQueryExecutorBase.IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            var type = fn.Args[1] is RawSqlExpr rawType
+                ? rawType.Sql
+                : evalArg(1)?.ToString() ?? string.Empty;
+            type = type.Trim();
+
+            try
+            {
+                if (type.StartsWith("CHAR", StringComparison.OrdinalIgnoreCase)
+                    || type.StartsWith("VARCHAR", StringComparison.OrdinalIgnoreCase)
+                    || type.StartsWith("VARCHAR2", StringComparison.OrdinalIgnoreCase)
+                    || type.StartsWith("NCHAR", StringComparison.OrdinalIgnoreCase)
+                    || type.StartsWith("NVARCHAR", StringComparison.OrdinalIgnoreCase)
+                    || type.StartsWith("NVARCHAR2", StringComparison.OrdinalIgnoreCase)
+                    || type.StartsWith("TEXT", StringComparison.OrdinalIgnoreCase)
+                    || type.StartsWith("CLOB", StringComparison.OrdinalIgnoreCase)
+                    || type.StartsWith("NCLOB", StringComparison.OrdinalIgnoreCase))
+                {
+                    result = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+                    return true;
+                }
+
+                if (type.StartsWith("NUMBER", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (value is decimal decimalValue)
+                    {
+                        result = decimalValue;
+                        return true;
+                    }
+
+                    if (value is int intValue)
+                    {
+                        result = (decimal)intValue;
+                        return true;
+                    }
+
+                    if (value is long longValue)
+                    {
+                        result = (decimal)longValue;
+                        return true;
+                    }
+
+                    if (decimal.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedDecimal))
+                    {
+                        result = parsedDecimal;
+                        return true;
+                    }
+
+                    result = 0m;
+                    return true;
+                }
+
+                result = null;
+                return false;
+            }
+            catch
+            {
+                result = null;
+                return true;
+            }
+        }
+
         if (version >= OracleDialect.OracleBinaryConversionMinVersion)
             dialect.AddScalarFunctions(
                 CreateScalarDefinition("TO_BINARY_DOUBLE", "DOUBLE", TryEvalOracleDb2ConversionFunction),
@@ -184,7 +265,8 @@ internal static class OracleScalarFunctionRegistry
 
         if (version >= OracleDialect.OracleTextConversionMinVersion)
             dialect.AddScalarFunctions(
-                CreateScalarDefinition("TO_CLOB", "CLOB", TryEvalOracleDb2ConversionFunction),
+                CreateScalarDefinition("TO_CHAR", "VARCHAR", AstQueryOracleDb2ConversionFunctionEvaluator.TryEvalToCharFunction),
+                "TO_CHAR",
                 "TO_CLOB",
                 "TO_DSINTERVAL",
                 "TO_NCHAR",
@@ -202,6 +284,29 @@ internal static class OracleScalarFunctionRegistry
             AstQueryOracleDb2ConversionFunctionEvaluator.TryEvaluate,
             "TO_MULTI_BYTE",
             "TO_SINGLE_BYTE");
+
+        dialect.AddScalarFunctions(
+            "VARCHAR",
+            AstQuerySharedTextFunctionEvaluator.TryEvaluate,
+            "UPPER",
+            "LOWER",
+            "TRIM",
+            "RTRIM",
+            "LTRIM");
+
+        dialect.AddScalarFunctions(
+            "INT",
+            AstQuerySharedTextFunctionEvaluator.TryEvaluate,
+            "LENGTH",
+            "CHAR_LENGTH",
+            "CHARACTER_LENGTH");
+
+        dialect.AddScalarFunction(
+            DbFunctionDef.CreateScalar("CAST", "VARCHAR") with
+            {
+                AstExecutor = TryEvalOracleCastFunction,
+                InvocationStyle = DbInvocationStyle.Call
+            });
     }
 
     private static void RegisterAnalyticsFunctions(ISqlDialect dialect, int version)

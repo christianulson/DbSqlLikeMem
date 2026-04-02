@@ -127,7 +127,7 @@ SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10";
             ? $"SESSION.{users}"
             : users;
         ExecuteNonQuery(InsertTemporaryRowSql(sessionUsers, 1, "Alice"));
-        var count = Convert.ToInt32(ExecuteScalar(Dialect.CountRows(sessionUsers)), CultureInfo.InvariantCulture);
+        var count = Convert.ToInt32(ExecuteScalar(CountRowsSql(sessionUsers)), CultureInfo.InvariantCulture);
         if (count != 1)
         {
             throw new InvalidOperationException($"Unexpected temporary-table rowcount for {Dialect.DisplayName}: {count}.");
@@ -152,7 +152,7 @@ SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10";
         ExecuteNonQuery(InsertTemporaryRowSql(sessionUsers, 2, "Bob"), tx);
         tx.Rollback();
 
-        var count = Convert.ToInt32(ExecuteScalar(Dialect.CountRows(sessionUsers)), CultureInfo.InvariantCulture);
+        var count = Convert.ToInt32(ExecuteScalar(CountRowsSql(sessionUsers)), CultureInfo.InvariantCulture);
         if (count != 0)
         {
             throw new InvalidOperationException($"Unexpected temporary-table rollback rowcount for {Dialect.DisplayName}: {count}.");
@@ -183,7 +183,7 @@ SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10";
 
         try
         {
-            var count = Convert.ToInt32(ExecuteScalarOnConnection(secondaryConnection, Dialect.CountRows(sessionUsers)), CultureInfo.InvariantCulture);
+            var count = Convert.ToInt32(ExecuteScalarOnConnection(secondaryConnection, CountRowsSql(sessionUsers)), CultureInfo.InvariantCulture);
             if (count != 0)
             {
                 throw new InvalidOperationException($"Unexpected temporary-table isolation rowcount for {Dialect.DisplayName}: {count}.");
@@ -217,6 +217,9 @@ SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10";
 
         return command.ExecuteScalar();
     }
+
+    private static string CountRowsSql(string tableName)
+        => $"SELECT COUNT(*) FROM {tableName}";
 
     private static bool IsMissingTemporaryTableException(Exception ex)
     {

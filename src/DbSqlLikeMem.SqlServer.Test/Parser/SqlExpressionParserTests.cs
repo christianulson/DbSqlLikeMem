@@ -24,7 +24,7 @@ public sealed class SqlExpressionParserTests(
         var db = Get(version, v => new SqlServerDbMock(v));
         Console.WriteLine("Where: @\"" + whereExpr + "\"");
 
-        var ex = Record.Exception(() => SqlExpressionParser.ParseWhere(whereExpr, db,d));
+        var ex = Record.Exception(() => SqlExpressionParser.ParseWhere(whereExpr, db, d));
         Assert.Null(ex);
     }
 
@@ -101,7 +101,7 @@ public sealed class SqlExpressionParserTests(
         var db = Get(version, v => new SqlServerDbMock(v));
         Console.WriteLine("Where: @\"" + whereExpr + "\"");
 
-        var ex = Assert.ThrowsAny<Exception>(() => SqlExpressionParser.ParseWhere(whereExpr, db,d));
+        var ex = Assert.ThrowsAny<Exception>(() => SqlExpressionParser.ParseWhere(whereExpr, db, d));
         Assert.True(
             ex is InvalidOperationException || ex is NotSupportedException,
             $"Expected InvalidOperationException or NotSupportedException, got {ex.GetType().Name}.");
@@ -141,7 +141,7 @@ public sealed class SqlExpressionParserTests(
         var db = Get(version, v => new SqlServerDbMock(v));
         // id = 1 OR id = 2 AND name = 'Bob'
         // esperado: OR( id=1 , AND(id=2, name='Bob') )
-        var ast = SqlExpressionParser.ParseWhere("id = 1 OR id = 2 AND name = 'Bob'", db,d);
+        var ast = SqlExpressionParser.ParseWhere("id = 1 OR id = 2 AND name = 'Bob'", db, d);
 
         var or = Assert.IsType<BinaryExpr>(ast);
         Assert.Equal(SqlBinaryOp.Or, or.Op);
@@ -287,9 +287,9 @@ public sealed class SqlExpressionParserTests(
     {
         var d = Get(version, v => new SqlServerDialect(v));
         var db = Get(version, v => new SqlServerDbMock(v));
-        Assert.NotNull(SqlExpressionParser.ParseWhere("a = @p", db,d));
-        Assert.NotNull(SqlExpressionParser.ParseWhere("a = :p", db,d));
-        Assert.NotNull(SqlExpressionParser.ParseWhere("a = ?", db,d));
+        Assert.NotNull(SqlExpressionParser.ParseWhere("a = @p", db, d));
+        Assert.NotNull(SqlExpressionParser.ParseWhere("a = :p", db, d));
+        Assert.NotNull(SqlExpressionParser.ParseWhere("a = ?", db, d));
     }
 
     /// <summary>

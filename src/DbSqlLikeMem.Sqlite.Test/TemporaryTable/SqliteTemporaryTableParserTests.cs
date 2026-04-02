@@ -26,12 +26,12 @@ SELECT id, name FROM users WHERE tenantid = 10;
 SELECT * FROM tmp_users;
 ";
 
-        var queries = SqlQueryParser.ParseMulti(sql, db,d).ToList();
+        var queries = SqlQueryParser.ParseMulti(sql, db, d).ToList();
 
         // TDD contract: the parser must accept the batch and produce 2 statements.
         queries.Should().HaveCount(2);
 
-        queries[0].RawSql.Should().Contain("CREATE TEMPORARY TABLE" );
+        queries[0].RawSql.Should().Contain("CREATE TEMPORARY TABLE");
 
         var select2 = queries[1].Should().BeOfType<SqlSelectQuery>().Which;
         select2.Table.Should().NotBeNull();
@@ -95,7 +95,7 @@ WHERE `tenantid` = 10",
     {
         var d = Get(version, v => new SqliteDialect(v));
         var db = Get(version, v => new SqliteDbMock(v));
-        var q = SqlQueryParser.Parse("CREATE GLOBAL TEMPORARY TABLE tmp_users AS SELECT id FROM users", db , d)
+        var q = SqlQueryParser.Parse("CREATE GLOBAL TEMPORARY TABLE tmp_users AS SELECT id FROM users", db, d)
             .Should().BeOfType<SqlCreateTemporaryTableQuery>().Which;
 
         q.Scope.Should().Be(TemporaryTableScope.Global);

@@ -432,15 +432,15 @@ internal static class AstQuerySqliteScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-            var shim = new FunctionCallExpr("JSON_EXTRACT", fn.Args)
-                .BindScalarFunctionDefinition(context.Dialect);
-            result = AstQueryJsonExtractionFunctionEvaluator.TryEvalJsonExtractionFunction(
-                context,
-                shim,
-                evalArg,
-                out var jsonExtractResult)
-            ? jsonExtractResult
-            : null;
+        var shim = new FunctionCallExpr("JSON_EXTRACT", fn.Args)
+            .BindScalarFunctionDefinition(context.Dialect);
+        result = AstQueryJsonExtractionFunctionEvaluator.TryEvalJsonExtractionFunction(
+            context,
+            shim,
+            evalArg,
+            out var jsonExtractResult)
+        ? jsonExtractResult
+        : null;
         return true;
     }
 

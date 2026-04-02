@@ -148,7 +148,7 @@ public sealed class SqlExpressionParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         // id = 1 OR id = 2 AND name = 'Bob'
         // esperado: OR( id=1 , AND(id=2, name='Bob') )
-        var ast = SqlExpressionParser.ParseWhere("id = 1 OR id = 2 AND name = 'Bob'", db,d);
+        var ast = SqlExpressionParser.ParseWhere("id = 1 OR id = 2 AND name = 'Bob'", db, d);
 
         var or = ast.Should().BeOfType<BinaryExpr>().Subject;
         or.Op.Should().Be(SqlBinaryOp.Or);
@@ -327,7 +327,7 @@ public sealed class SqlExpressionParserTests(
     {
         var d = Get(version, v => new MySqlDialect(v));
         var db = Get(version, v => new MySqlDbMock(v));
-        var ast = SqlExpressionParser.ParseWhere("name = \"John\"", db,d);
+        var ast = SqlExpressionParser.ParseWhere("name = \"John\"", db, d);
         var eq = ast.Should().BeOfType<BinaryExpr>().Subject;
         var lit = eq.Right.Should().BeOfType<LiteralExpr>().Subject;
         lit.Value.Should().Be("John");

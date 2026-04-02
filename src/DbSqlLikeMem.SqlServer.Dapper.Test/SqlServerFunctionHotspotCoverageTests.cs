@@ -37,22 +37,23 @@ public sealed class SqlServerFunctionHotspotCoverageTests : XUnitTestBase
     }
 
     /// <summary>
-    /// Verifies that <c>CAST</c> uses expected fallback conversion while <c>TRY_CAST</c> returns <see langword="null"/> on invalid conversion.
-    /// Verifica se <c>CAST</c> usa a conversão de fallback esperada enquanto <c>TRY_CAST</c> retorna <see langword="null"/> em conversões inválidas.
+    /// EN: Verifies that invalid <c>CAST</c> throws while <c>TRY_CAST</c> returns <see langword="null"/> on invalid conversion.
+    /// PT: Verifica que <c>CAST</c> inválido lança exceção enquanto <c>TRY_CAST</c> retorna <see langword="null"/> em conversões inválidas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerFunctionCoverage")]
-    public void Cast_And_TryCast_ShouldFollowExpectedFallbacks()
+    public void Cast_Throws_And_TryCast_ReturnsNull_OnInvalidConversion()
     {
-        var row = _cnn.QuerySingle<dynamic>("SELECT CAST('abc' AS INT) AS cast_value, TRY_CAST('abc' AS INT) AS try_cast_value");
+        Assert.Throws<InvalidCastException>(() => _cnn.QuerySingle<dynamic>("SELECT CAST('abc' AS INT) AS cast_value"));
 
-        Assert.Equal(0, (int)row.cast_value);
+        var row = _cnn.QuerySingle<dynamic>("SELECT TRY_CAST('abc' AS INT) AS try_cast_value");
+
         Assert.Null((object?)row.try_cast_value);
     }
 
     /// <summary>
-    /// Ensures <c>OPENJSON</c>, <c>CONCAT_WS</c>, and <c>DATEADD</c> are evaluated correctly in a single query projection.
-    /// Garante que <c>OPENJSON</c>, <c>CONCAT_WS</c> e <c>DATEADD</c> sejam avaliadas corretamente em uma única projeção de consulta.
+    /// EN: Ensures <c>OPENJSON</c> with explicit schema, <c>CONCAT_WS</c>, and <c>DATEADD</c> are evaluated correctly in a single query projection.
+    /// PT: Garante que <c>OPENJSON</c> com schema explicito, <c>CONCAT_WS</c> e <c>DATEADD</c> sejam avaliadas corretamente em uma única projeção de consulta.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerFunctionCoverage")]
@@ -60,13 +61,16 @@ public sealed class SqlServerFunctionHotspotCoverageTests : XUnitTestBase
     {
         var row = _cnn.QuerySingle<dynamic>(@"
 SELECT
-    OPENJSON(payload) AS json_text,
+    j.b AS json_text,
     CONCAT_WS('-', name, email, 'end') AS joined,
     DATEADD(DAY, 2, created) AS plus_two_days
 FROM fn_data
+CROSS APPLY OPENJSON(payload) WITH (
+    b INT '$.a.b'
+) j
 WHERE id = 1");
 
-        Assert.Equal("{\"a\":{\"b\":42}}", (string)row.json_text);
+        Assert.Equal(42, (int)row.json_text);
         Assert.Equal("John-end", (string)row.joined);
         Assert.Equal(new DateTime(2020, 1, 3), (DateTime)row.plus_two_days);
     }
@@ -74,14 +78,14 @@ WHERE id = 1");
 
 
     /// <summary>
-    /// EN: Verifies JSON_UNQUOTE and TO_NUMBER convert string inputs to normalized scalar values.
-    /// PT: Verifica que JSON_UNQUOTE e TO_NUMBER convertem entradas de texto em valores escalares normalizados.
+    /// EN: Verifies JSON_VALUE and CAST convert string inputs to normalized scalar values.
+    /// PT: Verifica que JSON_VALUE e CAST convertem entradas de texto em valores escalares normalizados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerFunctionCoverage")]
-    public void JsonUnquote_And_ToNumber_ShouldConvertValues()
+    public void JsonValue_And_Cast_ShouldConvertValues()
     {
-        var row = _cnn.QuerySingle<dynamic>("SELECT JSON_UNQUOTE('\"alpha\"') AS uq, TO_NUMBER('42.50') AS num");
+        var row = _cnn.QuerySingle<dynamic>("SELECT JSON_VALUE('{\"name\":\"alpha\"}', '$.name') AS uq, CAST('42.50' AS DECIMAL(10,2)) AS num");
 
         Assert.Equal("alpha", (string)row.uq);
         Assert.Equal(42.50m, (decimal)row.num);

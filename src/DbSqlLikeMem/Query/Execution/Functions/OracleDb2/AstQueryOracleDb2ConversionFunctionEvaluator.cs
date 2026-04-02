@@ -132,7 +132,7 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
         return AstQueryToNumberFunctionEvaluator.TryEvalToNumberFunction(fn, evalArg, out result);
     }
 
-    private static bool TryEvalToCharFunction(
+    internal static bool TryEvalToCharFunction(
         this QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,

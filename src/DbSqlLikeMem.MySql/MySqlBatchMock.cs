@@ -98,7 +98,7 @@ public sealed class MySqlBatchMock :
     /// </summary>
     public MySqlDataReaderMock ExecuteReader(CommandBehavior commandBehavior = CommandBehavior.Default) =>
 #endif
-        (MySqlDataReaderMock) ExecuteDbDataReader(commandBehavior);
+        (MySqlDataReaderMock)ExecuteDbDataReader(commandBehavior);
 
 #if NET6_0_OR_GREATER
     /// <summary>

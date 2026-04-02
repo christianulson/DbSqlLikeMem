@@ -207,7 +207,7 @@ SELECT * FROM v_users;
         var d = Get(version, v => new NpgsqlDialect(v));
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "CREATE VIEW v_users (,id) AS SELECT id FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db,d));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, d));
     }
 
     /// <summary>
@@ -222,7 +222,7 @@ SELECT * FROM v_users;
         var d = Get(version, v => new NpgsqlDialect(v));
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "CREATE VIEW v_users (id";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db,d));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, d));
     }
 
     /// <summary>

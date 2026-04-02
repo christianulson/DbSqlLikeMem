@@ -49,7 +49,7 @@ internal static class AutoValueHelper
 
         // ---------- literal NULL --------------------------------------
         if (token.Equals("null", StringComparison.OrdinalIgnoreCase))
-            return isNullable 
+            return isNullable
                 ? null
                 : throw new AutoMockException(SqlExceptionMessages.ColumnDoesNotAcceptNull());
 
@@ -97,7 +97,7 @@ internal static class AutoValueHelper
         // SET
         if (raw.Contains(','))
         {
-            var parts = raw.Split(',').Select(_=>_.Trim()).ToArray();
+            var parts = raw.Split(',').Select(_ => _.Trim()).ToArray();
             var hs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var p in parts)

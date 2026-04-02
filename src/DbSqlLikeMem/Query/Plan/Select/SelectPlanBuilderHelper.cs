@@ -28,9 +28,9 @@ internal static class SelectPlanBuilderHelper
 
         foreach (var selectItem in query.SelectItems)
         {
-//#if DEBUG
-//            Console.WriteLine($"[SELECT ITEM RAW] '{selectItem.Raw}'  Alias='{selectItem.Alias}'");
-//#endif
+            //#if DEBUG
+            //            Console.WriteLine($"[SELECT ITEM RAW] '{selectItem.Raw}'  Alias='{selectItem.Alias}'");
+            //#endif
             var rawInput = selectItem.Raw.Trim();
             var (rawExpression, extractedAlias) = SelectAliasParserHelper.SplitTrailingAsAlias(rawInput, selectItem.Alias);
 
@@ -62,13 +62,13 @@ internal static class SelectPlanBuilderHelper
                 expression,
                 evalExpression);
         }
-//#if DEBUG
-//#pragma warning disable CA1303
-//        Console.WriteLine("RESULT COLUMNS:");
-//#pragma warning restore CA1303
-//        foreach (var column in columns)
-//            Console.WriteLine($" - {column.ColumnAlias}");
-//#endif
+        //#if DEBUG
+        //#pragma warning disable CA1303
+        //        Console.WriteLine("RESULT COLUMNS:");
+        //#pragma warning restore CA1303
+        //        foreach (var column in columns)
+        //            Console.WriteLine($" - {column.ColumnAlias}");
+        //#endif
         return new SelectPlan
         {
             Columns = columns,
@@ -131,7 +131,7 @@ internal static class SelectPlanBuilderHelper
         var isJsonFragment = TryInferProjectedJsonFragment(expression, sampleFirst, sampleSingleSource);
 
         columns.Add(SelectPlanProjectionHelper.CreateSelectPlanColumn(tableAlias, columnAlias, columns.Count, inferredDbType, isNullable, isJsonFragment));
-                evaluators.Add(CreateSelectPlanEvaluator(expression, ctes, context, windowSlotIndexes, windowSlots, windowSlotLookup, ref hasNestedWindowExpressions, evalExpression));
+        evaluators.Add(CreateSelectPlanEvaluator(expression, ctes, context, windowSlotIndexes, windowSlots, windowSlotLookup, ref hasNestedWindowExpressions, evalExpression));
     }
 
     private static bool TryInferProjectedJsonFragment(
@@ -264,6 +264,20 @@ internal static class SelectPlanBuilderHelper
         if (TryInferDbTypeFromNumericAggregate(expression, sampleRows, sampleFirst, sampleSingleSource, ctes, context, evalExpression, out var aggregateDbType))
             return aggregateDbType;
 
+        if (expression is BinaryExpr binary
+            && TryInferDbTypeFromArithmeticBinary(
+                binary,
+                sampleRows,
+                sampleFirst,
+                sampleSingleSource,
+                ctes,
+                context,
+                evalExpression,
+                out var arithmeticDbType))
+        {
+            return arithmeticDbType;
+        }
+
         if (TryInferDbTypeFromExpressionShape(expression, out var inferredDbType))
             return inferredDbType;
 
@@ -326,6 +340,46 @@ internal static class SelectPlanBuilderHelper
         return true;
     }
 
+    private static bool TryInferDbTypeFromArithmeticBinary(
+        BinaryExpr binary,
+        List<AstQueryExecutorBase.EvalRow> sampleRows,
+        AstQueryExecutorBase.EvalRow? sampleFirst,
+        AstQueryExecutorBase.Source? sampleSingleSource,
+        IDictionary<string, AstQueryExecutorBase.Source> ctes,
+        QueryExecutionContext context,
+        Func<SqlExpr, AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, IDictionary<string, AstQueryExecutorBase.Source>, object?> evalExpression,
+        out DbType dbType)
+    {
+        dbType = DbType.Object;
+
+        if (binary.Op is not (SqlBinaryOp.Add or SqlBinaryOp.Subtract or SqlBinaryOp.Multiply or SqlBinaryOp.Divide))
+            return false;
+
+        if (!AggregateExpressionInspector.WalkHasAggregate(binary))
+            return false;
+
+        var leftDbType = InferDbTypeFromExpression(binary.Left, sampleRows, sampleFirst, sampleSingleSource, ctes, context, evalExpression);
+        var rightDbType = InferDbTypeFromExpression(binary.Right, sampleRows, sampleFirst, sampleSingleSource, ctes, context, evalExpression);
+
+        if (leftDbType is DbType.Single or DbType.Double
+            || rightDbType is DbType.Single or DbType.Double)
+        {
+            dbType = DbType.Double;
+            return true;
+        }
+
+        if (leftDbType is DbType.Currency or DbType.Decimal or DbType.VarNumeric
+            || rightDbType is DbType.Currency or DbType.Decimal or DbType.VarNumeric
+            || IsIntegralArithmeticDbType(leftDbType)
+            || IsIntegralArithmeticDbType(rightDbType))
+        {
+            dbType = DbType.Decimal;
+            return true;
+        }
+
+        return false;
+    }
+
     private static DbType PromoteIntegralAggregateDbType(DbType inputType)
         => inputType switch
         {
@@ -335,6 +389,16 @@ internal static class SelectPlanBuilderHelper
             DbType.Single or DbType.Double => DbType.Double,
             _ => DbType.Object
         };
+
+    private static bool IsIntegralArithmeticDbType(DbType dbType)
+        => dbType is DbType.Byte
+            or DbType.SByte
+            or DbType.Int16
+            or DbType.UInt16
+            or DbType.Int32
+            or DbType.UInt32
+            or DbType.Int64
+            or DbType.UInt64;
 
     private static bool TryInferDbTypeFromColumnMetadata(
         SqlExpr expression,

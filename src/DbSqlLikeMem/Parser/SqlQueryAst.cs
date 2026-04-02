@@ -1,4 +1,5 @@
 namespace DbSqlLikeMem;
+
 internal abstract record SqlQueryBase
 {
     /// <summary>

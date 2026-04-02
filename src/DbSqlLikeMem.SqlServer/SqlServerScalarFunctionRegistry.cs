@@ -345,9 +345,12 @@ internal static class SqlServerScalarFunctionRegistry
         if (version >= SqlServerDialect.ParseMinVersion)
         {
             dialect.AddScalarFunctions(
-                DbFunctionDef.CreateScalar("PARSE", "VARCHAR"),
+                DbFunctionDef.CreateScalar("PARSE", "VARCHAR", AstQueryCastConversionFamilyEvaluator.TryEvalParseLikeFunction),
                 "PARSE",
                 "TRY_PARSE");
+
+            dialect.AddScalarFunction(
+                DbFunctionDef.CreateScalar("TRY_PARSE", "VARCHAR", AstQueryCastConversionFamilyEvaluator.TryEvalTryParseLikeFunction));
         }
 
         if (version >= SqlServerDialect.TryCastMinVersion)
@@ -387,6 +390,59 @@ internal static class SqlServerScalarFunctionRegistry
         {
             _ = context;
             return AstQuerySqlServerSessionFunctionEvaluator.TryEvalSqlServerConnectionPropertyFunction(fn, evalArg, out result);
+        }
+
+        static bool TryEvalSqlServerDatabaseMetadataFunction(
+            QueryExecutionContext context,
+            FunctionCallExpr fn,
+            Func<int, object?> evalArg,
+            out object? result)
+        {
+            var evaluator = new AstQuerySqlServerDatabaseFunctionEvaluator(
+                resolveDatabaseProperty: context.TryResolveSqlServerDatabaseProperty,
+                resolveDatabasePrincipalId: AstQuerySqlServerResolutionHelper.TryResolveSqlServerDatabasePrincipalId,
+                resolveColumnProperty: context.TryResolveSqlServerColumnProperty,
+                resolveColumnLength: context.TryResolveSqlServerColumnLength,
+                resolveColumnName: context.TryResolveSqlServerColumnName,
+                resolveObjectId: context.TryResolveSqlServerObjectId,
+                resolveObjectProperty: context.TryResolveSqlServerObjectProperty,
+                resolveObjectName: context.TryResolveSqlServerObjectName,
+                resolveObjectSchemaName: context.TryResolveSqlServerObjectSchemaName,
+                resolveTypeProperty: AstQuerySqlServerResolutionHelper.TryResolveSqlServerTypeProperty,
+                getDatabaseName: () => context.Connection.Database);
+
+            return evaluator.TryEvaluate(fn, evalArg, out result);
+        }
+
+        static bool TryEvalSqlServerSessionMetadataFunction(
+            QueryExecutionContext context,
+            FunctionCallExpr fn,
+            Func<int, object?> evalArg,
+            out object? result)
+        {
+            var evaluator = new AstQuerySqlServerSessionFunctionEvaluator(
+                getDialect: () => context.Dialect,
+                getContextInfo: context.Connection.GetContextInfo,
+                hasActiveTransaction: () => context.Connection.HasActiveTransaction || context.HasActiveTransaction,
+                tryResolveSqlServerRoleMembership: AstQuerySqlServerResolutionHelper.TryResolveSqlServerRoleMembership,
+                tryResolveSqlServerServerRoleMembership: AstQuerySqlServerResolutionHelper.TryResolveSqlServerServerRoleMembership);
+
+            return evaluator.TryEvaluate(fn, evalArg, out result);
+        }
+
+        static bool TryEvalSqlServerIdentityMetadataFunction(
+            QueryExecutionContext context,
+            FunctionCallExpr fn,
+            Func<int, object?> evalArg,
+            out object? result)
+        {
+            var evaluator = new AstQuerySqlServerIdentityFunctionEvaluator(
+                getDialect: () => context.Dialect,
+                getLastInsertId: context.Connection.GetLastInsertId,
+                resolveSystemTypeId: AstQuerySqlServerResolutionHelper.TryResolveSqlServerSystemTypeId,
+                resolveSystemTypeName: AstQuerySqlServerResolutionHelper.TryResolveSqlServerSystemTypeName);
+
+            return evaluator.TryEvaluate(fn, evalArg, out result);
         }
 
         dialect.AddScalarFunction("APP_NAME", "VARCHAR", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalAppNameFunction);
@@ -459,6 +515,42 @@ internal static class SqlServerScalarFunctionRegistry
             "CONNECTIONPROPERTY",
             "VARCHAR",
             TryEvalSqlServerConnectionPropertyFunction);
+
+        dialect.AddScalarFunction(CreateScalarFunctionDef("DATABASEPROPERTYEX", "VARCHAR", TryEvalSqlServerDatabaseMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("DATABASE_PRINCIPAL_ID", "INT", TryEvalSqlServerDatabaseMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("COLUMNPROPERTY", "INT", TryEvalSqlServerDatabaseMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("COL_LENGTH", "INT", TryEvalSqlServerDatabaseMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("COL_NAME", "VARCHAR", TryEvalSqlServerDatabaseMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("DB_ID", "INT", TryEvalSqlServerDatabaseMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("DB_NAME", "VARCHAR", TryEvalSqlServerDatabaseMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("OBJECT_ID", "INT", TryEvalSqlServerDatabaseMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("OBJECTPROPERTY", "INT", TryEvalSqlServerDatabaseMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("OBJECTPROPERTYEX", "INT", TryEvalSqlServerDatabaseMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("OBJECT_NAME", "VARCHAR", TryEvalSqlServerDatabaseMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("OBJECT_SCHEMA_NAME", "VARCHAR", TryEvalSqlServerDatabaseMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("ORIGINAL_DB_NAME", "VARCHAR", TryEvalSqlServerDatabaseMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("TYPEPROPERTY", "INT", TryEvalSqlServerDatabaseMetadataFunction));
+
+        dialect.AddScalarFunction(CreateScalarFunctionDef("CURRENT_REQUEST_ID", "INT", TryEvalSqlServerSessionMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("CURRENT_TRANSACTION_ID", "BIGINT", TryEvalSqlServerSessionMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("IS_MEMBER", "INT", TryEvalSqlServerSessionMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("IS_ROLEMEMBER", "INT", TryEvalSqlServerSessionMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("IS_SRVROLEMEMBER", "INT", TryEvalSqlServerSessionMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("ORIGINAL_LOGIN", "VARCHAR", TryEvalSqlServerSessionMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("SESSION_ID", "INT", TryEvalSqlServerSessionMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("SERVERPROPERTY", "VARCHAR", TryEvalSqlServerSessionMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("XACT_STATE", "INT", TryEvalSqlServerSessionMetadataFunction));
+
+        dialect.AddScalarFunction(CreateScalarFunctionDef("SCHEMA_ID", "INT", TryEvalSqlServerIdentityMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("SCHEMA_NAME", "VARCHAR", TryEvalSqlServerIdentityMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("SUSER_ID", "INT", TryEvalSqlServerIdentityMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("SUSER_NAME", "VARCHAR", TryEvalSqlServerIdentityMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("SUSER_SID", "VARBINARY", TryEvalSqlServerIdentityMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("SUSER_SNAME", "VARCHAR", TryEvalSqlServerIdentityMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("TYPE_ID", "INT", TryEvalSqlServerIdentityMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("TYPE_NAME", "VARCHAR", TryEvalSqlServerIdentityMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("USER_ID", "INT", TryEvalSqlServerIdentityMetadataFunction));
+        dialect.AddScalarFunction(CreateScalarFunctionDef("USER_NAME", "VARCHAR", TryEvalSqlServerIdentityMetadataFunction));
 
         dialect.AddScalarFunction(CreateScalarFunctionDef("CONTEXT_INFO", "VARBINARY", TryEvalSqlServerContextInfoFunction));
         dialect.AddScalarFunction(DbFunctionDef.CreateScalar("GET_FILESTREAM_TRANSACTION_CONTEXT", "VARBINARY"));

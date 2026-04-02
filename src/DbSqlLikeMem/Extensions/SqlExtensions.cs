@@ -69,7 +69,7 @@ internal static class SqlExtensions
         string? pattern,
         string? escape = null,
         bool? forceCaseInsensitive = null)
-        => Like(context.Dialect,input, pattern,  escape, forceCaseInsensitive);
+        => Like(context.Dialect, input, pattern, escape, forceCaseInsensitive);
 
     internal static bool Like(
         this ISqlDialect dialect,
@@ -142,7 +142,7 @@ internal static class SqlExtensions
 
         for (var i = 0; i < input.Length; i++)
         {
-            if (dialect.Like(input[i..],searchPattern, escape))
+            if (dialect.Like(input[i..], searchPattern, escape))
                 return i + 1;
         }
 
@@ -200,9 +200,9 @@ internal static class SqlExtensions
 
     internal static int Compare(this ISqlDialect dialect, object? a, object? b)
     {
-        if(a is null || a is DBNull)
+        if (a is null || a is DBNull)
             return b is null || b is DBNull ? 0 : -1;
-        if(b is null || b is DBNull)
+        if (b is null || b is DBNull)
             return 1;
 
         if (a is byte[] ba && b is byte[] bb)
@@ -226,7 +226,7 @@ internal static class SqlExtensions
         return string.Compare(a.ToString(), b.ToString(), dialect.TextComparison);
     }
 
-    internal static bool EqualsSql(this object? a, object? b,QueryExecutionContext context)
+    internal static bool EqualsSql(this object? a, object? b, QueryExecutionContext context)
         => EqualsSql(a, b, context.Dialect);
 
     internal static bool EqualsSql(this object? a, object? b)

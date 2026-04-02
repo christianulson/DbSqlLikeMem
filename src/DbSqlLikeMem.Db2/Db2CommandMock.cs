@@ -161,7 +161,7 @@ public class Db2CommandMock(
             }
 
             var customFunctionSupported = SqlCustomFunctionResolverFactory.Create(QueryExecutionContext.FromConnection(connection!, Parameters));
-            var q = SqlQueryParser.Parse(sqlRaw,connection.Db, connection.ExecutionDialect, Parameters, customFunctionSupported);
+            var q = SqlQueryParser.Parse(sqlRaw, connection.Db, connection.ExecutionDialect, Parameters, customFunctionSupported);
             parsedStatementCount++;
 
             using var currentQueryScope = connection.BeginCurrentQueryScope(sqlRaw);

@@ -110,7 +110,7 @@ internal sealed class FunctionDictionaryProcess : DictionaryProcess<DbFunctionDe
     private void AddToGroups(string key, DbFunctionDef function)
     {
         // Console.WriteLine($"{key}: {function.Category}: {function.AstExecutor?.GetType().Name}");
-        
+
         if (function.HasCapability(DbFunctionCapability.Scalar))
             _scalarFunctions.Add(key);
 

@@ -59,7 +59,7 @@ internal static class AstQueryExecutorFactory
     public static IAstQueryExecutor Create(QueryExecutionContext context)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(context, nameof(context));
-        
+
         if (_executors.TryGetValue(context.Dialect.Name, out var exc))
             return exc(context);
 

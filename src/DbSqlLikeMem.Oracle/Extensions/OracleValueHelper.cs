@@ -48,7 +48,7 @@ internal static class OracleValueHelper
 
         // ---------- literal NULL --------------------------------------
         if (token.Equals("null", StringComparison.OrdinalIgnoreCase))
-            return isNullable 
+            return isNullable
                 ? null
                 : throw new OracleMockException(SqlExceptionMessages.ColumnDoesNotAcceptNull());
 
@@ -129,7 +129,7 @@ internal static class OracleValueHelper
         // SET
         if (raw.Contains(','))
         {
-            var parts = raw.Split(',').Select(_ => _.Trim()).Where(_ => !string.IsNullOrWhiteSpace(_)).ToArray(); 
+            var parts = raw.Split(',').Select(_ => _.Trim()).Where(_ => !string.IsNullOrWhiteSpace(_)).ToArray();
             var hs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var p in parts)

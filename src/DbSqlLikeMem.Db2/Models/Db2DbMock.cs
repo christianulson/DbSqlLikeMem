@@ -15,7 +15,7 @@ public class Db2DbMock
     /// </summary>
     public Db2DbMock(
         int? version = null
-        ): base(version ?? 11)
+        ) : base(version ?? 11)
     {
         Dialect = new Db2Dialect(Version);
         var sysibm = CreateSchema("SYSIBM");

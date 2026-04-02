@@ -47,7 +47,7 @@ public sealed class OracleInsertStrategyExtrasTests(
         var db = new OracleDbMock();
         var table = db.AddTable("t");
         table.AddColumn("id", DbType.Int32, false, identity: true);
-        table.AddColumn("name", DbType.String, false, defaultValue: "DEF" );
+        table.AddColumn("name", DbType.String, false, defaultValue: "DEF");
         using var cnn = new OracleConnectionMock(db);
         using var cmd = new OracleCommandMock(cnn)
         {
@@ -93,10 +93,10 @@ public sealed class OracleInsertStrategyExtrasTests(
     }
 }
 
-    /// <summary>
-    /// EN: Covers delete behavior when foreign keys reference the target row.
-    /// PT: Cobre o comportamento de delete quando chaves estrangeiras referenciam a linha alvo.
-    /// </summary>
+/// <summary>
+/// EN: Covers delete behavior when foreign keys reference the target row.
+/// PT: Cobre o comportamento de delete quando chaves estrangeiras referenciam a linha alvo.
+/// </summary>
 public class OracleDeleteStrategyForeignKeyTests
 {
     /// <summary>
@@ -133,10 +133,10 @@ public class OracleDeleteStrategyForeignKeyTests
     }
 }
 
-    /// <summary>
-    /// EN: Covers extra update scenarios in the Oracle mock.
-    /// PT: Cobre cenarios extras de update no mock Oracle.
-    /// </summary>
+/// <summary>
+/// EN: Covers extra update scenarios in the Oracle mock.
+/// PT: Cobre cenarios extras de update no mock Oracle.
+/// </summary>
 public class OracleUpdateStrategyExtrasTests
 {
     /// <summary>

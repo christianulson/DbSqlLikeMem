@@ -46,7 +46,7 @@ internal static class SqliteValueHelper
 
         // ---------- literal NULL --------------------------------------
         if (token.Equals("null", StringComparison.OrdinalIgnoreCase))
-            return isNullable 
+            return isNullable
                 ? null
                 : throw new SqliteMockException(SqlExceptionMessages.ColumnDoesNotAcceptNull());
 

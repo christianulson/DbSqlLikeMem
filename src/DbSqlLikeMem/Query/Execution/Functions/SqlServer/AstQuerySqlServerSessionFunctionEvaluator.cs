@@ -190,7 +190,7 @@ internal sealed class AstQuerySqlServerSessionFunctionEvaluator
 
         result = roleName!.Trim().ToUpperInvariant() switch
         {
-            "DB_OWNER" => 1,
+            "DB_OWNER" => 0,
             "PUBLIC" => 1,
             "DB_DATAREADER" => 0,
             "DB_DATAWRITER" => 0,

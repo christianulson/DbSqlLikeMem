@@ -648,12 +648,27 @@ internal static class CommandScalarExecutionPrelude
             return true;
         }
 
-        var extracted = QueryJsonFunctionHelper.TryReadJsonPathValue(json!, path!);
-        value = functionName.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
-            ? QueryJsonFunctionHelper.ApplyJsonValueReturningClause(
+        if (functionName.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase))
+        {
+            if (context.Dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!QueryJsonFunctionHelper.TryReadJsonPathElement(json!, path!, out var element))
+                {
+                    return true;
+                }
+
+                value = QueryJsonFunctionHelper.ConvertJsonElementToSqlServerJsonValue(element);
+                return true;
+            }
+
+            var extracted = QueryJsonFunctionHelper.TryReadJsonPathValue(json!, path!);
+            value = QueryJsonFunctionHelper.ApplyJsonValueReturningClause(
                 new FunctionCallExpr(functionName, args).BindScalarFunctionDefinition(context.Dialect),
-                extracted)
-            : extracted;
+                extracted);
+            return true;
+        }
+
+        value = QueryJsonFunctionHelper.TryReadJsonPathValue(json!, path!);
         return true;
     }
 

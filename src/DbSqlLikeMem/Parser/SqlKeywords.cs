@@ -1,4 +1,5 @@
 namespace DbSqlLikeMem;
+
 internal static class SqlKeywords
 {
     private static readonly HashSet<string> _keywords =

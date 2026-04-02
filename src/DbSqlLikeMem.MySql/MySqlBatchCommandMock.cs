@@ -36,11 +36,11 @@ public sealed class MySqlBatchCommandMock :
     /// </summary>
     public override string CommandText { get; set; }
 #else
-	/// <summary>
-	/// EN: Gets or sets the SQL text executed by this batch command.
-	/// PT: Obtém ou define o texto SQL executado por este comando em lote.
-	/// </summary>
-	public string CommandText { get; set; }
+    /// <summary>
+    /// EN: Gets or sets the SQL text executed by this batch command.
+    /// PT: Obtém ou define o texto SQL executado por este comando em lote.
+    /// </summary>
+    public string CommandText { get; set; }
 #endif
 #if NET6_0_OR_GREATER
     /// <summary>
@@ -49,11 +49,11 @@ public sealed class MySqlBatchCommandMock :
     /// </summary>
     public override CommandType CommandType { get; set; }
 #else
-	/// <summary>
-	/// EN: Gets or sets how CommandText is interpreted.
-	/// PT: Obtém ou define como CommandText é interpretado.
-	/// </summary>
-	public CommandType CommandType { get; set; }
+    /// <summary>
+    /// EN: Gets or sets how CommandText is interpreted.
+    /// PT: Obtém ou define como CommandText é interpretado.
+    /// </summary>
+    public CommandType CommandType { get; set; }
 #endif
 #if NET6_0_OR_GREATER
     /// <summary>
@@ -62,11 +62,11 @@ public sealed class MySqlBatchCommandMock :
     /// </summary>
     public override int RecordsAffected =>
 #else
-	/// <summary>
-	/// EN: Gets the affected row count reported by this batch command.
-	/// PT: Obtém a contagem de linhas afetadas reportada por este comando em lote.
-	/// </summary>
-	public int RecordsAffected =>
+    /// <summary>
+    /// EN: Gets the affected row count reported by this batch command.
+    /// PT: Obtém a contagem de linhas afetadas reportada por este comando em lote.
+    /// </summary>
+    public int RecordsAffected =>
 #endif
         0;
 
@@ -77,11 +77,11 @@ public sealed class MySqlBatchCommandMock :
     /// </summary>
     public new MySqlParameterCollection Parameters =>
 #else
-	/// <summary>
-	/// EN: Gets the parameter collection used by this batch command.
-	/// PT: Obtém a coleção de parâmetros usada por este comando em lote.
-	/// </summary>
-	public MySqlParameterCollection Parameters =>
+    /// <summary>
+    /// EN: Gets the parameter collection used by this batch command.
+    /// PT: Obtém a coleção de parâmetros usada por este comando em lote.
+    /// </summary>
+    public MySqlParameterCollection Parameters =>
 #endif
         m_parameterCollection ??= Batch?.Connection?.CreateCommand().Parameters as MySqlParameterCollection
             ?? new MySqlCommand().Parameters;

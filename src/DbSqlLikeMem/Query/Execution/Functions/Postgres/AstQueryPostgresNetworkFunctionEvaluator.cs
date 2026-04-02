@@ -27,7 +27,7 @@ internal static class AstQueryPostgresNetworkFunctionEvaluator
             return false;
         }
 
-        return handler(context,fn,  evalArg, out result);
+        return handler(context, fn, evalArg, out result);
     }
 
     private static IReadOnlyDictionary<string, AstQueryTryEvalPostgresNetworkFunction> CreateHandlers()
@@ -86,7 +86,7 @@ internal static class AstQueryPostgresNetworkFunctionEvaluator
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
-        => TryEvalInetAddressFunction(context,fn,  evalArg, value => value.Address.ToString(), out result);
+        => TryEvalInetAddressFunction(context, fn, evalArg, value => value.Address.ToString(), out result);
 
     private static bool TryEvalHostMaskFunction(
         this QueryExecutionContext context,

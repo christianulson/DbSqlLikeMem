@@ -556,7 +556,7 @@ public sealed class SchemaSnapshotTests(
         comparison.IsMatch.Should().BeFalse();
         comparison.Differences.Should().NotBeEmpty();
         comparison.Differences.Should().Contain(difference => difference.Contains("Table 'Users'"));
-        comparison.Differences.Should().Contain(difference => difference.Contains("Table in schema 'defaultschema' only in target: 'orders'"));
+        comparison.Differences.Should().Contain(difference => difference.Contains("Table in schema 'DefaultSchema' only in target: 'Orders'"));
 
         var text = comparison.ToText();
         text.Should().Contain("IsMatch: False");

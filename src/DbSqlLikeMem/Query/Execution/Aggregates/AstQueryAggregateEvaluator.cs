@@ -88,7 +88,7 @@ internal static class AstQueryAggregateEvaluator
             return EvalJsonGroupObjectAggregate(fn, group, ctes, eval);
         }
 
-        if (name is SqlConst.JSON_OBJECT_AGG 
+        if (name is SqlConst.JSON_OBJECT_AGG
             or SqlConst.JSON_OBJECT_AGG_STRICT
             or SqlConst.JSON_OBJECT_AGG_UNIQUE
             or SqlConst.JSON_OBJECT_AGG_UNIQUE_STRICT
@@ -125,7 +125,7 @@ internal static class AstQueryAggregateEvaluator
             var definition = fn.ResolvedScalarFunction;
             if (definition is null || !definition.AllowsCall)
             {
-                throw context.NotSupported( name);
+                throw context.NotSupported(name);
             }
 
             return EvalApproxAggregate(fn, group, ctes, eval, name);
@@ -150,7 +150,7 @@ internal static class AstQueryAggregateEvaluator
         {
             if (!context.Dialect.SupportsSqlServerAggregateFunction(name))
             {
-                throw context.NotSupported( name);
+                throw context.NotSupported(name);
             }
 
             return EvalPercentileAggregate(fn, group, ctes, eval, name);
@@ -162,7 +162,7 @@ internal static class AstQueryAggregateEvaluator
                 ?? (context.Dialect.TryGetScalarFunctionDefinition(fn, out var checksumDefinition)
                     && checksumDefinition is not null
                     && checksumDefinition.AllowsCall)))
-                throw context.NotSupported( name);
+                throw context.NotSupported(name);
         }
 
         if (name is SqlConst.GROUP_CONCAT or SqlConst.STRING_AGG or SqlConst.LISTAGG)

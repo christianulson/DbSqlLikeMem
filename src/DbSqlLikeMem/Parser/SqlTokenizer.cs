@@ -307,7 +307,7 @@ internal sealed class SqlTokenizer
                 throw new InvalidOperationException($"Identificador quoted não fechado. quote={open}");
 
             var name = sb.ToString();
-                        // NOTE: token Text should be the logical identifier name (without delimiters).
+            // NOTE: token Text should be the logical identifier name (without delimiters).
             // Delimiters are syntax and must not leak into the AST.
             // Dialect-specific acceptance is enforced by IsStartOfQuotedIdentifier.
             return new SqlToken(SqlTokenKind.Identifier, name, startPos);

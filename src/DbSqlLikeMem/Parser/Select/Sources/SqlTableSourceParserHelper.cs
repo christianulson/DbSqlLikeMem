@@ -18,7 +18,7 @@ internal static class SqlTableSourceParserHelper
         bool allowFunctionSource = true,
         IReadOnlyCollection<string>? aliasStopWords = null)
     {
-        if (ctx.IsSymbol( "("))
+        if (ctx.IsSymbol("("))
         {
             var innerSql = ctx.ReadBalancedParenRawTokens();
             var alias = ctx.ReadOptionalAlias(aliasStopWords);
@@ -63,7 +63,7 @@ internal static class SqlTableSourceParserHelper
         string? db = null;
         var table = first;
         var mySqlIndexHints = new List<SqlMySqlIndexHint>();
-        if (ctx.IsSymbol( "."))
+        if (ctx.IsSymbol("."))
         {
             ctx.Consume();
             db = table;

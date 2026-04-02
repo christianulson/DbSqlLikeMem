@@ -65,7 +65,7 @@ internal static class DapperLateBinding
 
         if (mi is null)
             return;
-            //throw new MissingMethodException(SqlExceptionMessages.DapperAddTypeMapMethodNotFound());
+        //throw new MissingMethodException(SqlExceptionMessages.DapperAddTypeMapMethodNotFound());
 
         mi.Invoke(null, [type, dbType]);
     }

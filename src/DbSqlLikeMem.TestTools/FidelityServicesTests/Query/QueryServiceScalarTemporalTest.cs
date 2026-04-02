@@ -892,19 +892,33 @@ WHERE Id = {Dialect.Parameter("id")}
     {
         var parameter = command.CreateParameter();
         parameter.ParameterName = name;
-        if (parameter.GetType().FullName == "Oracle.ManagedDataAccess.Client.OracleParameter"
+        var isOracleParameter = parameter.GetType().FullName == "Oracle.ManagedDataAccess.Client.OracleParameter";
+        if (isOracleParameter
             || (parameter.GetType().FullName == "IBM.Data.Db2.DB2Parameter"
                 && (dbType == DbType.Guid || dbType == DbType.DateTimeOffset)))
         {
             // ODP.NET and DB2 parameters can reject some DbType assignments in this mock flow.
-            // Keep the default DbType and rely on the value payload for this shared test helper.
+            // Keep the default DbType and normalize the value payload for this shared test helper.
         }
         else
         {
             parameter.DbType = dbType;
         }
-        parameter.Value = value ?? DBNull.Value;
+        parameter.Value = isOracleParameter ? NormalizeOracleParameterValue(value) : value ?? DBNull.Value;
         command.Parameters.Add(parameter);
+    }
+
+    private static object NormalizeOracleParameterValue(object? value)
+    {
+        return value switch
+        {
+            null => DBNull.Value,
+            DateTimeOffset dateTimeOffset => dateTimeOffset.ToString("O", CultureInfo.InvariantCulture),
+            DateTime dateTime => dateTime.ToString("O", CultureInfo.InvariantCulture),
+            TimeSpan timeSpan => timeSpan.ToString("c", CultureInfo.InvariantCulture),
+            Guid guid => guid.ToString("D", CultureInfo.InvariantCulture),
+            _ => value
+        };
     }
 
     private static Guid NormalizeGuidValue(object? value)

@@ -234,7 +234,7 @@ public sealed class SqlAzureFunctionTests
         Assert.Equal(new byte[] { 0x0A, 0x0B }, Assert.IsType<byte[]>(ExecuteScalar(connection, "SELECT CONTEXT_INFO() FROM Users WHERE Id = 1")));
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT HOST_ID() FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal("localhost", ExecuteScalar(connection, "SELECT HOST_NAME() FROM Users WHERE Id = 1"));
-        Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT IS_MEMBER('db_owner') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT IS_MEMBER('db_owner') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT IS_ROLEMEMBER('db_datareader') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT IS_SRVROLEMEMBER('sysadmin') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT ISDATE('2020-01-01') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));

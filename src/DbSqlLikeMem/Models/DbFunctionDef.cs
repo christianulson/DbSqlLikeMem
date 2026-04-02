@@ -179,7 +179,16 @@ public sealed record DbFunctionParameterDef(
     internal string NormalizedName => NormalizeParamName(Name);
 
     private static string NormalizeParamName(string? value)
-        => value?.Trim() ?? string.Empty;
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        var normalized = value!.Trim();
+        if (normalized.StartsWith("@", StringComparison.Ordinal))
+            normalized = normalized[1..];
+
+        return normalized;
+    }
 }
 
 /// <summary>

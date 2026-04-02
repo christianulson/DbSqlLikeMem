@@ -66,7 +66,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
     public static SqlExpr ParseScalar(
         string sql,
         DbMock db)
-        => ParseScalar(sql, db, AutoDialectFactory.Create() , null);
+        => ParseScalar(sql, db, AutoDialectFactory.Create(), null);
 
     /// <summary>
     /// EN: Parses a scalar expression using the provided dialect, parameters, and optional custom function resolver.
@@ -202,13 +202,13 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         _context.Consume(); // IS
 
         bool neg = false;
-        if (_context.IsKeyword( SqlConst.NOT))
+        if (_context.IsKeyword(SqlConst.NOT))
         {
             _context.Consume();
             neg = true;
         }
 
-        if (_context.IsKeyword( SqlConst.NULL))
+        if (_context.IsKeyword(SqlConst.NULL))
         {
             _context.Consume();
             left = new IsNullExpr(left, neg);
@@ -689,7 +689,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
 
         var low = ParseExpression(rbp);
 
-        if (!_context.IsKeyword( SqlConst.AND))
+        if (!_context.IsKeyword(SqlConst.AND))
             throw new InvalidOperationException("Esperava AND no BETWEEN");
 
         _context.Consume(); // AND
@@ -876,7 +876,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
 
         // ✅ use o token t
         expr = new ExistsExpr(
-            SqlQueryParser.ParseSubqueryExprOrThrow(subSql, t, SqlConst.EXISTS,_context.Db, _context.Dialect)
+            SqlQueryParser.ParseSubqueryExprOrThrow(subSql, t, SqlConst.EXISTS, _context.Db, _context.Dialect)
         );
 
         return true;
@@ -1087,7 +1087,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
             var subSql = ReadRawUntilMatchingParen(); // lê até antes do ')'
             _context.ExpectSymbol(")");
 
-            expr = SqlQueryParser.ParseSubqueryExprOrThrow(subSql, t, "SCALAR SUBQUERY",_context.Db, _context.Dialect);
+            expr = SqlQueryParser.ParseSubqueryExprOrThrow(subSql, t, "SCALAR SUBQUERY", _context.Db, _context.Dialect);
             return true;
         }
 
@@ -1913,7 +1913,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
     {
         try
         {
-            return SqlQueryParser.ParseSubqueryExprOrThrow(subSql, contextToken, contextLabel,_context.Db, _context.Dialect);
+            return SqlQueryParser.ParseSubqueryExprOrThrow(subSql, contextToken, contextLabel, _context.Db, _context.Dialect);
         }
         catch (Exception ex)
         {

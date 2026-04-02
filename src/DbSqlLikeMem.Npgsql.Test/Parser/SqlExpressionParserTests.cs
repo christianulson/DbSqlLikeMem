@@ -322,7 +322,7 @@ public sealed class SqlExpressionParserTests(
     {
         var d = Get(version, v => new NpgsqlDialect(v));
         var db = Get(version, v => new NpgsqlDbMock(v));
-        var ast = SqlExpressionParser.ParseWhere("\"DeletedDtt\" IS NULL", db,d);
+        var ast = SqlExpressionParser.ParseWhere("\"DeletedDtt\" IS NULL", db, d);
         var n = Assert.IsType<IsNullExpr>(ast);
         var id = Assert.IsType<IdentifierExpr>(n.Expr);
         Assert.Equal("DeletedDtt", id.Name);

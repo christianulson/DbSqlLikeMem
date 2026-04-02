@@ -7,11 +7,11 @@ internal static class SqlOrderByHelper
         Func<bool, IReadOnlyList<string>> readRawItems)
     {
         var list = new List<SqlOrderByItem>();
-        if (!ctx.IsWord( SqlConst.ORDER))
+        if (!ctx.IsWord(SqlConst.ORDER))
             return list;
 
         ctx.Consume();
-        if (!ctx.IsWord( SqlConst.BY))
+        if (!ctx.IsWord(SqlConst.BY))
             throw new InvalidOperationException("ORDER requires BY.");
 
         ctx.Consume();

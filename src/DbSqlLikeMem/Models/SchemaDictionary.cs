@@ -4,7 +4,7 @@ namespace DbSqlLikeMem;
 /// EN: Implements a schema dictionary with case-insensitive comparison.
 /// PT: Implementa um dicionário de schemas com comparação case-insensitive.
 /// </summary>
-public class SchemaDictionary 
+public class SchemaDictionary
     : Dictionary<string, ISchemaMock>
 {
     /// <summary>

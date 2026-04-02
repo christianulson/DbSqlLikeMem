@@ -1381,7 +1381,7 @@ VALUES (
                 AddParameter(command, "ansiTextValue", DbType.AnsiString, "ansi");
                 AddParameter(command, "ansiFixedTextValue", DbType.AnsiStringFixedLength, "fixed-ansi");
                 AddParameter(command, "fixedTextValue", DbType.StringFixedLength, "fixed-text");
-                AddParameter(command, "int16Value", DbType.Int16, (short) 16);
+                AddParameter(command, "int16Value", DbType.Int16, (short)16);
                 AddParameter(command, "int32Value", DbType.Int32, 32);
                 AddParameter(command, "int64Value", DbType.Int64, 64L);
                 AddParameter(command, "boolValue", DbType.Boolean, true);

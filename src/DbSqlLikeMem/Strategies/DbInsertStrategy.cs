@@ -1553,8 +1553,8 @@ internal static class DbInsertStrategy
             {
                 SqlBinaryOp.Eq => left.EqualsSql(right, context),
                 SqlBinaryOp.Neq => !left.EqualsSql(right, context),
-                SqlBinaryOp.Greater => left is not null && right is not null &&context .Compare(left,right ) > 0,
-                SqlBinaryOp.GreaterOrEqual => left is not null && right is not null &&context .Compare(left,right ) >= 0,
+                SqlBinaryOp.Greater => left is not null && right is not null && context.Compare(left, right) > 0,
+                SqlBinaryOp.GreaterOrEqual => left is not null && right is not null && context.Compare(left, right) >= 0,
                 SqlBinaryOp.Less => left is not null && right is not null && context.Compare(left, right) < 0,
                 SqlBinaryOp.LessOrEqual => left is not null && right is not null && context.Compare(left, right) <= 0,
                 _ => throw new InvalidOperationException($"Operador não suportado no ON CONFLICT WHERE: {op}")

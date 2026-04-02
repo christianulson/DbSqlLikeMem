@@ -250,7 +250,7 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
-        => TryEvalArrayMutationFunction(context,fn,  evalArg, out result, isCat: false, isPrepend: false, (list, args) => list.Add(args[1]));
+        => TryEvalArrayMutationFunction(context, fn, evalArg, out result, isCat: false, isPrepend: false, (list, args) => list.Add(args[1]));
 
     private static bool TryEvalArrayPrependFunction(
         this QueryExecutionContext context,

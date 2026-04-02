@@ -670,7 +670,7 @@ select id
 
         SqlQueryParser.Parse(stmts[0], db, d).Should().NotBeNull();
         SqlQueryParser.Parse(stmts[1], db, d).Should().NotBeNull();
-        var q3 = SqlQueryParser.Parse(stmts[2], db,d);
+        var q3 = SqlQueryParser.Parse(stmts[2], db, d);
         q3.Should().NotBeNull();
 
         // exemplo (ajuste pro seu modelo):
@@ -706,7 +706,7 @@ select id
 #pragma warning disable CA1031 // Do not catch general exception types
         try
         {
-            var parsed = SqlQueryParser.ParseMulti(sql, db,d).ToList();
+            var parsed = SqlQueryParser.ParseMulti(sql, db, d).ToList();
 
             expectation.Should().Be(SqlCaseExpectation.ParseOk, $"Esperava {expectation} mas parseou.");
 

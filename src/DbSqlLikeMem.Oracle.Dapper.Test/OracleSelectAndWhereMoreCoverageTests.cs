@@ -21,7 +21,7 @@ public sealed class OracleSelectAndWhereMoreCoverageTests : XUnitTestBase
         users.AddColumn("email", DbType.String, true);
 
         users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John", [2] = "john@x.com" });
-        users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Bob",  [2] = null });
+        users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Bob", [2] = null });
         users.Add(new Dictionary<int, object?> { [0] = 3, [1] = "Jane", [2] = "jane@x.com" });
 
         var orders = db.AddTable("orders");

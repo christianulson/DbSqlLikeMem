@@ -7,22 +7,22 @@ internal static class SqlDropParserHelper
     {
         ctx.Consume(); // DROP
 
-        if (ctx.IsWord( SqlConst.VIEW))
+        if (ctx.IsWord(SqlConst.VIEW))
             return ctx.ParseDropView();
 
-        if (ctx.IsWord( SqlConst.SEQUENCE))
+        if (ctx.IsWord(SqlConst.SEQUENCE))
             return ctx.ParseDropSequence();
 
-        if (ctx.IsWord( SqlConst.TABLE)
-            || ctx.IsWord( SqlConst.TEMP)
-            || ctx.IsWord( SqlConst.TEMPORARY)
-            || ctx.IsWord( SqlConst.GLOBAL))
+        if (ctx.IsWord(SqlConst.TABLE)
+            || ctx.IsWord(SqlConst.TEMP)
+            || ctx.IsWord(SqlConst.TEMPORARY)
+            || ctx.IsWord(SqlConst.GLOBAL))
             return ctx.ParseDropTable();
 
-        if (ctx.IsWord( SqlConst.INDEX))
+        if (ctx.IsWord(SqlConst.INDEX))
             return ctx.ParseDropIndex();
 
-        if (ctx.IsWord( SqlConst.FUNCTION))
+        if (ctx.IsWord(SqlConst.FUNCTION))
             return ctx.ParseDropFunction();
 
         throw new InvalidOperationException("Apenas DROP VIEW, DROP TABLE, DROP INDEX e DROP SEQUENCE são suportados no mock no momento.");
@@ -34,10 +34,10 @@ internal static class SqlDropParserHelper
         ctx.Consume(); // VIEW
 
         var ifExists = false;
-        if (ctx.IsWord( SqlConst.IF))
+        if (ctx.IsWord(SqlConst.IF))
         {
             ctx.Consume();
-            if (!ctx.IsWord( SqlConst.EXISTS))
+            if (!ctx.IsWord(SqlConst.EXISTS))
                 throw new InvalidOperationException("DROP VIEW IF must be followed by EXISTS.");
 
             ctx.Consume();
@@ -73,10 +73,10 @@ internal static class SqlDropParserHelper
         ctx.Consume(); // SEQUENCE
 
         var ifExists = false;
-        if (ctx.IsWord( SqlConst.IF))
+        if (ctx.IsWord(SqlConst.IF))
         {
             ctx.Consume();
-            if (!ctx.IsWord( SqlConst.EXISTS))
+            if (!ctx.IsWord(SqlConst.EXISTS))
                 throw new InvalidOperationException("DROP SEQUENCE IF must be followed by EXISTS.");
 
             ctx.Consume();
@@ -107,10 +107,10 @@ internal static class SqlDropParserHelper
         ctx.Consume(); // FUNCTION
 
         var ifExists = false;
-        if (ctx.IsWord( SqlConst.IF))
+        if (ctx.IsWord(SqlConst.IF))
         {
             ctx.Consume();
-            if (!ctx.IsWord( SqlConst.EXISTS))
+            if (!ctx.IsWord(SqlConst.EXISTS))
                 throw new InvalidOperationException("DROP FUNCTION IF must be followed by EXISTS.");
 
             ctx.Consume();
@@ -141,10 +141,10 @@ internal static class SqlDropParserHelper
         var isTemporary = false;
         var tempScope = TemporaryTableScope.None;
 
-        if (ctx.IsWord( SqlConst.GLOBAL))
+        if (ctx.IsWord(SqlConst.GLOBAL))
         {
             ctx.Consume();
-            if (ctx.IsWord( SqlConst.TEMPORARY) || ctx.IsWord( SqlConst.TEMP))
+            if (ctx.IsWord(SqlConst.TEMPORARY) || ctx.IsWord(SqlConst.TEMP))
             {
                 ctx.Consume();
                 isTemporary = true;
@@ -156,23 +156,23 @@ internal static class SqlDropParserHelper
             }
         }
 
-        if (!isTemporary && (ctx.IsWord( SqlConst.TEMPORARY) || ctx.IsWord( SqlConst.TEMP)))
+        if (!isTemporary && (ctx.IsWord(SqlConst.TEMPORARY) || ctx.IsWord(SqlConst.TEMP)))
         {
             ctx.Consume();
             isTemporary = true;
             tempScope = TemporaryTableScope.Connection;
         }
 
-        if (!ctx.IsWord( SqlConst.TABLE))
+        if (!ctx.IsWord(SqlConst.TABLE))
             throw new InvalidOperationException("DROP TABLE requires TABLE keyword.");
 
         ctx.Consume(); // TABLE
 
         var ifExists = false;
-        if (ctx.IsWord( SqlConst.IF))
+        if (ctx.IsWord(SqlConst.IF))
         {
             ctx.Consume();
-            if (!ctx.IsWord( SqlConst.EXISTS))
+            if (!ctx.IsWord(SqlConst.EXISTS))
                 throw new InvalidOperationException("DROP TABLE IF must be followed by EXISTS.");
 
             ctx.Consume();
@@ -202,10 +202,10 @@ internal static class SqlDropParserHelper
         ctx.Consume(); // INDEX
 
         var ifExists = false;
-        if (ctx.IsWord( SqlConst.IF))
+        if (ctx.IsWord(SqlConst.IF))
         {
             ctx.Consume();
-            if (!ctx.IsWord( SqlConst.EXISTS))
+            if (!ctx.IsWord(SqlConst.EXISTS))
                 throw new InvalidOperationException("DROP INDEX IF must be followed by EXISTS.");
 
             ctx.Consume();
@@ -219,7 +219,7 @@ internal static class SqlDropParserHelper
         var indexName = ctx.ExpectIdentifier();
         SqlTableSource? table = null;
 
-        if (ctx.IsWord( SqlConst.ON))
+        if (ctx.IsWord(SqlConst.ON))
         {
             ctx.Consume();
             table = ctx.ParseDropIndexOnTableName();
@@ -251,10 +251,10 @@ internal static class SqlDropParserHelper
 
         var table = ctx.ParseQualifiedObjectName();
 
-        if (ctx.IsWord( SqlConst.AS) || ctx.Peek().Kind is SqlTokenKind.Identifier or SqlTokenKind.Keyword)
+        if (ctx.IsWord(SqlConst.AS) || ctx.Peek().Kind is SqlTokenKind.Identifier or SqlTokenKind.Keyword)
             throw new InvalidOperationException("DROP INDEX ... ON requires a table name without alias.");
 
-        if (ctx.IsSymbol( "("))
+        if (ctx.IsSymbol("("))
             throw new InvalidOperationException("DROP INDEX ... ON requires a concrete table name.");
 
         return table;

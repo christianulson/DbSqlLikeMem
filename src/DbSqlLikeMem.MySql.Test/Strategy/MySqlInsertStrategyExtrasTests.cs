@@ -124,10 +124,10 @@ public sealed class MySqlInsertStrategyExtrasTests(
     }
 }
 
-    /// <summary>
-    /// EN: Covers delete behavior when foreign keys reference the target row.
-    /// PT: Cobre o comportamento de delete quando chaves estrangeiras referenciam a linha alvo.
-    /// </summary>
+/// <summary>
+/// EN: Covers delete behavior when foreign keys reference the target row.
+/// PT: Cobre o comportamento de delete quando chaves estrangeiras referenciam a linha alvo.
+/// </summary>
 public class MySqlDeleteStrategyForeignKeyTests
 {
     /// <summary>
@@ -165,10 +165,10 @@ public class MySqlDeleteStrategyForeignKeyTests
     }
 }
 
-    /// <summary>
-    /// EN: Covers extra update scenarios in the MySql mock.
-    /// PT: Cobre cenarios extras de update no mock MySql.
-    /// </summary>
+/// <summary>
+/// EN: Covers extra update scenarios in the MySql mock.
+/// PT: Cobre cenarios extras de update no mock MySql.
+/// </summary>
 public class MySqlUpdateStrategyExtrasTests
 {
     /// <summary>

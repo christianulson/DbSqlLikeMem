@@ -44,6 +44,46 @@ CREATE TABLE {users}_{uId} (
     {
         var users = (string)pars[0];
         var uId = (string)pars[1];
+        if (dialect.Provider == ProviderId.Oracle)
+        {
+            TryDropOracleSourceTable(service, users, uId);
+            return;
+        }
+
         service.ExecuteNonQuery(dialect.DropTable(users, uId));
+    }
+
+    private static void TryDropOracleSourceTable(
+        BaseServiceTest<T> service,
+        string users,
+        string uId)
+    {
+        TryExecuteDrop(service, $"DROP TABLE {users}_{uId}");
+        TryExecuteDrop(service, $"DROP TABLE {users}");
+    }
+
+    private static void TryExecuteDrop(
+        BaseServiceTest<T> service,
+        string sql)
+    {
+        try
+        {
+            service.ExecuteNonQuery(sql);
+        }
+        catch (Exception ex) when (IsMissingTableException(ex))
+        {
+        }
+    }
+
+    private static bool IsMissingTableException(Exception ex)
+    {
+        var message = ex.GetBaseException().Message;
+        return message.Contains("does not exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("doesn't exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("doesnt exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("not exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("undefined name", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("not found", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("given key was not present", StringComparison.OrdinalIgnoreCase);
     }
 }

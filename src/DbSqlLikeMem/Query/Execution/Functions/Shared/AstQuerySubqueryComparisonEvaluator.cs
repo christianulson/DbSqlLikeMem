@@ -509,7 +509,7 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
         if (left is null || left is DBNull || right is null || right is DBNull)
             return SqlTruthValue.Unknown;
 
-        var cmp = _context.Compare(left,right );
+        var cmp = _context.Compare(left, right);
         return op switch
         {
             SqlBinaryOp.Eq => cmp == 0 ? SqlTruthValue.True : SqlTruthValue.False,

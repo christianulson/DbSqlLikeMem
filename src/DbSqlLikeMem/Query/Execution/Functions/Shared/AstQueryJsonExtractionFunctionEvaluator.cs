@@ -131,7 +131,7 @@ internal static class AstQueryJsonExtractionFunctionEvaluator
             return true;
         }
 
-        result = TryEvalJsonExtractionValue(fn, json!, path!);
+        result = TryEvalJsonExtractionValue(context, fn, json!, path!);
         return true;
     }
 
@@ -166,7 +166,7 @@ internal static class AstQueryJsonExtractionFunctionEvaluator
             throw context.NotSupported("JSON_VALUE");
     }
 
-    internal static object? TryEvalJsonExtractionValue(FunctionCallExpr fn, object json, string path)
+    internal static object? TryEvalJsonExtractionValue(QueryExecutionContext context, FunctionCallExpr fn, object json, string path)
     {
         try
         {
@@ -180,10 +180,21 @@ internal static class AstQueryJsonExtractionFunctionEvaluator
                     : null;
             }
 
-            var value = QueryJsonFunctionHelper.TryReadJsonPathValue(json, path);
-            return string.Equals(fn.Name, "JSON_VALUE", StringComparison.OrdinalIgnoreCase)
-                ? QueryJsonFunctionHelper.ApplyJsonValueReturningClause(fn, value)
-                : value;
+            if (string.Equals(fn.Name, "JSON_VALUE", StringComparison.OrdinalIgnoreCase))
+            {
+                if (context.Dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!QueryJsonFunctionHelper.TryReadJsonPathElement(json, path, out var element))
+                        return null;
+
+                    return QueryJsonFunctionHelper.ConvertJsonElementToSqlServerJsonValue(element);
+                }
+
+                var value = QueryJsonFunctionHelper.TryReadJsonPathValue(json, path);
+                return QueryJsonFunctionHelper.ApplyJsonValueReturningClause(fn, value);
+            }
+
+            return QueryJsonFunctionHelper.TryReadJsonPathValue(json, path);
         }
 #pragma warning disable CA1031
         catch (Exception e)

@@ -61,6 +61,17 @@ internal static class QueryJsonFunctionHelper
         return ConvertJsonElementToValue(lookup.Value);
     }
 
+    internal static string? ConvertJsonElementToSqlServerJsonValue(JsonElement element)
+        => element.ValueKind switch
+        {
+            JsonValueKind.String => element.GetString(),
+            JsonValueKind.Number => element.GetRawText(),
+            JsonValueKind.True => "true",
+            JsonValueKind.False => "false",
+            JsonValueKind.Null or JsonValueKind.Undefined => null,
+            _ => null
+        };
+
     internal static bool TryReadJsonPathElement(object json, string path, out JsonElement element)
     {
         element = default;

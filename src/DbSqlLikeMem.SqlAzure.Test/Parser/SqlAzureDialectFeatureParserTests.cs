@@ -87,7 +87,7 @@ public sealed class SqlAzureDialectFeatureParserTests(
         var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
             "CREATE OR REPLACE FUNCTION fn_users(@baseValue INT, @incrementValue INT) RETURNS INT AS BEGIN RETURN @baseValue + @incrementValue END",
-            db, 
+            db,
             dialect));
         Assert.Contains("CREATE OR REPLACE FUNCTION", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -480,7 +480,7 @@ public sealed class SqlAzureDialectFeatureParserTests(
             return;
         }
 
-        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql,db, dialect));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, dialect));
         var join = Assert.Single(parsed.Joins);
         var withClause = Assert.IsType<SqlOpenJsonWithClause>(join.Table.OpenJsonWithClause);
         Assert.Equal(3, withClause.Columns.Count);
@@ -757,20 +757,20 @@ public sealed class SqlAzureDialectFeatureParserTests(
         if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2012)
         {
             var nextEx = Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("NEXT VALUE FOR sales.seq_orders",db, dialect));
+                SqlExpressionParser.ParseScalar("NEXT VALUE FOR sales.seq_orders", db, dialect));
             Assert.Contains("NEXT VALUE FOR", nextEx.Message, StringComparison.OrdinalIgnoreCase);
 
             var previousEx = Assert.Throws<NotSupportedException>(() =>
-                SqlExpressionParser.ParseScalar("PREVIOUS VALUE FOR sales.seq_orders", db,dialect));
+                SqlExpressionParser.ParseScalar("PREVIOUS VALUE FOR sales.seq_orders", db, dialect));
             Assert.Contains("PREVIOUS VALUE FOR", previousEx.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        var nextExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("NEXT VALUE FOR sales.seq_orders",db, dialect));
+        var nextExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("NEXT VALUE FOR sales.seq_orders", db, dialect));
         Assert.Equal("NEXT_VALUE_FOR", nextExpr.Name, StringComparer.OrdinalIgnoreCase);
 
         var previousExSupported = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("PREVIOUS VALUE FOR sales.seq_orders",db, dialect));
+            SqlExpressionParser.ParseScalar("PREVIOUS VALUE FOR sales.seq_orders", db, dialect));
         Assert.Contains("PREVIOUS VALUE FOR", previousExSupported.Message, StringComparison.OrdinalIgnoreCase);
     }
 

@@ -82,7 +82,7 @@ public abstract class BaseServiceTest<T>(
         command.CommandText = sql;
         if (transaction is not null)
             command.Transaction = transaction;
-        
+
         return command.ExecuteNonQuery();
     }
 

@@ -29,7 +29,7 @@ internal static class AstQueryPostgresRegexFunctionEvaluator
             return false;
         }
 
-        return handler(context,fn,  evalArg, out result);
+        return handler(context, fn, evalArg, out result);
     }
 
     private static IReadOnlyDictionary<string, AstQueryTryEvalPostgresRegexFunction> CreateHandlers()

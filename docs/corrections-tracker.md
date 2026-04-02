@@ -78,6 +78,9 @@
 - Db2 now overrides `SupportsIifFunction` to `false`, which keeps the scalar-function smoke test aligned with the expected unsupported `IIF` behavior.
 - Parser validation no longer grants blanket support to unknown functions just because a custom-function resolver is present; the resolver must actually accept the function name, which keeps Db2 `IIF` unsupported while preserving real runtime UDFs.
 - Db2 `MONTHNAME` and `QUARTER` are now registered in the Db2 scalar registry with local date handlers, which keeps the scalar-function smoke test aligned with the expected month-name and quarter results.
+- Oracle `TO_CHAR(...)` is now registered explicitly in the conversion registry, which keeps the text-case length matrix from falling back to a numeric `0` when the fidelity helper wraps `LENGTH(Name)` in `TO_CHAR(...)`.
+- Oracle `TO_CHAR(...)` now uses the dedicated one-argument formatting executor instead of the generic cast executor, which keeps `TRIM(TO_CHAR(LENGTH(Name)))` returning the text length string instead of `0`.
+- Oracle common text functions (`UPPER`, `LOWER`, `TRIM`, `LTRIM`, `RTRIM`, and `LENGTH` family) are now also bound explicitly in the Oracle registry, which keeps `ExecuteScalar` on simple text projections from falling back to `<null>` in the typed-field blend test.
 - Db2 `UCASE` is now registered as a string alias in the Db2 scalar registry, which keeps the scalar-function smoke test aligned with the expected uppercasing result.
 - Db2 `DAY` is now registered and handled as day-of-month in the Db2 date evaluator, which keeps the scalar-function smoke test aligned with the expected day value.
 - Db2 `MONTH`, `YEAR`, `HOUR`, `MINUTE`, `SECOND`, and `WEEK` are now registered in the Db2 date evaluator and scalar registry, which keeps the scalar-function smoke test aligned with the expected date-part and week values.
@@ -91,3 +94,18 @@
 - Db2 stored-procedure signature tests now mark `DateTimeOffset` input-output parameters as unsupported, which matches the `iDB2Parameter` limitation surfaced by the provider before the mock can run the stored-procedure flow.
 - Db2 stored-procedure signature tests now treat `Guid` input-output parameters as supported, which matches the current `iDB2Parameter` behavior observed in the mock path used by the shared signature test base.
 - Db2 typed parameter fidelity helpers now avoid forcing `DbType.DateTimeOffset` on `DB2Parameter`, which matches the provider limitation seen in the query parameter matrix and keeps the value-payload roundtrip path available.
+- Oracle `CAST` is now bound explicitly in the Oracle scalar registry, with `NUMBER` casts routed through an Oracle-specific conversion helper that preserves integer `NUMBER` values and decimal `NUMBER(p,s)` values for the gap test matrix.
+- Oracle `CAST` now defers non-Oracle-specific numeric/date casts back to the shared cast evaluator, which keeps `CAST(Id AS INT)` flowing through the common integer-cast path instead of materializing `0`.
+- Oracle temporal benchmark helpers now use `CAST(CURRENT_TIMESTAMP AS DATE) + 1` for the date-add path, which keeps the scalar temporal matrix from returning `DBNull` on the Oracle mock while preserving the one-day increment intent.
+- Oracle `SelectTableScenario` now creates the full `Users` schema for the Oracle provider instead of a reduced `Id`/`Name` table, which keeps `InsertUser(...)` aligned with the helper that inserts `Email` and the other Oracle columns.
+- Oracle join matrix helpers now use `SUM(CASE WHEN o.Id IS NULL THEN 0 ELSE 1 END)` instead of `COUNT(o.Id)` so the grouped left join rows keep the same counts in the mock and in the real provider.
+- Oracle join matrix helpers now use a correlated `COUNT(*)` subquery for row counts so left-join aggregates stay stable in the mock while preserving the real Oracle semantics.
+- Oracle `StringCastExpression` now switches scalar subquery expressions to `CAST(... AS VARCHAR2)` so count projections wrapped in text formatting do not collapse to `0` in the mock.
+- Oracle `StringCastExpression` now uses `CAST(... AS VARCHAR2)` for all fidelity text helpers because `TO_CHAR(...)` was materializing `0` for length and aggregate projections in the mock.
+- Oracle join helper `BuildFirstNoteSubquery(...)` now uses `FETCH FIRST 1 ROW ONLY` instead of `LIMIT 1`, matching Oracle SQL pagination syntax in the grouped join matrices.
+- Oracle join length matrices now use `MAX(LENGTH(u.Name))` for the grouped name-length projection, matching the mock-friendly pattern already used for Db2.
+- Oracle `BuildFirstNoteSubquery(...)` now uses `MIN(o2.Note)` / `MAX(o2.Note)` for scalar first/last-note projections, avoiding unsupported subquery pagination in Oracle grouped joins while preserving the expected ordering semantics.
+- Oracle numeric lookup helpers now compare `Id` columns directly instead of wrapping them in `TO_NUMBER(...)`, which avoided false negatives in parameterized lookups and CRUD helpers on the mock.
+- Oracle typed-parameter fidelity helper now normalizes `DateTime`, `DateTimeOffset`, `TimeSpan`, and `Guid` values to Oracle-friendly strings before assigning `OracleParameter.Value`, which keeps the parameter type matrix from failing during bind setup.
+- Oracle pivot-count helper now uses a filtered `COUNT(*)` for the Oracle provider instead of adding two `SUM(CASE ...)` expressions, which avoids the arithmetic inference path that was collapsing into an empty-string-to-number conversion on the mock.
+- Oracle `InsertUser` and `InsertUsers` now insert only `Id` and `Name`, letting Oracle defaults fill the remaining user columns and avoiding column-resolution failures on scenarios that only need the basic user fields.

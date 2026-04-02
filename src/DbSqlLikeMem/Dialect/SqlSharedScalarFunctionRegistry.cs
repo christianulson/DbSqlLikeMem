@@ -44,10 +44,10 @@ internal static class SqlSharedScalarFunctionRegistry
         dialect.Functions.Add(DbFunctionDef.CreateScalar("ATANH", "DOUBLE", AstQuerySharedNumericFunctionEvaluator.TryEvaluate));
 
         dialect.Functions.Add(DbFunctionDef.CreateScalar(
-            "CONCAT", "VARCHAR", 
+            "CONCAT", "VARCHAR",
             QueryConcatFunctionHelper.TryEvalConcatFunctions));
         dialect.Functions.Add(DbFunctionDef.CreateScalar(
-            "CONCAT_WS", "VARCHAR", 
+            "CONCAT_WS", "VARCHAR",
             QueryConcatFunctionHelper.TryEvalConcatFunctions));
         dialect.Functions.Add(DbFunctionDef.CreateScalar("CHAR", "VARCHAR", AstQuerySharedTextFunctionEvaluator.TryEvaluate));
         dialect.Functions.Add(DbFunctionDef.CreateScalar("NCHAR", "VARCHAR", AstQuerySharedTextFunctionEvaluator.TryEvaluate));

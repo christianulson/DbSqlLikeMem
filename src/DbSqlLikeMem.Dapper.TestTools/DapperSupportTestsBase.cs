@@ -121,7 +121,7 @@ FROM dapper_case_group
 GROUP BY category
 ORDER BY category", new { cutoff = 50 }).ToList();
 
-        rows.Should().Equal(new[] {("A", 1), ("B", 1)});
+        rows.Should().Equal(new[] { ("A", 1), ("B", 1) });
     }
 
     /// <summary>
@@ -259,7 +259,7 @@ WHERE u.id = 1");
         }
 
         var values = connection.Query<int>("SELECT amount FROM dapper_tx_sequence ORDER BY id").ToList();
-        values.Should().Equal(new[] {15});
+        values.Should().Equal(new[] { 15 });
     }
 
 
@@ -514,7 +514,7 @@ LEFT JOIN dapper_left_orders o ON o.user_id = u.id
 WHERE o.id IS NULL
 ORDER BY u.id").ToList();
 
-        userIdsWithoutOrders.Should().Equal(new[] {2});
+        userIdsWithoutOrders.Should().Equal(new[] { 2 });
     }
 
     /// <summary>
@@ -541,7 +541,7 @@ WHERE u.id IN (@a, @b, @c)
   AND EXISTS (SELECT 1 FROM dapper_exists_orders o WHERE o.user_id = u.id)
 ORDER BY u.id", new { a = 1, b = 2, c = 3 }).ToList();
 
-        rows.Should().Equal(new[] {(1, "Alice"), (3, "Carol")});
+        rows.Should().Equal(new[] { (1, "Alice"), (3, "Carol") });
     }
 
     /// <summary>
@@ -569,8 +569,8 @@ SELECT user_id userId, amount FROM dapper_qm_orders WHERE amount >= @minAmount O
         var users = multi.Read<(int id, string name)>().ToList();
         var orders = multi.Read<(int userId, int amount)>().ToList();
 
-        users.Should().Equal(new[] {(1, "Alice"), (2, "Bob")});
-        orders.Should().Equal(new[] {(1, 45), (1, 30)});
+        users.Should().Equal(new[] { (1, "Alice"), (2, "Bob") });
+        orders.Should().Equal(new[] { (1, 45), (1, 30) });
     }
 
     /// <summary>
@@ -606,7 +606,7 @@ WHERE u.id = @id",
 
         row.Id.Should().Be(1);
         row.Name.Should().Be("Alice");
-        row.Tenants.Should().Equal(new[] {7});
+        row.Tenants.Should().Equal(new[] { 7 });
     }
 
     private sealed class DapperMultiMapUser
@@ -1663,10 +1663,10 @@ GROUP BY grp
         using var reader = cmd.ExecuteReader();
         var ids = reader.Parse<dynamic>().Select(r => (int)r.id).ToList();
 
-        ids.Should().Equal(new[] {4, 3});
+        ids.Should().Equal(new[] { 4, 3 });
         reader.NextResult();
         var ids2 = reader.Parse<dynamic>().Select(r => (int)r.id).ToList();
-        ids2.Should().Equal(new[] {4, 3});
+        ids2.Should().Equal(new[] { 4, 3 });
     }
 
     /// <summary>
@@ -2537,7 +2537,7 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
 
         var result = connection.Query<dynamic>("SELECT * FROM t WHERE id IN (1,3)").ToList();
         var ids = result.Select(r => (int)r.id).OrderBy(static x => x).ToArray();
-        ids.Should().Equal(new[] {1, 3});
+        ids.Should().Equal(new[] { 1, 3 });
     }
 
     /// <summary>
@@ -2855,10 +2855,10 @@ public abstract class AdditionalBehaviorCoverageTestsBase<TDb, TConnection>
     protected void Where_IsNull_And_IsNotNull_ShouldWork()
     {
         var nullIds = Connection.Query<int>("SELECT id FROM users WHERE email IS NULL ORDER BY id").ToList();
-        nullIds.Should().Equal(new[] {2});
+        nullIds.Should().Equal(new[] { 2 });
 
         var notNullIds = Connection.Query<int>("SELECT id FROM users WHERE email IS NOT NULL ORDER BY id").ToList();
-        notNullIds.Should().Equal(new[] {1, 3});
+        notNullIds.Should().Equal(new[] { 1, 3 });
     }
 
     /// <summary>
@@ -2937,7 +2937,7 @@ HAVING SUM(amount) > 100
 ORDER BY userid
 ").ToList();
 
-        userIds.Should().Equal(new[] {2});
+        userIds.Should().Equal(new[] { 2 });
     }
 
     /// <summary>
@@ -2947,7 +2947,7 @@ ORDER BY userid
     protected void Where_In_WithParameterList_ShouldWork()
     {
         var ids = Connection.Query<int>("SELECT id FROM users WHERE id IN @ids ORDER BY id", new { ids = Param }).ToList();
-        ids.Should().Equal(new[] {1, 3});
+        ids.Should().Equal(new[] { 1, 3 });
     }
 
     /// <summary>
@@ -2974,7 +2974,7 @@ ORDER BY userid
         deleted.Should().Be(2);
 
         var remaining = Connection.Query<int>("SELECT id FROM users ORDER BY id").ToList();
-        remaining.Should().Equal(new[] {2});
+        remaining.Should().Equal(new[] { 2 });
     }
 
     /// <summary>

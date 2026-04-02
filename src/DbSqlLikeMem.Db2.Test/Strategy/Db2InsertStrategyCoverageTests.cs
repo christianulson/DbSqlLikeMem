@@ -18,7 +18,7 @@ public sealed class Db2InsertStrategyCoverageTests(
     {
         var db = new Db2DbMock();
         var t = db.AddTable("t");
-        t.AddColumn("id", DbType.Int32, false, identity: false );
+        t.AddColumn("id", DbType.Int32, false, identity: false);
         t.AddColumn("name", DbType.String, false);
 
         using var cnn = new Db2ConnectionMock(db);
@@ -47,7 +47,7 @@ public sealed class Db2InsertStrategyCoverageTests(
     {
         var db = new Db2DbMock();
         var t = db.AddTable("t");
-        t.AddColumn("id", DbType.Int32, false, identity: true );
+        t.AddColumn("id", DbType.Int32, false, identity: true);
         t.AddColumn("name", DbType.String, false);
 
         t.AddPrimaryKeyIndexes("id");

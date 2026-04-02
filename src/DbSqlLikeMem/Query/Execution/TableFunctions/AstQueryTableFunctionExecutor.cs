@@ -11,7 +11,7 @@ internal sealed class AstQueryTableFunctionExecutor
         QueryExecutionContext context,
         Func<SqlExpr, AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, IDictionary<string, AstQueryExecutorBase.Source>, object?> evalExpression)
     {
-        
+
         ArgumentNullExceptionCompatible.ThrowIfNull(evalExpression, nameof(evalExpression));
 
         _openJsonHandler = new AstQueryOpenJsonTableFunctionHandler(context, evalExpression);

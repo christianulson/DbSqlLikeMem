@@ -9,7 +9,7 @@ internal static class SqlTableHintsHelper
 
         while (true)
         {
-            if (ctx.IsWord( SqlConst.WITH) && SqlQueryParserContext.IsSymbol(ctx.Peek(1), "("))
+            if (ctx.IsWord(SqlConst.WITH) && SqlQueryParserContext.IsSymbol(ctx.Peek(1), "("))
             {
                 if (!ctx.Dialect.SupportsSqlServerTableHints)
                     throw ctx.NotSupported("WITH(table hints)");
@@ -28,7 +28,7 @@ internal static class SqlTableHintsHelper
                 continue;
             }
 
-            if (ctx.IsWord( SqlConst.USE) || ctx.IsWord( SqlConst.IGNORE) || ctx.IsWord( SqlConst.FORCE))
+            if (ctx.IsWord(SqlConst.USE) || ctx.IsWord(SqlConst.IGNORE) || ctx.IsWord(SqlConst.FORCE))
             {
                 if (!ctx.Dialect.SupportsMySqlIndexHints)
                     throw ctx.NotSupported("INDEX hints");
@@ -58,7 +58,7 @@ internal static class SqlTableHintsHelper
         else
             throw new InvalidOperationException("MySQL index hint inválido: tipo de hint desconhecido.");
 
-        if (ctx.IsWord( SqlConst.INDEX) || ctx.IsWord( "KEY"))
+        if (ctx.IsWord(SqlConst.INDEX) || ctx.IsWord("KEY"))
         {
             ctx.Consume();
         }
@@ -68,27 +68,27 @@ internal static class SqlTableHintsHelper
         }
 
         var scope = SqlMySqlIndexHintScope.Any;
-        if (ctx.IsWord( SqlConst.FOR))
+        if (ctx.IsWord(SqlConst.FOR))
         {
             ctx.Consume();
-            if (ctx.IsWord( SqlConst.JOIN))
+            if (ctx.IsWord(SqlConst.JOIN))
             {
                 ctx.Consume();
                 scope = SqlMySqlIndexHintScope.Join;
             }
-            else if (ctx.IsWord( SqlConst.ORDER))
+            else if (ctx.IsWord(SqlConst.ORDER))
             {
                 ctx.Consume();
-                if (!ctx.IsWord( SqlConst.BY))
+                if (!ctx.IsWord(SqlConst.BY))
                     throw new InvalidOperationException("MySQL index hint inválido: esperado BY após ORDER.");
 
                 ctx.Consume();
                 scope = SqlMySqlIndexHintScope.OrderBy;
             }
-            else if (ctx.IsWord( SqlConst.GROUP))
+            else if (ctx.IsWord(SqlConst.GROUP))
             {
                 ctx.Consume();
-                if (!ctx.IsWord( SqlConst.BY))
+                if (!ctx.IsWord(SqlConst.BY))
                     throw new InvalidOperationException("MySQL index hint inválido: esperado BY após GROUP.");
 
                 ctx.Consume();

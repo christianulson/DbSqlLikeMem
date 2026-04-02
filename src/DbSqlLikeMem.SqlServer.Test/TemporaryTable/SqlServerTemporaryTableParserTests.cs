@@ -97,7 +97,7 @@ WHERE tenantid = 10",
         var db = Get(version, v => new SqlServerDbMock(v));
 
         var localTemp = Assert.IsType<SqlCreateTemporaryTableQuery>(
-            SqlQueryParser.Parse("CREATE TABLE #tmp_users AS SELECT id FROM users", db,d));
+            SqlQueryParser.Parse("CREATE TABLE #tmp_users AS SELECT id FROM users", db, d));
         Assert.Equal(TemporaryTableScope.Connection, localTemp.Scope);
 
         var globalTemp = Assert.IsType<SqlCreateTemporaryTableQuery>(

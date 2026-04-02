@@ -1,4 +1,5 @@
 namespace DbSqlLikeMem;
+
 internal static class SqlExprPrinter
 {
     /// <summary>

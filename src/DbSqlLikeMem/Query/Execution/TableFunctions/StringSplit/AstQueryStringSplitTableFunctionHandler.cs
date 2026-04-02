@@ -61,8 +61,8 @@ internal sealed class AstQueryStringSplitTableFunctionHandler(
     }
 
     private static TableResultMock CreateStringSplitTableResult(string tableAlias, bool includeOrdinal)
-        {
-            var columns = new List<TableResultColMock>(includeOrdinal ? 2 : 1)
+    {
+        var columns = new List<TableResultColMock>(includeOrdinal ? 2 : 1)
         {
             new(tableAlias, "value", "value", 0, DbType.String, true)
         };

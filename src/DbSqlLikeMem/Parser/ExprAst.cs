@@ -1,4 +1,5 @@
 namespace DbSqlLikeMem;
+
 internal abstract record SqlExpr;
 internal sealed record IdentifierExpr(string Name) : SqlExpr;              // "col" ou "alias.col"
 internal sealed record ColumnExpr(string Qualifier, string Name) : SqlExpr;

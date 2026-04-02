@@ -10,7 +10,7 @@ internal static class SqlRawExpressionReaderHelper
 
         while (true)
         {
-            if (ctx.IsEnd() || ctx.IsSymbol( ";"))
+            if (ctx.IsEnd() || ctx.IsSymbol(";"))
             {
                 if (items.Count == 0)
                     throw ctx.NotSupported(
@@ -18,7 +18,7 @@ internal static class SqlRawExpressionReaderHelper
                 break;
             }
 
-            if (ctx.IsSymbol( ","))
+            if (ctx.IsSymbol(","))
                 throw new InvalidOperationException(
                     $"RETURNING has an unexpected comma before expression (found '{ctx.DescribeFoundToken()}').");
 
@@ -29,11 +29,11 @@ internal static class SqlRawExpressionReaderHelper
 
             items.Add(raw);
 
-            if (ctx.IsSymbol( ","))
+            if (ctx.IsSymbol(","))
             {
                 ctx.Consume();
 
-                if (ctx.IsEnd() || ctx.IsSymbol( ";"))
+                if (ctx.IsEnd() || ctx.IsSymbol(";"))
                     throw new InvalidOperationException(
                         $"RETURNING has a trailing comma without expression (found '{ctx.DescribeFoundToken()}').");
 

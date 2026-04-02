@@ -52,7 +52,7 @@ internal static class AstQueryFunctionDispatchHelper
             if (ShouldSkipSimpleCaseMatch(baseValue, whenValue))
                 continue;
 
-            if (context.Compare(baseValue,whenValue) == 0)
+            if (context.Compare(baseValue, whenValue) == 0)
                 return eval(whenThen.Then, row, group, ctes);
         }
 

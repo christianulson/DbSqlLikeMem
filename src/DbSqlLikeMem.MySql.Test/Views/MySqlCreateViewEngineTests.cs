@@ -16,7 +16,7 @@ public sealed class MySqlCreateViewEngineTests : XUnitTestBase
     /// EN: Creates the users and orders tables used by the view tests.
     /// PT: Cria as tabelas users e orders usadas pelos testes de view.
     /// </summary>
-    public MySqlCreateViewEngineTests(ITestOutputHelper helper): base(helper)
+    public MySqlCreateViewEngineTests(ITestOutputHelper helper) : base(helper)
     {
         var db = new MySqlDbMock();
         _users = db.AddTable("users");
@@ -24,7 +24,7 @@ public sealed class MySqlCreateViewEngineTests : XUnitTestBase
         _users.AddColumn("name", DbType.String, false);
         _users.AddColumn("tenantid", DbType.Int32, false);
         _users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John", [2] = 10 });
-        _users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Bob",  [2] = 10 });
+        _users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Bob", [2] = 10 });
         _users.Add(new Dictionary<int, object?> { [0] = 3, [1] = "Jane", [2] = 20 });
 
         _orders = db.AddTable("orders");

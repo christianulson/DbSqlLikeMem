@@ -96,7 +96,7 @@ internal static class CommandReaderParsedQueryDispatcher
                 break;
             case SqlUnionQuery unionQ:
                 tables.Add(executor.ExecuteUnion(
-                    unionQ.Parts, 
+                    unionQ.Parts,
                     unionQ.AllFlags,
                     unionQ.OrderBy,
                     unionQ.RowLimit,

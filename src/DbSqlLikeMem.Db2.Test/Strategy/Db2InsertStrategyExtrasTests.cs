@@ -94,8 +94,8 @@ public sealed class Db2InsertStrategyExtrasTests(
 }
 
 /// <summary>
-    /// EN: Covers delete behavior when foreign keys reference the target row.
-    /// PT: Cobre o comportamento de delete quando chaves estrangeiras referenciam a linha alvo.
+/// EN: Covers delete behavior when foreign keys reference the target row.
+/// PT: Cobre o comportamento de delete quando chaves estrangeiras referenciam a linha alvo.
 /// </summary>
 public class Db2DeleteStrategyForeignKeyTests
 {

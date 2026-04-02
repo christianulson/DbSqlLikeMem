@@ -8,7 +8,7 @@ internal static class SqlSelectOrUnionQueryHelper
     {
         var first = parseSelectQuery(true, false);
 
-        if (!ctx.IsWord( SqlConst.UNION))
+        if (!ctx.IsWord(SqlConst.UNION))
         {
             var orderBy = SqlOrderByHelper.TryParseOrderBy(
                 ctx,
@@ -32,11 +32,11 @@ internal static class SqlSelectOrUnionQueryHelper
         var parts = new List<SqlSelectQuery> { first };
         var allFlags = new List<bool>();
 
-        while (ctx.IsWord( SqlConst.UNION))
+        while (ctx.IsWord(SqlConst.UNION))
         {
             ctx.Consume();
             var isAll = false;
-            if (ctx.IsWord( SqlConst.ALL))
+            if (ctx.IsWord(SqlConst.ALL))
             {
                 ctx.Consume();
                 isAll = true;
@@ -69,7 +69,7 @@ internal static class SqlSelectOrUnionQueryHelper
     {
         var first = parseSelectQuery(true, false);
 
-        if (!ctx.IsWord( SqlConst.UNION))
+        if (!ctx.IsWord(SqlConst.UNION))
         {
             var orderBy = tryParseOrderBy();
             var rowLimit = tryParseRowLimitTail(orderBy.Count > 0);
@@ -89,11 +89,11 @@ internal static class SqlSelectOrUnionQueryHelper
         var parts = new List<SqlSelectQuery> { first };
         var allFlags = new List<bool>();
 
-        while (ctx.IsWord( SqlConst.UNION))
+        while (ctx.IsWord(SqlConst.UNION))
         {
             ctx.Consume();
             var isAll = false;
-            if (ctx.IsWord( SqlConst.ALL))
+            if (ctx.IsWord(SqlConst.ALL))
             {
                 ctx.Consume();
                 isAll = true;

@@ -506,7 +506,7 @@ public sealed class MySqlTransactionTests(
         connection.HasActiveTransaction.Should().BeFalse();
         Action act = () => connection.RollbackTransaction("sp_reset");
         act.Should().Throw<InvalidOperationException>()
-            .Which.Message.Should().Contain("No active transaction" );
+            .Which.Message.Should().Contain("No active transaction");
     }
 
     /// <summary>

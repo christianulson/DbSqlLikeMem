@@ -77,7 +77,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
         var baseResx = Path.Combine(basePath, "SqlExecutionPlanMessages.resx");
 
         var baseEntries = LoadResxEntries(baseResx);
-        var messageKeysUsedByCode = new HashSet<string>( typeof(SqlExecutionPlanMessages)
+        var messageKeysUsedByCode = new HashSet<string>(typeof(SqlExecutionPlanMessages)
             .GetMethods(BindingFlags.Public | BindingFlags.Static)
             .Select(static method => method.Name), StringComparer.Ordinal);
 

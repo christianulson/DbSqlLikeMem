@@ -28,6 +28,6 @@ public class DropTableScenario<T>
     /// <exception cref="NotImplementedException"></exception>
     public void DropScenario(BaseServiceTest<T> service, params object[] pars)
     {
-        
+
     }
 }

@@ -227,7 +227,7 @@ public class MySqlCommandMock(
     /// PT: Obtém ou define UpdatedRowSource.
     /// </summary>
     public override UpdateRowSource UpdatedRowSource { get; set; }
-    
+
     /// <summary>
     /// EN: Gets or sets DesignTimeVisible.
     /// PT: Obtém ou define DesignTimeVisible.

@@ -308,6 +308,11 @@ internal static class NpgsqlScalarFunctionRegistry
         }
 
         dialect.AddScalarFunction("CBRT", "DOUBLE", TryEvalPostgresNumericFunction);
+        dialect.AddScalarFunction(
+            DbFunctionDef.CreateScalar("CAST", "VARCHAR") with
+            {
+                AstExecutor = AstQueryCastConversionFamilyEvaluator.TryEvalCastLikeFunction
+            });
     }
 
     private static void RegisterPostgresCompatibilityFunctions(
@@ -355,7 +360,7 @@ internal static class NpgsqlScalarFunctionRegistry
         ISqlDialect dialect,
         AstQueryGeneralScalarFunctionHandler tryEvalPostgresArrayFunction)
     {
-        dialect.AddScalarFunction("STRING_TO_ARRAY", "VARCHAR", tryEvalPostgresArrayFunction);
+        dialect.AddScalarFunction("STRING_TO_ARRAY", "VARCHAR", AstQueryPostgresTextFunctionEvaluator.TryEvaluate);
         dialect.AddScalarFunction("ARRAY_TO_STRING", "VARCHAR", tryEvalPostgresArrayFunction);
         dialect.AddScalarFunction("ARRAY_DIMS", "VARCHAR", tryEvalPostgresArrayFunction);
         dialect.AddScalarFunction("ARRAY_TO_JSON", "VARCHAR", tryEvalPostgresArrayFunction);
