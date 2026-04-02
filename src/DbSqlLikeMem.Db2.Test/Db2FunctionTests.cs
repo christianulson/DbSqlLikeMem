@@ -35,7 +35,8 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
 
         ExecuteNonQuery(connection, "DROP FUNCTION IF EXISTS fn_users(INT, INT)");
 
-        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"));
+        var ex = Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"));
+        Assert.Contains("FN_USERS", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -675,4 +676,3 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
         command.ExecuteNonQuery();
     }
 }
-
