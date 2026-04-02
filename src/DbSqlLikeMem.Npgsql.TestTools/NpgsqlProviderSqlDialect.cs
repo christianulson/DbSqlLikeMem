@@ -175,11 +175,18 @@ CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (Order
 
     /// <inheritdoc />
     public override string JsonProfileNameExpression(string jsonColumn) =>
-        $"({jsonColumn}::jsonb -> 'profile' ->> 'name')";
+        $"JSONB_EXTRACT_PATH_TEXT({jsonColumn}, 'profile', 'name')";
 
     /// <inheritdoc />
     public override string StringLengthExpression(string expression) =>
         $"CHAR_LENGTH({expression})";
+
+    /// <inheritdoc />
+    public override string StringCastExpression(string expression, int length = 10)
+    {
+        _ = length;
+        return $"CONCAT({expression}, '')";
+    }
 
     /// <inheritdoc />
     public override string TemporalDateAdd() =>

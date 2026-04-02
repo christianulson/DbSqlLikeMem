@@ -91,6 +91,18 @@ internal sealed class QueryExecutionContext
     public bool HasActiveTransaction { get; }
 
     /// <summary>
+    /// EN: Snapshot of local time captured when the execution context was created.
+    /// PT: Snapshot do horario local capturado quando o contexto de execucao foi criado.
+    /// </summary>
+    internal DateTime EvaluationLocalNow { get; }
+
+    /// <summary>
+    /// EN: Snapshot of UTC time captured when the execution context was created.
+    /// PT: Snapshot do horario UTC capturado quando o contexto de execucao foi criado.
+    /// </summary>
+    internal DateTime EvaluationUtcNow { get; }
+
+    /// <summary>
     /// EN: Creates a query execution context from a connection, dialect, and parameter collection.
     /// PT: Cria um contexto de execução de query a partir de uma conexão, dialeto e coleção de parâmetros.
     /// </summary>
@@ -117,6 +129,8 @@ internal sealed class QueryExecutionContext
         SimulatedLatencyMs = connection.SimulatedLatencyMs;
         DropProbability = connection.DropProbability;
         HasActiveTransaction = connection.HasActiveTransaction;
+        EvaluationLocalNow = DateTime.Now;
+        EvaluationUtcNow = DateTime.UtcNow;
     }
 
     /// <summary>

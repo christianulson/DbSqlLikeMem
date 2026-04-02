@@ -34,7 +34,7 @@ internal static class AstQueryDb2DateFunctionEvaluator
     private static Dictionary<string, AstQueryTryEvalDb2DateFunction> CreateHandlers()
     {
         var handlers = new Dictionary<string, AstQueryTryEvalDb2DateFunction>(StringComparer.OrdinalIgnoreCase);
-        Register(handlers, TryEvalDb2DateAliasFunctionHandler, "DAYNAME", "DAYOFMONTH", "DAYOFWEEK", "DAYOFWEEK_ISO", "DAYOFYEAR", "WEEK_ISO");
+        Register(handlers, TryEvalDb2DateAliasFunctionHandler, "DAY", "DAYNAME", "DAYOFMONTH", "DAYOFWEEK", "DAYOFWEEK_ISO", "DAYOFYEAR", "HOUR", "MINUTE", "MONTH", "SECOND", "WEEK", "WEEK_ISO", "YEAR");
         Register(handlers, TryEvalDb2DateAddAliasFunctionHandler, "ADD_DAYS", "ADD_HOURS", "ADD_MINUTES", "ADD_SECONDS", "ADD_MONTHS", "ADD_YEARS");
         return handlers;
     }
@@ -83,16 +83,23 @@ internal static class AstQueryDb2DateFunctionEvaluator
             return true;
         }
 
-        result = name switch
-        {
+            result = name switch
+            {
+            "DAY" => dateTime.Day,
             "DAYNAME" => dateTime.ToString("dddd", CultureInfo.InvariantCulture),
             "DAYOFMONTH" => dateTime.Day,
             "DAYOFWEEK" => (int)dateTime.DayOfWeek + 1,
             "DAYOFWEEK_ISO" => ((int)dateTime.DayOfWeek + 6) % 7 + 1,
             "DAYOFYEAR" => dateTime.DayOfYear,
+            "HOUR" => dateTime.Hour,
+            "MINUTE" => dateTime.Minute,
+            "MONTH" => dateTime.Month,
+            "SECOND" => dateTime.Second,
+            "WEEK" => AstQueryExecutorBase.GetIsoWeekOfYear(dateTime),
             "WEEK_ISO" => AstQueryExecutorBase.GetIsoWeekOfYear(dateTime),
+            "YEAR" => dateTime.Year,
             _ => null
-        };
+            };
         return true;
     }
 

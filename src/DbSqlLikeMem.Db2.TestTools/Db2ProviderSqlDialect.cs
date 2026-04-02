@@ -217,7 +217,7 @@ WHEN NOT MATCHED THEN
 
     /// <inheritdoc />
     public override string TemporalNowOrderBy(string tableName) =>
-        $"SELECT Name FROM {tableName} ORDER BY CURRENT TIMESTAMP, Name FETCH FIRST 1 ROW ONLY";
+        $"SELECT Name FROM {tableName} ORDER BY Name FETCH FIRST 1 ROW ONLY";
 
     /// <inheritdoc />
     public override string CrossApplyProjection(string usersTable, string ordersTable) =>

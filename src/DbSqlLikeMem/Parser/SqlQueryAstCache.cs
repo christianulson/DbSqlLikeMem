@@ -3,7 +3,7 @@ namespace DbSqlLikeMem;
 internal sealed class SqlQueryAstCache
 {
     // Bump when parser semantics change in a way that invalidates previously cached ASTs.
-    private const int ParserCacheKeyVersion = 2;
+    private const int ParserCacheKeyVersion = 3;
 
     private readonly int _capacity;
     private readonly object _gate = new();

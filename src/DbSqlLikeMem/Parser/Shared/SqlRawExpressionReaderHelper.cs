@@ -13,7 +13,7 @@ internal static class SqlRawExpressionReaderHelper
             if (ctx.IsEnd() || ctx.IsSymbol( ";"))
             {
                 if (items.Count == 0)
-                    throw new InvalidOperationException(
+                    throw ctx.NotSupported(
                         $"RETURNING requires at least one expression (found '{ctx.DescribeFoundToken()}').");
                 break;
             }
@@ -24,7 +24,7 @@ internal static class SqlRawExpressionReaderHelper
 
             var raw = readRawExpressionUntilCommaOrTerminator().Trim();
             if (string.IsNullOrWhiteSpace(raw))
-                throw new InvalidOperationException(
+                throw ctx.NotSupported(
                     $"RETURNING requires at least one expression (found '{ctx.DescribeFoundToken()}').");
 
             items.Add(raw);
@@ -98,7 +98,7 @@ internal static class SqlRawExpressionReaderHelper
             else if (SqlQueryParserContext.IsSymbol(t, ")"))
             {
                 if (depth == 0)
-                    throw new InvalidOperationException("RETURNING has unbalanced parentheses in expression.");
+                    throw ctx.NotSupported("RETURNING has unbalanced parentheses in expression.");
                 depth--;
             }
 
@@ -106,7 +106,7 @@ internal static class SqlRawExpressionReaderHelper
         }
 
         if (depth != 0)
-            throw new InvalidOperationException("RETURNING has unbalanced parentheses in expression.");
+            throw ctx.NotSupported("RETURNING has unbalanced parentheses in expression.");
 
         return ctx.TokensToSql(buf);
     }

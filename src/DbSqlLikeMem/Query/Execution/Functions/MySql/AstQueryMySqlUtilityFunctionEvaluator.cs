@@ -41,6 +41,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
         Register(handlers, TryEvalSetFunctions, "ELT", "MAKE_SET", "EXPORT_SET");
         Register(handlers, TryEvalHexFunctions, "HEX", "UNHEX");
+        Register(handlers, TryEvalSoundexFunction, "SOUNDEX");
         Register(handlers, TryEvalShaFunctions, "SHA", "SHA1", "SHA2");
         Register(handlers, TryEvalOctFunction, "OCT");
         Register(handlers, TryEvalOrdFunction, "ORD");

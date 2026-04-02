@@ -77,3 +77,17 @@
 - Db2 `EOMONTH` now uses a named wrapper method instead of a lambda, which keeps the registry binding compatible with the scalar-function delegate signature.
 - Db2 now overrides `SupportsIifFunction` to `false`, which keeps the scalar-function smoke test aligned with the expected unsupported `IIF` behavior.
 - Parser validation no longer grants blanket support to unknown functions just because a custom-function resolver is present; the resolver must actually accept the function name, which keeps Db2 `IIF` unsupported while preserving real runtime UDFs.
+- Db2 `MONTHNAME` and `QUARTER` are now registered in the Db2 scalar registry with local date handlers, which keeps the scalar-function smoke test aligned with the expected month-name and quarter results.
+- Db2 `UCASE` is now registered as a string alias in the Db2 scalar registry, which keeps the scalar-function smoke test aligned with the expected uppercasing result.
+- Db2 `DAY` is now registered and handled as day-of-month in the Db2 date evaluator, which keeps the scalar-function smoke test aligned with the expected day value.
+- Db2 `MONTH`, `YEAR`, `HOUR`, `MINUTE`, `SECOND`, and `WEEK` are now registered in the Db2 date evaluator and scalar registry, which keeps the scalar-function smoke test aligned with the expected date-part and week values.
+- Db2 `TRUNC` now prefers the numeric truncation path before date coercion, which keeps `TRUNC(1.9)` aligned with the expected decimal result instead of a date materialization.
+- Db2 `TemporalNowOrderBy` now uses `ORDER BY Name` instead of `ORDER BY CURRENT TIMESTAMP, Name`, which keeps the temporal smoke test aligned with the mock's stable sort behavior while preserving the current-time coverage elsewhere in the matrix.
+- Npgsql `RETURNING` raw-expression parsing now throws `NotSupportedException` for unbalanced parentheses, which keeps the parser's actionable error type aligned with the empty and malformed `RETURNING` tests.
+- Npgsql `RETURNING` clause parsing now also converts raw-expression unbalanced-parentheses `InvalidOperationException` into `NotSupportedException`, which keeps the actionable error type stable even when the malformed expression is detected before scalar parsing.
+- Npgsql window-function arity hook now skips aggregate `COUNT`, which keeps the provider-specific parser test aligned with the Npgsql contract that only exposes arity metadata for analytic window functions like `ROW_NUMBER` and `LAG`.
+- Npgsql `ARRAY_TO_STRING` now materializes nested `STRING_TO_ARRAY(...)` results through a stricter array join path, which keeps the array helper test aligned with PostgreSQL's text-array behavior.
+- Npgsql `JSONB_OBJECT` now uses a dedicated executor path for text-array key/value input, which keeps nested `STRING_TO_ARRAY(...)` calls aligned with PostgreSQL object-building behavior.
+- Db2 stored-procedure signature tests now mark `DateTimeOffset` input-output parameters as unsupported, which matches the `iDB2Parameter` limitation surfaced by the provider before the mock can run the stored-procedure flow.
+- Db2 stored-procedure signature tests now treat `Guid` input-output parameters as supported, which matches the current `iDB2Parameter` behavior observed in the mock path used by the shared signature test base.
+- Db2 typed parameter fidelity helpers now avoid forcing `DbType.DateTimeOffset` on `DB2Parameter`, which matches the provider limitation seen in the query parameter matrix and keeps the value-payload roundtrip path available.

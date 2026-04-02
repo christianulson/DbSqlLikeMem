@@ -81,16 +81,21 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
             return true;
         }
 
-        if (value is IEnumerable enumerable)
+        if (value is string[] stringArray)
         {
-            var items = new List<string>();
-            foreach (var item in enumerable)
-                items.Add(item?.ToString() ?? string.Empty);
-            result = string.Join(separator, items);
+            result = string.Join(separator, stringArray.Select(item => item ?? string.Empty));
             return true;
         }
 
-        result = null;
+        if (value is IEnumerable enumerable)
+        {
+            result = string.Join(
+                separator,
+                enumerable.Cast<object?>().Select(item => item?.ToString() ?? string.Empty));
+            return true;
+        }
+
+        result = value?.ToString() ?? string.Empty;
         return true;
     }
 

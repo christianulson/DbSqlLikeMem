@@ -16,6 +16,14 @@ internal static class SqlFunctionCallSupportValidator
         if (ctx.Db.TryGetFunction(name, out _))
             return;
 
+        if (name.Equals("IIF", StringComparison.OrdinalIgnoreCase))
+        {
+            if (ctx.Dialect.SupportsIifFunction)
+                return;
+
+            throw ctx.NotSupported("IIF");
+        }
+
         if (ctx.Dialect.TryGetScalarFunctionDefinition(name, out var definition))
         {
             if (definition is null || definition.AllowsCall)

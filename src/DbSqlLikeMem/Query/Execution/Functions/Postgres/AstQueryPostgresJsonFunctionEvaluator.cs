@@ -285,42 +285,7 @@ internal static class AstQueryPostgresJsonFunctionEvaluator
 
         if (name is "JSONB_OBJECT")
         {
-            if (fn.Args.Count == 1)
-            {
-                if (!TryReadPostgresTextArray(evalArg(0), out var entries) || entries.Count % 2 != 0)
-                {
-                    result = null;
-                    return true;
-                }
-
-                var pairs = new List<(string Key, object? Value)>();
-                for (var i = 0; i < entries.Count; i += 2)
-                    pairs.Add((entries[i], entries[i + 1]));
-
-                result = BuildJsonObject(pairs);
-                return true;
-            }
-
-            if (fn.Args.Count == 2)
-            {
-                if (!TryReadPostgresTextArray(evalArg(0), out var keys)
-                    || !TryReadPostgresTextArray(evalArg(1), out var values)
-                    || keys.Count != values.Count)
-                {
-                    result = null;
-                    return true;
-                }
-
-                var pairs = new List<(string Key, object? Value)>();
-                for (var i = 0; i < keys.Count; i++)
-                    pairs.Add((keys[i], values[i]));
-
-                result = BuildJsonObject(pairs);
-                return true;
-            }
-
-            result = null;
-            return true;
+            return TryBuildJsonbObjectFunction(fn, evalArg, out result);
         }
 
         if (name is "JSONB_SET" or "JSONB_SET_LAX")
@@ -449,6 +414,23 @@ internal static class AstQueryPostgresJsonFunctionEvaluator
 
         result = null;
         return false;
+    }
+
+    internal static bool TryEvalJsonbObjectFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+
+        if (!string.Equals(fn.Name, "JSONB_OBJECT", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        return TryBuildJsonbObjectFunction(fn, evalArg, out result);
     }
 
     private static bool TryParseJsonElement(object value, out JsonElement element)
@@ -627,6 +609,49 @@ internal static class AstQueryPostgresJsonFunctionEvaluator
         }
 
         return false;
+    }
+
+    private static bool TryBuildJsonbObjectFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (fn.Args.Count == 1)
+        {
+            if (!TryReadPostgresTextArray(evalArg(0), out var entries) || entries.Count % 2 != 0)
+            {
+                result = null;
+                return true;
+            }
+
+            var pairs = new List<(string Key, object? Value)>();
+            for (var i = 0; i < entries.Count; i += 2)
+                pairs.Add((entries[i], entries[i + 1]));
+
+            result = BuildJsonObject(pairs);
+            return true;
+        }
+
+        if (fn.Args.Count == 2)
+        {
+            if (!TryReadPostgresTextArray(evalArg(0), out var keys)
+                || !TryReadPostgresTextArray(evalArg(1), out var values)
+                || keys.Count != values.Count)
+            {
+                result = null;
+                return true;
+            }
+
+            var pairs = new List<(string Key, object? Value)>();
+            for (var i = 0; i < keys.Count; i++)
+                pairs.Add((keys[i], values[i]));
+
+            result = BuildJsonObject(pairs);
+            return true;
+        }
+
+        result = null;
+        return true;
     }
 
     private static bool TryParsePostgresJsonPathTokens(object value, out List<JsonPathToken> tokens)

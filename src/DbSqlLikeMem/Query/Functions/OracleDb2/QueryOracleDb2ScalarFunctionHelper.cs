@@ -362,26 +362,6 @@ internal static class QueryOracleDb2ScalarFunctionHelper
             return true;
         }
 
-        var coerceDateTime = tryCoerceDateTime ?? AstQueryExecutorBase.TryCoerceDateTime;
-        if (coerceDateTime(value, out var dateTime))
-        {
-            if (fn.Args.Count < 2)
-            {
-                result = AstQueryExecutorBase.TruncateDateTime(dateTime, TemporalUnit.Day);
-                return true;
-            }
-
-            var unitText = evalArg(1)?.ToString();
-            if (string.IsNullOrWhiteSpace(unitText))
-            {
-                result = null;
-                return true;
-            }
-
-            result = AstQueryExecutorBase.TruncateDateTime(dateTime, AstQueryExecutionRuntimeHelper.ResolveTemporalUnit(unitText!));
-            return true;
-        }
-
         try
         {
             var number = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
@@ -405,6 +385,26 @@ internal static class QueryOracleDb2ScalarFunctionHelper
         }
         catch
         {
+            var coerceDateTime = tryCoerceDateTime ?? AstQueryExecutorBase.TryCoerceDateTime;
+            if (coerceDateTime(value, out var dateTime))
+            {
+                if (fn.Args.Count < 2)
+                {
+                    result = AstQueryExecutorBase.TruncateDateTime(dateTime, TemporalUnit.Day);
+                    return true;
+                }
+
+                var unitText = evalArg(1)?.ToString();
+                if (string.IsNullOrWhiteSpace(unitText))
+                {
+                    result = null;
+                    return true;
+                }
+
+                result = AstQueryExecutorBase.TruncateDateTime(dateTime, AstQueryExecutionRuntimeHelper.ResolveTemporalUnit(unitText!));
+                return true;
+            }
+
             result = null;
             return true;
         }

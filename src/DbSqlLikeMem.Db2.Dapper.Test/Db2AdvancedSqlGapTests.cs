@@ -219,8 +219,8 @@ WITH tenant_scope AS (
 order_totals AS (
     SELECT o.userid,
            COUNT(*) AS order_count,
-           SUM(CAST(o.amount AS DECIMAL(10,2))) AS total_amount,
-           LISTAGG(CAST(o.id AS VARCHAR(20)), '|') WITHIN GROUP (ORDER BY o.id DESC) AS order_ids
+           SUM(o.amount) AS total_amount,
+           LISTAGG(o.id, '|') WITHIN GROUP (ORDER BY o.id DESC) AS order_ids
     FROM orders o
     GROUP BY o.userid
 ),
@@ -233,8 +233,8 @@ ranked AS (
            DAYS(u.created) - DAYS(DATE('2020-01-01')) AS days_from_anchor,
            RTRIM(CHAR(u.tenantid)) || '-' || RTRIM(CHAR(u.id)) AS user_code,
            COALESCE(order_totals.order_count, CAST(0 AS INTEGER)) AS order_count,
-           COALESCE(order_totals.total_amount, CAST(0 AS DECIMAL(10,2))) AS total_amount,
-           COALESCE(order_totals.order_ids, CAST('' AS VARCHAR(20))) AS order_ids,
+           COALESCE(order_totals.total_amount, 0.00) AS total_amount,
+           COALESCE(order_totals.order_ids, '') AS order_ids,
            (
                SELECT o.id
                FROM orders o
@@ -248,7 +248,7 @@ ranked AS (
            END AS has_orders_text,
            ROW_NUMBER() OVER (
                PARTITION BY u.tenantid
-               ORDER BY COALESCE(order_totals.total_amount, CAST(0 AS DECIMAL(10,2))) DESC, u.id
+               ORDER BY COALESCE(order_totals.total_amount, 0.00) DESC, u.id
            ) AS rn
     FROM users u
     JOIN tenant_scope scope ON scope.tenantid = u.tenantid

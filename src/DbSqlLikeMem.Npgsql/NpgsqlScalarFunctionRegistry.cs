@@ -395,7 +395,7 @@ internal static class NpgsqlScalarFunctionRegistry
         dialect.AddScalarFunction("JSON_BUILD_OBJECT", "VARCHAR", jsonFunction);
         dialect.AddScalarFunction("JSONB_BUILD_ARRAY", "VARCHAR", jsonFunction);
         dialect.AddScalarFunction("JSONB_BUILD_OBJECT", "VARCHAR", jsonFunction);
-        dialect.AddScalarFunction("JSONB_OBJECT", "VARCHAR", jsonFunction);
+        dialect.AddScalarFunction("JSONB_OBJECT", "VARCHAR", AstQueryPostgresJsonFunctionEvaluator.TryEvalJsonbObjectFunction);
         dialect.AddScalarFunction("JSONB_TYPEOF", "VARCHAR", jsonFunction);
         dialect.AddScalarFunction("JSONB_EXTRACT_PATH", "VARCHAR", jsonFunction);
         dialect.AddScalarFunction("JSONB_EXTRACT_PATH_TEXT", "VARCHAR", jsonFunction);

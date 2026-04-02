@@ -650,7 +650,8 @@ internal static class AstQueryMySqlJsonFunctionEvaluator
         string search,
         IList<string> results)
     {
-        if (currentPath.IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0)
+        if (TryGetJsonSearchScalarText(element, out var scalarText)
+            && scalarText.IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0)
             results.Add(currentPath);
 
         if (element.ValueKind == JsonValueKind.Array)
@@ -670,6 +671,21 @@ internal static class AstQueryMySqlJsonFunctionEvaluator
 
         foreach (var prop in element.EnumerateObject())
             CollectJsonSearchMatches(prop.Value, $"{currentPath}.{prop.Name}", search, results);
+    }
+
+    private static bool TryGetJsonSearchScalarText(JsonElement element, out string text)
+    {
+        text = element.ValueKind switch
+        {
+            JsonValueKind.String => element.GetString() ?? string.Empty,
+            JsonValueKind.Number => element.GetRawText(),
+            JsonValueKind.True => "true",
+            JsonValueKind.False => "false",
+            JsonValueKind.Null => "null",
+            _ => string.Empty
+        };
+
+        return element.ValueKind is not JsonValueKind.Object and not JsonValueKind.Array;
     }
 
     private static bool TryEvalJsonAppendFunction(

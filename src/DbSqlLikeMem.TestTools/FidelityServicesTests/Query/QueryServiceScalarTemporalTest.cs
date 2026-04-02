@@ -893,7 +893,8 @@ WHERE Id = {Dialect.Parameter("id")}
         var parameter = command.CreateParameter();
         parameter.ParameterName = name;
         if (parameter.GetType().FullName == "Oracle.ManagedDataAccess.Client.OracleParameter"
-            || (parameter.GetType().FullName == "IBM.Data.Db2.DB2Parameter" && dbType == DbType.Guid))
+            || (parameter.GetType().FullName == "IBM.Data.Db2.DB2Parameter"
+                && (dbType == DbType.Guid || dbType == DbType.DateTimeOffset)))
         {
             // ODP.NET and DB2 parameters can reject some DbType assignments in this mock flow.
             // Keep the default DbType and rely on the value payload for this shared test helper.

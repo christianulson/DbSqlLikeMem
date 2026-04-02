@@ -2,7 +2,7 @@ namespace DbSqlLikeMem;
 
 internal sealed class SqlQueryParsePreludeCache
 {
-    private const int PreludeCacheKeyVersion = 1;
+    private const int PreludeCacheKeyVersion = 2;
 
     private readonly int _capacity;
     private readonly object _gate = new();

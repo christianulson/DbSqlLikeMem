@@ -38,8 +38,16 @@ internal static class AstQueryOracleDb2ScalarFunctionEvaluator
         if (string.IsNullOrWhiteSpace(functionName))
             return false;
 
-        return dialect.TryGetScalarFunctionDefinition(functionName, out var definition)
-            && definition is not null
-            && definition.AllowsCall;
+        if (!dialect.TryGetScalarFunctionDefinition(functionName, out var definition)
+            || definition is null
+            || !definition.AllowsCall)
+        {
+            return false;
+        }
+
+        return functionName.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("ROWCOUNT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("FOUND_ROWS", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("CHANGES", StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -65,6 +65,26 @@ internal sealed class NpgsqlDialect : SqlDialectBase, ISqlDialect
     public override bool SupportsWindowFunctions => Version >= WindowFunctionsMinVersion;
 
     /// <summary>
+    /// EN: Exposes window function arity metadata for PostgreSQL-specific analytic functions and skips aggregate COUNT.
+    /// PT: Expoe metadados de aridade de funcoes de janela para funcoes analiticas especificas do PostgreSQL e ignora COUNT agregado.
+    /// </summary>
+    /// <param name="functionName">EN: Window function name. PT: Nome da funcao de janela.</param>
+    /// <param name="minArgs">EN: Minimum accepted argument count. PT: Numero minimo de argumentos aceitos.</param>
+    /// <param name="maxArgs">EN: Maximum accepted argument count. PT: Numero maximo de argumentos aceitos.</param>
+    /// <returns>EN: True when the function exposes arity metadata. PT: True quando a funcao expoe metadados de aridade.</returns>
+    public override bool TryGetWindowFunctionArgumentArity(string functionName, out int minArgs, out int maxArgs)
+    {
+        if (functionName.Equals(SqlConst.COUNT, StringComparison.OrdinalIgnoreCase))
+        {
+            minArgs = 0;
+            maxArgs = 0;
+            return false;
+        }
+
+        return base.TryGetWindowFunctionArgumentArity(functionName, out minArgs, out maxArgs);
+    }
+
+    /// <summary>
     /// EN: Indicates whether SQL window frame clauses are supported by the configured version.
     /// PT: Indica se cláusulas de frame de janela SQL são suportadas pela versão configurada.
     /// </summary>

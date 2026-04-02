@@ -164,6 +164,9 @@ internal static class AstQueryFunctionDispatchHelper
                 return false;
             }
 
+            if (IsSpecialSyntaxFunctionName(fn.Name))
+                return false;
+
             result = DBNull.Value;
             return true;
         }
@@ -190,6 +193,12 @@ internal static class AstQueryFunctionDispatchHelper
             localParameterScopes.Pop();
         }
     }
+
+    private static bool IsSpecialSyntaxFunctionName(string name)
+        => name.Equals("CAST", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("CONVERT", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("PARSE", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("TRY_PARSE", StringComparison.OrdinalIgnoreCase);
 
     internal static bool TryResolveLocalFunctionValue(
         this QueryExecutionContext context,

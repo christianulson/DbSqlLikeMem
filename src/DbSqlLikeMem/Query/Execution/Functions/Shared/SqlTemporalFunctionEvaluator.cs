@@ -73,7 +73,7 @@ internal static class SqlTemporalFunctionEvaluator
     }
 
     public static bool TryEvaluateZeroArgIdentifier(this QueryExecutionContext context, string functionName, out object? value)
-        => TryEvaluateZeroArgIdentifier(context, functionName, DateTime.Now, DateTime.UtcNow, out value);
+        => TryEvaluateZeroArgIdentifier(context, functionName, context.EvaluationLocalNow, context.EvaluationUtcNow, out value);
 
     public static bool TryEvaluateZeroArgCall(
         this QueryExecutionContext context,
@@ -96,7 +96,7 @@ internal static class SqlTemporalFunctionEvaluator
     }
 
     public static bool TryEvaluateZeroArgCall(this QueryExecutionContext context, string functionName, out object? value)
-        => TryEvaluateZeroArgCall(context, functionName, DateTime.Now, DateTime.UtcNow, out value);
+        => TryEvaluateZeroArgCall(context, functionName, context.EvaluationLocalNow, context.EvaluationUtcNow, out value);
 
     internal static bool TryParseOffset(string value, out TimeSpan offset)
     {

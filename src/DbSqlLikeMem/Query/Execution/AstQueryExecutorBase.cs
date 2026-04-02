@@ -280,6 +280,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return true;
         }
 
+        if (AstQueryTemporalAccessorFunctionEvaluator.TryEvaluate(fn, row, group, ctes, evalArg, getTemporalUnit, AstQueryExecutionRuntimeHelper.ResolveTemporalUnit, out result))
+        {
+            return true;
+        }
+
         if (AstQueryOracleDb2ScalarFunctionEvaluator.TryEvaluate(_context, fn, evalArg, TryCoerceDateTime, out result)
             || AstQueryPostgresScalarFunctionEvaluator.TryEvaluateyPostgresScalarFunction(_context, fn, evalArg, out result))
         {
