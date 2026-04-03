@@ -613,7 +613,7 @@ public sealed class OracleFunctionTests
         Assert.IsType<DateTimeOffset>(fromTzNegative);
         Assert.Equal(TimeSpan.FromHours(-3), ((DateTimeOffset)fromTzNegative!).Offset);
 
-        var localTimestamp = ExecuteScalar("SELECT LOCALTIMESTAMP() FROM Users WHERE Id = 1");
+        var localTimestamp = ExecuteScalar("SELECT LOCALTIMESTAMP FROM Users WHERE Id = 1");
         Assert.IsType<DateTime>(localTimestamp);
 
         var nextDay = ExecuteScalar("SELECT NEXT_DAY(TO_DATE('2024-01-01','YYYY-MM-DD'), 'FRIDAY') FROM Users WHERE Id = 1");
@@ -697,10 +697,10 @@ public sealed class OracleFunctionTests
         var userEnv = ExecuteScalar("SELECT USERENV('CURRENT_SCHEMA') FROM Users WHERE Id = 1");
         Assert.Equal("SYS", userEnv);
 
-        var invokingUser = ExecuteScalar("SELECT ORA_INVOKING_USER FROM Users WHERE Id = 1");
+        var invokingUser = ExecuteScalar("SELECT ORA_INVOKING_USER() FROM Users WHERE Id = 1");
         Assert.Equal("SYS", invokingUser);
 
-        var invokingUserId = ExecuteScalar("SELECT ORA_INVOKING_USERID FROM Users WHERE Id = 1");
+        var invokingUserId = ExecuteScalar("SELECT ORA_INVOKING_USERID() FROM Users WHERE Id = 1");
         Assert.Equal(0, Convert.ToInt32(invokingUserId, CultureInfo.InvariantCulture));
 
         var sysContext = ExecuteScalar("SELECT SYS_CONTEXT('USERENV','CURRENT_SCHEMA') FROM Users WHERE Id = 1");

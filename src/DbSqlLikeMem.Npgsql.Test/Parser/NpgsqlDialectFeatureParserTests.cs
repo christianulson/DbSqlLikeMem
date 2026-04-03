@@ -390,7 +390,7 @@ public sealed class NpgsqlDialectFeatureParserTests(
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING (id";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unbalanced parentheses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -409,7 +409,7 @@ public sealed class NpgsqlDialectFeatureParserTests(
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING;";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -795,7 +795,7 @@ VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey
 DO UPDATE SET name = EXCLUDED.name FROM users";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -818,7 +818,7 @@ VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey
 DO UPDATE SET name = EXCLUDED.name USING users";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -841,7 +841,7 @@ VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey
 DO UPDATE SET FROM users";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -864,7 +864,7 @@ VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey
 DO UPDATE SET USING users";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -916,7 +916,7 @@ ON CONFLICT ON CONSTRAINT users_pkey
 DO UPDATE SET name = EXCLUDED.name
 RETURNING id +";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING expression is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -939,7 +939,7 @@ ON CONFLICT ON CONSTRAINT users_pkey
 DO UPDATE SET name = EXCLUDED.name
 RETURNING (id";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unbalanced parentheses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -962,7 +962,7 @@ ON CONFLICT ON CONSTRAINT users_pkey
 DO UPDATE SET name = EXCLUDED.name
 RETURNING;";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1012,7 +1012,7 @@ ON CONFLICT ON CONSTRAINT users_pkey
 DO NOTHING
 RETURNING id +";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING expression is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1035,7 +1035,7 @@ ON CONFLICT ON CONSTRAINT users_pkey
 DO NOTHING
 RETURNING (id";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unbalanced parentheses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1058,7 +1058,7 @@ ON CONFLICT ON CONSTRAINT users_pkey
 DO NOTHING
 RETURNING;";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1132,7 +1132,7 @@ ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
 DO NOTHING
 RETURNING id +";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING expression is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1155,7 +1155,7 @@ ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
 DO NOTHING
 RETURNING (id";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unbalanced parentheses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1178,7 +1178,7 @@ ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
 DO NOTHING
 RETURNING;";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1202,7 +1202,7 @@ ON CONFLICT ON CONSTRAINT users_pkey
 DO NOTHING
 FROM users";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1226,7 +1226,7 @@ ON CONFLICT ON CONSTRAINT users_pkey
 DO NOTHING
 USING users";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1250,7 +1250,7 @@ ON CONFLICT ON CONSTRAINT users_pkey
 DO NOTHING
 SET name = 'b'";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1271,10 +1271,10 @@ SET name = 'b'";
         var sql = @"INSERT INTO users (id, name)
 VALUES (1, 'a')
 ON CONFLICT ON CONSTRAINT users_pkey
-DO NOTHING
+        DO NOTHING
 UPDATE SET name = 'b'";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1298,7 +1298,7 @@ ON CONFLICT ON CONSTRAINT users_pkey
 DO NOTHING
 WHERE id = 1";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1322,7 +1322,7 @@ ON CONFLICT ON CONSTRAINT users_pkey
 DO NOTHING
 EXTRA";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1378,7 +1378,7 @@ DO UPDATE SET name = EXCLUDED.name
 WHERE users.id = EXCLUDED.id
 RETURNING id +";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING expression is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1402,7 +1402,7 @@ DO UPDATE SET name = EXCLUDED.name
 WHERE users.id = EXCLUDED.id
 RETURNING (id";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unbalanced parentheses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1426,7 +1426,7 @@ DO UPDATE SET name = EXCLUDED.name
 WHERE users.id = EXCLUDED.id
 RETURNING;";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1513,7 +1513,7 @@ DO UPDATE SET name = EXCLUDED.name
 WHERE users.id = EXCLUDED.id
 RETURNING id +";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING expression is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1537,7 +1537,7 @@ DO UPDATE SET name = EXCLUDED.name
 WHERE users.id = EXCLUDED.id
 RETURNING (id";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unbalanced parentheses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1562,7 +1562,7 @@ DO UPDATE SET name = EXCLUDED.name
 WHERE users.id = EXCLUDED.id
 RETURNING;";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1666,7 +1666,7 @@ ON CONFLICT (id) WHERE id > 0
 DO NOTHING
 RETURNING id +";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING expression is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1689,7 +1689,7 @@ ON CONFLICT (id) WHERE id > 0
 DO NOTHING
 RETURNING (id";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unbalanced parentheses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1712,7 +1712,7 @@ ON CONFLICT (id) WHERE id > 0
 DO NOTHING
 RETURNING;";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1736,7 +1736,7 @@ ON CONFLICT (id) WHERE id > 0
 DO NOTHING
 EXTRA";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1760,7 +1760,7 @@ ON CONFLICT (id) WHERE id > 0
 DO NOTHING
 FROM users";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1784,7 +1784,7 @@ ON CONFLICT (id) WHERE id > 0
 DO NOTHING
 USING users";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1808,7 +1808,7 @@ ON CONFLICT (id) WHERE id > 0
 DO NOTHING
 SET name = 'b'";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1832,7 +1832,7 @@ ON CONFLICT (id) WHERE id > 0
 DO NOTHING
 UPDATE SET name = 'b'";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1856,7 +1856,7 @@ ON CONFLICT (id) WHERE id > 0
 DO NOTHING
 WHERE id = 1";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1876,7 +1876,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT () DO NOTHING";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1896,7 +1896,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (, id) DO NOTHING";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1916,7 +1916,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id,) DO NOTHING";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1937,7 +1937,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id;";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("not closed correctly", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1958,7 +1958,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1978,7 +1978,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET RETURNING id";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1998,7 +1998,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET , name = EXCLUDED.name";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2018,7 +2018,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name,";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2038,7 +2038,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = WHERE id = 1";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires an expression", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2058,7 +2058,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name updated_at = NOW()";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("separate assignments with commas", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2098,7 +2098,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id)";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires DO NOTHING or DO UPDATE SET", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2118,7 +2118,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO SKIP";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("must be followed by NOTHING or UPDATE SET", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2138,7 +2138,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING WHERE id = 1";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2158,7 +2158,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING FROM users";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2178,7 +2178,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING USING users";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2198,7 +2198,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING SET name = 'b'";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2218,7 +2218,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING UPDATE SET name = 'b'";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2238,7 +2238,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING EXTRA";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2258,7 +2258,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires SET assignments", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2279,7 +2279,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE DO NOTHING";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("target WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2299,7 +2299,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE; DO NOTHING";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("target WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2319,7 +2319,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id = DO NOTHING";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("target WHERE predicate is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2338,7 +2338,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id +) DO NOTHING";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("target expression is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2358,7 +2358,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT DO NOTHING";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires a constraint name", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2378,7 +2378,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires a constraint name", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2398,7 +2398,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires DO NOTHING or DO UPDATE SET", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2418,7 +2418,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO SKIP";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("must be followed by NOTHING or UPDATE SET", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2438,7 +2438,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires SET assignments", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2458,7 +2458,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2478,7 +2478,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET RETURNING id";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2498,7 +2498,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET , name = EXCLUDED.name";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unexpected comma before assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2518,7 +2518,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name,";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("trailing comma without assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2538,7 +2538,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name updated_at = NOW()";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("must separate assignments with commas", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2557,7 +2557,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET SET name = EXCLUDED.name";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("must not repeat SET keyword", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2577,7 +2577,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name EXCLUDED.name";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("requires '=' between column and expression", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2596,7 +2596,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = (EXCLUDED.name";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("assignment for 'name' has an invalid expression", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2615,7 +2615,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE DO NOTHING";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("target WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2635,7 +2635,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE; DO NOTHING";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("target WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2655,7 +2655,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id = DO NOTHING";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("target WHERE predicate is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2674,7 +2674,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id = DO UPDATE SET name = EXCLUDED.name";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("target WHERE predicate is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2693,7 +2693,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE; RETURNING id";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO UPDATE WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2713,7 +2713,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE;";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO UPDATE WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2733,7 +2733,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE RETURNING id";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO UPDATE WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2753,7 +2753,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE id = RETURNING id";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO UPDATE WHERE predicate is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2772,7 +2772,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING id +";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING expression is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2791,7 +2791,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING (id";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unbalanced parentheses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2810,7 +2810,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING;";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2830,7 +2830,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE RETURNING id";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO UPDATE WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2850,7 +2850,7 @@ WHERE id = 1";
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE; RETURNING id";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("DO UPDATE WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);

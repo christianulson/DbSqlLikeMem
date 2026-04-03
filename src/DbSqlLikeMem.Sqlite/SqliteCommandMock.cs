@@ -200,13 +200,15 @@ public class SqliteCommandMock(
     {
         if (!TryResolveTargetTable(query.Table, out var table) || table == null)
         {
-            connection!.ExecuteInsert(query, Parameters, connection!.ExecutionDialect);
+            var affected = connection!.ExecuteInsert(query, Parameters, connection!.ExecutionDialect);
+            connection.SetLastFoundRows(affected.AffectedRows);
             return null;
         }
 
         var hadReturning = query.Returning.Count > 0;
         var beforeCount = table.Count;
-        connection!.ExecuteInsert(query, Parameters, connection!.ExecutionDialect);
+        var insertedRows = connection!.ExecuteInsert(query, Parameters, connection!.ExecutionDialect);
+        connection.SetLastFoundRows(insertedRows.AffectedRows);
 
         if (!hadReturning)
             return null;
@@ -226,7 +228,8 @@ public class SqliteCommandMock(
     {
         if (!TryResolveTargetTable(query.Table, out var table) || table == null)
         {
-            connection!.ExecuteUpdateSmart(query, Parameters, connection!.ExecutionDialect);
+            var affected = connection!.ExecuteUpdateSmart(query, Parameters, connection!.ExecutionDialect);
+            connection.SetLastFoundRows(affected.AffectedRows);
             return null;
         }
 
@@ -235,7 +238,8 @@ public class SqliteCommandMock(
         if (hadReturning)
             matchedIndexes = MatchRowIndexes(table, query.WhereRaw, query.RawSql);
 
-        connection!.ExecuteUpdateSmart(query, Parameters, connection!.ExecutionDialect);
+        var updatedRows = connection!.ExecuteUpdateSmart(query, Parameters, connection!.ExecutionDialect);
+        connection.SetLastFoundRows(updatedRows.AffectedRows);
 
         if (!hadReturning)
             return null;
@@ -252,7 +256,8 @@ public class SqliteCommandMock(
     {
         if (!TryResolveTargetTable(query.Table, out var table) || table == null)
         {
-            connection!.ExecuteDeleteSmart(query, Parameters, connection!.ExecutionDialect);
+            var affected = connection!.ExecuteDeleteSmart(query, Parameters, connection!.ExecutionDialect);
+            connection.SetLastFoundRows(affected.AffectedRows);
             return null;
         }
 
@@ -265,7 +270,8 @@ public class SqliteCommandMock(
             returningResult = BuildReturningResultFromIndexes(projections, table, matchedIndexes);
         }
 
-        connection!.ExecuteDeleteSmart(query, Parameters, connection!.ExecutionDialect);
+        var deletedRows = connection!.ExecuteDeleteSmart(query, Parameters, connection!.ExecutionDialect);
+        connection.SetLastFoundRows(deletedRows.AffectedRows);
 
         if (!hadReturning)
             return null;

@@ -1509,8 +1509,8 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
     }
 
     /// <summary>
-    /// EN: Ensures correlated MariaDB JSON_TABLE nested strict paths still emit a null-complemented row when the nested array is missing.
-    /// PT: Garante que caminhos nested strict de JSON_TABLE correlacionado ainda emitam uma linha com complemento nulo quando o array nested estiver ausente.
+    /// EN: Ensures correlated MariaDB JSON_TABLE nested strict paths return null when the nested value is non-scalar or the nested array is missing.
+    /// PT: Garante que caminhos nested strict de JSON_TABLE correlacionado retornem null quando o valor nested for nao escalar ou o array nested estiver ausente.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -1552,7 +1552,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
         Assert.True(reader.Read());
         Assert.Equal(801, reader.GetInt32(reader.GetOrdinal("OrderId")));
         Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("ItemId")));
-        Assert.Equal("{\"name\":\"vip\"}", reader.GetString(reader.GetOrdinal("TagName")));
+        Assert.True(reader.IsDBNull(reader.GetOrdinal("TagName")));
 
         Assert.True(reader.Read());
         Assert.Equal(801, reader.GetInt32(reader.GetOrdinal("OrderId")));

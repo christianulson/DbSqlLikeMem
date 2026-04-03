@@ -59,6 +59,12 @@ internal sealed class NpgsqlDialect : SqlDialectBase, ISqlDialect
     public override bool SupportsLimitOffset => true;
 
     /// <summary>
+    /// EN: Indicates whether IIF(...) is supported by this dialect.
+    /// PT: Indica se IIF(...) é suportada por este dialeto.
+    /// </summary>
+    public override bool SupportsIifFunction => false;
+
+    /// <summary>
     /// EN: Indicates whether SQL window functions are supported by the configured PostgreSQL version.
     /// PT: Indica se funções de janela SQL são suportadas pela versão configurada do PostgreSQL.
     /// </summary>

@@ -19,6 +19,25 @@ internal static class AutoSqlServerScalarFunctionRegistry
             return true;
         }
 
+        static bool TryEvalFoundRowsFunction(
+            QueryExecutionContext context,
+            FunctionCallExpr fn,
+            Func<int, object?> evalArg,
+            out object? result)
+        {
+            _ = context;
+            _ = evalArg;
+
+            if (fn.Args.Count != 0)
+            {
+                result = null;
+                return false;
+            }
+
+            result = context.Connection.GetLastFoundRows();
+            return true;
+        }
+
         var squareFunction = DbFunctionDef.CreateScalar("SQUARE", "DOUBLE") with
         {
             AstExecutor = AstQuerySqlServerScalarFunctionEvaluator.TryEvaluate
@@ -92,8 +111,16 @@ internal static class AutoSqlServerScalarFunctionRegistry
         dialect.AddScalarFunction("TIMEFROMPARTS", "TIME", AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluateSqlServerDateConstructionFunction);
         dialect.AddScalarFunction("SMALLDATETIMEFROMPARTS", "DATETIME", AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluateSqlServerDateConstructionFunction);
 
+        var openJsonFunction = DbFunctionDef.CreateScalar(SqlConst.OPENJSON, "VARCHAR") with
+        {
+            AstExecutor = AstQuerySqlServerUtilityFunctionEvaluator.TryEvalOpenJsonFunction
+        };
+        dialect.AddScalarFunction(openJsonFunction);
+
         dialect.AddScalarFunctions(
-            DbFunctionDef.CreateScalar("FOUND_ROWS", "BIGINT"),
+            "BIGINT",
+            TryEvalFoundRowsFunction,
+            DbInvocationStyle.Call,
             "FOUND_ROWS",
             "ROW_COUNT",
             "CHANGES",

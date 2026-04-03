@@ -13,7 +13,7 @@ internal static class SqlRawExpressionReaderHelper
             if (ctx.IsEnd() || ctx.IsSymbol(";"))
             {
                 if (items.Count == 0)
-                    throw ctx.NotSupported(
+                    throw new InvalidOperationException(
                         $"RETURNING requires at least one expression (found '{ctx.DescribeFoundToken()}').");
                 break;
             }
@@ -24,7 +24,7 @@ internal static class SqlRawExpressionReaderHelper
 
             var raw = readRawExpressionUntilCommaOrTerminator().Trim();
             if (string.IsNullOrWhiteSpace(raw))
-                throw ctx.NotSupported(
+                throw new InvalidOperationException(
                     $"RETURNING requires at least one expression (found '{ctx.DescribeFoundToken()}').");
 
             items.Add(raw);

@@ -37,8 +37,12 @@ internal static class AutoScalarFunctionRegistry
             AstExecutor = AstQueryGeneralDateArithmeticFunctionEvaluator.TryEvaluate
         };
         dialect.AddScalarFunction(addTimeFunction);
+        var dateAddAliases = DbFunctionDef.CreateScalar("DATE_ADD", "DATETIME") with
+        {
+            AstExecutor = AstQueryGeneralDateArithmeticFunctionEvaluator.TryEvaluate
+        };
         dialect.AddScalarFunctions(
-            DbFunctionDef.CreateScalar("DATE_ADD", "DATETIME"),
+            dateAddAliases,
             "DATE_ADD",
             "DATEADD",
             "TIMESTAMPADD");
@@ -78,7 +82,11 @@ internal static class AutoScalarFunctionRegistry
             "JSON_EXTRACT",
             "JSON_QUERY",
             "JSON_VALUE");
-        dialect.AddScalarFunction(DbFunctionDef.CreateScalar("JSON_UNQUOTE", "VARCHAR"));
+        dialect.AddScalarFunction(
+            DbFunctionDef.CreateScalar("JSON_UNQUOTE", "VARCHAR") with
+            {
+                AstExecutor = AstQueryJsonUnquoteFunctionEvaluator.TryEvalJsonUnquoteFunction
+            });
         dialect.AddScalarFunction(
             DbFunctionDef.CreateScalar("JSON_OBJECT", "VARCHAR") with
             {
@@ -97,5 +105,11 @@ internal static class AutoScalarFunctionRegistry
             SqlConst.CURRVAL,
             SqlConst.SETVAL,
             SqlConst.LASTVAL);
+
+        var matchAgainstFunction = DbFunctionDef.CreateScalar("MATCH_AGAINST", "INT") with
+        {
+            AstExecutor = QueryTextSearchFunctionHelper.TryEvalMatchAgainstFunction
+        };
+        dialect.AddScalarFunction(matchAgainstFunction);
     }
 }

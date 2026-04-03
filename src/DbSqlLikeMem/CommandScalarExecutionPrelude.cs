@@ -65,10 +65,24 @@ internal static class CommandScalarExecutionPrelude
             => tryExecuteTransactionControl(sqlRaw2, out affectedRows);
 
         if (sqlRaw.Equals("SELECT CHANGES()", StringComparison.OrdinalIgnoreCase)
-            || sqlRaw.Equals("SELECT FOUND_ROWS()", StringComparison.OrdinalIgnoreCase)
             || sqlRaw.Equals("SELECT TOTAL_CHANGES()", StringComparison.OrdinalIgnoreCase)
             || sqlRaw.Equals("SELECT SQLITE3_CHANGES64()", StringComparison.OrdinalIgnoreCase)
             || sqlRaw.Equals("SELECT SQLITE3_TOTAL_CHANGES64()", StringComparison.OrdinalIgnoreCase))
+        {
+            scalar = string.Equals(context.Dialect.Name, "sqlite", StringComparison.OrdinalIgnoreCase)
+                ? connection.GetLastChangesRows()
+                : connection.GetLastFoundRows();
+            return true;
+        }
+
+        if ((sqlRaw.Equals("SELECT FOUND_ROWS()", StringComparison.OrdinalIgnoreCase)
+                && context.Dialect.SupportsLastFoundRowsFunction("FOUND_ROWS"))
+            || (sqlRaw.Equals("SELECT ROW_COUNT()", StringComparison.OrdinalIgnoreCase)
+                && context.Dialect.SupportsLastFoundRowsFunction("ROW_COUNT"))
+            || (sqlRaw.Equals("SELECT ROWCOUNT()", StringComparison.OrdinalIgnoreCase)
+                && context.Dialect.SupportsLastFoundRowsFunction("ROWCOUNT"))
+            || (sqlRaw.Equals("SELECT @@ROWCOUNT", StringComparison.OrdinalIgnoreCase)
+                && context.Dialect.SupportsLastFoundRowsIdentifier("@@ROWCOUNT")))
         {
             scalar = connection.GetLastFoundRows();
             return true;
@@ -78,7 +92,10 @@ internal static class CommandScalarExecutionPrelude
         var q = SqlQueryParser.Parse(sqlRaw, context.Connection.Db, context.Dialect, pars, customFunctionSupported);
         if (q is SqlSelectQuery rowCountQuery && IsRowCountHelperSelect(rowCountQuery))
         {
-            scalar = connection.GetLastFoundRows();
+            scalar = IsSqliteChangesHelperSelect(rowCountQuery)
+                && string.Equals(context.Dialect.Name, "sqlite", StringComparison.OrdinalIgnoreCase)
+                ? connection.GetLastChangesRows()
+                : connection.GetLastFoundRows();
             return true;
         }
 
@@ -121,6 +138,15 @@ internal static class CommandScalarExecutionPrelude
             || raw.Equals("FOUND_ROWS()", StringComparison.OrdinalIgnoreCase)
             || raw.Equals("ROWCOUNT()", StringComparison.OrdinalIgnoreCase)
             || raw.Equals("@@ROWCOUNT", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsSqliteChangesHelperSelect(SqlSelectQuery query)
+    {
+        var raw = query.SelectItems[0].Raw.Trim();
+        return raw.Equals("CHANGES()", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("TOTAL_CHANGES()", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("SQLITE3_CHANGES64()", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("SQLITE3_TOTAL_CHANGES64()", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool TryEvaluateSimpleSelectScalar(

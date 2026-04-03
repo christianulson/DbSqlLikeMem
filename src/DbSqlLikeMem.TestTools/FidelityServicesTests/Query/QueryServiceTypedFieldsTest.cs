@@ -645,6 +645,7 @@ INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) 
 
         var namePrefixExpr = Dialect.StringPrefixExpression("Name", 2);
         var nameLenExpr = Dialect.StringLengthExpression("Name");
+        var textMatchAlready = Dialect.Provider == ProviderId.Sqlite ? 0 : 1;
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
@@ -670,13 +671,13 @@ ORDER BY Id
         var rows = new List<QueryResultRowSnapshot>(3);
 
         reader.Read().Should().BeTrue();
-        rows.Add(ValidateTextCaseRow(reader, 1, "ALICE", "alice", "Alice", "Al", "5", 1, 1, 1, 1, 0, "alice@example.com", 0));
+        rows.Add(ValidateTextCaseRow(reader, 1, "ALICE", "alice", "Alice", "Al", "5", textMatchAlready, textMatchAlready, 1, 1, 0, "alice@example.com", 0));
 
         reader.Read().Should().BeTrue();
-        rows.Add(ValidateTextCaseRow(reader, 2, "BOB", "bob", "Bob", "Bo", "3", 1, 1, 1, 0, 0, "missing@example.com", 1));
+        rows.Add(ValidateTextCaseRow(reader, 2, "BOB", "bob", "Bob", "Bo", "3", textMatchAlready, textMatchAlready, 1, 0, 0, "missing@example.com", 1));
 
         reader.Read().Should().BeTrue();
-        rows.Add(ValidateTextCaseRow(reader, 3, "CARLA", "carla", "Carla", "Ca", "5", 1, 1, 1, 0, 1, "carla@example.com", 0));
+        rows.Add(ValidateTextCaseRow(reader, 3, "CARLA", "carla", "Carla", "Ca", "5", textMatchAlready, textMatchAlready, 1, 0, 1, "carla@example.com", 0));
 
         reader.Read().Should().BeFalse();
 
@@ -1132,4 +1133,3 @@ WHERE (Email IS NULL OR Age IS NULL)
         }
     }
 }
-

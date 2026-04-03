@@ -115,6 +115,12 @@ internal sealed class OracleDialect : SqlDialectBase, ISqlDialect
     public override bool SupportsOrderByNullsModifier => true;
 
     /// <summary>
+    /// EN: Rejects IIF(...) because Oracle SQL does not expose it as a built-in scalar function.
+    /// PT: Rejeita IIF(...) porque o Oracle SQL nao expõe isso como funcao escalar nativa.
+    /// </summary>
+    public override bool SupportsIifFunction => false;
+
+    /// <summary>
     /// EN: Gets whether delete target alias is supported.
     /// PT: Obtém se há suporte a delete target alias.
     /// </summary>

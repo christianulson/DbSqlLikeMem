@@ -206,7 +206,7 @@ internal static class UnionExecutionHelper
             context.Connection.RegisterExecutionPlan(plan);
         }
 
-        context.Connection.SetLastFoundRows(result.Count);
+        context.Connection.SetLastSelectRows(result.Count);
         if (debugTrace is not null)
             context.Connection.RegisterDebugTrace(debugTrace.Build());
 
@@ -375,6 +375,12 @@ internal static class UnionExecutionHelper
     private static DbType MergeUnionDbType(DbType left, DbType right)
     {
         if (left == right)
+            return left;
+
+        if (left == DbType.Object)
+            return right;
+
+        if (right == DbType.Object)
             return left;
 
         static bool IsFloating(DbType type)

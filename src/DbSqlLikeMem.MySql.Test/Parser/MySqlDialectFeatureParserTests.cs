@@ -3977,8 +3977,8 @@ WHERE users.id = EXCLUDED.id";
 
 
     /// <summary>
-    /// EN: Ensures ROWS window frame clauses parse when supported and RANGE remains gated.
-    /// PT: Garante que cláusulas ROWS de frame de janela sejam interpretadas quando suportadas e que RANGE continue bloqueado.
+    /// EN: Ensures supported window frame clauses parse on aggregate window functions.
+    /// PT: Garante que cláusulas de frame suportadas sejam interpretadas em funções de janela agregadas.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3990,18 +3990,18 @@ WHERE users.id = EXCLUDED.id";
 
         if (version < MySqlDialect.WindowFunctionsMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, d));
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("COUNT(*) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, d));
             return;
         }
 
-        var rowsExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, d);
+        var rowsExpr = SqlExpressionParser.ParseScalar("COUNT(*) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, d);
         Assert.IsType<WindowFunctionExpr>(rowsExpr);
 
-        var rangeExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, d);
+        var rangeExpr = SqlExpressionParser.ParseScalar("COUNT(*) OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, d);
         Assert.IsType<WindowFunctionExpr>(rangeExpr);
 
-        var groupsExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id GROUPS BETWEEN 1 PRECEDING AND CURRENT ROW)", db, d);
-        Assert.IsType<WindowFunctionExpr>(groupsExpr);
+        var followingExpr = SqlExpressionParser.ParseScalar("COUNT(*) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)", db, d);
+        Assert.IsType<WindowFunctionExpr>(followingExpr);
     }
 
 
@@ -4020,12 +4020,12 @@ WHERE users.id = EXCLUDED.id";
 
         if (version < MySqlDialect.WindowFunctionsMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 PRECEDING)", db, d));
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("COUNT(*) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 PRECEDING)", db, d));
             return;
         }
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 PRECEDING)", db, d));
+            SqlExpressionParser.ParseScalar("COUNT(*) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 PRECEDING)", db, d));
 
         Assert.Contains("start bound cannot be greater", ex.Message, StringComparison.OrdinalIgnoreCase);
     }

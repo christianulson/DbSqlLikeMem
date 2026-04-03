@@ -11,35 +11,7 @@ public sealed class OracleProviderSqlDialect : ProviderSqlDialect
         if (string.IsNullOrWhiteSpace(tableName))
             return tableName;
 
-        var trimmed = tableName.Trim();
-        return TryStripScenarioTokenSuffix(trimmed, out var stripped)
-            ? stripped.ToLowerInvariant()
-            : trimmed.ToLowerInvariant();
-    }
-
-    private static bool TryStripScenarioTokenSuffix(string tableName, out string stripped)
-    {
-        stripped = tableName;
-
-        var underscoreIndex = tableName.LastIndexOf('_');
-        if (underscoreIndex < 0)
-            return false;
-
-        var suffixLength = tableName.Length - underscoreIndex - 1;
-        if (suffixLength != 8)
-            return false;
-
-        for (var i = underscoreIndex + 1; i < tableName.Length; i++)
-        {
-            var ch = tableName[i];
-            var isHexUpper = ch is >= 'A' and <= 'F';
-            var isHexDigit = ch is >= '0' and <= '9';
-            if (!isHexUpper && !isHexDigit)
-                return false;
-        }
-
-        stripped = tableName[..underscoreIndex];
-        return true;
+        return tableName.Trim().ToLowerInvariant();
     }
 
     /// <inheritdoc />
@@ -71,7 +43,7 @@ CREATE GLOBAL TEMPORARY TABLE {TemporaryUsersTableName(tableName)} (
     /// <inheritdoc />
     public override string CreateUsersTable(string tableName, string uId) =>
         $@"
-CREATE TABLE {NormalizeScenarioTableName(tableName)} (
+CREATE TABLE {NormalizeScenarioTableName(tableName)}_{uId} (
     Id NUMBER(10) PRIMARY KEY,
     Name VARCHAR2(100) NOT NULL,
     Email VARCHAR2(150) NULL,
@@ -87,9 +59,9 @@ CREATE TABLE {NormalizeScenarioTableName(tableName)} (
     /// <inheritdoc />
     public override string CreateOrdersTable(string tableName, string usersTableName, string uId) =>
         $@"
-CREATE TABLE {NormalizeScenarioTableName(tableName)} (
+CREATE TABLE {NormalizeScenarioTableName(tableName)}_{uId} (
     Id NUMBER(10) PRIMARY KEY,
-    {NormalizeScenarioTableName(usersTableName)}Id NUMBER(10) NOT NULL,
+    userid NUMBER(10) NOT NULL,
     Note VARCHAR2(100) NOT NULL,
     OrderNumber VARCHAR2(40) NOT NULL,
     Amount NUMBER(12,2) DEFAULT 0.00 NOT NULL,
@@ -99,14 +71,13 @@ CREATE TABLE {NormalizeScenarioTableName(tableName)} (
     DeliveredAt TIMESTAMP NULL,
     ExtraJson CLOB NULL,
     CONSTRAINT CK_{NormalizeScenarioTableName(tableName)}_{uId}_ExtraJson CHECK (ExtraJson IS JSON),
-    CONSTRAINT FK_{NormalizeScenarioTableName(tableName)}_{uId}_{NormalizeScenarioTableName(usersTableName)} FOREIGN KEY ({NormalizeScenarioTableName(usersTableName)}Id) REFERENCES {NormalizeScenarioTableName(usersTableName)}(Id)
+    CONSTRAINT FK_{NormalizeScenarioTableName(tableName)}_{uId}_{NormalizeScenarioTableName(usersTableName)}_{uId} FOREIGN KEY (userid) REFERENCES {NormalizeScenarioTableName(usersTableName)}_{uId}(Id)
 )";
 
     /// <inheritdoc />
     public override string DropTable(string tableName, string uId)
     {
-        _ = uId;
-        return $"DROP TABLE {NormalizeScenarioTableName(tableName)}";
+        return $"DROP TABLE {NormalizeScenarioTableName(tableName)}_{uId}";
     }
 
     /// <inheritdoc />
@@ -152,7 +123,7 @@ CREATE TABLE {NormalizeScenarioTableName(tableName)} (
         int quantity,
         bool isPaid,
         string orderedAtLiteral) =>
-        $"INSERT INTO {NormalizeScenarioTableName(tableName)} (Id, {NormalizeScenarioTableName(usersTableName)}Id, Note, OrderNumber, Amount, Quantity, IsPaid, OrderedAt) VALUES ({id}, {userId}, '{note}', '{orderNumber}', {amount.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}, {quantity}, {(isPaid ? "1" : "0")}, {orderedAtLiteral})";
+        $"INSERT INTO {NormalizeScenarioTableName(tableName)} (Id, userid, Note, OrderNumber, Amount, Quantity, IsPaid, OrderedAt) VALUES ({id}, {userId}, '{note}', '{orderNumber}', {amount.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}, {quantity}, {(isPaid ? "1" : "0")}, {orderedAtLiteral})";
 
     /// <inheritdoc />
     public override string SelectUserNameById(string tableName, int id) =>
@@ -160,7 +131,7 @@ CREATE TABLE {NormalizeScenarioTableName(tableName)} (
 
     /// <inheritdoc />
     public override string CountJoinForUser(string usersTable, string ordersTable, int userId) =>
-        $"SELECT COUNT(*) FROM {NormalizeScenarioTableName(usersTable)} u INNER JOIN {NormalizeScenarioTableName(ordersTable)} o ON o.{NormalizeScenarioTableName(usersTable)}Id = u.Id WHERE u.Id = {userId}";
+        $"SELECT COUNT(*) FROM {NormalizeScenarioTableName(usersTable)} u INNER JOIN {NormalizeScenarioTableName(ordersTable)} o ON o.userid = u.Id WHERE u.Id = {userId}";
 
     /// <inheritdoc />
     public override string UpdateUserNameById(string tableName, int id, string newName) =>

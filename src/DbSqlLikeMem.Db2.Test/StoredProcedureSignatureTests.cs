@@ -19,14 +19,14 @@ public sealed class StoredProcedureSignatureTests(
     protected override DbConnectionMockBase CreateConnection() => new Db2ConnectionMock();
 
     /// <summary>
-    /// EN: Indicates that the Db2 mock does not support DateTimeOffset input-output parameters in stored procedure signatures.
-    /// PT: Indica que o mock Db2 nao suporta parâmetros input-output DateTimeOffset em assinaturas de procedure.
+    /// EN: Indicates that the Db2 mock supports DateTimeOffset input-output parameters in stored procedure signatures.
+    /// PT: Indica que o mock Db2 suporta parâmetros input-output DateTimeOffset em assinaturas de procedure.
     /// </summary>
-    protected override bool SupportsDateTimeOffsetInputOutputParameters => false;
+    protected override bool SupportsDateTimeOffsetInputOutputParameters => true;
 
     /// <summary>
-    /// EN: Indicates that the Db2 mock supports Guid input-output parameters in stored procedure signatures.
-    /// PT: Indica que o mock Db2 suporta parâmetros input-output Guid em assinaturas de procedure.
+    /// EN: Indicates that the Db2 mock does not support Guid input-output parameters in stored procedure signatures.
+    /// PT: Indica que o mock Db2 não suporta parâmetros input-output Guid em assinaturas de procedure.
     /// </summary>
-    protected override bool SupportsGuidInputOutputParameters => true;
+    protected override bool SupportsGuidInputOutputParameters => false;
 }

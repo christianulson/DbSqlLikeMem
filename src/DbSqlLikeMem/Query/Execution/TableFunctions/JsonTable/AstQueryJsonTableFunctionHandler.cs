@@ -328,7 +328,7 @@ internal sealed class AstQueryJsonTableFunctionHandler(
             if (column.OnError is not null)
                 return ResolveJsonTableFallback(column, column.OnError, lookupPath);
 
-            throw new InvalidOperationException($"JSON_TABLE column '{column.Name}' path '{lookupPath}' resolved to a non-scalar JSON value.");
+            return null;
         }
 
         if (TryConvertJsonTableScalarValue(value, column, out var convertedValue))

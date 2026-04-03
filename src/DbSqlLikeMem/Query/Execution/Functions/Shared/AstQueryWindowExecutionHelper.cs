@@ -56,9 +56,18 @@ internal static class AstQueryWindowExecutionHelper
                     var isNthValue = w.Name.Equals("NTH_VALUE", StringComparison.OrdinalIgnoreCase);
                     var isCount = w.Name.Equals("COUNT", StringComparison.OrdinalIgnoreCase);
                     var isAggregateWindow = AggregateFunctionCatalog.Contains(w.Name);
+                    var isSqlServer = dialectInstance.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase);
 
                     var resolvedWindowDefinition1 = windowDefinition
                         ?? throw SqlUnsupported.NotSupported(dialectInstance, $"window functions ({w.Name})");
+
+                    if (isSqlServer
+                        && w.Spec.Frame is not null
+                        && !AstQueryWindowFunctionSupport.SupportsWindowFrame(w.Name))
+                    {
+                        throw new InvalidOperationException(
+                            $"Window function '{w.Name}' does not support ROWS, RANGE or GROUPS clauses.");
+                    }
 
                     if (resolvedWindowDefinition1.RequiresOrderBy && w.Spec.OrderBy.Count == 0)
                         throw new InvalidOperationException($"Window function '{w.Name}' requires ORDER BY in OVER clause.");

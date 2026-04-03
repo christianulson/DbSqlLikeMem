@@ -191,7 +191,7 @@ internal partial class MySqlDialect : SqlDialectBase
     /// EN: Indicates whether IIF(...) is supported by the configured MySQL version.
     /// PT: Indica se IIF(...) e suportada pela versao configurada do MySQL.
     /// </summary>
-    public override bool SupportsIifFunction => true;
+    public override bool SupportsIifFunction => false;
 
     /// <summary>
     /// EN: Gets the null-substitution function names recognized by this dialect.

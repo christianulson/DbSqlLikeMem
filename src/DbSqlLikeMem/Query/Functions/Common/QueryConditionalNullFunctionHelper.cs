@@ -71,8 +71,7 @@ internal static class QueryConditionalNullFunctionHelper
         _ = fn;
         if (!context.Dialect.SupportsIifFunction)
         {
-            result = null;
-            return false;
+            throw SqlUnsupported.NotSupported(context.Dialect, "IIF");
         }
 
         var condition = evalArg(0).ToBool();

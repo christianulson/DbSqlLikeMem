@@ -2256,12 +2256,12 @@ public sealed class SqlServerMockTests
     }
 
     /// <summary>
-    /// EN: Ensures STRING_SPLIT enable_ordinal rejects decimal values on the shared SQL Server runtime path.
-    /// PT: Garante que STRING_SPLIT enable_ordinal rejeite valores decimais no caminho compartilhado de runtime do SQL Server.
+    /// EN: Ensures STRING_SPLIT enable_ordinal accepts decimal constants that evaluate to 0 or 1 on the shared SQL Server runtime path.
+    /// PT: Garante que STRING_SPLIT enable_ordinal aceite constantes decimais que avaliam para 0 ou 1 no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
-    public void ExecuteReader_CrossApply_StringSplitWithOrdinalDecimalFlag_ShouldThrow()
+    public void ExecuteReader_CrossApply_StringSplitWithOrdinalDecimalFlag_ShouldReturnOrdinalColumn()
     {
         using (var seed = new SqlServerCommandMock(_connection))
         {
@@ -2282,8 +2282,17 @@ public sealed class SqlServerMockTests
                 """
         };
 
-        var ex = Assert.Throws<InvalidOperationException>(command.ExecuteReader);
-        Assert.Contains("enable_ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal("red", reader.GetString(reader.GetOrdinal("Token")));
+        Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("TokenOrdinal")));
+
+        Assert.True(reader.Read());
+        Assert.Equal("blue", reader.GetString(reader.GetOrdinal("Token")));
+        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("TokenOrdinal")));
+
+        Assert.False(reader.Read());
     }
 
     /// <summary>

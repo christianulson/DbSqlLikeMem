@@ -56,8 +56,18 @@ internal static class SqlWindowExpressionParserHelper
             && spec.OrderBy.Count == 0)
             throw ctx.Error($"Window function '{functionName}' requires ORDER BY in OVER clause.", contextToken);
 
+        if (ctx.Dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
+            && spec.Frame is not null
+            && !AstQueryWindowFunctionSupport.SupportsWindowFrame(functionName))
+        {
+            throw ctx.Error($"Window function '{functionName}' does not support ROWS, RANGE or GROUPS clauses.", contextToken);
+        }
+
         if (spec.Frame is not null)
+        {
             ctx.EnsureWindowFrameSemanticRange(spec.Frame, contextToken);
+            ctx.EnsureWindowFrameOffsetSupport(spec.Frame, contextToken);
+        }
     }
 
     internal static WindowSpec ParseWindowSpec(
@@ -279,6 +289,24 @@ internal static class SqlWindowExpressionParserHelper
             WindowFrameBoundKind.UnboundedFollowing => long.MaxValue,
             _ => 0
         };
+    }
+
+    private static void EnsureWindowFrameOffsetSupport(
+        this SqlExpressionParserContext ctx,
+        WindowFrameSpec frame,
+        SqlToken contextToken)
+    {
+        if (!ctx.Dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        if (frame.Unit != WindowFrameUnit.Range)
+            return;
+
+        if (frame.Start.Kind is WindowFrameBoundKind.Preceding or WindowFrameBoundKind.Following
+            || frame.End.Kind is WindowFrameBoundKind.Preceding or WindowFrameBoundKind.Following)
+        {
+            throw ctx.Error("SQL Server does not support RANGE frames with PRECEDING/FOLLOWING offsets.", contextToken);
+        }
     }
 
     private static bool TryReadIntegralLiteral(SqlExpr expr, out long value)

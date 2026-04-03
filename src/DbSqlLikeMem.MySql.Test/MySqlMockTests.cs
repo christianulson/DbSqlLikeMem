@@ -1934,7 +1934,7 @@ public sealed class MySqlMockTests
         command.CommandText = "SELECT IFNULL(Email, 'fallback') FROM Users WHERE Id = 20";
         Assert.Equal("fallback", command.ExecuteScalar());
 
-        command.CommandText = "SELECT IIF(Email IS NULL, 1, 0) FROM Users WHERE Id = 20";
+        command.CommandText = "SELECT IF(Email IS NULL, 1, 0) FROM Users WHERE Id = 20";
         Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
     }
 
@@ -4629,7 +4629,7 @@ public sealed class MySqlMockTests
         };
 
         var count = Convert.ToInt64(cmd.ExecuteScalar(), CultureInfo.InvariantCulture);
-        Assert.Equal(0L, count);
+        Assert.Equal(1L, count);
     }
 
     /// <summary>
@@ -4712,9 +4712,10 @@ public sealed class MySqlMockTests
 
         Assert.Equal(2, rows.Count);
         Assert.Equal(1, rows[0].ChunkId);
-        Assert.Equal(0, rows[0].LexicalScore);
+        Assert.Equal(2, rows[0].LexicalScore);
         Assert.Equal(2, rows[1].ChunkId);
-        Assert.Equal(0, rows[1].LexicalScore);
+        Assert.Equal(1, rows[1].LexicalScore);
+        Assert.True(rows[0].LexicalScore > rows[1].LexicalScore);
         Assert.All(rows, row => Assert.Equal("lexical", row.CandidateSource));
     }
 

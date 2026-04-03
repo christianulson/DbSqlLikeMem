@@ -683,6 +683,22 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             return DateTime.Now;
         }
 
+        if (string.Equals(value, "SYSUTCDATETIME", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "SYSUTCDATETIME()", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "GETUTCDATE", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "GETUTCDATE()", StringComparison.OrdinalIgnoreCase))
+        {
+            return DateTime.UtcNow;
+        }
+
+        if (string.Equals(value, "GETDATE", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "GETDATE()", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "SYSDATETIME", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "SYSDATETIME()", StringComparison.OrdinalIgnoreCase))
+        {
+            return DateTime.Now;
+        }
+
         if (value.Length >= 2 && value[0] == '\'' && value[^1] == '\'')
             return value[1..^1].Replace("''", "'");
 

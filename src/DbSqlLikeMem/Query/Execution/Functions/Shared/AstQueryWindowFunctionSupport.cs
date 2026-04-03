@@ -4,6 +4,17 @@ namespace DbSqlLikeMem;
 
 internal static class AstQueryWindowFunctionSupport
 {
+    internal static bool SupportsWindowFrame(string functionName)
+    {
+        if (string.IsNullOrWhiteSpace(functionName))
+            return false;
+
+        return AggregateFunctionCatalog.Contains(functionName)
+            || functionName.Equals("FIRST_VALUE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LAST_VALUE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("NTH_VALUE", StringComparison.OrdinalIgnoreCase);
+    }
+
     internal static bool TryReadIntLiteral(SqlExpr expr, out int value)
     {
         value = default;

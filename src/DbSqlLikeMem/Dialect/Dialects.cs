@@ -252,6 +252,9 @@ internal abstract class SqlDialectBase : ISqlDialect
         if (first == second)
             return true;
 
+        if (first == DbType.Object || second == DbType.Object)
+            return true;
+
         static bool IsNumeric(DbType t)
             => t is DbType.Byte or DbType.SByte
             or DbType.Int16 or DbType.UInt16

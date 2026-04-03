@@ -45,6 +45,15 @@ internal static class SqliteScalarFunctionRegistry
         dialect.AddScalarFunction("LIKELY", "BOOLEAN", AstQuerySqliteScalarFunctionEvaluator.TryEvaluate);
         dialect.AddScalarFunction("UNLIKELY", "BOOLEAN", AstQuerySqliteScalarFunctionEvaluator.TryEvaluate);
         dialect.AddScalarFunction("LIKELIHOOD", "BOOLEAN", AstQuerySqliteScalarFunctionEvaluator.TryEvaluate);
+        var castDefinition = DbFunctionDef.CreateScalar(
+            "CAST",
+            null,
+            DbFunctionCategory.Conversion,
+            DbInvocationStyle.Call) with
+        {
+            AstExecutor = AstQueryCastConversionFamilyEvaluator.TryEvalCastLikeFunction
+        };
+        dialect.AddScalarFunction(castDefinition);
         dialect.AddScalarFunction("JSON_EACH", "VARCHAR", AstQuerySqliteScalarFunctionEvaluator.TryEvaluate);
         dialect.AddScalarFunction("JSON_TREE", "VARCHAR", AstQuerySqliteScalarFunctionEvaluator.TryEvaluate);
         dialect.AddScalarFunction("JSONB_EACH", "VARCHAR", AstQuerySqliteScalarFunctionEvaluator.TryEvaluate);
@@ -91,10 +100,7 @@ internal static class SqliteScalarFunctionRegistry
         };
         dialect.AddScalarFunctions(
             changesDefinition,
-            "CHANGES",
-            "FOUND_ROWS",
-            "ROW_COUNT",
-            "ROWCOUNT");
+            "CHANGES");
         var jsonExtractDefinition = DbFunctionDef.CreateScalar("JSON_EXTRACT", "VARCHAR") with
         {
             AstExecutor = AstQueryJsonExtractionFunctionEvaluator.TryEvalJsonExtractionFunction

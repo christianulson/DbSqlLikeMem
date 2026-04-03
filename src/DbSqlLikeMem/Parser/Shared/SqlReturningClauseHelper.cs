@@ -43,10 +43,15 @@ internal static class SqlReturningClauseHelper
         {
             raws = ctx.ParseReturningItemsRaw(ctx.ReadRawExpressionUntilCommaOrTerminator);
         }
+        catch (NotSupportedException ex) when (
+            ex.Message.Contains("RETURNING has unbalanced parentheses in expression.", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("RETURNING has unbalanced parentheses in expression.", ex);
+        }
         catch (InvalidOperationException ex) when (
             ex.Message.Contains("RETURNING has unbalanced parentheses in expression.", StringComparison.OrdinalIgnoreCase))
         {
-            throw ctx.NotSupported("RETURNING has unbalanced parentheses in expression.");
+            throw new InvalidOperationException("RETURNING has unbalanced parentheses in expression.", ex);
         }
 
         return raws.ConvertAll(raw =>
@@ -66,7 +71,7 @@ internal static class SqlReturningClauseHelper
                 if (ex.Message.Contains("aggregate functions in this dialect", StringComparison.OrdinalIgnoreCase))
                     throw;
 
-                throw new NotSupportedException("RETURNING expression is invalid.", ex);
+                throw new InvalidOperationException("RETURNING expression is invalid.", ex);
             }
             catch (NotSupportedException)
             {
@@ -74,7 +79,7 @@ internal static class SqlReturningClauseHelper
             }
             catch (Exception ex)
             {
-                throw new NotSupportedException("RETURNING expression is invalid.", ex);
+                throw new InvalidOperationException("RETURNING expression is invalid.", ex);
             }
 
             return new SqlSelectItem(expr, alias);

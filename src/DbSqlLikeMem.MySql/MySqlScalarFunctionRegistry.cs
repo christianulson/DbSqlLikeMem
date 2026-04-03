@@ -291,12 +291,6 @@ internal partial class MySqlDialect
                 AstExecutor = QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions
             },
             "IF");
-        this.AddScalarFunctions(
-            DbFunctionDef.CreateScalar("IIF", "VARCHAR") with
-            {
-                AstExecutor = QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions
-            },
-            "IIF");
         this.AddScalarFunction(
             DbFunctionDef.CreateScalar("SOUNDEX", "VARCHAR") with
             {
@@ -491,6 +485,11 @@ internal partial class MySqlDialect
             "FIND_IN_SET",
             "INT",
             executionHandler: tryEvalFindInSetFunction);
+        this.AddScalarFunction(
+            DbFunctionDef.CreateScalar("MATCH_AGAINST", "INT") with
+            {
+                AstExecutor = QueryTextSearchFunctionHelper.TryEvalMatchAgainstFunction
+            });
         this.AddScalarFunction(
             "FROM_BASE64",
             "VARBINARY",

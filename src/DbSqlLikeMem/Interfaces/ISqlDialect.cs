@@ -95,6 +95,17 @@ internal interface ISqlDialect
     bool SupportsSequenceDotValueExpression(string suffix);
     bool SupportsDoubleAtIdentifierSyntax { get; }
     bool SupportsSqlCalcFoundRowsModifier { get; }
+    /// <summary>
+    /// EN: Indicates whether a LAST/FOUND ROWS helper function is supported by the current dialect/version.
+    /// PT: Indica se uma funcao auxiliar LAST/FOUND ROWS e suportada pelo dialeto/versao atual.
+    /// </summary>
+    bool SupportsLastFoundRowsFunction(string functionName);
+
+    /// <summary>
+    /// EN: Indicates whether a LAST/FOUND ROWS helper identifier is supported by the current dialect/version.
+    /// PT: Indica se um identificador auxiliar LAST/FOUND ROWS e suportado pelo dialeto/versao atual.
+    /// </summary>
+    bool SupportsLastFoundRowsIdentifier(string identifier);
 
     // Pagination
     bool SupportsOffsetFetch { get; }

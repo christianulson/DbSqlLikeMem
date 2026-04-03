@@ -1598,12 +1598,12 @@ public sealed class SqlAzureDialectBehaviorTests(
     }
 
     /// <summary>
-    /// EN: Ensures SQL Azure compatibility mode rejects decimal enable_ordinal values.
-    /// PT: Garante que o modo de compatibilidade SQL Azure rejeite valores decimais em enable_ordinal.
+    /// EN: Ensures SQL Azure compatibility mode accepts decimal enable_ordinal values that evaluate to 0 or 1.
+    /// PT: Garante que o modo de compatibilidade SQL Azure aceite valores decimais de enable_ordinal que avaliam para 0 ou 1.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
-    public void ExecuteReader_CrossApply_StringSplitWithOrdinalDecimalFlag_ShouldThrow(int compatibilityLevel)
+    public void ExecuteReader_CrossApply_StringSplitWithOrdinalDecimalFlag_ShouldReturnOrdinalColumn(int compatibilityLevel)
     {
         using var connection = CreateOpenConnection(compatibilityLevel);
         using (var seed = new SqlAzureCommandMock(connection))
@@ -1632,8 +1632,14 @@ public sealed class SqlAzureDialectBehaviorTests(
             return;
         }
 
-        var ex2 = Assert.Throws<InvalidOperationException>(command.ExecuteReader);
-        Assert.Contains("enable_ordinal", ex2.Message, StringComparison.OrdinalIgnoreCase);
+        using var reader = command.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.Equal("red", reader.GetString(reader.GetOrdinal("Token")));
+        Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("TokenOrdinal")));
+        Assert.True(reader.Read());
+        Assert.Equal("blue", reader.GetString(reader.GetOrdinal("Token")));
+        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("TokenOrdinal")));
+        Assert.False(reader.Read());
     }
 
     /// <summary>

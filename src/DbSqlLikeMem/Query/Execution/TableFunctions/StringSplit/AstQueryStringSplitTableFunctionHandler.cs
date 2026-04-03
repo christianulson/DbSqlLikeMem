@@ -84,6 +84,16 @@ internal sealed class AstQueryStringSplitTableFunctionHandler(
         if (rawValue is bool boolean)
             return boolean;
 
+        if (rawValue is decimal decimalValue)
+        {
+            return decimalValue switch
+            {
+                0m => false,
+                1m => true,
+                _ => throw new InvalidOperationException("STRING_SPLIT enable_ordinal must be 0 or 1 in the mock.")
+            };
+        }
+
         if (rawValue is byte or sbyte or short or ushort or int or uint or long or ulong)
         {
             var numeric = Convert.ToInt64(rawValue, CultureInfo.InvariantCulture);

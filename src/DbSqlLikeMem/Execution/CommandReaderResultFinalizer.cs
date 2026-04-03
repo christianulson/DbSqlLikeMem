@@ -27,6 +27,6 @@ internal static class CommandReaderResultFinalizer
             connection.Metrics.Selects += returnedRows;
 
         if (tables.Count > 0)
-            connection.SetLastFoundRows(tables.Last().Count);
+            connection.SetLastSelectRows(tables.Last().Count);
     }
 }

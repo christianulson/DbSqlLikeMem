@@ -1398,8 +1398,8 @@ public sealed class OracleDialectFeatureParserTests(
 
 
     /// <summary>
-    /// EN: Ensures ROWS window frame clauses parse when supported and RANGE remains gated.
-    /// PT: Garante que cláusulas ROWS de frame de janela sejam interpretadas quando suportadas e que RANGE continue bloqueado.
+    /// EN: Ensures supported window frame clauses parse on aggregate window functions.
+    /// PT: Garante que cláusulas de frame suportadas sejam interpretadas em funções de janela agregadas.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1411,14 +1411,17 @@ public sealed class OracleDialectFeatureParserTests(
 
         if (version < OracleDialect.WindowFunctionsMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, d));
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("COUNT(*) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, d));
             return;
         }
 
-        var expr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, d);
+        var expr = SqlExpressionParser.ParseScalar("COUNT(*) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, d);
         Assert.IsType<WindowFunctionExpr>(expr);
 
-        expr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, d);
+        expr = SqlExpressionParser.ParseScalar("COUNT(*) OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, d);
+        Assert.IsType<WindowFunctionExpr>(expr);
+
+        expr = SqlExpressionParser.ParseScalar("COUNT(*) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)", db, d);
         Assert.IsType<WindowFunctionExpr>(expr);
     }
 
@@ -1438,12 +1441,12 @@ public sealed class OracleDialectFeatureParserTests(
 
         if (version < OracleDialect.WindowFunctionsMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 PRECEDING)", db, d));
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("COUNT(*) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 PRECEDING)", db, d));
             return;
         }
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 PRECEDING)", db, d));
+            SqlExpressionParser.ParseScalar("COUNT(*) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 PRECEDING)", db, d));
 
         Assert.Contains("start bound cannot be greater", ex.Message, StringComparison.OrdinalIgnoreCase);
     }

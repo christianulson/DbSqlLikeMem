@@ -563,31 +563,57 @@ internal static class SelectPlanBuilderHelper
             return true;
         }
 
-        if (expression is not CallExpr call
-            || (!call.Name.Equals("CAST", StringComparison.OrdinalIgnoreCase)
-                && !call.Name.Equals("TRY_CAST", StringComparison.OrdinalIgnoreCase))
-            || call.Args.Count < 2
-            || call.Args[1] is not RawSqlExpr rawType)
+        if (expression is FunctionCallExpr fn
+            && fn.Name.Equals("ROUND", StringComparison.OrdinalIgnoreCase))
         {
-            if (expression is FunctionCallExpr fn
-                && fn.Name.Equals("ROUND", StringComparison.OrdinalIgnoreCase))
-            {
-                dbType = DbType.Decimal;
-                return true;
-            }
-
-            if (expression is CallExpr roundCall
-                && roundCall.Name.Equals("ROUND", StringComparison.OrdinalIgnoreCase))
-            {
-                dbType = DbType.Decimal;
-                return true;
-            }
-
-            return false;
+            dbType = DbType.Decimal;
+            return true;
         }
 
-        dbType = ParseDbTypeFromCastSqlType(rawType.Sql);
-        return true;
+        if (expression is CallExpr roundCall
+            && roundCall.Name.Equals("ROUND", StringComparison.OrdinalIgnoreCase))
+        {
+            dbType = DbType.Decimal;
+            return true;
+        }
+
+        if (expression is CallExpr tryCastCall
+            && (tryCastCall.Name.Equals("TRY_CAST", StringComparison.OrdinalIgnoreCase)
+                || tryCastCall.Name.Equals("TRY_CONVERT", StringComparison.OrdinalIgnoreCase)))
+        {
+            dbType = DbType.Object;
+            return true;
+        }
+
+        if (expression is FunctionCallExpr tryCastFunctionCall
+            && (tryCastFunctionCall.Name.Equals("TRY_CAST", StringComparison.OrdinalIgnoreCase)
+                || tryCastFunctionCall.Name.Equals("TRY_CONVERT", StringComparison.OrdinalIgnoreCase)))
+        {
+            dbType = DbType.Object;
+            return true;
+        }
+
+        if (expression is CallExpr call
+            && (call.Name.Equals("CAST", StringComparison.OrdinalIgnoreCase)
+                || call.Name.Equals("TRY_CAST", StringComparison.OrdinalIgnoreCase))
+            && call.Args.Count >= 2
+            && call.Args[1] is RawSqlExpr rawType)
+        {
+            dbType = ParseDbTypeFromCastSqlType(rawType.Sql);
+            return true;
+        }
+
+        if (expression is FunctionCallExpr functionCall
+            && (functionCall.Name.Equals("CAST", StringComparison.OrdinalIgnoreCase)
+                || functionCall.Name.Equals("TRY_CAST", StringComparison.OrdinalIgnoreCase))
+            && functionCall.Args.Count >= 2
+            && functionCall.Args[1] is RawSqlExpr functionRawType)
+        {
+            dbType = ParseDbTypeFromCastSqlType(functionRawType.Sql);
+            return true;
+        }
+
+        return false;
     }
 
     private static bool ContainsWindowFunction(SqlExpr expression)

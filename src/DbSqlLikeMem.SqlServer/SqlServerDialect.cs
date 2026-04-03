@@ -258,6 +258,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
         "MONTH",
         "YEAR",
         "DATEDIFF_BIG",
+        "CAST",
         "PARSE",
         "TRY_PARSE",
         "TRY_CAST",
@@ -445,5 +446,3 @@ internal sealed class SqlServerDialect : SqlDialectBase
     }
 
 }
-
-

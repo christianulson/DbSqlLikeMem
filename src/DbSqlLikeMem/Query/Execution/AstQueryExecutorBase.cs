@@ -358,7 +358,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             tryEvalJsonAccessShimFunction: AstQueryJsonExtractionFunctionEvaluator.TryEvalJsonAccessShimFunction,
             tryEvalJsonExtractionFunction: AstQueryJsonExtractionFunctionEvaluator.TryEvalJsonExtractionFunction,
             tryEvalSqlServerJsonModifyFunction: AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSqlServerJsonModifyFunction,
-            tryEvalOpenJsonFunction: SqlServerUtilityFunctionEvaluator.TryEvalOpenJsonFunction,
+            tryEvalOpenJsonFunction: AstQuerySqlServerUtilityFunctionEvaluator.TryEvalOpenJsonFunction,
             tryEvalJsonUnquoteFunction: AstQueryJsonUnquoteFunctionEvaluator.TryEvalJsonUnquoteFunction,
             tryEvalToNumberFunction: AstQueryToNumberFunctionEvaluator.TryEvalToNumberFunction);
 
@@ -508,7 +508,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         sw.Stop();
 
         if (!hasSqlCalcFoundRows)
-            Cnn.SetLastFoundRows(result.Count);
+            Cnn.SetLastSelectRows(result.Count);
 
         var metrics = _context.BuildPlanRuntimeMetrics(q, result.Count, sw.ElapsedMilliseconds);
         var indexRecommendations = BuildIndexRecommendations(_context, q, metrics);
@@ -674,7 +674,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         }
 
         if (HasSqlCalcFoundRows(selectQuery))
-            Cnn.SetLastFoundRows(projected.Count);
+            Cnn.SetLastSelectRows(projected.Count);
 
         projected = context.ApplyQueryOrderLimit(
             projected,
@@ -807,7 +807,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         result.JoinFields.Add(firstRow.Fields);
 
         if (HasSqlCalcFoundRows(query))
-            Cnn.SetLastFoundRows(result.Count);
+            Cnn.SetLastSelectRows(result.Count);
 
         if (query.Distinct)
             result = _context.ApplyDistinct(result);
@@ -1267,7 +1267,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         }
 
         if (HasSqlCalcFoundRows(q))
-            Cnn.SetLastFoundRows(res.Count);
+            Cnn.SetLastSelectRows(res.Count);
 
         // ORDER / LIMIT
         debugTrace?.AddStep(

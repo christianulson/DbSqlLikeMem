@@ -341,12 +341,12 @@ ORDER BY id").ToList();
 
 
     /// <summary>
-    /// EN: Tests ranking and distribution window functions on size-1 ROWS frames with composite mixed-direction ORDER BY.
-    /// PT: Testa funções de ranking e distribuição em frames ROWS de tamanho 1 com ORDER BY composto e direções mistas.
+    /// EN: Verifies ranking and distribution functions follow the composite ORDER BY even when the ROWS frame is CURRENT ROW.
+    /// PT: Verifica se as funcoes de ranking e distribuicao seguem o ORDER BY composto mesmo com frame ROWS CURRENT ROW.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
-    public void Window_RankingDistribution_WithCompositeOrder_AndCurrentRowFrame_ShouldReturnSingleRowSemantics()
+    public void Window_RankingDistribution_WithCompositeOrder_AndCurrentRowFrame_ShouldRespectOrderSemantics()
     {
         var rows = _cnn.Query<dynamic>(@"
 SELECT id,
@@ -357,20 +357,22 @@ SELECT id,
 FROM users
 ORDER BY id").ToList();
 
-        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.rk)]);
-        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.dr)]);
+        Assert.Equal([2, 3, 1], [.. rows.Select(r => (int)r.rk)]);
+        Assert.Equal([2, 3, 1], [.. rows.Select(r => (int)r.dr)]);
 
         var pr = rows.Select(r => Convert.ToDouble(r.pr)).ToArray();
         var cd = rows.Select(r => Convert.ToDouble(r.cd)).ToArray();
 
-        Assert.All(pr, v => Assert.True(Math.Abs(v - 0d) <= 1e-9));
-        Assert.All(cd, v => Assert.True(Math.Abs(v - 1d) <= 1e-9));
+        Assert.Equal([0.5d, 1d, 0d], pr);
+        Assert.True(Math.Abs(cd[0] - (2d / 3d)) <= 1e-9);
+        Assert.True(Math.Abs(cd[1] - 1d) <= 1e-9);
+        Assert.True(Math.Abs(cd[2] - (1d / 3d)) <= 1e-9);
     }
 
 
     /// <summary>
-    /// EN: Tests LAG/LEAD defaults with composite mixed-direction ORDER BY and frame-limited visibility.
-    /// PT: Testa defaults de LAG/LEAD com ORDER BY composto e direções mistas com visibilidade limitada por frame.
+    /// EN: Verifies LAG and LEAD follow the composite ORDER BY sequence and use defaults only outside the partition.
+    /// PT: Verifica se LAG e LEAD seguem a sequencia do ORDER BY composto e usam defaults somente fora da particao.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -383,18 +385,18 @@ SELECT id,
 FROM users
 ORDER BY id").ToList();
 
-        Assert.Equal([-1, -1, -1], [.. rows.Select(r => (int)r.lag_forward)]);
-        Assert.Equal([99, 99, 99], [.. rows.Select(r => (int)r.lead_sliding)]);
+        Assert.Equal([3, 1, -1], [.. rows.Select(r => (int)r.lag_forward)]);
+        Assert.Equal([2, 99, 1], [.. rows.Select(r => (int)r.lead_sliding)]);
     }
 
 
     /// <summary>
-    /// EN: Tests ranking/distribution and NTILE return NULL when the ROWS frame excludes the current row.
-    /// PT: Testa se ranking/distribuição e NTILE retornam NULL quando o frame ROWS exclui a linha atual.
+    /// EN: Verifies ROWS frame boundaries do not change ranking, distribution, or NTILE semantics.
+    /// PT: Verifica se os limites do frame ROWS nao alteram a semantica de ranking, distribuicao ou NTILE.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
-    public void Window_RankingDistribution_AndNtile_WithFrameExcludingCurrentRow_ShouldReturnNull()
+    public void Window_RankingDistribution_AndNtile_WithFrameExcludingCurrentRow_ShouldRespectOrderSemantics()
     {
         var rows = _cnn.Query<dynamic>(@"
 SELECT id,
@@ -406,11 +408,13 @@ SELECT id,
 FROM users
 ORDER BY id").ToList();
 
-        Assert.Equal([null, null, null], [.. rows.Select(r => (int?)r.rk_excluded)]);
-        Assert.Equal([null, null, null], [.. rows.Select(r => (int?)r.dr_excluded)]);
-        Assert.Equal([null, null, null], [.. rows.Select(r => (double?)r.pr_excluded)]);
-        Assert.Equal([null, null, null], [.. rows.Select(r => (double?)r.cd_excluded)]);
-        Assert.Equal([null, null, null], [.. rows.Select(r => (int?)r.ntile_excluded)]);
+        Assert.Equal([2, 3, 1], [.. rows.Select(r => (int)r.rk_excluded)]);
+        Assert.Equal([2, 3, 1], [.. rows.Select(r => (int)r.dr_excluded)]);
+        Assert.Equal([0.5d, 1d, 0d], [.. rows.Select(r => Convert.ToDouble(r.pr_excluded))]);
+        Assert.True(Math.Abs(Convert.ToDouble(rows[0].cd_excluded) - (2d / 3d)) <= 1e-9);
+        Assert.True(Math.Abs(Convert.ToDouble(rows[1].cd_excluded) - 1d) <= 1e-9);
+        Assert.True(Math.Abs(Convert.ToDouble(rows[2].cd_excluded) - (1d / 3d)) <= 1e-9);
+        Assert.Equal([1, 2, 1], [.. rows.Select(r => (int)r.ntile_excluded)]);
     }
 
     /// <summary>
@@ -430,10 +434,13 @@ SELECT id,
 FROM users
 ORDER BY id").ToList();
 
-        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.rk_desc_range)]);
-        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.dr_desc_range)]);
-        Assert.Equal([1d, 1d, 1d], [.. rows.Select(r => Convert.ToDouble(r.cd_desc_range))]);
-        Assert.Equal([2, 1, 1], [.. rows.Select(r => (int)r.ntile_desc_range)]);
+        Assert.Equal([2, 2, 1], [.. rows.Select(r => (int)r.rk_desc_range)]);
+        Assert.Equal([2, 2, 1], [.. rows.Select(r => (int)r.dr_desc_range)]);
+        var cdDescRange = rows.Select(r => Convert.ToDouble(r.cd_desc_range)).ToArray();
+        Assert.True(Math.Abs(cdDescRange[0] - 1d) <= 1e-9);
+        Assert.True(Math.Abs(cdDescRange[1] - 1d) <= 1e-9);
+        Assert.True(Math.Abs(cdDescRange[2] - (1d / 3d)) <= 1e-9);
+        Assert.Equal([1, 2, 1], [.. rows.Select(r => (int)r.ntile_desc_range)]);
     }
 
     /// <summary>
@@ -470,13 +477,13 @@ SELECT id,
 FROM users
 ORDER BY id").ToList();
 
-        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.rk_groups_mix)]);
-        Assert.Equal([2, 1, 1], [.. rows.Select(r => (int)r.ntile_groups_mix)]);
+        Assert.Equal([2, 2, 1], [.. rows.Select(r => (int)r.rk_groups_mix)]);
+        Assert.Equal([1, 2, 1], [.. rows.Select(r => (int)r.ntile_groups_mix)]);
     }
 
     /// <summary>
-    /// EN: Tests RANGE frame that excludes current row yields NULL ranking/distribution/NTILE and applies LAG/LEAD defaults.
-    /// PT: Testa se frame RANGE que exclui a linha atual retorna NULL em ranking/distribuição/NTILE e aplica defaults de LAG/LEAD.
+    /// EN: Verifies RANGE frame boundaries do not change ranking/distribution semantics and LAG/LEAD still follow the order.
+    /// PT: Verifica se os limites do frame RANGE nao alteram a semantica de ranking/distribuicao e se LAG/LEAD seguem a ordem.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -494,13 +501,15 @@ SELECT id,
 FROM users
 ORDER BY id").ToList();
 
-        Assert.Equal([null, null, null], [.. rows.Select(r => (int?)r.rk_excluded_range)]);
-        Assert.Equal([null, null, null], [.. rows.Select(r => (int?)r.dr_excluded_range)]);
-        Assert.Equal([null, null, null], [.. rows.Select(r => (double?)r.pr_excluded_range)]);
-        Assert.Equal([null, null, null], [.. rows.Select(r => (double?)r.cd_excluded_range)]);
-        Assert.Equal([null, null, null], [.. rows.Select(r => (int?)r.ntile_excluded_range)]);
-        Assert.Equal([-1, -1, -1], [.. rows.Select(r => (int)r.lag_excluded_range)]);
-        Assert.Equal([99, 99, 99], [.. rows.Select(r => (int)r.lead_excluded_range)]);
+        Assert.Equal([2, 2, 1], [.. rows.Select(r => (int)r.rk_excluded_range)]);
+        Assert.Equal([2, 2, 1], [.. rows.Select(r => (int)r.dr_excluded_range)]);
+        Assert.Equal([0.5d, 0.5d, 0d], [.. rows.Select(r => Convert.ToDouble(r.pr_excluded_range))]);
+        Assert.True(Math.Abs(Convert.ToDouble(rows[0].cd_excluded_range) - 1d) <= 1e-9);
+        Assert.True(Math.Abs(Convert.ToDouble(rows[1].cd_excluded_range) - 1d) <= 1e-9);
+        Assert.True(Math.Abs(Convert.ToDouble(rows[2].cd_excluded_range) - (1d / 3d)) <= 1e-9);
+        Assert.Equal([1, 2, 1], [.. rows.Select(r => (int)r.ntile_excluded_range)]);
+        Assert.Equal([3, 1, -1], [.. rows.Select(r => (int)r.lag_excluded_range)]);
+        Assert.Equal([2, 99, 1], [.. rows.Select(r => (int)r.lead_excluded_range)]);
     }
 
     /// <summary>
@@ -514,7 +523,7 @@ ORDER BY id").ToList();
         var ex = Assert.Throws<InvalidOperationException>(() =>
             _cnn.Query<dynamic>(@"
 SELECT id,
-       RANK() OVER (ORDER BY name RANGE BETWEEN 1 PRECEDING AND CURRENT ROW) AS rk_bad_type
+       SUM(id) OVER (ORDER BY name RANGE BETWEEN 1 PRECEDING AND CURRENT ROW) AS sum_bad_type
 FROM users
 ORDER BY id").ToList());
 
@@ -591,7 +600,7 @@ ORDER BY id").ToList();
     {
         var rows = _cnn.Query<dynamic>("SELECT CAST('42' AS INTEGER) AS v").ToList();
         Assert.Single(rows);
-        Assert.Equal(0, (int)rows[0].v);
+        Assert.Equal(42, (int)rows[0].v);
     }
 
     /// <summary>

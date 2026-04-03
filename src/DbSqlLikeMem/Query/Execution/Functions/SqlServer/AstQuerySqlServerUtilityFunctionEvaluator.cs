@@ -45,6 +45,7 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         Register(handlers, TryEvalGetAnsiNullFunction, "GETANSINULL");
         Register(handlers, TryEvalCharIndexFunction, "CHARINDEX");
         Register(handlers, TryEvalDataLengthFunction, "DATALENGTH");
+        Register(handlers, TryEvalLenFunction, "LEN");
         Register(handlers, TryEvalErrorFunctions, "ERROR_LINE", "ERROR_MESSAGE", "ERROR_NUMBER", "ERROR_PROCEDURE", "ERROR_SEVERITY", "ERROR_STATE");
         Register(handlers, TryEvalHostIdFunction, "HOST_ID");
         Register(handlers, TryEvalHostNameFunction, "HOST_NAME");
@@ -292,7 +293,7 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         _ = fn;
         _ = evalArg;
 
-        result = "dbo";
+        result = "sa";
         return true;
     }
 
@@ -374,6 +375,12 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         FunctionCallExpr fn,
         out object? result)
     {
+        if (!string.Equals(fn.Name, "CURRENT_USER", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
         _ = context;
         _ = fn;
 
@@ -387,6 +394,12 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
+        if (!string.Equals(fn.Name, "CURRENT_USER", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
         _ = context;
         _ = fn;
         _ = evalArg;
@@ -512,7 +525,7 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         return true;
     }
 
-    internal bool TryEvalOpenJsonFunction(
+    internal static bool TryEvalOpenJsonFunction(
         QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
@@ -553,7 +566,7 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
     {
         _ = evalArg;
         _ = fn;
-        result = DateTime.Now;
+        result = context.EvaluationUtcNow;
         return true;
     }
 
@@ -565,7 +578,7 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
     {
         _ = fn;
         _ = evalArg;
-        result = DateTime.UtcNow;
+        result = context.EvaluationUtcNow;
         return true;
     }
 
@@ -577,7 +590,7 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
     {
         _ = fn;
         _ = evalArg;
-        result = DateTimeOffset.Now;
+        result = new DateTimeOffset(context.EvaluationUtcNow, TimeSpan.Zero);
         return true;
     }
 

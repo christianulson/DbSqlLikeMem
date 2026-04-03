@@ -265,7 +265,7 @@ internal static class OracleScalarFunctionRegistry
 
         if (version >= OracleDialect.OracleTextConversionMinVersion)
             dialect.AddScalarFunctions(
-                CreateScalarDefinition("TO_CHAR", "VARCHAR", AstQueryOracleDb2ConversionFunctionEvaluator.TryEvalToCharFunction),
+                CreateScalarDefinition("TO_CHAR", "VARCHAR", TryEvalOracleDb2ConversionFunction),
                 "TO_CHAR",
                 "TO_CLOB",
                 "TO_DSINTERVAL",
@@ -493,6 +493,10 @@ internal static class OracleScalarFunctionRegistry
                 CreateScalarDefinition("JSON_QUERY", "VARCHAR", AstQueryJsonExtractionFunctionEvaluator.TryEvalJsonExtractionFunction),
                 "JSON_QUERY",
                 "JSON_VALUE");
+
+        if (version >= OracleDialect.OracleJsonSqlFunctionMinVersion)
+            dialect.AddScalarFunction(
+                CreateScalarDefinition("JSON_ARRAY", "VARCHAR", AstQueryJsonArrayFunctionEvaluator.TryEvalJsonArrayFunction));
     }
 
     private static void RegisterNlsFunctions(ISqlDialect dialect, int version)
@@ -577,6 +581,12 @@ internal static class OracleScalarFunctionRegistry
                 {
                     IsStringAggregate = true
                 });
+        }
+
+        if (version >= OracleDialect.OracleJsonSqlFunctionMinVersion)
+        {
+            dialect.AddScalarFunction(
+                DbFunctionDef.CreateScalar(SqlConst.JSON_OBJECTAGG, "VARCHAR"));
         }
     }
 

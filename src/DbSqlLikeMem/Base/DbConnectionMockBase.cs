@@ -142,6 +142,7 @@ public abstract class DbConnectionMockBase(
     private int _debugTraceCaptureDepth;
     private int _selectPlanCacheGeneration;
     private long _lastFoundRows;
+    private long _lastChangesRows;
     private object? _lastInsertId;
     private readonly ISqlDialect _providerSqlDialect = db.Dialect;
     private readonly ISqlDialect _autoSqlDialect = AutoDialectFactory.Create(db.Version);
@@ -645,10 +646,20 @@ public abstract class DbConnectionMockBase(
     }
 
     internal void SetLastFoundRows(long value)
+    {
+        var normalized = Math.Max(0, value);
+        _lastFoundRows = normalized;
+        _lastChangesRows = normalized;
+    }
+
+    internal void SetLastSelectRows(long value)
         => _lastFoundRows = Math.Max(0, value);
 
     internal long GetLastFoundRows()
         => _lastFoundRows;
+
+    internal long GetLastChangesRows()
+        => _lastChangesRows;
 
     internal void SetLastInsertId(object? value)
         => _lastInsertId = value;
@@ -2161,9 +2172,12 @@ public abstract class DbConnectionMockBase(
 
     private void OnTableMutationApplied(TableMutationNotification mutation)
     {
-        if (_isReplayingTransactionJournal
-            || CurrentTransaction == null
-            || !ReferenceEquals(_ambientMutationConnection.Value, this))
+        if (_isReplayingTransactionJournal || CurrentTransaction == null)
+            return;
+
+        var registrationKind = GetRegistrationKind(mutation.Table);
+        if (!ReferenceEquals(_ambientMutationConnection.Value, this)
+            && registrationKind is not TransactionTableRegistrationKind.ConnectionTemporary)
             return;
 
         _transactionJournal.Add(new TransactionJournalEntry(
@@ -2178,7 +2192,7 @@ public abstract class DbConnectionMockBase(
             mutation.Row,
             mutation.OldRowSnapshot,
             mutation.PreviousNextIdentity,
-            GetRegistrationKind(mutation.Table),
+            registrationKind,
             GetRegistrationKey(mutation.Table),
             NewRowSnapshot: mutation.Kind == TableMutationKind.Update ? TableMock.CloneRow(mutation.Row) : null));
     }

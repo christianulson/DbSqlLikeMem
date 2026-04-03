@@ -36,6 +36,14 @@ internal static class WindowPartitionHelper
         if (orderBy.Count == 0 || partition.Count < 2)
             return null;
 
+        // EN: Ensure deterministic ordering for peers (equal ORDER BY values) so window functions like NTILE/LAG/LEAD
+        // preserve the original row sequence when the ORDER BY does not provide a tie-breaker.
+        // PT: Garante ordenacao deterministica para peers (valores iguais no ORDER BY) para que funcoes de janela como
+        // NTILE/LAG/LEAD preservem a sequencia original das linhas quando o ORDER BY nao define desempate.
+        var stableIndexByRow = new Dictionary<AstQueryExecutorBase.EvalRow, int>(partition.Count);
+        for (var i = 0; i < partition.Count; i++)
+            stableIndexByRow[partition[i]] = i;
+
         var orderValuesByRow = WindowOrderValueHelper.BuildWindowOrderValuesByRow(
             partition,
             orderBy,
@@ -52,7 +60,9 @@ internal static class WindowPartitionHelper
                 if (comparison != 0)
                     return orderItem.Desc ? -comparison : comparison;
 
-                return 0;
+                return stableIndexByRow.TryGetValue(leftRow, out var li) && stableIndexByRow.TryGetValue(rightRow, out var ri)
+                    ? li.CompareTo(ri)
+                    : 0;
             });
 
             return orderValuesByRow;
@@ -70,7 +80,9 @@ internal static class WindowPartitionHelper
                     return orderBy[i].Desc ? -comparison : comparison;
             }
 
-            return 0;
+            return stableIndexByRow.TryGetValue(leftRow, out var li) && stableIndexByRow.TryGetValue(rightRow, out var ri)
+                ? li.CompareTo(ri)
+                : 0;
         });
 
         return orderValuesByRow;

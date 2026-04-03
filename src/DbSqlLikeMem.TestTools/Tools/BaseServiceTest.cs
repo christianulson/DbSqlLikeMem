@@ -80,8 +80,6 @@ public abstract class BaseServiceTest<T>(
         sql = NormalizeScenarioSql(sql);
         using var command = Connection.CreateCommand();
         command.CommandText = sql;
-        if (transaction is not null)
-            command.Transaction = transaction;
 
         return command.ExecuteNonQuery();
     }
@@ -99,8 +97,6 @@ public abstract class BaseServiceTest<T>(
         sql = NormalizeScenarioSql(sql);
         using var command = Connection.CreateCommand();
         command.CommandText = sql;
-        if (transaction is not null)
-            command.Transaction = transaction;
         return await command.ExecuteNonQueryAsync().ConfigureAwait(false);
     }
 
@@ -118,8 +114,6 @@ public abstract class BaseServiceTest<T>(
         sql = NormalizeScenarioSql(sql);
         using var command = Connection.CreateCommand();
         command.CommandText = sql;
-        if (transaction is not null)
-            command.Transaction = transaction;
         return command.ExecuteScalar();
     }
 
@@ -137,8 +131,6 @@ public abstract class BaseServiceTest<T>(
         sql = NormalizeScenarioSql(sql);
         using var command = Connection.CreateCommand();
         command.CommandText = sql;
-        if (transaction is not null)
-            command.Transaction = transaction;
         return await command.ExecuteScalarAsync().ConfigureAwait(false);
     }
 
@@ -164,9 +156,7 @@ public abstract class BaseServiceTest<T>(
             if (scenarioArgs[i] is not string tableName || string.IsNullOrWhiteSpace(tableName))
                 continue;
 
-            var resolved = dialect.Provider == ProviderId.Oracle
-                ? tableName.ToLowerInvariant()
-                : $"{tableName}_{uId}";
+            var resolved = $"{tableName}_{uId}";
 
             if (!string.Equals(tableName, resolved, StringComparison.Ordinal))
             {

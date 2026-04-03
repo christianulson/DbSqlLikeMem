@@ -433,17 +433,17 @@ SELECT id,
 FROM users
 ORDER BY id").ToList();
 
-        Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.rank_current)]);
+        Assert.Equal([1, 1, 3], [.. rows.Select(r => (int)r.rank_current)]);
         Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.dense_current)]);
         Assert.Equal([0d, 0d, 1d], [.. rows.Select(r => Convert.ToDouble(r.pr_current))]);
         Assert.Equal([2d / 3d, 2d / 3d, 1d], [.. rows.Select(r => Convert.ToDouble(r.cd_current))]);
         Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.tile_current)]);
-        Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.rank_sliding)]);
+        Assert.Equal([1, 1, 3], [.. rows.Select(r => (int)r.rank_sliding)]);
         Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.dense_sliding)]);
         Assert.Equal([0d, 0d, 1d], [.. rows.Select(r => Convert.ToDouble(r.pr_sliding))]);
         Assert.Equal([2d / 3d, 2d / 3d, 1d], [.. rows.Select(r => Convert.ToDouble(r.cd_sliding))]);
         Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.tile_sliding)]);
-        Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.rank_forward)]);
+        Assert.Equal([1, 1, 3], [.. rows.Select(r => (int)r.rank_forward)]);
         Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.dense_forward)]);
         Assert.Equal([0d, 0d, 1d], [.. rows.Select(r => Convert.ToDouble(r.pr_forward))]);
         Assert.Equal([2d / 3d, 2d / 3d, 1d], [.. rows.Select(r => Convert.ToDouble(r.cd_forward))]);
@@ -725,7 +725,7 @@ ORDER BY id").ToList();
     {
         var rows = _cnn.Query<dynamic>("SELECT CAST('42' AS INTEGER) AS v").ToList();
         Assert.Single(rows);
-        Assert.Equal(0, (int)rows[0].v);
+        Assert.Equal(42, (int)rows[0].v);
     }
 
     /// <summary>

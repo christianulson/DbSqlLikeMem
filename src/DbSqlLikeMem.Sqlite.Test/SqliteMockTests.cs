@@ -1919,12 +1919,12 @@ public sealed class SqliteMockTests
 
 
     /// <summary>
-    /// EN: Verifies the last SELECT in a batch determines the reported change count.
-    /// PT: Verifica se o ultimo SELECT de um batch determina a contagem de alteracoes reportada.
+    /// EN: Verifies the last DML in a batch determines the reported change count.
+    /// PT: Verifica se o ultimo DML de um batch determina a contagem de alteracoes reportada.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
-    public void TestBatch_UpdateThenSelectThenChanges_ShouldReflectLastSelect()
+    public void TestBatch_UpdateThenSelectThenChanges_ShouldReflectLastDml()
     {
         using var seed = new SqliteCommandMock(_connection)
         {
@@ -1947,7 +1947,7 @@ public sealed class SqliteMockTests
 
         reader.NextResult().Should().BeTrue();
         reader.Read().Should().BeTrue();
-        Convert.ToInt64(reader.GetValue(0)).Should().Be(2L);
+        Convert.ToInt64(reader.GetValue(0)).Should().Be(1L);
     }
 
     /// <summary>
@@ -2091,4 +2091,3 @@ public sealed class SqliteMockTests
     }
 
 }
-

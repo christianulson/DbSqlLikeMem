@@ -3,7 +3,7 @@ namespace DbSqlLikeMem.TestTools.Query;
 public partial class QueryServiceTest<T>
 {
     private string BuildFirstNoteSubquery(string ordersTable, string usersTable, string orderByDirection)
-        => Dialect.Provider == ProviderId.SqlServer
+        => Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure
             ? $"""
     SELECT TOP 1 o2.Note
     FROM {ordersTable} o2
@@ -31,8 +31,8 @@ public partial class QueryServiceTest<T>
 """;
 
     private string BuildOrderCountExpression(string ordersTable, string usersTable)
-        => Dialect.Provider == ProviderId.SqlServer
-            ? $"SUM(CASE WHEN o.Id IS NULL THEN 0 ELSE 1 END)"
+        => Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure
+            ? $"COUNT(o.{usersTable}Id)"
             : Dialect.Provider == ProviderId.Oracle
                 ? $"""
 (SELECT COUNT(*)
@@ -40,7 +40,7 @@ public partial class QueryServiceTest<T>
  WHERE o2.{usersTable}Id = u.Id)
 """
             : Dialect.Provider == ProviderId.Db2
-                ? $"SUM(CASE WHEN o.Id IS NULL THEN 0 ELSE 1 END)"
+                ? $"COUNT(o.{usersTable}Id)"
             : "COUNT(o.Id)";
 
     /// <summary>
@@ -53,6 +53,7 @@ public partial class QueryServiceTest<T>
         var orders = (string)pars[1];
         var usersTable = ResolveScenarioTableName(users);
         var ordersTable = ResolveScenarioTableName(orders);
+        var orderCountExpr = BuildOrderCountExpression(ordersTable, usersTable);
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
@@ -60,13 +61,13 @@ SELECT
     u.Id AS UserId,
     UPPER(u.Name) AS UserNameUpper,
     LOWER(u.Name) AS UserNameLower,
-    COUNT(o.Id) AS OrderCount,
+    {orderCountExpr} AS OrderCount,
     SUM(o.Quantity) AS TotalQuantity,
     ROUND(SUM(o.Amount), 2) AS TotalAmount,
     ROUND(AVG(o.Amount), 2) AS AvgAmount,
     COALESCE(({BuildFirstNoteSubquery(ordersTable, usersTable, "ASC")}), 'none') AS FirstNote,
     ({BuildFirstNoteSubquery(ordersTable, usersTable, "DESC")}) AS LastNote,
-    CASE WHEN COUNT(o.Id) > 1 THEN 1 ELSE 0 END AS HasMultipleOrders,
+    CASE WHEN {orderCountExpr} > 1 THEN 1 ELSE 0 END AS HasMultipleOrders,
     CASE WHEN SUM(o.Amount) >= 3 THEN 1 ELSE 0 END AS AmountAtLeastThree
 FROM {usersTable} u
 INNER JOIN {ordersTable} o ON o.{usersTable}Id = u.Id
@@ -98,7 +99,7 @@ ORDER BY u.Id
         var orders = (string)pars[1];
         var usersTable = ResolveScenarioTableName(users);
         var ordersTable = ResolveScenarioTableName(orders);
-        const string orderCountExpr = "COUNT(o.Id)";
+        var orderCountExpr = BuildOrderCountExpression(ordersTable, usersTable);
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
@@ -284,11 +285,12 @@ ORDER BY u.Id
 
         var nameLenExpr = Dialect.Provider is ProviderId.Db2 or ProviderId.Oracle
             ? "MAX(LENGTH(u.Name))"
-            : Dialect.StringLengthExpression("u.Name");
+            : $"MAX({Dialect.StringLengthExpression("u.Name")})";
         var noteLenSource = Dialect.Provider == ProviderId.Db2 ? "Note" : "o.Note";
         var noteLenExpr = Dialect.StringLengthExpression(noteLenSource);
         var nameLenTextExpr = $"TRIM({Dialect.StringCastExpression(nameLenExpr, 10)})";
         var noteLenTextExpr = $"TRIM({Dialect.StringCastExpression($"COALESCE(MAX({noteLenExpr}), 0)", 10)})";
+        var textMatchAlready = Dialect.Provider == ProviderId.Sqlite ? 0 : 1;
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
@@ -336,14 +338,16 @@ ORDER BY u.Id
         var orders = (string)pars[1];
         var usersTable = ResolveScenarioTableName(users);
         var ordersTable = ResolveScenarioTableName(orders);
+        var orderCountExpr = BuildOrderCountExpression(ordersTable, usersTable);
 
         var nameLenExpr = Dialect.Provider is ProviderId.Db2 or ProviderId.Oracle
             ? "MAX(LENGTH(u.Name))"
-            : Dialect.StringLengthExpression("u.Name");
+            : $"MAX({Dialect.StringLengthExpression("u.Name")})";
         var noteLenSource = Dialect.Provider == ProviderId.Db2 ? "Note" : "o.Note";
         var noteLenExpr = Dialect.StringLengthExpression(noteLenSource);
         var nameLenTextExpr = $"TRIM({Dialect.StringCastExpression(nameLenExpr, 10)})";
         var noteLenTextExpr = $"TRIM({Dialect.StringCastExpression($"COALESCE(MAX({noteLenExpr}), 0)", 10)})";
+        var textMatchAlready = Dialect.Provider == ProviderId.Sqlite ? 0 : 1;
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
@@ -357,7 +361,7 @@ SELECT
     CASE WHEN {nameLenExpr} >= 4 THEN 1 ELSE 0 END AS NameLenGe4,
     CASE WHEN UPPER(u.Name) = u.Name THEN 1 ELSE 0 END AS IsUpperAlready,
     CASE WHEN LOWER(u.Name) = u.Name THEN 1 ELSE 0 END AS IsLowerAlready,
-    CASE WHEN COUNT(o.Id) >= 2 THEN 1 ELSE 0 END AS TwoOrMoreOrders,
+    CASE WHEN {orderCountExpr} >= 2 THEN 1 ELSE 0 END AS TwoOrMoreOrders,
     CASE WHEN SUM(o.Quantity) >= 3 THEN 1 ELSE 0 END AS QuantityGe3
 FROM {usersTable} u
 LEFT JOIN {ordersTable} o ON o.{usersTable}Id = u.Id
@@ -368,13 +372,13 @@ ORDER BY u.Id
         using var reader = command.ExecuteReader();
 
         reader.Read().Should().BeTrue();
-        ValidateJoinTextCaseLengthRow(reader, 1, "ALICE", "alice", "Alice", "5", "1", 1, 1, 1, 1, 1);
+        ValidateJoinTextCaseLengthRow(reader, 1, "ALICE", "alice", "Alice", "5", "1", 1, textMatchAlready, textMatchAlready, 1, 1);
 
         reader.Read().Should().BeTrue();
-        ValidateJoinTextCaseLengthRow(reader, 2, "BOB", "bob", "Bob", "3", "1", 0, 1, 1, 0, 1);
+        ValidateJoinTextCaseLengthRow(reader, 2, "BOB", "bob", "Bob", "3", "1", 0, textMatchAlready, textMatchAlready, 0, 1);
 
         reader.Read().Should().BeTrue();
-        ValidateJoinTextCaseLengthRow(reader, 3, "CARLA", "carla", "Carla", "5", "0", 1, 1, 1, 0, 0);
+        ValidateJoinTextCaseLengthRow(reader, 3, "CARLA", "carla", "Carla", "5", "0", 1, textMatchAlready, textMatchAlready, 0, 0);
 
         reader.Read().Should().BeFalse();
         GC.KeepAlive(usersTable);
@@ -392,12 +396,13 @@ ORDER BY u.Id
         var orders = (string)pars[1];
         var usersTable = ResolveScenarioTableName(users);
         var ordersTable = ResolveScenarioTableName(orders);
+        var orderCountExpr = BuildOrderCountExpression(ordersTable, usersTable);
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
 SELECT
     u.Id AS UserId,
-    COUNT(o.Id) AS OrderCount,
+    {orderCountExpr} AS OrderCount,
     COUNT(DISTINCT o.Note) AS DistinctNoteCount,
     SUM(CASE WHEN o.Note = 'A' THEN 1 ELSE 0 END) AS NoteACount,
     CASE WHEN COUNT(DISTINCT o.Note) >= 2 THEN 1 ELSE 0 END AS HasMultipleDistinctNotes,
@@ -435,12 +440,13 @@ ORDER BY u.Id
         var orders = (string)pars[1];
         var usersTable = ResolveScenarioTableName(users);
         var ordersTable = ResolveScenarioTableName(orders);
+        var orderCountExpr = BuildOrderCountExpression(ordersTable, usersTable);
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
 SELECT
     u.Id AS UserId,
-    COUNT(o.Id) AS OrderCount,
+    {orderCountExpr} AS OrderCount,
     COUNT(DISTINCT o.Note) AS DistinctNoteCount,
     SUM(CASE WHEN o.Note = 'A' THEN 1 ELSE 0 END) AS NoteACount,
     CASE WHEN COUNT(DISTINCT o.Note) >= 2 THEN 1 ELSE 0 END AS HasMultipleDistinctNotes,
@@ -448,7 +454,7 @@ SELECT
 FROM {usersTable} u
 LEFT JOIN {ordersTable} o ON o.{usersTable}Id = u.Id
 GROUP BY u.Id
-    HAVING COUNT(DISTINCT o.Note) >= 2 OR COUNT(o.Id) = 0
+    HAVING COUNT(DISTINCT o.Note) >= 2 OR {orderCountExpr} = 0
 ORDER BY u.Id
 """;
 
@@ -476,6 +482,7 @@ ORDER BY u.Id
         var orders = (string)pars[1];
         var usersTable = ResolveScenarioTableName(users);
         var ordersTable = ResolveScenarioTableName(orders);
+        var orderCountExpr = BuildOrderCountExpression(ordersTable, usersTable);
 
         var nowExpr = Dialect.TemporalCurrentTimestampExpression();
         var nextDayExpr = Dialect.TemporalDateAddExpression();
@@ -484,8 +491,8 @@ ORDER BY u.Id
         command.CommandText = $"""
 SELECT
     u.Id AS UserId,
-    COUNT(o.Id) AS OrderCount,
-    CASE WHEN COUNT(o.Id) = 0 THEN 1 ELSE 0 END AS HasNoOrders,
+    {orderCountExpr} AS OrderCount,
+    CASE WHEN {orderCountExpr} = 0 THEN 1 ELSE 0 END AS HasNoOrders,
     CASE WHEN COALESCE(MIN(o.OrderedAt), u.CreatedAt) <= {nowExpr} THEN 1 ELSE 0 END AS MinOrderedBeforeNow,
     CASE WHEN COALESCE(MAX(o.OrderedAt), u.CreatedAt) < {nextDayExpr} THEN 1 ELSE 0 END AS MaxOrderedBeforeNextDay,
     SUM(CASE WHEN o.DeliveredAt IS NULL THEN 1 ELSE 0 END) AS PendingDeliveries,
@@ -523,6 +530,7 @@ ORDER BY u.Id
         var orders = (string)pars[1];
         var usersTable = ResolveScenarioTableName(users);
         var ordersTable = ResolveScenarioTableName(orders);
+        var orderCountExpr = $"COUNT(o.{usersTable}Id)";
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
@@ -530,7 +538,7 @@ SELECT
     u.Id AS UserId,
     o.Id AS OrderId,
     ROW_NUMBER() OVER (PARTITION BY u.Id ORDER BY o.Id) AS RowNumberInUser,
-    COUNT(o.Id) OVER (PARTITION BY u.Id) AS OrdersPerUser,
+    {orderCountExpr} OVER (PARTITION BY u.Id) AS OrdersPerUser,
     LAG(o.Note) OVER (PARTITION BY u.Id ORDER BY o.Id) AS PreviousNote
 FROM {usersTable} u
 INNER JOIN {ordersTable} o ON o.{usersTable}Id = u.Id
@@ -564,6 +572,7 @@ ORDER BY u.Id, o.Id
         var orders = (string)pars[1];
         var usersTable = ResolveScenarioTableName(users);
         var ordersTable = ResolveScenarioTableName(orders);
+        var orderCountExpr = $"COUNT(o.{usersTable}Id)";
 
         var nowExpr = Dialect.TemporalCurrentTimestampExpression();
         var nextDayExpr = Dialect.TemporalDateAddExpression();
@@ -574,7 +583,7 @@ SELECT
     u.Id AS UserId,
     o.Id AS OrderId,
     ROW_NUMBER() OVER (PARTITION BY u.Id ORDER BY o.Id) AS RowNumberInUser,
-    COUNT(o.Id) OVER (PARTITION BY u.Id) AS OrdersPerUser,
+    {orderCountExpr} OVER (PARTITION BY u.Id) AS OrdersPerUser,
     LAG(o.Note) OVER (PARTITION BY u.Id ORDER BY o.Id) AS PreviousNote,
     CASE WHEN o.OrderedAt <= {nowExpr} THEN 1 ELSE 0 END AS OrderedBeforeNow,
     CASE WHEN {nextDayExpr} > o.OrderedAt THEN 1 ELSE 0 END AS NextDayAfterOrder,
@@ -611,6 +620,7 @@ ORDER BY u.Id, o.Id
         var orders = (string)pars[1];
         var usersTable = ResolveScenarioTableName(users);
         var ordersTable = ResolveScenarioTableName(orders);
+        var orderCountExpr = $"COUNT(o.{usersTable}Id)";
 
         var nowExpr = Dialect.TemporalCurrentTimestampExpression();
         var nextDayExpr = Dialect.TemporalDateAddExpression();
@@ -621,7 +631,7 @@ SELECT
     u.Id AS UserId,
     o.Id AS OrderId,
     ROW_NUMBER() OVER (PARTITION BY u.Id ORDER BY o.Id) AS RowNumberInUser,
-    COUNT(o.Id) OVER (PARTITION BY u.Id) AS OrdersPerUser,
+    {orderCountExpr} OVER (PARTITION BY u.Id) AS OrdersPerUser,
     SUM(o.Quantity) OVER (PARTITION BY u.Id) AS QuantityPerUser,
     ROUND(SUM(o.Amount) OVER (PARTITION BY u.Id), 2) AS AmountPerUser,
     LAG(o.Note) OVER (PARTITION BY u.Id ORDER BY o.Id) AS PreviousNote,
@@ -1321,9 +1331,7 @@ ORDER BY u.Id
     {
         var users = (string)pars[0];
         var usersTable = ResolveScenarioTableName(users);
-        var sql = Dialect.Provider == ProviderId.Oracle
-            ? $"SELECT COUNT(*) FROM {usersTable} WHERE Name LIKE 'A%' OR Name LIKE 'B%'"
-            : $"SELECT SUM(CASE WHEN Name LIKE 'A%' THEN 1 ELSE 0 END) + SUM(CASE WHEN Name LIKE 'B%' THEN 1 ELSE 0 END) FROM {usersTable}";
+        var sql = $"SELECT COUNT(*) FROM {usersTable} WHERE Name LIKE 'A%' OR Name LIKE 'B%'";
         var value = Convert.ToInt32(ExecuteScalar(sql), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
@@ -1348,4 +1356,3 @@ ORDER BY u.Id
         return count;
     }
 }
-

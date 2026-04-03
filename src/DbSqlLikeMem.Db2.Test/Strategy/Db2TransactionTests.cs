@@ -309,9 +309,19 @@ public sealed class Db2TransactionTests(
         using var connection = new Db2ConnectionMock(db);
         connection.Open();
         using var transaction = connection.BeginTransaction();
+        ArgumentNullExceptionCompatible.ThrowIfNull(transaction, nameof(transaction));
 
-        users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "Ana" });
-        orders.Add(new Dictionary<int, object?> { [0] = 10, [1] = 1 });
+        using var insertUser = new Db2CommandMock(connection, (Db2TransactionMock)transaction)
+        {
+            CommandText = "INSERT INTO users (id, name) VALUES (1, 'Ana')"
+        };
+        using var insertOrder = new Db2CommandMock(connection, (Db2TransactionMock)transaction)
+        {
+            CommandText = "INSERT INTO orders (id, user_id) VALUES (10, 1)"
+        };
+
+        insertUser.ExecuteNonQuery();
+        insertOrder.ExecuteNonQuery();
 
         transaction.Rollback();
 

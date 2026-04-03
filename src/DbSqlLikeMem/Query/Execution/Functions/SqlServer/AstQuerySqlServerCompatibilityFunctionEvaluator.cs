@@ -50,6 +50,9 @@ internal sealed class AstQuerySqlServerCompatibilityFunctionEvaluator(
 
         context.EnsureSupport(fn);
 
+        if (AstQueryCastConversionFamilyEvaluator.TryEvalCastLikeFunction(context, fn, evalArg, out result))
+            return true;
+
         if (_sqlServerSessionFunctionEvaluator.TryEvaluate(fn, evalArg, out result))
             return true;
 
@@ -63,6 +66,8 @@ internal sealed class AstQuerySqlServerCompatibilityFunctionEvaluator(
             || context.TryEvaluateDb2DateFunction(fn, evalArg, _resolveTemporalUnit, out result)
             || TryEvalSequenceFunction(context, fn, row, group, ctes, out result)
             || AstQuerySharedNumericFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result)
+            || AstQueryCastConversionFamilyEvaluator.TryEvalParseLikeFunction(context, fn, evalArg, out result)
+            || AstQueryCastConversionFamilyEvaluator.TryEvalTryParseLikeFunction(context, fn, evalArg, out result)
             || context.TryEvaluate(fn, row, group, ctes, evalArg, _eval, _getTemporalUnit, out result))
         {
             return true;

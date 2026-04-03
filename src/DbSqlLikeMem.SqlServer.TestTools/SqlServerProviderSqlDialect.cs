@@ -194,7 +194,7 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name);";
 
     /// <inheritdoc />
     public override string StringLengthExpression(string expression) =>
-        $"(DATALENGTH({expression}) / 2)";
+        $"LEN({expression})";
 
     /// <inheritdoc />
     public override string TemporalDateAdd() =>

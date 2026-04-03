@@ -893,9 +893,9 @@ WHERE Id = {Dialect.Parameter("id")}
         var parameter = command.CreateParameter();
         parameter.ParameterName = name;
         var isOracleParameter = parameter.GetType().FullName == "Oracle.ManagedDataAccess.Client.OracleParameter";
+        var isDb2Parameter = parameter.GetType().FullName == "IBM.Data.Db2.DB2Parameter";
         if (isOracleParameter
-            || (parameter.GetType().FullName == "IBM.Data.Db2.DB2Parameter"
-                && (dbType == DbType.Guid || dbType == DbType.DateTimeOffset)))
+            || (isDb2Parameter && (dbType == DbType.Guid || dbType == DbType.DateTimeOffset)))
         {
             // ODP.NET and DB2 parameters can reject some DbType assignments in this mock flow.
             // Keep the default DbType and normalize the value payload for this shared test helper.
@@ -904,7 +904,11 @@ WHERE Id = {Dialect.Parameter("id")}
         {
             parameter.DbType = dbType;
         }
-        parameter.Value = isOracleParameter ? NormalizeOracleParameterValue(value) : value ?? DBNull.Value;
+        parameter.Value = isOracleParameter
+            ? NormalizeOracleParameterValue(value)
+            : isDb2Parameter
+                ? NormalizeDb2ParameterValue(dbType, value)
+                : value ?? DBNull.Value;
         command.Parameters.Add(parameter);
     }
 
@@ -917,6 +921,19 @@ WHERE Id = {Dialect.Parameter("id")}
             DateTime dateTime => dateTime.ToString("O", CultureInfo.InvariantCulture),
             TimeSpan timeSpan => timeSpan.ToString("c", CultureInfo.InvariantCulture),
             Guid guid => guid.ToString("D", CultureInfo.InvariantCulture),
+            _ => value
+        };
+    }
+
+    private static object NormalizeDb2ParameterValue(DbType dbType, object? value)
+    {
+        if (value is null)
+            return DBNull.Value;
+
+        return (dbType, value) switch
+        {
+            (DbType.Guid, Guid guid) => guid.ToString("D", CultureInfo.InvariantCulture),
+            (DbType.DateTimeOffset, DateTimeOffset dateTimeOffset) => dateTimeOffset.ToString("O", CultureInfo.InvariantCulture),
             _ => value
         };
     }

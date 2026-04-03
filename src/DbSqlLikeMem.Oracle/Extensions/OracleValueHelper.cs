@@ -1,5 +1,6 @@
 using Oracle.ManagedDataAccess.Client;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Text.Json;
 
 namespace DbSqlLikeMem.Oracle;
@@ -43,7 +44,7 @@ internal static class OracleValueHelper
             if (!TryGetParameterValue(pars, name, out var parameterValue))
                 throw new OracleMockException(SqlExceptionMessages.ParameterNotFound(name));
 
-            return parameterValue;
+            return CoerceParameterValue(parameterValue, dbType);
         }
 
         // ---------- literal NULL --------------------------------------
@@ -106,6 +107,85 @@ internal static class OracleValueHelper
         }
 
         return false;
+    }
+
+    private static object? CoerceParameterValue(object? parameterValue, DbType dbType)
+    {
+        if (parameterValue is null || parameterValue is DBNull)
+            return parameterValue;
+
+        if (parameterValue is string textValue)
+        {
+            try
+            {
+                return dbType.Parse(textValue);
+            }
+            catch
+            {
+                return parameterValue;
+            }
+        }
+
+        try
+        {
+            return dbType switch
+            {
+                DbType.Byte => Convert.ToByte(parameterValue, CultureInfo.InvariantCulture),
+                DbType.SByte => Convert.ToSByte(parameterValue, CultureInfo.InvariantCulture),
+                DbType.Int16 => Convert.ToInt16(parameterValue, CultureInfo.InvariantCulture),
+                DbType.Int32 => Convert.ToInt32(parameterValue, CultureInfo.InvariantCulture),
+                DbType.Int64 => Convert.ToInt64(parameterValue, CultureInfo.InvariantCulture),
+                DbType.UInt16 => Convert.ToUInt16(parameterValue, CultureInfo.InvariantCulture),
+                DbType.UInt32 => Convert.ToUInt32(parameterValue, CultureInfo.InvariantCulture),
+                DbType.UInt64 => Convert.ToUInt64(parameterValue, CultureInfo.InvariantCulture),
+                DbType.Decimal or DbType.Currency or DbType.VarNumeric => Convert.ToDecimal(parameterValue, CultureInfo.InvariantCulture),
+                DbType.Double => Convert.ToDouble(parameterValue, CultureInfo.InvariantCulture),
+                DbType.Single => Convert.ToSingle(parameterValue, CultureInfo.InvariantCulture),
+                DbType.Boolean => Convert.ToBoolean(parameterValue, CultureInfo.InvariantCulture),
+                DbType.Date => parameterValue is DateTime dateTimeValue
+                    ? dateTimeValue.Date
+                    : Convert.ToDateTime(parameterValue, CultureInfo.InvariantCulture).Date,
+                DbType.DateTime => parameterValue is DateTime dateTime
+                    ? dateTime
+                    : Convert.ToDateTime(parameterValue, CultureInfo.InvariantCulture),
+                DbType.DateTime2 => parameterValue is DateTime dateTime2
+                    ? dateTime2
+                    : Convert.ToDateTime(parameterValue, CultureInfo.InvariantCulture),
+                DbType.DateTimeOffset => parameterValue is DateTimeOffset dateTimeOffset
+                    ? dateTimeOffset
+                    : DateTimeOffset.Parse(Convert.ToString(parameterValue, CultureInfo.InvariantCulture)!, CultureInfo.InvariantCulture),
+                DbType.Time => parameterValue is TimeSpan timeSpan
+                    ? timeSpan
+                    : TimeSpan.Parse(Convert.ToString(parameterValue, CultureInfo.InvariantCulture)!, CultureInfo.InvariantCulture),
+                DbType.Guid => parameterValue is Guid guid
+                    ? guid
+                    : Guid.Parse(Convert.ToString(parameterValue, CultureInfo.InvariantCulture)!),
+                DbType.Binary => parameterValue is byte[] bytes
+                    ? bytes
+                    : Convert.FromBase64String(Convert.ToString(parameterValue, CultureInfo.InvariantCulture)!),
+                DbType.String
+                or DbType.AnsiString
+                or DbType.StringFixedLength
+                or DbType.AnsiStringFixedLength => Convert.ToString(parameterValue, CultureInfo.InvariantCulture),
+                DbType.Object => parameterValue,
+                _ => parameterValue
+            };
+        }
+        catch
+        {
+            var textValue1 = Convert.ToString(parameterValue, CultureInfo.InvariantCulture);
+            if (string.IsNullOrWhiteSpace(textValue1))
+                return parameterValue;
+
+            try
+            {
+                return dbType.Parse(textValue1);
+            }
+            catch
+            {
+                return parameterValue;
+            }
+        }
     }
 
     private static bool TryParseEnumOrSet(

@@ -322,10 +322,18 @@ public sealed class MySqlTransactionTests(
 
         using var connection = new MySqlConnectionMock(db);
         connection.Open();
-        using var transaction = connection.BeginTransaction();
+        using var transaction = Assert.IsType<MySqlTransactionMock>(connection.BeginTransaction());
+        using var insertUser = new MySqlCommandMock(connection, transaction)
+        {
+            CommandText = "INSERT INTO users (id, name) VALUES (1, 'Ana')"
+        };
+        using var insertOrder = new MySqlCommandMock(connection, transaction)
+        {
+            CommandText = "INSERT INTO orders (id, user_id) VALUES (10, 1)"
+        };
 
-        users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "Ana" });
-        orders.Add(new Dictionary<int, object?> { [0] = 10, [1] = 1 });
+        insertUser.ExecuteNonQuery();
+        insertOrder.ExecuteNonQuery();
 
         transaction.Rollback();
 

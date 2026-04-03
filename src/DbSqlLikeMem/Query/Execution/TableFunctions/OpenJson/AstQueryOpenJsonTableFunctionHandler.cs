@@ -215,6 +215,83 @@ internal sealed class AstQueryOpenJsonTableFunctionHandler(
         if (column.AsJson || value.ValueKind is JsonValueKind.Object or JsonValueKind.Array)
             return value.GetRawText();
 
-        return ConvertOpenJsonValue(value);
+        return ConvertOpenJsonExplicitValue(value, column);
     }
+
+    private static object? ConvertOpenJsonExplicitValue(
+        JsonElement value,
+        SqlOpenJsonWithColumn column)
+    {
+        if (value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+            return null;
+
+        return value.ValueKind switch
+        {
+            JsonValueKind.String => ConvertOpenJsonString(value.GetString(), column),
+            JsonValueKind.Number => ConvertOpenJsonNumber(value, column),
+            JsonValueKind.True or JsonValueKind.False => ConvertOpenJsonBoolean(value.GetBoolean(), column),
+            _ => ConvertOpenJsonValue(value)
+        };
+    }
+
+    private static object? ConvertOpenJsonString(
+        string? rawValue,
+        SqlOpenJsonWithColumn column)
+    {
+        if (rawValue is null)
+            return null;
+
+        return column.DbType switch
+        {
+            DbType.Int16 => short.TryParse(rawValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var shortValue) ? shortValue : rawValue,
+            DbType.Int32 => int.TryParse(rawValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var intValue) ? intValue : rawValue,
+            DbType.Int64 => long.TryParse(rawValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var longValue) ? longValue : rawValue,
+            DbType.UInt16 => ushort.TryParse(rawValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var ushortValue) ? ushortValue : rawValue,
+            DbType.UInt32 => uint.TryParse(rawValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var uintValue) ? uintValue : rawValue,
+            DbType.UInt64 => ulong.TryParse(rawValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var ulongValue) ? ulongValue : rawValue,
+            DbType.Decimal or DbType.Currency => decimal.TryParse(rawValue, NumberStyles.Any, CultureInfo.InvariantCulture, out var decimalValue) ? decimalValue : rawValue,
+            DbType.Double or DbType.Single => double.TryParse(rawValue, NumberStyles.Any, CultureInfo.InvariantCulture, out var doubleValue) ? doubleValue : rawValue,
+            DbType.Boolean => bool.TryParse(rawValue, out var boolValue) ? boolValue : rawValue,
+            DbType.Date or DbType.DateTime or DbType.DateTime2 => DateTime.TryParse(rawValue, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dateTimeValue) ? dateTimeValue : rawValue,
+            DbType.Guid => Guid.TryParse(rawValue, out var guidValue) ? guidValue : rawValue,
+            DbType.String or DbType.StringFixedLength or DbType.AnsiString or DbType.AnsiStringFixedLength => rawValue,
+            _ => rawValue
+        };
+    }
+
+    private static object? ConvertOpenJsonNumber(
+        JsonElement value,
+        SqlOpenJsonWithColumn column
+    ) => column.DbType switch
+        {
+            DbType.Int16 => value.TryGetInt16(out var shortValue) ? shortValue : value.ToString(),
+            DbType.Int32 => value.TryGetInt32(out var intValue) ? intValue : value.ToString(),
+            DbType.Int64 => value.TryGetInt64(out var longValue) ? longValue : value.ToString(),
+            DbType.UInt16 => value.TryGetUInt16(out var ushortValue) ? ushortValue : value.ToString(),
+            DbType.UInt32 => value.TryGetUInt32(out var uintValue) ? uintValue : value.ToString(),
+            DbType.UInt64 => value.TryGetUInt64(out var ulongValue) ? ulongValue : value.ToString(),
+            DbType.Decimal or DbType.Currency => value.TryGetDecimal(out var decimalValue) ? decimalValue : value.ToString(),
+            DbType.Double or DbType.Single => value.TryGetDouble(out var doubleValue) ? doubleValue : value.ToString(),
+            DbType.Boolean => value.TryGetInt32(out var bitValue) ? bitValue != 0 : value.ToString(),
+            DbType.String or DbType.StringFixedLength or DbType.AnsiString or DbType.AnsiStringFixedLength => value.GetRawText(),
+            _ => value.ToString()
+        };
+
+    private static object? ConvertOpenJsonBoolean(
+        bool rawValue,
+        SqlOpenJsonWithColumn column
+    ) => column.DbType switch
+        {
+            DbType.Boolean => rawValue,
+            DbType.Int16 => (short)(rawValue ? 1 : 0),
+            DbType.Int32 => rawValue ? 1 : 0,
+            DbType.Int64 => rawValue ? 1L : 0L,
+            DbType.UInt16 => (ushort)(rawValue ? 1 : 0),
+            DbType.UInt32 => rawValue ? 1u : 0u,
+            DbType.UInt64 => rawValue ? 1UL : 0UL,
+            DbType.Decimal or DbType.Currency => rawValue ? 1m : 0m,
+            DbType.Double or DbType.Single => rawValue ? 1d : 0d,
+            DbType.String or DbType.StringFixedLength or DbType.AnsiString or DbType.AnsiStringFixedLength => rawValue ? "true" : "false",
+            _ => rawValue ? "true" : "false"
+        };
 }

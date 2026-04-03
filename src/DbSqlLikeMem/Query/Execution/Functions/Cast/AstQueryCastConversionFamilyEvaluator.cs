@@ -264,13 +264,13 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
         Func<int, object?> evalArg)
     {
         if (fn.Args.Count < 2)
-            return null;
+            return DBNull.Value;
 
         var v = evalArg(0);
         var type = fn.Args[1] is RawSqlExpr trx ? trx.Sql : (evalArg(1)?.ToString() ?? "");
         type = type.Trim();
         if (AstQueryExecutorBase.IsNullish(v))
-            return null;
+            return DBNull.Value;
 
         try
         {
@@ -281,7 +281,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 if (v is decimal d) return (int)d;
                 if (int.TryParse(v!.ToString(), out var ix)) return ix;
                 if (long.TryParse(v!.ToString(), out var lx)) return (int)lx;
-                return null;
+                return DBNull.Value;
             }
 
             if (type.StartsWith("DECIMAL", StringComparison.OrdinalIgnoreCase)
@@ -300,7 +300,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 if (v is float ffx) return (double)ffx;
                 if (v is decimal ddx) return (double)ddx;
                 if (double.TryParse(v!.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var fx)) return fx;
-                return null;
+                return DBNull.Value;
             }
 
             if (type.StartsWith("DATE", StringComparison.OrdinalIgnoreCase)
@@ -308,7 +308,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 || type.StartsWith("SMALLDATETIME", StringComparison.OrdinalIgnoreCase)
                 || type.StartsWith("TIMESTAMP", StringComparison.OrdinalIgnoreCase))
             {
-                return AstQueryExecutionRuntimeHelper.TryCoerceDateTime(v, out var dt) ? dt : null;
+                return AstQueryExecutionRuntimeHelper.TryCoerceDateTime(v, out var dt) ? dt : DBNull.Value;
             }
 
             return Convert.ToString(v, CultureInfo.InvariantCulture);
@@ -330,7 +330,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
 
         var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value))
-            return null;
+            return swallowErrors ? DBNull.Value : null;
 
         var type = fn.Args[1] is RawSqlExpr rx ? rx.Sql : (evalArg(1)?.ToString() ?? string.Empty);
         type = type.Trim();
@@ -346,7 +346,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
             {
                 if (int.TryParse(value!.ToString(), NumberStyles.Integer, culture, out var parsedInt))
                     return parsedInt;
-                return null;
+                return swallowErrors ? DBNull.Value : null;
             }
 
             if (type.StartsWith("DECIMAL", StringComparison.OrdinalIgnoreCase)
@@ -354,7 +354,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
             {
                 if (decimal.TryParse(value!.ToString(), NumberStyles.Any, culture, out var parsedDecimal))
                     return parsedDecimal;
-                return null;
+                return swallowErrors ? DBNull.Value : null;
             }
 
             if (type.StartsWith("FLOAT", StringComparison.OrdinalIgnoreCase)
@@ -363,7 +363,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
             {
                 if (double.TryParse(value!.ToString(), NumberStyles.Any, culture, out var parsedDouble))
                     return parsedDouble;
-                return null;
+                return swallowErrors ? DBNull.Value : null;
             }
 
             if (type.StartsWith("DATE", StringComparison.OrdinalIgnoreCase)
@@ -372,7 +372,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
             {
                 if (AstQueryExecutionRuntimeHelper.TryCoerceDateTime(value!.ToString()!, out var parsedDate))
                     return parsedDate;
-                return null;
+                return swallowErrors ? DBNull.Value : null;
             }
 
             return Convert.ToString(value, CultureInfo.InvariantCulture);
@@ -380,7 +380,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
         catch
         {
             if (swallowErrors)
-                return null;
+                return DBNull.Value;
             throw;
         }
     }

@@ -354,10 +354,15 @@ internal static class SqlServerScalarFunctionRegistry
         }
 
         if (version >= SqlServerDialect.TryCastMinVersion)
-            dialect.AddScalarFunction(DbFunctionDef.CreateScalar("TRY_CAST", "VARCHAR"));
+            dialect.AddScalarFunction(DbFunctionDef.CreateScalar("CAST", "VARCHAR", AstQueryCastConversionFamilyEvaluator.TryEvalCastLikeFunction));
+
+        if (version >= SqlServerDialect.TryCastMinVersion)
+            dialect.AddScalarFunction(
+                DbFunctionDef.CreateScalar("TRY_CAST", "VARCHAR", AstQueryCastConversionFamilyEvaluator.TryEvalTryCastLikeFunction));
 
         if (version >= SqlServerDialect.TryConvertMinVersion)
-            dialect.AddScalarFunction(DbFunctionDef.CreateScalar("TRY_CONVERT", "VARCHAR"));
+            dialect.AddScalarFunction(
+                DbFunctionDef.CreateScalar("TRY_CONVERT", "VARCHAR", AstQueryCastConversionFamilyEvaluator.TryEvalTryConvertLikeFunction));
 
         dialect.AddScalarFunction(CreateScalarFunctionDef("DATEADD", "DATETIME", TryEvalSqlServerDateAddFunction));
 
@@ -655,7 +660,8 @@ internal static class SqlServerScalarFunctionRegistry
 
         dialect.AddScalarFunction("ISDATE", "INT", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalIsDateFunction);
 
-        dialect.AddScalarFunction("ISJSON", "INT", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalIsJsonFunction);
+        if (version >= SqlServerDialect.JsonFunctionsMinVersion)
+            dialect.AddScalarFunction("ISJSON", "INT", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalIsJsonFunction);
 
         dialect.AddScalarFunction("ISNUMERIC", "INT", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalIsNumericFunction);
 

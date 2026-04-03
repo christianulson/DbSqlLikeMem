@@ -495,7 +495,7 @@ ORDER BY id").ToList();
     {
         var rows = _cnn.Query<dynamic>("SELECT CAST('42' AS INTEGER) AS v").ToList();
         Assert.Single(rows);
-        Assert.Equal(0, (int)rows[0].v);
+        Assert.Equal(42, (int)rows[0].v);
     }
 
     /// <summary>

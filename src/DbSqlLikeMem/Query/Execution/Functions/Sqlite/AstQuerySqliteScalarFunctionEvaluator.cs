@@ -13,6 +13,12 @@ internal static class AstQuerySqliteScalarFunctionEvaluator
         if (_handlers.TryGetValue(fn.Name, out var handler))
             return handler(context, fn, evalArg, out result);
 
+        if (TryEvalSqliteSystemFunctions(context, fn, evalArg, out result))
+            return true;
+
+        if (TryEvalSqliteJsonFunctions(context, fn, evalArg, out result))
+            return true;
+
         result = null;
         return false;
     }
@@ -57,14 +63,11 @@ internal static class AstQuerySqliteScalarFunctionEvaluator
         }
 
         if (name is "CHANGES"
-            or "FOUND_ROWS"
-            or "ROW_COUNT"
-            or "ROWCOUNT"
             or "SQLITE3_CHANGES64"
             or "SQLITE3_TOTAL_CHANGES64"
             or "TOTAL_CHANGES")
         {
-            result = context.Connection.GetLastFoundRows();
+            result = context.Connection.GetLastChangesRows();
             return true;
         }
 
