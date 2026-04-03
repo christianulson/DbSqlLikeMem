@@ -23,8 +23,8 @@ public sealed class UsersOrdersScenario<T>(
         var uId = (string)pars[2];
         var usersSeed = seedUsers ?? [(1, "Alice")];
         var ordersSeed = seedOrders ?? [(10, 1, "A"), (11, 1, "B")];
-        var usersTable = $"{users}_{uId}";
-        var ordersTable = $"{orders}_{uId}";
+        var usersTable = ResolveScenarioTableName(users, uId);
+        var ordersTable = ResolveScenarioTableName(orders, uId);
         var currentTimestampExpr = dialect.TemporalCurrentTimestampExpression();
 
         service.ExecuteNonQuery(dialect.CreateUsersTable(users, uId));
@@ -57,4 +57,9 @@ public sealed class UsersOrdersScenario<T>(
         service.ExecuteNonQuery(dialect.DropTable(orders, uId));
         service.ExecuteNonQuery(dialect.DropTable(users, uId));
     }
+
+    private string ResolveScenarioTableName(string tableName, string uId)
+        => dialect.Provider == ProviderId.Oracle
+            ? $"{tableName}_{uId}".ToLowerInvariant()
+            : $"{tableName}_{uId}";
 }

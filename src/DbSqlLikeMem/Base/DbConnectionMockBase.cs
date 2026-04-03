@@ -2176,7 +2176,9 @@ public abstract class DbConnectionMockBase(
             return;
 
         var registrationKind = GetRegistrationKind(mutation.Table);
-        if (!ReferenceEquals(_ambientMutationConnection.Value, this)
+        var ambientConnection = _ambientMutationConnection.Value;
+        if (ambientConnection is not null
+            && !ReferenceEquals(ambientConnection, this)
             && registrationKind is not TransactionTableRegistrationKind.ConnectionTemporary)
             return;
 

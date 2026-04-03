@@ -189,9 +189,17 @@ public abstract class SequenceTestsBase<T, T2>(
     private void RunSequenceCaseWhereMatrixTest()
     {
         var sequence = $"seq_{NewToken()}";
+        var supportsSequenceCte = dialect.Provider is not ProviderId.SqlServer and not ProviderId.SqlAzure;
 
         using var connMock = connectionMock();
         connMock.Open();
+        if (!supportsSequenceCte)
+        {
+            FluentActions.Invoking(() => RunSequenceCaseWhereMatrixScenario(connMock, sequence))
+                .Should().Throw<NotSupportedException>();
+            return;
+        }
+
         var resultMock = RunSequenceCaseWhereMatrixScenario(connMock, sequence);
 
         if (IsInsertContainerComparisonEnabled(dialect.Provider)
@@ -207,9 +215,17 @@ public abstract class SequenceTestsBase<T, T2>(
     private void RunSequenceTemporalMatrixTest()
     {
         var sequence = $"seq_{NewToken()}";
+        var supportsSequenceCte = dialect.Provider is not ProviderId.SqlServer and not ProviderId.SqlAzure;
 
         using var connMock = connectionMock();
         connMock.Open();
+        if (!supportsSequenceCte)
+        {
+            FluentActions.Invoking(() => RunSequenceTemporalMatrixScenario(connMock, sequence))
+                .Should().Throw<NotSupportedException>();
+            return;
+        }
+
         var resultMock = RunSequenceTemporalMatrixScenario(connMock, sequence);
 
         if (IsInsertContainerComparisonEnabled(dialect.Provider)
@@ -392,6 +408,11 @@ public abstract class SequenceTestsBase<T, T2>(
         string sequence)
         where TConnection : DbConnection
     {
+        if (dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure)
+        {
+            throw new NotSupportedException($"{dialect.DisplayName} does not support sequence values inside CTE benchmarks.");
+        }
+
         var testScenario = new SequenceScenario<TConnection>(dialect);
         var serviceTest = new DmlMutationServiceTest<TConnection>(connection, testScenario, dialect);
         serviceTest.CreateScenario(sequence);
@@ -446,6 +467,11 @@ WHERE s1.SeqValue >= 10
         string sequence)
         where TConnection : DbConnection
     {
+        if (dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure)
+        {
+            throw new NotSupportedException($"{dialect.DisplayName} does not support sequence values inside CTE benchmarks.");
+        }
+
         var testScenario = new SequenceScenario<TConnection>(dialect);
         var serviceTest = new DmlMutationServiceTest<TConnection>(connection, testScenario, dialect);
         serviceTest.CreateScenario(sequence);
@@ -580,7 +606,7 @@ ORDER BY u.Id
 
     private string ResolveScenarioTableName(string users, string uId)
         => dialect.Provider == ProviderId.Oracle
-            ? users.ToLowerInvariant()
+            ? $"{users}_{uId}".ToLowerInvariant()
             : $"{users}_{uId}";
 
     private static void ExecuteNonQueryOnConnection(

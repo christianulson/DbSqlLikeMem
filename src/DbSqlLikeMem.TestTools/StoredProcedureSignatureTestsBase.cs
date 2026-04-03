@@ -550,11 +550,17 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
     {
         var parameter = cmd.CreateParameter();
         parameter.ParameterName = name;
+        var parameterTypeName = parameter.GetType().FullName;
+        var isOracleParameter = parameterTypeName == "Oracle.ManagedDataAccess.Client.OracleParameter";
+        var isDb2Parameter = parameterTypeName is "IBM.Data.Db2.DB2Parameter"
+            or "IBM.Data.DB2.Core.DB2Parameter"
+            or "IBM.Data.DB2.iSeries.iDB2Parameter";
         try
         {
-            parameter.DbType = dbType;
+            if (!isOracleParameter && !(isDb2Parameter && dbType == DbType.DateTimeOffset))
+                parameter.DbType = dbType;
         }
-        catch (ArgumentException) when (parameter.GetType().FullName == "Oracle.ManagedDataAccess.Client.OracleParameter")
+        catch (ArgumentException) when (isOracleParameter)
         {
             // EN: ODP.NET can reject some DbType values (e.g., Guid/DateTimeOffset) on OracleParameter.
             // PT: ODP.NET pode rejeitar alguns valores de DbType (ex.: Guid/DateTimeOffset) no OracleParameter.
@@ -562,9 +568,20 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
             // Keep the default DbType and rely on the value payload for signature tests.
         }
         TrySetDirection(parameter, direction);
-        parameter.Value = value;
+        parameter.Value = isOracleParameter ? NormalizeOracleParameterValue(value) : value ?? DBNull.Value;
         cmd.Parameters.Add(parameter);
     }
+
+    private static object NormalizeOracleParameterValue(object? value)
+        => value switch
+        {
+            null => DBNull.Value,
+            DateTimeOffset dateTimeOffset => dateTimeOffset,
+            DateTime dateTime => dateTime.ToString("O", CultureInfo.InvariantCulture),
+            TimeSpan timeSpan => timeSpan.ToString("c", CultureInfo.InvariantCulture),
+            Guid guid => guid.ToString("D", CultureInfo.InvariantCulture),
+            _ => value
+        };
 
     private static void TrySetDirection(DbParameter parameter, ParameterDirection direction)
     {

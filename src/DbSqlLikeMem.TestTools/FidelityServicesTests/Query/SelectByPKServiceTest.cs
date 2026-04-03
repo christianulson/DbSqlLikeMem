@@ -16,39 +16,29 @@ public class SelectByPKServiceTest<T>(
     /// EN: Reads the seeded row by primary key and validates the returned value.
     /// PT: Lê a linha inserida pela chave primaria e valida o valor retornado.
     /// </summary>
-    /// <param name="pars"></param>
+    /// <param name="pars">EN: Scenario arguments that include the users table name. PT: Argumentos do cenario que incluem o nome da tabela de usuarios.</param>
     public string RunTest(params object[] pars)
     {
         var users = (string)pars[0];
-        var uId = (string)pars[1];
-        var tableName = Dialect.Provider == ProviderId.Oracle
-            ? users.ToLowerInvariant()
-            : $"{users}_{uId}";
+        var tableName = ResolveScenarioTableName(users);
         string? value;
 
-        if (Dialect.Provider == ProviderId.Oracle)
-        {
-            var sql = Dialect.SelectUserNameById(tableName, 1);
-            var rawValue = ExecuteScalar(sql);
-            value = Convert.ToString(rawValue);
+        var sql = Dialect.SelectUserNameById(tableName, 1);
+        var rawValue = ExecuteScalar(sql);
+        value = Convert.ToString(rawValue);
 
-            if (!string.Equals(value, "Alice", StringComparison.Ordinal))
+        if (!string.Equals(value, "Alice", StringComparison.Ordinal)
+            && Dialect.Provider == ProviderId.Oracle)
+        {
+            using var command = Connection.CreateCommand();
+            command.CommandText = NormalizeScenarioSql(sql);
+
+            using var reader = command.ExecuteReader();
+            if (reader.Read())
             {
-                using var command = Connection.CreateCommand();
-                command.CommandText = sql;
-
-                using var reader = command.ExecuteReader();
-                if (reader.Read())
-                {
-                    var nameValue = reader.GetValue(0);
-                    value = Convert.ToString(nameValue);
-                }
+                var nameValue = reader.GetValue(0);
+                value = Convert.ToString(nameValue);
             }
-        }
-        else
-        {
-            var sql = Dialect.SelectUserNameById(tableName, 1);
-            value = Convert.ToString(ExecuteScalar(sql));
         }
 
         if (!string.Equals(value, "Alice", StringComparison.Ordinal))

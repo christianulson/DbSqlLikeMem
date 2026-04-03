@@ -169,9 +169,9 @@ WHERE Id = 1
         Convert.ToBoolean(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(isActive!.Value);
         Convert.ToInt16(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(age);
         Convert.ToDecimal(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(balance);
-        Convert.ToDateTime(reader.GetValue(5), CultureInfo.InvariantCulture).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+        NormalizeDateTimeValue(reader.GetValue(5)).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
             .Should().Be(createdAt?.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
-        (reader.IsDBNull(6) ? null : Convert.ToDateTime(reader.GetValue(6), CultureInfo.InvariantCulture).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture))
+        (reader.IsDBNull(6) ? null : NormalizeDateTimeValue(reader.GetValue(6)).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture))
             .Should().Be(updatedAt is null ? null : updatedAt.Value.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
         (reader.IsDBNull(7) ? null : Convert.ToString(reader.GetValue(7), CultureInfo.InvariantCulture)).Should().Be(profileJson);
         reader.Read().Should().BeFalse();
@@ -330,7 +330,7 @@ WHERE Id = 1
         Convert.ToBoolean(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(isActive);
         Convert.ToInt16(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(age);
         Convert.ToDecimal(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(balance);
-        Convert.ToDateTime(reader.GetValue(5), CultureInfo.InvariantCulture).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+        NormalizeDateTimeValue(reader.GetValue(5)).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
             .Should().Be(updatedAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
         Convert.ToString(reader.GetValue(6), CultureInfo.InvariantCulture)?.TrimEnd().Should().Be(profileJson);
         reader.Read().Should().BeFalse();
@@ -444,9 +444,9 @@ WHERE Id = {Dialect.Parameter("id")}
         Convert.ToBoolean(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(isActive);
         Convert.ToInt16(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(age);
         Convert.ToDecimal(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(balance);
-        Convert.ToDateTime(reader.GetValue(5), CultureInfo.InvariantCulture).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+        NormalizeDateTimeValue(reader.GetValue(5)).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
             .Should().Be(createdAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
-        Convert.ToDateTime(reader.GetValue(6), CultureInfo.InvariantCulture).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+        NormalizeDateTimeValue(reader.GetValue(6)).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
             .Should().Be(updatedAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
         Convert.ToString(reader.GetValue(7), CultureInfo.InvariantCulture).Should().Be(profileJson);
         reader.Read().Should().BeFalse();
@@ -590,25 +590,35 @@ WHERE Id = {Dialect.Parameter("id")}
         command.Parameters.Add(parameter);
     }
 
-    private string ResolveScenarioTableName(string tableName)
+    private new string ResolveScenarioTableName(string tableName)
     {
-        if (Dialect.Provider != ProviderId.Oracle)
-        {
-            return tableName;
-        }
-
         var scenarioArgs = CurrentScenarioArgs;
-        if (scenarioArgs is { Count: >= 1 } && scenarioArgs[0] is string logicalTableName && !string.IsNullOrWhiteSpace(logicalTableName))
+        if (scenarioArgs is { Count: >= 1 } && scenarioArgs[^1] is string uId && !string.IsNullOrWhiteSpace(uId))
         {
-            return logicalTableName.ToLowerInvariant();
+            if (tableName.EndsWith($"_{uId}", StringComparison.OrdinalIgnoreCase))
+                return Dialect.Provider == ProviderId.Oracle ? tableName.ToLowerInvariant() : tableName;
+
+            if (TryStripScenarioTokenSuffix(tableName, out var stripped))
+                tableName = stripped;
+
+            return Dialect.Provider == ProviderId.Oracle
+                ? $"{tableName}_{uId}".ToLowerInvariant()
+                : $"{tableName}_{uId}";
         }
 
-        if (TryStripScenarioTokenSuffix(tableName, out var stripped))
-        {
-            return stripped.ToLowerInvariant();
-        }
+        return tableName;
+    }
 
-        return tableName.ToLowerInvariant();
+    private static DateTime NormalizeDateTimeValue(object? value)
+    {
+        return value switch
+        {
+            DateTime dateTime => dateTime,
+            DateTimeOffset dateTimeOffset => dateTimeOffset.DateTime,
+            string text => DateTime.Parse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
+            null => throw new InvalidOperationException("DateTime parameter returned a null value."),
+            _ => Convert.ToDateTime(value, CultureInfo.InvariantCulture)
+        };
     }
 
     private static bool TryStripScenarioTokenSuffix(string tableName, out string stripped)

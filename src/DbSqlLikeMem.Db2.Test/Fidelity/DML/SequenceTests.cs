@@ -16,7 +16,7 @@ public class SequenceTests(
     helper,
     new Db2ProviderSqlDialect(),
     () => new Db2ConnectionMock(),
-    s => new DB2Connection(s)
+    Db2ConnectionFactory.Create
     )
 {
 }

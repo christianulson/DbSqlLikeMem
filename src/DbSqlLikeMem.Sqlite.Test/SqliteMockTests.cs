@@ -1393,9 +1393,11 @@ public sealed class SqliteMockTests
                 """
         };
 
-        Action act = () => command.ExecuteReader();
-        act.Should().Throw<NotSupportedException>()
-            .Which.Message.Should().Contain("PIVOT");
+        using var reader = command.ExecuteReader();
+        reader.Read().Should().BeTrue();
+        reader.GetInt32(reader.GetOrdinal("u10")).Should().Be(2);
+        reader.GetInt32(reader.GetOrdinal("u20")).Should().Be(1);
+        reader.Read().Should().BeFalse();
     }
 
     /// <summary>

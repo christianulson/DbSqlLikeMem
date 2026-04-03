@@ -78,6 +78,14 @@ CREATE GLOBAL TEMPORARY TABLE {tableName} (
         var tableName = ResolveTemporaryUsersTableName(dialect, service, rawTableName);
         try
         {
+            if (dialect.Provider == ProviderId.Oracle
+                && service.Connection is not DbConnectionMockBase)
+            {
+                // EN: Oracle global temporary tables can remain in place after a test run.
+                // PT: Tabelas temporarias globais do Oracle podem permanecer criadas apos a execucao do teste.
+                return;
+            }
+
             if (dialect.Provider == ProviderId.Db2
                 && service.Connection is DbConnectionMockBase)
             {

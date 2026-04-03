@@ -71,9 +71,9 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
         string users)
         where TConnection : DbConnection
     {
-        var dateScalar = Convert.ToDateTime(serviceTest.RunDateScalar(), CultureInfo.InvariantCulture);
-        var currentTimestamp = Convert.ToDateTime(serviceTest.RunTemporalCurrentTimestamp(), CultureInfo.InvariantCulture);
-        var dateAdd = Convert.ToDateTime(serviceTest.RunTemporalDateAdd(), CultureInfo.InvariantCulture);
+        var dateScalar = NormalizeDateTimeValue(serviceTest.RunDateScalar());
+        var currentTimestamp = NormalizeDateTimeValue(serviceTest.RunTemporalCurrentTimestamp());
+        var dateAdd = NormalizeDateTimeValue(serviceTest.RunTemporalDateAdd());
         var whereCount = Convert.ToInt32(serviceTest.RunTemporalNowWhere(users), CultureInfo.InvariantCulture);
         var orderedName = Convert.ToString(serviceTest.RunTemporalNowOrderBy(users), CultureInfo.InvariantCulture) ?? string.Empty;
 
@@ -86,4 +86,16 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
 
     private static string NewToken()
         => Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+
+    private static DateTime NormalizeDateTimeValue(object? value)
+    {
+        return value switch
+        {
+            DateTime dateTime => dateTime,
+            DateTimeOffset dateTimeOffset => dateTimeOffset.DateTime,
+            string text => DateTime.Parse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
+            null => throw new InvalidOperationException("DateTime result returned a null value."),
+            _ => Convert.ToDateTime(value, CultureInfo.InvariantCulture)
+        };
+    }
 }

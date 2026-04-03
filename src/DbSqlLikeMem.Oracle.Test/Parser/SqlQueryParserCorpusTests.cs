@@ -8,17 +8,20 @@ namespace DbSqlLikeMem.Oracle.Test.Parser;
 public enum SqlCaseExpectation
 {
     /// <summary>
-    /// Gets a value indicating whether the parse operation completed successfully.
+    /// EN: Marks a statement that should parse successfully.
+    /// PT: Marca uma instrucao que deve ser analisada com sucesso.
     /// </summary>
     ParseOk,
 
     /// <summary>
-    /// Represents an exception that is thrown when an invalid operation occurs.
+    /// EN: Marks a statement that should fail as an invalid SQL input.
+    /// PT: Marca uma instrucao que deve falhar como entrada SQL invalida.
     /// </summary>
     ThrowInvalid,
 
     /// <summary>
-    /// Throws a NotSupportedException to indicate that the requested operation is not supported.
+    /// EN: Marks a statement that should fail because the dialect does not support it.
+    /// PT: Marca uma instrucao que deve falhar porque o dialeto nao a suporta.
     /// </summary>
     ThrowNotSupported
 }
@@ -449,7 +452,6 @@ WHEN NOT MATCHED THEN INSERT (grp, total) VALUES (src.grp, src.total)",
         };
         yield return new object[] { "INSERT INTO data (id, info) VALUES (@id, @info)", "INSERT into generic table with parameters" };
         yield return new object[] { "INSERT INTO orders (id,userId,amount) VALUES (13,0,1)", "INSERT numeric values without spaces" };
-        yield return new object[] { "INSERT INTO t () VALUES ()", "INSERT default row (no columns, no values)" };
         yield return new object[] { "INSERT INTO t () VALUES ()", "INSERT default row (no columns, no values)" };
         yield return new object[] { "INSERT INTO t VALUES ()", "INSERT default row (no columns, no values)" };
         yield return new object[] { "INSERT INTO t (id) VALUES (1)", "INSERT with single column" };

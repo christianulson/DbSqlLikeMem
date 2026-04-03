@@ -13,17 +13,15 @@ public class SelectTableScenario<T>(
     /// EN: Creates the users table and inserts the seed row used by the select scenario.
     /// PT: Cria a tabela de usuarios e insere a linha base usada pelo cenario de select.
     /// </summary>
-    /// <param name="service"></param>
-    /// <param name="pars"></param>
+    /// <param name="service">EN: Scenario service used to execute the setup SQL. PT: Servico de cenario usado para executar o SQL de configuracao.</param>
+    /// <param name="pars">EN: Scenario arguments containing the users table name and token. PT: Argumentos do cenario contendo o nome da tabela de usuarios e o token.</param>
     public void CreateScenario(
         BaseServiceTest<T> service,
         params object[] pars)
     {
         var users = (string)pars[0];
         var uId = (string)pars[1];
-        var tableName = dialect.Provider == ProviderId.Oracle
-            ? users.ToLowerInvariant()
-            : $"{users}_{uId}";
+        var tableName = ResolveScenarioTableName(users, uId);
 
         service.ExecuteNonQuery(dialect.CreateUsersTable(users, uId));
         service.ExecuteNonQuery(dialect.InsertUser(tableName, 1, "Alice"));
@@ -33,9 +31,8 @@ public class SelectTableScenario<T>(
     /// EN: Drops the users table created for the select scenario.
     /// PT: Remove a tabela de usuarios criada para o cenario de select.
     /// </summary>
-    /// <param name="service"></param>
-    /// <param name="pars"></param>
-    /// <exception cref="NotImplementedException"></exception>
+    /// <param name="service">EN: Scenario service used to execute the cleanup SQL. PT: Servico de cenario usado para executar o SQL de limpeza.</param>
+    /// <param name="pars">EN: Scenario arguments containing the users table name and token. PT: Argumentos do cenario contendo o nome da tabela de usuarios e o token.</param>
     public void DropScenario(
         BaseServiceTest<T> service,
         params object[] pars)
@@ -44,10 +41,15 @@ public class SelectTableScenario<T>(
         var uId = (string)pars[1];
         if (dialect.Provider == ProviderId.Oracle)
         {
-            service.ExecuteNonQuery($"DROP TABLE {users.ToLowerInvariant()}");
+            service.ExecuteNonQuery($"DROP TABLE {ResolveScenarioTableName(users, uId)}");
             return;
         }
 
         service.ExecuteNonQuery(dialect.DropTable(users, uId));
     }
+
+    private string ResolveScenarioTableName(string tableName, string uId)
+        => dialect.Provider == ProviderId.Oracle
+            ? $"{tableName}_{uId}".ToLowerInvariant()
+            : $"{tableName}_{uId}";
 }

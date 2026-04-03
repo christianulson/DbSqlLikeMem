@@ -198,14 +198,14 @@ WHEN NOT MATCHED THEN
 
     /// <inheritdoc />
     public override string TemporalDateAdd() =>
-        "VALUES TIMESTAMPADD(16, 1, CURRENT TIMESTAMP)";
+        "VALUES CURRENT TIMESTAMP + 1 DAY";
 
     /// <inheritdoc />
     public override string TemporalCurrentTimestampExpression() => "CURRENT TIMESTAMP";
 
     /// <inheritdoc />
     public override string TemporalDateAddExpression() =>
-        "TIMESTAMPADD(16, 1, CURRENT TIMESTAMP)";
+        "CURRENT TIMESTAMP + 1 DAY";
 
     /// <inheritdoc />
     public override string StringPrefixExpression(string expression, int length) =>

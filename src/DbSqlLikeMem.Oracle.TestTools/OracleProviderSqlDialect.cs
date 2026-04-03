@@ -43,7 +43,7 @@ CREATE GLOBAL TEMPORARY TABLE {TemporaryUsersTableName(tableName)} (
     /// <inheritdoc />
     public override string CreateUsersTable(string tableName, string uId) =>
         $@"
-CREATE TABLE {NormalizeScenarioTableName(tableName)}_{uId} (
+CREATE TABLE {NormalizeScenarioTableName($"{tableName}_{uId}")} (
     Id NUMBER(10) PRIMARY KEY,
     Name VARCHAR2(100) NOT NULL,
     Email VARCHAR2(150) NULL,
@@ -59,7 +59,7 @@ CREATE TABLE {NormalizeScenarioTableName(tableName)}_{uId} (
     /// <inheritdoc />
     public override string CreateOrdersTable(string tableName, string usersTableName, string uId) =>
         $@"
-CREATE TABLE {NormalizeScenarioTableName(tableName)}_{uId} (
+CREATE TABLE {NormalizeScenarioTableName($"{tableName}_{uId}")} (
     Id NUMBER(10) PRIMARY KEY,
     userid NUMBER(10) NOT NULL,
     Note VARCHAR2(100) NOT NULL,
@@ -71,13 +71,13 @@ CREATE TABLE {NormalizeScenarioTableName(tableName)}_{uId} (
     DeliveredAt TIMESTAMP NULL,
     ExtraJson CLOB NULL,
     CONSTRAINT CK_{NormalizeScenarioTableName(tableName)}_{uId}_ExtraJson CHECK (ExtraJson IS JSON),
-    CONSTRAINT FK_{NormalizeScenarioTableName(tableName)}_{uId}_{NormalizeScenarioTableName(usersTableName)}_{uId} FOREIGN KEY (userid) REFERENCES {NormalizeScenarioTableName(usersTableName)}_{uId}(Id)
+    CONSTRAINT FK_{NormalizeScenarioTableName(tableName)}_{uId}_{NormalizeScenarioTableName(usersTableName)} FOREIGN KEY (userid) REFERENCES {NormalizeScenarioTableName(usersTableName)}(Id)
 )";
 
     /// <inheritdoc />
     public override string DropTable(string tableName, string uId)
     {
-        return $"DROP TABLE {NormalizeScenarioTableName(tableName)}_{uId}";
+        return $"DROP TABLE {NormalizeScenarioTableName($"{tableName}_{uId}")}";
     }
 
     /// <inheritdoc />
@@ -132,6 +132,42 @@ CREATE TABLE {NormalizeScenarioTableName(tableName)}_{uId} (
     /// <inheritdoc />
     public override string CountJoinForUser(string usersTable, string ordersTable, int userId) =>
         $"SELECT COUNT(*) FROM {NormalizeScenarioTableName(usersTable)} u INNER JOIN {NormalizeScenarioTableName(ordersTable)} o ON o.userid = u.Id WHERE u.Id = {userId}";
+
+    /// <inheritdoc />
+    public override string SelectExistsPredicate(string usersTable, string ordersTable) =>
+        $"SELECT COUNT(*) FROM {NormalizeScenarioTableName(usersTable)} u WHERE EXISTS (SELECT 1 FROM {NormalizeScenarioTableName(ordersTable)} o WHERE o.userid = u.Id)";
+
+    /// <inheritdoc />
+    public override string SelectNotExistsPredicate(string usersTable, string ordersTable) =>
+        $"SELECT COUNT(*) FROM {NormalizeScenarioTableName(usersTable)} u WHERE NOT EXISTS (SELECT 1 FROM {NormalizeScenarioTableName(ordersTable)} o WHERE o.userid = u.Id)";
+
+    /// <inheritdoc />
+    public override string SelectLeftJoinAntiJoin(string usersTable, string ordersTable) =>
+        $"SELECT COUNT(*) FROM {NormalizeScenarioTableName(usersTable)} u LEFT JOIN {NormalizeScenarioTableName(ordersTable)} o ON o.userid = u.Id WHERE o.userid IS NULL";
+
+    /// <inheritdoc />
+    public override string SelectCorrelatedCount(string usersTable, string ordersTable) =>
+        $"SELECT COUNT(*) FROM {NormalizeScenarioTableName(usersTable)} u WHERE (SELECT COUNT(*) FROM {NormalizeScenarioTableName(ordersTable)} o WHERE o.userid = u.Id) > 0";
+
+    /// <inheritdoc />
+    public override string GroupByHaving(string usersTable, string ordersTable) =>
+        $"SELECT COUNT(*) FROM (SELECT u.Id FROM {NormalizeScenarioTableName(usersTable)} u INNER JOIN {NormalizeScenarioTableName(ordersTable)} o ON o.userid = u.Id GROUP BY u.Id HAVING COUNT(*) >= 2) q";
+
+    /// <inheritdoc />
+    public override string MultiJoinAggregate(string usersTable, string ordersTable) =>
+        $"SELECT COUNT(*) FROM {NormalizeScenarioTableName(usersTable)} u INNER JOIN {NormalizeScenarioTableName(ordersTable)} o1 ON o1.userid = u.Id INNER JOIN {NormalizeScenarioTableName(ordersTable)} o2 ON o2.userid = u.Id WHERE u.Id = 1";
+
+    /// <inheritdoc />
+    public override string SelectScalarSubquery(string usersTable, string ordersTable) =>
+        $"SELECT (SELECT COUNT(*) FROM {NormalizeScenarioTableName(ordersTable)} o WHERE o.userid = 1) FROM DUAL";
+
+    /// <inheritdoc />
+    public override string SelectInSubquery(string usersTable, string ordersTable) =>
+        $"SELECT COUNT(*) FROM {NormalizeScenarioTableName(usersTable)} WHERE Id IN (SELECT userid FROM {NormalizeScenarioTableName(ordersTable)})";
+
+    /// <inheritdoc />
+    public override string SelectNotInSubquery(string usersTable, string ordersTable) =>
+        $"SELECT COUNT(*) FROM {NormalizeScenarioTableName(usersTable)} WHERE Id NOT IN (SELECT userid FROM {NormalizeScenarioTableName(ordersTable)})";
 
     /// <inheritdoc />
     public override string UpdateUserNameById(string tableName, int id, string newName) =>
@@ -241,7 +277,7 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
 
     /// <inheritdoc />
     public override string TemporalNowOrderBy(string tableName) =>
-        $"SELECT Name FROM (SELECT Name FROM {tableName} ORDER BY CURRENT_TIMESTAMP, Name) WHERE ROWNUM = 1";
+        $"SELECT Name FROM {NormalizeScenarioTableName(tableName)} ORDER BY CURRENT_TIMESTAMP, Name FETCH FIRST 1 ROW ONLY";
 
     /// <summary>
     /// EN: Returns a valid Oracle no-op command for the release-savepoint benchmark.
@@ -252,9 +288,9 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
 
     /// <inheritdoc />
     public override string CrossApplyProjection(string usersTable, string ordersTable) =>
-        $"SELECT COUNT(*) FROM {usersTable} u JOIN LATERAL (SELECT o.Note FROM {ordersTable} o WHERE o.{usersTable}Id = u.Id ORDER BY o.Id DESC FETCH FIRST 1 ROW ONLY) x ON 1 = 1";
+        $"SELECT COUNT(*) FROM {NormalizeScenarioTableName(usersTable)} u JOIN LATERAL (SELECT o.Note FROM {NormalizeScenarioTableName(ordersTable)} o WHERE o.userid = u.Id ORDER BY o.Id DESC FETCH FIRST 1 ROW ONLY) x ON 1 = 1";
 
     /// <inheritdoc />
     public override string OuterApplyProjection(string usersTable, string ordersTable) =>
-        $"SELECT COUNT(*) FROM {usersTable} u LEFT JOIN LATERAL (SELECT o.Note FROM {ordersTable} o WHERE o.{usersTable}Id = u.Id ORDER BY o.Id DESC FETCH FIRST 1 ROW ONLY) x ON 1 = 1";
+        $"SELECT COUNT(*) FROM {NormalizeScenarioTableName(usersTable)} u LEFT JOIN LATERAL (SELECT o.Note FROM {NormalizeScenarioTableName(ordersTable)} o WHERE o.userid = u.Id ORDER BY o.Id DESC FETCH FIRST 1 ROW ONLY) x ON 1 = 1";
 }

@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.TestTools.Query;
+namespace DbSqlLikeMem.TestTools.Query;
 
 /// <summary>
 /// EN: Executes shared window-function query workflows against the active provider.
@@ -161,13 +161,19 @@ ORDER BY Name, Id
     {
         var users = (string)pars[0];
         var usersTable = ResolveScenarioTableName(users);
+        var percentRankExpr = Dialect.Provider == ProviderId.Npgsql
+            ? "ROUND((PERCENT_RANK() OVER (ORDER BY Name, Id))::numeric, 6)"
+            : "ROUND(PERCENT_RANK() OVER (ORDER BY Name, Id), 6)";
+        var cumeDistExpr = Dialect.Provider == ProviderId.Npgsql
+            ? "ROUND((CUME_DIST() OVER (ORDER BY Name, Id))::numeric, 6)"
+            : "ROUND(CUME_DIST() OVER (ORDER BY Name, Id), 6)";
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
 SELECT
     Name,
-    ROUND(PERCENT_RANK() OVER (ORDER BY Name, Id), 6) AS PercentRankValue,
-    ROUND(CUME_DIST() OVER (ORDER BY Name, Id), 6) AS CumeDistValue
+    {percentRankExpr} AS PercentRankValue,
+    {cumeDistExpr} AS CumeDistValue
 FROM {usersTable}
 ORDER BY Name, Id
 """;
@@ -208,6 +214,11 @@ ORDER BY Name, Id
     /// </summary>
     public int RunWindowNthValue(params object[] pars)
     {
+        if (Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure)
+        {
+            throw new NotSupportedException($"{Dialect.DisplayName} does not support the NTH_VALUE window benchmark.");
+        }
+
         var users = (string)pars[0];
         var usersTable = ResolveScenarioTableName(users);
 

@@ -1758,7 +1758,7 @@ public abstract class TableMock
                 var matched = false;
                 foreach (var cand in candidates)
                 {
-                    if (Equals(actual, cand))
+                    if (ValuesEqual(actual, cand))
                     {
                         matched = true;
                         break;
@@ -1806,13 +1806,13 @@ public abstract class TableMock
 
                 if (cond.Op == "=")
                 {
-                    value = Equals(actual, exp);
+                    value = ValuesEqual(actual, exp);
                     return true;
                 }
 
                 if (cond.Op is "<>" or "!=")
                 {
-                    value = !Equals(actual, exp);
+                    value = !ValuesEqual(actual, exp);
                     return true;
                 }
 
@@ -1855,11 +1855,69 @@ public abstract class TableMock
     }
 
     private static bool TryConvertToDecimal(object value, out decimal result)
-        => decimal.TryParse(
-            Convert.ToString(value, CultureInfo.InvariantCulture),
-            NumberStyles.Any,
-            CultureInfo.InvariantCulture,
-            out result);
+    {
+        if (value is DateTime dt)
+        {
+            result = dt.Ticks;
+            return true;
+        }
+
+        if (value is DateTimeOffset dto)
+        {
+            result = dto.Ticks;
+            return true;
+        }
+
+        if (value is TimeSpan ts)
+        {
+            result = ts.Ticks;
+            return true;
+        }
+
+        if (value is bool boolValue)
+        {
+            result = boolValue ? 1m : 0m;
+            return true;
+        }
+
+        if (value is IConvertible)
+        {
+            try
+            {
+                result = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+                return true;
+            }
+            catch
+            {
+                // fallback to text parsing below
+            }
+        }
+
+        return decimal.TryParse(value.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out result);
+    }
+
+    private static bool ValuesEqual(object? left, object? right)
+    {
+        if (ReferenceEquals(left, right))
+            return true;
+
+        if (left is null || left is DBNull)
+            return right is null || right is DBNull;
+
+        if (right is null || right is DBNull)
+            return false;
+
+        if (TryConvertToDecimal(left, out var leftNumber)
+            && TryConvertToDecimal(right, out var rightNumber))
+        {
+            return leftNumber == rightNumber;
+        }
+
+        if (left is string leftText && right is string rightText)
+            return string.Equals(leftText, rightText, StringComparison.OrdinalIgnoreCase);
+
+        return Equals(left, right);
+    }
 
     private static IEnumerable<object?> GetCanditateFromTable(
         ITableMock table,

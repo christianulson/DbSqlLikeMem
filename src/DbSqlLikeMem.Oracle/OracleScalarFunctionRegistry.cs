@@ -242,6 +242,16 @@ internal static class OracleScalarFunctionRegistry
                     return true;
                 }
 
+                if (type.StartsWith("DATE", StringComparison.OrdinalIgnoreCase)
+                    || type.StartsWith("DATETIME", StringComparison.OrdinalIgnoreCase)
+                    || type.StartsWith("TIMESTAMP", StringComparison.OrdinalIgnoreCase))
+                {
+                    result = AstQueryExecutionRuntimeHelper.TryCoerceDateTime(value, out var dateTimeValue)
+                        ? dateTimeValue
+                        : null;
+                    return true;
+                }
+
                 result = null;
                 return false;
             }

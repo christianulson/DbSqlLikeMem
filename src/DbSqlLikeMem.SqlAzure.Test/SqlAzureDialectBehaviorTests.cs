@@ -1505,14 +1505,9 @@ public sealed class SqlAzureDialectBehaviorTests(
             Assert.Contains(SqlConst.STRING_SPLIT, ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
-        using var reader = command.ExecuteReader();
-        Assert.True(reader.Read());
-        Assert.Equal("red", reader.GetString(reader.GetOrdinal("Token")));
-        Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("TokenOrdinal")));
-        Assert.True(reader.Read());
-        Assert.Equal("blue", reader.GetString(reader.GetOrdinal("Token")));
-        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("TokenOrdinal")));
-        Assert.False(reader.Read());
+
+        var ex2 = Assert.Throws<InvalidOperationException>(command.ExecuteReader);
+        Assert.Contains("enable_ordinal", ex2.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

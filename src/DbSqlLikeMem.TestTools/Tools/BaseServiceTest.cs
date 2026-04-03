@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.TestTools;
+namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Describes shared connection and SQL execution helpers for scenario-based tests.
@@ -30,6 +30,31 @@ public abstract class BaseServiceTest<T>(
     /// PT: Cria os dados do cenario usando o objeto de cenario configurado.
     /// </summary>
     protected IReadOnlyList<object>? CurrentScenarioArgs => currentScenarioArgs;
+
+    /// <summary>
+    /// EN: Resolves a logical scenario table name to the physical table name used in the current run.
+    /// PT: Resolve um nome logico de tabela de cenario para o nome fisico usado na execucao atual.
+    /// </summary>
+    /// <param name="tableName">EN: Logical table name. PT: Nome logico da tabela.</param>
+    protected string ResolveScenarioTableName(string tableName)
+    {
+        var scenarioArgs = CurrentScenarioArgs;
+        if (scenarioArgs is null || scenarioArgs.Count < 2)
+            return tableName;
+
+        var uId = scenarioArgs[scenarioArgs.Count - 1]?.ToString();
+        if (string.IsNullOrWhiteSpace(uId))
+            return tableName;
+
+        if (tableName.EndsWith($"_{uId}", StringComparison.OrdinalIgnoreCase))
+            return Dialect.Provider == ProviderId.Oracle
+                ? tableName.ToLowerInvariant()
+                : tableName;
+
+        return Dialect.Provider == ProviderId.Oracle
+            ? $"{tableName}_{uId}".ToLowerInvariant()
+            : $"{tableName}_{uId}";
+    }
 
     /// <summary>
     /// EN: Creates the scenario data using the configured scenario object.
@@ -69,10 +94,10 @@ public abstract class BaseServiceTest<T>(
 
     /// <summary>
     /// EN: Executes a SQL command that does not return a result set.
-    /// PT-br: Executa um comando SQL que não retorna um conjunto de resultados.
+    /// PT: Executa um comando SQL que nao retorna um conjunto de resultados.
     /// </summary>
-    /// <param name="sql">EN: The SQL command text to execute. PT-br: O texto do comando SQL a ser executado.</param>
-    /// <param name="transaction">EN: The optional transaction associated with the command execution. PT-br: A transação opcional associada à execução do comando.</param>
+    /// <param name="sql">EN: The SQL command text to execute. PT: O texto do comando SQL a ser executado.</param>
+    /// <param name="transaction">EN: The optional transaction associated with the command execution. PT: A transacao opcional associada a execucao do comando.</param>
     internal int ExecuteNonQuery(
         string sql,
         DbTransaction? transaction = null)
@@ -80,16 +105,17 @@ public abstract class BaseServiceTest<T>(
         sql = NormalizeScenarioSql(sql);
         using var command = Connection.CreateCommand();
         command.CommandText = sql;
+        command.Transaction = transaction;
 
         return command.ExecuteNonQuery();
     }
 
     /// <summary>
     /// EN: Executes a SQL command that does not return a result set.
-    /// PT-br: Executa um comando SQL que não retorna um conjunto de resultados.
+    /// PT: Executa um comando SQL que nao retorna um conjunto de resultados.
     /// </summary>
-    /// <param name="sql">EN: The SQL command text to execute. PT-br: O texto do comando SQL a ser executado.</param>
-    /// <param name="transaction">EN: The optional transaction associated with the command execution. PT-br: A transação opcional associada à execução do comando.</param>
+    /// <param name="sql">EN: The SQL command text to execute. PT: O texto do comando SQL a ser executado.</param>
+    /// <param name="transaction">EN: The optional transaction associated with the command execution. PT: A transacao opcional associada a execucao do comando.</param>
     internal async Task<int> ExecuteNonQueryAsync(
         string sql,
         DbTransaction? transaction = null)
@@ -97,16 +123,17 @@ public abstract class BaseServiceTest<T>(
         sql = NormalizeScenarioSql(sql);
         using var command = Connection.CreateCommand();
         command.CommandText = sql;
+        command.Transaction = transaction;
         return await command.ExecuteNonQueryAsync().ConfigureAwait(false);
     }
 
     /// <summary>
     /// EN: Executes a SQL command and returns its scalar result.
-    /// PT-br: Executa um comando SQL e retorna o seu resultado escalar.
+    /// PT: Executa um comando SQL e retorna o seu resultado escalar.
     /// </summary>
-    /// <param name="sql">EN: The SQL command text to execute. PT-br: O texto do comando SQL a ser executado.</param>
-    /// <param name="transaction">EN: The optional transaction associated with the command execution. PT-br: A transação opcional associada à execução do comando.</param>
-    /// <returns>EN: The scalar value returned by the SQL command. PT-br: O valor escalar retornado pelo comando SQL.</returns>
+    /// <param name="sql">EN: The SQL command text to execute. PT: O texto do comando SQL a ser executado.</param>
+    /// <param name="transaction">EN: The optional transaction associated with the command execution. PT: A transacao opcional associada a execucao do comando.</param>
+    /// <returns>EN: The scalar value returned by the SQL command. PT: O valor escalar retornado pelo comando SQL.</returns>
     internal object? ExecuteScalar(
         string sql,
         DbTransaction? transaction = null)
@@ -114,16 +141,17 @@ public abstract class BaseServiceTest<T>(
         sql = NormalizeScenarioSql(sql);
         using var command = Connection.CreateCommand();
         command.CommandText = sql;
+        command.Transaction = transaction;
         return command.ExecuteScalar();
     }
 
     /// <summary>
     /// EN: Executes a SQL command and returns its scalar result.
-    /// PT-br: Executa um comando SQL e retorna o seu resultado escalar.
+    /// PT: Executa um comando SQL e retorna o seu resultado escalar.
     /// </summary>
-    /// <param name="sql">EN: The SQL command text to execute. PT-br: O texto do comando SQL a ser executado.</param>
-    /// <param name="transaction">EN: The optional transaction associated with the command execution. PT-br: A transação opcional associada à execução do comando.</param>
-    /// <returns>EN: The scalar value returned by the SQL command. PT-br: O valor escalar retornado pelo comando SQL.</returns>
+    /// <param name="sql">EN: The SQL command text to execute. PT: O texto do comando SQL a ser executado.</param>
+    /// <param name="transaction">EN: The optional transaction associated with the command execution. PT: A transacao opcional associada a execucao do comando.</param>
+    /// <returns>EN: The scalar value returned by the SQL command. PT: O valor escalar retornado pelo comando SQL.</returns>
     internal async Task<object?> ExecuteScalarAsync(
         string sql,
         DbTransaction? transaction = null)
@@ -131,6 +159,7 @@ public abstract class BaseServiceTest<T>(
         sql = NormalizeScenarioSql(sql);
         using var command = Connection.CreateCommand();
         command.CommandText = sql;
+        command.Transaction = transaction;
         return await command.ExecuteScalarAsync().ConfigureAwait(false);
     }
 
@@ -156,14 +185,30 @@ public abstract class BaseServiceTest<T>(
             if (scenarioArgs[i] is not string tableName || string.IsNullOrWhiteSpace(tableName))
                 continue;
 
-            var resolved = $"{tableName}_{uId}";
+            var resolved = Dialect.Provider == ProviderId.Oracle
+                ? $"{tableName}_{uId}".ToLowerInvariant()
+                : $"{tableName}_{uId}";
 
             if (!string.Equals(tableName, resolved, StringComparison.Ordinal))
             {
                 if (sql.Contains(resolved, StringComparison.Ordinal))
                     continue;
 
-                sql = sql.Replace(tableName, resolved);
+                if (sql.Contains(tableName, StringComparison.Ordinal))
+                {
+                    sql = sql.Replace(tableName, resolved);
+                    continue;
+                }
+
+                if (Dialect.Provider == ProviderId.Oracle)
+                {
+                    var lowerTableName = tableName.ToLowerInvariant();
+                    if (!string.Equals(lowerTableName, tableName, StringComparison.Ordinal)
+                        && sql.Contains(lowerTableName, StringComparison.Ordinal))
+                    {
+                        sql = sql.Replace(lowerTableName, resolved);
+                    }
+                }
             }
         }
 

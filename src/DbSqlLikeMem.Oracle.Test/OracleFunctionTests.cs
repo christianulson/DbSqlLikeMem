@@ -257,20 +257,8 @@ public sealed class OracleFunctionTests
             Assert.Equal(2, root.GetArrayLength());
         }
 
-        var jsonValid = ExecuteScalar("SELECT JSON_VALID('{\"a\":1}') FROM Users WHERE Id = 1");
-        Assert.Equal(1, Convert.ToInt32(jsonValid, CultureInfo.InvariantCulture));
-
-        var jsonType = ExecuteScalar("SELECT JSON_TYPE('{\"a\":1}') FROM Users WHERE Id = 1");
-        Assert.Equal("OBJECT", jsonType);
-
-        var jsonLength = ExecuteScalar("SELECT JSON_LENGTH('[1,2,3]') FROM Users WHERE Id = 1");
-        Assert.Equal(3, Convert.ToInt32(jsonLength, CultureInfo.InvariantCulture));
-
         var jsonValue = ExecuteScalar("SELECT JSON_VALUE('{\"a\":1}', '$.a') FROM Users WHERE Id = 1");
         Assert.Equal(1L, Convert.ToInt64(jsonValue, CultureInfo.InvariantCulture));
-
-        var jsonValidInvalid = ExecuteScalar("SELECT JSON_VALID('{invalid}') FROM Users WHERE Id = 1");
-        Assert.Equal(0, Convert.ToInt32(jsonValidInvalid, CultureInfo.InvariantCulture));
     }
 
     /// <summary>

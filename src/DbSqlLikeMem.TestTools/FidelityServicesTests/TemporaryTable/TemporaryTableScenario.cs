@@ -19,17 +19,18 @@ public sealed class TemporaryTableScenario<T>(ProviderSqlDialect dialect) : ITes
     {
         var users = (string)pars[0];
         var uId = (string)pars[1];
+        var tableName = ResolveSourceTableName(users, uId);
 
         service.ExecuteNonQuery($@"
-CREATE TABLE {users}_{uId} (
+CREATE TABLE {tableName} (
     Id INT NOT NULL PRIMARY KEY,
     Name VARCHAR(100) NOT NULL,
     TenantId INT NOT NULL
 )");
 
-        service.ExecuteNonQuery($"INSERT INTO {users}_{uId} (Id, Name, TenantId) VALUES (1, 'John', 10)");
-        service.ExecuteNonQuery($"INSERT INTO {users}_{uId} (Id, Name, TenantId) VALUES (2, 'Bob', 10)");
-        service.ExecuteNonQuery($"INSERT INTO {users}_{uId} (Id, Name, TenantId) VALUES (3, 'Jane', 20)");
+        service.ExecuteNonQuery($"INSERT INTO {tableName} (Id, Name, TenantId) VALUES (1, 'John', 10)");
+        service.ExecuteNonQuery($"INSERT INTO {tableName} (Id, Name, TenantId) VALUES (2, 'Bob', 10)");
+        service.ExecuteNonQuery($"INSERT INTO {tableName} (Id, Name, TenantId) VALUES (3, 'Jane', 20)");
     }
 
     /// <summary>
@@ -58,7 +59,7 @@ CREATE TABLE {users}_{uId} (
         string users,
         string uId)
     {
-        TryExecuteDrop(service, $"DROP TABLE {users}_{uId}");
+        TryExecuteDrop(service, $"DROP TABLE {ResolveSourceTableName(users, uId)}");
         TryExecuteDrop(service, $"DROP TABLE {users}");
     }
 
@@ -74,6 +75,9 @@ CREATE TABLE {users}_{uId} (
         {
         }
     }
+
+    private static string ResolveSourceTableName(string users, string uId)
+        => $"{users}_{uId}".ToLowerInvariant();
 
     private static bool IsMissingTableException(Exception ex)
     {

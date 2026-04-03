@@ -69,7 +69,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
+                ? $"{users}_{uId}".ToLowerInvariant()
                 : $"{users}_{uId}";
 
             serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 2, "Bob"));
@@ -86,7 +86,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
+                        ? $"{users}_{uId}".ToLowerInvariant()
                         : $"{users}_{uId}";
 
                     serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 2, "Bob"));
@@ -125,7 +125,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
+                ? $"{users}_{uId}".ToLowerInvariant()
                 : $"{users}_{uId}";
 
             var resultMock = serviceTest.RunCteSimple(tableName);
@@ -141,7 +141,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
+                        ? $"{users}_{uId}".ToLowerInvariant()
                         : $"{users}_{uId}";
 
                     var resultContainer = serviceTestContainer.RunCteSimple(containerTableName);
@@ -195,10 +195,10 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var usersTableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
+                ? $"{users}_{uId}".ToLowerInvariant()
                 : $"{users}_{uId}";
             var ordersTableName = dialect.Provider == ProviderId.Oracle
-                ? orders.ToLowerInvariant()
+                ? $"{orders}_{uId}".ToLowerInvariant()
                 : $"{orders}_{uId}";
 
             var resultMock = serviceTest.RunSelectScalarCaseMatrix(usersTableName, ordersTableName);
@@ -215,10 +215,10 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var usersTableNameContainer = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
+                        ? $"{users}_{uId}".ToLowerInvariant()
                         : $"{users}_{uId}";
                     var ordersTableNameContainer = dialect.Provider == ProviderId.Oracle
-                        ? orders.ToLowerInvariant()
+                        ? $"{orders}_{uId}".ToLowerInvariant()
                         : $"{orders}_{uId}";
 
                     var resultContainer = serviceTestContainer.RunSelectScalarCaseMatrix(usersTableNameContainer, ordersTableNameContainer);
@@ -271,10 +271,10 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var usersTableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
+                ? $"{users}_{uId}".ToLowerInvariant()
                 : $"{users}_{uId}";
             var ordersTableName = dialect.Provider == ProviderId.Oracle
-                ? orders.ToLowerInvariant()
+                ? $"{orders}_{uId}".ToLowerInvariant()
                 : $"{orders}_{uId}";
 
             var resultMock = serviceTest.RunSelectNotExistsPredicate(usersTableName, ordersTableName);
@@ -291,10 +291,10 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var usersTableNameContainer = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
+                        ? $"{users}_{uId}".ToLowerInvariant()
                         : $"{users}_{uId}";
                     var ordersTableNameContainer = dialect.Provider == ProviderId.Oracle
-                        ? orders.ToLowerInvariant()
+                        ? $"{orders}_{uId}".ToLowerInvariant()
                         : $"{orders}_{uId}";
 
                     var resultContainer = serviceTestContainer.RunSelectNotExistsPredicate(usersTableNameContainer, ordersTableNameContainer);
@@ -347,10 +347,10 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var usersTableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
+                ? $"{users}_{uId}".ToLowerInvariant()
                 : $"{users}_{uId}";
             var ordersTableName = dialect.Provider == ProviderId.Oracle
-                ? orders.ToLowerInvariant()
+                ? $"{orders}_{uId}".ToLowerInvariant()
                 : $"{orders}_{uId}";
 
             var resultMock = serviceTest.RunSelectNotInSubquery(usersTableName, ordersTableName);
@@ -367,10 +367,10 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var usersTableNameContainer = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
+                        ? $"{users}_{uId}".ToLowerInvariant()
                         : $"{users}_{uId}";
                     var ordersTableNameContainer = dialect.Provider == ProviderId.Oracle
-                        ? orders.ToLowerInvariant()
+                        ? $"{orders}_{uId}".ToLowerInvariant()
                         : $"{orders}_{uId}";
 
                     var resultContainer = serviceTestContainer.RunSelectNotInSubquery(usersTableNameContainer, ordersTableNameContainer);
@@ -408,7 +408,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
+                ? $"{users}_{uId}".ToLowerInvariant()
                 : $"{users}_{uId}";
 
             var resultMock = serviceTest.RunInListPredicateMatrix(tableName);
@@ -425,7 +425,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
+                        ? $"{users}_{uId}".ToLowerInvariant()
                         : $"{users}_{uId}";
 
                     var resultContainer = serviceTestContainer.RunInListPredicateMatrix(containerTableName);
@@ -463,7 +463,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
+                ? $"{users}_{uId}".ToLowerInvariant()
                 : $"{users}_{uId}";
 
             var resultMock = serviceTest.RunBetweenPredicateMatrix(tableName);
@@ -480,7 +480,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
+                        ? $"{users}_{uId}".ToLowerInvariant()
                         : $"{users}_{uId}";
 
                     var resultContainer = serviceTestContainer.RunBetweenPredicateMatrix(containerTableName);
@@ -518,7 +518,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
+                ? $"{users}_{uId}".ToLowerInvariant()
                 : $"{users}_{uId}";
 
             var resultMock = serviceTest.RunLikePredicateMatrix(tableName);
@@ -535,7 +535,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
+                        ? $"{users}_{uId}".ToLowerInvariant()
                         : $"{users}_{uId}";
 
                     var resultContainer = serviceTestContainer.RunLikePredicateMatrix(containerTableName);
@@ -573,7 +573,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
+                ? $"{users}_{uId}".ToLowerInvariant()
                 : $"{users}_{uId}";
 
             var resultMock = serviceTest.RunBetweenLikeOrderByMatrix(tableName);
@@ -590,7 +590,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
+                        ? $"{users}_{uId}".ToLowerInvariant()
                         : $"{users}_{uId}";
 
                     var resultContainer = serviceTestContainer.RunBetweenLikeOrderByMatrix(containerTableName);
@@ -628,7 +628,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
+                ? $"{users}_{uId}".ToLowerInvariant()
                 : $"{users}_{uId}";
 
             var resultMock = serviceTest.RunNotLikePredicateMatrix(tableName);
@@ -645,7 +645,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
+                        ? $"{users}_{uId}".ToLowerInvariant()
                         : $"{users}_{uId}";
 
                     var resultContainer = serviceTestContainer.RunNotLikePredicateMatrix(containerTableName);
@@ -683,7 +683,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
+                ? $"{users}_{uId}".ToLowerInvariant()
                 : $"{users}_{uId}";
 
             var resultMock = serviceTest.RunNotEqualPredicateMatrix(tableName);
@@ -700,7 +700,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
+                        ? $"{users}_{uId}".ToLowerInvariant()
                         : $"{users}_{uId}";
 
                     var resultContainer = serviceTestContainer.RunNotEqualPredicateMatrix(containerTableName);
@@ -738,7 +738,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
+                ? $"{users}_{uId}".ToLowerInvariant()
                 : $"{users}_{uId}";
 
             var resultMock = serviceTest.RunEqualPredicateMatrix(tableName);
@@ -755,7 +755,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
+                        ? $"{users}_{uId}".ToLowerInvariant()
                         : $"{users}_{uId}";
 
                     var resultContainer = serviceTestContainer.RunEqualPredicateMatrix(containerTableName);
@@ -1223,7 +1223,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
+                ? $"{users}_{uId}".ToLowerInvariant()
                 : $"{users}_{uId}";
 
             var resultMock = serviceTest.RunLessThanOrEqualPredicateMatrix(tableName);
@@ -1240,7 +1240,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
+                        ? $"{users}_{uId}".ToLowerInvariant()
                         : $"{users}_{uId}";
 
                     var resultContainer = serviceTestContainer.RunLessThanOrEqualPredicateMatrix(containerTableName);
@@ -1278,7 +1278,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
+                ? $"{users}_{uId}".ToLowerInvariant()
                 : $"{users}_{uId}";
 
             var resultMock = serviceTest.RunOrderByNameMatrix(tableName);
@@ -1295,7 +1295,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
+                        ? $"{users}_{uId}".ToLowerInvariant()
                         : $"{users}_{uId}";
 
                     var resultContainer = serviceTestContainer.RunOrderByNameMatrix(containerTableName);
@@ -1333,7 +1333,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
+                ? $"{users}_{uId}".ToLowerInvariant()
                 : $"{users}_{uId}";
 
             serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 2, "Bob"));
@@ -1353,7 +1353,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
+                        ? $"{users}_{uId}".ToLowerInvariant()
                         : $"{users}_{uId}";
 
                     serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 2, "Bob"));
@@ -1394,7 +1394,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
+                ? $"{users}_{uId}".ToLowerInvariant()
                 : $"{users}_{uId}";
 
             var resultMock = serviceTest.RunGroupByNameInitialMatrix(tableName);
@@ -1411,7 +1411,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
+                        ? $"{users}_{uId}".ToLowerInvariant()
                         : $"{users}_{uId}";
 
                     var resultContainer = serviceTestContainer.RunGroupByNameInitialMatrix(containerTableName);
@@ -1485,6 +1485,10 @@ public abstract class SelectTestsBase<T, T2>(
     {
         var users = "Users";
         var uId = NewToken();
+        var supportsGroupByOrdinal = dialect.Provider is not ProviderId.SqlServer
+            and not ProviderId.SqlAzure
+            and not ProviderId.Oracle
+            and not ProviderId.Db2;
 
         using var connMock = connectionMock();
         connMock.Open();
@@ -1495,25 +1499,41 @@ public abstract class SelectTestsBase<T, T2>(
 
         try
         {
-            var resultMock = serviceTest.RunGroupByOrdinalMatrix(users);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+            if (!supportsGroupByOrdinal)
             {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Adam"), (3, "Alice"), (4, "Bob"), (5, "Brian"), (6, "Bob"), (7, "Carla"), (8, "Chris")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
+                FluentActions.Invoking(() => serviceTest.RunGroupByOrdinalMatrix(users))
+                    .Should().Throw<NotSupportedException>();
+            }
+            else
+            {
+                var resultMock = serviceTest.RunGroupByOrdinalMatrix(users);
+                resultMock.Should().Be(3);
+
+                if (IsSelectContainerComparisonEnabled(dialect.Provider)
+                    && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
                 {
-                    var resultContainer = serviceTestContainer.RunGroupByOrdinalMatrix(users);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
+                    using var connContainer = connectionContainer(connectionString);
+                    connContainer.Open();
+                    var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Adam"), (3, "Alice"), (4, "Bob"), (5, "Brian"), (6, "Bob"), (7, "Carla"), (8, "Chris")]);
+                    var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
+                    serviceTestContainer.CreateScenario(users, uId);
+                    try
+                    {
+                        if (supportsGroupByOrdinal)
+                        {
+                            var resultContainer = serviceTestContainer.RunGroupByOrdinalMatrix(users);
+                            resultMock.Should().Be(resultContainer);
+                        }
+                        else
+                        {
+                            FluentActions.Invoking(() => serviceTestContainer.RunGroupByOrdinalMatrix(users))
+                                .Should().Throw<NotSupportedException>();
+                        }
+                    }
+                    finally
+                    {
+                        serviceTestContainer.DropScenario(users, uId);
+                    }
                 }
             }
         }
@@ -1543,7 +1563,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
+                ? $"{users}_{uId}".ToLowerInvariant()
                 : $"{users}_{uId}";
 
             var resultMock = serviceTest.RunOrderByOrdinalMatrix(tableName);
@@ -1560,7 +1580,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
+                        ? $"{users}_{uId}".ToLowerInvariant()
                         : $"{users}_{uId}";
 
                     var resultContainer = serviceTestContainer.RunOrderByOrdinalMatrix(containerTableName);
@@ -1598,7 +1618,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
+                ? $"{users}_{uId}".ToLowerInvariant()
                 : $"{users}_{uId}";
 
             var resultMock = serviceTest.RunDistinctOrderByOrdinalMatrix(tableName);
@@ -1615,7 +1635,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
+                        ? $"{users}_{uId}".ToLowerInvariant()
                         : $"{users}_{uId}";
 
                     var resultContainer = serviceTestContainer.RunDistinctOrderByOrdinalMatrix(containerTableName);
@@ -1653,7 +1673,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
+                ? $"{users}_{uId}".ToLowerInvariant()
                 : $"{users}_{uId}";
 
             var resultMock = serviceTest.RunDistinctLikeOrderByOrdinalMatrix(tableName);
@@ -1670,7 +1690,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
+                        ? $"{users}_{uId}".ToLowerInvariant()
                         : $"{users}_{uId}";
 
                     var resultContainer = serviceTestContainer.RunDistinctLikeOrderByOrdinalMatrix(containerTableName);
@@ -1708,7 +1728,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
+                ? $"{users}_{uId}".ToLowerInvariant()
                 : $"{users}_{uId}";
 
             var resultMock = serviceTest.RunOrderByNameDescendingMatrix(tableName);
@@ -1725,7 +1745,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
+                        ? $"{users}_{uId}".ToLowerInvariant()
                         : $"{users}_{uId}";
 
                     var resultContainer = serviceTestContainer.RunOrderByNameDescendingMatrix(containerTableName);
@@ -1763,7 +1783,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
+                ? $"{users}_{uId}".ToLowerInvariant()
                 : $"{users}_{uId}";
 
             var resultMock = serviceTest.RunNamePaginationMatrix(tableName);
@@ -1780,7 +1800,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
+                        ? $"{users}_{uId}".ToLowerInvariant()
                         : $"{users}_{uId}";
 
                     var resultContainer = serviceTestContainer.RunNamePaginationMatrix(containerTableName);
@@ -1818,7 +1838,7 @@ public abstract class SelectTestsBase<T, T2>(
         try
         {
             var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
+                ? $"{users}_{uId}".ToLowerInvariant()
                 : $"{users}_{uId}";
 
             var resultMock = serviceTest.RunPagedNameProjectionMatrix(tableName);
@@ -1835,7 +1855,7 @@ public abstract class SelectTestsBase<T, T2>(
                 try
                 {
                     var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
+                        ? $"{users}_{uId}".ToLowerInvariant()
                         : $"{users}_{uId}";
 
                     var resultContainer = serviceTestContainer.RunPagedNameProjectionMatrix(containerTableName);
@@ -1886,7 +1906,14 @@ public abstract class SelectTestsBase<T, T2>(
 
         try
         {
-            var resultsMock = RunRelationalCompositeAssertions(serviceTest, users, orders);
+            var usersTable = dialect.Provider == ProviderId.Oracle
+                ? $"{users}_{uId}".ToLowerInvariant()
+                : $"{users}_{uId}";
+            var ordersTable = dialect.Provider == ProviderId.Oracle
+                ? $"{orders}_{uId}".ToLowerInvariant()
+                : $"{orders}_{uId}";
+
+            var resultsMock = RunRelationalCompositeAssertions(serviceTest, usersTable, ordersTable);
 
             if (IsSelectContainerComparisonEnabled(dialect.Provider)
                 && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
@@ -1898,7 +1925,7 @@ public abstract class SelectTestsBase<T, T2>(
                 serviceTestContainer.CreateScenario(users, orders, uId);
                 try
                 {
-                    var resultsContainer = RunRelationalCompositeAssertions(serviceTestContainer, users, orders);
+                    var resultsContainer = RunRelationalCompositeAssertions(serviceTestContainer, usersTable, ordersTable);
                     resultsMock.Should().Be(resultsContainer);
                 }
                 finally
@@ -2244,6 +2271,7 @@ public abstract class SelectTestsBase<T, T2>(
     {
         var users = "Users";
         var uId = NewToken();
+        var supportsNthValue = dialect.Provider is not ProviderId.SqlServer and not ProviderId.SqlAzure;
 
         using var connMock = connectionMock();
         connMock.Open();
@@ -2262,33 +2290,49 @@ public abstract class SelectTestsBase<T, T2>(
             serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 3, "Bravo"));
             serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 4, "Charlie"));
 
-            var resultMock = serviceTest.RunWindowNthValue(tableName);
-            resultMock.Should().Be(4);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+            if (!supportsNthValue)
             {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new SelectTableScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
-                        : $"{users}_{uId}";
+                FluentActions.Invoking(() => serviceTest.RunWindowNthValue(tableName))
+                    .Should().Throw<NotSupportedException>();
+            }
+            else
+            {
+                var resultMock = serviceTest.RunWindowNthValue(tableName);
+                resultMock.Should().Be(4);
 
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 2, "Bravo"));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 3, "Bravo"));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 4, "Charlie"));
-
-                    var resultContainer = serviceTestContainer.RunWindowNthValue(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
+                if (IsSelectContainerComparisonEnabled(dialect.Provider)
+                    && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
                 {
-                    serviceTestContainer.DropScenario(users, uId);
+                    using var connContainer = connectionContainer(connectionString);
+                    connContainer.Open();
+                    var testScenarioContainer = new SelectTableScenario<T2>(dialect);
+                    var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
+                    serviceTestContainer.CreateScenario(users, uId);
+                    try
+                    {
+                        var containerTableName = dialect.Provider == ProviderId.Oracle
+                            ? users.ToLowerInvariant()
+                            : $"{users}_{uId}";
+
+                        serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 2, "Bravo"));
+                        serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 3, "Bravo"));
+                        serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 4, "Charlie"));
+
+                        if (supportsNthValue)
+                        {
+                            var resultContainer = serviceTestContainer.RunWindowNthValue(containerTableName);
+                            resultMock.Should().Be(resultContainer);
+                        }
+                        else
+                        {
+                            FluentActions.Invoking(() => serviceTestContainer.RunWindowNthValue(containerTableName))
+                                .Should().Throw<NotSupportedException>();
+                        }
+                    }
+                    finally
+                    {
+                        serviceTestContainer.DropScenario(users, uId);
+                    }
                 }
             }
         }
@@ -2993,20 +3037,20 @@ public abstract class SelectTestsBase<T, T2>(
 
     private static (int Cte, int Exists, int Correlated, int GroupBy, int UnionAll, int Distinct, int MultiJoin, object? ScalarSubquery, int InSubquery, int Pivot) RunRelationalCompositeAssertions<TConnection>(
         QueryServiceTest<TConnection> serviceTest,
-        string users,
-        string orders)
+        string usersTable,
+        string ordersTable)
         where TConnection : DbConnection
     {
-        var cte = serviceTest.RunCteSimple(users, orders);
-        var existsPredicate = serviceTest.RunSelectExistsPredicate(users, orders);
-        var correlatedCount = serviceTest.RunSelectCorrelatedCount(users, orders);
-        var groupByHaving = serviceTest.RunGroupByHaving(users, orders);
-        var unionAll = serviceTest.RunUnionAllProjection(users);
-        var distinct = serviceTest.RunDistinctProjection(users);
-        var multiJoin = serviceTest.RunMultiJoinAggregate(users, orders);
-        var scalarSubquery = serviceTest.RunSelectScalarSubquery(users, orders);
-        var inSubquery = serviceTest.RunSelectInSubquery(users, orders);
-        var pivot = serviceTest.RunPivotCount(users);
+        var cte = serviceTest.RunCteSimple(usersTable, ordersTable);
+        var existsPredicate = serviceTest.RunSelectExistsPredicate(usersTable, ordersTable);
+        var correlatedCount = serviceTest.RunSelectCorrelatedCount(usersTable, ordersTable);
+        var groupByHaving = serviceTest.RunGroupByHaving(usersTable, ordersTable);
+        var unionAll = serviceTest.RunUnionAllProjection(usersTable);
+        var distinct = serviceTest.RunDistinctProjection(usersTable);
+        var multiJoin = serviceTest.RunMultiJoinAggregate(usersTable, ordersTable);
+        var scalarSubquery = serviceTest.RunSelectScalarSubquery(usersTable, ordersTable);
+        var inSubquery = serviceTest.RunSelectInSubquery(usersTable, ordersTable);
+        var pivot = serviceTest.RunPivotCount(usersTable);
 
         cte.Should().Be(1);
         existsPredicate.Should().Be(2);

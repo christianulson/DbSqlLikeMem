@@ -2,12 +2,20 @@ namespace DbSqlLikeMem.TestTools.Query;
 
 public partial class QueryServiceTest<T>
 {
+    private string GetOrderUserIdColumn(string usersTable)
+        => Dialect.Provider == ProviderId.Oracle
+            ? "userid"
+            : $"{usersTable}Id";
+
     private string BuildFirstNoteSubquery(string ordersTable, string usersTable, string orderByDirection)
-        => Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure
+    {
+        var orderUserIdColumn = GetOrderUserIdColumn(usersTable);
+
+        return Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure
             ? $"""
     SELECT TOP 1 o2.Note
     FROM {ordersTable} o2
-    WHERE o2.{usersTable}Id = u.Id
+    WHERE o2.{orderUserIdColumn} = u.Id
     ORDER BY o2.Note {orderByDirection}
 """
             : Dialect.Provider == ProviderId.Oracle
@@ -15,33 +23,38 @@ public partial class QueryServiceTest<T>
                     ? $"""
     SELECT MIN(o2.Note)
     FROM {ordersTable} o2
-    WHERE o2.{usersTable}Id = u.Id
+    WHERE o2.{orderUserIdColumn} = u.Id
 """
                     : $"""
     SELECT MAX(o2.Note)
     FROM {ordersTable} o2
-    WHERE o2.{usersTable}Id = u.Id
+    WHERE o2.{orderUserIdColumn} = u.Id
 """
             : $"""
     SELECT o2.Note
     FROM {ordersTable} o2
-    WHERE o2.{usersTable}Id = u.Id
+    WHERE o2.{orderUserIdColumn} = u.Id
     ORDER BY o2.Note {orderByDirection}
     LIMIT 1
 """;
+    }
 
     private string BuildOrderCountExpression(string ordersTable, string usersTable)
-        => Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure
-            ? $"COUNT(o.{usersTable}Id)"
+    {
+        var orderUserIdColumn = GetOrderUserIdColumn(usersTable);
+
+        return Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure
+            ? $"COUNT(o.{orderUserIdColumn})"
             : Dialect.Provider == ProviderId.Oracle
                 ? $"""
 (SELECT COUNT(*)
  FROM {ordersTable} o2
- WHERE o2.{usersTable}Id = u.Id)
+ WHERE o2.{orderUserIdColumn} = u.Id)
 """
             : Dialect.Provider == ProviderId.Db2
-                ? $"COUNT(o.{usersTable}Id)"
+                ? $"COUNT(o.{orderUserIdColumn})"
             : "COUNT(o.Id)";
+    }
 
     /// <summary>
     /// EN: Executes a large grouped join query over users and orders and validates the projected rows.
@@ -70,7 +83,7 @@ SELECT
     CASE WHEN {orderCountExpr} > 1 THEN 1 ELSE 0 END AS HasMultipleOrders,
     CASE WHEN SUM(o.Amount) >= 3 THEN 1 ELSE 0 END AS AmountAtLeastThree
 FROM {usersTable} u
-INNER JOIN {ordersTable} o ON o.{usersTable}Id = u.Id
+INNER JOIN {ordersTable} o ON o.{GetOrderUserIdColumn(usersTable)} = u.Id
 GROUP BY u.Id, u.Name
 ORDER BY u.Id
 """;
@@ -114,7 +127,7 @@ SELECT
     CASE WHEN SUM(o.Amount) IS NULL THEN 1 ELSE 0 END AS AmountIsNull,
     CASE WHEN MAX(o.Quantity) > 1 THEN 1 ELSE 0 END AS HasLargeQuantity
 FROM {usersTable} u
-LEFT JOIN {ordersTable} o ON o.{usersTable}Id = u.Id
+LEFT JOIN {ordersTable} o ON o.{GetOrderUserIdColumn(usersTable)} = u.Id
 GROUP BY u.Id, u.Name
 ORDER BY u.Id
 """;
@@ -161,7 +174,7 @@ SELECT
     CASE WHEN {orderCountExpr} > 0 THEN 1 ELSE 0 END AS HasNote,
     CASE WHEN SUM(o.Amount) >= 3 THEN 1 ELSE 0 END AS MeetsAmountThreshold
 FROM {usersTable} u
-LEFT JOIN {ordersTable} o ON o.{usersTable}Id = u.Id
+LEFT JOIN {ordersTable} o ON o.{GetOrderUserIdColumn(usersTable)} = u.Id
 GROUP BY u.Id, u.Name
 ORDER BY u.Id
 """;
@@ -208,7 +221,7 @@ SELECT
     CASE WHEN COALESCE(MIN(o.Note), 'none') = 'none' THEN 1 ELSE 0 END AS NotesAreMissing,
     CASE WHEN MAX(o.Note) IS NOT NULL THEN 1 ELSE 0 END AS HasAnyNote
 FROM {usersTable} u
-LEFT JOIN {ordersTable} o ON o.{usersTable}Id = u.Id
+LEFT JOIN {ordersTable} o ON o.{GetOrderUserIdColumn(usersTable)} = u.Id
 GROUP BY u.Id, u.Name
 ORDER BY u.Id
 """;
@@ -254,7 +267,7 @@ SELECT
     CASE WHEN SUM(o.Amount) >= 4 THEN 1 ELSE 0 END AS AmountAtLeastFour,
     CASE WHEN MIN(o.Note) = 'A' THEN 1 ELSE 0 END AS StartsAtA
 FROM {usersTable} u
-INNER JOIN {ordersTable} o ON o.{usersTable}Id = u.Id
+INNER JOIN {ordersTable} o ON o.{GetOrderUserIdColumn(usersTable)} = u.Id
 GROUP BY u.Id, u.Name
 HAVING {orderCountExpr} >= 2
    AND SUM(o.Amount) >= 4
@@ -306,7 +319,7 @@ SELECT
     CASE WHEN COALESCE(ROUND(SUM(o.Amount), 2), 0) >= 4 THEN 1 ELSE 0 END AS AmountGe4,
     CASE WHEN COALESCE(MAX({noteLenExpr}), 0) >= 1 THEN 1 ELSE 0 END AS HasNotes
 FROM {usersTable} u
-LEFT JOIN {ordersTable} o ON o.{usersTable}Id = u.Id
+LEFT JOIN {ordersTable} o ON o.{GetOrderUserIdColumn(usersTable)} = u.Id
 GROUP BY u.Id, u.Name
 ORDER BY u.Id
 """;
@@ -364,7 +377,7 @@ SELECT
     CASE WHEN {orderCountExpr} >= 2 THEN 1 ELSE 0 END AS TwoOrMoreOrders,
     CASE WHEN SUM(o.Quantity) >= 3 THEN 1 ELSE 0 END AS QuantityGe3
 FROM {usersTable} u
-LEFT JOIN {ordersTable} o ON o.{usersTable}Id = u.Id
+LEFT JOIN {ordersTable} o ON o.{GetOrderUserIdColumn(usersTable)} = u.Id
 GROUP BY u.Id, u.Name
 ORDER BY u.Id
 """;
@@ -408,7 +421,7 @@ SELECT
     CASE WHEN COUNT(DISTINCT o.Note) >= 2 THEN 1 ELSE 0 END AS HasMultipleDistinctNotes,
     CASE WHEN SUM(CASE WHEN o.Note = 'A' THEN 1 ELSE 0 END) >= 2 THEN 1 ELSE 0 END AS HasRepeatedNoteA
 FROM {usersTable} u
-LEFT JOIN {ordersTable} o ON o.{usersTable}Id = u.Id
+LEFT JOIN {ordersTable} o ON o.{GetOrderUserIdColumn(usersTable)} = u.Id
 GROUP BY u.Id
 ORDER BY u.Id
 """;
@@ -452,7 +465,7 @@ SELECT
     CASE WHEN COUNT(DISTINCT o.Note) >= 2 THEN 1 ELSE 0 END AS HasMultipleDistinctNotes,
     CASE WHEN SUM(CASE WHEN o.Note = 'A' THEN 1 ELSE 0 END) >= 2 THEN 1 ELSE 0 END AS HasRepeatedNoteA
 FROM {usersTable} u
-LEFT JOIN {ordersTable} o ON o.{usersTable}Id = u.Id
+LEFT JOIN {ordersTable} o ON o.{GetOrderUserIdColumn(usersTable)} = u.Id
 GROUP BY u.Id
     HAVING COUNT(DISTINCT o.Note) >= 2 OR {orderCountExpr} = 0
 ORDER BY u.Id
@@ -498,7 +511,7 @@ SELECT
     SUM(CASE WHEN o.DeliveredAt IS NULL THEN 1 ELSE 0 END) AS PendingDeliveries,
     CASE WHEN u.CreatedAt <= {nowExpr} THEN 1 ELSE 0 END AS UserCreatedBeforeNow
 FROM {usersTable} u
-LEFT JOIN {ordersTable} o ON o.{usersTable}Id = u.Id
+LEFT JOIN {ordersTable} o ON o.{GetOrderUserIdColumn(usersTable)} = u.Id
 GROUP BY u.Id, u.CreatedAt
 ORDER BY u.Id
 """;
@@ -530,7 +543,8 @@ ORDER BY u.Id
         var orders = (string)pars[1];
         var usersTable = ResolveScenarioTableName(users);
         var ordersTable = ResolveScenarioTableName(orders);
-        var orderCountExpr = $"COUNT(o.{usersTable}Id)";
+        var orderUserIdColumn = GetOrderUserIdColumn(usersTable);
+        var orderCountExpr = "COUNT(*)";
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
@@ -541,7 +555,7 @@ SELECT
     {orderCountExpr} OVER (PARTITION BY u.Id) AS OrdersPerUser,
     LAG(o.Note) OVER (PARTITION BY u.Id ORDER BY o.Id) AS PreviousNote
 FROM {usersTable} u
-INNER JOIN {ordersTable} o ON o.{usersTable}Id = u.Id
+    INNER JOIN {ordersTable} o ON o.{orderUserIdColumn} = u.Id
 ORDER BY u.Id, o.Id
 """;
 
@@ -572,7 +586,8 @@ ORDER BY u.Id, o.Id
         var orders = (string)pars[1];
         var usersTable = ResolveScenarioTableName(users);
         var ordersTable = ResolveScenarioTableName(orders);
-        var orderCountExpr = $"COUNT(o.{usersTable}Id)";
+        var orderUserIdColumn = GetOrderUserIdColumn(usersTable);
+        var orderCountExpr = "COUNT(*)";
 
         var nowExpr = Dialect.TemporalCurrentTimestampExpression();
         var nextDayExpr = Dialect.TemporalDateAddExpression();
@@ -589,7 +604,7 @@ SELECT
     CASE WHEN {nextDayExpr} > o.OrderedAt THEN 1 ELSE 0 END AS NextDayAfterOrder,
     CASE WHEN u.CreatedAt <= {nowExpr} THEN 1 ELSE 0 END AS UserCreatedBeforeNow
 FROM {usersTable} u
-INNER JOIN {ordersTable} o ON o.{usersTable}Id = u.Id
+    INNER JOIN {ordersTable} o ON o.{orderUserIdColumn} = u.Id
 ORDER BY u.Id, o.Id
 """;
 
@@ -620,7 +635,8 @@ ORDER BY u.Id, o.Id
         var orders = (string)pars[1];
         var usersTable = ResolveScenarioTableName(users);
         var ordersTable = ResolveScenarioTableName(orders);
-        var orderCountExpr = $"COUNT(o.{usersTable}Id)";
+        var orderUserIdColumn = GetOrderUserIdColumn(usersTable);
+        var orderCountExpr = "COUNT(*)";
 
         var nowExpr = Dialect.TemporalCurrentTimestampExpression();
         var nextDayExpr = Dialect.TemporalDateAddExpression();
@@ -639,7 +655,7 @@ SELECT
     CASE WHEN {nextDayExpr} > o.OrderedAt THEN 1 ELSE 0 END AS NextDayAfterOrder,
     CASE WHEN u.CreatedAt <= {nowExpr} THEN 1 ELSE 0 END AS UserCreatedBeforeNow
 FROM {usersTable} u
-INNER JOIN {ordersTable} o ON o.{usersTable}Id = u.Id
+    INNER JOIN {ordersTable} o ON o.{orderUserIdColumn} = u.Id
 ORDER BY u.Id, o.Id
 """;
 
@@ -1142,9 +1158,9 @@ ORDER BY u.Id, o.Id
 SELECT
     u.Id AS UserId,
     u.Name AS UserName,
-    (SELECT COUNT(*) FROM {ordersTable} o WHERE o.{usersTable}Id = u.Id) AS OrderCount,
-    CASE WHEN (SELECT COUNT(*) FROM {ordersTable} o WHERE o.{usersTable}Id = u.Id) = 0 THEN 1 ELSE 0 END AS HasNoOrders,
-    CASE WHEN (SELECT COUNT(*) FROM {ordersTable} o WHERE o.{usersTable}Id = u.Id) >= 2 THEN 1 ELSE 0 END AS HasManyOrders
+    (SELECT COUNT(*) FROM {ordersTable} o WHERE o.{GetOrderUserIdColumn(usersTable)} = u.Id) AS OrderCount,
+    CASE WHEN (SELECT COUNT(*) FROM {ordersTable} o WHERE o.{GetOrderUserIdColumn(usersTable)} = u.Id) = 0 THEN 1 ELSE 0 END AS HasNoOrders,
+    CASE WHEN (SELECT COUNT(*) FROM {ordersTable} o WHERE o.{GetOrderUserIdColumn(usersTable)} = u.Id) >= 2 THEN 1 ELSE 0 END AS HasManyOrders
 FROM {usersTable} u
 ORDER BY u.Id
 """;

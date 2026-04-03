@@ -68,7 +68,7 @@ public partial class DmlMutationServiceTest<T>
         }
 
         using var transaction = Connection.BeginTransaction();
-        var savepoint = $"SP_{Guid.NewGuid():N}".ToUpperInvariant()[..11];
+        var savepoint = $"sp_{Guid.NewGuid():N}"[..11];
         ExecuteSavepoint(transaction, savepoint);
         transaction.Rollback();
     }
@@ -93,7 +93,7 @@ public partial class DmlMutationServiceTest<T>
 
         using var transaction = Connection.BeginTransaction();
         ExecuteNonQuery(Dialect.InsertUser(tableName, 1, "Alice"), transaction);
-        var savepoint = $"SP_{Guid.NewGuid():N}".ToUpperInvariant()[..11];
+        var savepoint = $"sp_{Guid.NewGuid():N}"[..11];
         ExecuteSavepoint(transaction, savepoint);
         ExecuteNonQuery(Dialect.InsertUser(tableName, 2, "Bob"), transaction);
         ExecuteRollbackToSavepoint(transaction, savepoint);
@@ -120,7 +120,7 @@ public partial class DmlMutationServiceTest<T>
         }
 
         using var transaction = Connection.BeginTransaction();
-        var savepoint = $"SP_{Guid.NewGuid():N}".ToUpperInvariant()[..11];
+        var savepoint = $"sp_{Guid.NewGuid():N}"[..11];
         ExecuteNonQuery(Dialect.Savepoint(savepoint), transaction);
         ExecuteDialectCommand(Dialect.ReleaseSavepoint(savepoint), transaction);
         transaction.Rollback();
@@ -146,10 +146,10 @@ public partial class DmlMutationServiceTest<T>
 
         using var transaction = Connection.BeginTransaction();
         ExecuteNonQuery(Dialect.InsertUser(tableName, 1, "Alice"), transaction);
-        var sp1 = $"SP_{Guid.NewGuid():N}".ToUpperInvariant()[..11];
+        var sp1 = $"sp_{Guid.NewGuid():N}"[..11];
         ExecuteSavepoint(transaction, sp1);
         ExecuteNonQuery(Dialect.InsertUser(tableName, 2, "Bob"), transaction);
-        var sp2 = $"SP_{Guid.NewGuid():N}".ToUpperInvariant()[..11];
+        var sp2 = $"sp_{Guid.NewGuid():N}"[..11];
         ExecuteSavepoint(transaction, sp2);
         ExecuteNonQuery(Dialect.InsertUser(tableName, 3, "Charlie"), transaction);
         ExecuteRollbackToSavepoint(transaction, sp2);

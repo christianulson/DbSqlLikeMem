@@ -463,7 +463,6 @@ WHERE dt.total >= 10;
         yield return new object[] { "INSERT INTO data (id, info) VALUES (@id, @info)", "INSERT into generic table with parameters" };
         yield return new object[] { "INSERT INTO orders (id,userId,amount) VALUES (13,0,1)", "INSERT numeric values without spaces" };
         yield return new object[] { "INSERT INTO t () VALUES ()", "INSERT default row (no columns, no values)" };
-        yield return new object[] { "INSERT INTO t () VALUES ()", "INSERT default row (no columns, no values)" };
         yield return new object[] { "INSERT INTO t VALUES ()", "INSERT default row (no columns, no values)" };
         yield return new object[] { "INSERT INTO t (id) VALUES (1)", "INSERT with single column" };
         yield return new object[] {

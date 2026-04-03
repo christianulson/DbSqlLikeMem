@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.TestTools.Query;
+namespace DbSqlLikeMem.TestTools.Query;
 
 public partial class QueryServiceTest<T>
 {
@@ -312,6 +312,11 @@ ORDER BY Name
     /// </summary>
     public int RunGroupByOrdinalMatrix(params object[] pars)
     {
+        if (Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure or ProviderId.Oracle or ProviderId.Db2)
+        {
+            throw new NotSupportedException($"{Dialect.DisplayName} does not support GROUP BY ordinal benchmarks.");
+        }
+
         var users = (string)pars[0];
         var initialExpr = $"UPPER({Dialect.StringPrefixExpression("Name", 1)})";
 
@@ -736,12 +741,12 @@ WHERE Id = {Dialect.Parameter("id")}
         Convert.ToBoolean(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(isActive);
         Convert.ToInt16(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(age);
         Convert.ToDecimal(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(balance);
-        Convert.ToDateTime(reader.GetValue(5), CultureInfo.InvariantCulture).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+        NormalizeDateTimeValue(reader.GetValue(5)).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
             .Should().Be(createdAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
 
         var updatedAtText = reader.IsDBNull(6)
             ? null
-            : Convert.ToDateTime(reader.GetValue(6), CultureInfo.InvariantCulture).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+            : NormalizeDateTimeValue(reader.GetValue(6)).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
         (updatedAt is null ? null : updatedAt.Value.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)).Should().Be(updatedAtText);
         (reader.IsDBNull(7) ? null : Convert.ToString(reader.GetValue(7), CultureInfo.InvariantCulture)).Should().Be(profileJson);
 
@@ -832,7 +837,7 @@ WHERE Id = {Dialect.Parameter("id")}
         Convert.ToDouble(reader.GetValue(9), CultureInfo.InvariantCulture).Should().Be(doubleValue);
         NormalizeTimeSpanValue(reader.GetValue(10)).Should().Be(timeSpanValue);
         NormalizeDateTimeOffsetValue(reader.GetValue(11)).Should().Be(dateTimeOffsetValue);
-        Convert.ToDateTime(reader.GetValue(12), CultureInfo.InvariantCulture).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+        NormalizeDateTimeValue(reader.GetValue(12)).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
             .Should().Be(dateTimeValue.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
         NormalizeGuidValue(reader.GetValue(13)).Should().Be(guidValue);
         NormalizeBinaryValue(reader.GetValue(14)).Should().Equal(binaryValue);
@@ -878,7 +883,7 @@ WHERE Id = {Dialect.Parameter("id")}
         using var reader = command.ExecuteReader();
         reader.Read().Should().BeTrue();
 
-        Convert.ToDateTime(reader.GetValue(0), CultureInfo.InvariantCulture).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+        NormalizeDateTimeValue(reader.GetValue(0)).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
             .Should().Be(dateValue.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
         Convert.ToDecimal(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(currencyValue);
 
@@ -893,12 +898,18 @@ WHERE Id = {Dialect.Parameter("id")}
         var parameter = command.CreateParameter();
         parameter.ParameterName = name;
         var isOracleParameter = parameter.GetType().FullName == "Oracle.ManagedDataAccess.Client.OracleParameter";
-        var isDb2Parameter = parameter.GetType().FullName == "IBM.Data.Db2.DB2Parameter";
-        if (isOracleParameter
-            || (isDb2Parameter && (dbType == DbType.Guid || dbType == DbType.DateTimeOffset)))
+        var parameterTypeName = parameter.GetType().FullName;
+        var isDb2Parameter = parameterTypeName is "IBM.Data.Db2.DB2Parameter"
+            or "IBM.Data.DB2.Core.DB2Parameter"
+            or "IBM.Data.DB2.iSeries.iDB2Parameter";
+        if (isOracleParameter)
         {
             // ODP.NET and DB2 parameters can reject some DbType assignments in this mock flow.
             // Keep the default DbType and normalize the value payload for this shared test helper.
+        }
+        else if (isDb2Parameter && (dbType == DbType.Guid || dbType == DbType.DateTimeOffset))
+        {
+            parameter.DbType = DbType.String;
         }
         else
         {
@@ -935,6 +946,18 @@ WHERE Id = {Dialect.Parameter("id")}
             (DbType.Guid, Guid guid) => guid.ToString("D", CultureInfo.InvariantCulture),
             (DbType.DateTimeOffset, DateTimeOffset dateTimeOffset) => dateTimeOffset.ToString("O", CultureInfo.InvariantCulture),
             _ => value
+        };
+    }
+
+    private static DateTime NormalizeDateTimeValue(object? value)
+    {
+        return value switch
+        {
+            DateTime dateTime => dateTime,
+            DateTimeOffset dateTimeOffset => dateTimeOffset.DateTime,
+            string text => DateTime.Parse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
+            null => throw new InvalidOperationException("DateTime parameter returned a null value."),
+            _ => Convert.ToDateTime(value, CultureInfo.InvariantCulture)
         };
     }
 
@@ -1190,7 +1213,8 @@ ORDER BY rn
     public object? RunTemporalNowWhere(params object[] pars)
     {
         var users = (string)pars[0];
-        var value = ExecuteScalar(Dialect.TemporalNowWhere(users));
+        var tableName = ResolveScenarioTableName(users);
+        var value = ExecuteScalar(Dialect.TemporalNowWhere(tableName));
         GC.KeepAlive(value);
         return value;
     }
@@ -1202,7 +1226,8 @@ ORDER BY rn
     public object? RunTemporalNowOrderBy(params object[] pars)
     {
         var users = (string)pars[0];
-        var value = ExecuteScalar(Dialect.TemporalNowOrderBy(users));
+        var tableName = ResolveScenarioTableName(users);
+        var value = ExecuteScalar(Dialect.TemporalNowOrderBy(tableName));
         GC.KeepAlive(value);
         return value;
     }

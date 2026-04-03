@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace DbSqlLikeMem;
 
 /// <summary>
@@ -186,11 +188,24 @@ public readonly struct IndexKey : IEquatable<IndexKey>
     private static void AddValueToHash(ref HashCode hash, object? val)
     {
         if (val is null || val is DBNull)
+        {
             hash.Add(0);
-        else if (val is string s)
+            return;
+        }
+
+        if (TryConvertToDecimal(val, out var numeric))
+        {
+            hash.Add(numeric);
+            return;
+        }
+
+        if (val is string s)
+        {
             hash.Add(StringComparer.OrdinalIgnoreCase.GetHashCode(s));
-        else
-            hash.Add(val);
+            return;
+        }
+
+        hash.Add(val);
     }
 
     private static bool EqualsCore(object? x, object? y)
@@ -199,9 +214,60 @@ public readonly struct IndexKey : IEquatable<IndexKey>
         if (x is null || x is DBNull) return y is null || y is DBNull;
         if (y is null || y is DBNull) return false;
 
+        if (TryConvertToDecimal(x, out var xNumber) && TryConvertToDecimal(y, out var yNumber))
+            return xNumber == yNumber;
+
         if (x is string sx && y is string sy)
             return string.Equals(sx, sy, StringComparison.OrdinalIgnoreCase);
 
         return x.Equals(y);
+    }
+
+    private static bool TryConvertToDecimal(object? value, out decimal result)
+    {
+        if (value is null || value is DBNull)
+        {
+            result = default;
+            return false;
+        }
+
+        if (value is DateTime dt)
+        {
+            result = dt.Ticks;
+            return true;
+        }
+
+        if (value is DateTimeOffset dto)
+        {
+            result = dto.Ticks;
+            return true;
+        }
+
+        if (value is TimeSpan ts)
+        {
+            result = ts.Ticks;
+            return true;
+        }
+
+        if (value is bool boolValue)
+        {
+            result = boolValue ? 1m : 0m;
+            return true;
+        }
+
+        if (value is IConvertible)
+        {
+            try
+            {
+                result = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+                return true;
+            }
+            catch
+            {
+                // fallback to text parsing below
+            }
+        }
+
+        return decimal.TryParse(value.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out result);
     }
 }

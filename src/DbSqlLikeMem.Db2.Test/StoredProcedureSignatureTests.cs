@@ -26,7 +26,7 @@ public sealed class StoredProcedureSignatureTests(
 
     /// <summary>
     /// EN: Indicates that the Db2 mock does not support Guid input-output parameters in stored procedure signatures.
-    /// PT: Indica que o mock Db2 não suporta parâmetros input-output Guid em assinaturas de procedure.
+    /// PT: Indica que o mock Db2 nao suporta parametros input-output Guid em assinaturas de procedure.
     /// </summary>
     protected override bool SupportsGuidInputOutputParameters => false;
 }

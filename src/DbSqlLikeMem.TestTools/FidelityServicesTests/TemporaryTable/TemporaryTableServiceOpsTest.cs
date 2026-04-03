@@ -10,6 +10,7 @@ public partial class TemporaryTableServiceTest<T>
     {
         var users = (string)pars[0];
         var uId = (string)pars[1];
+        var sourceUsersTable = ResolveSourceUsersTableName(users, uId);
         var isMockConnection = Connection is DbConnectionMockBase;
         var tempTable = BuildTemporaryTableName(uId, isMockConnection);
         var sessionTempTable = Dialect.Provider == ProviderId.Db2 && !isMockConnection
@@ -19,7 +20,7 @@ public partial class TemporaryTableServiceTest<T>
         {
             ExecuteNonQuery($@"
 CREATE TEMP TABLE {tempTable} AS
-SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10");
+SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10");
         }
         else if (Dialect.Provider == ProviderId.Db2 && !isMockConnection)
         {
@@ -30,7 +31,7 @@ DECLARE GLOBAL TEMPORARY TABLE SESSION.{tempTable} (
 ) ON COMMIT PRESERVE ROWS NOT LOGGED");
             ExecuteNonQuery($@"
 INSERT INTO SESSION.{tempTable} (Id, Name)
-SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10");
+SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10");
         }
         else if (Dialect.Provider == ProviderId.Db2)
         {
@@ -44,18 +45,18 @@ SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10");
             tempTableMock.AddColumn("Name", DbType.String, false);
             ExecuteNonQuery($@"
 INSERT INTO {tempTable} (Id, Name)
-SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10");
+SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10");
         }
         else if ((Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure) && isMockConnection)
         {
             ExecuteNonQuery($@"
 CREATE TEMPORARY TABLE {tempTable} AS
-SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10");
+SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10");
         }
         else if (Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure)
         {
             ExecuteNonQuery($@"
-SELECT Id, Name INTO {tempTable} FROM {users}_{uId} WHERE TenantId = 10");
+SELECT Id, Name INTO {tempTable} FROM {sourceUsersTable} WHERE TenantId = 10");
         }
         else if (Dialect.Provider == ProviderId.Oracle
             && Connection is not DbSqlLikeMem.DbConnectionMockBase)
@@ -66,11 +67,11 @@ CREATE GLOBAL TEMPORARY TABLE {tempTable} (
     Name VARCHAR2(100)
 ) ON COMMIT PRESERVE ROWS");
             ExecuteNonQuery($@"INSERT INTO {tempTable} (Id, Name)
-SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10");
+SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10");
         }
         else
         {
-            var createSql = BuildCreateTemporaryTableSql(tempTable, users, uId, isMockConnection);
+            var createSql = BuildCreateTemporaryTableSql(tempTable, sourceUsersTable);
             ExecuteNonQuery(createSql);
         }
 
@@ -107,13 +108,11 @@ SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10");
 
     private string BuildCreateTemporaryTableSql(
         string tempTable,
-        string users,
-        string uId,
-        bool isMockConnection)
+        string sourceUsersTable)
     {
         return $@"
 CREATE TEMPORARY TABLE {tempTable} AS
-SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10";
+SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10";
     }
 
     /// <summary>
@@ -235,6 +234,11 @@ SELECT Id, Name FROM {users}_{uId} WHERE TenantId = 10";
 
     private static string InsertTemporaryRowSql(string tableName, int id, string name)
         => $"INSERT INTO {tableName} (Id, Name) VALUES ({id}, '{name}')";
+
+    private string ResolveSourceUsersTableName(string users, string uId)
+        => Dialect.Provider == ProviderId.Oracle
+            ? $"{users}_{uId}".ToLowerInvariant()
+            : $"{users}_{uId}";
 
     private string ResolveTemporaryUsersTableName(string rawTableName)
         => (Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure)
