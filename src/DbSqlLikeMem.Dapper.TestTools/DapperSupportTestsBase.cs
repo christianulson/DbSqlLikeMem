@@ -121,7 +121,7 @@ FROM dapper_case_group
 GROUP BY category
 ORDER BY category", new { cutoff = 50 }).ToList();
 
-        rows.Should().Equal(new[] { ("A", 1), ("B", 1) });
+        rows.Should().Equal([("A", 1), ("B", 1)]);
     }
 
     /// <summary>
@@ -170,9 +170,9 @@ ORDER BY category", new { cutoff = 50 }).ToList();
         var p2 = ReadPage(3);
         var p3 = ReadPage(6);
 
-        p1.Should().Equal(new[] { 1, 2, 3 });
-        p2.Should().Equal(new[] { 4, 5, 6 });
-        p3.Should().Equal(new[] { 7, 8, 9 });
+        p1.Should().Equal([1, 2, 3]);
+        p2.Should().Equal([4, 5, 6]);
+        p3.Should().Equal([7, 8, 9]);
         p1.Intersect(p2).Should().BeEmpty();
         p2.Intersect(p3).Should().BeEmpty();
     }
@@ -259,7 +259,7 @@ WHERE u.id = 1");
         }
 
         var values = connection.Query<int>("SELECT amount FROM dapper_tx_sequence ORDER BY id").ToList();
-        values.Should().Equal(new[] { 15 });
+        values.Should().Equal([15]);
     }
 
 
