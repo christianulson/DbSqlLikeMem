@@ -133,6 +133,8 @@ public partial class SchemaSnapshotServiceTest<T>
             ProviderId.SqlServer or ProviderId.SqlAzure when major >= 12 => 2014,
             ProviderId.SqlServer or ProviderId.SqlAzure when major >= 11 => 2012,
             ProviderId.SqlServer or ProviderId.SqlAzure when major > 0 => 2008,
+            ProviderId.Sqlite when major >= 100 => major / 100,
+            ProviderId.Sqlite when major > 0 => major,
             ProviderId.MySql when major > 0 => major * 100,
             ProviderId.MariaDb when major >= 100 => major,
             ProviderId.MariaDb when major > 0 => major * 10 + minor,

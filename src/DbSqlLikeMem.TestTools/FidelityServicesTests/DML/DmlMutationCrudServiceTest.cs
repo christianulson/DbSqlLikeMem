@@ -173,7 +173,9 @@ WHERE Id = 1
             .Should().Be(createdAt?.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
         (reader.IsDBNull(6) ? null : NormalizeDateTimeValue(reader.GetValue(6)).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture))
             .Should().Be(updatedAt is null ? null : updatedAt.Value.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
-        (reader.IsDBNull(7) ? null : Convert.ToString(reader.GetValue(7), CultureInfo.InvariantCulture)).Should().Be(profileJson);
+        DbSqlLikeMem.TestTools.Json.JsonTextAssertions.ShouldMatchJsonText(
+            reader.IsDBNull(7) ? null : Convert.ToString(reader.GetValue(7), CultureInfo.InvariantCulture),
+            profileJson);
         reader.Read().Should().BeFalse();
 
         GC.KeepAlive(users);
@@ -332,7 +334,9 @@ WHERE Id = 1
         Convert.ToDecimal(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(balance);
         NormalizeDateTimeValue(reader.GetValue(5)).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
             .Should().Be(updatedAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
-        Convert.ToString(reader.GetValue(6), CultureInfo.InvariantCulture)?.TrimEnd().Should().Be(profileJson);
+        DbSqlLikeMem.TestTools.Json.JsonTextAssertions.ShouldMatchJsonText(
+            Convert.ToString(reader.GetValue(6), CultureInfo.InvariantCulture)?.TrimEnd(),
+            profileJson);
         reader.Read().Should().BeFalse();
 
         GC.KeepAlive(users);
@@ -448,7 +452,9 @@ WHERE Id = {Dialect.Parameter("id")}
             .Should().Be(createdAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
         NormalizeDateTimeValue(reader.GetValue(6)).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
             .Should().Be(updatedAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
-        Convert.ToString(reader.GetValue(7), CultureInfo.InvariantCulture).Should().Be(profileJson);
+        DbSqlLikeMem.TestTools.Json.JsonTextAssertions.ShouldMatchJsonText(
+            Convert.ToString(reader.GetValue(7), CultureInfo.InvariantCulture),
+            profileJson);
         reader.Read().Should().BeFalse();
     }
 

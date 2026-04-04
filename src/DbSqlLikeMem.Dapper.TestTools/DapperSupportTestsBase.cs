@@ -116,7 +116,7 @@ public abstract class DapperSupportTestsBase(
 
         var rows = connection.Query<(string category, int score)>(@"SELECT
   category,
-  SUM(CASE WHEN amount >= @cutoff THEN 1 ELSE 0 END) score
+  CAST(SUM(CASE WHEN amount >= @cutoff THEN 1 ELSE 0 END) AS DECIMAL(10,0)) score
 FROM dapper_case_group
 GROUP BY category
 ORDER BY category", new { cutoff = 50 }).ToList();
@@ -284,7 +284,7 @@ WHERE u.id = 1");
 
         var rows = connection.Query<(string category, int score)>(@"SELECT
   category,
-  SUM(CASE WHEN amount >= @high THEN 2 WHEN amount >= @mid THEN 1 ELSE 0 END) score
+  CAST(SUM(CASE WHEN amount >= @high THEN 2 WHEN amount >= @mid THEN 1 ELSE 0 END) AS DECIMAL(10,0)) score
 FROM dapper_case_having
 GROUP BY category
 HAVING SUM(CASE WHEN amount >= @high THEN 2 WHEN amount >= @mid THEN 1 ELSE 0 END) >= @minScore

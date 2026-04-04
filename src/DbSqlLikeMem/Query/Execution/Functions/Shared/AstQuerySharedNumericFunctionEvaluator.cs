@@ -715,8 +715,8 @@ internal static class AstQuerySharedNumericFunctionEvaluator
     private static object RoundNumericValue(QueryExecutionContext context, object sourceValue, decimal number, int digits)
     {
         var rounded = Math.Round(number, digits, MidpointRounding.AwayFromZero);
-        if (string.Equals(context.Dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase)
-            && sourceValue is decimal sourceDecimal)
+        if (sourceValue is decimal sourceDecimal
+            && (IsSqlServerProvider(context) || IsDb2Provider(context)))
         {
             var scale = GetDecimalScale(sourceDecimal);
             if (scale > 0)
@@ -729,6 +729,12 @@ internal static class AstQuerySharedNumericFunctionEvaluator
 
         return rounded;
     }
+
+    private static bool IsSqlServerProvider(QueryExecutionContext context)
+        => string.Equals(context.Dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsDb2Provider(QueryExecutionContext context)
+        => string.Equals(context.Connection.ProviderExecutionDialect.Name, "db2", StringComparison.OrdinalIgnoreCase);
 
     private static int GetDecimalScale(decimal value)
     {

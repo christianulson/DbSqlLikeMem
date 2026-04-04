@@ -253,7 +253,7 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     {
         _ = fn;
         _ = evalArg;
-        result = DateTime.Now.Date;
+        result = DateTime.UtcNow.Date;
         return true;
     }
 
@@ -277,7 +277,7 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     {
         _ = fn;
         _ = evalArg;
-        result = DateTime.Now.TimeOfDay;
+        result = DateTime.UtcNow.TimeOfDay;
         return true;
     }
 
@@ -301,7 +301,7 @@ internal static class AstQueryMySqlConversionAndMetadataFunctionEvaluator
     {
         _ = fn;
         _ = evalArg;
-        result = DateTime.Now;
+        result = DateTime.UtcNow;
         return true;
     }
 

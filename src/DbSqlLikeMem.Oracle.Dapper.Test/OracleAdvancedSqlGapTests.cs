@@ -539,10 +539,9 @@ ORDER BY id").ToList();
     [Trait("Category", "OracleAdvancedSqlGap")]
     public void Collation_CaseSensitivity_ShouldFollowColumnCollation()
     {
-        // Example expectation in MySQL: behavior depends on column collation.
-        // This is intentionally a gap test — decide the mock rule, then implement it consistently.
+        // Oracle uses binary comparison by default here because the column does not declare a collation.
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name = 'john' ORDER BY id").ToList();
-        Assert.Equal([1], [.. rows.Select(r => (int)r.id)]);
+        Assert.Empty(rows);
     }
 
 

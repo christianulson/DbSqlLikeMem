@@ -1,5 +1,3 @@
-using System.Reflection;
-
 namespace DbSqlLikeMem.TestTools.DML;
 
 public partial class DmlMutationServiceTest<T>
@@ -187,53 +185,12 @@ public partial class DmlMutationServiceTest<T>
 
     private void ExecuteSavepoint(DbTransaction transaction, string savepoint)
     {
-        if (Dialect.Provider == ProviderId.Db2)
-        {
-            ExecuteNonQuery(Dialect.Savepoint(savepoint), transaction);
-            return;
-        }
-
-        if (TryInvokeTransactionMethod(transaction, "Save", savepoint))
-        {
-            return;
-        }
-
         ExecuteNonQuery(Dialect.Savepoint(savepoint), transaction);
     }
 
     private void ExecuteRollbackToSavepoint(DbTransaction transaction, string savepoint)
     {
-        if (Dialect.Provider == ProviderId.Db2)
-        {
-            ExecuteNonQuery(Dialect.RollbackToSavepoint(savepoint), transaction);
-            return;
-        }
-
-        if (TryInvokeTransactionMethod(transaction, "Rollback", savepoint))
-        {
-            return;
-        }
-
         ExecuteNonQuery(Dialect.RollbackToSavepoint(savepoint), transaction);
-    }
-
-    private static bool TryInvokeTransactionMethod(DbTransaction transaction, string methodName, string savepoint)
-    {
-        try
-        {
-            transaction.GetType().InvokeMember(
-                methodName,
-                BindingFlags.InvokeMethod | BindingFlags.Public | BindingFlags.Instance,
-                binder: null,
-                transaction,
-                [savepoint]);
-
-            return true;
-        }
-        catch (MissingMethodException)
-        {
-            return false;
-        }
     }
 
     private bool SupportsReleaseSavepointWorkflow()

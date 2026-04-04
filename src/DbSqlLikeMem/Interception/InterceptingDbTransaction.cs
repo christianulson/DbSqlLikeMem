@@ -47,6 +47,45 @@ public sealed class InterceptingDbTransaction : DbTransaction
             DbTransactionOperationKind.Rollback,
             static transaction => transaction.Rollback());
 
+#if NET6_0_OR_GREATER
+    /// <inheritdoc />
+    public override void Save(string savepointName)
+#else
+    /// <summary>
+    /// EN: Creates a savepoint on the wrapped transaction.
+    /// PT: Cria um savepoint na transacao encapsulada.
+    /// </summary>
+    /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
+    public void Save(string savepointName)
+#endif
+        => InvokeSavepointOperation("Save", savepointName);
+
+#if NET6_0_OR_GREATER
+    /// <inheritdoc />
+    public override void Rollback(string savepointName)
+#else
+    /// <summary>
+    /// EN: Rolls back the wrapped transaction to a savepoint.
+    /// PT: Executa rollback da transacao encapsulada para um savepoint.
+    /// </summary>
+    /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
+    public void Rollback(string savepointName)
+#endif
+        => InvokeSavepointOperation("Rollback", savepointName);
+
+#if NET6_0_OR_GREATER
+    /// <inheritdoc />
+    public override void Release(string savepointName)
+#else
+    /// <summary>
+    /// EN: Releases a savepoint on the wrapped transaction.
+    /// PT: Libera um savepoint na transacao encapsulada.
+    /// </summary>
+    /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
+    public void Release(string savepointName)
+#endif
+        => InvokeSavepointOperation("Release", savepointName);
+
     /// <inheritdoc />
     protected override void Dispose(bool disposing)
     {
@@ -78,6 +117,26 @@ public sealed class InterceptingDbTransaction : DbTransaction
                 _interceptors[i].TransactionFailed(context, ex);
 
             throw;
+        }
+    }
+
+    private void InvokeSavepointOperation(string methodName, string savepointName)
+    {
+        if (string.IsNullOrWhiteSpace(savepointName))
+            throw new ArgumentException("Savepoint name cannot be empty.", nameof(savepointName));
+
+        try
+        {
+            _innerTransaction.GetType().InvokeMember(
+                methodName,
+                BindingFlags.InvokeMethod | BindingFlags.Public | BindingFlags.Instance,
+                binder: null,
+                _innerTransaction,
+                [savepointName]);
+        }
+        catch (MissingMethodException ex)
+        {
+            throw new NotSupportedException($"Savepoint operation '{methodName}' is not supported by the wrapped transaction.", ex);
         }
     }
 

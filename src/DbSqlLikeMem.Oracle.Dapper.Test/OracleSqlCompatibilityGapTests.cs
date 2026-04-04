@@ -176,10 +176,10 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
     [Trait("Category", "OracleSqlCompatibilityGap")]
     public void Distinct_ShouldBeConsistent()
     {
-        // duplicate names
+        // Oracle binary collation keeps case variants distinct.
         _cnn.Execute("INSERT INTO users (id,name,email) VALUES (4,'john','j2@x.com')");
         var rows = _cnn.Query<dynamic>("SELECT DISTINCT name FROM users ORDER BY name").ToList();
-        Assert.Equal(["Bob", "Jane", "John"], [.. rows.Select(r => (string)r.name)]);
+        Assert.Equal(["Bob", "Jane", "John", "john"], [.. rows.Select(r => (string)r.name)]);
     }
 
     /// <summary>
@@ -332,10 +332,9 @@ ORDER BY id
     [Trait("Category", "OracleSqlCompatibilityGap")]
     public void Typing_ImplicitCasts_And_Collation_ShouldMatchMySqlDefault()
     {
-        // Many MySQL installations use case-insensitive collations by default.
+        // Oracle default comparison is case-sensitive under binary collation semantics.
         var rows1 = _cnn.Query<dynamic>("SELECT id FROM users WHERE name = 'john'").ToList();
-        Assert.Single(rows1);
-        Assert.Equal(1, (int)rows1[0].id);
+        Assert.Empty(rows1);
 
         // Implicit cast string->int for comparison
         var rows2 = _cnn.Query<dynamic>("SELECT id FROM users WHERE id = '2'").ToList();

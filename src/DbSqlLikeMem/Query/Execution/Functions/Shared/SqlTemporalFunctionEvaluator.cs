@@ -212,6 +212,52 @@ internal static class SqlTemporalFunctionEvaluator
             return true;
         }
 
+        if (IsMySqlFamilyProvider(context))
+        {
+            var mysqlNow = new DateTime(
+                utcNow.Year,
+                utcNow.Month,
+                utcNow.Day,
+                utcNow.Hour,
+                utcNow.Minute,
+                utcNow.Second,
+                utcNow.Millisecond,
+                DateTimeKind.Unspecified);
+
+            value = kind switch
+            {
+                SqlTemporalFunctionKind.Date => mysqlNow.Date,
+                SqlTemporalFunctionKind.Time => mysqlNow.TimeOfDay,
+                SqlTemporalFunctionKind.DateTimeOffset => new DateTimeOffset(mysqlNow, TimeSpan.Zero),
+                _ => mysqlNow,
+            };
+
+            return true;
+        }
+
+        if (IsDb2Provider(context))
+        {
+            var db2Now = new DateTime(
+                utcNow.Year,
+                utcNow.Month,
+                utcNow.Day,
+                utcNow.Hour,
+                utcNow.Minute,
+                utcNow.Second,
+                utcNow.Millisecond,
+                DateTimeKind.Unspecified);
+
+            value = kind switch
+            {
+                SqlTemporalFunctionKind.Date => db2Now.Date,
+                SqlTemporalFunctionKind.Time => db2Now.TimeOfDay,
+                SqlTemporalFunctionKind.DateTimeOffset => new DateTimeOffset(db2Now, TimeSpan.Zero),
+                _ => db2Now,
+            };
+
+            return true;
+        }
+
         value = kind switch
         {
             SqlTemporalFunctionKind.Date => localNow.Date,
@@ -231,4 +277,11 @@ internal static class SqlTemporalFunctionEvaluator
 
     private static bool IsPostgresProvider(QueryExecutionContext context)
         => string.Equals(context.Connection.ProviderExecutionDialect.Name, "postgresql", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsMySqlFamilyProvider(QueryExecutionContext context)
+        => string.Equals(context.Connection.ProviderExecutionDialect.Name, "mysql", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(context.Connection.ProviderExecutionDialect.Name, "mariadb", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsDb2Provider(QueryExecutionContext context)
+        => string.Equals(context.Connection.ProviderExecutionDialect.Name, "db2", StringComparison.OrdinalIgnoreCase);
 }

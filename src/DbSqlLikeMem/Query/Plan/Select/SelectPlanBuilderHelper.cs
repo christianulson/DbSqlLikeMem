@@ -1179,7 +1179,8 @@ internal static class SelectPlanBuilderHelper
         if (normalized.StartsWith("UNIQUEIDENTIFIER", StringComparison.OrdinalIgnoreCase)
             || normalized.StartsWith("UUID", StringComparison.OrdinalIgnoreCase))
             return DbType.Guid;
-        if (normalized.StartsWith("VARBINARY", StringComparison.OrdinalIgnoreCase)
+        if (normalized.IndexOf("FOR BIT DATA", StringComparison.OrdinalIgnoreCase) >= 0
+            || normalized.StartsWith("VARBINARY", StringComparison.OrdinalIgnoreCase)
             || normalized.StartsWith("BINARY", StringComparison.OrdinalIgnoreCase)
             || normalized.StartsWith("BLOB", StringComparison.OrdinalIgnoreCase)
             || normalized.StartsWith("IMAGE", StringComparison.OrdinalIgnoreCase))

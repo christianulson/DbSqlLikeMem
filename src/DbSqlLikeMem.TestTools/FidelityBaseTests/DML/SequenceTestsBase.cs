@@ -478,6 +478,39 @@ WHERE s1.SeqValue >= 10
 
         try
         {
+            if (dialect.Provider == ProviderId.Db2)
+            {
+                var firstSeqValue = Convert.ToInt64(serviceTest.RunSequenceNextValue(sequence), CultureInfo.InvariantCulture);
+                var secondSeqValue = Convert.ToInt64(serviceTest.RunSequenceNextValue(sequence), CultureInfo.InvariantCulture);
+                var db2NowExpr = dialect.TemporalCurrentTimestampExpression();
+                var db2NextDayExpr = dialect.TemporalDateAddExpression();
+
+                using var db2Command = connection.CreateCommand();
+                db2Command.CommandText = $"""
+SELECT
+    {firstSeqValue} AS SeqValue,
+    {secondSeqValue} AS SeqValue2,
+    CASE WHEN {firstSeqValue} = 10 THEN 1 ELSE 0 END AS FirstIsTen,
+    CASE WHEN {secondSeqValue} = 11 THEN 1 ELSE 0 END AS SecondIsEleven,
+    CASE WHEN {db2NowExpr} IS NOT NULL THEN 1 ELSE 0 END AS NowPresent,
+    CASE WHEN {db2NextDayExpr} > {db2NowExpr} THEN 1 ELSE 0 END AS NextDayAfterNow,
+    CASE WHEN {firstSeqValue} < {secondSeqValue} THEN 1 ELSE 0 END AS IsAscending
+FROM SYSIBM.SYSDUMMY1
+""";
+
+                using var db2Reader = db2Command.ExecuteReader();
+                db2Reader.Read().Should().BeTrue();
+                Convert.ToInt64(db2Reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(10L);
+                Convert.ToInt64(db2Reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(11L);
+                Convert.ToInt32(db2Reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(1);
+                Convert.ToInt32(db2Reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(1);
+                Convert.ToInt32(db2Reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(1);
+                Convert.ToInt32(db2Reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(1);
+                Convert.ToInt32(db2Reader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(1);
+                db2Reader.Read().Should().BeFalse();
+                return 1;
+            }
+
             var nowExpr = dialect.TemporalCurrentTimestampExpression();
             var nextDayExpr = dialect.TemporalDateAddExpression();
             var seqFirstCte = dialect.Provider == ProviderId.Db2

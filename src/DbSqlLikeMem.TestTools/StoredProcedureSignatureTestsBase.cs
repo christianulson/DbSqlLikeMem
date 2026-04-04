@@ -541,7 +541,7 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
         n.Should().Be(0);
     }
 
-    private static void AddParameter(
+    private void AddParameter(
         DbCommand cmd,
         string name,
         DbType dbType,
@@ -560,6 +560,12 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
             && direction != ParameterDirection.Input)
         {
             throw new ArgumentException("OracleParameter does not support Guid input-output parameters.", nameof(dbType));
+        }
+        if (!SupportsGuidInputOutputParameters
+            && dbType == DbType.Guid
+            && direction != ParameterDirection.Input)
+        {
+            throw new ArgumentException("This provider does not support Guid input-output parameters.", nameof(dbType));
         }
         try
         {

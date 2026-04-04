@@ -193,7 +193,7 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
                 "DEC" or "DECIMAL" => CoerceToDecimal(value!),
                 "DOUBLE" or "DOUBLE_PRECISION" or "FLOAT" or "FLOAT4" or "FLOAT8" or "REAL" => CoerceToDouble(value!),
                 "BPCHAR" or "DBCLOB" or "GRAPHIC" or "VARGRAPHIC" => value?.ToString(),
-                "VARCHAR" => value?.ToString(),
+                "VARCHAR" => value is byte[] bytes ? bytes : value?.ToString(),
                 _ => null
             };
         }

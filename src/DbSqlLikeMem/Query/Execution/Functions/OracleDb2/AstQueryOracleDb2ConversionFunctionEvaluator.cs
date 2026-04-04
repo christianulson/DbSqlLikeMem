@@ -179,11 +179,19 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
                 result = AstQueryFormatFunctionHelper.FormatOracleNumber(value!, mask!);
                 return true;
             }
+
+            result = IsDb2Provider(context)
+                ? Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty
+                : value!.ToString();
+            return true;
         }
 
         result = value!.ToString();
         return true;
     }
+
+    private static bool IsDb2Provider(QueryExecutionContext context)
+        => string.Equals(context.Connection.ProviderExecutionDialect.Name, "db2", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryEvalToDateFunction(
         this QueryExecutionContext context,

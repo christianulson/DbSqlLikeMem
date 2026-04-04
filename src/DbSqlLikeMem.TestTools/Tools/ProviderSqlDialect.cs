@@ -314,6 +314,13 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(tableName)} (
         $"CAST({expression} AS CHAR({length}))";
 
     /// <summary>
+    /// EN: Returns the SQL expression used to cast a value to integer for fidelity checks.
+    /// PT: Retorna a expressao SQL usada para converter um valor em inteiro nos testes de fidelidade.
+    /// </summary>
+    public virtual string IntCastExpression(string expression) =>
+        $"CAST({expression} AS INT)";
+
+    /// <summary>
     /// EN: Returns the SQL statement used for the current timestamp benchmark.
     /// PT: Retorna a instrucao SQL usada no benchmark de timestamp atual.
     /// </summary>

@@ -150,6 +150,10 @@ WHEN NOT MATCHED THEN
         $"NEXT VALUE FOR {sequenceName}";
 
     /// <inheritdoc />
+    public override string SelectNextSequenceValue(string sequenceName) =>
+        $"VALUES NEXT VALUE FOR {sequenceName}";
+
+    /// <inheritdoc />
     public override string CurrentSequenceValue(string sequenceName) =>
         $"VALUES PREVIOUS VALUE FOR {sequenceName}";
 

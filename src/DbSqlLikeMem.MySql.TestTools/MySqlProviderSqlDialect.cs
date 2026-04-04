@@ -154,6 +154,10 @@ CREATE TABLE {tableName}_{uId} (
         $"CHAR_LENGTH({expression})";
 
     /// <inheritdoc />
+    public override string IntCastExpression(string expression) =>
+        $"CAST({expression} AS SIGNED)";
+
+    /// <inheritdoc />
     public override string TemporalDateAdd() =>
         "SELECT DATE_ADD(NOW(), INTERVAL 1 DAY)";
 

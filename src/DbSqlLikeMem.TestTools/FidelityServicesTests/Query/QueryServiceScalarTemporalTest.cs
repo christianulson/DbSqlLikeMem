@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace DbSqlLikeMem.TestTools.Query;
 
 public partial class QueryServiceTest<T>
@@ -751,7 +753,9 @@ WHERE Id = {Dialect.Parameter("id")}
             ? null
             : NormalizeDateTimeValue(reader.GetValue(6)).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
         (updatedAt is null ? null : updatedAt.Value.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)).Should().Be(updatedAtText);
-        (reader.IsDBNull(7) ? null : Convert.ToString(reader.GetValue(7), CultureInfo.InvariantCulture)).Should().Be(profileJson);
+        DbSqlLikeMem.TestTools.Json.JsonTextAssertions.ShouldMatchJsonText(
+            reader.IsDBNull(7) ? null : Convert.ToString(reader.GetValue(7), CultureInfo.InvariantCulture),
+            profileJson);
 
         reader.Read().Should().BeFalse();
 
@@ -791,7 +795,27 @@ WHERE Id = {Dialect.Parameter("id")}
         var binaryValue = (byte[])pars[14];
 
         using var command = Connection.CreateCommand();
-        command.CommandText = Dialect.SelectParameterProjection($"""
+        command.CommandText = Dialect.Provider == ProviderId.Db2
+            ? $"""
+SELECT
+    CAST({Dialect.Parameter("text")} AS VARCHAR(100)) AS TextValue,
+    CAST({Dialect.Parameter("ansiText")} AS VARCHAR(100)) AS AnsiTextValue,
+    CAST({Dialect.Parameter("ansiFixedText")} AS CHAR(20)) AS AnsiFixedTextValue,
+    CAST({Dialect.Parameter("fixedText")} AS CHAR(20)) AS FixedTextValue,
+    CAST({Dialect.Parameter("int16Value")} AS SMALLINT) AS Int16Value,
+    CAST({Dialect.Parameter("int32Value")} AS INTEGER) AS Int32Value,
+    CAST({Dialect.Parameter("int64Value")} AS BIGINT) AS Int64Value,
+    CAST({Dialect.Parameter("boolValue")} AS BOOLEAN) AS BoolValue,
+    CAST({Dialect.Parameter("decimalValue")} AS DECIMAL(19,4)) AS DecimalValue,
+    CAST({Dialect.Parameter("doubleValue")} AS DOUBLE) AS DoubleValue,
+    CAST({Dialect.Parameter("timeSpanValue")} AS VARCHAR(32)) AS TimeSpanValue,
+    CAST({Dialect.Parameter("dateTimeOffsetValue")} AS VARCHAR(40)) AS DateTimeOffsetValue,
+    CAST({Dialect.Parameter("dateTimeValue")} AS TIMESTAMP) AS DateTimeValue,
+    CAST({Dialect.Parameter("guidValue")} AS VARCHAR(36)) AS GuidValue,
+    CAST({Dialect.Parameter("binaryValue")} AS VARCHAR(4) FOR BIT DATA) AS BinaryValue
+FROM SYSIBM.SYSDUMMY1
+"""
+            : Dialect.SelectParameterProjection($"""
     {Dialect.Parameter("text")} AS TextValue,
     {Dialect.Parameter("ansiText")} AS AnsiTextValue,
     {Dialect.Parameter("ansiFixedText")} AS AnsiFixedTextValue,
@@ -875,7 +899,14 @@ WHERE Id = {Dialect.Parameter("id")}
         var currencyValue = (decimal)pars[1];
 
         using var command = Connection.CreateCommand();
-        command.CommandText = Dialect.SelectParameterProjection($"""
+        command.CommandText = Dialect.Provider == ProviderId.Db2
+            ? $"""
+SELECT
+    CAST({Dialect.Parameter("dateValue")} AS DATE) AS DateValue,
+    CAST({Dialect.Parameter("currencyValue")} AS DECIMAL(19,2)) AS CurrencyValue
+FROM SYSIBM.SYSDUMMY1
+"""
+            : Dialect.SelectParameterProjection($"""
     {Dialect.Parameter("dateValue")} AS DateValue,
     {Dialect.Parameter("currencyValue")} AS CurrencyValue
 """);
@@ -910,7 +941,7 @@ WHERE Id = {Dialect.Parameter("id")}
             // ODP.NET and DB2 parameters can reject some DbType assignments in this mock flow.
             // Keep the default DbType and normalize the value payload for this shared test helper.
         }
-        else if (isDb2Parameter && (dbType == DbType.Guid || dbType == DbType.DateTimeOffset))
+        else if (isDb2Parameter && (dbType == DbType.Guid || dbType == DbType.DateTimeOffset || dbType == DbType.Time || dbType == DbType.DateTime))
         {
             parameter.DbType = DbType.String;
         }
@@ -947,6 +978,8 @@ WHERE Id = {Dialect.Parameter("id")}
         return (dbType, value) switch
         {
             (DbType.Guid, Guid guid) => guid.ToString("D", CultureInfo.InvariantCulture),
+            (DbType.Time, TimeSpan timeSpan) => timeSpan.ToString("c", CultureInfo.InvariantCulture),
+            (DbType.DateTime, DateTime dateTime) => dateTime.ToString("O", CultureInfo.InvariantCulture),
             (DbType.DateTimeOffset, DateTimeOffset dateTimeOffset) => dateTimeOffset.ToString("O", CultureInfo.InvariantCulture),
             _ => value
         };
@@ -1025,10 +1058,29 @@ WHERE Id = {Dialect.Parameter("id")}
         {
             TimeSpan timeSpan => timeSpan,
             DateTime dateTime => dateTime.TimeOfDay,
-            string text => TimeSpan.Parse(text, CultureInfo.InvariantCulture),
+            string text => ParseTimeSpanText(text),
             null => throw new InvalidOperationException("TimeSpan parameter returned a null value."),
-            _ => TimeSpan.Parse(Convert.ToString(value, CultureInfo.InvariantCulture) ?? throw new InvalidOperationException("TimeSpan parameter returned an unconvertible value."), CultureInfo.InvariantCulture)
+            _ => ParseTimeSpanText(Convert.ToString(value, CultureInfo.InvariantCulture) ?? throw new InvalidOperationException("TimeSpan parameter returned an unconvertible value."))
         };
+    }
+
+    private static TimeSpan ParseTimeSpanText(string text)
+    {
+        if (TimeSpan.TryParse(text, CultureInfo.InvariantCulture, out var timeSpan))
+        {
+            return timeSpan;
+        }
+
+        var trimmed = text.Trim();
+        var separatorIndex = trimmed.IndexOf(' ');
+        if (separatorIndex > 0
+            && int.TryParse(trimmed[..separatorIndex], NumberStyles.Integer, CultureInfo.InvariantCulture, out var days)
+            && TimeSpan.TryParse(trimmed[(separatorIndex + 1)..], CultureInfo.InvariantCulture, out var remainder))
+        {
+            return TimeSpan.FromDays(days) + remainder;
+        }
+
+        return TimeSpan.Parse(text, CultureInfo.InvariantCulture);
     }
 
     private static byte[] NormalizeBinaryValue(object? value)
@@ -1038,9 +1090,73 @@ WHERE Id = {Dialect.Parameter("id")}
             byte[] bytes => bytes,
             ReadOnlyMemory<byte> memory => memory.ToArray(),
             Memory<byte> memory => memory.ToArray(),
+            string text => ParseBinaryText(text),
             null => throw new InvalidOperationException("Binary parameter returned a null value."),
             _ => throw new InvalidOperationException($"Unsupported binary parameter type: {value.GetType().FullName}.")
         };
+    }
+
+    private static byte[] ParseBinaryText(string text)
+    {
+        var trimmed = text.Trim();
+        if (trimmed.Length == 0)
+            return Array.Empty<byte>();
+
+        var hexCandidate = trimmed;
+        if (trimmed.StartsWith("X'", StringComparison.OrdinalIgnoreCase) && trimmed.EndsWith("'", StringComparison.OrdinalIgnoreCase))
+        {
+            hexCandidate = trimmed[2..^1];
+        }
+        else if (trimmed.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+        {
+            hexCandidate = trimmed[2..];
+        }
+
+        hexCandidate = hexCandidate.Replace(" ", string.Empty);
+
+        if (hexCandidate.Length == 0)
+            return Array.Empty<byte>();
+
+        if (IsHexString(hexCandidate))
+        {
+            if (hexCandidate.Length % 2 != 0)
+                throw new InvalidOperationException($"Binary parameter returned an odd-length hex string: {text}");
+
+            return ParseHexBytes(hexCandidate);
+        }
+
+        return Encoding.GetEncoding("ISO-8859-1").GetBytes(trimmed);
+    }
+
+    private static bool IsHexString(string value)
+    {
+        foreach (var ch in value)
+        {
+            if ((ch >= '0' && ch <= '9')
+                || (ch >= 'A' && ch <= 'F')
+                || (ch >= 'a' && ch <= 'f'))
+            {
+                continue;
+            }
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private static byte[] ParseHexBytes(string hexCandidate)
+    {
+        var bytes = new byte[hexCandidate.Length / 2];
+        for (var i = 0; i < hexCandidate.Length; i += 2)
+        {
+            if (!byte.TryParse(hexCandidate.Substring(i, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var part))
+                throw new InvalidOperationException($"Binary parameter returned an invalid hex string: {hexCandidate}");
+
+            bytes[i / 2] = part;
+        }
+
+        return bytes;
     }
 
     /// <summary>

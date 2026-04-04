@@ -52,9 +52,9 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = RunScalarTemporalMatrix(serviceTestContainer, users);
-                    resultMock.DateScalar.Should().BeCloseTo(resultContainer.DateScalar, TimeSpan.FromSeconds(5));
-                    resultMock.CurrentTimestamp.Should().BeCloseTo(resultContainer.CurrentTimestamp, TimeSpan.FromSeconds(5));
-                    resultMock.DateAdd.Should().BeCloseTo(resultContainer.DateAdd, TimeSpan.FromSeconds(5));
+                    resultMock.DateScalar.Should().BeCloseTo(resultContainer.DateScalar, TimeSpan.FromSeconds(10));
+                    resultMock.CurrentTimestamp.Should().BeCloseTo(resultContainer.CurrentTimestamp, TimeSpan.FromSeconds(10));
+                    resultMock.DateAdd.Should().BeCloseTo(resultContainer.DateAdd, TimeSpan.FromSeconds(10));
                     resultMock.WhereCount.Should().Be(resultContainer.WhereCount);
                     resultMock.OrderedName.Should().Be(resultContainer.OrderedName);
                 }

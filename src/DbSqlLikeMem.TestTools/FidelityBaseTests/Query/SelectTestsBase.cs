@@ -3039,7 +3039,7 @@ public abstract class SelectTestsBase<T, T2>(
         }
     }
 
-    private static (int Cte, int Exists, int Correlated, int GroupBy, int UnionAll, int Distinct, int MultiJoin, object? ScalarSubquery, int InSubquery, int Pivot) RunRelationalCompositeAssertions<TConnection>(
+    private static (int Cte, int Exists, int Correlated, int GroupBy, int UnionAll, int Distinct, int MultiJoin, long ScalarSubquery, int InSubquery, int Pivot) RunRelationalCompositeAssertions<TConnection>(
         QueryServiceTest<TConnection> serviceTest,
         string usersTable,
         string ordersTable)
@@ -3052,7 +3052,7 @@ public abstract class SelectTestsBase<T, T2>(
         var unionAll = serviceTest.RunUnionAllProjection(usersTable);
         var distinct = serviceTest.RunDistinctProjection(usersTable);
         var multiJoin = serviceTest.RunMultiJoinAggregate(usersTable, ordersTable);
-        var scalarSubquery = serviceTest.RunSelectScalarSubquery(usersTable, ordersTable);
+        var scalarSubquery = Convert.ToInt64(serviceTest.RunSelectScalarSubquery(usersTable, ordersTable), CultureInfo.InvariantCulture);
         var inSubquery = serviceTest.RunSelectInSubquery(usersTable, ordersTable);
         var pivot = serviceTest.RunPivotCount(usersTable);
 
@@ -3063,7 +3063,7 @@ public abstract class SelectTestsBase<T, T2>(
         unionAll.Should().Be(2);
         distinct.Should().Be(2);
         multiJoin.Should().Be(4);
-        Convert.ToString(scalarSubquery, CultureInfo.InvariantCulture).Should().Be("2");
+        scalarSubquery.Should().Be(2L);
         inSubquery.Should().Be(2);
         pivot.Should().Be(2);
 

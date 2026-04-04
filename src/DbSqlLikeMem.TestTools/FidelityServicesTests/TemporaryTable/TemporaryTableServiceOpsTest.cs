@@ -237,9 +237,7 @@ SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10";
         => $"INSERT INTO {tableName} (Id, Name) VALUES ({id}, '{name}')";
 
     private string ResolveSourceUsersTableName(string users, string uId)
-        => Dialect.Provider == ProviderId.Oracle
-            ? $"{users}_{uId}".ToLowerInvariant()
-            : $"{users}_{uId}";
+        => $"{users}_{uId}".ToLowerInvariant();
 
     private string ResolveTemporaryUsersTableName(string rawTableName)
         => (Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure)

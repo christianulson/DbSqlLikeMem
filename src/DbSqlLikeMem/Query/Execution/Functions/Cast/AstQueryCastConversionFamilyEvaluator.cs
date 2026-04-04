@@ -407,6 +407,9 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
         {
             var invariantText = Convert.ToString(v, CultureInfo.InvariantCulture) ?? string.Empty;
 
+            if (v is byte[] bytes && IsBinaryCastTypeName(type))
+                return bytes;
+
             if (IsTextCastTypeName(type))
                 return Convert.ToString(v, CultureInfo.InvariantCulture) ?? string.Empty;
 
@@ -506,6 +509,9 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
         if (string.IsNullOrWhiteSpace(typeName))
             return false;
 
+        if (typeName.IndexOf("FOR BIT DATA", StringComparison.OrdinalIgnoreCase) >= 0)
+            return false;
+
         return typeName.StartsWith("CHAR", StringComparison.OrdinalIgnoreCase)
             || typeName.StartsWith("VARCHAR", StringComparison.OrdinalIgnoreCase)
             || typeName.StartsWith("NCHAR", StringComparison.OrdinalIgnoreCase)
@@ -515,5 +521,16 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
             || typeName.StartsWith("LONGTEXT", StringComparison.OrdinalIgnoreCase)
             || typeName.StartsWith("MEDIUMTEXT", StringComparison.OrdinalIgnoreCase)
             || typeName.StartsWith("TINYTEXT", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsBinaryCastTypeName(string typeName)
+    {
+        if (string.IsNullOrWhiteSpace(typeName))
+            return false;
+
+        return typeName.IndexOf("FOR BIT DATA", StringComparison.OrdinalIgnoreCase) >= 0
+            || typeName.StartsWith("BINARY", StringComparison.OrdinalIgnoreCase)
+            || typeName.StartsWith("VARBINARY", StringComparison.OrdinalIgnoreCase)
+            || typeName.StartsWith("BLOB", StringComparison.OrdinalIgnoreCase);
     }
 }

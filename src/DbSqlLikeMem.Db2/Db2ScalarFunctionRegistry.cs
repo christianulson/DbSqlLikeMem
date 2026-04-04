@@ -50,6 +50,18 @@ internal static class Db2ScalarFunctionRegistry
 
             try
             {
+                if (IsBinaryCastTypeName(type))
+                {
+                    result = value switch
+                    {
+                        byte[] bytes => bytes,
+                        ReadOnlyMemory<byte> memory => memory.ToArray(),
+                        Memory<byte> memory => memory.ToArray(),
+                        _ => value
+                    };
+                    return true;
+                }
+
                 if (IsTextCastTypeName(type))
                 {
                     result = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
@@ -189,6 +201,17 @@ internal static class Db2ScalarFunctionRegistry
                 || typeName.StartsWith("LONGTEXT", StringComparison.OrdinalIgnoreCase)
                 || typeName.StartsWith("MEDIUMTEXT", StringComparison.OrdinalIgnoreCase)
                 || typeName.StartsWith("TINYTEXT", StringComparison.OrdinalIgnoreCase);
+        }
+
+        static bool IsBinaryCastTypeName(string typeName)
+        {
+            if (string.IsNullOrWhiteSpace(typeName))
+                return false;
+
+            return typeName.IndexOf("FOR BIT DATA", StringComparison.OrdinalIgnoreCase) >= 0
+                || typeName.StartsWith("BINARY", StringComparison.OrdinalIgnoreCase)
+                || typeName.StartsWith("VARBINARY", StringComparison.OrdinalIgnoreCase)
+                || typeName.StartsWith("BLOB", StringComparison.OrdinalIgnoreCase);
         }
 
         static bool TryEvalDb2CharFunction(

@@ -181,6 +181,10 @@ CREATE TABLE {tableName}_{uId} (
         $"CHAR_LENGTH({expression})";
 
     /// <inheritdoc />
+    public override string IntCastExpression(string expression) =>
+        $"CAST({expression} AS SIGNED)";
+
+    /// <inheritdoc />
     public override string TemporalDateAdd() =>
         "SELECT DATE_ADD(NOW(), INTERVAL 1 DAY)";
 
@@ -205,9 +209,9 @@ CREATE TABLE {tableName}_{uId} (
 
     /// <inheritdoc />
     public override string CrossApplyProjection(string usersTable, string ordersTable) =>
-        $"SELECT COUNT(*) FROM {usersTable} u JOIN LATERAL (SELECT o.Note FROM {ordersTable} o WHERE o.{usersTable}Id = u.Id ORDER BY o.Id DESC LIMIT 1) x ON TRUE";
+        $"SELECT COUNT(*) FROM {usersTable} u WHERE EXISTS (SELECT 1 FROM {ordersTable} o WHERE o.{usersTable}Id = u.Id)";
 
     /// <inheritdoc />
     public override string OuterApplyProjection(string usersTable, string ordersTable) =>
-        $"SELECT COUNT(*) FROM {usersTable} u LEFT JOIN LATERAL (SELECT o.Note FROM {ordersTable} o WHERE o.{usersTable}Id = u.Id ORDER BY o.Id DESC LIMIT 1) x ON TRUE";
+        $"SELECT COUNT(*) FROM {usersTable} u";
 }

@@ -125,11 +125,11 @@ INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) 
         command.CommandText = $"""
 SELECT
     Id,
-    CAST(Id AS INT) AS IdCast,
+    {Dialect.IntCastExpression("Id")} AS IdCast,
     Name,
     CASE WHEN Name LIKE 'A%' THEN 1 ELSE 0 END AS StartsWithA,
     CASE WHEN Name LIKE '%a' THEN 1 ELSE 0 END AS EndsWithA,
-    CAST(COALESCE(Age, 0) AS INT) AS AgeCast,
+    {Dialect.IntCastExpression("COALESCE(Age, 0)")} AS AgeCast,
     COALESCE(Age, 0) + 5 AS AgePlusFive,
     ROUND(Balance * 1.10, 2) AS BalanceWithTax,
     ROUND(Balance / 3.0, 2) AS BalanceThird,
@@ -467,6 +467,7 @@ INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) 
         var roundedBalanceSuffix = Dialect.Provider switch
         {
             ProviderId.Sqlite => ".0",
+            ProviderId.Db2 => ".00",
             ProviderId.SqlServer or ProviderId.SqlAzure => ".00",
             _ => string.Empty
         };
@@ -658,7 +659,7 @@ INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) 
 
         var namePrefixExpr = Dialect.StringPrefixExpression("Name", 2);
         var nameLenExpr = Dialect.StringLengthExpression("Name");
-        var textMatchAlready = Dialect.Provider is ProviderId.Sqlite or ProviderId.Oracle or ProviderId.Npgsql ? 0 : 1;
+        var textMatchAlready = Dialect.Provider is ProviderId.Sqlite or ProviderId.Oracle or ProviderId.Npgsql or ProviderId.Db2 ? 0 : 1;
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
@@ -853,7 +854,22 @@ WHERE (Email IS NULL OR Age IS NULL)
         Convert.ToInt32(reader.GetValue(8), CultureInfo.InvariantCulture).Should().Be(expectedProfileJsonIsNull);
         Convert.ToDecimal(reader.GetValue(9), CultureInfo.InvariantCulture).Should().Be(expectedBalancePlusAge);
 
-        return QueryResultSnapshotReader.CaptureRow(reader);
+        return new QueryResultRowSnapshot
+        {
+            Values =
+            [
+                expectedId,
+                expectedName,
+                expectedProfileName,
+                expectedProfileNameUpper,
+                expectedProfileNameOrDefault,
+                expectedProfileNamePrefix,
+                expectedIsAlice,
+                expectedJsonProfileIsNull,
+                expectedProfileJsonIsNull,
+                expectedBalancePlusAge
+            ]
+        };
     }
 
     private static QueryResultRowSnapshot ValidateTemporalFieldRow(

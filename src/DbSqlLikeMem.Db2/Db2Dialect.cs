@@ -160,7 +160,7 @@ internal sealed class Db2Dialect : SqlDialectBase, ISqlDialect
     /// EN: Gets or sets text comparison.
     /// PT: Obtém ou define text comparison.
     /// </summary>
-    public override StringComparison TextComparison => StringComparison.OrdinalIgnoreCase;
+    public override StringComparison TextComparison => StringComparison.Ordinal;
 
 }
 

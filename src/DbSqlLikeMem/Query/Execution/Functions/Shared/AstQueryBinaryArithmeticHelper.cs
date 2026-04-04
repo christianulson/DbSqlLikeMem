@@ -60,7 +60,9 @@ internal static class AstQueryBinaryArithmeticHelper
                 SqlBinaryOp.Add => checked(leftNumber + rightNumber),
                 SqlBinaryOp.Subtract => checked(leftNumber - rightNumber),
                 SqlBinaryOp.Multiply => checked(leftNumber * rightNumber),
-                SqlBinaryOp.Divide => rightNumber == 0 ? null : leftNumber / rightNumber,
+                SqlBinaryOp.Divide => rightNumber == 0
+                    ? null
+                    : Convert.ToDecimal(leftNumber, CultureInfo.InvariantCulture) / Convert.ToDecimal(rightNumber, CultureInfo.InvariantCulture),
                 _ => throw new InvalidOperationException("op aritmético inválido")
             };
             return true;

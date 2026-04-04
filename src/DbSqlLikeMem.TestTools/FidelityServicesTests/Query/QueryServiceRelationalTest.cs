@@ -303,7 +303,7 @@ ORDER BY u.Id
         var noteLenExpr = Dialect.StringLengthExpression(noteLenSource);
         var nameLenTextExpr = $"TRIM({Dialect.StringCastExpression(nameLenExpr, 10)})";
         var noteLenTextExpr = $"TRIM({Dialect.StringCastExpression($"COALESCE(MAX({noteLenExpr}), 0)", 10)})";
-        var textMatchAlready = Dialect.Provider is ProviderId.Sqlite or ProviderId.Oracle or ProviderId.Npgsql ? 0 : 1;
+        var textMatchAlready = Dialect.Provider is ProviderId.Sqlite or ProviderId.Oracle or ProviderId.Npgsql or ProviderId.Db2 ? 0 : 1;
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
@@ -360,7 +360,7 @@ ORDER BY u.Id
         var noteLenExpr = Dialect.StringLengthExpression(noteLenSource);
         var nameLenTextExpr = $"TRIM({Dialect.StringCastExpression(nameLenExpr, 10)})";
         var noteLenTextExpr = $"TRIM({Dialect.StringCastExpression($"COALESCE(MAX({noteLenExpr}), 0)", 10)})";
-        var textMatchAlready = Dialect.Provider is ProviderId.Sqlite or ProviderId.Oracle or ProviderId.Npgsql ? 0 : 1;
+        var textMatchAlready = Dialect.Provider is ProviderId.Sqlite or ProviderId.Oracle or ProviderId.Npgsql or ProviderId.Db2 ? 0 : 1;
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""

@@ -59,6 +59,7 @@ internal static class DbUpdateStrategy
         var changedSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         for (var i = 0; i < setPairs.Length; i++)
             changedSet.Add(setPairs[i].Col);
+        var parsedSetPairs = query.SetParsed;
         var supportsTriggers = dialect.SupportsTriggers;
         var hasBeforeUpdateTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeUpdate);
         var hasAfterUpdateTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.AfterUpdate);
@@ -78,7 +79,7 @@ internal static class DbUpdateStrategy
 
             // Simula Update (reaproveitado por validacoes/trigger)
             var simulated = TableMock.CloneRow(row);
-            UpdateRowValuesInMemory(table, pars, setPairs, simulated, context);
+            UpdateRowValuesInMemory(table, pars, setPairs, parsedSetPairs, simulated, context);
 
             // Valida Unique Constraints antes de aplicar (somente quando necessario)
             if (requiresUniqueValidation)
@@ -89,7 +90,7 @@ internal static class DbUpdateStrategy
             if (hasBeforeUpdateTrigger)
                 TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, simulated);
 
-            UpdateRowValues(table, pars, setPairs, rowIdx, row, context);
+            UpdateRowValues(table, pars, setPairs, parsedSetPairs, rowIdx, row, context);
 
             if (hasAfterUpdateTrigger)
                 TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, TableMock.SnapshotRow(table[rowIdx]));
@@ -218,16 +219,19 @@ internal static class DbUpdateStrategy
         ITableMock table,
         DbParameterCollection? pars,
         (string Col, string Val)[] setPairs,
+        IReadOnlyList<SqlAssignment> parsedSetPairs,
         int rowIdx,
         IReadOnlyDictionary<int, object?> row,
         QueryExecutionContext context)
     {
-        foreach (var (Col, Val) in setPairs)
+        for (var i = 0; i < setPairs.Length; i++)
         {
+            var (Col, Val) = setPairs[i];
             var info = table.GetColumn(Col);
             if (info.GetGenValue != null) continue;
 
-            var raw = ResolveSetValue(table, pars, row, info, Col, Val, context);
+            var parsedExpr = i < parsedSetPairs.Count ? parsedSetPairs[i].ValueExpr : null;
+            var raw = ResolveSetValue(table, pars, row, info, Col, Val, parsedExpr, context);
             table.UpdateRowColumn(rowIdx, info.Index, raw);
         }
     }
@@ -236,15 +240,18 @@ internal static class DbUpdateStrategy
         ITableMock table,
         DbParameterCollection? pars,
         (string Col, string Val)[] setPairs,
+        IReadOnlyList<SqlAssignment> parsedSetPairs,
         IDictionary<int, object?> row,
         QueryExecutionContext context)
     {
         var readOnlyRow = row as IReadOnlyDictionary<int, object?> ?? new ReadOnlyDictionary<int, object?>(row);
-        foreach (var (Col, Val) in setPairs)
+        for (var i = 0; i < setPairs.Length; i++)
         {
+            var (Col, Val) = setPairs[i];
             var info = table.GetColumn(Col);
             if (info.GetGenValue != null) continue;
-            var raw = ResolveSetValue(table, pars, readOnlyRow, info, Col, Val, context);
+            var parsedExpr = i < parsedSetPairs.Count ? parsedSetPairs[i].ValueExpr : null;
+            var raw = ResolveSetValue(table, pars, readOnlyRow, info, Col, Val, parsedExpr, context);
             row[info.Index] = raw;
         }
     }
@@ -256,11 +263,15 @@ internal static class DbUpdateStrategy
         ColumnDef info,
         string colName,
         string exprRaw,
+        SqlExpr? parsedExpr,
         QueryExecutionContext context)
     {
         table.CurrentColumn = colName;
         try
         {
+            if (TryResolveCastAsJsonValue(parsedExpr, pars, out var castJsonValue))
+                return castJsonValue;
+
             if (TryEvalArithmeticSetValue(exprRaw, table, row, pars, info.DbType, info.Nullable, out var arith))
                 return arith;
 
@@ -274,6 +285,108 @@ internal static class DbUpdateStrategy
         {
             table.CurrentColumn = null;
         }
+    }
+
+    private static bool TryResolveCastAsJsonValue(
+        SqlExpr? parsedExpr,
+        DbParameterCollection? pars,
+        out object? value)
+    {
+        value = null;
+        if (parsedExpr is not CallExpr cast
+            || !cast.Name.Equals("CAST", StringComparison.OrdinalIgnoreCase)
+            || cast.Args.Count < 2
+            || !IsJsonCastType(cast.Args[1]))
+            return false;
+
+        if (!TryResolveCastOperandValue(cast.Args[0], pars, out var operand))
+            return false;
+
+        value = NormalizeJsonCastValue(operand);
+        return true;
+    }
+
+    private static bool IsJsonCastType(SqlExpr expr)
+    {
+        if (expr is RawSqlExpr raw)
+        {
+            var sqlType = raw.Sql.Trim();
+            return sqlType.Equals("JSON", StringComparison.OrdinalIgnoreCase)
+                || sqlType.Equals("JSONB", StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (expr is LiteralExpr { Value: string s })
+        {
+            var sqlType = s.Trim();
+            return sqlType.Equals("JSON", StringComparison.OrdinalIgnoreCase)
+                || sqlType.Equals("JSONB", StringComparison.OrdinalIgnoreCase);
+        }
+
+        return false;
+    }
+
+    private static bool TryResolveCastOperandValue(
+        SqlExpr expr,
+        DbParameterCollection? pars,
+        out object? value)
+    {
+        switch (expr)
+        {
+            case LiteralExpr lit:
+                value = lit.Value;
+                return true;
+            case ParameterExpr p:
+                return TryResolveParameterValue(pars, p.Name, out value);
+            default:
+                value = null;
+                return false;
+        }
+    }
+
+    private static bool TryResolveParameterValue(
+        DbParameterCollection? pars,
+        string parameterToken,
+        out object? value)
+    {
+        value = null;
+        if (pars is null)
+            return false;
+
+        if (parameterToken == "?")
+        {
+            if (pars.Count <= 0 || pars[0] is not IDataParameter first)
+                return false;
+
+            value = first.Value is DBNull ? null : first.Value;
+            return true;
+        }
+
+        var normalized = parameterToken.TrimStart('@', ':', '?');
+        foreach (IDataParameter p in pars)
+        {
+            var candidate = (p.ParameterName ?? string.Empty).TrimStart('@', ':', '?');
+            if (!string.Equals(candidate, normalized, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            value = p.Value is DBNull ? null : p.Value;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static object? NormalizeJsonCastValue(object? operand)
+    {
+        if (operand is null || operand is DBNull)
+            return null;
+
+        if (operand is System.Text.Json.JsonDocument || operand is System.Text.Json.JsonElement)
+            return operand;
+
+        if (operand is string)
+            return operand;
+
+        return System.Text.Json.JsonSerializer.Serialize(operand);
     }
 
     private static bool TryResolveTemporalSetValue(string exprRaw, QueryExecutionContext context, out object? value)
