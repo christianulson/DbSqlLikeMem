@@ -119,7 +119,7 @@ public abstract class CrudTestsBase<T, T2>(
         var users = "Users";
         var uId = NewToken();
         var tableName = $"{users}_{uId}";
-        var updatedAt = new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified);
+        var updatedAt = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
 
         using var connMock = connectionMock();
         connMock.Open();
@@ -192,10 +192,10 @@ public abstract class CrudTestsBase<T, T2>(
         var users = "Users";
         var uId = NewToken();
         var tableName = $"{users}_{uId}";
-        var createdAt1 = new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified);
-        var createdAt2 = new DateTime(2024, 2, 3, 4, 5, 6, DateTimeKind.Unspecified);
-        var updatedAt1 = new DateTime(2024, 3, 4, 5, 6, 7, DateTimeKind.Unspecified);
-        var updatedAt2 = new DateTime(2024, 4, 5, 6, 7, 8, DateTimeKind.Unspecified);
+        var createdAt1 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
+        var createdAt2 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 2, 3, 4, 5, 6, DateTimeKind.Unspecified));
+        var updatedAt1 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 3, 4, 5, 6, 7, DateTimeKind.Unspecified));
+        var updatedAt2 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 4, 5, 6, 7, 8, DateTimeKind.Unspecified));
 
         using var connMock = connectionMock();
         connMock.Open();
@@ -278,7 +278,7 @@ public abstract class CrudTestsBase<T, T2>(
         var users = "Users";
         var uId = NewToken();
         var tableName = $"{users}_{uId}";
-        var createdAt = new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified);
+        var createdAt = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
 
         using var connMock = connectionMock();
         connMock.Open();
@@ -345,8 +345,8 @@ public abstract class CrudTestsBase<T, T2>(
         var users = "Users";
         var uId = NewToken();
         var tableName = $"{users}_{uId}";
-        var createdAt1 = new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified);
-        var createdAt2 = new DateTime(2024, 2, 3, 4, 5, 6, DateTimeKind.Unspecified);
+        var createdAt1 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
+        var createdAt2 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 2, 3, 4, 5, 6, DateTimeKind.Unspecified));
 
         using var connMock = connectionMock();
         connMock.Open();
@@ -409,8 +409,8 @@ public abstract class CrudTestsBase<T, T2>(
         var users = "Users";
         var uId = NewToken();
         var tableName = $"{users}_{uId}";
-        var createdAt1 = new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified);
-        var createdAt2 = new DateTime(2024, 2, 3, 4, 5, 6, DateTimeKind.Unspecified);
+        var createdAt1 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
+        var createdAt2 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 2, 3, 4, 5, 6, DateTimeKind.Unspecified));
 
         using var connMock = connectionMock();
         connMock.Open();
@@ -465,5 +465,13 @@ public abstract class CrudTestsBase<T, T2>(
 
     private static string NewToken()
         => Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+
+    private DateTime NormalizeNpgsqlDateTimeInput(DateTime value)
+    {
+        if (dialect.Provider == ProviderId.Npgsql && value.Kind == DateTimeKind.Unspecified)
+            return DateTime.SpecifyKind(value, DateTimeKind.Utc);
+
+        return value;
+    }
 }
 

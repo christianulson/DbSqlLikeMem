@@ -212,7 +212,7 @@ internal static class OracleScalarFunctionRegistry
                     return true;
                 }
 
-                if (type.StartsWith("NUMBER", StringComparison.OrdinalIgnoreCase))
+                if ((context.Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para CAST.")).IsIntegerCastTypeName(type))
                 {
                     if (value is decimal decimalValue)
                     {

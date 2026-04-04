@@ -88,6 +88,8 @@ CREATE TABLE {tableName} (
             || message.Contains("not exist", StringComparison.OrdinalIgnoreCase)
             || message.Contains("undefined name", StringComparison.OrdinalIgnoreCase)
             || message.Contains("not found", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("ora-00942", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("tabela ou view", StringComparison.OrdinalIgnoreCase)
             || message.Contains("given key was not present", StringComparison.OrdinalIgnoreCase);
     }
 }

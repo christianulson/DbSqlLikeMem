@@ -222,6 +222,9 @@ internal static class AstQueryFormatFunctionHelper
     }
 
     internal static string FormatPrintf(string format, IReadOnlyList<object?> args)
+        => FormatPrintf(format, args, static value => Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty);
+
+    internal static string FormatPrintf(string format, IReadOnlyList<object?> args, Func<object?, string> stringValueFormatter)
     {
         var builder = new StringBuilder();
         var argIndex = 0;
@@ -246,7 +249,7 @@ internal static class AstQueryFormatFunctionHelper
             {
                 'd' or 'i' => AstQueryExecutorBase.IsNullish(value) ? "0" : Convert.ToInt64(value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture),
                 'f' => AstQueryExecutorBase.IsNullish(value) ? "0" : Convert.ToDouble(value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture),
-                's' => AstQueryExecutorBase.IsNullish(value) ? string.Empty : Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty,
+                's' => AstQueryExecutorBase.IsNullish(value) ? string.Empty : stringValueFormatter(value),
                 'x' => AstQueryExecutorBase.IsNullish(value) ? "0" : Convert.ToInt64(value, CultureInfo.InvariantCulture).ToString("x", CultureInfo.InvariantCulture),
                 'X' => AstQueryExecutorBase.IsNullish(value) ? "0" : Convert.ToInt64(value, CultureInfo.InvariantCulture).ToString("X", CultureInfo.InvariantCulture),
                 _ => value?.ToString() ?? string.Empty

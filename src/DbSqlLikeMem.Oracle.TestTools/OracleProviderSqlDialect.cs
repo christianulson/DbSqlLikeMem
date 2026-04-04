@@ -89,6 +89,10 @@ CREATE TABLE {NormalizeScenarioTableName($"{tableName}_{uId}")} (
         $":{name}";
 
     /// <inheritdoc />
+    public override string JsonParameter(string name) =>
+        $"TO_CLOB({Parameter(name)})";
+
+    /// <inheritdoc />
     public override string SelectParameterProjection(string projectionList) =>
         $"SELECT {projectionList} FROM DUAL";
 

@@ -33,6 +33,8 @@ internal static class Db2ValueHelper
         IDataParameterCollection? pars = null,
         IReadOnlyDictionary<string, ColumnDef>? colDict = null)
     {
+        token = token.Trim();
+
         // ---------- parâmetro Dapper @p -------------------------------
         if (token.StartsWith("@"))
         {
@@ -59,6 +61,10 @@ internal static class Db2ValueHelper
                         .Select(s => Resolve(s.Trim(), dbType, isNullable, pars, colDict))
                         .ToList();
         }
+
+        // ---------- conversão textual Oracle/Db2 ----------------------
+        if (TryUnwrapTextConversionFunction(token, out var textArgument))
+            return Resolve(textArgument, dbType, isNullable, pars, colDict);
 
         // ---------- remove aspas externas -----------------------------
         token = token.Trim('"', '\'');
@@ -177,5 +183,37 @@ internal static class Db2ValueHelper
             .Replace("%", ".*")
             .Replace("_", ".");
         return Regex.IsMatch(value, "^" + pattern + "$", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+    }
+
+    private static bool TryUnwrapTextConversionFunction(string token, out string innerToken)
+    {
+        foreach (var functionName in new[]
+        {
+            "TO_CLOB",
+            "TO_NCLOB",
+            "TO_LOB",
+            "TO_MULTI_BYTE",
+            "TO_NCHAR",
+            "TO_SINGLE_BYTE"
+        })
+        {
+            if (!token.StartsWith(functionName, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var openParenIndex = functionName.Length;
+            if (token.Length <= openParenIndex + 1
+                || token[openParenIndex] != '('
+                || token[^1] != ')')
+            {
+                continue;
+            }
+
+            innerToken = token[(openParenIndex + 1)..^1].Trim();
+            if (innerToken.Length > 0)
+                return true;
+        }
+
+        innerToken = string.Empty;
+        return false;
     }
 }

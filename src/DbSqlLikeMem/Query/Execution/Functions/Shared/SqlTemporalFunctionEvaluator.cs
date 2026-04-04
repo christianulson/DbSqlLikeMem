@@ -69,7 +69,7 @@ internal static class SqlTemporalFunctionEvaluator
         if (!context.Dialect.TryGetTemporalFunctionKind(functionName, out var kind))
             return false;
 
-        return TryMapKind(kind, localNow, utcNow, out value);
+        return TryMapKind(context, kind, localNow, utcNow, out value);
     }
 
     public static bool TryEvaluateZeroArgIdentifier(this QueryExecutionContext context, string functionName, out object? value)
@@ -92,7 +92,7 @@ internal static class SqlTemporalFunctionEvaluator
         if (!context.Dialect.TryGetTemporalFunctionKind(functionName, out var kind))
             return false;
 
-        return TryMapKind(kind, localNow, utcNow, out value);
+        return TryMapKind(context, kind, localNow, utcNow, out value);
     }
 
     public static bool TryEvaluateZeroArgCall(this QueryExecutionContext context, string functionName, out object? value)
@@ -150,8 +150,68 @@ internal static class SqlTemporalFunctionEvaluator
         return false;
     }
 
-    private static bool TryMapKind(SqlTemporalFunctionKind kind, DateTime localNow, DateTime utcNow, out object? value)
+    private static bool TryMapKind(QueryExecutionContext context, SqlTemporalFunctionKind kind, DateTime localNow, DateTime utcNow, out object? value)
     {
+        if (IsSqliteProvider(context))
+        {
+            var sqliteNow = new DateTime(utcNow.Year, utcNow.Month, utcNow.Day, utcNow.Hour, utcNow.Minute, utcNow.Second, DateTimeKind.Unspecified);
+            value = kind switch
+            {
+                SqlTemporalFunctionKind.Date => sqliteNow.Date,
+                SqlTemporalFunctionKind.Time => sqliteNow.TimeOfDay,
+                SqlTemporalFunctionKind.DateTimeOffset => new DateTimeOffset(sqliteNow, TimeSpan.Zero),
+                _ => sqliteNow,
+            };
+
+            return true;
+        }
+
+        if (IsSqlServerProvider(context))
+        {
+            var sqlServerNow = new DateTime(
+                utcNow.Year,
+                utcNow.Month,
+                utcNow.Day,
+                utcNow.Hour,
+                utcNow.Minute,
+                utcNow.Second,
+                utcNow.Millisecond,
+                DateTimeKind.Unspecified);
+
+            value = kind switch
+            {
+                SqlTemporalFunctionKind.Date => sqlServerNow.Date,
+                SqlTemporalFunctionKind.Time => sqlServerNow.TimeOfDay,
+                SqlTemporalFunctionKind.DateTimeOffset => new DateTimeOffset(sqlServerNow, TimeSpan.Zero),
+                _ => sqlServerNow,
+            };
+
+            return true;
+        }
+
+        if (IsPostgresProvider(context))
+        {
+            var postgresNow = new DateTime(
+                utcNow.Year,
+                utcNow.Month,
+                utcNow.Day,
+                utcNow.Hour,
+                utcNow.Minute,
+                utcNow.Second,
+                utcNow.Millisecond,
+                DateTimeKind.Utc);
+
+            value = kind switch
+            {
+                SqlTemporalFunctionKind.Date => postgresNow.Date,
+                SqlTemporalFunctionKind.Time => postgresNow.TimeOfDay,
+                SqlTemporalFunctionKind.DateTimeOffset => new DateTimeOffset(postgresNow),
+                _ => postgresNow,
+            };
+
+            return true;
+        }
+
         value = kind switch
         {
             SqlTemporalFunctionKind.Date => localNow.Date,
@@ -162,4 +222,13 @@ internal static class SqlTemporalFunctionEvaluator
 
         return true;
     }
+
+    private static bool IsSqliteProvider(QueryExecutionContext context)
+        => string.Equals(context.Connection.ProviderExecutionDialect.Name, "sqlite", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsSqlServerProvider(QueryExecutionContext context)
+        => string.Equals(context.Connection.ProviderExecutionDialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsPostgresProvider(QueryExecutionContext context)
+        => string.Equals(context.Connection.ProviderExecutionDialect.Name, "postgresql", StringComparison.OrdinalIgnoreCase);
 }

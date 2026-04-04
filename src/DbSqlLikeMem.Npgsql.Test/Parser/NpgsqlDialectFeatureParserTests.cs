@@ -352,7 +352,7 @@ public sealed class NpgsqlDialectFeatureParserTests(
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING (id";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("unbalanced parentheses", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -371,7 +371,7 @@ public sealed class NpgsqlDialectFeatureParserTests(
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING id +";
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("RETURNING expression is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);

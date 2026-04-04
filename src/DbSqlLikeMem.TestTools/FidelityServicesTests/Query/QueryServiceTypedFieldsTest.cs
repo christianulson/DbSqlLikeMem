@@ -194,17 +194,23 @@ ORDER BY Id
             }
 
             using var insertCommand = Connection.CreateCommand();
+            var idParameter = Dialect.Parameter("id");
+            var nameParameter = Dialect.Parameter("name");
+            var emailParameter = Dialect.Parameter("email");
+            var ageParameter = Dialect.Parameter("age");
+            var balanceParameter = Dialect.Parameter("balance");
+            var profileJsonValue = Dialect.JsonParameter("profileJson");
             insertCommand.CommandText = $"""
 INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES
-(@Id, @Name, @Email, @Age, @Balance, NULL, @ProfileJson)
+({idParameter}, {nameParameter}, {emailParameter}, {ageParameter}, {balanceParameter}, NULL, {profileJsonValue})
 """;
 
-            AddParameter(insertCommand, "Id", DbType.Int32, id);
-            AddParameter(insertCommand, "Name", DbType.String, name);
-            AddParameter(insertCommand, "Email", DbType.String, email is null ? DBNull.Value : email);
-            AddParameter(insertCommand, "Age", DbType.Int32, age is null ? DBNull.Value : age);
-            AddParameter(insertCommand, "Balance", DbType.Decimal, balance);
-            AddParameter(insertCommand, "ProfileJson", DbType.String, profileJson is null ? DBNull.Value : profileJson);
+            AddParameter(insertCommand, "id", DbType.Int32, id);
+            AddParameter(insertCommand, "name", DbType.String, name);
+            AddParameter(insertCommand, "email", DbType.String, email is null ? DBNull.Value : email);
+            AddParameter(insertCommand, "age", DbType.Int32, age is null ? DBNull.Value : age);
+            AddParameter(insertCommand, "balance", DbType.Decimal, balance);
+            AddParameter(insertCommand, "profileJson", DbType.String, profileJson is null ? DBNull.Value : profileJson);
 
             insertCommand.ExecuteNonQuery();
         }
@@ -458,6 +464,13 @@ INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) 
 INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES (3, 'Carla', 'carla@example.com', NULL, 5.00, NULL, NULL)
 """);
 
+        var roundedBalanceSuffix = Dialect.Provider switch
+        {
+            ProviderId.Sqlite => ".0",
+            ProviderId.SqlServer or ProviderId.SqlAzure => ".00",
+            _ => string.Empty
+        };
+
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
 SELECT
@@ -479,13 +492,13 @@ ORDER BY Id
         var rows = new List<QueryResultRowSnapshot>(3);
 
         reader.Read().Should().BeTrue();
-        rows.Add(ValidateCastRow(reader, 1, "1", "31", "36", "11", "21", "1", "1", "1", "42"));
+        rows.Add(ValidateCastRow(reader, 1, "1", "31", "36", $"11{roundedBalanceSuffix}", $"21{roundedBalanceSuffix}", "1", "1", "1", $"42{roundedBalanceSuffix}"));
 
         reader.Read().Should().BeTrue();
-        rows.Add(ValidateCastRow(reader, 2, "2", "27", "32", "20", "41", "3", "0", "0", "47"));
+        rows.Add(ValidateCastRow(reader, 2, "2", "27", "32", $"20{roundedBalanceSuffix}", $"41{roundedBalanceSuffix}", "3", "0", "0", $"47{roundedBalanceSuffix}"));
 
         reader.Read().Should().BeTrue();
-        rows.Add(ValidateCastRow(reader, 3, "3", "0", "5", "5", "10", "30", "1", "1", "5"));
+        rows.Add(ValidateCastRow(reader, 3, "3", "0", "5", $"5{roundedBalanceSuffix}", $"10{roundedBalanceSuffix}", "30", "1", "1", $"5{roundedBalanceSuffix}"));
 
         reader.Read().Should().BeFalse();
 
@@ -645,7 +658,7 @@ INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) 
 
         var namePrefixExpr = Dialect.StringPrefixExpression("Name", 2);
         var nameLenExpr = Dialect.StringLengthExpression("Name");
-        var textMatchAlready = Dialect.Provider == ProviderId.Sqlite ? 0 : 1;
+        var textMatchAlready = Dialect.Provider is ProviderId.Sqlite or ProviderId.Oracle or ProviderId.Npgsql ? 0 : 1;
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""

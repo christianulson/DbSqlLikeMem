@@ -52,6 +52,10 @@ internal sealed class NpgsqlDialect : SqlDialectBase, ISqlDialect
 
     public override bool SupportsIlikeOperator => true;
 
+    public override StringComparison TextComparison => StringComparison.Ordinal;
+
+    public override bool LikeIsCaseInsensitive => false;
+
     /// <summary>
     /// EN: Gets whether limit offset is supported.
     /// PT: Obtém se há suporte a limit offset.

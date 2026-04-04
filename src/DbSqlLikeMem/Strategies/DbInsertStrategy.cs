@@ -981,10 +981,18 @@ internal static class DbInsertStrategy
     private static bool IsJsonCastType(SqlExpr expr)
     {
         if (expr is RawSqlExpr raw)
-            return raw.Sql.Trim().Equals("JSON", StringComparison.OrdinalIgnoreCase);
+        {
+            var sqlType = raw.Sql.Trim();
+            return sqlType.Equals("JSON", StringComparison.OrdinalIgnoreCase)
+                || sqlType.Equals("JSONB", StringComparison.OrdinalIgnoreCase);
+        }
 
         if (expr is LiteralExpr { Value: string s })
-            return s.Trim().Equals("JSON", StringComparison.OrdinalIgnoreCase);
+        {
+            var sqlType = s.Trim();
+            return sqlType.Equals("JSON", StringComparison.OrdinalIgnoreCase)
+                || sqlType.Equals("JSONB", StringComparison.OrdinalIgnoreCase);
+        }
 
         return false;
     }

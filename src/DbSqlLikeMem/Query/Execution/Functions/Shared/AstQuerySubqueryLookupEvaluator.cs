@@ -47,7 +47,7 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
             return false;
 
         var (exprRaw, _) = SelectAliasParserHelper.SplitTrailingAsAlias(query.SelectItems[0].Raw, query.SelectItems[0].Alias);
-        if (!AstQueryAggregateEvaluator.TryParseScalarCountAggregate(exprRaw, _parseExpr, out var countArg))
+        if (!AstQueryAggregateEvaluator.TryParseScalarCountAggregate(exprRaw, _parseExpr, out var countArg, out var isCountBig))
             return false;
 
         if (row is null
@@ -56,7 +56,7 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
             && query.Where is not null
             && TryCountRowsFromSimpleEqualityScan(query, ctes, out var rawEqualityCount))
         {
-            value = rawEqualityCount;
+            value = AstQueryAggregateEvaluator.CreateCountAggregateResult(_context, isCountBig, rawEqualityCount);
             return true;
         }
 
@@ -106,7 +106,7 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
             }
         }
 
-        value = count;
+        value = AstQueryAggregateEvaluator.CreateCountAggregateResult(_context, isCountBig, count);
         return true;
     }
 

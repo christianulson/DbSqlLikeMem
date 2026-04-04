@@ -22,6 +22,10 @@ public sealed class NpgsqlProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsJsonScalarRead => true;
 
     /// <inheritdoc />
+    public override string JsonParameter(string name) =>
+        $"CAST({Parameter(name)} AS JSONB)";
+
+    /// <inheritdoc />
     public override string TemporaryUsersTableName(string tableName) =>
         tableName;
 

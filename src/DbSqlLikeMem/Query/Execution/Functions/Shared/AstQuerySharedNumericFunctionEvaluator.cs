@@ -87,7 +87,7 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             return TryEvalRandFunction(evalArg, out result);
 
         if (string.Equals(fn.Name, "ROUND", StringComparison.OrdinalIgnoreCase))
-            return TryEvalRoundFunction(fn, evalArg, out result);
+            return TryEvalRoundFunction(context, fn, evalArg, out result);
 
         if (string.Equals(fn.Name, "SIGN", StringComparison.OrdinalIgnoreCase))
             return TryEvalSignFunction(evalArg, out result);
@@ -218,6 +218,12 @@ internal static class AstQuerySharedNumericFunctionEvaluator
 
         try
         {
+            if (value is sbyte or byte or short or ushort or int or uint or long or ulong or bool)
+            {
+                result = Math.Abs(Convert.ToInt64(value, CultureInfo.InvariantCulture));
+                return true;
+            }
+
             if (value is decimal dec)
             {
                 result = Math.Abs(dec);
@@ -673,6 +679,7 @@ internal static class AstQuerySharedNumericFunctionEvaluator
     }
 
     private static bool TryEvalRoundFunction(
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
@@ -690,12 +697,12 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             var number = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
             if (IsNullish(decimals))
             {
-                result = Math.Round(number, 0, MidpointRounding.AwayFromZero);
+                result = RoundNumericValue(context, value!, number, 0);
                 return true;
             }
 
             var digits = Convert.ToInt32(decimals.ToDec());
-            result = Math.Round(number, digits, MidpointRounding.AwayFromZero);
+            result = RoundNumericValue(context, value!, number, digits);
             return true;
         }
         catch
@@ -703,6 +710,30 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             result = null;
             return true;
         }
+    }
+
+    private static object RoundNumericValue(QueryExecutionContext context, object sourceValue, decimal number, int digits)
+    {
+        var rounded = Math.Round(number, digits, MidpointRounding.AwayFromZero);
+        if (string.Equals(context.Dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase)
+            && sourceValue is decimal sourceDecimal)
+        {
+            var scale = GetDecimalScale(sourceDecimal);
+            if (scale > 0)
+            {
+                var text = rounded.ToString($"F{scale}", CultureInfo.InvariantCulture);
+                if (decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var scaledRounded))
+                    return scaledRounded;
+            }
+        }
+
+        return rounded;
+    }
+
+    private static int GetDecimalScale(decimal value)
+    {
+        var bits = decimal.GetBits(value);
+        return (bits[3] >> 16) & 0x7F;
     }
 
     private static bool TryEvalSignFunction(Func<int, object?> evalArg, out object? result)

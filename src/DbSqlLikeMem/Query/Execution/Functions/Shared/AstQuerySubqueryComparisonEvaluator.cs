@@ -544,7 +544,7 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
             return false;
 
         var (exprRaw, _) = SelectAliasParserHelper.SplitTrailingAsAlias(query.SelectItems[0].Raw, query.SelectItems[0].Alias);
-        if (!AstQueryAggregateEvaluator.TryParseScalarCountAggregate(exprRaw, _parseExpr, out var countArg) || countArg is not StarExpr)
+        if (!AstQueryAggregateEvaluator.TryParseScalarCountAggregate(exprRaw, _parseExpr, out var countArg, out _) || countArg is not StarExpr)
             return false;
 
         if (literalValue < 0m)

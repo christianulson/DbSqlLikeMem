@@ -555,6 +555,12 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
         var isDb2Parameter = parameterTypeName is "IBM.Data.Db2.DB2Parameter"
             or "IBM.Data.DB2.Core.DB2Parameter"
             or "IBM.Data.DB2.iSeries.iDB2Parameter";
+        if (isOracleParameter
+            && dbType == DbType.Guid
+            && direction != ParameterDirection.Input)
+        {
+            throw new ArgumentException("OracleParameter does not support Guid input-output parameters.", nameof(dbType));
+        }
         try
         {
             if (!isOracleParameter && !(isDb2Parameter && dbType == DbType.DateTimeOffset))
@@ -577,7 +583,7 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
         {
             null => DBNull.Value,
             DateTimeOffset dateTimeOffset => dateTimeOffset,
-            DateTime dateTime => dateTime.ToString("O", CultureInfo.InvariantCulture),
+            DateTime dateTime => dateTime,
             TimeSpan timeSpan => timeSpan.ToString("c", CultureInfo.InvariantCulture),
             Guid guid => guid.ToString("D", CultureInfo.InvariantCulture),
             _ => value

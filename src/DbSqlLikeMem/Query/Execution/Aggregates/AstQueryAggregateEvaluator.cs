@@ -7,26 +7,32 @@ internal static class AstQueryAggregateEvaluator
     internal static bool TryParseScalarCountAggregate(
         string exprRaw,
         Func<string, SqlExpr> parseExpr,
-        out SqlExpr countArg)
+        out SqlExpr countArg,
+        out bool isCountBig)
     {
         countArg = default!;
+        isCountBig = false;
         if (string.IsNullOrWhiteSpace(exprRaw))
             return false;
 
         var parsed = parseExpr(exprRaw);
         if (parsed is FunctionCallExpr fn
-            && fn.Name.Equals(SqlConst.COUNT, StringComparison.OrdinalIgnoreCase)
-            && fn.Args.Count == 1)
+            && fn.Args.Count == 1
+            && (fn.Name.Equals(SqlConst.COUNT, StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals(SqlConst.COUNT_BIG, StringComparison.OrdinalIgnoreCase)))
         {
             countArg = fn.Args[0];
+            isCountBig = fn.Name.Equals(SqlConst.COUNT_BIG, StringComparison.OrdinalIgnoreCase);
             return true;
         }
 
         if (parsed is CallExpr call
-            && call.Name.Equals(SqlConst.COUNT, StringComparison.OrdinalIgnoreCase)
-            && call.Args.Count == 1)
+            && call.Args.Count == 1
+            && (call.Name.Equals(SqlConst.COUNT, StringComparison.OrdinalIgnoreCase)
+                || call.Name.Equals(SqlConst.COUNT_BIG, StringComparison.OrdinalIgnoreCase)))
         {
             countArg = call.Args[0];
+            isCountBig = call.Name.Equals(SqlConst.COUNT_BIG, StringComparison.OrdinalIgnoreCase);
             return true;
         }
 
@@ -703,6 +709,12 @@ internal static class AstQueryAggregateEvaluator
         if (values.Count == 0)
             return null;
 
+        if (operation == AggregateNumericOperation.Sum
+            && TryAggregateIntegralSum(values, out var integralSum))
+        {
+            return integralSum;
+        }
+
         var useDouble = false;
         for (var i = 0; i < values.Count; i++)
         {
@@ -767,6 +779,72 @@ internal static class AstQueryAggregateEvaluator
             AggregateNumericOperation.Max => decimalMax,
             _ => null
         };
+    }
+
+    private static bool TryAggregateIntegralSum(IReadOnlyList<object?> values, out object? result)
+    {
+        result = null;
+
+        long sum = 0;
+        try
+        {
+            for (var i = 0; i < values.Count; i++)
+            {
+                if (!TryConvertIntegralAggregateValue(values[i], out var numeric))
+                    return false;
+
+                sum = checked(sum + numeric);
+            }
+        }
+        catch (OverflowException)
+        {
+            return false;
+        }
+
+        result = sum;
+        return true;
+    }
+
+    private static bool TryConvertIntegralAggregateValue(object? value, out long result)
+    {
+        result = default;
+        if (value is null || value is DBNull)
+            return false;
+
+        switch (value)
+        {
+            case sbyte sb:
+                result = sb;
+                return true;
+            case byte b:
+                result = b;
+                return true;
+            case short s:
+                result = s;
+                return true;
+            case ushort us:
+                result = us;
+                return true;
+            case int i:
+                result = i;
+                return true;
+            case uint ui:
+                result = ui;
+                return true;
+            case long l:
+                result = l;
+                return true;
+            case ulong ul when ul <= long.MaxValue:
+                result = (long)ul;
+                return true;
+            case bool b:
+                result = b ? 1 : 0;
+                return true;
+            case string text when long.TryParse(text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out result):
+                return true;
+            default:
+                return false;
+        }
     }
 
     private static object? AggregateMinMaxValues(IReadOnlyList<object?> values, bool useMax)
@@ -1134,13 +1212,13 @@ internal static class AstQueryAggregateEvaluator
 
         if (fn.Args.Count == 0)
         {
-            value = (long)group.Rows.Count;
+            value = CreateCountAggregateResult(context, name.Equals(SqlConst.COUNT_BIG, StringComparison.OrdinalIgnoreCase), group.Rows.Count);
             return true;
         }
 
         if (fn.Args.Count == 1 && fn.Args[0] is StarExpr)
         {
-            value = (long)group.Rows.Count;
+            value = CreateCountAggregateResult(context, name.Equals(SqlConst.COUNT_BIG, StringComparison.OrdinalIgnoreCase), group.Rows.Count);
             return true;
         }
 
@@ -1163,8 +1241,28 @@ internal static class AstQueryAggregateEvaluator
             }
         }
 
-        value = c;
+        value = CreateCountAggregateResult(context, name.Equals(SqlConst.COUNT_BIG, StringComparison.OrdinalIgnoreCase), c);
         return true;
+    }
+
+    internal static object CreateCountAggregateResult(
+        QueryExecutionContext context,
+        bool isCountBig,
+        long value)
+    {
+        if (!isCountBig
+            && context.Dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+        {
+            return checked((int)value);
+        }
+
+        if (!isCountBig
+            && context.Dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        {
+            return (decimal)value;
+        }
+
+        return value;
     }
 
     private static List<object?>? TryGetAggregateValues(

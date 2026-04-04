@@ -171,7 +171,7 @@ internal static class AstQueryPostgresSystemFunctionEvaluator
         _ = fn;
         _ = context;
         _ = evalArg;
-        result = DateTime.Now;
+        result = context.EvaluationUtcNow;
         return true;
     }
 }

@@ -876,7 +876,9 @@ public abstract class SelectTestsBase<T, T2>(
     {
         var users = "Users";
         var uId = NewToken();
-        var createdAt = new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified);
+        var createdAt = dialect.Provider == ProviderId.Npgsql
+            ? new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Utc)
+            : new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified);
 
         using var connMock = connectionMock();
         connMock.Open();
@@ -946,7 +948,9 @@ public abstract class SelectTestsBase<T, T2>(
     {
         var users = "Users";
         var uId = NewToken();
-        var createdAt = new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified);
+        var createdAt = dialect.Provider == ProviderId.Npgsql
+            ? new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Utc)
+            : new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified);
         var ansiFixedText = "Fixed ANSI";
         var fixedText = "Fixed Text";
 

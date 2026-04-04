@@ -700,7 +700,7 @@ INSERT INTO {tableName} (
     {Dialect.Parameter("balance")},
     {Dialect.Parameter("createdAt")},
     {Dialect.Parameter("updatedAt")},
-    {Dialect.Parameter("profileJson")}
+    {Dialect.JsonParameter("profileJson")}
 )
 """);
 
@@ -710,8 +710,11 @@ INSERT INTO {tableName} (
         AddParameter(insertCommand, "isActive", DbType.Boolean, isActive);
         AddParameter(insertCommand, "age", DbType.Int16, age);
         AddParameter(insertCommand, "balance", DbType.Decimal, balance);
-        AddParameter(insertCommand, "createdAt", DbType.DateTime, createdAt);
-        AddParameter(insertCommand, "updatedAt", DbType.DateTime, updatedAt is null ? DBNull.Value : updatedAt.Value);
+        var createdAtParameter = NormalizeNpgsqlDateTimeInput(createdAt);
+        object? updatedAtParameter = updatedAt is null ? DBNull.Value : NormalizeNpgsqlDateTimeInput(updatedAt.Value);
+
+        AddParameter(insertCommand, "createdAt", DbType.DateTime, createdAtParameter);
+        AddParameter(insertCommand, "updatedAt", DbType.DateTime, updatedAtParameter);
         AddParameter(insertCommand, "profileJson", DbType.String, profileJson is null ? DBNull.Value : profileJson);
 
         insertCommand.ExecuteNonQuery().Should().Be(1);
@@ -818,7 +821,7 @@ WHERE Id = {Dialect.Parameter("id")}
         AddParameter(command, "doubleValue", DbType.Double, doubleValue);
         AddParameter(command, "timeSpanValue", DbType.Time, timeSpanValue);
         AddParameter(command, "dateTimeOffsetValue", DbType.DateTimeOffset, dateTimeOffsetValue);
-        AddParameter(command, "dateTimeValue", DbType.DateTime, dateTimeValue);
+        AddParameter(command, "dateTimeValue", DbType.DateTime, NormalizeNpgsqlDateTimeInput(dateTimeValue));
         AddParameter(command, "guidValue", DbType.Guid, guidValue);
         AddParameter(command, "binaryValue", DbType.Binary, binaryValue);
 
@@ -928,8 +931,8 @@ WHERE Id = {Dialect.Parameter("id")}
         return value switch
         {
             null => DBNull.Value,
-            DateTimeOffset dateTimeOffset => dateTimeOffset.ToString("O", CultureInfo.InvariantCulture),
-            DateTime dateTime => dateTime.ToString("O", CultureInfo.InvariantCulture),
+            DateTimeOffset dateTimeOffset => dateTimeOffset,
+            DateTime dateTime => dateTime,
             TimeSpan timeSpan => timeSpan.ToString("c", CultureInfo.InvariantCulture),
             Guid guid => guid.ToString("D", CultureInfo.InvariantCulture),
             _ => value
@@ -957,8 +960,39 @@ WHERE Id = {Dialect.Parameter("id")}
             DateTimeOffset dateTimeOffset => dateTimeOffset.DateTime,
             string text => DateTime.Parse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
             null => throw new InvalidOperationException("DateTime parameter returned a null value."),
+            _ when TryNormalizeDateOnlyValue(value, out var dateOnly) => dateOnly,
             _ => Convert.ToDateTime(value, CultureInfo.InvariantCulture)
         };
+    }
+
+    private static bool TryNormalizeDateOnlyValue(object? value, out DateTime dateTime)
+    {
+        dateTime = default;
+
+        if (value is null)
+            return false;
+
+        var type = value.GetType();
+        if (!string.Equals(type.FullName, "System.DateOnly", StringComparison.Ordinal))
+            return false;
+
+        if (type.GetProperty("Year")?.GetValue(value) is not int year
+            || type.GetProperty("Month")?.GetValue(value) is not int month
+            || type.GetProperty("Day")?.GetValue(value) is not int day)
+        {
+            return false;
+        }
+
+        dateTime = new DateTime(year, month, day);
+        return true;
+    }
+
+    private DateTime NormalizeNpgsqlDateTimeInput(DateTime value)
+    {
+        if (Dialect.Provider == ProviderId.Npgsql && value.Kind == DateTimeKind.Unspecified)
+            return DateTime.SpecifyKind(value, DateTimeKind.Utc);
+
+        return value;
     }
 
     private static Guid NormalizeGuidValue(object? value)

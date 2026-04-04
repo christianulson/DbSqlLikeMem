@@ -271,6 +271,11 @@ internal static class CommandScalarExecutionPrelude
             return false;
         }
 
+        if (!TryIsCountStarExpression(query.SelectItems[0].Raw, out var isCountBig))
+        {
+            return false;
+        }
+
         if (query.Where is not null)
         {
             if (!TryEvaluateConstantBooleanExpression(context, query.Where, out var whereResult))
@@ -278,17 +283,12 @@ internal static class CommandScalarExecutionPrelude
 
             if (!whereResult)
             {
-                scalar = 0L;
+                scalar = AstQueryAggregateEvaluator.CreateCountAggregateResult(context, isCountBig, 0);
                 return true;
             }
         }
 
-        if (!TryIsCountStarExpression(query.SelectItems[0].Raw, out _))
-        {
-            return false;
-        }
-
-        scalar = (long)table.Count;
+        scalar = AstQueryAggregateEvaluator.CreateCountAggregateResult(context, isCountBig, table.Count);
         return true;
     }
 

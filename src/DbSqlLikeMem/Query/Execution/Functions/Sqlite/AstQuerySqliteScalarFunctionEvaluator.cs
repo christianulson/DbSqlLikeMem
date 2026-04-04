@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace DbSqlLikeMem;
 
 internal static class AstQuerySqliteScalarFunctionEvaluator
@@ -265,8 +267,44 @@ internal static class AstQuerySqliteScalarFunctionEvaluator
         for (var i = 1; i < fn.Args.Count; i++)
             args[i - 1] = evalArg(i);
 
-        result = AstQueryFormatFunctionHelper.FormatPrintf(format, args);
+        result = AstQueryFormatFunctionHelper.FormatPrintf(format, args, FormatSqliteValueAsText);
         return true;
+    }
+
+    private static string FormatSqliteValueAsText(object? value)
+    {
+        if (AstQueryExecutorBase.IsNullish(value))
+            return string.Empty;
+
+        return value switch
+        {
+            string text => text,
+            char ch => ch.ToString(),
+            bool b => b ? "1" : "0",
+            sbyte or byte or short or ushort or int or uint or long or ulong => Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty,
+            float f => FormatSqliteReal(f),
+            double d => FormatSqliteReal(d),
+            decimal dec => FormatSqliteReal(Convert.ToDouble(dec, CultureInfo.InvariantCulture)),
+            _ => Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty,
+        };
+    }
+
+    private static string FormatSqliteReal(double value)
+    {
+        if (double.IsNaN(value))
+            return "NaN";
+
+        if (double.IsPositiveInfinity(value))
+            return "Inf";
+
+        if (double.IsNegativeInfinity(value))
+            return "-Inf";
+
+        var text = value.ToString("G17", CultureInfo.InvariantCulture);
+        if (text.IndexOf('.') < 0 && text.IndexOf('e') < 0 && text.IndexOf('E') < 0)
+            text += ".0";
+
+        return text;
     }
 
     private static bool TryEvalRandomBlobFunction(

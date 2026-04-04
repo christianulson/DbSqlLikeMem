@@ -92,6 +92,13 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(tableName)} (
         $"@{name}";
 
     /// <summary>
+    /// EN: Returns the SQL parameter placeholder used for a JSON value bound to a JSON-capable column.
+    /// PT: Retorna o marcador de parametro SQL usado para um valor JSON vinculado a uma coluna com suporte a JSON.
+    /// </summary>
+    public virtual string JsonParameter(string name) =>
+        Parameter(name);
+
+    /// <summary>
     /// EN: Returns a scalar SELECT projection statement for parameter roundtrip tests.
     /// PT: Retorna uma instrucao SELECT escalar para testes de roundtrip de parametros.
     /// </summary>

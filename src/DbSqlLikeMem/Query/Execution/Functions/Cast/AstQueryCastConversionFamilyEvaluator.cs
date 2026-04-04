@@ -274,13 +274,15 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
 
         try
         {
+            var invariantText = Convert.ToString(v, CultureInfo.InvariantCulture) ?? string.Empty;
+
             if ((context.Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para CAST.")).IsIntegerCastTypeName(type))
             {
                 if (v is long l) return (int)l;
                 if (v is int i) return i;
                 if (v is decimal d) return (int)d;
-                if (int.TryParse(v!.ToString(), out var ix)) return ix;
-                if (long.TryParse(v!.ToString(), out var lx)) return (int)lx;
+                if (int.TryParse(invariantText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var ix)) return ix;
+                if (long.TryParse(invariantText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var lx)) return (int)lx;
                 return DBNull.Value;
             }
 
@@ -288,7 +290,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 || type.StartsWith("NUMERIC", StringComparison.OrdinalIgnoreCase))
             {
                 if (v is decimal dd) return dd;
-                if (decimal.TryParse(v!.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var dx)) return dx;
+                if (decimal.TryParse(invariantText, NumberStyles.Any, CultureInfo.InvariantCulture, out var dx)) return dx;
                 return null;
             }
 
@@ -299,7 +301,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 if (v is double dfx) return dfx;
                 if (v is float ffx) return (double)ffx;
                 if (v is decimal ddx) return (double)ddx;
-                if (double.TryParse(v!.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var fx)) return fx;
+                if (double.TryParse(invariantText, NumberStyles.Any, CultureInfo.InvariantCulture, out var fx)) return fx;
                 return DBNull.Value;
             }
 
@@ -341,10 +343,11 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
             var culture = string.IsNullOrWhiteSpace(cultureName)
                 ? CultureInfo.InvariantCulture
                 : CultureInfo.GetCultureInfo(cultureName!);
+            var text = Convert.ToString(value, culture) ?? string.Empty;
 
             if ((context.Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para PARSE.")).IsIntegerCastTypeName(type))
             {
-                if (int.TryParse(value!.ToString(), NumberStyles.Integer, culture, out var parsedInt))
+                if (int.TryParse(text, NumberStyles.Integer, culture, out var parsedInt))
                     return parsedInt;
                 return swallowErrors ? DBNull.Value : null;
             }
@@ -352,7 +355,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
             if (type.StartsWith("DECIMAL", StringComparison.OrdinalIgnoreCase)
                 || type.StartsWith("NUMERIC", StringComparison.OrdinalIgnoreCase))
             {
-                if (decimal.TryParse(value!.ToString(), NumberStyles.Any, culture, out var parsedDecimal))
+                if (decimal.TryParse(text, NumberStyles.Any, culture, out var parsedDecimal))
                     return parsedDecimal;
                 return swallowErrors ? DBNull.Value : null;
             }
@@ -361,7 +364,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 || type.StartsWith("REAL", StringComparison.OrdinalIgnoreCase)
                 || type.StartsWith("DOUBLE", StringComparison.OrdinalIgnoreCase))
             {
-                if (double.TryParse(value!.ToString(), NumberStyles.Any, culture, out var parsedDouble))
+                if (double.TryParse(text, NumberStyles.Any, culture, out var parsedDouble))
                     return parsedDouble;
                 return swallowErrors ? DBNull.Value : null;
             }
@@ -370,7 +373,8 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 || type.StartsWith("DATETIME", StringComparison.OrdinalIgnoreCase)
                 || type.StartsWith("SMALLDATETIME", StringComparison.OrdinalIgnoreCase))
             {
-                if (AstQueryExecutionRuntimeHelper.TryCoerceDateTime(value!.ToString()!, out var parsedDate))
+                var dateText = Convert.ToString(value, culture);
+                if (AstQueryExecutionRuntimeHelper.TryCoerceDateTime(dateText, out var parsedDate))
                     return parsedDate;
                 return swallowErrors ? DBNull.Value : null;
             }
@@ -401,6 +405,8 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
 
         try
         {
+            var invariantText = Convert.ToString(v, CultureInfo.InvariantCulture) ?? string.Empty;
+
             if (IsTextCastTypeName(type))
                 return Convert.ToString(v, CultureInfo.InvariantCulture) ?? string.Empty;
 
@@ -409,7 +415,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 if (v is long l) return (int)l;
                 if (v is int i) return i;
                 if (v is decimal d) return (int)d;
-                var text = v!.ToString()?.Trim() ?? string.Empty;
+                var text = invariantText.Trim();
                 if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var ix)) return ix;
                 if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var lx)) return (int)lx;
                 if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var dx)) return (int)dx;
@@ -422,7 +428,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 || type.StartsWith("NUMERIC", StringComparison.OrdinalIgnoreCase))
             {
                 if (v is decimal dd) return dd;
-                if (decimal.TryParse(v!.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var dx)) return dx;
+                if (decimal.TryParse(invariantText, NumberStyles.Any, CultureInfo.InvariantCulture, out var dx)) return dx;
                 if (IsSqlServerDialect(context.Dialect))
                     throw new InvalidCastException();
                 return 0m;
@@ -435,7 +441,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 if (v is double dfx) return dfx;
                 if (v is float ffx) return (double)ffx;
                 if (v is decimal ddx) return (double)ddx;
-                if (double.TryParse(v!.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var fx)) return fx;
+                if (double.TryParse(invariantText, NumberStyles.Any, CultureInfo.InvariantCulture, out var fx)) return fx;
                 if (IsSqlServerDialect(context.Dialect))
                     throw new InvalidCastException();
                 return 0d;

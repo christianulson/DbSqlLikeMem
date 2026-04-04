@@ -706,7 +706,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             return false;
 
         var (exprRaw, _) = SelectAliasParserHelper.SplitTrailingAsAlias(query.SelectItems[0].Raw, query.SelectItems[0].Alias);
-        if (!AstQueryAggregateEvaluator.TryParseScalarCountAggregate(exprRaw, ParseExpr, out var countArg) || countArg is not StarExpr)
+        if (!AstQueryAggregateEvaluator.TryParseScalarCountAggregate(exprRaw, ParseExpr, out var countArg, out var isCountBig) || countArg is not StarExpr)
             return false;
 
         var union = query.Table.DerivedUnion;
@@ -725,6 +725,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
         var tableAlias = query.Table?.Alias ?? query.Table?.TableFunction?.Name ?? query.Table?.Name ?? string.Empty;
         var columnAlias = SelectPlanProjectionHelper.InferColumnAlias(exprRaw);
+        var countValue = AstQueryAggregateEvaluator.CreateCountAggregateResult(context, isCountBig, count);
         result = new TableResultMock
         {
             Columns =
@@ -733,11 +734,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
                     tableAlias,
                     columnAlias,
                     0,
-                    DbType.Int64,
+                    countValue is int ? DbType.Int32 : DbType.Int64,
                     isNullable: false)
             ]
         };
-        result.Add(new Dictionary<int, object?> { [0] = count });
+        result.Add(new Dictionary<int, object?> { [0] = countValue });
         result.JoinFields.Add(new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase));
 
         if (query.OrderBy.Count > 0 || query.RowLimit is not null)

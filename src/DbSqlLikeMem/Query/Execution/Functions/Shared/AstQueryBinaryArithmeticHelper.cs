@@ -23,6 +23,9 @@ internal static class AstQueryBinaryArithmeticHelper
         if (TryEvalDateIntervalArithmeticBinary(op, left, right, out result))
             return true;
 
+        if (TryEvalIntegerArithmeticBinary(op, left, right, out result))
+            return true;
+
         var leftNumber = ConvertBinaryArithmeticOperandToDecimal(left);
         var rightNumber = ConvertBinaryArithmeticOperandToDecimal(right);
         result = op switch
@@ -34,6 +37,48 @@ internal static class AstQueryBinaryArithmeticHelper
             _ => throw new InvalidOperationException("op aritmético inválido")
         };
         return true;
+    }
+
+    private static bool TryEvalIntegerArithmeticBinary(
+        SqlBinaryOp op,
+        object left,
+        object right,
+        out object? result)
+    {
+        result = null;
+
+        if (!TryConvertBinaryArithmeticOperandToInt64(left, out var leftNumber)
+            || !TryConvertBinaryArithmeticOperandToInt64(right, out var rightNumber))
+        {
+            return false;
+        }
+
+        try
+        {
+            result = op switch
+            {
+                SqlBinaryOp.Add => checked(leftNumber + rightNumber),
+                SqlBinaryOp.Subtract => checked(leftNumber - rightNumber),
+                SqlBinaryOp.Multiply => checked(leftNumber * rightNumber),
+                SqlBinaryOp.Divide => rightNumber == 0 ? null : leftNumber / rightNumber,
+                _ => throw new InvalidOperationException("op aritmético inválido")
+            };
+            return true;
+        }
+        catch (OverflowException)
+        {
+            var leftDouble = Convert.ToDouble(left, CultureInfo.InvariantCulture);
+            var rightDouble = Convert.ToDouble(right, CultureInfo.InvariantCulture);
+            result = op switch
+            {
+                SqlBinaryOp.Add => leftDouble + rightDouble,
+                SqlBinaryOp.Subtract => leftDouble - rightDouble,
+                SqlBinaryOp.Multiply => leftDouble * rightDouble,
+                SqlBinaryOp.Divide => rightDouble == 0d ? null : leftDouble / rightDouble,
+                _ => throw new InvalidOperationException("op aritmético inválido")
+            };
+            return true;
+        }
     }
 
     internal static bool TryEvalDateIntervalArithmeticBinary(
@@ -107,6 +152,45 @@ internal static class AstQueryBinaryArithmeticHelper
         catch
         {
             return false;
+        }
+    }
+
+    private static bool TryConvertBinaryArithmeticOperandToInt64(object value, out long result)
+    {
+        switch (value)
+        {
+            case sbyte sb:
+                result = sb;
+                return true;
+            case byte b:
+                result = b;
+                return true;
+            case short s:
+                result = s;
+                return true;
+            case ushort us:
+                result = us;
+                return true;
+            case int i:
+                result = i;
+                return true;
+            case uint ui:
+                result = ui;
+                return true;
+            case long l:
+                result = l;
+                return true;
+            case ulong ul when ul <= long.MaxValue:
+                result = (long)ul;
+                return true;
+            case bool b:
+                result = b ? 1 : 0;
+                return true;
+            case string text when long.TryParse(text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out result):
+                return true;
+            default:
+                result = default;
+                return false;
         }
     }
 

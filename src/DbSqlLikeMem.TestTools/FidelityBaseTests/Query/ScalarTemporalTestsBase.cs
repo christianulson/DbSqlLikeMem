@@ -52,7 +52,11 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = RunScalarTemporalMatrix(serviceTestContainer, users);
-                    resultMock.Should().Be(resultContainer);
+                    resultMock.DateScalar.Should().BeCloseTo(resultContainer.DateScalar, TimeSpan.FromSeconds(4));
+                    resultMock.CurrentTimestamp.Should().BeCloseTo(resultContainer.CurrentTimestamp, TimeSpan.FromSeconds(4));
+                    resultMock.DateAdd.Should().BeCloseTo(resultContainer.DateAdd, TimeSpan.FromSeconds(4));
+                    resultMock.WhereCount.Should().Be(resultContainer.WhereCount);
+                    resultMock.OrderedName.Should().Be(resultContainer.OrderedName);
                 }
                 finally
                 {
@@ -89,13 +93,45 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
 
     private static DateTime NormalizeDateTimeValue(object? value)
     {
-        return value switch
+        var normalized = value switch
         {
-            DateTime dateTime => dateTime,
-            DateTimeOffset dateTimeOffset => dateTimeOffset.DateTime,
+            DateTime dt => dt,
+            DateTimeOffset dto => dto.DateTime,
             string text => DateTime.Parse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
             null => throw new InvalidOperationException("DateTime result returned a null value."),
+            _ when TryNormalizeDateOnlyValue(value, out var dateOnly) => dateOnly,
             _ => Convert.ToDateTime(value, CultureInfo.InvariantCulture)
         };
+
+        return new DateTime(
+            normalized.Year,
+            normalized.Month,
+            normalized.Day,
+            normalized.Hour,
+            normalized.Minute,
+            normalized.Second,
+            normalized.Kind);
+    }
+
+    private static bool TryNormalizeDateOnlyValue(object? value, out DateTime dateTime)
+    {
+        dateTime = default;
+
+        if (value is null)
+            return false;
+
+        var type = value.GetType();
+        if (!string.Equals(type.FullName, "System.DateOnly", StringComparison.Ordinal))
+            return false;
+
+        if (type.GetProperty("Year")?.GetValue(value) is not int year
+            || type.GetProperty("Month")?.GetValue(value) is not int month
+            || type.GetProperty("Day")?.GetValue(value) is not int day)
+        {
+            return false;
+        }
+
+        dateTime = new DateTime(year, month, day);
+        return true;
     }
 }

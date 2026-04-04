@@ -136,7 +136,9 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             using var resultContainer = RunSchemaSnapshotRoundTripScenario(connContainer);
-            resultMock.RootElement.GetRawText().Should().Be(resultContainer.RootElement.GetRawText());
+            NormalizeSchemaSnapshotJson(resultMock, connMock, dialect)
+                .Should()
+                .Be(NormalizeSchemaSnapshotJson(resultContainer, connContainer, dialect));
         }
     }
 
@@ -240,6 +242,8 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
             ProviderId.SqlServer or ProviderId.SqlAzure when major >= 12 => 2014,
             ProviderId.SqlServer or ProviderId.SqlAzure when major >= 11 => 2012,
             ProviderId.SqlServer or ProviderId.SqlAzure when major > 0 => 2008,
+            ProviderId.Sqlite when major >= 100 => major,
+            ProviderId.Sqlite when major > 0 => major * 100 + minor,
             ProviderId.MySql when major > 0 => major * 100,
             ProviderId.MariaDb when major >= 100 => major,
             ProviderId.MariaDb when major > 0 => major * 10 + minor,

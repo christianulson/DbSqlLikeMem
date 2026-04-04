@@ -31,6 +31,7 @@ internal static class SqlAlterTableHelper
             "INT" or "INTEGER" or "SMALLINT" => DbType.Int32,
             "BIGINT" => DbType.Int64,
             "DECIMAL" or "NUMERIC" => DbType.Decimal,
+            "NUMBER" => DbType.Decimal,
             "FLOAT" or "REAL" or "DOUBLE" => DbType.Double,
             "BOOLEAN" or "BOOL" => DbType.Boolean,
             "DATE" => DbType.Date,

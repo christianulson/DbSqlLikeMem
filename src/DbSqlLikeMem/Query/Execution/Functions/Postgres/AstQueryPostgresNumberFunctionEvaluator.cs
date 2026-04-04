@@ -34,7 +34,7 @@ internal static class AstQueryPostgresNumberFunctionEvaluator
             return true;
         }
 
-        var text = value?.ToString();
+        var text = Convert.ToString(value, CultureInfo.InvariantCulture);
         if (string.IsNullOrWhiteSpace(text))
         {
             result = null;

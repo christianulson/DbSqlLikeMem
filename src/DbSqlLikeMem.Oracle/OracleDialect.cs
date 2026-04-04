@@ -78,10 +78,16 @@ internal sealed class OracleDialect : SqlDialectBase, ISqlDialect
     /// </summary>
     public override SqlStringEscapeStyle StringEscapeStyle => SqlStringEscapeStyle.doubled_quote;
     /// <summary>
-    /// EN: Gets or sets text comparison.
-    /// PT: Obtém ou define text comparison.
+    /// EN: Gets the text comparison mode used by Oracle string equality and ordering fallbacks.
+    /// PT: Obtém o modo de comparação de texto usado pelos fallbacks de igualdade e ordenacao de strings no Oracle.
     /// </summary>
-    public override StringComparison TextComparison => StringComparison.OrdinalIgnoreCase;
+    public override StringComparison TextComparison => StringComparison.Ordinal;
+
+    /// <summary>
+    /// EN: Indicates whether LIKE comparisons should ignore case for the configured Oracle semantics.
+    /// PT: Indica se comparacoes LIKE devem ignorar maiusculas e minusculas para a semantica Oracle configurada.
+    /// </summary>
+    public override bool LikeIsCaseInsensitive => false;
 
     // OFFSET ... FETCH / FETCH FIRST entrou no Oracle 12c.
     /// <summary>
@@ -250,8 +256,12 @@ internal sealed class OracleDialect : SqlDialectBase, ISqlDialect
     /// PT: Representa Is Integer Cast Type Name.
     /// </summary>
     public override bool IsIntegerCastTypeName(string typeName)
-        => base.IsIntegerCastTypeName(typeName)
-            || typeName.StartsWith("NUMBER", StringComparison.OrdinalIgnoreCase);
+        => !string.IsNullOrWhiteSpace(typeName)
+            && (
+                typeName.StartsWith("INT", StringComparison.OrdinalIgnoreCase)
+                || typeName.StartsWith("INTEGER", StringComparison.OrdinalIgnoreCase)
+                || typeName.StartsWith("SMALLINT", StringComparison.OrdinalIgnoreCase)
+                || typeName.StartsWith("NUMBER", StringComparison.OrdinalIgnoreCase));
 
 }
 

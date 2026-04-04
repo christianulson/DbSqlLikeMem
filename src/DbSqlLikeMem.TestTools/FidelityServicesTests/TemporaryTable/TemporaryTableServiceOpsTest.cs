@@ -62,12 +62,11 @@ SELECT Id, Name INTO {tempTable} FROM {sourceUsersTable} WHERE TenantId = 10");
             && Connection is not DbSqlLikeMem.DbConnectionMockBase)
         {
             ExecuteNonQuery($@"
-CREATE GLOBAL TEMPORARY TABLE {tempTable} (
-    Id NUMBER(10),
-    Name VARCHAR2(100)
-) ON COMMIT PRESERVE ROWS");
-            ExecuteNonQuery($@"INSERT INTO {tempTable} (Id, Name)
-SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10");
+CREATE GLOBAL TEMPORARY TABLE {tempTable}
+ON COMMIT PRESERVE ROWS
+AS SELECT Id, Name
+FROM {sourceUsersTable}
+WHERE TenantId = 10");
         }
         else
         {
@@ -229,7 +228,9 @@ SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10";
             || message.Contains("doesnt exist", StringComparison.OrdinalIgnoreCase)
             || message.Contains("undefined name", StringComparison.OrdinalIgnoreCase)
             || message.Contains("invalid object name", StringComparison.OrdinalIgnoreCase)
-            || message.Contains("not found", StringComparison.OrdinalIgnoreCase);
+            || message.Contains("not found", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("ora-00942", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("tabela ou view", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string InsertTemporaryRowSql(string tableName, int id, string name)

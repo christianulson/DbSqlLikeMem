@@ -127,7 +127,7 @@ INSERT INTO {tableName} (
     {Dialect.Parameter("balance")},
     {Dialect.Parameter("createdAt")},
     {Dialect.Parameter("updatedAt")},
-    {Dialect.Parameter("profileJson")}
+    {Dialect.JsonParameter("profileJson")}
 )
 """);
 
@@ -278,7 +278,7 @@ SET
     Age = {Dialect.Parameter("age")},
     Balance = {Dialect.Parameter("balance")},
     UpdatedAt = {Dialect.Parameter("updatedAt")},
-    ProfileJson = {Dialect.Parameter("profileJson")}
+    ProfileJson = {Dialect.JsonParameter("profileJson")}
 WHERE Id = 1
 """);
 
@@ -382,7 +382,7 @@ INSERT INTO {tableName} (
     {Dialect.Parameter("balance")},
     {Dialect.Parameter("createdAt")},
     {Dialect.Parameter("updatedAt")},
-    {Dialect.Parameter("profileJson")}
+    {Dialect.JsonParameter("profileJson")}
 )
 """);
 
@@ -573,7 +573,7 @@ WHERE Id = {Dialect.Parameter("id")}
         return count;
     }
 
-    private static void AddParameter(DbCommand command, string name, DbType dbType, object? value)
+    private void AddParameter(DbCommand command, string name, DbType dbType, object? value)
     {
         var parameter = command.CreateParameter();
         parameter.ParameterName = name;
@@ -585,6 +585,10 @@ WHERE Id = {Dialect.Parameter("id")}
         else
         {
             parameter.DbType = dbType;
+        }
+        if (Dialect.Provider == ProviderId.Npgsql && dbType == DbType.DateTime && value is DateTime dateTime && dateTime.Kind == DateTimeKind.Unspecified)
+        {
+            value = DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
         }
         parameter.Value = value ?? DBNull.Value;
         command.Parameters.Add(parameter);
@@ -617,8 +621,31 @@ WHERE Id = {Dialect.Parameter("id")}
             DateTimeOffset dateTimeOffset => dateTimeOffset.DateTime,
             string text => DateTime.Parse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
             null => throw new InvalidOperationException("DateTime parameter returned a null value."),
+            _ when TryNormalizeDateOnlyValue(value, out var dateOnly) => dateOnly,
             _ => Convert.ToDateTime(value, CultureInfo.InvariantCulture)
         };
+    }
+
+    private static bool TryNormalizeDateOnlyValue(object? value, out DateTime dateTime)
+    {
+        dateTime = default;
+
+        if (value is null)
+            return false;
+
+        var type = value.GetType();
+        if (!string.Equals(type.FullName, "System.DateOnly", StringComparison.Ordinal))
+            return false;
+
+        if (type.GetProperty("Year")?.GetValue(value) is not int year
+            || type.GetProperty("Month")?.GetValue(value) is not int month
+            || type.GetProperty("Day")?.GetValue(value) is not int day)
+        {
+            return false;
+        }
+
+        dateTime = new DateTime(year, month, day);
+        return true;
     }
 
     private static bool TryStripScenarioTokenSuffix(string tableName, out string stripped)

@@ -189,7 +189,7 @@ public abstract class SequenceTestsBase<T, T2>(
     private void RunSequenceCaseWhereMatrixTest()
     {
         var sequence = $"seq_{NewToken()}";
-        var supportsSequenceCte = dialect.Provider is not ProviderId.SqlServer and not ProviderId.SqlAzure;
+        var supportsSequenceCte = dialect.Provider is not ProviderId.SqlServer and not ProviderId.SqlAzure and not ProviderId.Oracle;
 
         using var connMock = connectionMock();
         connMock.Open();
@@ -215,7 +215,7 @@ public abstract class SequenceTestsBase<T, T2>(
     private void RunSequenceTemporalMatrixTest()
     {
         var sequence = $"seq_{NewToken()}";
-        var supportsSequenceCte = dialect.Provider is not ProviderId.SqlServer and not ProviderId.SqlAzure;
+        var supportsSequenceCte = dialect.Provider is not ProviderId.SqlServer and not ProviderId.SqlAzure and not ProviderId.Oracle;
 
         using var connMock = connectionMock();
         connMock.Open();
@@ -408,7 +408,7 @@ public abstract class SequenceTestsBase<T, T2>(
         string sequence)
         where TConnection : DbConnection
     {
-        if (dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure)
+        if (dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure or ProviderId.Oracle)
         {
             throw new NotSupportedException($"{dialect.DisplayName} does not support sequence values inside CTE benchmarks.");
         }
@@ -467,7 +467,7 @@ WHERE s1.SeqValue >= 10
         string sequence)
         where TConnection : DbConnection
     {
-        if (dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure)
+        if (dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure or ProviderId.Oracle)
         {
             throw new NotSupportedException($"{dialect.DisplayName} does not support sequence values inside CTE benchmarks.");
         }
@@ -543,6 +543,9 @@ WHERE s1.SeqValue BETWEEN 10 AND 10
         {
             var usersTable = ResolveScenarioTableName(users, uId);
             var ordersTable = ResolveScenarioTableName(orders, uId);
+            var orderUserIdColumn = dialect.Provider == ProviderId.Oracle
+                ? "userid"
+                : $"{usersTable}Id";
             var firstUserId = Convert.ToInt64(sequenceService.RunSequenceNextValue(sequence), CultureInfo.InvariantCulture);
             var secondUserId = Convert.ToInt64(sequenceService.RunSequenceNextValue(sequence), CultureInfo.InvariantCulture);
 
@@ -560,7 +563,7 @@ SELECT
     SUM(o.Quantity) AS TotalQuantity,
     ROUND(SUM(o.Amount), 2) AS TotalAmount
 FROM {usersTable} u
-INNER JOIN {ordersTable} o ON o.{usersTable}Id = u.Id
+INNER JOIN {ordersTable} o ON o.{orderUserIdColumn} = u.Id
 GROUP BY u.Id
 ORDER BY u.Id
 """;
