@@ -396,9 +396,10 @@ internal static class DbMergeStrategy
                 * Convert.ToDecimal(EvaluateValuesSourceExpression(b.Right, context) ?? 0m),
             BinaryExpr { Op: SqlBinaryOp.Divide } b => Convert.ToDecimal(EvaluateValuesSourceExpression(b.Left, context) ?? 0m)
                 / Convert.ToDecimal(EvaluateValuesSourceExpression(b.Right, context) ?? 0m),
-            BinaryExpr { Op: SqlBinaryOp.Concat } b => string.Concat(
-                EvaluateValuesSourceExpression(b.Left, context)?.ToString() ?? string.Empty,
-                EvaluateValuesSourceExpression(b.Right, context)?.ToString() ?? string.Empty),
+            BinaryExpr { Op: SqlBinaryOp.Concat } b => EvaluateConcat(
+                EvaluateValuesSourceExpression(b.Left, context),
+                EvaluateValuesSourceExpression(b.Right, context),
+                context),
             CallExpr call when call.Args.Count == 0 && context.TryEvaluateZeroArgCall(call.Name, out var temporal) => temporal,
             FunctionCallExpr fn when fn.Args.Count == 0 && context.TryEvaluateZeroArgCall(fn.Name, out var temporal) => temporal,
             IdentifierExpr id when string.Equals(id.Name, SqlConst.NULL, StringComparison.OrdinalIgnoreCase) => null,
@@ -407,6 +408,22 @@ internal static class DbMergeStrategy
             _ => throw new NotSupportedException(
                 $"MERGE USING VALUES expression '{expr.GetType().Name}' is not supported yet.")
         };
+    }
+
+    private static object? EvaluateConcat(
+        object? left,
+        object? right,
+        QueryExecutionContext context)
+    {
+        if (left is null or DBNull || right is null or DBNull)
+        {
+            if (context.Dialect.PlusStringConcatReturnsNullOnNullInput)
+                return null;
+        }
+
+        var leftText = left is null or DBNull ? string.Empty : left.ToString() ?? string.Empty;
+        var rightText = right is null or DBNull ? string.Empty : right.ToString() ?? string.Empty;
+        return string.Concat(leftText, rightText);
     }
 
     private static bool TryResolveParameterValue(

@@ -116,6 +116,7 @@ public partial class SchemaSnapshotServiceTest<T>
             ProviderId.MariaDb => "mariadb",
             ProviderId.Oracle => "oracle",
             ProviderId.Db2 => "db2",
+            ProviderId.Firebird => "firebird",
             _ => provider.ToString().ToLowerInvariant(),
         };
 
@@ -196,3 +197,4 @@ public partial class SchemaSnapshotServiceTest<T>
         return (major, minor);
     }
 }
+

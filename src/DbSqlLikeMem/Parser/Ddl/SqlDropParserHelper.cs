@@ -10,7 +10,7 @@ internal static class SqlDropParserHelper
         if (ctx.IsWord(SqlConst.VIEW))
             return ctx.ParseDropView();
 
-        if (ctx.IsWord(SqlConst.SEQUENCE))
+        if (ctx.IsWord(SqlConst.SEQUENCE) || ctx.IsWord(SqlConst.GENERATOR))
             return ctx.ParseDropSequence();
 
         if (ctx.IsWord(SqlConst.TABLE)
@@ -25,7 +25,13 @@ internal static class SqlDropParserHelper
         if (ctx.IsWord(SqlConst.FUNCTION))
             return ctx.ParseDropFunction();
 
-        throw new InvalidOperationException("Apenas DROP VIEW, DROP TABLE, DROP INDEX e DROP SEQUENCE são suportados no mock no momento.");
+        if (ctx.IsWord(SqlConst.PROCEDURE))
+            return ctx.ParseDropProcedure();
+
+        if (ctx.IsWord(SqlConst.TRIGGER))
+            return ctx.ParseDropTrigger();
+
+        throw new InvalidOperationException("Apenas DROP VIEW, DROP TABLE, DROP INDEX, DROP SEQUENCE/GENERATOR, DROP PROCEDURE e DROP TRIGGER são suportados no mock no momento.");
     }
 
     private static SqlDropViewQuery ParseDropView(
@@ -70,7 +76,7 @@ internal static class SqlDropParserHelper
         if (!ctx.Dialect.SupportsSequenceDdl)
             throw ctx.NotSupported("DROP SEQUENCE");
 
-        ctx.Consume(); // SEQUENCE
+        ctx.Consume(); // SEQUENCE/GENERATOR
 
         var ifExists = false;
         if (ctx.IsWord(SqlConst.IF))
@@ -132,6 +138,74 @@ internal static class SqlDropParserHelper
         {
             IfExists = ifExists,
             Table = function
+        };
+    }
+
+    private static SqlDropProcedureQuery ParseDropProcedure(
+        this SqlQueryParserContext ctx)
+    {
+        if (!ctx.Dialect.SupportsDb2ProcedureDdl)
+            throw ctx.NotSupported("DROP PROCEDURE");
+
+        ctx.Consume(); // PROCEDURE
+
+        var ifExists = false;
+        if (ctx.IsWord(SqlConst.IF))
+        {
+            ctx.Consume();
+            if (!ctx.IsWord(SqlConst.EXISTS))
+                throw new InvalidOperationException("DROP PROCEDURE IF must be followed by EXISTS.");
+
+            ctx.Consume();
+            ifExists = true;
+        }
+
+        var procedureNameToken = ctx.Peek();
+        if (SqlQueryParserContext.IsEnd(procedureNameToken) || SqlQueryParserContext.IsSymbol(procedureNameToken, ";"))
+            throw new InvalidOperationException("DROP PROCEDURE requires a procedure name.");
+
+        var procedure = ctx.ParseQualifiedObjectName();
+
+        ctx.EnsureStatementEnd("DROP PROCEDURE");
+
+        return new SqlDropProcedureQuery
+        {
+            IfExists = ifExists,
+            Table = procedure
+        };
+    }
+
+    private static SqlDropTriggerQuery ParseDropTrigger(
+        this SqlQueryParserContext ctx)
+    {
+        if (!ctx.Dialect.SupportsDb2TriggerDdl)
+            throw ctx.NotSupported("DROP TRIGGER");
+
+        ctx.Consume(); // TRIGGER
+
+        var ifExists = false;
+        if (ctx.IsWord(SqlConst.IF))
+        {
+            ctx.Consume();
+            if (!ctx.IsWord(SqlConst.EXISTS))
+                throw new InvalidOperationException("DROP TRIGGER IF must be followed by EXISTS.");
+
+            ctx.Consume();
+            ifExists = true;
+        }
+
+        var triggerNameToken = ctx.Peek();
+        if (SqlQueryParserContext.IsEnd(triggerNameToken) || SqlQueryParserContext.IsSymbol(triggerNameToken, ";"))
+            throw new InvalidOperationException("DROP TRIGGER requires a trigger name.");
+
+        var trigger = ctx.ParseQualifiedObjectName();
+
+        ctx.EnsureStatementEnd("DROP TRIGGER");
+
+        return new SqlDropTriggerQuery
+        {
+            IfExists = ifExists,
+            Table = trigger
         };
     }
 

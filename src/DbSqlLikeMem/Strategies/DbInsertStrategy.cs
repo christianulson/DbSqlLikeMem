@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace DbSqlLikeMem;
 
 internal static class DbInsertStrategy
@@ -1178,7 +1176,7 @@ internal static class DbInsertStrategy
 
         object? EvalConcat(object? left, object? right)
         {
-            var nullInputReturnsNull = context.Dialect.ConcatReturnsNullOnNullInput;
+            var nullInputReturnsNull = context.Dialect.PlusStringConcatReturnsNullOnNullInput;
             if (left is null or DBNull || right is null or DBNull)
             {
                 if (nullInputReturnsNull)
@@ -1369,7 +1367,7 @@ internal static class DbInsertStrategy
 
         object? EvalConcat(object? left, object? right)
         {
-            var nullInputReturnsNull = context.Dialect.ConcatReturnsNullOnNullInput;
+            var nullInputReturnsNull = context.Dialect.PlusStringConcatReturnsNullOnNullInput;
             if (left is null or DBNull || right is null or DBNull)
             {
                 if (nullInputReturnsNull)
@@ -1622,3 +1620,4 @@ internal static class DbInsertStrategy
             tableMock.ExecuteTriggers(evt, oldRow, newRow);
     }
 }
+

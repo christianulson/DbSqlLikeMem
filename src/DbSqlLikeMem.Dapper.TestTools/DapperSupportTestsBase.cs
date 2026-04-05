@@ -1,5 +1,4 @@
 using Dapper;
-using FluentAssertions;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.RegularExpressions;

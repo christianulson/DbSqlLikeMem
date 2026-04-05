@@ -1,5 +1,4 @@
 using Dapper;
-using FluentAssertions;
 
 namespace DbSqlLikeMem.TestTools;
 

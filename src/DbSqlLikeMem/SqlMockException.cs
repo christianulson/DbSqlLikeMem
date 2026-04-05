@@ -1,3 +1,5 @@
+﻿using System.Runtime.Serialization;
+
 namespace DbSqlLikeMem;
 
 #pragma warning disable CA1032 // Implement standard exception constructors
@@ -48,4 +50,17 @@ public class SqlMockException : Exception
     public SqlMockException(string? message, Exception? innerException) : base(message, innerException)
     {
     }
+
+    /// <summary>
+    /// EN: Initializes the exception from serialized data.
+    /// PT: Inicializa a exceção a partir de dados serializados.
+    /// </summary>
+    /// <param name="info">EN: Serialization information. PT: Informações de serialização.</param>
+    /// <param name="context">EN: Streaming context. PT: Contexto de streaming.</param>
+#pragma warning disable SYSLIB0051 // This API supports obsolete formatter-based serialization.
+    protected SqlMockException(SerializationInfo info, StreamingContext context)
+        : base(info, context)
+    {
+    }
+#pragma warning restore SYSLIB0051 // This API supports obsolete formatter-based serialization.
 }

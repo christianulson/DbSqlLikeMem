@@ -96,7 +96,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
     /// EN: Indicates whether SQL window functions are supported by the configured SQL Server version.
     /// PT: Indica se funções de janela SQL são suportadas pela versão configurada do SQL Server.
     /// </summary>
-    public override bool SupportsWindowFunctions => Version >= WindowFunctionsMinVersion;
+    public override bool SupportsWindowFunctions => Version >= WindowFunctionsROW_NUMBERMinVersion;
 
     //TODO: Separar ROWS BETWEEN - 2012, RANGE BETWEEN - 2012, GROUPS BETWEEN - 2022
     /// <summary>
@@ -417,12 +417,11 @@ internal sealed class SqlServerDialect : SqlDialectBase
     /// </summary>
     public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["ISNULL"];
 
-    //TODO: implementar + → NULL contamina, CONCAT() → não contamina
-    /// <summary>
-    /// EN: Gets or sets concat returns null on null input.
-    /// PT: Obtém ou define concat returns null on null input.
-    /// </summary>
-    public override bool ConcatReturnsNullOnNullInput => false;
+    /// <inheritdoc />
+    public override bool PlusStringConcatReturnsNullOnNullInput => true;
+
+    /// <inheritdoc />
+    public override bool ConcatFunctionReturnsNullOnNullInput => false;
 
     /// <summary>
     /// EN: Gets or sets allows hash identifiers.
@@ -446,3 +445,4 @@ internal sealed class SqlServerDialect : SqlDialectBase
     }
 
 }
+

@@ -92,6 +92,11 @@ internal interface ISqlDialect
     bool SupportsAlterTableAddColumn { get; }
     bool SupportsNextValueForSequenceExpression { get; }
     bool SupportsPreviousValueForSequenceExpression { get; }
+    /// <summary>
+    /// EN: Indicates whether a sequence-related scalar function name is supported by the current dialect/version.
+    /// PT: Indica se um nome de funcao escalar relacionado a sequence e suportado pelo dialeto/versao atual.
+    /// </summary>
+    bool SupportsSequenceFunctionCall(string functionName);
     bool SupportsSequenceDotValueExpression(string suffix);
     bool SupportsDoubleAtIdentifierSyntax { get; }
     bool SupportsSqlCalcFoundRowsModifier { get; }
@@ -171,6 +176,22 @@ internal interface ISqlDialect
     IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames { get; }
     IReadOnlyCollection<string> TemporalFunctionIdentifierNames { get; }
     IReadOnlyCollection<string> TemporalFunctionCallNames { get; }
+    /// <summary>
+    /// EN: Indicates whether string concatenation with the plus operator returns null when any operand is null.
+    /// PT: Indica se a concatenacao de strings com o operador mais retorna null quando qualquer operando e null.
+    /// </summary>
+    bool PlusStringConcatReturnsNullOnNullInput { get; }
+
+    /// <summary>
+    /// EN: Indicates whether CONCAT() returns null when any argument is null.
+    /// PT: Indica se CONCAT() retorna null quando qualquer argumento e null.
+    /// </summary>
+    bool ConcatFunctionReturnsNullOnNullInput { get; }
+
+    /// <summary>
+    /// EN: Legacy combined concat null behavior kept for compatibility with older call sites.
+    /// PT: Comportamento legado combinado de concat null mantido por compatibilidade com call sites antigos.
+    /// </summary>
     bool ConcatReturnsNullOnNullInput { get; }
     // Dialect-specific runtime semantics
     bool RegexInvalidPatternEvaluatesToFalse { get; }

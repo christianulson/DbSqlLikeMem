@@ -483,7 +483,7 @@ public sealed record DbFunctionDef(
     /// </summary>
     public int MinArguments
         => Signatures.Count == 0
-            ? Parameters.Count
+            ? Parameters.Count(parameter => parameter.Required)
             : Signatures.Min(signature => signature.MinArguments);
 
     /// <summary>
@@ -511,7 +511,7 @@ public sealed record DbFunctionDef(
 
     internal bool AllowsArgumentCount(int count)
         => Signatures.Count == 0
-            ? count == Parameters.Count
+            ? count >= MinArguments && count <= MaxArguments
             : Signatures.Any(signature => signature.AllowsArgumentCount(count));
 
     /// <summary>

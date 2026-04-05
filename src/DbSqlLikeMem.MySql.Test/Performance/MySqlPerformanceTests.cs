@@ -1,4 +1,3 @@
-using FluentAssertions;
 using System.Diagnostics;
 
 namespace DbSqlLikeMem.MySql.Test.Performance;

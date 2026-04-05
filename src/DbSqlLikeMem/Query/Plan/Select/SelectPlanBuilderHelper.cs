@@ -1206,5 +1206,6 @@ internal static class SelectPlanBuilderHelper
             || string.Equals(name, SqlConst.CURRVAL, StringComparison.OrdinalIgnoreCase)
             || string.Equals(name, SqlConst.SETVAL, StringComparison.OrdinalIgnoreCase)
             || string.Equals(name, SqlConst.LASTVAL, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "GEN_ID", StringComparison.OrdinalIgnoreCase)
             || string.Equals(name, "PREVIOUS_VALUE_FOR", StringComparison.OrdinalIgnoreCase);
 }

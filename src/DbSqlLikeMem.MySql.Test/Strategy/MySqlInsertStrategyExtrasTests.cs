@@ -1,5 +1,3 @@
-using FluentAssertions;
-
 namespace DbSqlLikeMem.MySql.Test.Strategy;
 /// <summary>
 /// EN: Covers extra INSERT scenarios in the MySql mock.

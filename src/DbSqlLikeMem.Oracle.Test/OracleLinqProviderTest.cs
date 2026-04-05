@@ -1,5 +1,3 @@
-using FluentAssertions;
-
 namespace DbSqlLikeMem.Oracle.Test;
 /// <summary>
 /// EN: Verifies LINQ query translation and provider metadata behavior for Oracle connections.

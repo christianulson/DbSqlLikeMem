@@ -1,5 +1,3 @@
-using FluentAssertions;
-
 namespace DbSqlLikeMem.Db2.Test.Strategy;
 
 /// <summary>

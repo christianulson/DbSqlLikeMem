@@ -419,12 +419,43 @@ public abstract class SequenceTestsBase<T, T2>(
 
         try
         {
+            if (dialect.Provider == ProviderId.Db2)
+            {
+                var firstSeqValue = Convert.ToInt64(serviceTest.RunSequenceNextValue(sequence), CultureInfo.InvariantCulture);
+                var secondSeqValue = Convert.ToInt64(serviceTest.RunSequenceNextValue(sequence), CultureInfo.InvariantCulture);
+
+                using var db2Command = connection.CreateCommand();
+                db2Command.CommandText = $"""
+SELECT
+    {firstSeqValue} AS SeqValue,
+    {secondSeqValue} AS SeqValue2,
+    CASE WHEN {firstSeqValue} BETWEEN 10 AND 11 THEN 1 ELSE 0 END AS FirstInRange,
+    CASE WHEN {secondSeqValue} BETWEEN 10 AND 11 THEN 1 ELSE 0 END AS SecondInRange,
+    CASE WHEN {firstSeqValue} < {secondSeqValue} THEN 1 ELSE 0 END AS IsAscending,
+    CASE WHEN {firstSeqValue} = 10 THEN 1 ELSE 0 END AS FirstIsTen,
+    CASE WHEN {secondSeqValue} = 11 THEN 1 ELSE 0 END AS SecondIsEleven
+FROM SYSIBM.SYSDUMMY1
+""";
+
+                using var db2Reader = db2Command.ExecuteReader();
+                db2Reader.Read().Should().BeTrue();
+                Convert.ToInt64(db2Reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(10L);
+                Convert.ToInt64(db2Reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(11L);
+                Convert.ToInt32(db2Reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(1);
+                Convert.ToInt32(db2Reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(1);
+                Convert.ToInt32(db2Reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(1);
+                Convert.ToInt32(db2Reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(1);
+                Convert.ToInt32(db2Reader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(1);
+                db2Reader.Read().Should().BeFalse();
+                return 1;
+            }
+
             var seqFirstCte = dialect.Provider == ProviderId.Db2
                 ? $"seq_first AS (SELECT NEXT VALUE FOR {sequence} AS SeqValue FROM SYSIBM.SYSDUMMY1)"
-                : $"seq_first AS (SELECT {dialect.NextSequenceValueExpression(sequence)} AS SeqValue)";
+                : $"seq_first AS (SELECT {dialect.NextSequenceValueExpression(sequence)} AS SeqValue LIMIT 1)";
             var seqSecondCte = dialect.Provider == ProviderId.Db2
                 ? $"seq_second AS (SELECT NEXT VALUE FOR {sequence} AS SeqValue FROM SYSIBM.SYSDUMMY1)"
-                : $"seq_second AS (SELECT {dialect.NextSequenceValueExpression(sequence)} AS SeqValue)";
+                : $"seq_second AS (SELECT {dialect.NextSequenceValueExpression(sequence)} AS SeqValue LIMIT 1)";
 
             using var command = connection.CreateCommand();
             command.CommandText = $"""
@@ -515,10 +546,10 @@ FROM SYSIBM.SYSDUMMY1
             var nextDayExpr = dialect.TemporalDateAddExpression();
             var seqFirstCte = dialect.Provider == ProviderId.Db2
                 ? $"seq_first AS (SELECT NEXT VALUE FOR {sequence} AS SeqValue FROM SYSIBM.SYSDUMMY1)"
-                : $"seq_first AS (SELECT {dialect.NextSequenceValueExpression(sequence)} AS SeqValue)";
+                : $"seq_first AS (SELECT {dialect.NextSequenceValueExpression(sequence)} AS SeqValue LIMIT 1)";
             var seqSecondCte = dialect.Provider == ProviderId.Db2
                 ? $"seq_second AS (SELECT NEXT VALUE FOR {sequence} AS SeqValue FROM SYSIBM.SYSDUMMY1)"
-                : $"seq_second AS (SELECT {dialect.NextSequenceValueExpression(sequence)} AS SeqValue)";
+                : $"seq_second AS (SELECT {dialect.NextSequenceValueExpression(sequence)} AS SeqValue LIMIT 1)";
 
             using var command = connection.CreateCommand();
             command.CommandText = $"""
@@ -666,5 +697,3 @@ ORDER BY u.Id
     private static string NewToken()
         => Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
 }
-
-

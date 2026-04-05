@@ -211,6 +211,33 @@ public sealed class SqlServerMockTests
         Assert.Empty(users);
     }
 
+    /// <summary>
+    /// EN: Verifies SQL Server savepoint commands use the native SAVE TRANSACTION and ROLLBACK TRANSACTION syntax.
+    /// PT: Verifica se comandos de savepoint do SQL Server usam a sintaxe nativa SAVE TRANSACTION e ROLLBACK TRANSACTION.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void TestTransactionSavepointSyntax()
+    {
+        using var transaction = _connection.BeginTransaction();
+        using var command = new SqlServerCommandMock(_connection, (SqlServerTransactionMock)transaction)
+        {
+            CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (1, 'John Doe', 'john@example.com');
+                SAVE TRANSACTION sp1;
+                INSERT INTO Users (Id, Name, Email) VALUES (2, 'Jane Doe', 'jane@example.com');
+                ROLLBACK TRANSACTION sp1
+                """
+        };
+
+        command.ExecuteNonQuery();
+        transaction.Commit();
+
+        var users = _connection.GetTable("Users");
+        Assert.Single(users);
+        Assert.Equal(1, users[0][0]);
+        Assert.Equal("John Doe", users[0][1]);
+    }
 
     /// <summary>
     /// EN: Ensures SELECT with SQL Server table hints executes correctly.

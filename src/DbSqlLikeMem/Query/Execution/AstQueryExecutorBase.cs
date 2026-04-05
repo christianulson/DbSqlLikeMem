@@ -1,5 +1,3 @@
-using static DbSqlLikeMem.AstQueryJsonUnquoteFunctionEvaluator;
-
 namespace DbSqlLikeMem;
 
 /// <summary>
@@ -281,6 +279,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         }
 
         if (AstQueryTemporalAccessorFunctionEvaluator.TryEvaluate(fn, row, group, ctes, evalArg, getTemporalUnit, AstQueryExecutionRuntimeHelper.ResolveTemporalUnit, out result))
+        {
+            return true;
+        }
+
+        if (AstQueryFirebirdContextFunctionEvaluator.TryEvaluate(_context, fn, evalArg, out result))
         {
             return true;
         }
@@ -1382,6 +1385,27 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
     private void ClearSubqueryEvaluationCaches()
         => SubqueryLookupEvaluator.Clear();
 
+    private bool TryEvaluateFirebirdTemporalLiteral(object? value, out object? result)
+    {
+        result = null;
+        if (value is not string text
+            || !_context.Dialect.Name.Equals("firebird", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        result = text.Trim().ToUpperInvariant() switch
+        {
+            "NOW" => _context.EvaluationLocalNow,
+            "TODAY" => _context.EvaluationLocalNow.Date,
+            "TOMORROW" => _context.EvaluationLocalNow.Date.AddDays(1),
+            "YESTERDAY" => _context.EvaluationLocalNow.Date.AddDays(-1),
+            _ => null
+        };
+
+        return result is not null;
+    }
+
     // ---------------- EXPRESSION EVAL ----------------
 
     private object? Eval(
@@ -1393,7 +1417,9 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         switch (expr)
         {
             case LiteralExpr l:
-                return l.Value;
+                return TryEvaluateFirebirdTemporalLiteral(l.Value, out var firebirdTemporalLiteralValue)
+                    ? firebirdTemporalLiteralValue
+                    : l.Value;
 
             case ParameterExpr p:
                 if (TryResolveLocalFunctionValue(p.Name, out var localParameterValue))
@@ -2325,6 +2351,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
                         dict[_qualifiedColumnNames![i]] = row?.TryGetValue(idx, out var v) == true
                             ? v
                             : null;
+                        if (_sourceQualifiedColumnNames is not null)
+                            dict[_sourceQualifiedColumnNames[i]] = dict[_qualifiedColumnNames[i]];
                     }
                     yield return dict;
                 }
@@ -2340,6 +2368,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
                         dict[_resultQualifiedColumnNames[i]] = row.TryGetValue(i, out var v)
                             ? v
                             : null;
+                        if (_sourceQualifiedColumnNames is not null)
+                            dict[_sourceQualifiedColumnNames[i]] = dict[_resultQualifiedColumnNames[i]];
                     }
                     yield return dict;
                 }
@@ -2465,7 +2495,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
     internal readonly record struct DateTimeOffsetParseCacheEntry(bool Success, DateTimeOffset Value);
     internal readonly record struct TimeSpanParseCacheEntry(bool Success, TimeSpan Value);
     internal enum SqlTruthValue { True, False, Unknown }
-    internal enum TemporalUnit { Unknown, Year, Month, Day, Hour, Minute, Second }
+    internal enum TemporalUnit { Unknown, Year, Month, Day, Week, Weekday, Yearday, Hour, Minute, Second, Millisecond }
 
     private static readonly IReadOnlyDictionary<string, TemporalUnit> _temporalUnits = new Dictionary<string, TemporalUnit>(StringComparer.OrdinalIgnoreCase)
     {
@@ -2480,6 +2510,9 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         ["DAYS"] = TemporalUnit.Day,
         ["DD"] = TemporalUnit.Day,
         ["D"] = TemporalUnit.Day,
+        ["WEEK"] = TemporalUnit.Week,
+        ["WEEKDAY"] = TemporalUnit.Weekday,
+        ["YEARDAY"] = TemporalUnit.Yearday,
         ["HOUR"] = TemporalUnit.Hour,
         ["HOURS"] = TemporalUnit.Hour,
         ["HH"] = TemporalUnit.Hour,
@@ -2490,7 +2523,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         ["SECOND"] = TemporalUnit.Second,
         ["SECONDS"] = TemporalUnit.Second,
         ["SS"] = TemporalUnit.Second,
-        ["S"] = TemporalUnit.Second
+        ["S"] = TemporalUnit.Second,
+        ["MILLISECOND"] = TemporalUnit.Millisecond
     };
 
     private static readonly IReadOnlyDictionary<string, DayOfWeek> _oracleDayOfWeekMap = new Dictionary<string, DayOfWeek>(StringComparer.OrdinalIgnoreCase)
@@ -2831,11 +2865,13 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
                 targetFields[qualifiedName] = value;
                 targetFields.TryAdd(columnName, value);
+                var sourceQualifiedName = source.GetSourceQualifiedColumnName(i);
+                if (sourceQualifiedName is not null)
+                    targetFields.TryAdd(sourceQualifiedName, value);
 
                 ordinalValues[ordinalIndex] = value;
                 ordinalIndexes.TryAdd(qualifiedName, ordinalIndex);
                 ordinalIndexes.TryAdd(columnName, ordinalIndex);
-                var sourceQualifiedName = source.GetSourceQualifiedColumnName(i);
                 if (sourceQualifiedName is not null)
                     ordinalIndexes.TryAdd(sourceQualifiedName, ordinalIndex);
             }

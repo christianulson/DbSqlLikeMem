@@ -251,6 +251,12 @@ internal sealed class OracleDialect : SqlDialectBase, ISqlDialect
     /// </summary>
     public override bool ConcatReturnsNullOnNullInput => false;
 
+    /// <inheritdoc />
+    public override bool PlusStringConcatReturnsNullOnNullInput => true;
+
+    /// <inheritdoc />
+    public override bool ConcatFunctionReturnsNullOnNullInput => false;
+
     /// <summary>
     /// EN: Represents Is Integer Cast Type Name.
     /// PT: Representa Is Integer Cast Type Name.
@@ -264,4 +270,5 @@ internal sealed class OracleDialect : SqlDialectBase, ISqlDialect
                 || typeName.StartsWith("NUMBER", StringComparison.OrdinalIgnoreCase));
 
 }
+
 

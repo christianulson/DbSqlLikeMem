@@ -1,6 +1,3 @@
-using System.Globalization;
-using System.Text;
-
 namespace DbSqlLikeMem;
 
 internal static class AstQuerySharedTextFunctionEvaluator
@@ -74,6 +71,9 @@ internal static class AstQuerySharedTextFunctionEvaluator
 
         if (string.Equals(fn.Name, "REPLACE", StringComparison.OrdinalIgnoreCase))
             return TryEvalReplaceFunction(evalArg, out result);
+
+        if (string.Equals(fn.Name, "OVERLAY", StringComparison.OrdinalIgnoreCase))
+            return TryEvalOverlayFunction(fn, evalArg, out result);
 
         if (string.Equals(fn.Name, "REVERSE", StringComparison.OrdinalIgnoreCase))
             return TryEvalReverseFunction(evalArg, out result);
@@ -441,6 +441,44 @@ internal static class AstQuerySharedTextFunctionEvaluator
 
         result = ToInvariantText(source)
             .Replace(ToInvariantText(from), ToInvariantText(to));
+        return true;
+    }
+
+    private static bool TryEvalOverlayFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var source = evalArg(0);
+        var replacement = evalArg(1);
+        var positionValue = evalArg(2);
+        var lengthValue = fn.Args.Count > 3 ? evalArg(3) : null;
+        if (AstQueryExecutorBase.IsNullish(source)
+            || AstQueryExecutorBase.IsNullish(replacement)
+            || AstQueryExecutorBase.IsNullish(positionValue)
+            || (fn.Args.Count > 3 && AstQueryExecutorBase.IsNullish(lengthValue)))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = ToInvariantText(source);
+        var replacementText = ToInvariantText(replacement);
+
+        var position = Convert.ToInt32(positionValue.ToDec(), CultureInfo.InvariantCulture);
+        var length = fn.Args.Count > 3
+            ? Convert.ToInt32(lengthValue!.ToDec(), CultureInfo.InvariantCulture)
+            : replacementText.Length;
+        if (position <= 0)
+        {
+            result = text;
+            return true;
+        }
+
+        var startIndex = Math.Min(position - 1, text.Length);
+        var overwriteLength = Math.Max(0, length);
+        var endIndex = Math.Min(text.Length, startIndex + overwriteLength);
+        result = text[..startIndex] + replacementText + text[endIndex..];
         return true;
     }
 

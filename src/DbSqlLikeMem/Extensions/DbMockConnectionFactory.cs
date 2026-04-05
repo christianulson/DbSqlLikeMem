@@ -29,6 +29,10 @@ public static class DbMockConnectionFactory
             ["sqlite3"] = "Sqlite",
             ["db2"] = "Db2",
             ["ibmdb2"] = "Db2",
+            ["firebird"] = "Firebird",
+            ["firebirdsql"] = "Firebird",
+            ["fire_bird"] = "Firebird",
+            ["fire-bird"] = "Firebird",
             ["npgsql"] = "Npgsql",
             ["pg"] = "Npgsql",
             ["postgres"] = "Npgsql",
@@ -161,6 +165,30 @@ public static class DbMockConnectionFactory
 
     public static (DbMock Db, IDbConnection Connection) CreateDb2WithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("Db2", tableMappers);
+
+    /// <summary>
+    /// EN: Creates a Firebird mock and resolves its matching connection.
+    /// PT: Cria um mock Firebird e resolve sua conexao correspondente.
+    /// </summary>
+    public static (DbMock Db, IDbConnection Connection) CreateFirebirdWithTables(params Action<DbMock>[] tableMappers)
+        => CreateWithTables("Firebird", tableMappers);
+
+    /// <summary>
+    /// EN: Creates a Firebird mock and wraps its connection with the interception pipeline.
+    /// PT: Cria um mock Firebird e encapsula sua conexao com o pipeline de interceptacao.
+    /// </summary>
+    public static (DbMock Db, DbConnection Connection) CreateFirebirdWithTablesIntercepted(
+        params DbConnectionInterceptor[] interceptors)
+        => CreateWithTablesIntercepted("Firebird", interceptors);
+
+    /// <summary>
+    /// EN: Creates a Firebird mock and wraps its connection using interception options.
+    /// PT: Cria um mock Firebird e encapsula sua conexao usando opcoes de interceptacao.
+    /// </summary>
+    public static (DbMock Db, DbConnection Connection) CreateFirebirdWithTablesIntercepted(
+        DbInterceptionOptions options,
+        params Action<DbMock>[] tableMappers)
+        => CreateWithTablesIntercepted("Firebird", options, tableMappers);
 
     /// <summary>
     /// EN: Creates a DB2 mock and wraps its connection with the interception pipeline.
@@ -321,6 +349,7 @@ public static class DbMockConnectionFactory
             "MARIADB" => ("DbSqlLikeMem.MariaDb.MariaDbDbMock, DbSqlLikeMem.MariaDb", "DbSqlLikeMem.MariaDb.MariaDbConnectionMock, DbSqlLikeMem.MariaDb"),
             "SQLITE" => ("DbSqlLikeMem.Sqlite.SqliteDbMock, DbSqlLikeMem.Sqlite", "DbSqlLikeMem.Sqlite.SqliteConnectionMock, DbSqlLikeMem.Sqlite"),
             "DB2" => ("DbSqlLikeMem.Db2.Db2DbMock, DbSqlLikeMem.Db2", "DbSqlLikeMem.Db2.Db2ConnectionMock, DbSqlLikeMem.Db2"),
+            "FIREBIRD" => ("DbSqlLikeMem.Firebird.FirebirdDbMock, DbSqlLikeMem.Firebird", "DbSqlLikeMem.Firebird.FirebirdConnectionMock, DbSqlLikeMem.Firebird"),
             "NPGSQL" => ("DbSqlLikeMem.Npgsql.NpgsqlDbMock, DbSqlLikeMem.Npgsql", "DbSqlLikeMem.Npgsql.NpgsqlConnectionMock, DbSqlLikeMem.Npgsql"),
             "ORACLE" => ("DbSqlLikeMem.Oracle.OracleDbMock, DbSqlLikeMem.Oracle", "DbSqlLikeMem.Oracle.OracleConnectionMock, DbSqlLikeMem.Oracle"),
             _ => default
@@ -368,6 +397,7 @@ public static class DbMockConnectionFactory
             "DbSqlLikeMem.SqlAzure",
             "DbSqlLikeMem.Oracle",
             "DbSqlLikeMem.Db2",
+            "DbSqlLikeMem.Firebird",
             "DbSqlLikeMem.Npgsql"
         };
 
@@ -612,3 +642,5 @@ public static class DbMockConnectionFactory
         Func<DbMock> CreateDbMock,
         Func<DbMock, IDbConnection> ResolveConnection);
 }
+
+

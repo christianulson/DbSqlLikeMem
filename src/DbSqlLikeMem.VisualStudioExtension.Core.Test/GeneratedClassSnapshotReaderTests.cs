@@ -1,5 +1,3 @@
-using FluentAssertions;
-
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>

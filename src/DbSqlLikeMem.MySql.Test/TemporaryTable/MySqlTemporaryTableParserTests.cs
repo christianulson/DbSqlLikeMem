@@ -1,5 +1,3 @@
-using FluentAssertions;
-
 namespace DbSqlLikeMem.MySql.Test.TemporaryTable;
 
 /// <summary>

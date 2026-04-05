@@ -1,3 +1,5 @@
+using DbSqlLikeMem.Firebird;
+
 namespace DbSqlLikeMem.Auto;
 
 /// <summary>
@@ -39,6 +41,7 @@ internal sealed class AutoSqlDialect : SqlDialectBase
     {
         SqlSharedScalarFunctionRegistry.Register(this);
         AutoScalarFunctionRegistry.Register(this);
+        FirebirdScalarFunctionRegistry.Register(this, version);
         SqlSharedWindowFunctionRegistry.Register(this);
         AutoSqlServerScalarFunctionRegistry.Register(this);
         AutoTableFunctionRegistry.Register(this);

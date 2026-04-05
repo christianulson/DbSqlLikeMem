@@ -1,0 +1,18 @@
+using DbSqlLikeMem.TestTools.Tests.Query;
+
+namespace DbSqlLikeMem.Firebird.Test.Fidelity.Query;
+
+/// <summary>
+/// EN: Runs Firebird fidelity tests for the shared scalar temporal workflows.
+/// PT: Executa testes de fidelidade Firebird para os fluxos compartilhados temporais escalares.
+/// </summary>
+public class ScalarTemporalTests(
+    ITestOutputHelper helper
+    ) : ScalarTemporalTestsBase<FirebirdConnectionMock, FbConnection>(
+    helper,
+    new FirebirdProviderSqlDialect(),
+    () => new FirebirdConnectionMock(),
+    s => new FbConnection(s)
+    )
+{
+}

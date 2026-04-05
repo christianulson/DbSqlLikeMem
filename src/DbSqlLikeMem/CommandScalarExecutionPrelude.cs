@@ -242,6 +242,7 @@ internal static class CommandScalarExecutionPrelude
             || functionName.Equals(SqlConst.CURRVAL, StringComparison.OrdinalIgnoreCase)
             || functionName.Equals(SqlConst.SETVAL, StringComparison.OrdinalIgnoreCase)
             || functionName.Equals(SqlConst.LASTVAL, StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("GEN_ID", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("PREVIOUS_VALUE_FOR", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryEvaluateSimpleCountStarScalar(
@@ -1033,7 +1034,7 @@ internal static class CommandScalarExecutionPrelude
     {
         if (left is null or DBNull || right is null or DBNull)
         {
-            value = context.Dialect.ConcatReturnsNullOnNullInput ? null : string.Concat(left?.ToString() ?? string.Empty, right?.ToString() ?? string.Empty);
+            value = context.Dialect.PlusStringConcatReturnsNullOnNullInput ? null : string.Concat(left?.ToString() ?? string.Empty, right?.ToString() ?? string.Empty);
             return true;
         }
 

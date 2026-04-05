@@ -73,7 +73,7 @@ internal static class QueryConcatFunctionHelper
         if (IsNullish(value))
         {
             part = string.Empty;
-            return !context.Dialect.ConcatReturnsNullOnNullInput;
+            return !context.Dialect.ConcatFunctionReturnsNullOnNullInput;
         }
 
         part = value?.ToString() ?? string.Empty;
@@ -83,3 +83,4 @@ internal static class QueryConcatFunctionHelper
     private static bool IsNullish(object? value)
         => value is null or DBNull;
 }
+

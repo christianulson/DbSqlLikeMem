@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+		<OutputType>Exe</OutputType>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem.Firebird.XUnit\DbSqlLikeMem.Firebird.XUnit.csproj" />
+		<ProjectReference Include="..\DbSqlLikeMem.Firebird\DbSqlLikeMem.Firebird.csproj" />
+		<ProjectReference Include="..\DbSqlLikeMem.Firebird.TestTools\DbSqlLikeMem.Firebird.TestTools.csproj" />
+		<ProjectReference Include="..\DbSqlLikeMem.TestTools\DbSqlLikeMem.TestTools.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Include="..\DbSqlLikeMem.Test\Firebird\*.cs" Link="Firebird\%(Filename)%(Extension)" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Using Include="DbSqlLikeMem" />
+		<Using Include="DbSqlLikeMem.Firebird" />
+		<Using Include="DbSqlLikeMem.Firebird.TestTools" />
+		<Using Include="FirebirdSql.Data.FirebirdClient" />
+		<Using Include="DbSqlLikeMem.TestTools" />
+		<Using Include="System.Collections.Generic" />
+		<Using Include="System.Data" />
+		<Using Include="System.Data.Common" />
+		<Using Include="Xunit" />
+	</ItemGroup>
+
+</Project>
+
+

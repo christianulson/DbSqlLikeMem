@@ -29,6 +29,7 @@ internal static class SqlFunctionParameterParserHelper
         if (duplicateNames.Count > 0)
             throw new InvalidOperationException($"CREATE FUNCTION parameter list cannot contain duplicate names: {string.Join(", ", duplicateNames)}.");
 
+        EnsureTrailingDefaultParameters(parameters);
         return parameters;
     }
 
@@ -61,14 +62,44 @@ internal static class SqlFunctionParameterParserHelper
             throw new NotSupportedException("CREATE FUNCTION currently supports only input parameters in the mock.");
         }
 
-        if (tokens.Skip(index).Any(static token => token.Text.Equals(SqlConst.DEFAULT, StringComparison.OrdinalIgnoreCase) || token.Text == "="))
-            throw new NotSupportedException("CREATE FUNCTION parameter default values are not supported in the mock yet.");
+        var defaultIndex = tokens.FindIndex(index, static token => token.Text.Equals(SqlConst.DEFAULT, StringComparison.OrdinalIgnoreCase) || token.Text == "=");
+        var typeTokens = defaultIndex >= 0
+            ? tokens.Skip(index).Take(defaultIndex - index).ToList()
+            : tokens.Skip(index).ToList();
 
-        var typeSql = ctx.TokensToSql([.. tokens.Skip(index)]).Trim();
+        if (typeTokens.Count == 0)
+            throw new InvalidOperationException($"CREATE FUNCTION parameter '{nameToken.Text}' requires a type.");
+
+        var typeSql = ctx.TokensToSql(typeTokens).Trim();
         if (string.IsNullOrWhiteSpace(typeSql))
             throw new InvalidOperationException($"CREATE FUNCTION parameter '{nameToken.Text}' requires a type.");
 
-        return new DbFunctionParameterDef(nameToken.Text, typeSql);
+        object? defaultValue = null;
+        var hasDefault = defaultIndex >= 0
+            && ctx.TryParseParameterDefaultValue(tokens.Skip(defaultIndex).ToList(), out defaultValue);
+
+        return new DbFunctionParameterDef(
+            nameToken.Text,
+            typeSql,
+            Required: !hasDefault,
+            DefaultValue: defaultValue);
+    }
+
+    private static void EnsureTrailingDefaultParameters(IReadOnlyList<DbFunctionParameterDef> parameters)
+    {
+        var sawOptionalParameter = false;
+        foreach (var parameter in parameters)
+        {
+            if (parameter.Required)
+            {
+                if (sawOptionalParameter)
+                    throw new InvalidOperationException("CREATE FUNCTION parameter default values must be trailing.");
+
+                continue;
+            }
+
+            sawOptionalParameter = true;
+        }
     }
 
     private static bool IsFunctionParameterWord(SqlToken token, string word)

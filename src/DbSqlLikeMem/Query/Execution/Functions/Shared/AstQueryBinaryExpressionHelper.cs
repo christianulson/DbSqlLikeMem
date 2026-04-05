@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace DbSqlLikeMem;
 
 internal static class AstQueryBinaryExpressionHelper
@@ -17,7 +15,7 @@ internal static class AstQueryBinaryExpressionHelper
             return false;
         }
 
-        var nullInputReturnsNull = dialect?.ConcatReturnsNullOnNullInput ?? true;
+        var nullInputReturnsNull = dialect?.PlusStringConcatReturnsNullOnNullInput ?? true;
         if (left is null or DBNull || right is null or DBNull)
         {
             if (nullInputReturnsNull)
@@ -84,3 +82,4 @@ internal static class AstQueryBinaryExpressionHelper
         };
     }
 }
+

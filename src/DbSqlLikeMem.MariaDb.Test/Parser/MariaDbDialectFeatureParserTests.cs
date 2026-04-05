@@ -1,5 +1,3 @@
-using Google.Protobuf.Compiler;
-
 namespace DbSqlLikeMem.MariaDb.Test.Parser;
 
 /// <summary>

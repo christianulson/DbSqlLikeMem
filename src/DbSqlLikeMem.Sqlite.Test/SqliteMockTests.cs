@@ -1,7 +1,3 @@
-using FluentAssertions;
-
-using FluentAssertions;
-
 namespace DbSqlLikeMem.Sqlite.Test;
 
 /// <summary>

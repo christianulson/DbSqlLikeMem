@@ -1,6 +1,5 @@
 using Oracle.ManagedDataAccess.Client;
 using System.Collections.Immutable;
-using System.Globalization;
 using System.Text.Json;
 
 namespace DbSqlLikeMem.Oracle;

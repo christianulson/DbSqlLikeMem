@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<Description>Firebird provider for the DbSqlLikeMem in-memory SQL-like database.</Description>
 	</PropertyGroup>
@@ -15,6 +15,7 @@
 	</ItemGroup>
 	<ItemGroup>
 		<InternalsVisibleTo Include="DbSqlLikeMem.Auto" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Firebird.NHibernate" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Firebird.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Firebird.Dapper.Test" />

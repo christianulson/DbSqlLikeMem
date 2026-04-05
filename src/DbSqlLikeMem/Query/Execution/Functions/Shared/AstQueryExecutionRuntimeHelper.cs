@@ -17,6 +17,9 @@ internal static class AstQueryExecutionRuntimeHelper
         ["DAYS"] = TemporalUnit.Day,
         ["DD"] = TemporalUnit.Day,
         ["D"] = TemporalUnit.Day,
+        ["WEEK"] = TemporalUnit.Week,
+        ["WEEKDAY"] = TemporalUnit.Weekday,
+        ["YEARDAY"] = TemporalUnit.Yearday,
         ["HOUR"] = TemporalUnit.Hour,
         ["HOURS"] = TemporalUnit.Hour,
         ["HH"] = TemporalUnit.Hour,
@@ -28,6 +31,7 @@ internal static class AstQueryExecutionRuntimeHelper
         ["SECONDS"] = TemporalUnit.Second,
         ["SS"] = TemporalUnit.Second,
         ["S"] = TemporalUnit.Second,
+        ["MILLISECOND"] = TemporalUnit.Millisecond,
     };
 
     internal static TemporalUnit ResolveTemporalUnit(string unit)

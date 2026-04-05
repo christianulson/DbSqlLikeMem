@@ -1,12 +1,12 @@
 namespace DbSqlLikeMem.Firebird;
 
-internal partial class FirebirdDialect : SqlDialectBase
+internal partial class FirebirdDialect : SqlDialectBase, ISqlDialect
 {
     internal const string DialectName = "firebird";
 
     internal FirebirdDialect(
         int version
-        ) : base(
+    ) : base(
         name: DialectName,
         version: version,
         keywords: [],
@@ -29,9 +29,8 @@ internal partial class FirebirdDialect : SqlDialectBase
             ">=", "<=", "<>", "!="
         ])
     {
-        //FirebirdScalarFunctionRegistry.Register(this, version);
+        FirebirdScalarFunctionRegistry.Register(this, version);
         SqlSharedWindowFunctionRegistry.Register(this);
-        //FirebirdTableFunctionRegistry.Register(this, version);
     }
 
     internal const int WithCteMinVersion = FirebirdDbVersions.Version2_1;
@@ -39,8 +38,9 @@ internal partial class FirebirdDialect : SqlDialectBase
     internal const int ReturningMinVersion = FirebirdDbVersions.Version2_1;
     internal const int OffsetFetchMinVersion = FirebirdDbVersions.Version3_0;
     internal const int FetchFirstMinVersion = FirebirdDbVersions.Version3_0;
+    internal const int WindowFunctionsROW_NUMBERMinVersion = FirebirdDbVersions.Version3_0;
     internal const int WindowFunctionsMinVersion = FirebirdDbVersions.Version3_0;
-    internal const int FunctionDdlMinVersion = FirebirdDbVersions.Version4_0;
+    internal const int FunctionDdlMinVersion = FirebirdDbVersions.Version3_0;
 
     /// <summary>
     /// EN: Gets or sets identifier escape style.
@@ -94,7 +94,7 @@ internal partial class FirebirdDialect : SqlDialectBase
     /// EN: Indicates whether SQL window functions are supported by the configured Firebird version.
     /// PT: Indica se funções de janela SQL são suportadas pela versão configurada do Firebird.
     /// </summary>
-    public override bool SupportsWindowFunctions => Version >= WindowFunctionsMinVersion;
+    public override bool SupportsWindowFunctions => Version >= WindowFunctionsROW_NUMBERMinVersion;
 
     /// <summary>
     /// EN: Indicates whether SQL window frame clauses are supported by the configured version.
@@ -164,6 +164,15 @@ internal partial class FirebirdDialect : SqlDialectBase
 
     /// <inheritdoc />
     public override bool SupportsPreviousValueForSequenceExpression => false;
+
+    /// <inheritdoc />
+    public override bool SupportsSequenceFunctionCall(string functionName)
+        => functionName.Equals("GEN_ID", StringComparison.OrdinalIgnoreCase)
+           || base.SupportsSequenceFunctionCall(functionName);
+
+    bool ISqlDialect.SupportsDb2TriggerDdl => true;
+
+    bool ISqlDialect.SupportsDb2ProcedureDdl => true;
 
     /// <summary>
     /// EN: Gets or sets null substitute function names.

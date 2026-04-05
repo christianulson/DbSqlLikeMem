@@ -241,7 +241,24 @@ internal abstract class SqlDialectBase : ISqlDialect
             return registryNames;
         }
     }
-    public virtual bool ConcatReturnsNullOnNullInput => true;
+
+    /// <summary>
+    /// EN: Indicates whether string concatenation with the plus operator returns null when any operand is null.
+    /// PT: Indica se a concatenacao de strings com o operador mais retorna null quando qualquer operando e null.
+    /// </summary>
+    public virtual bool PlusStringConcatReturnsNullOnNullInput => true;
+
+    /// <summary>
+    /// EN: Indicates whether CONCAT() returns null when any argument is null.
+    /// PT: Indica se CONCAT() retorna null quando qualquer argumento e null.
+    /// </summary>
+    public virtual bool ConcatFunctionReturnsNullOnNullInput => true;
+
+    /// <summary>
+    /// EN: Legacy combined concat null behavior kept for compatibility with older call sites.
+    /// PT: Comportamento legado combinado de concat null mantido por compatibilidade com call sites antigos.
+    /// </summary>
+    public virtual bool ConcatReturnsNullOnNullInput => PlusStringConcatReturnsNullOnNullInput && ConcatFunctionReturnsNullOnNullInput;
 
     public virtual bool RegexInvalidPatternEvaluatesToFalse => false;
 
@@ -999,3 +1016,4 @@ internal abstract class SqlDialectBase : ISqlDialect
     public bool TryMapBinaryOperator(string token, out SqlBinaryOp op)
         => _binOps.TryGetValue(token, out op);
 }
+

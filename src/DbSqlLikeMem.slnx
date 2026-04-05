@@ -23,7 +23,19 @@
     <Project Path="DbSqlLikeMem.Db2.TestTools/DbSqlLikeMem.Db2.TestTools.csproj" />
   </Folder>
   <Folder Name="/Firebird/">
+    <Project Path="DbSqlLikeMem.Firebird.EfCore/DbSqlLikeMem.Firebird.EfCore.csproj" />
+    <Project Path="DbSqlLikeMem.Firebird.LinqToDb/DbSqlLikeMem.Firebird.LinqToDb.csproj" />
     <Project Path="DbSqlLikeMem.Firebird/DbSqlLikeMem.Firebird.csproj" />
+    <Project Path="DbSqlLikeMem.Firebird.XUnit/DbSqlLikeMem.Firebird.XUnit.csproj" />
+    <Project Path="DbSqlLikeMem.Firebird.NHibernate/DbSqlLikeMem.Firebird.NHibernate.csproj" />
+  </Folder>
+  <Folder Name="/Firebird/Tests/">
+    <Project Path="DbSqlLikeMem.Firebird.Dapper.Test/DbSqlLikeMem.Firebird.Dapper.Test.csproj" />
+    <Project Path="DbSqlLikeMem.Firebird.EfCore.Test/DbSqlLikeMem.Firebird.EfCore.Test.csproj" />
+    <Project Path="DbSqlLikeMem.Firebird.LinqToDb.Test/DbSqlLikeMem.Firebird.LinqToDb.Test.csproj" />
+    <Project Path="DbSqlLikeMem.Firebird.Test/DbSqlLikeMem.Firebird.Test.csproj" />
+    <Project Path="DbSqlLikeMem.Firebird.NHibernate.Test/DbSqlLikeMem.Firebird.NHibernate.Test.csproj" />
+    <Project Path="DbSqlLikeMem.Firebird.TestTools/DbSqlLikeMem.Firebird.TestTools.csproj" />
   </Folder>
   <Folder Name="/MariaDb/">
     <Project Path="DbSqlLikeMem.MariaDb.XUnit/DbSqlLikeMem.MariaDb.XUnit.csproj" />

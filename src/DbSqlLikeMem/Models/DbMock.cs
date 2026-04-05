@@ -34,6 +34,7 @@ public abstract class DbMock
         new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _runtimeFunctions =
         new(StringComparer.OrdinalIgnoreCase);
+    private int _nextFirebirdTransactionId = 1;
 
     IEnumerable<string> IReadOnlyDictionary<string, ISchemaMock>.Keys => Keys;
 
@@ -199,6 +200,9 @@ public abstract class DbMock
 
     internal void ClearGlobalTemporaryTables()
         => _globalTemporaryTables.Clear();
+
+    internal int AllocateFirebirdTransactionId()
+        => _nextFirebirdTransactionId++;
 
     internal void DropGlobalTemporaryTable(
         string tableName,

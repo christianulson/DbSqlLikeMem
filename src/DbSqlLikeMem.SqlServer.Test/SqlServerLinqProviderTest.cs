@@ -1,5 +1,3 @@
-using FluentAssertions;
-
 namespace DbSqlLikeMem.SqlServer.Test;
 /// <summary>
 /// EN: Verifies LINQ query translation and provider metadata behavior for SQL Server connections.

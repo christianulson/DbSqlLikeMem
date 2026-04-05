@@ -1,5 +1,3 @@
-using FluentAssertions;
-
 namespace DbSqlLikeMem.Npgsql.Test;
 /// <summary>
 /// EN: Verifies LINQ query translation and provider metadata behavior for PostgreSQL connections.

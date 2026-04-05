@@ -1,0 +1,18 @@
+using DbSqlLikeMem.TestTools.Tests.Query;
+
+namespace DbSqlLikeMem.Firebird.Test.Fidelity.Query;
+
+/// <summary>
+/// EN: Runs Firebird fidelity tests for the shared typed-field and SQL function workflows.
+/// PT: Executa testes de fidelidade Firebird para os fluxos compartilhados de campos tipados e funcoes SQL.
+/// </summary>
+public class FieldTypeFunctionTests(
+    ITestOutputHelper helper
+    ) : FieldTypeFunctionTestsBase<FirebirdConnectionMock, FbConnection>(
+    helper,
+    new FirebirdProviderSqlDialect(),
+    () => new FirebirdConnectionMock(),
+    s => new FbConnection(s)
+    )
+{
+}

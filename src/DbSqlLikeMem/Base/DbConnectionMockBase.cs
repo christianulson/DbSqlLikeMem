@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Diagnostics.CodeAnalysis;
 
 namespace DbSqlLikeMem;
@@ -28,6 +27,8 @@ public abstract class DbConnectionMockBase(
         UpdateSequence,
         UpsertFunction,
         DropFunction,
+        DropProcedure,
+        DropTrigger,
         UpsertProcedure
     }
 
@@ -62,6 +63,7 @@ public abstract class DbConnectionMockBase(
         TransactionSequenceState? SequenceState = null,
         TransactionFunctionState? FunctionState = null,
         TransactionProcedureState? ProcedureState = null,
+        TransactionTriggerState? TriggerState = null,
         Dictionary<int, object?>? NewRowSnapshot = null);
 
     private sealed record TransactionViewState(
@@ -86,6 +88,11 @@ public abstract class DbConnectionMockBase(
         string ProcedureName,
         ProcedureDef? PreviousDefinition);
 
+    private sealed record TransactionTriggerState(
+        string SchemaName,
+        string TriggerName,
+        TableTriggerEvent PreviousEvent);
+
     private bool _disposed;
     private readonly Dictionary<string, int> _savepoints =
         new(StringComparer.OrdinalIgnoreCase);
@@ -94,6 +101,7 @@ public abstract class DbConnectionMockBase(
     private readonly HashSet<TableMock> _journalObservedTables = [];
     private int _transactionBeginJournalPosition;
     private bool _isReplayingTransactionJournal;
+    private int _currentTransactionId;
     private static readonly System.Threading.AsyncLocal<DbConnectionMockBase?> _ambientMutationConnection = new();
 
     /// <summary>
@@ -152,9 +160,12 @@ public abstract class DbConnectionMockBase(
         new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, object?> _sessionContextValues =
         new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, object?> _transactionContextValues =
+        new(StringComparer.OrdinalIgnoreCase);
     private byte[]? _contextInfo;
     private string? _lastSessionSequenceKey;
     private string? _currentQueryText;
+    private static readonly System.Threading.AsyncLocal<TableTriggerEvent?> _ambientTriggerEvent = new();
 
     internal void ClearExecutionPlans()
     {
@@ -197,6 +208,11 @@ public abstract class DbConnectionMockBase(
 
     internal IDisposable BeginCurrentQueryScope(string? sql)
         => new CurrentQueryScope(this, sql);
+
+    internal static TableTriggerEvent? CurrentTriggerEvent => _ambientTriggerEvent.Value;
+
+    internal static IDisposable BeginTriggerScope(TableTriggerEvent evt)
+        => new TriggerScope(evt);
 
     /// <summary>
     /// EN: Last runtime query debug trace captured for this connection.
@@ -645,6 +661,27 @@ public abstract class DbConnectionMockBase(
         }
     }
 
+    private sealed class TriggerScope : IDisposable
+    {
+        private readonly TableTriggerEvent? _previousEvent;
+        private bool _disposed;
+
+        public TriggerScope(TableTriggerEvent evt)
+        {
+            _previousEvent = _ambientTriggerEvent.Value;
+            _ambientTriggerEvent.Value = evt;
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+                return;
+
+            _ambientTriggerEvent.Value = _previousEvent;
+            _disposed = true;
+        }
+    }
+
     internal void SetLastFoundRows(long value)
     {
         var normalized = Math.Max(0, value);
@@ -666,6 +703,9 @@ public abstract class DbConnectionMockBase(
 
     internal object? GetLastInsertId()
         => _lastInsertId;
+
+    internal int GetCurrentTransactionId()
+        => _currentTransactionId;
 
     /// <summary>
     /// EN: Simulated latency in milliseconds for each operation.
@@ -1565,6 +1605,42 @@ public abstract class DbConnectionMockBase(
         SqlQueryParser.ClearAstCache();
     }
 
+    internal void DropProcedure(
+        string procedureName,
+        bool ifExists,
+        string? schemaName = null)
+    {
+        var targetSchema = schemaName ?? Database;
+        if (!Db.TryGetProcedure(procedureName, out var previousDefinition, targetSchema)
+            || previousDefinition is null)
+        {
+            if (ifExists)
+                return;
+
+            throw new InvalidOperationException($"Procedure '{procedureName}' does not exist.");
+        }
+
+        if (CurrentTransaction != null)
+        {
+            _transactionJournal.Add(new TransactionJournalEntry(
+                null!,
+                TransactionJournalEntryKind.DropProcedure,
+                -1,
+                null,
+                null,
+                0,
+                default,
+                string.Empty,
+                ProcedureState: new TransactionProcedureState(
+                    targetSchema,
+                    procedureName.NormalizeName(),
+                    previousDefinition)));
+        }
+
+        Db.RemoveProcedure(procedureName, targetSchema);
+        SqlQueryParser.ClearAstCache();
+    }
+
     internal void CreateProcedure(
         string procedureName,
         ProcedureDef procedure,
@@ -1638,6 +1714,65 @@ public abstract class DbConnectionMockBase(
                 query.IsBefore,
                 query.Event,
                 query.OrReplace);
+    }
+
+    internal void DropTrigger(
+        string triggerName,
+        bool ifExists,
+        string? schemaName = null)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(triggerName, nameof(triggerName));
+        var normalizedTriggerName = triggerName.NormalizeName();
+        var normalizedSchemaName = string.IsNullOrWhiteSpace(schemaName) ? null : Db.GetSchemaName(schemaName);
+
+        TableMock? match = null;
+        TableTriggerEvent previousEvent = default;
+        foreach (var table in Db.ListAllTablesBestEffort())
+        {
+            if (table is not TableMock tableMock)
+                continue;
+
+            if (normalizedSchemaName is not null
+                && !tableMock.Schema.SchemaName.Equals(normalizedSchemaName, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (!tableMock.TryGetTriggerEvent(normalizedTriggerName, out previousEvent))
+                continue;
+
+            if (!tableMock.RemoveTrigger(normalizedTriggerName))
+                continue;
+
+            match = tableMock;
+            break;
+        }
+
+        if (match is null)
+        {
+            if (ifExists)
+                return;
+
+            throw new InvalidOperationException($"Trigger '{normalizedTriggerName}' does not exist.");
+        }
+
+        if (CurrentTransaction != null)
+        {
+            _transactionJournal.Add(new TransactionJournalEntry(
+                match!,
+                TransactionJournalEntryKind.DropTrigger,
+                -1,
+                null,
+                null,
+                0,
+                TransactionTableRegistrationKind.Schema,
+                match!.Schema.SchemaName,
+                TriggerState: new TransactionTriggerState(
+                    match.Schema.SchemaName,
+                    normalizedTriggerName,
+                    previousEvent)));
+        }
+
+        _ = schemaName;
+        SqlQueryParser.ClearAstCache();
     }
 
     #endregion
@@ -1837,11 +1972,34 @@ public abstract class DbConnectionMockBase(
         if (string.IsNullOrWhiteSpace(key))
             return;
 
+        if (value is null)
+        {
+            _sessionContextValues.Remove(key);
+            return;
+        }
+
         _sessionContextValues[key] = value;
     }
 
     internal bool TryGetSessionContextValue(string key, out object? value)
         => _sessionContextValues.TryGetValue(key, out value);
+
+    internal void SetTransactionContextValue(string key, object? value)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return;
+
+        if (value is null)
+        {
+            _transactionContextValues.Remove(key);
+            return;
+        }
+
+        _transactionContextValues[key] = value;
+    }
+
+    internal bool TryGetTransactionContextValue(string key, out object? value)
+        => _transactionContextValues.TryGetValue(key, out value);
 
     internal void SetContextInfo(byte[]? value)
         => _contextInfo = value;
@@ -1857,7 +2015,7 @@ public abstract class DbConnectionMockBase(
         return $"{schema}:{sequenceName.NormalizeName()}";
     }
 
-    private void ClearSessionSequenceValue(
+    internal void ClearSessionSequenceValue(
         string sequenceName,
         string? schemaName)
     {
@@ -1889,6 +2047,8 @@ public abstract class DbConnectionMockBase(
     {
         CurrentIsolationLevel = isolationLevel;
         CurrentTransaction = CreateTransaction(isolationLevel);
+        _currentTransactionId = Db.AllocateFirebirdTransactionId();
+        _transactionContextValues.Clear();
         ClearTransactionStateCore();
         AttachTransactionJournalToCurrentTables();
         _transactionBeginJournalPosition = _transactionJournal.Count;
@@ -1938,6 +2098,7 @@ public abstract class DbConnectionMockBase(
     {
         CurrentTransaction?.Dispose();
         CurrentTransaction = null;
+        _currentTransactionId = 0;
         CurrentIsolationLevel = IsolationLevel.Unspecified;
         ClearTransactionStateCore();
 
@@ -1952,6 +2113,7 @@ public abstract class DbConnectionMockBase(
         _temporaryTables.Clear();
         _sessionSequenceValues.Clear();
         _sessionContextValues.Clear();
+        _transactionContextValues.Clear();
         _contextInfo = null;
         _lastInsertId = 0;
         _lastSessionSequenceKey = null;
@@ -2009,7 +2171,9 @@ public abstract class DbConnectionMockBase(
         Debug.WriteLine("Transaction Committed");
         ClearTransactionStateCore();
         CurrentTransaction = null;
+        _currentTransactionId = 0;
         CurrentIsolationLevel = IsolationLevel.Unspecified;
+        _transactionContextValues.Clear();
     }
 
     /// <summary>
@@ -2037,7 +2201,9 @@ public abstract class DbConnectionMockBase(
         RollbackJournalTo(_transactionBeginJournalPosition);
         ClearTransactionStateCore();
         CurrentTransaction = null;
+        _currentTransactionId = 0;
         CurrentIsolationLevel = IsolationLevel.Unspecified;
+        _transactionContextValues.Clear();
     }
 
     /// <summary>
@@ -2333,6 +2499,25 @@ public abstract class DbConnectionMockBase(
                                 entry.FunctionState.FunctionName,
                                 entry.FunctionState.PreviousDefinition,
                                 entry.FunctionState.SchemaName);
+                        }
+                        break;
+                    case TransactionJournalEntryKind.DropProcedure:
+                        if (entry.ProcedureState?.PreviousDefinition is not null)
+                        {
+                            Db.RestoreProcedure(
+                                entry.ProcedureState.ProcedureName,
+                                entry.ProcedureState.PreviousDefinition,
+                                entry.ProcedureState.SchemaName);
+                        }
+                        break;
+                    case TransactionJournalEntryKind.DropTrigger:
+                        if (entry.TriggerState is not null)
+                        {
+                            entry.Table!.AddOrReplaceTrigger(
+                                entry.TriggerState.TriggerName,
+                                entry.TriggerState.PreviousEvent,
+                                static _ => { },
+                                orReplace: true);
                         }
                         break;
                     case TransactionJournalEntryKind.UpsertProcedure:

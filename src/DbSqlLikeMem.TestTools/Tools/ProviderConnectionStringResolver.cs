@@ -87,6 +87,12 @@ public static class ProviderConnectionStringResolver
                 "DBSQLLIKEMEM_BENCH_DB2_CONNECTION_STRING",
                 "DB2_CONNECTION_STRING"
             ],
+            ProviderId.Firebird =>
+            [
+                "DBSQLLIKEMEM_BENCH_FIREBIRD_CONNECTION_STRING",
+                "FIREBIRD_CONNECTION_STRING"
+            ],
             _ => Array.Empty<string>()
         };
 }
+

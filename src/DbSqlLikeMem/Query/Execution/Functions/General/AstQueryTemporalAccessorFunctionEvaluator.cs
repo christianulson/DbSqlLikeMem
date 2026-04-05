@@ -159,9 +159,26 @@ internal static class AstQueryTemporalAccessorFunctionEvaluator
                 TemporalUnit.Day => dateTime.Day,
                 TemporalUnit.Month => dateTime.Month,
                 TemporalUnit.Year => dateTime.Year,
+                TemporalUnit.Week => GetIsoWeekOfYear(dateTime),
+                TemporalUnit.Weekday => (int)dateTime.DayOfWeek,
+                TemporalUnit.Yearday => dateTime.DayOfYear - 1,
                 TemporalUnit.Hour => dateTime.Hour,
                 TemporalUnit.Minute => dateTime.Minute,
                 TemporalUnit.Second => dateTime.Second,
+                TemporalUnit.Millisecond => dateTime.Millisecond,
+                _ => null
+            };
+            return true;
+        }
+
+        if (AstQueryExecutorBase.TryCoerceTimeSpan(value, out var timeSpan))
+        {
+            result = unit switch
+            {
+                TemporalUnit.Hour => timeSpan.Hours,
+                TemporalUnit.Minute => timeSpan.Minutes,
+                TemporalUnit.Second => timeSpan.Seconds,
+                TemporalUnit.Millisecond => timeSpan.Milliseconds,
                 _ => null
             };
             return true;

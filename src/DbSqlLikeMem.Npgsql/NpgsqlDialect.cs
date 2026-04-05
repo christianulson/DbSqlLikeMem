@@ -204,6 +204,12 @@ internal sealed class NpgsqlDialect : SqlDialectBase, ISqlDialect
     /// </summary>
     public override bool ConcatReturnsNullOnNullInput => false;
 
+    /// <inheritdoc />
+    public override bool PlusStringConcatReturnsNullOnNullInput => true;
+
+    /// <inheritdoc />
+    public override bool ConcatFunctionReturnsNullOnNullInput => false;
+
     /// <summary>
     /// EN: Gets temporary table scope.
     /// PT: Obtém temporary table scope.
@@ -218,3 +224,4 @@ internal sealed class NpgsqlDialect : SqlDialectBase, ISqlDialect
     }
 
 }
+

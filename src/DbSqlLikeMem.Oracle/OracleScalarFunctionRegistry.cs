@@ -1,4 +1,3 @@
-using System.Globalization;
 using DbSqlLikeMem.Models;
 
 namespace DbSqlLikeMem.Oracle;
@@ -213,6 +212,37 @@ internal static class OracleScalarFunctionRegistry
                 }
 
                 if ((context.Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para CAST.")).IsIntegerCastTypeName(type))
+                {
+                    if (value is decimal decimalValue)
+                    {
+                        result = decimalValue;
+                        return true;
+                    }
+
+                    if (value is int intValue)
+                    {
+                        result = (decimal)intValue;
+                        return true;
+                    }
+
+                    if (value is long longValue)
+                    {
+                        result = (decimal)longValue;
+                        return true;
+                    }
+
+                    if (decimal.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedDecimal))
+                    {
+                        result = parsedDecimal;
+                        return true;
+                    }
+
+                    result = 0m;
+                    return true;
+                }
+
+                if (type.StartsWith("DECIMAL", StringComparison.OrdinalIgnoreCase)
+                    || type.StartsWith("NUMERIC", StringComparison.OrdinalIgnoreCase))
                 {
                     if (value is decimal decimalValue)
                     {

@@ -14,6 +14,9 @@ internal static class SqlSpecialFunctionCallParserHelper
         if (name.Equals("CAST", StringComparison.OrdinalIgnoreCase))
             return ctx.TryParseCast(parseExpression, out expr);
 
+        if (name.Equals("OVERLAY", StringComparison.OrdinalIgnoreCase))
+            return ctx.TryParseOverlay(parseExpression, out expr);
+
         if (name.Equals("TRY_CAST", StringComparison.OrdinalIgnoreCase))
             return ctx.TryParseTryCast(parseExpression, out expr);
 
@@ -23,6 +26,18 @@ internal static class SqlSpecialFunctionCallParserHelper
         if (name.Equals("PARSE", StringComparison.OrdinalIgnoreCase)
             || name.Equals("TRY_PARSE", StringComparison.OrdinalIgnoreCase))
             return ctx.TryParseParseLike(name, parseExpression, out expr);
+
+        if (name.Equals("DATEADD", StringComparison.OrdinalIgnoreCase)
+            && ctx.Dialect.Name.Equals("firebird", StringComparison.OrdinalIgnoreCase))
+            return ctx.TryParseFirebirdDateAdd(parseExpression, out expr);
+
+        if (name.Equals("HASH", StringComparison.OrdinalIgnoreCase)
+            && ctx.Dialect.Name.Equals("firebird", StringComparison.OrdinalIgnoreCase))
+            return ctx.TryParseFirebirdHash(parseExpression, out expr);
+
+        if (name.Equals("CRYPT_HASH", StringComparison.OrdinalIgnoreCase)
+            && ctx.Dialect.Name.Equals("firebird", StringComparison.OrdinalIgnoreCase))
+            return ctx.TryParseFirebirdCryptHash(parseExpression, out expr);
 
         if (name.Equals(SqlConst.JSON_TABLE, StringComparison.OrdinalIgnoreCase))
         {
@@ -111,6 +126,39 @@ internal static class SqlSpecialFunctionCallParserHelper
         ExpectSymbol(ctx, ")");
         var typeSql = string.Join(" ", typeToks.Select(ctx.TokenToSql)).Trim();
         expr = new CallExpr("TRY_CAST", [inner, new RawSqlExpr(typeSql)])
+            .BindScalarFunctionDefinition(ctx.Dialect);
+        return true;
+    }
+
+    private static bool TryParseOverlay(
+        this SqlExpressionParserContext ctx,
+        Func<int, SqlExpr> parseExpression,
+        out CallExpr expr)
+    {
+        expr = default!;
+        var source = parseExpression(0);
+
+        if (!ctx.IsKeywordOrIdentifierWord("PLACING"))
+            throw ctx.Error("OVERLAY requires PLACING", ctx.Peek());
+        ctx.Consume();
+
+        var replacement = parseExpression(0);
+
+        if (!ctx.IsKeywordOrIdentifierWord("FROM"))
+            throw ctx.Error("OVERLAY requires FROM", ctx.Peek());
+        ctx.Consume();
+
+        var position = parseExpression(0);
+        var args = new List<SqlExpr> { source, replacement, position };
+
+        if (ctx.IsKeywordOrIdentifierWord(SqlConst.FOR))
+        {
+            ctx.Consume();
+            args.Add(parseExpression(0));
+        }
+
+        ExpectSymbol(ctx, ")");
+        expr = new CallExpr("OVERLAY", [.. args])
             .BindScalarFunctionDefinition(ctx.Dialect);
         return true;
     }
@@ -214,6 +262,101 @@ internal static class SqlSpecialFunctionCallParserHelper
 
         ExpectSymbol(ctx, ")");
         expr = new CallExpr(functionName, [.. parseArgs])
+            .BindScalarFunctionDefinition(ctx.Dialect);
+        return true;
+    }
+
+    private static bool TryParseFirebirdDateAdd(
+        this SqlExpressionParserContext ctx,
+        Func<int, SqlExpr> parseExpression,
+        out CallExpr expr)
+    {
+        expr = default!;
+
+        var amountAndUnitTokens = ctx.ReadTokensUntilTopLevelStop("TO");
+        if (amountAndUnitTokens.Count < 2)
+            throw ctx.Error("DATEADD requires an amount and a unit before TO", ctx.Peek());
+
+        if (!ctx.IsKeywordOrIdentifierWord("TO"))
+            throw ctx.Error("DATEADD requires TO", ctx.Peek());
+
+        var unitToken = amountAndUnitTokens[^1];
+        if (unitToken.Kind is not (SqlTokenKind.Identifier or SqlTokenKind.Keyword))
+            throw ctx.Error("DATEADD requires a unit before TO", unitToken);
+
+        var amountTokens = amountAndUnitTokens.Take(amountAndUnitTokens.Count - 1).ToArray();
+        if (amountTokens.Count == 0)
+            throw ctx.Error("DATEADD requires an amount before the unit", unitToken);
+
+        ctx.Consume(); // TO
+
+        var amountSql = string.Join(" ", amountTokens.Select(ctx.TokenToSql)).Trim();
+        var amountExpr = SqlExpressionParser.ParseScalar(
+            amountSql,
+            ctx.Db,
+            ctx.Dialect,
+            ctx.Parameters,
+            ctx.CustomFunctionSupported);
+
+        var dateExpr = parseExpression(0);
+        ExpectSymbol(ctx, ")");
+
+        expr = new CallExpr("DATEADD", [new RawSqlExpr(unitToken.Text), amountExpr, dateExpr])
+            .BindScalarFunctionDefinition(ctx.Dialect);
+        return true;
+    }
+
+    private static bool TryParseFirebirdHash(
+        this SqlExpressionParserContext ctx,
+        Func<int, SqlExpr> parseExpression,
+        out CallExpr expr)
+    {
+        expr = default!;
+
+        var valueExpr = parseExpression(0);
+        var args = new List<SqlExpr> { valueExpr };
+
+        if (ctx.IsKeywordOrIdentifierWord("USING"))
+        {
+            ctx.Consume(); // USING
+
+            var algorithmToken = ctx.Peek();
+            if (algorithmToken.Kind is not (SqlTokenKind.Identifier or SqlTokenKind.Keyword))
+                throw ctx.Error("HASH requires a hash algorithm", algorithmToken);
+
+            ctx.Consume();
+            args.Add(new RawSqlExpr(algorithmToken.Text));
+        }
+
+        ExpectSymbol(ctx, ")");
+
+        expr = new CallExpr("HASH", [.. args])
+            .BindScalarFunctionDefinition(ctx.Dialect);
+        return true;
+    }
+
+    private static bool TryParseFirebirdCryptHash(
+        this SqlExpressionParserContext ctx,
+        Func<int, SqlExpr> parseExpression,
+        out CallExpr expr)
+    {
+        expr = default!;
+
+        var valueExpr = parseExpression(0);
+
+        if (!ctx.IsKeywordOrIdentifierWord("USING"))
+            throw ctx.Error("CRYPT_HASH requires USING", ctx.Peek());
+
+        ctx.Consume(); // USING
+
+        var algorithmToken = ctx.Peek();
+        if (algorithmToken.Kind is not (SqlTokenKind.Identifier or SqlTokenKind.Keyword))
+            throw ctx.Error("CRYPT_HASH requires a hash algorithm", algorithmToken);
+
+        ctx.Consume();
+        ExpectSymbol(ctx, ")");
+
+        expr = new CallExpr("CRYPT_HASH", [valueExpr, new RawSqlExpr(algorithmToken.Text)])
             .BindScalarFunctionDefinition(ctx.Dialect);
         return true;
     }

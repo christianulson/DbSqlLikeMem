@@ -31,6 +31,9 @@ internal static class CommandReaderParsedQueryDispatcher
             case SqlAlterTableAddColumnQuery alterAddColumnQ:
                 connection.ExecuteAlterTableAddColumn(alterAddColumnQ, pars, connection.ExecutionDialect);
                 break;
+            case SqlAlterSequenceQuery alterSequenceQ:
+                connection.ExecuteAlterSequence(alterSequenceQ, pars, connection.ExecutionDialect);
+                break;
             case SqlCreateIndexQuery createIndexQ:
                 connection.ExecuteCreateIndex(createIndexQ, pars, connection.ExecutionDialect);
                 break;
@@ -51,6 +54,15 @@ internal static class CommandReaderParsedQueryDispatcher
                 break;
             case SqlDropSequenceQuery dropSequenceQ:
                 connection.ExecuteDropSequence(dropSequenceQ, pars, connection.ExecutionDialect);
+                break;
+            case SqlDropProcedureQuery dropProcedureQ:
+                connection.ExecuteDropProcedure(dropProcedureQ, pars, connection.ExecutionDialect);
+                break;
+            case SqlDropTriggerQuery dropTriggerQ:
+                connection.ExecuteDropTrigger(dropTriggerQ, pars, connection.ExecutionDialect);
+                break;
+            case SqlExecuteBlockQuery executeBlockQ:
+                connection.ExecuteExecuteBlock(executeBlockQ, pars, connection.ExecutionDialect);
                 break;
             case SqlInsertQuery insertQ:
                 if (executeInsert is null)
@@ -136,6 +148,9 @@ internal static class CommandReaderParsedQueryDispatcher
             case SqlAlterTableAddColumnQuery alterAddColumnQ:
                 connection.ExecuteAlterTableAddColumn(alterAddColumnQ, context.DbParameters, context.Dialect);
                 break;
+            case SqlAlterSequenceQuery alterSequenceQ:
+                connection.ExecuteAlterSequence(alterSequenceQ, context.DbParameters, context.Dialect);
+                break;
             case SqlCreateIndexQuery createIndexQ:
                 connection.ExecuteCreateIndex(createIndexQ, context.DbParameters, context.Dialect);
                 break;
@@ -156,6 +171,15 @@ internal static class CommandReaderParsedQueryDispatcher
                 break;
             case SqlDropSequenceQuery dropSequenceQ:
                 connection.ExecuteDropSequence(dropSequenceQ, context.DbParameters, context.Dialect);
+                break;
+            case SqlDropProcedureQuery dropProcedureQ:
+                connection.ExecuteDropProcedure(dropProcedureQ, context.DbParameters, context.Dialect);
+                break;
+            case SqlDropTriggerQuery dropTriggerQ:
+                connection.ExecuteDropTrigger(dropTriggerQ, context.DbParameters, context.Dialect);
+                break;
+            case SqlExecuteBlockQuery executeBlockQ:
+                connection.ExecuteExecuteBlock(executeBlockQ, context.DbParameters, context.Dialect);
                 break;
             case SqlInsertQuery insertQ:
                 if (executeInsert is null)

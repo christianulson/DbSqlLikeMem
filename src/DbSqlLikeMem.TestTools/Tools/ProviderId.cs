@@ -45,5 +45,11 @@ public enum ProviderId
     /// EN: Db2 provider family.
     /// PT: Familia de provedor Db2.
     /// </summary>
-    Db2
+    Db2,
+    /// <summary>
+    /// EN: Firebird provider family.
+    /// PT: Familia de provedor Firebird.
+    /// </summary>
+    Firebird
 }
+

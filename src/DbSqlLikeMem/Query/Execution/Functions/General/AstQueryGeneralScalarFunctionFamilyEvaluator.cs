@@ -1,4 +1,4 @@
-using static DbSqlLikeMem.AstQueryExecutorBase;
+﻿using static DbSqlLikeMem.AstQueryExecutorBase;
 
 namespace DbSqlLikeMem;
 
@@ -45,6 +45,9 @@ internal static class AstQueryGeneralScalarFunctionFamilyEvaluator
         {
             return true;
         }
+
+        if (AstQueryFirebirdScalarFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result))
+            return true;
 
         SequenceFunctionSupportHelper.EnsureSupported(context.Dialect, fn.Name);
         if (SqlSequenceEvaluator.TryEvaluateCall(context.Connection, fn.Name, fn.Args, expr => eval(expr, row, group, ctes), out var sequenceValue))

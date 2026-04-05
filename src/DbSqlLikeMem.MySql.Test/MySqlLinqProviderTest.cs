@@ -1,4 +1,3 @@
-using FluentAssertions;
 using System.Linq.Expressions;
 
 namespace DbSqlLikeMem.MySql.Test;

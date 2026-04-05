@@ -185,11 +185,23 @@ public partial class DmlMutationServiceTest<T>
 
     private void ExecuteSavepoint(DbTransaction transaction, string savepoint)
     {
+        if (UseNativeSavepointTransactionApi()
+            && TryInvokeTransactionSavepointMethod(transaction, "Save", savepoint))
+        {
+            return;
+        }
+
         ExecuteNonQuery(Dialect.Savepoint(savepoint), transaction);
     }
 
     private void ExecuteRollbackToSavepoint(DbTransaction transaction, string savepoint)
     {
+        if (UseNativeSavepointTransactionApi()
+            && TryInvokeTransactionSavepointMethod(transaction, "Rollback", savepoint))
+        {
+            return;
+        }
+
         ExecuteNonQuery(Dialect.RollbackToSavepoint(savepoint), transaction);
     }
 
@@ -197,4 +209,21 @@ public partial class DmlMutationServiceTest<T>
         => Dialect.Provider is not ProviderId.SqlServer
             and not ProviderId.SqlAzure
             and not ProviderId.Oracle;
+
+    private bool UseNativeSavepointTransactionApi()
+        => Dialect.Provider is ProviderId.SqlServer
+            or ProviderId.SqlAzure;
+
+    private static bool TryInvokeTransactionSavepointMethod(
+        DbTransaction transaction,
+        string methodName,
+        string savepoint)
+    {
+        var method = transaction.GetType().GetMethod(methodName, new[] { typeof(string) });
+        if (method is null)
+            return false;
+
+        method.Invoke(transaction, new object[] { savepoint });
+        return true;
+    }
 }

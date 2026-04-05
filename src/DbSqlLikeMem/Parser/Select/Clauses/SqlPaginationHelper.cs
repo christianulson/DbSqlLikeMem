@@ -83,8 +83,32 @@ internal static class SqlPaginationHelper
             return new SqlLimitOffset(Count: count, Offset: null);
         }
 
+        if (string.Equals(dialect.Name, "firebird", StringComparison.OrdinalIgnoreCase)
+            && ctx.IsWord(SqlConst.ROWS))
+        {
+            ctx.Consume();
+
+            var start = ctx.ExpectRowLimitExpr();
+            if (ctx.IsWord(SqlConst.TO))
+            {
+                ctx.Consume();
+                var end = ctx.ExpectRowLimitExpr();
+                return new SqlLimitOffset(
+                    Count: BuildInclusiveRowCount(start, end),
+                    Offset: BuildInclusiveRowOffset(start));
+            }
+
+            return new SqlLimitOffset(Count: start, Offset: null);
+        }
+
         return null;
     }
+
+    private static SqlExpr BuildInclusiveRowCount(SqlExpr start, SqlExpr end)
+        => new BinaryExpr(SqlBinaryOp.Add, new BinaryExpr(SqlBinaryOp.Subtract, end, start), new LiteralExpr(1));
+
+    private static SqlExpr BuildInclusiveRowOffset(SqlExpr start)
+        => new BinaryExpr(SqlBinaryOp.Subtract, start, new LiteralExpr(1));
 
     internal static SqlExpr ExpectRowLimitExpr(
         this SqlQueryParserContext ctx)

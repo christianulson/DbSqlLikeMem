@@ -7,7 +7,7 @@ internal static class AstQuerySqlServerIdentifierEvaluator
         IdentifierExpr identifier,
         DbConnectionMockBase connection,
         out object? result)
-        => context.TryResolveIdentifier(identifier, connection, out result);
+        => AstQuerySqlServerIdentifierEvaluator.TryResolveIdentifier(context, identifier, connection, out result);
 
     internal static bool TryResolveIdentifier(
         this QueryExecutionContext context,

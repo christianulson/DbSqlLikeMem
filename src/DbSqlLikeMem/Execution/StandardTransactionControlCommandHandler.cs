@@ -23,9 +23,26 @@ internal static class StandardTransactionControlCommandHandler
             return true;
         }
 
+        var isSqlServer = string.Equals(
+            connection.ProviderExecutionDialect.Name,
+            "sqlserver",
+            StringComparison.OrdinalIgnoreCase);
+
+        if (isSqlServer && sqlRaw.StartsWith("save transaction ", StringComparison.OrdinalIgnoreCase))
+        {
+            connection.CreateSavepoint(ExtractSavepointName(sqlRaw, "save transaction ".Length));
+            return true;
+        }
+
         if (sqlRaw.StartsWith("savepoint ", StringComparison.OrdinalIgnoreCase))
         {
             connection.CreateSavepoint(ExtractSavepointName(sqlRaw, "savepoint ".Length));
+            return true;
+        }
+
+        if (isSqlServer && sqlRaw.StartsWith("rollback transaction ", StringComparison.OrdinalIgnoreCase))
+        {
+            connection.RollbackTransaction(ExtractSavepointName(sqlRaw, "rollback transaction ".Length));
             return true;
         }
 
@@ -48,7 +65,19 @@ internal static class StandardTransactionControlCommandHandler
             return true;
         }
 
+        if (sqlRaw.Equals("commit transaction", StringComparison.OrdinalIgnoreCase))
+        {
+            connection.CommitTransaction();
+            return true;
+        }
+
         if (sqlRaw.Equals("rollback", StringComparison.OrdinalIgnoreCase))
+        {
+            connection.RollbackTransaction();
+            return true;
+        }
+
+        if (sqlRaw.Equals("rollback transaction", StringComparison.OrdinalIgnoreCase))
         {
             connection.RollbackTransaction();
             return true;

@@ -170,7 +170,7 @@ internal sealed class SqlQueryParser
             }
 
             // DDL statements are cheap to parse and benefit from deterministic no-cache behavior in tests.
-            if (IsWord(first, SqlConst.CREATE) || IsWord(first, SqlConst.ALTER) || IsWord(first, SqlConst.DROP))
+            if (IsWord(first, SqlConst.CREATE) || IsWord(first, SqlConst.ALTER) || IsWord(first, SqlConst.DROP) || IsWord(first, SqlConst.RECREATE))
             {
                 var uncached = ParseUncached(preludeTokens, db, dialect, null, autoSyntaxFeatures);
                 EnsureDialectSupport(uncached, dialect);
@@ -297,8 +297,14 @@ internal sealed class SqlQueryParser
             result = q.ParseCreate();
         else if (IsWord(first, SqlConst.ALTER))
             result = q.ParseAlter();
+        else if (IsWord(first, SqlConst.RECREATE))
+            result = q.ParseRecreate();
+        else if (IsWord(first, SqlConst.SET) && IsWord(q.Peek(1), SqlConst.GENERATOR))
+            result = q._ctx.ParseSetGenerator();
         else if (IsWord(first, SqlConst.DROP))
             result = q.ParseDrop();
+        else if (IsWord(first, SqlConst.EXECUTE))
+            result = q.ParseExecuteBlock();
         else if (IsWord(first, SqlConst.MERGE))
         {
             // Para MySQL, MERGE simplesmente não existe (é sintaxe inválida para o dialeto).
@@ -691,6 +697,7 @@ internal sealed class SqlQueryParser
                 SqlConst.LIMIT,
                 SqlConst.OFFSET,
                 SqlConst.FETCH,
+                SqlConst.ROWS,
                 SqlConst.UNION,
                 SqlConst.FOR),
             _ctx.Db,
@@ -716,8 +723,8 @@ internal sealed class SqlQueryParser
             ? SqlOrderByHelper.TryParseOrderBy(
                 _ctx,
                 boundary => boundary
-                    ? _ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING, SqlConst.ON)
-                    : _ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING))
+                    ? _ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING, SqlConst.ON)
+                    : _ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING))
             : [];
         var rowLimit = allowOrderByAndLimit
             ? SqlPaginationHelper.TryParseRowLimitTail(_ctx, orderBy.Count > 0)
@@ -802,17 +809,27 @@ internal sealed class SqlQueryParser
     private SqlQueryBase ParseCreate()
     {
         _ctx.ExpectWord(SqlConst.CREATE);
+        return ParseCreateOrRecreate(orReplace: false);
+    }
 
-        // CREATE OR REPLACE ...
-        var orReplace = false;
-        if (_ctx.IsWord(SqlConst.OR))
+    private SqlQueryBase ParseRecreate()
+    {
+        _ctx.ExpectWord(SqlConst.RECREATE);
+        return ParseCreateOrRecreate(orReplace: true);
+    }
+
+    private SqlQueryBase ParseCreateOrRecreate(bool orReplace)
+    {
+        if (!orReplace && _ctx.IsWord(SqlConst.OR))
         {
             _ctx.Consume();
-            _ctx.ExpectWord(SqlConst.REPLACE);
+            if (!_ctx.IsWord(SqlConst.REPLACE) && !_ctx.IsWord(SqlConst.ALTER))
+                throw new InvalidOperationException("CREATE OR must be followed by REPLACE or ALTER.");
+
+            _ctx.Consume();
             orReplace = true;
         }
 
-        // CREATE VIEW ...
         if (_ctx.IsWord(SqlConst.VIEW))
             return _ctx.ParseCreateView(orReplace);
 
@@ -826,7 +843,7 @@ internal sealed class SqlQueryParser
         if (_ctx.IsWord(SqlConst.INDEX))
             return _ctx.ParseCreateIndex(orReplace, uniqueIndex);
 
-        if (_ctx.IsWord(SqlConst.SEQUENCE))
+        if (_ctx.IsWord(SqlConst.SEQUENCE) || _ctx.IsWord(SqlConst.GENERATOR))
             return _ctx.ParseCreateSequence(orReplace);
 
         if (_ctx.IsWord(SqlConst.FUNCTION))
@@ -846,8 +863,14 @@ internal sealed class SqlQueryParser
     private SqlQueryBase ParseAlter()
         => _ctx.ParseAlter();
 
+    private SqlQueryBase ParseSetGenerator()
+        => _ctx.ParseSetGenerator();
+
     private SqlQueryBase ParseDrop()
         => _ctx.ParseDrop();
+
+    private SqlQueryBase ParseExecuteBlock()
+        => _ctx.ParseExecuteBlock();
 
     // --- Helpers de SELECT trazidos do arquivo original ---
 
@@ -859,8 +882,37 @@ internal sealed class SqlQueryParser
             throw new InvalidOperationException("invalid: duplicated DISTINCT keyword");
         return true;
     }
-    private SqlTop? TryParseTop()
+    private SqlRowLimit? TryParseTop()
     {
+        if (string.Equals(_dialect.Name, "firebird", StringComparison.OrdinalIgnoreCase))
+        {
+            if (_ctx.IsWord(SqlConst.FIRST))
+            {
+                _ctx.Consume();
+                var count = _ctx.ExpectRowLimitExpr();
+                if (_ctx.IsWord(SqlConst.SKIP))
+                {
+                    _ctx.Consume();
+                    return new SqlLimitOffset(count, _ctx.ExpectRowLimitExpr());
+                }
+
+                return new SqlLimitOffset(count, null);
+            }
+
+            if (_ctx.IsWord(SqlConst.SKIP))
+            {
+                _ctx.Consume();
+                var offset = _ctx.ExpectRowLimitExpr();
+                if (_ctx.IsWord(SqlConst.FIRST))
+                {
+                    _ctx.Consume();
+                    return new SqlLimitOffset(_ctx.ExpectRowLimitExpr(), offset);
+                }
+
+                return new SqlLimitOffset(new LiteralExpr(int.MaxValue), offset);
+            }
+        }
+
         // SQL Server: SELECT TOP (10) ... / SELECT TOP 10 ...
         if (!_ctx.IsWord(SqlConst.TOP)) return null;
 
@@ -933,7 +985,7 @@ internal sealed class SqlQueryParser
         if (!_ctx.IsWord(SqlConst.WHERE)) return null;
         _ctx.Consume();
         // SqlConst.ON here is important for INSERT ... SELECT ... WHERE ... ON DUPLICATE ...
-        var txt = _ctx.ReadClauseTextUntilTopLevelStop(SqlConst.GROUP, SqlConst.ORDER, SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.UNION, SqlConst.HAVING, SqlConst.FOR, SqlConst.ON, SqlConst.RETURNING);
+        var txt = _ctx.ReadClauseTextUntilTopLevelStop(SqlConst.GROUP, SqlConst.ORDER, SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.HAVING, SqlConst.FOR, SqlConst.ON, SqlConst.RETURNING);
         return _ctx.ParseWhere(txt);
     }
 
@@ -943,7 +995,7 @@ internal sealed class SqlQueryParser
         if (!_ctx.IsWord(SqlConst.GROUP)) return list;
         _ctx.Consume();
         _ctx.ExpectWord(SqlConst.BY);
-        list.AddRange(_ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.HAVING, SqlConst.ORDER, SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING, SqlConst.ON));
+        list.AddRange(_ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.HAVING, SqlConst.ORDER, SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING, SqlConst.ON));
         if (list.Count == 0)
             throw new InvalidOperationException("GROUP BY sem expressões.");
         return list;
@@ -953,7 +1005,7 @@ internal sealed class SqlQueryParser
     {
         if (!_ctx.IsWord(SqlConst.HAVING)) return null;
         _ctx.Consume();
-        var txt = _ctx.ReadClauseTextUntilTopLevelStop(SqlConst.ORDER, SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING, SqlConst.ON);
+        var txt = _ctx.ReadClauseTextUntilTopLevelStop(SqlConst.ORDER, SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING, SqlConst.ON);
         return _ctx.ParseWhere(txt);
     }
 

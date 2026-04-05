@@ -22,10 +22,13 @@ internal static class AstQueryDialectIdentifierEvaluator
         if (TryResolveBoundScalarFunctionIdentifier(context, identifier, evaluationLocalNow, evaluationUtcNow, out result))
             return true;
 
-        if (AstQuerySqlServerIdentifierEvaluator.TryResolveIdentifier(context, identifier, connection, out result))
+        if (AstQuerySqlServerIdentifierEvaluator.TryResolveIdentifierCore(context, identifier, connection, out result))
             return true;
 
         if (AstQueryOracleDb2IdentifierEvaluator.TryResolveIdentifier(context, identifier, out result))
+            return true;
+
+        if (AstQueryFirebirdIdentifierEvaluator.TryResolveIdentifierCore(context, identifier, connection, out result))
             return true;
 
         if (AstQueryPostgresIdentifierEvaluator.TryResolveIdentifier(context, identifier, out result))

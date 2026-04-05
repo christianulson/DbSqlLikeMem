@@ -1,4 +1,3 @@
-using System.Globalization;
 using static DbSqlLikeMem.AstQueryExecutorBase;
 
 namespace DbSqlLikeMem;

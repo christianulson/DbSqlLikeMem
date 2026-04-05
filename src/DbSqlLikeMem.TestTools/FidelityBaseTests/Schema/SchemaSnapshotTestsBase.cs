@@ -200,6 +200,7 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
             ProviderId.MariaDb => "mariadb",
             ProviderId.Oracle => "oracle",
             ProviderId.Db2 => "db2",
+            ProviderId.Firebird => "firebird",
             _ => provider.ToString().ToLowerInvariant(),
         };
 
@@ -305,3 +306,4 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
         return (major, minor);
     }
 }
+

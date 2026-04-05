@@ -133,14 +133,29 @@ internal static class AstQueryFunctionDispatchHelper
         if (context.Connection.TryGetRuntimeFunction(fn.Name, out var runtimeFunction)
             && runtimeFunction is not null)
         {
-            if (fn.Args.Count != runtimeFunction.Parameters.Count)
-                throw new InvalidOperationException($"Function '{fn.Name}' expects {runtimeFunction.Parameters.Count} argument(s), but received {fn.Args.Count}.");
+            if (fn.Args.Count < runtimeFunction.MinArguments || fn.Args.Count > runtimeFunction.MaxArguments)
+            {
+                var expected = runtimeFunction.MinArguments == runtimeFunction.MaxArguments
+                    ? $"{runtimeFunction.MinArguments} argument(s)"
+                    : $"between {runtimeFunction.MinArguments} and {runtimeFunction.MaxArguments} argument(s)";
+
+                throw new InvalidOperationException($"Function '{fn.Name}' expects {expected}, but received {fn.Args.Count}.");
+            }
 
             var runtimeParameterScope = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
             for (var i = 0; i < runtimeFunction.Parameters.Count; i++)
             {
                 var parameter = runtimeFunction.Parameters[i];
-                runtimeParameterScope[parameter.NormalizedName] = eval(fn.Args[i], row, group, ctes);
+                if (i < fn.Args.Count)
+                {
+                    runtimeParameterScope[parameter.NormalizedName] = eval(fn.Args[i], row, group, ctes);
+                    continue;
+                }
+
+                if (parameter.Required)
+                    throw new InvalidOperationException($"Function '{fn.Name}' expects {runtimeFunction.MinArguments} argument(s), but received {fn.Args.Count}.");
+
+                runtimeParameterScope[parameter.NormalizedName] = parameter.DefaultValue;
             }
 
             localParameterScopes.Push(runtimeParameterScope);
@@ -171,14 +186,29 @@ internal static class AstQueryFunctionDispatchHelper
             return true;
         }
 
-        if (fn.Args.Count != function.Parameters.Count)
-            throw new InvalidOperationException($"Function '{fn.Name}' expects {function.Parameters.Count} argument(s), but received {fn.Args.Count}.");
+        if (fn.Args.Count < function.MinArguments || fn.Args.Count > function.MaxArguments)
+        {
+            var expected = function.MinArguments == function.MaxArguments
+                ? $"{function.MinArguments} argument(s)"
+                : $"between {function.MinArguments} and {function.MaxArguments} argument(s)";
+
+            throw new InvalidOperationException($"Function '{fn.Name}' expects {expected}, but received {fn.Args.Count}.");
+        }
 
         var parameterScope = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
         for (var i = 0; i < function.Parameters.Count; i++)
         {
             var parameter = function.Parameters[i];
-            parameterScope[parameter.NormalizedName] = eval(fn.Args[i], row, group, ctes);
+            if (i < fn.Args.Count)
+            {
+                parameterScope[parameter.NormalizedName] = eval(fn.Args[i], row, group, ctes);
+                continue;
+            }
+
+            if (parameter.Required)
+                throw new InvalidOperationException($"Function '{fn.Name}' expects {function.MinArguments} argument(s), but received {fn.Args.Count}.");
+
+            parameterScope[parameter.NormalizedName] = parameter.DefaultValue;
         }
 
         localParameterScopes.Push(parameterScope);

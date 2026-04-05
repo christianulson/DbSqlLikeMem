@@ -631,17 +631,16 @@ ORDER BY id").ToList();
     }
 
     /// <summary>
-    /// EN: Verifies string comparison follows the configured column collation.
-    /// PT: Verifica se a comparacao de strings segue a collation configurada da coluna.
+    /// EN: Verifies DB2 default string comparison remains case-sensitive for this column set.
+    /// PT: Verifica se a comparacao padrao de strings do DB2 permanece sensivel a maiusculas e minusculas para este conjunto de colunas.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
-    public void Collation_CaseSensitivity_ShouldFollowColumnCollation()
+    public void Collation_DefaultCaseSensitivity_ShouldNotMatchDifferentCase()
     {
-        // Example expectation in DB2: behavior depends on column collation.
-        // This is intentionally a gap test — decide the mock rule, then implement it consistently.
+        // DB2 defaults to identity collation here, so the lowercase predicate should not match "John".
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name = 'john' ORDER BY id").ToList();
-        Assert.Equal([1], [.. rows.Select(r => (int)r.id)]);
+        Assert.Empty(rows);
     }
 
     /// <summary>

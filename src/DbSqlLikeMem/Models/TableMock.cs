@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Collections.ObjectModel;
 using System.Collections.Concurrent;
 using System.Linq.Expressions;
@@ -549,6 +548,23 @@ public abstract class TableMock
         return true;
     }
 
+    internal bool TryGetTriggerEvent(
+        string triggerName,
+        out TableTriggerEvent evt)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(triggerName, nameof(triggerName));
+
+        var normalizedName = triggerName.NormalizeName();
+        if (_namedTriggers.TryGetValue(normalizedName, out var previous))
+        {
+            evt = previous.Event;
+            return true;
+        }
+
+        evt = default;
+        return false;
+    }
+
     internal void ExecuteTriggers(
         TableTriggerEvent evt,
         IReadOnlyDictionary<int, object?>? oldRow,
@@ -557,6 +573,7 @@ public abstract class TableMock
         if (!_triggers.TryGetValue(evt, out var handlers) || handlers.Count == 0)
             return;
 
+        using var scope = DbConnectionMockBase.BeginTriggerScope(evt);
         var context = new TableTriggerContext(this, oldRow, newRow);
         foreach (var handler in handlers)
             handler(context);

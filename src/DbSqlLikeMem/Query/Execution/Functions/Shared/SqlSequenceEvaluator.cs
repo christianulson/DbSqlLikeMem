@@ -23,6 +23,7 @@ internal static class SqlSequenceEvaluator
             "NEXT_VALUE_FOR" or SqlConst.NEXTVAL => connection.GetNextSequenceValue(sequenceRef!),
             SqlConst.CURRVAL or "PREVIOUS_VALUE_FOR" => connection.GetCurrentSequenceValue(sequenceRef!),
             SqlConst.SETVAL => connection.SetSequenceValue(sequenceRef!, args, evalArg),
+            "GEN_ID" => connection.EvaluateGenId(sequenceRef!, args, evalArg),
             _ => null
         };
 
@@ -113,6 +114,13 @@ internal static class SqlSequenceEvaluator
             return sequenceRef is not null;
         }
 
+        if (functionName.Equals("GEN_ID", StringComparison.OrdinalIgnoreCase)
+            && args.Count == 2)
+        {
+            sequenceRef = TryReadSequenceReference(args[0], evalArg);
+            return sequenceRef is not null;
+        }
+
         return false;
     }
 
@@ -154,6 +162,27 @@ internal static class SqlSequenceEvaluator
         if (isCalled)
             connection.SetSessionSequenceValue(sequenceRef.SequenceName, result, sequenceRef.SchemaName);
 
+        return result;
+    }
+
+    private static long EvaluateGenId(
+        this DbConnectionMockBase connection,
+        SequenceReference sequenceRef,
+        IReadOnlyList<SqlExpr> args,
+        Func<SqlExpr, object?> evalArg)
+    {
+        if (!connection.TryGetSequence(sequenceRef.SequenceName, out var sequence, sequenceRef.SchemaName) || sequence is null)
+            throw new InvalidOperationException($"Sequence not found: {sequenceRef.DisplayName}");
+
+        if (args.Count != 2)
+            throw new InvalidOperationException("GEN_ID requires a sequence name and an increment value.");
+
+        connection.CaptureSequenceStateForRollback(sequenceRef.SequenceName, sequenceRef.SchemaName);
+
+        var baseValue = sequence.CurrentValue ?? 0L;
+        var increment = Convert.ToInt64(evalArg(args[1]), CultureInfo.InvariantCulture);
+        var result = sequence.SetValue(baseValue + increment, true);
+        connection.SetSessionSequenceValue(sequenceRef.SequenceName, result, sequenceRef.SchemaName);
         return result;
     }
 

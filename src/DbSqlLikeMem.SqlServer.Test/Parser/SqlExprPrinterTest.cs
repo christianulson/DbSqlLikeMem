@@ -1,5 +1,3 @@
-using FluentAssertions;
-
 namespace DbSqlLikeMem.SqlServer.Test.Parser;
 /// <summary>
 /// EN: Covers round-trip SQL expression printing in the SqlServer parser.

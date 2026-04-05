@@ -10,7 +10,16 @@ internal static class SqlAlterParserHelper
         if (ctx.IsWord(SqlConst.TABLE))
             return ctx.ParseAlterTable();
 
-        throw new InvalidOperationException("Apenas ALTER TABLE pragmático é suportado no mock no momento.");
+        if (ctx.IsWord(SqlConst.SEQUENCE) || ctx.IsWord(SqlConst.GENERATOR))
+            return ctx.ParseAlterSequence();
+
+        if (ctx.IsWord(SqlConst.PROCEDURE))
+            return ctx.ParseCreateProcedure(orReplace: true);
+
+        if (ctx.IsWord(SqlConst.TRIGGER))
+            return ctx.ParseCreateTrigger(orReplace: true);
+
+        throw new InvalidOperationException("Apenas ALTER TABLE, ALTER SEQUENCE/GENERATOR, ALTER PROCEDURE e ALTER TRIGGER pragmáticos são suportados no mock no momento.");
     }
 
     internal static SqlAlterTableAddColumnQuery ParseAlterTable(
@@ -95,6 +104,65 @@ internal static class SqlAlterParserHelper
             DecimalPlaces = decimalPlaces,
             Nullable = nullable,
             DefaultValueRaw = defaultValueRaw
+        };
+    }
+
+    internal static SqlAlterSequenceQuery ParseAlterSequence(
+        this SqlQueryParserContext ctx)
+    {
+        if (!ctx.Dialect.SupportsSequenceDdl)
+            throw ctx.NotSupported("ALTER SEQUENCE");
+
+        ctx.Consume(); // SEQUENCE/GENERATOR
+
+        var sequenceNameToken = ctx.Peek();
+        if (SqlQueryParserContext.IsEnd(sequenceNameToken) || SqlQueryParserContext.IsSymbol(sequenceNameToken, ";"))
+            throw new InvalidOperationException("ALTER SEQUENCE requires a sequence name.");
+
+        var sequence = ctx.ParseQualifiedObjectName();
+
+        if (!ctx.IsWord(SqlConst.RESTART))
+            throw new InvalidOperationException("ALTER SEQUENCE in the mock currently supports only RESTART.");
+
+        ctx.Consume(); // RESTART
+        long? restartWith = null;
+        if (ctx.IsWord(SqlConst.WITH))
+        {
+            ctx.Consume();
+            restartWith = ctx.ExpectSignedNumberLong("ALTER SEQUENCE RESTART WITH");
+        }
+
+        ctx.EnsureStatementEnd("ALTER SEQUENCE");
+
+        return new SqlAlterSequenceQuery
+        {
+            Table = sequence,
+            RestartWith = restartWith
+        };
+    }
+
+    internal static SqlAlterSequenceQuery ParseSetGenerator(
+        this SqlQueryParserContext ctx)
+    {
+        if (!ctx.Dialect.SupportsSequenceDdl)
+            throw ctx.NotSupported("SET GENERATOR");
+
+        ctx.Consume(); // SET
+        ctx.ExpectWord(SqlConst.GENERATOR);
+
+        var generatorNameToken = ctx.Peek();
+        if (SqlQueryParserContext.IsEnd(generatorNameToken) || SqlQueryParserContext.IsSymbol(generatorNameToken, ";"))
+            throw new InvalidOperationException("SET GENERATOR requires a generator name.");
+
+        var sequence = ctx.ParseQualifiedObjectName();
+        ctx.ExpectWord(SqlConst.TO);
+        var restartWith = ctx.ExpectSignedNumberLong("SET GENERATOR TO");
+        ctx.EnsureStatementEnd("SET GENERATOR");
+
+        return new SqlAlterSequenceQuery
+        {
+            Table = sequence,
+            RestartWith = restartWith
         };
     }
 

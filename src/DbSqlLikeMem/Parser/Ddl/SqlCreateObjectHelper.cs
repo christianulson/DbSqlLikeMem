@@ -12,10 +12,10 @@ internal static class SqlCreateObjectHelper
         if (!ctx.Dialect.SupportsSequenceDdl)
             throw SqlUnsupported.NotSupported(ctx.Dialect, "CREATE SEQUENCE");
 
-        if (!ctx.IsWord(SqlConst.SEQUENCE))
-            throw new InvalidOperationException("CREATE SEQUENCE requires SEQUENCE keyword.");
+        if (!ctx.IsWord(SqlConst.SEQUENCE) && !ctx.IsWord(SqlConst.GENERATOR))
+            throw new InvalidOperationException("CREATE SEQUENCE requires SEQUENCE/GENERATOR keyword.");
 
-        ctx.Consume(); // SEQUENCE
+        ctx.Consume(); // SEQUENCE/GENERATOR
 
         var ifNotExists = false;
         if (ctx.IsWord(SqlConst.IF))

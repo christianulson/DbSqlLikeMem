@@ -1,5 +1,3 @@
-using FluentAssertions;
-
 namespace DbSqlLikeMem.Sqlite.Test.Strategy;
 /// <summary>
 /// EN: Covers single-row INSERT execution in the Sqlite mock.

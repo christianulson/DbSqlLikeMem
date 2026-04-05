@@ -1,5 +1,3 @@
-using FluentAssertions;
-
 namespace DbSqlLikeMem.Sqlite.Test.Strategy;
 /// <summary>
 /// EN: Covers extra INSERT scenarios in the Sqlite mock.

@@ -1,5 +1,3 @@
-using DbSqlLikeMem.Models;
-
 namespace DbSqlLikeMem.Db2;
 
 internal static class Db2OracleDb2ScalarFunctionRegistry

@@ -155,6 +155,11 @@ internal sealed record SqlDropSequenceQuery : SqlQueryBase
     internal bool IfExists { get; init; }
 }
 
+internal sealed record SqlAlterSequenceQuery : SqlQueryBase
+{
+    internal long? RestartWith { get; init; }
+}
+
 internal sealed record SqlCreateFunctionQuery : SqlQueryBase
 {
     internal bool OrReplace { get; init; }
@@ -178,6 +183,25 @@ internal sealed record SqlCreateTriggerQuery : SqlQueryBase
 internal sealed record SqlDropFunctionQuery : SqlQueryBase
 {
     internal bool IfExists { get; init; }
+}
+
+internal sealed record SqlDropProcedureQuery : SqlQueryBase
+{
+    internal bool IfExists { get; init; }
+}
+
+internal sealed record SqlDropTriggerQuery : SqlQueryBase
+{
+    internal bool IfExists { get; init; }
+}
+
+internal sealed record SqlExecuteBlockQuery : SqlQueryBase
+{
+    internal IReadOnlyList<ProcParam> InputParameters { get; init; } = [];
+
+    internal IReadOnlyList<ProcParam> ReturnParameters { get; init; } = [];
+
+    internal string BodySql { get; init; } = "";
 }
 
 internal sealed record SqlMergeQuery : SqlQueryBase

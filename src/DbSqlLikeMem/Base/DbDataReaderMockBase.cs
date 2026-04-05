@@ -46,7 +46,7 @@ public abstract class DbDataReaderMockBase(
     /// EN: Gets the column value by ordinal index.
     /// PT: Obtém o valor da coluna pelo índice ordinal.
     /// </summary>
-    public override object this[int i] => _resultSets[_currentResultSetIndex][_currentIndex][i] ?? DBNull.Value;
+    public override object this[int i] => NormalizeReaderValue(i, _resultSets[_currentResultSetIndex][_currentIndex][i] ?? DBNull.Value);
     /// <summary>
     /// EN: Gets the column value by name.
     /// PT: Obtém o valor da coluna pelo nome.
@@ -56,7 +56,7 @@ public abstract class DbDataReaderMockBase(
         get
         {
             var key = GetOrdinal(name);
-            return _resultSets[_currentResultSetIndex][_currentIndex][key] ?? DBNull.Value;
+            return NormalizeReaderValue(key, _resultSets[_currentResultSetIndex][_currentIndex][key] ?? DBNull.Value);
         }
     }
 
@@ -211,12 +211,12 @@ public abstract class DbDataReaderMockBase(
     /// EN: Gets a decimal value from the specified column.
     /// PT: Obtém valor decimal da coluna indicada.
     /// </summary>
-    public override decimal GetDecimal(int ordinal) => (decimal)this[ordinal];
+    public override decimal GetDecimal(int ordinal) => Convert.ToDecimal(this[ordinal], CultureInfo.InvariantCulture);
     /// <summary>
     /// EN: Gets a double value from the specified column.
     /// PT: Obtém valor double da coluna indicada.
     /// </summary>
-    public override double GetDouble(int ordinal) => (double)this[ordinal];
+    public override double GetDouble(int ordinal) => Convert.ToDouble(this[ordinal], CultureInfo.InvariantCulture);
     /// <summary>
     /// EN: Gets the .NET type of the specified column.
     /// PT: Obtém o tipo .NET da coluna indicada.
@@ -227,7 +227,7 @@ public abstract class DbDataReaderMockBase(
     /// EN: Gets a float value from the specified column.
     /// PT: Obtém valor float da coluna indicada.
     /// </summary>
-    public override float GetFloat(int ordinal) => (float)this[ordinal];
+    public override float GetFloat(int ordinal) => Convert.ToSingle(this[ordinal], CultureInfo.InvariantCulture);
     /// <summary>
     /// EN: Gets a Guid value from the specified column.
     /// PT: Obtém valor Guid da coluna indicada.
@@ -335,8 +335,23 @@ public abstract class DbDataReaderMockBase(
     /// </summary>
     public override object GetValue(int ordinal)
     {
-        var v = this[ordinal];
+        var v = NormalizeReaderValue(ordinal, this[ordinal]);
         return v is HashSet<string> hs ? string.Join(",", hs) : v;
+    }
+    /// <summary>
+    /// EN: Gets the typed value of the specified column.
+    /// PT: Obtém o valor tipado da coluna indicada.
+    /// </summary>
+    public override T GetFieldValue<T>(int ordinal)
+    {
+        var value = GetValue(ordinal);
+        if (value is null || value is DBNull)
+            return default!;
+
+        if (value is T typed)
+            return typed;
+
+        return (T)Convert.ChangeType(value, typeof(T), CultureInfo.InvariantCulture);
     }
     /// <summary>
     /// EN: Copies the values of the current row into the provided array.
@@ -351,7 +366,7 @@ public abstract class DbDataReaderMockBase(
         var copied = Math.Min(values.Length, FieldCount);
         for (int i = 0; i < copied; i++)
         {
-            values[i] = this[i] ?? DBNull.Value;
+            values[i] = GetValue(i);
         }
 
         return copied;
@@ -389,6 +404,29 @@ public abstract class DbDataReaderMockBase(
     /// PT: Retorna um enumerador dos conjuntos de resultados.
     /// </summary>
     public override IEnumerator GetEnumerator() => _resultSets.GetEnumerator();
+
+    private object NormalizeReaderValue(int ordinal, object value)
+    {
+        if (value is null || value is DBNull)
+            return DBNull.Value;
+
+        var dbType = _columnsDic[_currentResultSetIndex][ordinal].DbType;
+        return dbType switch
+        {
+            DbType.Currency or DbType.Decimal or DbType.VarNumeric => Convert.ToDecimal(value, CultureInfo.InvariantCulture),
+            DbType.Double => Convert.ToDouble(value, CultureInfo.InvariantCulture),
+            DbType.Single => Convert.ToSingle(value, CultureInfo.InvariantCulture),
+            DbType.Int16 => Convert.ToInt16(value, CultureInfo.InvariantCulture),
+            DbType.Int32 => Convert.ToInt32(value, CultureInfo.InvariantCulture),
+            DbType.Int64 => Convert.ToInt64(value, CultureInfo.InvariantCulture),
+            DbType.UInt16 => Convert.ToUInt16(value, CultureInfo.InvariantCulture),
+            DbType.UInt32 => Convert.ToUInt32(value, CultureInfo.InvariantCulture),
+            DbType.UInt64 => Convert.ToUInt64(value, CultureInfo.InvariantCulture),
+            DbType.Byte => Convert.ToByte(value, CultureInfo.InvariantCulture),
+            DbType.SByte => Convert.ToSByte(value, CultureInfo.InvariantCulture),
+            _ => value
+        };
+    }
     /// <summary>
     /// EN: Disposes the data reader and associated resources.
     /// PT: Descarta o data leitor e recursos associados.

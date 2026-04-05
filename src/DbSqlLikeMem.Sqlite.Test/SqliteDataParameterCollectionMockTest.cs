@@ -1,5 +1,3 @@
-using FluentAssertions;
-
 namespace DbSqlLikeMem.Sqlite.Test;
 /// <summary>
 /// EN: Verifies SQLite parameter collections normalize names, preserve ordering, and enforce guard clauses.

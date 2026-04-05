@@ -176,10 +176,10 @@ public sealed class Db2SqlCompatibilityGapTests : XUnitTestBase
     [Trait("Category", "Db2SqlCompatibilityGap")]
     public void Distinct_ShouldBeConsistent()
     {
-        // duplicate names
+        // DB2 default collation is case-sensitive here, so "John" and "john" stay distinct.
         _cnn.Execute("INSERT INTO users (id,name,email) VALUES (4,'john','j2@x.com')");
         var rows = _cnn.Query<dynamic>("SELECT DISTINCT name FROM users ORDER BY name").ToList();
-        Assert.Equal(["Bob", "Jane", "John"], [.. rows.Select(r => (string)r.name)]);
+        Assert.Equal(["Bob", "Jane", "John", "john"], [.. rows.Select(r => (string)r.name)]);
     }
 
     /// <summary>
@@ -325,15 +325,14 @@ ORDER BY id
     }
 
     /// <summary>
-    /// EN: Verifies implicit casts and collation follow the expected DB2 rules.
-    /// PT: Verifica se casts implicitos e collation seguem as regras esperadas do DB2.
+    /// EN: Verifies implicit casts and default DB2 string comparison rules follow the expected behavior.
+    /// PT: Verifica se casts implicitos e as regras padrao de comparacao de strings do DB2 seguem o comportamento esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SqlCompatibilityGap")]
     public void Typing_ImplicitCasts_And_Collation_ShouldMatchDb2Default()
     {
-        // Many DB2 installations use case-insensitive collations by default.
-        var rows1 = _cnn.Query<dynamic>("SELECT id FROM users WHERE name = 'john'").ToList();
+        var rows1 = _cnn.Query<dynamic>("SELECT id FROM users WHERE name = 'John'").ToList();
         Assert.Single(rows1);
         Assert.Equal(1, (int)rows1[0].id);
 

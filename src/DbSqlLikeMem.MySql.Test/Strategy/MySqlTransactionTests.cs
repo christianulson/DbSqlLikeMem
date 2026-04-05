@@ -1,5 +1,3 @@
-using FluentAssertions;
-
 namespace DbSqlLikeMem.MySql.Test.Strategy;
 /// <summary>
 /// EN: Covers transaction commit and rollback scenarios in the MySql mock.

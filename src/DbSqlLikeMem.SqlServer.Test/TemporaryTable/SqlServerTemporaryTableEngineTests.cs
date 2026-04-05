@@ -1,5 +1,3 @@
-using FluentAssertions;
-
 namespace DbSqlLikeMem.SqlServer.Test.TemporaryTable;
 
 /// <summary>

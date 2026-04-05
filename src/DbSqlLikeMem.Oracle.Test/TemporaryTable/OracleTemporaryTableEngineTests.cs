@@ -1,5 +1,3 @@
-using FluentAssertions;
-
 namespace DbSqlLikeMem.Oracle.Test.TemporaryTable;
 
 /// <summary>

@@ -1,5 +1,3 @@
-using FluentAssertions;
-
 namespace DbSqlLikeMem.MySql.Test;
 /// <summary>
 /// EN: Verifies MySQL parameter collections normalize names, preserve ordering, and enforce guard clauses.

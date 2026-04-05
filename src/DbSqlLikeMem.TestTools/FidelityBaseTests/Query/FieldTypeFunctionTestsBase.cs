@@ -161,6 +161,11 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     [Fact]
     public void JsonTypedFieldMatrixTest()
     {
+        if (!dialect.SupportsJsonScalarRead)
+        {
+            return;
+        }
+
         var users = "Users";
         var uId = NewToken();
 

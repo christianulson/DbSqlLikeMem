@@ -1,5 +1,3 @@
-using FluentAssertions;
-
 namespace DbSqlLikeMem.Npgsql.Test.TemporaryTable;
 
 /// <summary>

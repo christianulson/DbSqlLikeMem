@@ -86,20 +86,41 @@ internal static class SqlProcedureParserHelper
         var requiredIn = new List<ProcParam>();
         var optionalIn = new List<ProcParam>();
         var outParams = new List<ProcParam>();
+        var sawOptionalInput = false;
 
         foreach (var rawDefinition in defs)
         {
             var (parameter, direction) = ctx.ParseProcedureParameter(procedureName, rawDefinition);
+            var isInputParameter = direction is ParameterDirection.Input or ParameterDirection.InputOutput;
+            if (isInputParameter)
+            {
+                if (parameter.Required)
+                {
+                    if (sawOptionalInput)
+                        throw new InvalidOperationException($"CREATE PROCEDURE {procedureName.Text} parameter default values must be trailing.");
+                }
+                else
+                {
+                    sawOptionalInput = true;
+                }
+            }
+
             switch (direction)
             {
                 case ParameterDirection.Input:
-                    requiredIn.Add(parameter);
+                    if (parameter.Required)
+                        requiredIn.Add(parameter);
+                    else
+                        optionalIn.Add(parameter);
                     break;
                 case ParameterDirection.Output:
                     outParams.Add(parameter);
                     break;
                 case ParameterDirection.InputOutput:
-                    requiredIn.Add(parameter);
+                    if (parameter.Required)
+                        requiredIn.Add(parameter);
+                    else
+                        optionalIn.Add(parameter);
                     outParams.Add(parameter);
                     break;
                 default:
@@ -152,19 +173,27 @@ internal static class SqlProcedureParserHelper
         if (nameToken.Kind is not (SqlTokenKind.Parameter or SqlTokenKind.Identifier or SqlTokenKind.Keyword))
             throw new InvalidOperationException($"CREATE PROCEDURE {procedureName.Text} parameter definition requires a parameter name, found {nameToken.Kind} '{nameToken.Text}'.");
 
-        var typeTokens = tokens.Skip(index).ToList();
+        var defaultIndex = tokens.FindIndex(index, static token => token.Text.Equals(SqlConst.DEFAULT, StringComparison.OrdinalIgnoreCase) || token.Text == "=");
+        var typeTokens = defaultIndex >= 0
+            ? tokens.Skip(index).Take(defaultIndex - index).ToList()
+            : tokens.Skip(index).ToList();
+
         if (typeTokens.Count == 0)
             throw new InvalidOperationException($"CREATE PROCEDURE parameter '{nameToken.Text}' requires a type.");
-
-        if (typeTokens.Any(token => token.Text.Equals(SqlConst.DEFAULT, StringComparison.OrdinalIgnoreCase) || token.Text == "="))
-            throw new NotSupportedException($"CREATE PROCEDURE {procedureName.Text} parameter default values are not supported in the mock yet.");
 
         var typeSql = ctx.TokensToSql(typeTokens).Trim();
         if (string.IsNullOrWhiteSpace(typeSql))
             throw new InvalidOperationException($"CREATE PROCEDURE {procedureName.Text} parameter '{nameToken.Text}' requires a type.");
 
-        var dbType = ParseProcedureParameterDbType(typeSql);
-        var parameter = new ProcParam(nameToken.Text, dbType, Required: direction != ParameterDirection.Output);
+        var dbType = SqlParameterDbTypeParserHelper.ParseDbType(typeSql);
+        object? defaultValue = null;
+        var hasDefault = defaultIndex >= 0
+            && ctx.TryParseParameterDefaultValue(tokens.Skip(defaultIndex).ToList(), out defaultValue);
+
+        if (hasDefault && direction == ParameterDirection.Output)
+            throw new NotSupportedException($"CREATE PROCEDURE {procedureName.Text} parameter default values are not supported for OUT parameters in the mock yet.");
+
+        var parameter = new ProcParam(nameToken.Text, dbType, Required: direction != ParameterDirection.Output && !hasDefault, Value: defaultValue);
         return (parameter, direction);
     }
 
@@ -192,19 +221,4 @@ internal static class SqlProcedureParserHelper
         return sb.ToString();
     }
 
-    private static DbType ParseProcedureParameterDbType(string typeSql)
-        => typeSql.Trim().NormalizeName().Split(' ').First(_ => !string.IsNullOrWhiteSpace(_)).ToUpperInvariant() switch
-        {
-            "INT" or "INTEGER" or "SMALLINT" => DbType.Int32,
-            "BIGINT" => DbType.Int64,
-            "DECIMAL" or "NUMERIC" => DbType.Decimal,
-            "NUMBER" => DbType.Decimal,
-            "FLOAT" or "REAL" or "DOUBLE" => DbType.Double,
-            "BOOLEAN" or "BOOL" => DbType.Boolean,
-            "DATE" => DbType.Date,
-            "TIMESTAMP" or "DATETIME" => DbType.DateTime,
-            "GUID" or "UUID" => DbType.Guid,
-            "BLOB" or "BINARY" or "VARBINARY" => DbType.Binary,
-            _ => DbType.String,
-        };
 }

@@ -300,6 +300,7 @@ public sealed class SqlDialectAutoParserTests(
         Assert.True(dialect.SupportsSequenceFunctionCall(SqlConst.CURRVAL));
         Assert.True(dialect.SupportsSequenceFunctionCall(SqlConst.SETVAL));
         Assert.True(dialect.SupportsSequenceFunctionCall(SqlConst.LASTVAL));
+        Assert.True(dialect.SupportsSequenceFunctionCall("GEN_ID"));
     }
 
     /// <summary>
@@ -706,6 +707,7 @@ public sealed class SqlDialectAutoParserTests(
         var nextVal = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("NEXTVAL('sales.seq_orders')", db, d));
         var currVal = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CURRVAL('sales.seq_orders')", db, d));
         var lastVal = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LASTVAL()", db, d));
+        var genId = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("GEN_ID(seq_orders, 1)", db, d));
 
         Assert.Equal("NEXT_VALUE_FOR", nextValueFor.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("PREVIOUS_VALUE_FOR", previousValueFor.Name, StringComparer.OrdinalIgnoreCase);
@@ -714,6 +716,7 @@ public sealed class SqlDialectAutoParserTests(
         Assert.Equal(SqlConst.NEXTVAL, nextVal.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal(SqlConst.CURRVAL, currVal.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal(SqlConst.LASTVAL, lastVal.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("GEN_ID", genId.Name, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -845,6 +848,36 @@ public sealed class SqlDialectAutoParserTests(
         Assert.Equal("DATE_ADD", dateAdd.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("DATEADD", sqlServerDateAdd.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("TIMESTAMPADD", timestampAdd.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto mode parses Firebird-specific temporal and hash function syntax through the shared automatic dialect.
+    /// PT: Verifica se o modo Auto interpreta a sintaxe especifica do Firebird para funcoes temporais e de hash pelo dialeto automatico compartilhado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldParseFirebirdFunctionFamilies()
+    {
+        var d = Get(1, v => new AutoSqlDialect(v));
+        var db = Get(1, v => new AutoDbMock(v));
+
+        Assert.True(d.TryGetScalarFunctionDefinition("GEN_ID", out _));
+        Assert.True(d.TryGetScalarFunctionDefinition("HASH", out _));
+        Assert.True(d.TryGetScalarFunctionDefinition("CRYPT_HASH", out _));
+
+        var dateAdd = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATEADD(1 DAY TO CURRENT_TIMESTAMP)", db, d));
+        var hash = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("HASH('Firebird' USING CRC32)", db, d));
+        var cryptHash = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CRYPT_HASH('Firebird' USING SHA256)", db, d));
+
+        Assert.Equal("DATEADD", dateAdd.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(3, dateAdd.Args.Count);
+        Assert.Equal("DAY", Assert.IsType<RawSqlExpr>(dateAdd.Args[0]).Sql, ignoreCase: true);
+        Assert.Equal("HASH", hash.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(2, hash.Args.Count);
+        Assert.Equal("CRC32", Assert.IsType<RawSqlExpr>(hash.Args[1]).Sql, ignoreCase: true);
+        Assert.Equal("CRYPT_HASH", cryptHash.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(2, cryptHash.Args.Count);
+        Assert.Equal("SHA256", Assert.IsType<RawSqlExpr>(cryptHash.Args[1]).Sql, ignoreCase: true);
     }
 
     /// <summary>

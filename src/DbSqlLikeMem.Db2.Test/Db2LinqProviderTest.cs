@@ -1,5 +1,3 @@
-using FluentAssertions;
-
 namespace DbSqlLikeMem.Db2.Test;
 /// <summary>
 /// EN: Verifies LINQ query translation and provider metadata behavior for Db2 connections.

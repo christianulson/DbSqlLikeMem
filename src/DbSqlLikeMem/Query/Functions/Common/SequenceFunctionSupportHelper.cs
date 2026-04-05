@@ -7,25 +7,34 @@ internal static class SequenceFunctionSupportHelper
         if (string.IsNullOrWhiteSpace(functionName))
             return;
 
+        var name = functionName!;
         var sqlDialect = dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para funções de sequence.");
 
-        if (functionName!.Equals("NEXT_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
+        if (name.Equals("GEN_ID", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!sqlDialect.SupportsSequenceFunctionCall(name))
+                throw SqlUnsupported.NotSupported(sqlDialect, name.ToUpperInvariant());
+
+            return;
+        }
+
+        if (name.Equals("NEXT_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
             && !sqlDialect.SupportsNextValueForSequenceExpression)
         {
             throw SqlUnsupported.NotSupported(sqlDialect, "NEXT VALUE FOR");
         }
 
-        if (functionName.Equals("PREVIOUS_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
+        if (name.Equals("PREVIOUS_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
             && !sqlDialect.SupportsPreviousValueForSequenceExpression)
         {
             throw SqlUnsupported.NotSupported(sqlDialect, "PREVIOUS VALUE FOR");
         }
 
-        if (!sqlDialect.TryGetScalarFunctionDefinition(functionName, out var definition)
+        if (!sqlDialect.TryGetScalarFunctionDefinition(name, out var definition)
             || definition is null
             || !definition.AllowsCall)
         {
-            throw SqlUnsupported.NotSupported(sqlDialect, functionName.ToUpperInvariant());
+            throw SqlUnsupported.NotSupported(sqlDialect, name.ToUpperInvariant());
         }
     }
 }
