@@ -1,3 +1,4 @@
+﻿#pragma warning disable RCS1194
 namespace DbSqlLikeMem.SqlAzure;
 
 /// <summary>
@@ -40,3 +41,4 @@ public sealed class SqlAzureMockException
     {
     }
 }
+#pragma warning restore RCS1194

@@ -70,7 +70,9 @@ internal static class AstQuerySharedBinaryTextFunctionEvaluator
         }
 
         var value = evalArg(0);
-        var algorithmName = Convert.ToString(evalArg(1), CultureInfo.InvariantCulture) ?? string.Empty;
+        var algorithmName = fn.Args[1] is RawSqlExpr rawAlgorithm
+            ? rawAlgorithm.Sql
+            : Convert.ToString(evalArg(1), CultureInfo.InvariantCulture) ?? string.Empty;
         if (IsNullish(value) || string.IsNullOrWhiteSpace(algorithmName))
         {
             result = null;

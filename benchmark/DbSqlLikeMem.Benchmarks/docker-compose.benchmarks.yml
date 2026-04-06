@@ -1,4 +1,4 @@
-services:
+﻿services:
   mariadb:
     image: mariadb:11.0
     container_name: dbsqllikemem-bench-mariadb
@@ -103,6 +103,28 @@ services:
       timeout: 20s
       retries: 30
 
+  firebird:
+    image: firebirdsql/firebird:5.0.3-noble
+    container_name: dbsqllikemem-bench-firebird
+    environment:
+      FIREBIRD_ROOT_PASSWORD: masterkey
+      FIREBIRD_USER: benchmark
+      FIREBIRD_PASSWORD: benchmark
+      FIREBIRD_DATABASE: /var/lib/firebird/data/benchmark.fdb
+      FIREBIRD_DATABASE_DEFAULT_CHARSET: UTF8
+    ports:
+      - "13050:3050"
+    volumes:
+      - firebird-data:/var/lib/firebird/data
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'select 1 from rdb$$database;' | isql -u benchmark -p benchmark /var/lib/firebird/data/benchmark.fdb -q -nod >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+
 networks:
   default:
     name: dbsqllikemembenchmarks_default
+
+volumes:
+  firebird-data:

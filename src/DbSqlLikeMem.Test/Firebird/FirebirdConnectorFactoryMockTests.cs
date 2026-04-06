@@ -20,7 +20,7 @@ public sealed class FirebirdConnectorFactoryMockTests(
         Assert.IsType<FirebirdCommandMock>(factory.CreateCommand());
         Assert.IsType<FirebirdConnectionMock>(factory.CreateConnection());
         Assert.IsType<FirebirdDataAdapterMock>(factory.CreateDataAdapter());
-        Assert.IsType<DbConnectionStringBuilder>(factory.CreateConnectionStringBuilder());
+        Assert.IsType<FirebirdSql.Data.FirebirdClient.FbConnectionStringBuilder>(factory.CreateConnectionStringBuilder());
         Assert.NotNull(factory.CreateParameter());
     }
 

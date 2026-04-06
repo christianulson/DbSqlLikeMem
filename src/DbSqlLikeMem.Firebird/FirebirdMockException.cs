@@ -47,6 +47,19 @@ public sealed class FirebirdMockException : SqlMockException
     }
 
     /// <summary>
+    /// EN: Initializes the exception with a message, error code, and SQLSTATE.
+    /// PT: Inicializa a exceção com uma mensagem, um código de erro e um SQLSTATE.
+    /// </summary>
+    /// <param name="message">EN: Error message. PT: Mensagem do erro.</param>
+    /// <param name="code">EN: Error code. PT: Código do erro.</param>
+    /// <param name="sqlState">EN: SQLSTATE value. PT: Valor do SQLSTATE.</param>
+    public FirebirdMockException(string message, int code, string sqlState)
+        : base(message, code)
+    {
+        SqlState = string.IsNullOrWhiteSpace(sqlState) ? "HY000" : sqlState;
+    }
+
+    /// <summary>
     /// EN: Initializes the exception from serialized data.
     /// PT: Inicializa a exceção a partir de dados serializados.
     /// </summary>
@@ -59,4 +72,3 @@ public sealed class FirebirdMockException : SqlMockException
     }
 #pragma warning restore SYSLIB0051 // This API supports obsolete formatter-based serialization.
 }
-

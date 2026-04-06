@@ -12,6 +12,7 @@ internal static class SqlReturningClauseHelper
         SqlConst.GROUP_CONCAT,
         SqlConst.STRING_AGG,
         SqlConst.LISTAGG,
+        SqlConst.LIST,
         SqlConst.JSON_ARRAYAGG,
         SqlConst.JSON_OBJECTAGG,
         "STDDEV",

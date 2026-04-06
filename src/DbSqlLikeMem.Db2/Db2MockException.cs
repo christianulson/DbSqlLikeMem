@@ -1,6 +1,7 @@
 ﻿namespace DbSqlLikeMem.Db2;
 
 #pragma warning disable CA1032 // Implement standard exception constructors
+#pragma warning disable RCS1194
 /// <summary>
 /// EN: Represents Db2 Mock Exception.
 /// PT: Representa Db2 simulada Exceção.
@@ -40,3 +41,4 @@ public sealed class Db2MockException : SqlMockException
     {
     }
 }
+#pragma warning restore RCS1194

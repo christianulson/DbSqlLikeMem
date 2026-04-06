@@ -50,8 +50,9 @@ dotnet run -c Release -- --validate-catalog
 - `MariaDB` usa o mesmo fluxo operacional do MySQL, mas com provider, dialeto e sessão próprios.
 - `Sqlite` usa `Microsoft.Data.Sqlite` em memória no lado real, porque SQLite normalmente não entra via container na mesma ergonomia dos demais provedores.
 - `Db2` ficou com a imagem em uma constante visível no código para você poder piná-la facilmente na família que quiser comparar (11.5.x para proximidade com o mock, ou a tag mais nova do módulo do Testcontainers).
+- `Firebird` já tem uma suíte em memória dedicada, incluindo um slice de `EXECUTE BLOCK` com `WHEN SQLSTATE`, e a comparação externa ainda está sendo concluída.
 - O gerador da wiki já lê o catálogo de features; ele não precisa de lógica especial para MariaDB, apenas dos relatórios publicados.
-- Os runners `run-core-matrix.ps1`, `run-benchmarks-preprovisioned.ps1`, `start-benchmark-databases.ps1` e `start-benchmark-databases.robust.ps1` já conhecem MariaDB.
+- Os runners `run-core-matrix.ps1`, `run-benchmarks-preprovisioned.ps1`, `start-benchmark-databases.ps1` e `start-benchmark-databases.robust.ps1` já conhecem MariaDB e Firebird.
 
 ## Scripts build Reports
 

@@ -1526,7 +1526,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
             return null;
 
         var normalizedName = functionName.ToUpperInvariant();
-        if (normalizedName is not SqlConst.GROUP_CONCAT and not SqlConst.STRING_AGG and not SqlConst.LISTAGG)
+        if (normalizedName is not SqlConst.GROUP_CONCAT and not SqlConst.STRING_AGG and not SqlConst.LISTAGG and not SqlConst.LIST)
             throw SqlUnsupported.NotSupported(_context.Dialect, $"aggregate ORDER BY for function '{functionName}'");
 
         if (!_context.Dialect.SupportsAggregateOrderByForStringAggregates)
@@ -1566,7 +1566,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
             return;
 
         var normalizedName = functionName.ToUpperInvariant();
-        if (normalizedName is not SqlConst.GROUP_CONCAT and not SqlConst.STRING_AGG and not SqlConst.LISTAGG)
+        if (normalizedName is not SqlConst.GROUP_CONCAT and not SqlConst.STRING_AGG and not SqlConst.LISTAGG and not SqlConst.LIST)
             throw SqlUnsupported.NotSupported(_context.Dialect, $"aggregate separator keyword for function '{functionName}'");
 
         if (!_context.Dialect.SupportsAggregateSeparatorKeywordForStringAggregates)
@@ -1654,7 +1654,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
             return call;
 
         var normalizedName = call.Name.ToUpperInvariant();
-        if (normalizedName is not SqlConst.GROUP_CONCAT and not SqlConst.STRING_AGG and not SqlConst.LISTAGG)
+        if (normalizedName is not SqlConst.GROUP_CONCAT and not SqlConst.STRING_AGG and not SqlConst.LISTAGG and not SqlConst.LIST)
         {
             throw SqlUnsupported.NotSupported(
                 _context.Dialect,

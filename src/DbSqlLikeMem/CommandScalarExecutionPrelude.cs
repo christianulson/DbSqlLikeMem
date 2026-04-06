@@ -34,7 +34,7 @@ internal static class CommandScalarExecutionPrelude
             {
                 if (earlyReader.Read())
                 {
-                    scalar = earlyReader.GetValue(0);
+                    scalar = earlyReader.GetValue(0) ?? DBNull.Value;
                     return true;
                 }
             }
@@ -186,7 +186,10 @@ internal static class CommandScalarExecutionPrelude
         }
 
         if (TryEvaluateConstantScalarExpression(context, expr, out scalar))
+        {
+            scalar ??= DBNull.Value;
             return true;
+        }
 
         switch (expr)
         {

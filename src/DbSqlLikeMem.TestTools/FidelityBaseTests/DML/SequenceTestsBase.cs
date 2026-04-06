@@ -452,10 +452,10 @@ FROM SYSIBM.SYSDUMMY1
 
             var seqFirstCte = dialect.Provider == ProviderId.Db2
                 ? $"seq_first AS (SELECT NEXT VALUE FOR {sequence} AS SeqValue FROM SYSIBM.SYSDUMMY1)"
-                : $"seq_first AS (SELECT {dialect.NextSequenceValueExpression(sequence)} AS SeqValue LIMIT 1)";
+                : $"seq_first AS (SELECT {dialect.NextSequenceValueExpression(sequence)} AS SeqValue {GetSingleRowLimitClause()})";
             var seqSecondCte = dialect.Provider == ProviderId.Db2
                 ? $"seq_second AS (SELECT NEXT VALUE FOR {sequence} AS SeqValue FROM SYSIBM.SYSDUMMY1)"
-                : $"seq_second AS (SELECT {dialect.NextSequenceValueExpression(sequence)} AS SeqValue LIMIT 1)";
+                : $"seq_second AS (SELECT {dialect.NextSequenceValueExpression(sequence)} AS SeqValue {GetSingleRowLimitClause()})";
 
             using var command = connection.CreateCommand();
             command.CommandText = $"""
@@ -546,10 +546,10 @@ FROM SYSIBM.SYSDUMMY1
             var nextDayExpr = dialect.TemporalDateAddExpression();
             var seqFirstCte = dialect.Provider == ProviderId.Db2
                 ? $"seq_first AS (SELECT NEXT VALUE FOR {sequence} AS SeqValue FROM SYSIBM.SYSDUMMY1)"
-                : $"seq_first AS (SELECT {dialect.NextSequenceValueExpression(sequence)} AS SeqValue LIMIT 1)";
+                : $"seq_first AS (SELECT {dialect.NextSequenceValueExpression(sequence)} AS SeqValue {GetSingleRowLimitClause()})";
             var seqSecondCte = dialect.Provider == ProviderId.Db2
                 ? $"seq_second AS (SELECT NEXT VALUE FOR {sequence} AS SeqValue FROM SYSIBM.SYSDUMMY1)"
-                : $"seq_second AS (SELECT {dialect.NextSequenceValueExpression(sequence)} AS SeqValue LIMIT 1)";
+                : $"seq_second AS (SELECT {dialect.NextSequenceValueExpression(sequence)} AS SeqValue {GetSingleRowLimitClause()})";
 
             using var command = connection.CreateCommand();
             command.CommandText = $"""
@@ -670,6 +670,11 @@ ORDER BY u.Id
             Convert.ToInt64(reader.GetValue(1), CultureInfo.InvariantCulture),
             Convert.ToInt64(reader.GetValue(2), CultureInfo.InvariantCulture));
     }
+
+    private string GetSingleRowLimitClause()
+        => dialect.Provider == ProviderId.Firebird
+            ? "FETCH FIRST 1 ROWS ONLY"
+            : "LIMIT 1";
 
     private string ResolveScenarioTableName(string users, string uId)
         => dialect.Provider == ProviderId.Oracle

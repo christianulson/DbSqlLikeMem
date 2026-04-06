@@ -1,6 +1,7 @@
 namespace DbSqlLikeMem.Npgsql;
 
 #pragma warning disable CA1032 // Implement standard exception constructors
+#pragma warning disable RCS1194
 /// <summary>
 /// EN: Represents Npgsql Mock Exception.
 /// PT: Representa uma exceção simulada do Npgsql.
@@ -40,3 +41,4 @@ public sealed class NpgsqlMockException : SqlMockException
     {
     }
 }
+#pragma warning restore RCS1194

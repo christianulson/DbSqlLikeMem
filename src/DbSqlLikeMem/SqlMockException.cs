@@ -21,6 +21,12 @@ public class SqlMockException : Exception
     /// PT: Obtém o nome lógico da excecao usado pelos handlers WHEN EXCEPTION.
     /// </summary>
     public string ExceptionName { get; } = "E_FAIL";
+
+    /// <summary>
+    /// EN: Gets the SQLSTATE associated with the failure.
+    /// PT: Obtém o SQLSTATE associado à falha.
+    /// </summary>
+    public string SqlState { get; protected set; } = "HY000";
     /// <summary>
     /// EN: Initializes the exception with message and error code.
     /// PT: Inicializa a exceção com mensagem e código de erro.
@@ -29,6 +35,20 @@ public class SqlMockException : Exception
     /// <param name="code">EN: Error code. PT: Código do erro.</param>
     public SqlMockException(string message, int code)
         : base(message) => ErrorCode = code;
+
+    /// <summary>
+    /// EN: Initializes the exception with a message, error code, and SQLSTATE.
+    /// PT: Inicializa a exceção com mensagem, código de erro e SQLSTATE.
+    /// </summary>
+    /// <param name="message">EN: Error message. PT: Mensagem do erro.</param>
+    /// <param name="code">EN: Error code. PT: Código do erro.</param>
+    /// <param name="sqlState">EN: SQLSTATE value. PT: Valor do SQLSTATE.</param>
+    public SqlMockException(string message, int code, string sqlState)
+        : base(message)
+    {
+        ErrorCode = code;
+        SqlState = string.IsNullOrWhiteSpace(sqlState) ? SqlState : sqlState;
+    }
 
     /// <summary>
     /// EN: Initializes the exception with default values.

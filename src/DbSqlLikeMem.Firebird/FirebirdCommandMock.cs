@@ -48,7 +48,14 @@ public class FirebirdCommandMock(
     protected override DbConnection? DbConnection
     {
         get => connection;
-        set => connection = value as FirebirdConnectionMock;
+        set
+        {
+            var newConnection = value as FirebirdConnectionMock;
+            if (!ReferenceEquals(connection, newConnection))
+                transaction = null;
+
+            connection = newConnection;
+        }
     }
 
     private readonly FirebirdDataParameterCollectionMock collectionMock = [];
@@ -630,7 +637,7 @@ public class FirebirdCommandMock(
 
         using var reader = ExecuteReader();
         if (reader.Read())
-            return reader.GetValue(0);
+            return reader.GetValue(0) ?? DBNull.Value;
         return DBNull.Value;
     }
 

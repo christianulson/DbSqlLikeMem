@@ -1,6 +1,7 @@
 ﻿namespace DbSqlLikeMem.Sqlite;
 
 #pragma warning disable CA1032 // Implement standard exception constructors
+#pragma warning disable RCS1194
 /// <summary>
 /// EN: Represents Sqlite Mock Exception.
 /// PT: Representa uma exceção simulada do Sqlite.
@@ -40,3 +41,4 @@ public sealed class SqliteMockException : SqlMockException
     {
     }
 }
+#pragma warning restore RCS1194

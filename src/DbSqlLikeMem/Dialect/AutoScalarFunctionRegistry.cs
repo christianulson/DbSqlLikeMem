@@ -94,10 +94,14 @@ internal static class AutoScalarFunctionRegistry
             });
 
         dialect.AddScalarFunctions(
-            DbFunctionDef.CreateScalar(SqlConst.GROUP_CONCAT, "VARCHAR"),
+            DbFunctionDef.CreateScalar(SqlConst.GROUP_CONCAT, "VARCHAR") with
+            {
+                IsStringAggregate = true
+            },
             SqlConst.GROUP_CONCAT,
             SqlConst.STRING_AGG,
-            SqlConst.LISTAGG);
+            SqlConst.LISTAGG,
+            SqlConst.LIST);
 
         dialect.AddScalarFunctions(
             DbFunctionDef.CreateScalar(SqlConst.NEXTVAL, "BIGINT"),

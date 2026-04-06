@@ -37,7 +37,8 @@
         "FluentSchemaBuild",
         "FluentSeed100",
         "FluentSeed1000",
-        "FluentScenarioCompose"
+        "FluentScenarioCompose",
+        "ExecuteBlockSqlState23000"
       ]
     },
     {
@@ -70,7 +71,8 @@
         "FluentSchemaBuild",
         "FluentSeed100",
         "FluentSeed1000",
-        "FluentScenarioCompose"
+        "FluentScenarioCompose",
+        "ExecuteBlockSqlState23000"
       ]
     },
     {

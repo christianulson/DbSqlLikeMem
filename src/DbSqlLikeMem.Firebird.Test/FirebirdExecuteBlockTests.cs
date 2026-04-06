@@ -8,14 +8,15 @@ public sealed class FirebirdExecuteBlockTests : XUnitTestBase
 {
     private sealed class FirebirdConnectionSpyMock : FirebirdConnectionMock
     {
-        public static string? LastSetConnectionString { get; private set; }
-        public static string? LastSetDataSource { get; private set; }
+        public static string? LastSetConnectionString { get; set; }
+        public static string? LastSetDataSource { get; set; }
 
         public FirebirdConnectionSpyMock(FirebirdDbMock? db = null, string? defaultDatabase = null)
             : base(db, defaultDatabase)
         {
         }
 
+#pragma warning disable CS8764, CS8765
         public override string ConnectionString
         {
             get => base.ConnectionString;
@@ -26,6 +27,7 @@ public sealed class FirebirdExecuteBlockTests : XUnitTestBase
                 LastSetDataSource = base.DataSource;
             }
         }
+#pragma warning restore CS8764, CS8765
     }
 
     private readonly FirebirdDbMock db;
@@ -589,6 +591,179 @@ END
     }
 
     /// <summary>
+    /// EN: Verifies EXECUTE BLOCK can recover from a duplicate-key error using a specific WHEN SQLSTATE '23000' DO handler.
+    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando um handler especifico WHEN SQLSTATE '23000' DO.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldHandleWhenSqlState23000Do()
+    {
+        users.AddPrimaryKeyIndexes("Id");
+        users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "Seed" });
+
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (1, ''Fail'')';
+    WHEN SQLSTATE '23000' DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (34, 'SqlState23000');
+    END
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Equal(2, users.Count);
+        Assert.Contains(users, row => row[0]?.Equals(1) == true && row[1]?.Equals("Seed") == true);
+        Assert.Contains(users, row => row[0]?.Equals(34) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK can recover from a foreign-key error using a specific WHEN SQLSTATE '23000' DO handler.
+    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave estrangeira usando um handler especifico WHEN SQLSTATE '23000' DO.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldHandleWhenSqlState23000ForeignKeyDo()
+    {
+        var parents = db.AddTable("Parents");
+        parents.AddColumn("Id", DbType.Int32, false);
+        parents.AddPrimaryKeyIndexes("Id");
+        parents.Add(new Dictionary<int, object?> { [0] = 1 });
+
+        var children = db.AddTable("Children");
+        children.AddColumn("ParentId", DbType.Int32, false);
+        children.CreateForeignKey(
+            "FK_CHILDREN_PARENTS",
+            "Parents",
+            [("ParentId", "Id")]);
+
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO Children (ParentId) VALUES (999)';
+    WHEN SQLSTATE '23000' DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (35, 'SqlState23000ForeignKey');
+    END
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Single(users);
+        Assert.Contains(users, row => row[0]?.Equals(35) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK can recover from a duplicate-key error using a specific WHEN GDSCODE primary_key_violation DO handler.
+    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando um handler especifico WHEN GDSCODE primary_key_violation DO.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldHandleWhenGdsCodePrimaryKeyViolationDo()
+    {
+        users.AddPrimaryKeyIndexes("Id");
+        users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "Seed" });
+
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (1, ''Fail'')';
+    WHEN GDSCODE primary_key_violation DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (30, 'PrimaryKeyViolation');
+    END
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Equal(2, users.Count);
+        Assert.Contains(users, row => row[0]?.Equals(1) == true && row[1]?.Equals("Seed") == true);
+        Assert.Contains(users, row => row[0]?.Equals(30) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK can recover from a duplicate-key error using a specific WHEN GDSCODE primary_key_violation DO handler.
+    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando um handler especifico WHEN GDSCODE primary_key_violation DO.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldHandleWhenGdsCodePrimaryKeyViolationAliasDo()
+    {
+        users.AddPrimaryKeyIndexes("Id");
+        users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "Seed" });
+
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (1, ''Fail'')';
+    WHEN GDSCODE primary_key_violation DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (32, 'PrimaryKeyViolationAlias');
+    END
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Equal(2, users.Count);
+        Assert.Contains(users, row => row[0]?.Equals(1) == true && row[1]?.Equals("Seed") == true);
+        Assert.Contains(users, row => row[0]?.Equals(32) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK can recover from a duplicate-key error using a specific WHEN GDSCODE primary_key_exists DO handler.
+    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando um handler especifico WHEN GDSCODE primary_key_exists DO.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldHandleWhenGdsCodePrimaryKeyExistsDo()
+    {
+        users.AddPrimaryKeyIndexes("Id");
+        users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "Seed" });
+
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (1, ''Fail'')';
+    WHEN GDSCODE primary_key_exists DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (27, 'PrimaryKeyExists');
+    END
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Equal(2, users.Count);
+        Assert.Contains(users, row => row[0]?.Equals(1) == true && row[1]?.Equals("Seed") == true);
+        Assert.Contains(users, row => row[0]?.Equals(27) == true);
+    }
+
+    /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a foreign-key error using a specific WHEN GDSCODE foreign_key DO handler.
     /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave estrangeira usando um handler especifico WHEN GDSCODE foreign_key DO.
     /// </summary>
@@ -627,6 +802,88 @@ END
         Assert.Equal(1, affected);
         Assert.Single(users);
         Assert.Contains(users, row => row[0]?.Equals(23) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK can recover from a foreign-key error using a specific WHEN GDSCODE foreign_key_violation DO handler.
+    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave estrangeira usando um handler especifico WHEN GDSCODE foreign_key_violation DO.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldHandleWhenGdsCodeForeignKeyViolationDo()
+    {
+        var parents = db.AddTable("Parents");
+        parents.AddColumn("Id", DbType.Int32, false);
+        parents.AddPrimaryKeyIndexes("Id");
+        parents.Add(new Dictionary<int, object?> { [0] = 1 });
+
+        var children = db.AddTable("Children");
+        children.AddColumn("ParentId", DbType.Int32, false);
+        children.CreateForeignKey(
+            "FK_CHILDREN_PARENTS",
+            "Parents",
+            [("ParentId", "Id")]);
+
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO Children (ParentId) VALUES (999)';
+    WHEN GDSCODE foreign_key_violation DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (31, 'ForeignKeyViolation');
+    END
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Single(users);
+        Assert.Contains(users, row => row[0]?.Equals(31) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK can recover from a foreign-key error using a specific WHEN GDSCODE foreign_key_violation DO handler.
+    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave estrangeira usando um handler especifico WHEN GDSCODE foreign_key_violation DO.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldHandleWhenGdsCodeForeignKeyViolationAliasDo()
+    {
+        var parents = db.AddTable("Parents");
+        parents.AddColumn("Id", DbType.Int32, false);
+        parents.AddPrimaryKeyIndexes("Id");
+        parents.Add(new Dictionary<int, object?> { [0] = 1 });
+
+        var children = db.AddTable("Children");
+        children.AddColumn("ParentId", DbType.Int32, false);
+        children.CreateForeignKey(
+            "FK_CHILDREN_PARENTS",
+            "Parents",
+            [("ParentId", "Id")]);
+
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO Children (ParentId) VALUES (999)';
+    WHEN GDSCODE foreign_key_violation DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (33, 'ForeignKeyViolationAlias');
+    END
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Single(users);
+        Assert.Contains(users, row => row[0]?.Equals(33) == true);
     }
 
     /// <summary>

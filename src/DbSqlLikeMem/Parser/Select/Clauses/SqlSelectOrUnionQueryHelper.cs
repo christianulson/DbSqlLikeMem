@@ -13,8 +13,8 @@ internal static class SqlSelectOrUnionQueryHelper
             var orderBy = SqlOrderByHelper.TryParseOrderBy(
                 ctx,
                 boundary => boundary
-                    ? ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING, SqlConst.ON)
-                    : ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING));
+                    ? ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING, SqlConst.ON)
+                    : ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING));
             var rowLimit = ctx.TryParseRowLimitTail(orderBy.Count > 0);
             var forJson = ctx.TryParseForJsonClause();
             rowLimit ??= first.RowLimit;
@@ -49,8 +49,8 @@ internal static class SqlSelectOrUnionQueryHelper
         var unionOrderBy = SqlOrderByHelper.TryParseOrderBy(
             ctx,
             boundary => boundary
-                ? ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING, SqlConst.ON)
-                : ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING));
+                ? ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING, SqlConst.ON)
+                : ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING));
         var unionRowLimit = ctx.TryParseRowLimitTail(unionOrderBy.Count > 0);
         ctx.TryConsumeQueryHintOption();
         ctx.ExpectEndOrUnionBoundary();

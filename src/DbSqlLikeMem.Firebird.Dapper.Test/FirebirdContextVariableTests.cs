@@ -38,7 +38,7 @@ public sealed class FirebirdContextVariableTests
         Assert.Equal(currentProcess.Id.ToString(CultureInfo.InvariantCulture), connection.QuerySingle<string>("SELECT RDB$GET_CONTEXT('SYSTEM', 'CLIENT_PID') FROM RDB$DATABASE"));
         Assert.Equal(currentProcess.Id.ToString(CultureInfo.InvariantCulture), connection.QuerySingle<string>("SELECT RDB$GET_CONTEXT('SYSTEM', 'CLIENT_ADDRESS') FROM RDB$DATABASE"));
         Assert.Equal(currentProcess.ProcessName, connection.QuerySingle<string>("SELECT RDB$GET_CONTEXT('SYSTEM', 'CLIENT_PROCESS') FROM RDB$DATABASE"));
-        Assert.Equal($"Firebird {(FirebirdDbVersions.Default / 10d):0.0}", connection.QuerySingle<string>("SELECT RDB$GET_CONTEXT('SYSTEM', 'ENGINE_VERSION') FROM RDB$DATABASE"));
+        Assert.Equal(string.Format(CultureInfo.InvariantCulture, "Firebird {0:0.0}", FirebirdDbVersions.Default / 10d), connection.QuerySingle<string>("SELECT RDB$GET_CONTEXT('SYSTEM', 'ENGINE_VERSION') FROM RDB$DATABASE"));
         Assert.Equal("SNAPSHOT TABLE STABILITY", connection.QuerySingle<string>("SELECT RDB$GET_CONTEXT('SYSTEM', 'ISOLATION_LEVEL') FROM RDB$DATABASE"));
         connection.Execute("UPDATE Users SET Name = 'Ana2' WHERE Id = 999");
         Assert.Equal(0L, connection.QuerySingle<long>("SELECT RDB$GET_CONTEXT('SYSTEM', 'ROW_COUNT') FROM RDB$DATABASE"));
@@ -133,7 +133,7 @@ public sealed class FirebirdContextVariableTests
         Assert.Equal(currentProcess.Id.ToString(CultureInfo.InvariantCulture), connection.QuerySingle<string>("SELECT RDB$GET_CONTEXT('SYSTEM', 'CLIENT_PID') FROM RDB$DATABASE"));
         Assert.Equal(currentProcess.Id.ToString(CultureInfo.InvariantCulture), connection.QuerySingle<string>("SELECT RDB$GET_CONTEXT('SYSTEM', 'CLIENT_ADDRESS') FROM RDB$DATABASE"));
         Assert.Equal(currentProcess.ProcessName, connection.QuerySingle<string>("SELECT RDB$GET_CONTEXT('SYSTEM', 'CLIENT_PROCESS') FROM RDB$DATABASE"));
-        Assert.Equal($"Firebird {(FirebirdDbVersions.Default / 10d):0.0}", connection.QuerySingle<string>("SELECT RDB$GET_CONTEXT('SYSTEM', 'ENGINE_VERSION') FROM RDB$DATABASE"));
+        Assert.Equal(string.Format(CultureInfo.InvariantCulture, "Firebird {0:0.0}", FirebirdDbVersions.Default / 10d), connection.QuerySingle<string>("SELECT RDB$GET_CONTEXT('SYSTEM', 'ENGINE_VERSION') FROM RDB$DATABASE"));
         Assert.Equal("SNAPSHOT TABLE STABILITY", connection.QuerySingle<string>("SELECT RDB$GET_CONTEXT('SYSTEM', 'ISOLATION_LEVEL') FROM RDB$DATABASE"));
         connection.Execute("UPDATE Users SET Name = 'Ana2' WHERE Id = 999");
         Assert.Equal(0L, connection.QuerySingle<long>("SELECT RDB$GET_CONTEXT('SYSTEM', 'ROW_COUNT') FROM RDB$DATABASE"));
@@ -428,7 +428,7 @@ public sealed class FirebirdContextVariableTests
 
         Assert.Equal(8, connection.QuerySingle<int>("SELECT CHAR_LENGTH('Firebird') FROM RDB$DATABASE"));
         Assert.Equal(8, connection.QuerySingle<int>("SELECT CHARACTER_LENGTH('Firebird') FROM RDB$DATABASE"));
-        Assert.Equal(16, connection.QuerySingle<int>("SELECT BIT_LENGTH('Firebird') FROM RDB$DATABASE"));
+        Assert.Equal(64, connection.QuerySingle<int>("SELECT BIT_LENGTH('Firebird') FROM RDB$DATABASE"));
         Assert.Equal(8, connection.QuerySingle<int>("SELECT OCTET_LENGTH('Firebird') FROM RDB$DATABASE"));
     }
 

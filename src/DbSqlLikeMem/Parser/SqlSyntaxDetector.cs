@@ -302,7 +302,8 @@ internal static class SqlSyntaxDetector
         var token = tokens[index];
         if (!token.Text.Equals(SqlConst.GROUP_CONCAT, StringComparison.OrdinalIgnoreCase)
             && !token.Text.Equals(SqlConst.STRING_AGG, StringComparison.OrdinalIgnoreCase)
-            && !token.Text.Equals(SqlConst.LISTAGG, StringComparison.OrdinalIgnoreCase))
+            && !token.Text.Equals(SqlConst.LISTAGG, StringComparison.OrdinalIgnoreCase)
+            && !token.Text.Equals(SqlConst.LIST, StringComparison.OrdinalIgnoreCase))
             return false;
 
         var next = index + 1 < tokens.Count ? tokens[index + 1] : SqlToken.EOF;

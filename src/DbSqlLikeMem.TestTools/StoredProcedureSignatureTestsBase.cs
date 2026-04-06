@@ -561,6 +561,12 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
         {
             throw new ArgumentException("OracleParameter does not support Guid input-output parameters.", nameof(dbType));
         }
+        if (parameterTypeName == "FirebirdSql.Data.FirebirdClient.FbParameter"
+            && dbType == DbType.DateTimeOffset
+            && direction != ParameterDirection.Input)
+        {
+            // Firebird's parameter implementation rejects DbType.DateTimeOffset, so keep the payload-based flow.
+        }
         if (!SupportsGuidInputOutputParameters
             && dbType == DbType.Guid
             && direction != ParameterDirection.Input)
@@ -569,7 +575,11 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
         }
         try
         {
-            if (!isOracleParameter && !(isDb2Parameter && dbType == DbType.DateTimeOffset))
+            if (!isOracleParameter
+                && !(isDb2Parameter && dbType == DbType.DateTimeOffset)
+                && !(parameterTypeName == "FirebirdSql.Data.FirebirdClient.FbParameter"
+                    && dbType == DbType.DateTimeOffset
+                    && direction != ParameterDirection.Input))
                 parameter.DbType = dbType;
         }
         catch (ArgumentException) when (isOracleParameter)

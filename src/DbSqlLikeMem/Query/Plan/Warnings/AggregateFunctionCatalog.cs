@@ -4,7 +4,7 @@ internal static class AggregateFunctionCatalog
 {
     private static readonly HashSet<string> Names = new(StringComparer.OrdinalIgnoreCase)
     {
-        SqlConst.COUNT,SqlConst.COUNT_BIG,SqlConst.SUM,SqlConst.MIN,SqlConst.MAX,SqlConst.AVG,SqlConst.GROUP_CONCAT,SqlConst.STRING_AGG,SqlConst.LISTAGG,SqlConst.ANY_VALUE,SqlConst.BIT_AND,SqlConst.BIT_OR,SqlConst.BIT_XOR,SqlConst.JSON_ARRAYAGG,
+        SqlConst.COUNT,SqlConst.COUNT_BIG,SqlConst.SUM,SqlConst.MIN,SqlConst.MAX,SqlConst.AVG,SqlConst.GROUP_CONCAT,SqlConst.STRING_AGG,SqlConst.LISTAGG,SqlConst.LIST,SqlConst.ANY_VALUE,SqlConst.BIT_AND,SqlConst.BIT_OR,SqlConst.BIT_XOR,SqlConst.JSON_ARRAYAGG,
         SqlConst.JSON_GROUP_OBJECT,SqlConst.TOTAL,"MEDIAN","PERCENTILE","PERCENTILE_CONT","PERCENTILE_DISC",SqlConst.VAR_POP,SqlConst.VAR_SAMP,SqlConst.VARIANCE,SqlConst.VARIANCE_SAMP,SqlConst.VAR,SqlConst.VARP,
         SqlConst.COLLECT,"CORR","CORR_K","CORR_S","CORRELATION","COVAR_POP","COVAR_SAMP","COVARIANCE","COVARIANCE_SAMP",SqlConst.CV,SqlConst.JSON_OBJECTAGG,"GROUP_ID",
         SqlConst.CHECKSUM_AGG,SqlConst.STDEV,SqlConst.STDEVP,

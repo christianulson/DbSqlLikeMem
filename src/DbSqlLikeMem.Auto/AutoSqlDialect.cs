@@ -1,4 +1,4 @@
-using DbSqlLikeMem.Firebird;
+using System.Reflection;
 
 namespace DbSqlLikeMem.Auto;
 
@@ -41,10 +41,29 @@ internal sealed class AutoSqlDialect : SqlDialectBase
     {
         SqlSharedScalarFunctionRegistry.Register(this);
         AutoScalarFunctionRegistry.Register(this);
-        FirebirdScalarFunctionRegistry.Register(this, version);
+        TryRegisterFirebirdScalarFunctions(this, version);
         SqlSharedWindowFunctionRegistry.Register(this);
         AutoSqlServerScalarFunctionRegistry.Register(this);
         AutoTableFunctionRegistry.Register(this);
+    }
+
+    private static void TryRegisterFirebirdScalarFunctions(ISqlDialect dialect, int version)
+    {
+        var registryType = Type.GetType("DbSqlLikeMem.Firebird.FirebirdScalarFunctionRegistry, DbSqlLikeMem.Firebird", throwOnError: false);
+        if (registryType is null)
+            return;
+
+        var registerMethod = registryType.GetMethod(
+            "Register",
+            BindingFlags.Static | BindingFlags.NonPublic,
+            binder: null,
+            types: [typeof(ISqlDialect), typeof(int)],
+            modifiers: null);
+
+        if (registerMethod is null)
+            return;
+
+        _ = registerMethod.Invoke(null, [dialect, version]);
     }
 
     /// <summary>

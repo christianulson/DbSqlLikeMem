@@ -7,6 +7,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         Any,
         SqlCode,
         GdsCode,
+        SqlState,
         Exception
     }
 
@@ -607,21 +608,30 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     {
         var affectedTotal = 0;
         var exceptionHandlers = new List<ExecuteBlockExceptionHandler>();
+        var statements = SplitExecuteBlockStatements(bodySql, connection.ExecutionDialect).ToList();
 
-        foreach (var statementSql in SplitExecuteBlockStatements(bodySql, connection.ExecutionDialect))
+        foreach (var statementSql in statements)
         {
             if (string.IsNullOrWhiteSpace(statementSql))
+                continue;
+
+            if (TryParseExecuteBlockWhenExceptionHandlerStatement(statementSql, connection.ExecutionDialect, out var handler))
+            {
+                exceptionHandlers.Add(handler);
+            }
+        }
+
+        foreach (var statementSql in statements)
+        {
+            if (string.IsNullOrWhiteSpace(statementSql))
+                continue;
+
+            if (TryParseExecuteBlockWhenExceptionHandlerStatement(statementSql, connection.ExecutionDialect, out _))
                 continue;
 
             if (TryStripCompoundBeginEndBlock(statementSql, connection.ExecutionDialect, out var nestedBodySql))
             {
                 affectedTotal += ExecuteExecuteBlockBody(connection, scopedParameters, nestedBodySql);
-                continue;
-            }
-
-            if (TryParseExecuteBlockWhenExceptionHandlerStatement(statementSql, connection.ExecutionDialect, out var handler))
-            {
-                exceptionHandlers.Add(handler);
                 continue;
             }
 
@@ -660,43 +670,8 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         string bodySql,
         ISqlDialect dialect)
     {
-        if (string.IsNullOrWhiteSpace(bodySql))
-            yield break;
-
-        var tokens = new SqlTokenizer(bodySql, dialect).Tokenize();
-        var start = 0;
-        var depth = 0;
-
-        foreach (var token in tokens)
-        {
-            if (token.Kind == SqlTokenKind.EndOfFile)
-                break;
-
-            if (SqlQueryParserContext.IsWord(token, SqlConst.BEGIN))
-            {
-                depth++;
-                continue;
-            }
-
-            if (SqlQueryParserContext.IsWord(token, SqlConst.END))
-            {
-                if (depth > 0)
-                    depth--;
-                continue;
-            }
-
-            if (token.Kind == SqlTokenKind.Symbol && token.Text == ";" && depth == 0)
-            {
-                var statement = bodySql[start..token.Position].Trim();
-                if (statement.Length > 0)
-                    yield return statement;
-                start = token.Position + 1;
-            }
-        }
-
-        var last = bodySql[start..].Trim();
-        if (last.Length > 0)
-            yield return last;
+        foreach (var statement in SqlStatementSplitter.SplitStatementsTopLevel(bodySql, dialect))
+            yield return statement;
     }
 
     private static bool TryStripCompoundBeginEndBlock(
@@ -750,6 +725,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             || (!SqlQueryParserContext.IsWord(tokens[1], "ANY")
                 && !SqlQueryParserContext.IsWord(tokens[1], "SQLCODE")
                 && !SqlQueryParserContext.IsWord(tokens[1], "GDSCODE")
+                && !SqlQueryParserContext.IsWord(tokens[1], "SQLSTATE")
                 && !SqlQueryParserContext.IsWord(tokens[1], "EXCEPTION")))
         {
             return false;
@@ -761,6 +737,8 @@ internal static class DbSelectIntoAndInsertSelectStrategies
                 ? ExecuteBlockExceptionHandlerKind.SqlCode
                 : SqlQueryParserContext.IsWord(tokens[1], "GDSCODE")
                     ? ExecuteBlockExceptionHandlerKind.GdsCode
+                    : SqlQueryParserContext.IsWord(tokens[1], "SQLSTATE")
+                        ? ExecuteBlockExceptionHandlerKind.SqlState
                     : ExecuteBlockExceptionHandlerKind.Exception;
 
         var selectors = Array.Empty<string>();
@@ -834,9 +812,12 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             ExecuteBlockExceptionHandlerKind.GdsCode => ex is SqlMockException sqlGdsEx
                 && (handler.Selectors.Count == 0
                     || handler.Selectors.Any(selector => TryMatchFirebirdGdsCodeSelector(selector, sqlGdsEx.ErrorCode))),
+            ExecuteBlockExceptionHandlerKind.SqlState => ex is SqlMockException sqlStateEx
+                && (handler.Selectors.Count == 0
+                    || handler.Selectors.Any(selector => string.Equals(NormalizeExecuteBlockExceptionSelector(selector), sqlStateEx.SqlState, StringComparison.OrdinalIgnoreCase))),
             ExecuteBlockExceptionHandlerKind.Exception => ex is SqlMockException sqlException
                 && (handler.Selectors.Count == 0
-                    || handler.Selectors.Any(selector => string.Equals(selector, sqlException.ExceptionName, StringComparison.OrdinalIgnoreCase))),
+                    || handler.Selectors.Any(selector => string.Equals(NormalizeExecuteBlockExceptionSelector(selector), sqlException.ExceptionName, StringComparison.OrdinalIgnoreCase))),
             _ => false
         };
     }
@@ -859,10 +840,16 @@ internal static class DbSelectIntoAndInsertSelectStrategies
 
         return selectorRaw
             .Split(',')
-            .Select(selector => selector.Trim())
+            .Select(selector => NormalizeExecuteBlockExceptionSelector(selector))
             .Where(selector => selector.Length > 0)
             .ToArray();
     }
+
+    private static string NormalizeExecuteBlockExceptionSelector(string selector)
+        => selector.Trim().Trim('\'', '"');
+
+    private static string NormalizeExecuteStatementOptionValue(string value)
+        => value.Trim().Trim('\'', '"');
 
     private static bool MatchesFirebirdSqlCode(int sqlCode, int errorCode)
         => sqlCode == -803 && (
@@ -884,6 +871,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             "unique_key_violation" => errorCode == 1062,
             "primary_key_violation" => errorCode == 1062,
             "primary_key" => errorCode == 1062,
+            "primary_key_exists" => errorCode == 1062,
             "not_null_violation" => errorCode == 1048,
             "primary_key_notnull" => errorCode == 1048,
             "not_valid" => errorCode == 1048,
@@ -906,40 +894,37 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         if (IsExecuteBlockLoopControlStatement(sqlRaw))
             throw new ExecuteBlockLoopBreakException();
 
-        if (pars is SqlExecuteBlockParameterCollection scopedParameters
-            && TryExecuteExecuteBlockForExecuteStatementLoop(connection, scopedParameters, sqlRaw, out affectedRows))
+        if (pars is SqlExecuteBlockParameterCollection scopedParameters)
         {
-            return true;
-        }
+            if (TryExecuteExecuteBlockForExecuteStatementLoop(connection, scopedParameters, sqlRaw, out affectedRows))
+            {
+                return true;
+            }
 
-        if (pars is SqlExecuteBlockParameterCollection scopedParameters
-            && TryExecuteExecuteBlockForSelectStatement(connection, scopedParameters, sqlRaw, out affectedRows))
-        {
-            return true;
-        }
+            if (TryExecuteExecuteBlockForSelectStatement(connection, scopedParameters, sqlRaw, out affectedRows))
+            {
+                return true;
+            }
 
-        if (pars is SqlExecuteBlockParameterCollection scopedParameters
-            && TryExecuteExecuteBlockWhileStatement(connection, scopedParameters, sqlRaw, out affectedRows))
-        {
-            return true;
-        }
+            if (TryExecuteExecuteBlockWhileStatement(connection, scopedParameters, sqlRaw, out affectedRows))
+            {
+                return true;
+            }
 
-        if (pars is SqlExecuteBlockParameterCollection scopedParameters
-            && TryExecuteExecuteBlockIfStatement(connection, scopedParameters, sqlRaw, out affectedRows))
-        {
-            return true;
-        }
+            if (TryExecuteExecuteBlockIfStatement(connection, scopedParameters, sqlRaw, out affectedRows))
+            {
+                return true;
+            }
 
-        if (pars is SqlExecuteBlockParameterCollection scopedParameters
-            && TryExecuteExecuteBlockAssignment(connection, scopedParameters, sqlRaw, out affectedRows))
-        {
-            return true;
-        }
+            if (TryExecuteExecuteBlockAssignment(connection, scopedParameters, sqlRaw, out affectedRows))
+            {
+                return true;
+            }
 
-        if (pars is SqlExecuteBlockParameterCollection scopedParameters
-            && TryExecuteExecuteBlockExecuteStatement(connection, scopedParameters, sqlRaw, out affectedRows))
-        {
-            return true;
+            if (TryExecuteExecuteBlockExecuteStatement(connection, scopedParameters, sqlRaw, out affectedRows))
+            {
+                return true;
+            }
         }
 
         if (!sqlRaw.StartsWith($"{SqlConst.EXECUTE} {SqlConst.STATEMENT}", StringComparison.OrdinalIgnoreCase))
@@ -1272,7 +1257,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         if (doIndex < 0)
             return false;
 
-        var executeStatementTokens = tokens[3..intoIndex];
+        var executeStatementTokens = SliceTokens(tokens, 3, intoIndex);
         if (executeStatementTokens.Count == 0)
             return false;
 
@@ -1306,7 +1291,8 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         externalPassword = invocationExternalPassword;
         externalDataSource = invocationExternalDataSource;
 
-        var intoClauseSql = TokensToSql(sqlRaw, tokens[(intoIndex + 1)..doIndex]);
+        var intoClauseSql = TokensToSql(sqlRaw, SliceTokens(tokens, intoIndex + 1, doIndex));
+        intoClauseSql = StripExecuteBlockForSelectCursorClause(intoClauseSql, connection.ExecutionDialect);
         var rawIntoVariables = intoClauseSql.SplitRawByComma();
         if (rawIntoVariables.Count == 0)
             return false;
@@ -1375,9 +1361,16 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             if (!TryExtractParenthesizedTokenSlice(tokens, index, out var innerTokens, out index))
                 return false;
 
-            var sqlCandidate = TokensToSql(sqlRaw, innerTokens);
-            if (!TryExtractExecuteStatementSqlLiteral(sqlCandidate, dialect, out dynamicSql))
-                return false;
+            if (innerTokens.Count == 1 && innerTokens[0].Kind == SqlTokenKind.String)
+            {
+                dynamicSql = innerTokens[0].Text;
+            }
+            else
+            {
+                var sqlCandidate = TokensToSql(sqlRaw, innerTokens);
+                if (!TryExtractExecuteStatementSqlLiteral(sqlCandidate, dialect, out dynamicSql))
+                    return false;
+            }
         }
         else
         {
@@ -1572,7 +1565,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             index++;
         }
 
-        optionSql = index > startIndex ? TokensToSql(sqlRaw, tokens[startIndex..index]).Trim() : string.Empty;
+        optionSql = index > startIndex ? TokensToSql(sqlRaw, SliceTokens(tokens, startIndex, index)).Trim() : string.Empty;
         return index > startIndex;
     }
 
@@ -1619,8 +1612,8 @@ internal static class DbSelectIntoAndInsertSelectStrategies
 
         var intoIndex = FindTopLevelTokenIndex(tokens, 2, SqlConst.INTO);
         var invocationTokens = intoIndex >= 0
-            ? tokens[2..intoIndex]
-            : tokens[2..];
+            ? SliceTokens(tokens, 2, intoIndex)
+            : SliceTokensFrom(tokens, 2);
 
         if (!TryParseExecuteStatementInvocation(
             sqlRaw,
@@ -1644,7 +1637,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         if (intoIndex < 0)
             return true;
 
-        var intoClauseSql = TokensToSql(sqlRaw, tokens[(intoIndex + 1)..]).Trim().TrimEnd(';').Trim();
+        var intoClauseSql = TokensToSql(sqlRaw, SliceTokensFrom(tokens, intoIndex + 1)).Trim().TrimEnd(';').Trim();
         intoClauseSql = StripExecuteBlockForSelectCursorClause(intoClauseSql, dialect);
         if (string.IsNullOrWhiteSpace(intoClauseSql))
             return false;
@@ -1677,7 +1670,38 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         string? externalRole,
         string? externalPassword)
     {
-        var externalConnection = Activator.CreateInstance(connection.GetType(), connection.Db) as DbConnectionMockBase;
+        var connectionType = connection.GetType();
+        DbConnectionMockBase? externalConnection = null;
+
+        try
+        {
+            externalConnection = Activator.CreateInstance(
+                connectionType,
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic,
+                binder: null,
+                args: [connection.Db, null],
+                culture: null) as DbConnectionMockBase;
+        }
+        catch (MissingMethodException)
+        {
+        }
+
+        if (externalConnection is null)
+        {
+            try
+            {
+                externalConnection = Activator.CreateInstance(
+                    connectionType,
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic,
+                    binder: null,
+                    args: [connection.Db],
+                    culture: null) as DbConnectionMockBase;
+            }
+            catch (MissingMethodException)
+            {
+            }
+        }
+
         if (externalConnection is null)
             throw new InvalidOperationException($"Unable to create external connection for '{connection.GetType().Name}'.");
 
@@ -1861,7 +1885,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             var assignToken = tokens[assignIndex];
             var assignTokenLength = assignToken.Kind == SqlTokenKind.Operator && assignToken.Text == ":=" ? 1 : 2;
 
-            var nameSql = TokensToSql(itemSql, tokens[..assignIndex]).Trim();
+            var nameSql = TokensToSql(itemSql, SliceTokens(tokens, 0, assignIndex)).Trim();
             if (string.IsNullOrWhiteSpace(nameSql))
                 return false;
 
@@ -1870,7 +1894,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             if (exprStartIndex >= tokens.Count)
                 return false;
 
-            var exprSql = TokensToSql(itemSql, tokens[exprStartIndex..]).Trim();
+            var exprSql = TokensToSql(itemSql, SliceTokensFrom(tokens, exprStartIndex)).Trim();
             if (string.IsNullOrWhiteSpace(exprSql))
                 return false;
 
@@ -2045,7 +2069,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         if (endIndex < 0 || endIndex <= startIndex)
             return false;
 
-        innerTokens = tokens[(startIndex + 1)..endIndex];
+        innerTokens = SliceTokens(tokens, startIndex + 1, endIndex);
         nextIndex = endIndex + 1;
         return true;
     }
@@ -2228,13 +2252,13 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         if (doIndex < 0)
             return false;
 
-        var selectTokens = tokens[1..intoIndex];
+        var selectTokens = SliceTokens(tokens, 1, intoIndex);
         if (selectTokens.Count == 0)
             return false;
 
         selectSql = TokensToSql(sqlRaw, selectTokens);
 
-        var intoClauseSql = TokensToSql(sqlRaw, tokens[(intoIndex + 1)..doIndex]);
+        var intoClauseSql = TokensToSql(sqlRaw, SliceTokens(tokens, intoIndex + 1, doIndex));
         intoClauseSql = StripExecuteBlockForSelectCursorClause(intoClauseSql, dialect);
         var rawIntoVariables = intoClauseSql.SplitRawByComma();
         if (rawIntoVariables.Count == 0)
@@ -2287,7 +2311,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         if (!SqlQueryParserContext.IsWord(tokens[cursorIndex + 1], "CURSOR"))
             return intoClauseSql.Trim();
 
-        return TokensToSql(intoClauseSql, tokens[..cursorIndex]);
+        return TokensToSql(intoClauseSql, SliceTokens(tokens, 0, cursorIndex));
     }
 
     private static bool TryParseExecuteBlockWhileStatement(
@@ -2308,14 +2332,14 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             .Where(static token => token.Kind != SqlTokenKind.EndOfFile)
             .ToList();
 
-        if (tokens.Count < 4 || !SqlQueryParserContext.IsWord(tokens[0], SqlConst.WHILE))
+        if (tokens.Count < 4 || !SqlQueryParserContext.IsWord(tokens[0], "WHILE"))
             return false;
 
         var doIndex = FindTopLevelTokenIndex(tokens, 1, SqlConst.DO);
         if (doIndex < 0)
             return false;
 
-        var conditionTokens = tokens[1..doIndex].Where(static token => token.Kind != SqlTokenKind.Symbol || token.Text != ";").ToList();
+        var conditionTokens = SliceTokens(tokens, 1, doIndex).Where(static token => token.Kind != SqlTokenKind.Symbol || token.Text != ";").ToList();
         if (conditionTokens.Count == 0)
             return false;
 
@@ -2399,7 +2423,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         if (thenIndex < 0)
             return false;
 
-        var conditionTokens = tokens[1..thenIndex].Where(static token => token.Kind != SqlTokenKind.Symbol || token.Text != ";").ToList();
+        var conditionTokens = SliceTokens(tokens, 1, thenIndex).Where(static token => token.Kind != SqlTokenKind.Symbol || token.Text != ";").ToList();
         if (conditionTokens.Count == 0)
             return false;
 
@@ -2456,7 +2480,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             return string.Empty;
 
         var trimmed = sql.Trim();
-        while (trimmed.StartsWith(';'))
+        while (trimmed.StartsWith(";"))
             trimmed = trimmed[1..].TrimStart();
 
         return trimmed;
@@ -2562,8 +2586,47 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         return sqlRaw[start..end].Trim();
     }
 
+    private static List<SqlToken> SliceTokens(
+        IReadOnlyList<SqlToken> tokens,
+        int startIndex,
+        int endIndex)
+    {
+        if (startIndex < 0)
+            startIndex = 0;
+
+        if (endIndex > tokens.Count)
+            endIndex = tokens.Count;
+
+        if (endIndex <= startIndex)
+            return [];
+
+        var slice = new List<SqlToken>(endIndex - startIndex);
+        for (var i = startIndex; i < endIndex; i++)
+            slice.Add(tokens[i]);
+
+        return slice;
+    }
+
+    private static List<SqlToken> SliceTokensFrom(
+        IReadOnlyList<SqlToken> tokens,
+        int startIndex)
+        => SliceTokens(tokens, startIndex, tokens.Count);
+
     private sealed class ExecuteBlockLoopBreakException : Exception
     {
+        public ExecuteBlockLoopBreakException()
+        {
+        }
+
+        public ExecuteBlockLoopBreakException(string? message)
+            : base(message)
+        {
+        }
+
+        public ExecuteBlockLoopBreakException(string? message, Exception? innerException)
+            : base(message, innerException)
+        {
+        }
     }
 
     private static bool TryExecuteExecuteBlockAssignment(
@@ -3212,28 +3275,47 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         }
 
         var executor = context.CreateExecutor();
-        var res = executor.ExecuteSelect(query.AsSelect);
-
         var newTable = tempScope == TemporaryTableScope.Global
             ? connection.AddGlobalTemporaryTable(tableName!, schemaName: schemaName)
             : connection.AddTemporaryTable(tableName!, schemaName: schemaName);
 
-        // column names: prefer explicit list if provided; else use select result columns
-        var names = (query.ColumnNames is { Count: > 0 })
-            ? query.ColumnNames
-            : [.. res.Columns.Select(c => c.ColumnName)];
-
-        for (int i = 0; i < names.Count; i++)
+        if (query.AsSelect is null)
         {
-            var colName = names[i];
-            var dbType = (i < res.Columns.Count) ? InferDbType(res, i) : DbType.String;
-            AddInferredColumn(newTable, colName, dbType);
+            if (query.ColumnDefinitions.Count > 0)
+            {
+                foreach (var column in query.ColumnDefinitions)
+                    AddTemporaryTableColumn(newTable, column);
+            }
+
+            return new DmlExecutionResult();
+        }
+
+        var res = executor.ExecuteSelect(query.AsSelect);
+
+        if (query.ColumnDefinitions.Count > 0)
+        {
+            foreach (var column in query.ColumnDefinitions)
+                AddTemporaryTableColumn(newTable, column);
+        }
+        else
+        {
+            // column names: prefer explicit list if provided; else use select result columns
+            var names = (query.ColumnNames is { Count: > 0 })
+                ? query.ColumnNames
+                : [.. res.Columns.Select(c => c.ColumnName)];
+
+            for (var i = 0; i < names.Count; i++)
+            {
+                var colName = names[i];
+                var dbType = (i < res.Columns.Count) ? InferDbType(res, i) : DbType.String;
+                AddInferredColumn(newTable, colName, dbType);
+            }
         }
 
         foreach (var row in res)
         {
             var d = new Dictionary<int, object?>();
-            for (int i = 0; i < names.Count; i++)
+            for (var i = 0; i < newTable.Columns.Count; i++)
                 d[i] = row.TryGetValue(i, out var v) ? v : null;
             newTable.Add(d);
         }
@@ -3465,4 +3547,15 @@ internal static class DbSelectIntoAndInsertSelectStrategies
 
         table.AddColumn(columnName, dbType, nullable: true);
     }
+
+    private static void AddTemporaryTableColumn(ITableMock table, Col column)
+        => table.AddColumn(
+            column.name,
+            column.dbType,
+            column.nullable,
+            column.size,
+            column.decimalPlaces,
+            column.identity,
+            column.defaultValue,
+            column.enumValues);
 }

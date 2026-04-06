@@ -10,4 +10,12 @@ public class Firebird_DbSqlLikeMem_Benchmarks : BenchmarkSuiteBase
 {
     /// <inheritdoc />
     protected override IBenchmarkSession CreateSession() => new FirebirdDbSqlLikeMemSession();
+
+    /// <summary>
+    /// EN: Executes the Firebird EXECUTE BLOCK benchmark that handles SQLSTATE 23000.
+    /// PT: Executa o benchmark Firebird de EXECUTE BLOCK que trata SQLSTATE 23000.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("psql")]
+    public void ExecuteBlockSqlState23000() => Run(BenchmarkFeatureId.ExecuteBlockSqlState23000);
 }

@@ -10,14 +10,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\DbSqlLikeMem.Firebird.XUnit\DbSqlLikeMem.Firebird.XUnit.csproj" />
-		<ProjectReference Include="..\DbSqlLikeMem.Firebird\DbSqlLikeMem.Firebird.csproj" />
+		<ProjectReference Include="..\DbSqlLikeMem.Firebird.XUnit\DbSqlLikeMem.Firebird.XUnit.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />
 		<ProjectReference Include="..\DbSqlLikeMem.Firebird.TestTools\DbSqlLikeMem.Firebird.TestTools.csproj" />
-		<ProjectReference Include="..\DbSqlLikeMem.TestTools\DbSqlLikeMem.TestTools.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Compile Include="..\DbSqlLikeMem.Test\Firebird\*.cs" Link="Firebird\%(Filename)%(Extension)" />
 	</ItemGroup>
 
 	<ItemGroup>

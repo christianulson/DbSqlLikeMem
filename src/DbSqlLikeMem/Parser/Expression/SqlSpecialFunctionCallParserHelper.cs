@@ -28,20 +28,123 @@ internal static class SqlSpecialFunctionCallParserHelper
             return ctx.TryParseParseLike(name, parseExpression, out expr);
 
         if (name.Equals("DATEADD", StringComparison.OrdinalIgnoreCase)
-            && ctx.Dialect.Name.Equals("firebird", StringComparison.OrdinalIgnoreCase))
+            && (IsFirebirdDialect(ctx.Dialect)
+                || (AutoDialectFactory.IsAutoDialect(ctx.Dialect) && LooksLikeFirebirdDateAddSyntax(ctx))))
             return ctx.TryParseFirebirdDateAdd(parseExpression, out expr);
 
+        if (name.Equals("SUBSTRING", StringComparison.OrdinalIgnoreCase)
+            && (IsFirebirdDialect(ctx.Dialect)
+                || (AutoDialectFactory.IsAutoDialect(ctx.Dialect) && LooksLikeFirebirdSubstringSyntax(ctx))))
+            return ctx.TryParseFirebirdSubstring(parseExpression, out expr);
+
         if (name.Equals("HASH", StringComparison.OrdinalIgnoreCase)
-            && ctx.Dialect.Name.Equals("firebird", StringComparison.OrdinalIgnoreCase))
+            && IsFirebirdDialectOrAuto(ctx.Dialect))
             return ctx.TryParseFirebirdHash(parseExpression, out expr);
 
         if (name.Equals("CRYPT_HASH", StringComparison.OrdinalIgnoreCase)
-            && ctx.Dialect.Name.Equals("firebird", StringComparison.OrdinalIgnoreCase))
+            && IsFirebirdDialectOrAuto(ctx.Dialect))
             return ctx.TryParseFirebirdCryptHash(parseExpression, out expr);
 
         if (name.Equals(SqlConst.JSON_TABLE, StringComparison.OrdinalIgnoreCase))
         {
             throw new NotSupportedException("JSON_TABLE is a table function and cannot be used as a scalar expression.");
+        }
+
+        return false;
+    }
+
+    private static bool IsFirebirdDialectOrAuto(ISqlDialect dialect)
+        => dialect.Name.Equals("firebird", StringComparison.OrdinalIgnoreCase)
+           || AutoDialectFactory.IsAutoDialect(dialect);
+
+    private static bool IsFirebirdDialect(ISqlDialect dialect)
+        => dialect.Name.Equals("firebird", StringComparison.OrdinalIgnoreCase);
+
+    private static bool LooksLikeFirebirdDateAddSyntax(SqlExpressionParserContext ctx)
+    {
+        var startIndex = ctx.IsSymbol("(") ? ctx.Index + 1 : ctx.Index;
+        var depth = 0;
+        var caseDepth = 0;
+
+        for (var i = startIndex; i < ctx.Toks.Count; i++)
+        {
+            var token = ctx.Toks[i];
+            if (token.Kind == SqlTokenKind.EndOfFile)
+                break;
+
+            if (depth == 0)
+            {
+                if (SqlExpressionParserContext.IsKeywordOrIdentifierWord(token, "CASE"))
+                {
+                    caseDepth++;
+                }
+                else if (caseDepth > 0 && SqlExpressionParserContext.IsKeywordOrIdentifierWord(token, SqlConst.END))
+                {
+                    caseDepth--;
+                }
+
+                if (caseDepth == 0)
+                {
+                    if (SqlExpressionParserContext.IsKeywordOrIdentifierWord(token, SqlConst.TO))
+                        return true;
+
+                    if (token.Kind == SqlTokenKind.Symbol && token.Text == ",")
+                        return false;
+
+                    if (token.Kind == SqlTokenKind.Symbol && token.Text == ")")
+                        return false;
+                }
+            }
+
+            if (token.Kind == SqlTokenKind.Symbol && token.Text == "(")
+                depth++;
+            else if (token.Kind == SqlTokenKind.Symbol && token.Text == ")")
+                depth = Math.Max(0, depth - 1);
+        }
+
+        return false;
+    }
+
+    private static bool LooksLikeFirebirdSubstringSyntax(SqlExpressionParserContext ctx)
+    {
+        var startIndex = ctx.IsSymbol("(") ? ctx.Index + 1 : ctx.Index;
+        var depth = 0;
+        var caseDepth = 0;
+
+        for (var i = startIndex; i < ctx.Toks.Count; i++)
+        {
+            var token = ctx.Toks[i];
+            if (token.Kind == SqlTokenKind.EndOfFile)
+                break;
+
+            if (depth == 0)
+            {
+                if (SqlExpressionParserContext.IsKeywordOrIdentifierWord(token, "CASE"))
+                {
+                    caseDepth++;
+                }
+                else if (caseDepth > 0 && SqlExpressionParserContext.IsKeywordOrIdentifierWord(token, SqlConst.END))
+                {
+                    caseDepth--;
+                }
+
+                if (caseDepth == 0)
+                {
+                    if (SqlExpressionParserContext.IsKeywordOrIdentifierWord(token, "FROM"))
+                        return true;
+
+                    if (token.Kind == SqlTokenKind.Symbol && token.Text == ",")
+                        return false;
+
+                    if (token.Kind == SqlTokenKind.Symbol && token.Text == ")")
+                        return false;
+                }
+            }
+
+            if (token.Kind == SqlTokenKind.Symbol && token.Text == "(")
+                depth++;
+            else if (token.Kind == SqlTokenKind.Symbol && token.Text == ")")
+                depth = Math.Max(0, depth - 1);
         }
 
         return false;
@@ -285,7 +388,7 @@ internal static class SqlSpecialFunctionCallParserHelper
             throw ctx.Error("DATEADD requires a unit before TO", unitToken);
 
         var amountTokens = amountAndUnitTokens.Take(amountAndUnitTokens.Count - 1).ToArray();
-        if (amountTokens.Count == 0)
+        if (amountTokens.Length == 0)
             throw ctx.Error("DATEADD requires an amount before the unit", unitToken);
 
         ctx.Consume(); // TO
@@ -302,6 +405,53 @@ internal static class SqlSpecialFunctionCallParserHelper
         ExpectSymbol(ctx, ")");
 
         expr = new CallExpr("DATEADD", [new RawSqlExpr(unitToken.Text), amountExpr, dateExpr])
+            .BindScalarFunctionDefinition(ctx.Dialect);
+        return true;
+    }
+
+    private static bool TryParseFirebirdSubstring(
+        this SqlExpressionParserContext ctx,
+        Func<int, SqlExpr> parseExpression,
+        out CallExpr expr)
+    {
+        expr = default!;
+
+        var sourceTokens = ctx.ReadTokensUntilTopLevelStop("FROM");
+        if (sourceTokens.Count == 0)
+            throw ctx.Error("SUBSTRING requires a source expression", ctx.Peek());
+
+        if (!ctx.IsKeywordOrIdentifierWord("FROM"))
+            throw ctx.Error("SUBSTRING requires FROM", ctx.Peek());
+
+        ctx.Consume(); // FROM
+
+        var positionTokens = ctx.ReadTokensUntilTopLevelStop(SqlConst.FOR);
+        if (positionTokens.Count == 0)
+            throw ctx.Error("SUBSTRING requires a position after FROM", ctx.Peek());
+
+        var sourceExpr = SqlExpressionParser.ParseScalar(
+            ctx.TokensToSql(sourceTokens).Trim(),
+            ctx.Db,
+            ctx.Dialect,
+            ctx.Parameters,
+            ctx.CustomFunctionSupported);
+        var positionExpr = SqlExpressionParser.ParseScalar(
+            ctx.TokensToSql(positionTokens).Trim(),
+            ctx.Db,
+            ctx.Dialect,
+            ctx.Parameters,
+            ctx.CustomFunctionSupported);
+
+        var args = new List<SqlExpr> { sourceExpr, positionExpr };
+        if (ctx.IsKeywordOrIdentifierWord(SqlConst.FOR))
+        {
+            ctx.Consume(); // FOR
+            args.Add(parseExpression(0));
+        }
+
+        ExpectSymbol(ctx, ")");
+
+        expr = new CallExpr("SUBSTRING", [.. args])
             .BindScalarFunctionDefinition(ctx.Dialect);
         return true;
     }

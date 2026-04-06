@@ -1,6 +1,7 @@
 namespace DbSqlLikeMem.MySql;
 
 #pragma warning disable CA1032 // Implement standard exception constructors
+#pragma warning disable RCS1194
 /// <summary>
 /// EN: Represents MySQL-specific mock errors.
 /// PT: Representa erros especificos do mock de MySQL.
@@ -40,3 +41,4 @@ public sealed class MySqlMockException : SqlMockException
     {
     }
 }
+#pragma warning restore RCS1194

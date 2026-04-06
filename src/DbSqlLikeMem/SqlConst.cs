@@ -98,6 +98,7 @@ public static class SqlConst
     public const string GROUP_CONCAT = "GROUP_CONCAT";
     public const string STRING_AGG = "STRING_AGG";
     public const string LISTAGG = "LISTAGG";
+    public const string LIST = "LIST";
     public const string SUM = "SUM";
     public const string AVG = "AVG";
     public const string MIN = "MIN";

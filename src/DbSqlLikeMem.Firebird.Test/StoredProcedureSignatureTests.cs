@@ -17,4 +17,7 @@ public sealed class StoredProcedureSignatureTests(
     /// PT: Cria o simulado de conexão Firebird usado nos testes.
     /// </summary>
     protected override DbConnectionMockBase CreateConnection() => new FirebirdConnectionMock();
+
+    /// <inheritdoc />
+    protected override bool SupportsDateTimeOffsetInputOutputParameters => false;
 }

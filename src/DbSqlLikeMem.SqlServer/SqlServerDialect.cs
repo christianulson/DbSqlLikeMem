@@ -96,7 +96,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
     /// EN: Indicates whether SQL window functions are supported by the configured SQL Server version.
     /// PT: Indica se funções de janela SQL são suportadas pela versão configurada do SQL Server.
     /// </summary>
-    public override bool SupportsWindowFunctions => Version >= WindowFunctionsROW_NUMBERMinVersion;
+    public override bool SupportsWindowFunctions => Version >= WindowFunctionsMinVersion;
 
     //TODO: Separar ROWS BETWEEN - 2012, RANGE BETWEEN - 2012, GROUPS BETWEEN - 2022
     /// <summary>

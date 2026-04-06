@@ -7,6 +7,9 @@ namespace DbSqlLikeMem.Firebird;
 public class FirebirdConnectionMock
     : DbConnectionMockBase
 {
+    static FirebirdConnectionMock()
+        => FirebirdAstQueryExecutorRegister.Register();
+
     /// <summary>
     /// EN: Represents Firebird Connection Mock.
     /// PT: Representa uma conexao simulada do Firebird.

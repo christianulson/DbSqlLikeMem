@@ -24,11 +24,17 @@ internal static class SequenceFunctionSupportHelper
             throw SqlUnsupported.NotSupported(sqlDialect, "NEXT VALUE FOR");
         }
 
+        if (name.Equals("NEXT_VALUE_FOR", StringComparison.OrdinalIgnoreCase))
+            return;
+
         if (name.Equals("PREVIOUS_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
             && !sqlDialect.SupportsPreviousValueForSequenceExpression)
         {
             throw SqlUnsupported.NotSupported(sqlDialect, "PREVIOUS VALUE FOR");
         }
+
+        if (name.Equals("PREVIOUS_VALUE_FOR", StringComparison.OrdinalIgnoreCase))
+            return;
 
         if (!sqlDialect.TryGetScalarFunctionDefinition(name, out var definition)
             || definition is null

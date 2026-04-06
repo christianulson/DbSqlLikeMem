@@ -56,7 +56,8 @@ internal sealed class AstQueryFunctionEvaluator(
         if (_tryEvalUserDefinedScalarFunction(fn, row, group, ctes, out var userDefinedResult))
             return userDefinedResult;
 
-        if (_tryEvalBoundScalarFunction(context, fn, evalArg, out var boundScalarResult))
+        if (!IsSpecialSyntaxFunctionName(fn.Name)
+            && _tryEvalBoundScalarFunction(context, fn, evalArg, out var boundScalarResult))
             return boundScalarResult;
 
         if (fn.Args.Count == 0
@@ -81,4 +82,10 @@ internal sealed class AstQueryFunctionEvaluator(
 
         return null;
     }
+
+    private static bool IsSpecialSyntaxFunctionName(string name)
+        => name.Equals("CAST", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("CONVERT", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("PARSE", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("TRY_PARSE", StringComparison.OrdinalIgnoreCase);
 }

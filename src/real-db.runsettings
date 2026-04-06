@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!-- File name extension must be .runsettings -->
 <RunSettings>
     <RunConfiguration>
@@ -15,6 +15,7 @@
             <RUN_TRANSACTION_CONTAINER_TESTS>true</RUN_TRANSACTION_CONTAINER_TESTS>
             <RUN_MARIADB_CONTAINER_TESTS>true</RUN_MARIADB_CONTAINER_TESTS>
             <RUN_DB2_CONTAINER_TESTS>true</RUN_DB2_CONTAINER_TESTS>
+            <RUN_FIREBIRD_CONTAINER_TESTS>true</RUN_FIREBIRD_CONTAINER_TESTS>
             <DBSQLLIKEMEM_BENCH_MYSQL_CONNECTION_STRING>Server=127.0.0.1;Port=13306;Database=benchmark;Uid=root;Pwd=root;Pooling=false;</DBSQLLIKEMEM_BENCH_MYSQL_CONNECTION_STRING>
             <MYSQL_CONNECTION_STRING>Server=127.0.0.1;Port=13306;Database=benchmark;Uid=root;Pwd=root;Pooling=false;</MYSQL_CONNECTION_STRING>
             <DBSQLLIKEMEM_BENCH_MARIADB_CONNECTION_STRING>Server=127.0.0.1;Port=13307;Database=benchmark;Uid=root;Pwd=root;Pooling=false;</DBSQLLIKEMEM_BENCH_MARIADB_CONNECTION_STRING>
@@ -29,6 +30,8 @@
             <ORACLE_CONNECTION_STRING>User Id=benchmark;Password=benchmark;Data Source=127.0.0.1:15211/FREEPDB1;Pooling=false;</ORACLE_CONNECTION_STRING>
             <DBSQLLIKEMEM_BENCH_DB2_CONNECTION_STRING>DATABASE=BENCH;SERVER=127.0.0.1:15000;USER_ID=db2inst1;PASSWORD=db2inst1;POOLING=False;</DBSQLLIKEMEM_BENCH_DB2_CONNECTION_STRING>
             <DB2_CONNECTION_STRING>DATABASE=BENCH;SERVER=127.0.0.1:15000;USER_ID=db2inst1;PASSWORD=db2inst1;POOLING=False;</DB2_CONNECTION_STRING>
+            <DBSQLLIKEMEM_BENCH_FIREBIRD_CONNECTION_STRING>User=benchmark;Password=benchmark;Database=127.0.0.1/13050:/var/lib/firebird/data/benchmark.fdb;Dialect=3;Charset=UTF8;Pooling=false;</DBSQLLIKEMEM_BENCH_FIREBIRD_CONNECTION_STRING>
+            <FIREBIRD_CONNECTION_STRING>User=benchmark;Password=benchmark;Database=127.0.0.1/13050:/var/lib/firebird/data/benchmark.fdb;Dialect=3;Charset=UTF8;Pooling=false;</FIREBIRD_CONNECTION_STRING>
         </EnvironmentVariables>
     </RunConfiguration>
 </RunSettings>

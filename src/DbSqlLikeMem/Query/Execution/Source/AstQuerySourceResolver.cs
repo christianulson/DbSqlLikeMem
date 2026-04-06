@@ -71,6 +71,17 @@ internal sealed class AstQuerySourceResolver(
             return AstQueryExecutorBase.Source.FromResult("DUAL", alias, singleRow);
         }
 
+        if (context.Dialect.Name.Equals("firebird", StringComparison.OrdinalIgnoreCase)
+            && tableName.Equals("RDB$DATABASE", StringComparison.OrdinalIgnoreCase))
+        {
+            var singleRow = new TableResultMock
+            {
+                new Dictionary<int, object?>()
+            };
+
+            return AstQueryExecutorBase.Source.FromResult("RDB$DATABASE", alias, singleRow);
+        }
+
         context.Connection.Metrics.IncrementTableHint(tableName);
         var table = context.Connection.GetTable(tableName, tableSource.DbName);
         if (tableSource.PartitionNames is { Count: > 0 } requestedPartitions

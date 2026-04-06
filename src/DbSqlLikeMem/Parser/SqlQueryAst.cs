@@ -88,8 +88,9 @@ internal sealed record SqlCreateTemporaryTableQuery : SqlQueryBase
     internal bool Temporary { get; init; } = true;
     internal TemporaryTableScope Scope { get; init; } = TemporaryTableScope.Connection;
     internal bool IfNotExists { get; init; }
+    internal IReadOnlyList<Col> ColumnDefinitions { get; init; } = [];
     internal IReadOnlyList<string> ColumnNames { get; init; } = [];
-    internal SqlSelectQuery AsSelect { get; init; } = null!;
+    internal SqlSelectQuery? AsSelect { get; init; }
 }
 
 internal enum TemporaryTableScope
@@ -197,11 +198,11 @@ internal sealed record SqlDropTriggerQuery : SqlQueryBase
 
 internal sealed record SqlExecuteBlockQuery : SqlQueryBase
 {
-    internal IReadOnlyList<ProcParam> InputParameters { get; init; } = [];
+    public IReadOnlyList<ProcParam> InputParameters { get; init; } = [];
 
-    internal IReadOnlyList<ProcParam> ReturnParameters { get; init; } = [];
+    public IReadOnlyList<ProcParam> ReturnParameters { get; init; } = [];
 
-    internal string BodySql { get; init; } = "";
+    public string BodySql { get; init; } = "";
 }
 
 internal sealed record SqlMergeQuery : SqlQueryBase

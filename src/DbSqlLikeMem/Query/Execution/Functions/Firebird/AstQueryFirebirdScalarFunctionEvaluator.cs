@@ -126,7 +126,9 @@ internal static class AstQueryFirebirdScalarFunctionEvaluator
             : Encoding.UTF8.GetBytes(Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty);
 
         var algorithmName = fn.Args.Count > 1
-            ? Convert.ToString(evalArg(1), CultureInfo.InvariantCulture) ?? string.Empty
+            ? fn.Args[1] is RawSqlExpr rawAlgorithm
+                ? rawAlgorithm.Sql
+                : Convert.ToString(evalArg(1), CultureInfo.InvariantCulture) ?? string.Empty
             : string.Empty;
         if (!string.IsNullOrWhiteSpace(algorithmName))
         {
@@ -390,7 +392,7 @@ internal static class AstQueryFirebirdScalarFunctionEvaluator
             return true;
         }
 
-        var hex = ToHexString(bytes);
+        var hex = ToHexString(bytes).ToUpperInvariant();
         if (hex.Length < 32)
         {
             result = null;

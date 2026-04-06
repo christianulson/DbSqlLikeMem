@@ -2,8 +2,10 @@ param(
     [string]$ComposeFile = ".\docker-compose.benchmarks.yml",
     [string]$MariaDbContainerName = "dbsqllikemem-bench-mariadb",
     [string]$Db2ContainerName = "dbsqllikemem-bench-db2",
+    [string]$FirebirdContainerName = "dbsqllikemem-bench-firebird",
     [int]$MariaDbReadyTimeoutSeconds = 300,
-    [int]$Db2ReadyTimeoutSeconds = 300
+    [int]$Db2ReadyTimeoutSeconds = 300,
+    [int]$FirebirdReadyTimeoutSeconds = 300
 )
 
 $ErrorActionPreference = "Stop"
@@ -11,6 +13,34 @@ $ErrorActionPreference = "Stop"
 Write-Host "Starting benchmark databases..."
 
 docker compose -f $ComposeFile up -d
+
+function Wait-ForContainerHealthy {
+    param(
+        [string]$ContainerName,
+        [int]$TimeoutSeconds
+    )
+
+    $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+
+    Write-Host "Waiting $ContainerName to become healthy..."
+
+    while ([DateTime]::UtcNow -lt $deadline) {
+        $status = docker inspect --format "{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}" $ContainerName 2>$null
+
+        if ($LASTEXITCODE -eq 0) {
+            $status = ($status | Out-String).Trim()
+
+            if ($status -eq "healthy" -or $status -eq "running") {
+                Write-Host "Container '$ContainerName' is $status."
+                return
+            }
+        }
+
+        Start-Sleep -Seconds 3
+    }
+
+    throw "Container '$ContainerName' did not become healthy in time."
+}
 
 function Wait-ForMariaDbReady {
     param(
@@ -98,6 +128,7 @@ function Ensure-Db2UserTemporaryTablespace {
 }
 
 Wait-ForMariaDbReady -ContainerName $MariaDbContainerName -TimeoutSeconds $MariaDbReadyTimeoutSeconds
+Wait-ForContainerHealthy -ContainerName $FirebirdContainerName -TimeoutSeconds $FirebirdReadyTimeoutSeconds
 Wait-ForDb2Ready -ContainerName $Db2ContainerName -TimeoutSeconds $Db2ReadyTimeoutSeconds
 Ensure-Db2UserTemporaryTablespace -DatabaseName "BENCH"
 
@@ -111,5 +142,7 @@ Write-Host '$env:NPGSQL_CONNECTION_STRING="Host=127.0.0.1;Port=15432;Database=be
 Write-Host '$env:SQLSERVER_CONNECTION_STRING="Server=127.0.0.1,11433;Database=master;User Id=sa;Password=Your_password123;TrustServerCertificate=True;Encrypt=False;Pooling=false;"'
 Write-Host '$env:SQLAZURE_CONNECTION_STRING="Server=127.0.0.1,11433;Database=master;User Id=sa;Password=Your_password123;TrustServerCertificate=True;Encrypt=False;Pooling=false;"'
 Write-Host '$env:ORACLE_CONNECTION_STRING="User Id=benchmark;Password=benchmark;Data Source=127.0.0.1:15211/FREEPDB1;Pooling=false;"'
+Write-Host '$env:DBSQLLIKEMEM_BENCH_FIREBIRD_CONNECTION_STRING="User=benchmark;Password=benchmark;Database=127.0.0.1/13050:/var/lib/firebird/data/benchmark.fdb;Dialect=3;Charset=UTF8;Pooling=false;"'
+Write-Host '$env:FIREBIRD_CONNECTION_STRING="User=benchmark;Password=benchmark;Database=127.0.0.1/13050:/var/lib/firebird/data/benchmark.fdb;Dialect=3;Charset=UTF8;Pooling=false;"'
 Write-Host '$env:DB2_CONNECTION_STRING="Server=127.0.0.1:15000;Database=BENCH;UID=db2inst1;PWD=db2inst1;Pooling=false;"'
 Write-Host '$env:DBSQLLIKEMEM_BENCH_DB2_CONNECTION_STRING="Server=127.0.0.1:15000;Database=BENCH;UID=db2inst1;PWD=db2inst1;Pooling=false;"'

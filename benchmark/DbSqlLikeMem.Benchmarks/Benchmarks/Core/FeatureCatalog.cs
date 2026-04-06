@@ -125,5 +125,6 @@ public static class FeatureCatalog
         new(BenchmarkFeatureId.FluentSeed100, "Fluent seed 100", "Setup", false, [], "Seed 100 rows via fluent API."),
         new(BenchmarkFeatureId.FluentSeed1000, "Fluent seed 1000", "Setup", false, [], "Seed 1000 rows via fluent API."),
         new(BenchmarkFeatureId.FluentScenarioCompose, "Fluent scenario compose", "Setup", false, [], "Compose a complete fluent scenario with schema + seed + execution."),
+        new(BenchmarkFeatureId.ExecuteBlockSqlState23000, "Execute block SQLSTATE 23000", "Dialect", false, [], "Firebird EXECUTE BLOCK benchmark that traps SQLSTATE 23000."),
     ];
 }

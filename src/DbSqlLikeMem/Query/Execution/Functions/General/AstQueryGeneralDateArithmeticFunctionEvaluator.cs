@@ -1,3 +1,5 @@
+using static DbSqlLikeMem.AstQueryExecutorBase;
+
 namespace DbSqlLikeMem;
 
 internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
@@ -23,6 +25,7 @@ internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
         Register(handlers, TryEvalAddDateFunction, "ADDDATE", "DATE_ADD", "DATE_SUB", "SUBDATE");
         Register(handlers, TryEvalAddTimeFunction, "ADDTIME");
         Register(handlers, TryEvalSubTimeFunction, "SUBTIME");
+        Register(handlers, TryEvalFirebirdDateAddFunction, "DATEADD");
         return handlers;
     }
 
@@ -154,6 +157,60 @@ internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
         }
 
         result = null;
+        return true;
+    }
+
+    private static bool TryEvalFirebirdDateAddFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (fn.Args.Count < 3)
+            throw new InvalidOperationException("DATEADD() espera 3 argumentos.");
+
+        var unitText = fn.Args[0] is RawSqlExpr rawUnit
+            ? rawUnit.Sql
+            : Convert.ToString(evalArg(0), CultureInfo.InvariantCulture) ?? string.Empty;
+        var unit = AstQueryExecutionRuntimeHelper.ResolveTemporalUnit(unitText);
+        if (unit == TemporalUnit.Unknown)
+        {
+            result = null;
+            return true;
+        }
+
+        var amountValue = evalArg(1);
+        var baseValue = evalArg(2);
+        if (AstQueryExecutorBase.IsNullish(amountValue) || AstQueryExecutorBase.IsNullish(baseValue))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!AstQueryExecutorBase.TryCoerceDateTime(baseValue, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!AstQueryExecutorBase.TryConvertNumericToDouble(amountValue, out var amount))
+        {
+            result = null;
+            return true;
+        }
+
+        result = unit switch
+        {
+            TemporalUnit.Year => dateTime.AddYears((int)Math.Truncate(amount)),
+            TemporalUnit.Month => dateTime.AddMonths((int)Math.Truncate(amount)),
+            TemporalUnit.Week => dateTime.AddDays(amount * 7d),
+            TemporalUnit.Day => dateTime.AddDays(amount),
+            TemporalUnit.Hour => dateTime.AddHours(amount),
+            TemporalUnit.Minute => dateTime.AddMinutes(amount),
+            TemporalUnit.Second => dateTime.AddSeconds(amount),
+            TemporalUnit.Millisecond => dateTime.AddMilliseconds(amount),
+            _ => null
+        };
         return true;
     }
 }

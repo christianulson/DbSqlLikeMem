@@ -902,11 +902,34 @@ internal static class DbInsertStrategy
         }
         table.CurrentColumn = null;
 
-        var val = (resolved is DBNull) ? null : resolved;
+        var val = (resolved is DBNull) ? null : NormalizeValueForColumn(colDef.DbType, resolved);
         if (val == null && !colDef.Nullable)
             throw table.ColumnCannotBeNull("Idx:" + colDef.Index);
 
         row[colDef.Index] = val;
+    }
+
+    private static object? NormalizeValueForColumn(DbType dbType, object? value)
+    {
+        if (value is null or DBNull)
+            return value;
+
+        return dbType switch
+        {
+            DbType.Byte => value is byte ? value : Convert.ToByte(value, CultureInfo.InvariantCulture),
+            DbType.SByte => value is sbyte ? value : Convert.ToSByte(value, CultureInfo.InvariantCulture),
+            DbType.Int16 => value is short ? value : Convert.ToInt16(value, CultureInfo.InvariantCulture),
+            DbType.Int32 => value is int ? value : Convert.ToInt32(value, CultureInfo.InvariantCulture),
+            DbType.Int64 => value is long ? value : Convert.ToInt64(value, CultureInfo.InvariantCulture),
+            DbType.UInt16 => value is ushort ? value : Convert.ToUInt16(value, CultureInfo.InvariantCulture),
+            DbType.UInt32 => value is uint ? value : Convert.ToUInt32(value, CultureInfo.InvariantCulture),
+            DbType.UInt64 => value is ulong ? value : Convert.ToUInt64(value, CultureInfo.InvariantCulture),
+            DbType.Boolean => value is bool ? value : Convert.ToBoolean(value, CultureInfo.InvariantCulture),
+            DbType.Decimal or DbType.Currency => value is decimal ? value : Convert.ToDecimal(value, CultureInfo.InvariantCulture),
+            DbType.Double => value is double ? value : Convert.ToDouble(value, CultureInfo.InvariantCulture),
+            DbType.Single => value is float ? value : Convert.ToSingle(value, CultureInfo.InvariantCulture),
+            _ => value
+        };
     }
 
     private static bool TryResolveParsedSpecialValue(

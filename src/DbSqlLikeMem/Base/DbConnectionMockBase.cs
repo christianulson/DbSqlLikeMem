@@ -790,7 +790,7 @@ public abstract class DbConnectionMockBase(
         if (string.IsNullOrWhiteSpace(connectionString))
             return string.Empty;
 
-        var parts = connectionString.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var parts = connectionString.Split(';').Select(_=>_.Trim()).Where(_=>!string.IsNullOrWhiteSpace(_));
         foreach (var part in parts)
         {
             var equalsIndex = part.IndexOf('=');

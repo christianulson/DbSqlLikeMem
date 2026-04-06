@@ -45,13 +45,13 @@ CREATE GLOBAL TEMPORARY TABLE {TemporaryUsersTableName(tableName)} (
 CREATE TABLE {tableName}_{uId} (
     Id INTEGER NOT NULL PRIMARY KEY,
     Name VARCHAR(100) NOT NULL,
-    Email VARCHAR(150) NULL,
+    Email VARCHAR(150),
     IsActive SMALLINT NOT NULL DEFAULT 1,
-    Age SMALLINT NULL,
+    Age SMALLINT,
     Balance DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     CreatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UpdatedAt TIMESTAMP NULL,
-    ProfileJson BLOB SUB_TYPE TEXT NULL
+    UpdatedAt TIMESTAMP,
+    ProfileJson BLOB SUB_TYPE TEXT
 )";
 
     /// <inheritdoc />
@@ -66,8 +66,8 @@ CREATE TABLE {tableName}_{uId} (
     Quantity INTEGER NOT NULL DEFAULT 1,
     IsPaid SMALLINT NOT NULL DEFAULT 0,
     OrderedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    DeliveredAt TIMESTAMP NULL,
-    ExtraJson BLOB SUB_TYPE TEXT NULL,
+    DeliveredAt TIMESTAMP,
+    ExtraJson BLOB SUB_TYPE TEXT,
     CONSTRAINT FK_{tableName}_{uId}_{usersTableName} FOREIGN KEY ({usersTableName}Id) REFERENCES {usersTableName}(Id)
 );
 CREATE INDEX IX_{tableName}_{uId}_{usersTableName}Id ON {tableName}_{uId} ({usersTableName}Id);
@@ -76,6 +76,10 @@ CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (Order
     /// <inheritdoc />
     public override string InsertUser(string tableName, int id, string name) =>
         $"INSERT INTO {tableName} (Id, Name, IsActive, Balance, CreatedAt) VALUES ({id}, '{name}', 1, 0.00, CURRENT_TIMESTAMP)";
+
+    /// <inheritdoc />
+    public override string InsertUserReturning(string tableName, int id, string name) =>
+        $"INSERT INTO {tableName} (Id, Name, IsActive, Balance, CreatedAt) VALUES ({id}, '{name}', 1, 0.00, CURRENT_TIMESTAMP) RETURNING Id";
 
     /// <inheritdoc />
     public override string InsertUsers(string tableName, params (int id, string name)[] values) =>

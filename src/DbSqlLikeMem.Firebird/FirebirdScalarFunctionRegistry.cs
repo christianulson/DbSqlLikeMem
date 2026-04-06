@@ -1,6 +1,4 @@
-using DbSqlLikeMem;
 using DbSqlLikeMem.Models;
-using DbSqlLikeMem.Query.Functions.Common;
 
 namespace DbSqlLikeMem.Firebird;
 
@@ -23,11 +21,8 @@ internal static class FirebirdScalarFunctionRegistry
     private static void RegisterTemporalFunctions(ISqlDialect dialect)
     {
         RegisterTemporalIdentifier(dialect, "CURRENT_DATE", "DATE", SqlTemporalFunctionKind.Date);
-        RegisterTemporalIdentifier(dialect, "CURRENT DATE", "DATE", SqlTemporalFunctionKind.Date);
         RegisterTemporalIdentifier(dialect, "CURRENT_TIME", "TIME", SqlTemporalFunctionKind.Time);
-        RegisterTemporalIdentifier(dialect, "CURRENT TIME", "TIME", SqlTemporalFunctionKind.Time);
         RegisterTemporalIdentifier(dialect, "CURRENT_TIMESTAMP", "TIMESTAMP", SqlTemporalFunctionKind.DateTime);
-        RegisterTemporalIdentifier(dialect, "CURRENT TIMESTAMP", "TIMESTAMP", SqlTemporalFunctionKind.DateTime);
         RegisterTemporalIdentifier(dialect, "LOCALTIME", "TIME", SqlTemporalFunctionKind.Time);
         RegisterTemporalIdentifier(dialect, "LOCALTIMESTAMP", "TIMESTAMP", SqlTemporalFunctionKind.DateTime);
         RegisterTemporalIdentifier(dialect, "NOW", "TIMESTAMP", SqlTemporalFunctionKind.DateTime);

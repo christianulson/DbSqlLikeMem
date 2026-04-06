@@ -1,5 +1,3 @@
-using DbSqlLikeMem;
-using FirebirdSql.Data.FirebirdClient;
 using System.Text.Json;
 
 namespace DbSqlLikeMem.Firebird;
@@ -30,7 +28,8 @@ internal static class FirebirdValueHelper
         IDataParameterCollection? pars = null,
         IReadOnlyDictionary<string, ColumnDef>? colDict = null)
     {
-        if (token.StartsWith("@", StringComparison.Ordinal))
+        if (token.StartsWith("@", StringComparison.Ordinal)
+            || token.StartsWith(":", StringComparison.Ordinal))
         {
             var name = token[1..]
                 .Replace("\r\n", string.Empty)
@@ -38,7 +37,10 @@ internal static class FirebirdValueHelper
             if (pars is null || !pars.Contains(name))
                 throw new FirebirdMockException(SqlExceptionMessages.ParameterNotFound(name), 0);
 
-            return ((FbParameter)pars[name]).Value;
+            if (pars[name] is not IDataParameter parameter)
+                throw new FirebirdMockException(SqlExceptionMessages.ParameterNotFound(name), 0);
+
+            return parameter.Value;
         }
 
         if (token.Equals("null", StringComparison.OrdinalIgnoreCase))

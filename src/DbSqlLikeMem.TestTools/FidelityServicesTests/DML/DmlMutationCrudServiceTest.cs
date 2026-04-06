@@ -583,10 +583,16 @@ WHERE Id = {Dialect.Parameter("id")}
     {
         var parameter = command.CreateParameter();
         parameter.ParameterName = name;
+        var isFirebirdParameter = parameter.GetType().FullName == "FirebirdSql.Data.FirebirdClient.FbParameter";
         if (parameter.GetType().FullName == "Oracle.ManagedDataAccess.Client.OracleParameter")
         {
             // ODP.NET can reject DbType assignments for OracleParameter in this mock flow.
             // Keep the default DbType and rely on the value payload for this shared test helper.
+        }
+        else if (isFirebirdParameter && dbType == DbType.Currency)
+        {
+            // Firebird parameters accept the decimal payload, but FbParameter rejects DbType.Currency.
+            // Keep the default DbType and let the value carry the numeric type.
         }
         else
         {

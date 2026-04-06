@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace DbSqlLikeMem.Firebird.Test.Parser;
 
 /// <summary>

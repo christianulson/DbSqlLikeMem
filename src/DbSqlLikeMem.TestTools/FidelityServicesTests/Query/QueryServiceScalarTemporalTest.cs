@@ -933,6 +933,7 @@ FROM SYSIBM.SYSDUMMY1
         parameter.ParameterName = name;
         var isOracleParameter = parameter.GetType().FullName == "Oracle.ManagedDataAccess.Client.OracleParameter";
         var parameterTypeName = parameter.GetType().FullName;
+        var isFirebirdParameter = parameterTypeName == "FirebirdSql.Data.FirebirdClient.FbParameter";
         var isDb2Parameter = parameterTypeName is "IBM.Data.Db2.DB2Parameter"
             or "IBM.Data.DB2.Core.DB2Parameter"
             or "IBM.Data.DB2.iSeries.iDB2Parameter";
@@ -940,6 +941,11 @@ FROM SYSIBM.SYSDUMMY1
         {
             // ODP.NET and DB2 parameters can reject some DbType assignments in this mock flow.
             // Keep the default DbType and normalize the value payload for this shared test helper.
+        }
+        else if (isFirebirdParameter && (dbType == DbType.Currency || dbType == DbType.DateTimeOffset))
+        {
+            // Firebird's parameter implementation rejects these DbType values in this path.
+            // Keep the payload-based flow and let the provider infer the storage type.
         }
         else if (isDb2Parameter && (dbType == DbType.Guid || dbType == DbType.DateTimeOffset || dbType == DbType.Time || dbType == DbType.DateTime))
         {
@@ -953,6 +959,8 @@ FROM SYSIBM.SYSDUMMY1
             ? NormalizeOracleParameterValue(value)
             : isDb2Parameter
                 ? NormalizeDb2ParameterValue(dbType, value)
+                : isFirebirdParameter
+                    ? NormalizeFirebirdParameterValue(dbType, value)
                 : value ?? DBNull.Value;
         command.Parameters.Add(parameter);
     }
@@ -980,6 +988,18 @@ FROM SYSIBM.SYSDUMMY1
             (DbType.Guid, Guid guid) => guid.ToString("D", CultureInfo.InvariantCulture),
             (DbType.Time, TimeSpan timeSpan) => timeSpan.ToString("c", CultureInfo.InvariantCulture),
             (DbType.DateTime, DateTime dateTime) => dateTime.ToString("O", CultureInfo.InvariantCulture),
+            (DbType.DateTimeOffset, DateTimeOffset dateTimeOffset) => dateTimeOffset.ToString("O", CultureInfo.InvariantCulture),
+            _ => value
+        };
+    }
+
+    private static object NormalizeFirebirdParameterValue(DbType dbType, object? value)
+    {
+        if (value is null)
+            return DBNull.Value;
+
+        return (dbType, value) switch
+        {
             (DbType.DateTimeOffset, DateTimeOffset dateTimeOffset) => dateTimeOffset.ToString("O", CultureInfo.InvariantCulture),
             _ => value
         };

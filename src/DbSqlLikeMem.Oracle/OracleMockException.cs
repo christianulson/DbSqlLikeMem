@@ -1,6 +1,7 @@
 namespace DbSqlLikeMem.Oracle;
 
 #pragma warning disable CA1032 // Implement standard exception constructors
+#pragma warning disable RCS1194
 /// <summary>
 /// EN: Represents Oracle Mock Exception.
 /// PT: Representa Oracle simulada Exceção.
@@ -40,3 +41,4 @@ public sealed class OracleMockException : SqlMockException
     {
     }
 }
+#pragma warning restore RCS1194

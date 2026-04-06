@@ -1,3 +1,5 @@
+using DbSqlLikeMem.Models;
+
 namespace DbSqlLikeMem;
 
 internal static class SelectPlanBuilderHelper
@@ -258,8 +260,11 @@ internal static class SelectPlanBuilderHelper
             return expression is FunctionCallExpr { Name: "ROUND" }
                 or CallExpr { Name: "ROUND" }
                 ? DbType.Decimal
-                : DbType.Object;
+            : DbType.Object;
         }
+
+        if (ContainsStringAggregate(expression, context))
+            return DbType.String;
 
         if (TryInferDbTypeFromNumericAggregate(expression, sampleRows, sampleFirst, sampleSingleSource, ctes, context, evalExpression, out var aggregateDbType))
             return aggregateDbType;
@@ -278,8 +283,24 @@ internal static class SelectPlanBuilderHelper
             return arithmeticDbType;
         }
 
+        if (TryInferDbTypeFromConditionalNullFunction(
+                expression,
+                sampleRows,
+                sampleFirst,
+                sampleSingleSource,
+                ctes,
+                context,
+                evalExpression,
+                out var conditionalDbType))
+        {
+            return conditionalDbType;
+        }
+
         if (TryInferDbTypeFromExpressionShape(expression, out var inferredDbType))
             return inferredDbType;
+
+        if (ContainsSideEffectFunction(expression))
+            return DbType.Object;
 
         foreach (var row in sampleRows)
         {
@@ -299,6 +320,65 @@ internal static class SelectPlanBuilderHelper
         }
 
         return DbType.Object;
+    }
+
+    private static bool ContainsStringAggregate(
+        SqlExpr expression,
+        QueryExecutionContext context)
+    {
+        if (TryGetStringAggregateDefinition(expression, context, out _))
+            return true;
+
+        return expression switch
+        {
+            UnaryExpr unary => ContainsStringAggregate(unary.Expr, context),
+            BinaryExpr binary => ContainsStringAggregate(binary.Left, context)
+                || ContainsStringAggregate(binary.Right, context),
+            InExpr inExpr => ContainsStringAggregate(inExpr.Left, context)
+                || inExpr.Items.Any(item => ContainsStringAggregate(item, context)),
+            LikeExpr likeExpr => ContainsStringAggregate(likeExpr.Left, context)
+                || ContainsStringAggregate(likeExpr.Pattern, context)
+                || (likeExpr.Escape is not null && ContainsStringAggregate(likeExpr.Escape, context)),
+            IsNullExpr isNullExpr => ContainsStringAggregate(isNullExpr.Expr, context),
+            JsonAccessExpr jsonAccessExpr => ContainsStringAggregate(jsonAccessExpr.Target, context)
+                || ContainsStringAggregate(jsonAccessExpr.Path, context),
+            BetweenExpr betweenExpr => ContainsStringAggregate(betweenExpr.Expr, context)
+                || ContainsStringAggregate(betweenExpr.Low, context)
+                || ContainsStringAggregate(betweenExpr.High, context),
+            RowExpr rowExpr => rowExpr.Items.Any(item => ContainsStringAggregate(item, context)),
+            CaseExpr caseExpr => (caseExpr.BaseExpr is not null && ContainsStringAggregate(caseExpr.BaseExpr, context))
+                || caseExpr.Whens.Any(when => ContainsStringAggregate(when.When, context) || ContainsStringAggregate(when.Then, context))
+                || (caseExpr.ElseExpr is not null && ContainsStringAggregate(caseExpr.ElseExpr, context)),
+            _ => false
+        };
+    }
+
+    private static bool TryGetStringAggregateDefinition(
+        SqlExpr expression,
+        QueryExecutionContext context,
+        out DbFunctionDef? definition)
+    {
+        definition = null;
+
+        var call = expression switch
+        {
+            CallExpr callExpr => callExpr,
+            FunctionCallExpr functionCallExpr => new CallExpr(functionCallExpr.Name, functionCallExpr.Args, functionCallExpr.Distinct)
+                .BindScalarFunctionDefinition(functionCallExpr.ResolvedScalarFunction),
+            _ => null
+        };
+
+        if (call is null)
+            return false;
+
+        if (!context.Dialect.TryGetScalarFunctionDefinition(call, out definition)
+            || definition is null
+            || !definition.IsStringAggregate)
+        {
+            return false;
+        }
+
+        return true;
     }
 
     private static bool TryInferDbTypeFromNumericAggregate(
@@ -378,6 +458,93 @@ internal static class SelectPlanBuilderHelper
         }
 
         return false;
+    }
+
+    private static bool TryInferDbTypeFromConditionalNullFunction(
+        SqlExpr expression,
+        List<AstQueryExecutorBase.EvalRow> sampleRows,
+        AstQueryExecutorBase.EvalRow? sampleFirst,
+        AstQueryExecutorBase.Source? sampleSingleSource,
+        IDictionary<string, AstQueryExecutorBase.Source> ctes,
+        QueryExecutionContext context,
+        Func<SqlExpr, AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, IDictionary<string, AstQueryExecutorBase.Source>, object?> evalExpression,
+        out DbType dbType)
+    {
+        dbType = DbType.Object;
+
+        var call = expression switch
+        {
+            CallExpr callExpr => callExpr,
+            FunctionCallExpr functionCallExpr => new CallExpr(functionCallExpr.Name, functionCallExpr.Args, functionCallExpr.Distinct)
+                .BindScalarFunctionDefinition(functionCallExpr.ResolvedScalarFunction),
+            _ => null
+        };
+
+        if (call is null)
+            return false;
+
+        if (!IsConditionalNullFunction(call.Name))
+            return false;
+
+        if (call.Name.Equals("NULLIF", StringComparison.OrdinalIgnoreCase))
+        {
+            if (call.Args.Count == 0)
+                return false;
+
+            dbType = InferDbTypeFromExpression(call.Args[0], sampleRows, sampleFirst, sampleSingleSource, ctes, context, evalExpression);
+            return dbType != DbType.Object;
+        }
+
+        if (call.Args.Count == 0)
+            return false;
+
+        var candidateTypes = new List<DbType>(call.Args.Count);
+        foreach (var arg in call.Args)
+        {
+            var candidateType = InferDbTypeFromExpression(arg, sampleRows, sampleFirst, sampleSingleSource, ctes, context, evalExpression);
+            if (candidateType != DbType.Object)
+                candidateTypes.Add(candidateType);
+        }
+
+        if (candidateTypes.Count == 0)
+            return false;
+
+        dbType = PromoteConditionalNullFunctionDbType(candidateTypes);
+        return dbType != DbType.Object;
+    }
+
+    private static bool IsConditionalNullFunction(string name)
+        => name.Equals("COALESCE", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("IFNULL", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("ISNULL", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("NVL", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("NULLIF", StringComparison.OrdinalIgnoreCase);
+
+    private static DbType PromoteConditionalNullFunctionDbType(IReadOnlyList<DbType> candidateTypes)
+    {
+        if (candidateTypes.Count == 0)
+            return DbType.Object;
+
+        if (candidateTypes.Any(type => type == DbType.String))
+            return DbType.String;
+
+        if (candidateTypes.Any(type => type is DbType.Double or DbType.Single))
+            return DbType.Double;
+
+        if (candidateTypes.Any(type => type is DbType.Currency or DbType.Decimal or DbType.VarNumeric))
+            return DbType.Decimal;
+
+        if (candidateTypes.Any(type => type is DbType.Int64 or DbType.UInt64))
+            return DbType.Int64;
+
+        if (candidateTypes.Any(type => IsIntegralArithmeticDbType(type)))
+            return DbType.Int32;
+
+        if (candidateTypes.Any(type => type == DbType.Boolean))
+            return DbType.Boolean;
+
+        var firstKnownType = candidateTypes.FirstOrDefault(type => type != DbType.Object);
+        return firstKnownType;
     }
 
     private static DbType PromoteIntegralAggregateDbType(DbType inputType)
@@ -1199,6 +1366,38 @@ internal static class SelectPlanBuilderHelper
             CallExpr call => IsSequenceFunctionName(call.Name),
             _ => false
         };
+
+    private static bool ContainsSideEffectFunction(SqlExpr expression)
+        => expression switch
+        {
+            FunctionCallExpr function => IsSideEffectFunctionName(function.Name)
+                || function.Args.Any(ContainsSideEffectFunction),
+            CallExpr call => IsSideEffectFunctionName(call.Name)
+                || call.Args.Any(ContainsSideEffectFunction),
+            BinaryExpr binary => ContainsSideEffectFunction(binary.Left)
+                || ContainsSideEffectFunction(binary.Right),
+            UnaryExpr unary => ContainsSideEffectFunction(unary.Expr),
+            CaseExpr caseExpr => (caseExpr.BaseExpr is not null && ContainsSideEffectFunction(caseExpr.BaseExpr))
+                || caseExpr.Whens.Any(when => ContainsSideEffectFunction(when.When) || ContainsSideEffectFunction(when.Then))
+                || (caseExpr.ElseExpr is not null && ContainsSideEffectFunction(caseExpr.ElseExpr)),
+            RowExpr row => row.Items.Any(ContainsSideEffectFunction),
+            InExpr inExpr => ContainsSideEffectFunction(inExpr.Left)
+                || inExpr.Items.Any(ContainsSideEffectFunction),
+            LikeExpr likeExpr => ContainsSideEffectFunction(likeExpr.Left)
+                || ContainsSideEffectFunction(likeExpr.Pattern)
+                || (likeExpr.Escape is not null && ContainsSideEffectFunction(likeExpr.Escape)),
+            IsNullExpr isNullExpr => ContainsSideEffectFunction(isNullExpr.Expr),
+            BetweenExpr betweenExpr => ContainsSideEffectFunction(betweenExpr.Expr)
+                || ContainsSideEffectFunction(betweenExpr.Low)
+                || ContainsSideEffectFunction(betweenExpr.High),
+            JsonAccessExpr jsonAccessExpr => ContainsSideEffectFunction(jsonAccessExpr.Target)
+                || ContainsSideEffectFunction(jsonAccessExpr.Path),
+            QuantifiedComparisonExpr quantifiedComparisonExpr => ContainsSideEffectFunction(quantifiedComparisonExpr.Left),
+            _ => false
+        };
+
+    private static bool IsSideEffectFunctionName(string? name)
+        => string.Equals(name, "RDB$SET_CONTEXT", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsSequenceFunctionName(string? name)
         => string.Equals(name, "NEXT_VALUE_FOR", StringComparison.OrdinalIgnoreCase)

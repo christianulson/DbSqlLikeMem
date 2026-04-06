@@ -1168,7 +1168,7 @@ ORDER BY u.Id
         using var reader = command.ExecuteReader();
 
         reader.Read().Should().BeTrue();
-        ValidateSelectScalarCaseRow(reader, 1, "Alice", 3, 0, 1);
+        ValidateSelectScalarCaseRow(reader, 1, "Alice", 2, 0, 1);
 
         reader.Read().Should().BeTrue();
         ValidateSelectScalarCaseRow(reader, 2, "Bob", 1, 0, 0);

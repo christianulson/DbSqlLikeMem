@@ -1,6 +1,7 @@
 namespace DbSqlLikeMem.SqlServer;
 
 #pragma warning disable CA1032 // Implement standard exception constructors
+#pragma warning disable RCS1194
 /// <summary>
 /// EN: Represents Sql Server Mock Exception.
 /// PT: Representa Sql Server simulada Exceção.
@@ -40,3 +41,4 @@ public sealed class SqlServerMockException
     {
     }
 }
+#pragma warning restore RCS1194

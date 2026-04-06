@@ -1058,9 +1058,61 @@ VALUES (
         {
             var parameter = command.CreateParameter();
             parameter.ParameterName = name;
-            parameter.DbType = dbType;
-            parameter.Value = value ?? DBNull.Value;
+
+            var parameterTypeName = parameter.GetType().FullName;
+            var isFirebirdParameter = parameterTypeName == "FirebirdSql.Data.FirebirdClient.FbParameter";
+            var isDb2Parameter = parameterTypeName is "IBM.Data.Db2.DB2Parameter"
+                or "IBM.Data.DB2.Core.DB2Parameter"
+                or "IBM.Data.DB2.iSeries.iDB2Parameter";
+
+            if (isFirebirdParameter && (dbType == DbType.Currency || dbType == DbType.DateTimeOffset || dbType == DbType.Guid))
+            {
+                // Firebird rejects these DbType assignments in this benchmark path.
+                // Keep the payload-based flow and let the provider infer the storage type.
+            }
+            else if (isDb2Parameter && (dbType == DbType.Guid || dbType == DbType.DateTimeOffset || dbType == DbType.Time || dbType == DbType.DateTime))
+            {
+                parameter.DbType = DbType.String;
+            }
+            else
+            {
+                parameter.DbType = dbType;
+            }
+
+            parameter.Value = isDb2Parameter
+                ? NormalizeDb2ParameterValue(dbType, value)
+                : isFirebirdParameter
+                    ? NormalizeFirebirdParameterValue(dbType, value)
+                : value ?? DBNull.Value;
             command.Parameters.Add(parameter);
+        }
+
+        private static object NormalizeDb2ParameterValue(DbType dbType, object? value)
+        {
+            if (value is null)
+                return DBNull.Value;
+
+            return (dbType, value) switch
+            {
+                (DbType.Guid, Guid guid) => guid.ToString("D", CultureInfo.InvariantCulture),
+                (DbType.Time, TimeSpan timeSpan) => timeSpan.ToString("c", CultureInfo.InvariantCulture),
+                (DbType.DateTime, DateTime dateTime) => dateTime.ToString("O", CultureInfo.InvariantCulture),
+                (DbType.DateTimeOffset, DateTimeOffset dateTimeOffset) => dateTimeOffset.ToString("O", CultureInfo.InvariantCulture),
+                _ => value
+            };
+        }
+
+        private static object NormalizeFirebirdParameterValue(DbType dbType, object? value)
+        {
+            if (value is null)
+                return DBNull.Value;
+
+            return (dbType, value) switch
+            {
+                (DbType.Guid, Guid guid) => guid.ToString("D", CultureInfo.InvariantCulture),
+                (DbType.DateTimeOffset, DateTimeOffset dateTimeOffset) => dateTimeOffset.ToString("O", CultureInfo.InvariantCulture),
+                _ => value
+            };
         }
 
         public void Dispose()
@@ -1401,8 +1453,31 @@ VALUES (
         {
             var parameter = command.CreateParameter();
             parameter.ParameterName = name;
-            parameter.DbType = dbType;
-            parameter.Value = value ?? DBNull.Value;
+            var parameterTypeName = parameter.GetType().FullName;
+            var isFirebirdParameter = parameterTypeName == "FirebirdSql.Data.FirebirdClient.FbParameter";
+            var isDb2Parameter = parameterTypeName is "IBM.Data.Db2.DB2Parameter"
+                or "IBM.Data.DB2.Core.DB2Parameter"
+                or "IBM.Data.DB2.iSeries.iDB2Parameter";
+
+            if (isFirebirdParameter && (dbType == DbType.Currency || dbType == DbType.DateTimeOffset))
+            {
+                // Firebird rejects these DbType assignments in this benchmark path.
+                // Keep the payload-based flow and let the provider infer the storage type.
+            }
+            else if (isDb2Parameter && (dbType == DbType.Guid || dbType == DbType.DateTimeOffset || dbType == DbType.Time || dbType == DbType.DateTime))
+            {
+                parameter.DbType = DbType.String;
+            }
+            else
+            {
+                parameter.DbType = dbType;
+            }
+
+            parameter.Value = isDb2Parameter
+                ? NormalizeDb2ParameterValue(dbType, value)
+                : isFirebirdParameter
+                    ? NormalizeFirebirdParameterValue(dbType, value)
+                    : value ?? DBNull.Value;
             command.Parameters.Add(parameter);
         }
 

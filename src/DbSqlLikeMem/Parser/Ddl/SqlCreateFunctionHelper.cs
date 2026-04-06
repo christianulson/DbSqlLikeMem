@@ -7,7 +7,7 @@ internal static class SqlCreateFunctionHelper
         bool orReplace)
     {
         if (orReplace && !ctx.Dialect.SupportsCreateOrReplaceFunctionDdl)
-            throw new InvalidOperationException("CREATE OR REPLACE FUNCTION is not supported for this dialect in the mock.");
+            throw ctx.NotSupported("CREATE OR REPLACE FUNCTION");
 
         if (!ctx.Dialect.SupportsFunctionDdl)
             throw ctx.NotSupported("CREATE FUNCTION");
@@ -169,13 +169,51 @@ internal static class SqlCreateFunctionHelper
         SqlToken? prev = null;
         foreach (var token in tokens)
         {
-            if (prev is not null && prev.Value.Kind != SqlTokenKind.Symbol && token.Kind != SqlTokenKind.Symbol)
+            var text = token.Kind switch
+            {
+                SqlTokenKind.String => $"'{EscapeStringLiteral(token.Text)}'",
+                _ => token.Text
+            };
+
+            if (sb.Length > 0 && NeedsSpace(prev, token))
                 sb.Append(' ');
 
-            sb.Append(token.Text);
+            sb.Append(text);
             prev = token;
         }
 
-        return sb.ToString();
+        return sb.ToString().Trim();
+
+        static string EscapeStringLiteral(string value)
+            => value.Replace("'", "''");
+
+        static bool IsWordLike(SqlToken tok)
+            => tok.Kind is SqlTokenKind.Identifier
+            or SqlTokenKind.Keyword
+            or SqlTokenKind.Number
+            or SqlTokenKind.Parameter
+            or SqlTokenKind.String;
+
+        static bool NeedsSpace(SqlToken? p, SqlToken c)
+        {
+            if (p is null)
+                return false;
+
+            if (c.Kind == SqlTokenKind.Symbol && (c.Text is "." or ")" or "," or ";"))
+                return false;
+            if (p.Value.Kind == SqlTokenKind.Symbol && (p.Value.Text is "." or "("))
+                return false;
+            if (p.Value.Kind == SqlTokenKind.Symbol && (p.Value.Text is ")" or ","))
+                return IsWordLike(c) || c.Kind == SqlTokenKind.Number || c.Kind == SqlTokenKind.String;
+            if (p.Value.Kind == SqlTokenKind.Symbol && p.Value.Text == ";")
+                return false;
+            if (IsWordLike(p.Value) && IsWordLike(c))
+                return true;
+            if ((p.Value.Kind == SqlTokenKind.Operator && c.Kind != SqlTokenKind.Symbol)
+                || (c.Kind == SqlTokenKind.Operator && p.Value.Kind != SqlTokenKind.Symbol))
+                return true;
+
+            return true;
+        }
     }
 }

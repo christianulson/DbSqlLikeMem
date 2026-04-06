@@ -6,9 +6,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\DbSqlLikeMem.Firebird\DbSqlLikeMem.Firebird.csproj" />
-		<ProjectReference Include="..\DbSqlLikeMem.Firebird.NHibernate\DbSqlLikeMem.Firebird.NHibernate.csproj" />
-		<ProjectReference Include="..\DbSqlLikeMem.NHibernate.TestTools\DbSqlLikeMem.NHibernate.TestTools.csproj" />
+		<ProjectReference Include="..\DbSqlLikeMem.NHibernate.TestTools\DbSqlLikeMem.NHibernate.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+		<ProjectReference Include="..\DbSqlLikeMem.Firebird.NHibernate\DbSqlLikeMem.Firebird.NHibernate.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />
 	</ItemGroup>
 
 	<ItemGroup>

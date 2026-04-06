@@ -17,6 +17,14 @@ public class FirebirdDbMock : DbMock
         ) : base(version ?? FirebirdDbVersions.Default)
     {
         Dialect = new FirebirdDialect(Version);
+        AddTable(
+            "RDB$DATABASE",
+            [
+                new("DUMMY", DbType.Int32, false)
+            ],
+            [
+                new Dictionary<int, object?> { [0] = 1 }
+            ]);
     }
 
     /// <summary>

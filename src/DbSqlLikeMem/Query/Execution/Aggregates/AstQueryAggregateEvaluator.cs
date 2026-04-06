@@ -61,7 +61,7 @@ internal static class AstQueryAggregateEvaluator
         if (expr is not CallExpr parsedCall)
             return false;
 
-        if (parsedCall.Name is not (SqlConst.GROUP_CONCAT or SqlConst.STRING_AGG or SqlConst.LISTAGG))
+        if (parsedCall.Name is not (SqlConst.GROUP_CONCAT or SqlConst.STRING_AGG or SqlConst.LISTAGG or SqlConst.LIST))
             return false;
 
         if (parsedCall.WithinGroupOrderBy is not null)
@@ -171,7 +171,7 @@ internal static class AstQueryAggregateEvaluator
                 throw context.NotSupported(name);
         }
 
-        if (name is SqlConst.GROUP_CONCAT or SqlConst.STRING_AGG or SqlConst.LISTAGG)
+        if (name is SqlConst.GROUP_CONCAT or SqlConst.STRING_AGG or SqlConst.LISTAGG or SqlConst.LIST)
         {
             var separator = GetAggregateSeparator(fn.Args, group, ctes, eval);
             var defaultSeparator = GetStringAggregateDefaultSeparator(name) ?? string.Empty;
@@ -195,7 +195,7 @@ internal static class AstQueryAggregateEvaluator
         IDictionary<string, Source> ctes,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
     {
-        if (fn.Name is SqlConst.GROUP_CONCAT or SqlConst.STRING_AGG or SqlConst.LISTAGG)
+        if (fn.Name is SqlConst.GROUP_CONCAT or SqlConst.STRING_AGG or SqlConst.LISTAGG or SqlConst.LIST)
         {
             var separator = GetAggregateSeparator(fn.Args, group, ctes, eval);
             var defaultSeparator = GetStringAggregateDefaultSeparator(fn.Name) ?? string.Empty;
@@ -244,6 +244,7 @@ internal static class AstQueryAggregateEvaluator
             SqlConst.GROUP_CONCAT => EvalStringAggregate(values, separator, ","),
             SqlConst.STRING_AGG => EvalStringAggregate(values, separator, ","),
             SqlConst.LISTAGG => EvalStringAggregate(values, separator, string.Empty),
+            SqlConst.LIST => EvalStringAggregate(values, separator, ","),
             SqlConst.ANY_VALUE => AggregateAnyValue(values),
             SqlConst.BIT_AND => AggregateBitwiseValues(values, BitwiseAggregateOperation.And),
             SqlConst.BIT_OR => AggregateBitwiseValues(values, BitwiseAggregateOperation.Or),

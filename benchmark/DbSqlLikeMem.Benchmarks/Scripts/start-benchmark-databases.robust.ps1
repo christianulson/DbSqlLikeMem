@@ -2,9 +2,11 @@ param(
     [string]$ComposeFile = ".\docker-compose.benchmarks.yml",
     [string]$MariaDbContainerName = "dbsqllikemem-bench-mariadb",
     [string]$Db2ContainerName = "dbsqllikemem-bench-db2",
+    [string]$FirebirdContainerName = "dbsqllikemem-bench-firebird",
     [int]$GenericRetries = 60,
     [int]$MariaDbRetries = 90,
-    [int]$Db2Retries = 90
+    [int]$Db2Retries = 90,
+    [int]$FirebirdRetries = 90
 )
 
 $ErrorActionPreference = "Stop"
@@ -174,6 +176,7 @@ foreach ($container in $genericContainers) {
 Wait-ForMariaDbReady -ContainerName $MariaDbContainerName -Retries $MariaDbRetries
 Wait-ForMySqlReady -ContainerName "dbsqllikemem-bench-mysql" -Retries 90
 Wait-ForContainerHealthy -ContainerName $Db2ContainerName -Retries $Db2Retries
+Wait-ForContainerHealthy -ContainerName $FirebirdContainerName -Retries $FirebirdRetries
 Wait-ForDb2Instance -Retries $Db2Retries
 Ensure-Db2Database -DatabaseName "BENCH"
 Ensure-Db2UserTemporaryTablespace -DatabaseName "BENCH"
@@ -190,5 +193,7 @@ Write-Host '$env:NPGSQL_CONNECTION_STRING="Host=127.0.0.1;Port=15432;Database=be
 Write-Host '$env:SQLSERVER_CONNECTION_STRING="Server=127.0.0.1,11433;Database=master;User Id=sa;Password=Your_password123;TrustServerCertificate=True;Encrypt=False;Pooling=false;"'
 Write-Host '$env:SQLAZURE_CONNECTION_STRING="Server=127.0.0.1,11433;Database=master;User Id=sa;Password=Your_password123;TrustServerCertificate=True;Encrypt=False;Pooling=false;"'
 Write-Host '$env:ORACLE_CONNECTION_STRING="User Id=benchmark;Password=benchmark;Data Source=127.0.0.1:15211/FREEPDB1;Pooling=false;"'
+Write-Host '$env:DBSQLLIKEMEM_BENCH_FIREBIRD_CONNECTION_STRING="User=benchmark;Password=benchmark;Database=127.0.0.1/13050:/var/lib/firebird/data/benchmark.fdb;Dialect=3;Charset=UTF8;Pooling=false;"'
+Write-Host '$env:FIREBIRD_CONNECTION_STRING="User=benchmark;Password=benchmark;Database=127.0.0.1/13050:/var/lib/firebird/data/benchmark.fdb;Dialect=3;Charset=UTF8;Pooling=false;"'
 Write-Host '$env:DB2_CONNECTION_STRING="Server=127.0.0.1:15000;Database=BENCH;UID=db2inst1;PWD=db2inst1;Pooling=false;"'
 Write-Host '$env:DBSQLLIKEMEM_BENCH_DB2_CONNECTION_STRING="Server=127.0.0.1:15000;Database=BENCH;UID=db2inst1;PWD=db2inst1;Pooling=false;"'

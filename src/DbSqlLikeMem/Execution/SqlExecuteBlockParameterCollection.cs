@@ -1,5 +1,3 @@
-using System.Collections;
-
 namespace DbSqlLikeMem;
 
 internal sealed class SqlExecuteBlockParameterCollection : DbParameterCollection
@@ -111,7 +109,7 @@ internal sealed class SqlExecuteBlockParameterCollection : DbParameterCollection
     private static string NormalizeParameterName(string? rawName)
         => string.IsNullOrWhiteSpace(rawName)
             ? string.Empty
-            : rawName.Trim().TrimStart('@', ':', '?');
+            : rawName!.Trim().TrimStart('@', ':', '?');
 
     protected override DbParameter GetParameter(int index)
     {
@@ -230,6 +228,7 @@ internal sealed class SqlExecuteBlockParameterCollection : DbParameterCollection
     public override void RemoveAt(string parameterName)
         => throw new NotSupportedException("The execute block parameter collection is read-only.");
 
+    #pragma warning disable CS8764, CS8765
     private sealed class ScopedDbParameter : DbParameter
     {
         public override DbType DbType { get; set; }
@@ -238,11 +237,11 @@ internal sealed class SqlExecuteBlockParameterCollection : DbParameterCollection
 
         public override bool IsNullable { get; set; }
 
-        public override string ParameterName { get; set; } = string.Empty;
+        public override string ParameterName { get; [param: System.Diagnostics.CodeAnalysis.AllowNull] set; } = string.Empty;
 
         public override int Size { get; set; }
 
-        public override string SourceColumn { get; set; } = string.Empty;
+        public override string SourceColumn { get; [param: System.Diagnostics.CodeAnalysis.AllowNull] set; } = string.Empty;
 
         public override bool SourceColumnNullMapping { get; set; }
 
@@ -258,4 +257,5 @@ internal sealed class SqlExecuteBlockParameterCollection : DbParameterCollection
 
         public override DataRowVersion SourceVersion { get; set; } = DataRowVersion.Current;
     }
+    #pragma warning restore CS8764, CS8765
 }

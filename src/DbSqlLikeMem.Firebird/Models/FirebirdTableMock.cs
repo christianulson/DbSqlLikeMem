@@ -1,5 +1,3 @@
-using FirebirdSql.Data.FirebirdClient;
-
 namespace DbSqlLikeMem.Firebird;
 
 /// <summary>

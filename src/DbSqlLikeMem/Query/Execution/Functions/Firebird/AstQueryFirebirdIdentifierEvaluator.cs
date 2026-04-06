@@ -141,6 +141,26 @@ internal static class AstQueryFirebirdIdentifierEvaluator
             return true;
         }
 
+        if (identifier.Name.Equals("CURRENT_DATE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = context.EvaluationLocalNow.Date;
+            return true;
+        }
+
+        if (identifier.Name.Equals("CURRENT_TIME", StringComparison.OrdinalIgnoreCase)
+            || identifier.Name.Equals("LOCALTIME", StringComparison.OrdinalIgnoreCase))
+        {
+            result = context.EvaluationLocalNow.TimeOfDay;
+            return true;
+        }
+
+        if (identifier.Name.Equals("CURRENT_TIMESTAMP", StringComparison.OrdinalIgnoreCase)
+            || identifier.Name.Equals("LOCALTIMESTAMP", StringComparison.OrdinalIgnoreCase))
+        {
+            result = context.EvaluationLocalNow;
+            return true;
+        }
+
         result = null;
         return false;
     }

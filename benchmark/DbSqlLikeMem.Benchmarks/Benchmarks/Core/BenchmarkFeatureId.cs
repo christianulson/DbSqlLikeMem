@@ -677,4 +677,10 @@ public enum BenchmarkFeatureId
     /// PT: Executa um benchmark de chamada de procedimento armazenado.
     /// </summary>
     StoredProcedureCall,
+
+    /// <summary>
+    /// EN: Executes a Firebird EXECUTE BLOCK benchmark with SQLSTATE handling.
+    /// PT: Executa um benchmark Firebird de EXECUTE BLOCK com tratamento de SQLSTATE.
+    /// </summary>
+    ExecuteBlockSqlState23000,
 }

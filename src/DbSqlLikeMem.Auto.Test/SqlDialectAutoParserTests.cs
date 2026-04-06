@@ -1,5 +1,3 @@
-using DbSqlLikeMem.Oracle;
-using Google.Protobuf.Compiler;
 using System.Collections;
 
 namespace DbSqlLikeMem.Auto.Test;
