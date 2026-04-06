@@ -2,12 +2,12 @@
 
 ## 1 Versões simuladas
 
-- Implementação inicial planejada: **35%**.
+- Implementação estimada: **100%**.
 - 2.1, 2.5, 3.0, 4.0, 5.0.
 
 ## 2 Recursos relevantes
 
-- Implementação estimada: **100%**.
+- Implementação estimada: **93%**.
 - Dialeto com `||` para concatenação, `FIRST`, `SKIP`, `ROWS`, `RETURNING`, `MERGE`, `WITH`, `EXECUTE BLOCK`, `ALTER SEQUENCE RESTART`, `SET GENERATOR`, `GEN_ID` e aliases de `GENERATOR` para sequence DDL, além de funções analíticas básicas, temporais de sistema e variáveis de contexto do Firebird nas surfaces de mock e Dapper.
 - Sintaxe nativa de limitação de linhas do Firebird já cobre `FIRST/SKIP` e `ROWS ... TO ...` no parser e no executor do mock.
 - `ORDER BY ... NULLS FIRST/LAST` já está refletido no parser e na surface de consulta do mock.
@@ -15,9 +15,11 @@
 - `CREATE OR ALTER`, `RECREATE`, `ALTER PROCEDURE`, `ALTER TRIGGER`, `DROP PROCEDURE` e `DROP TRIGGER` já estão cobertos no mock.
 - `CREATE PROCEDURE` e `CREATE FUNCTION` já aceitam valores padrão literais nos parametros suportados, e as funções escalares definidas pelo usuário usam esses valores quando o argumento final é omitido.
 - Esses defaults precisam ficar no final da lista de parametros, como no Firebird real.
-- A suite Firebird agora cobre fidelidade de CALL para procedures com parametro padrao omitido e inclui benchmark para chamadas repetidas de funcao escalar e para EXECUTE BLOCK com parametros em escopo, atribuicao de variaveis RETURN, blocos compostos aninhados, ramificacao IF e loops WHILE/FOR SELECT/FOR EXECUTE STATEMENT com BREAK/LEAVE, incluindo a forma parametrizada de EXECUTE STATEMENT e as clausulas `WITH AUTONOMOUS TRANSACTION` e `WITH CALLER PRIVILEGES`, tanto no loop quanto no caso simples.
+- A suite Firebird agora cobre fidelidade de CALL para procedures com parametro padrao omitido e inclui benchmark para chamadas repetidas de funcao escalar e para EXECUTE BLOCK com parametros em escopo, atribuicao de variaveis RETURN, blocos compostos aninhados, ramificacao IF e loops WHILE/FOR SELECT/FOR EXECUTE STATEMENT com BREAK/LEAVE, incluindo a forma parametrizada de EXECUTE STATEMENT e as clausulas `WITH AUTONOMOUS TRANSACTION` e `WITH CALLER PRIVILEGES`, tanto no loop quanto no caso simples; `WITH AUTONOMOUS TRANSACTION` ja preserva as alteracoes mesmo quando a transacao externa sofre rollback, e `WITH COMMON TRANSACTION` ja se mantém preso à transacao externa quando a execucao usa `ON EXTERNAL`.
 - Semântica de concatenação alinhada ao Firebird real: o operador `||` segue o comportamento nativo e o subset de funções ainda é parcial.
-- `EXECUTE BLOCK` segue parcial no mock: aceita parâmetros, `RETURNS`, `SUSPEND`, `EXIT`, `EXECUTE STATEMENT` simples, `IF ... THEN ... ELSE` com blocos compostos, loops `WHILE`, `FOR SELECT` e `FOR EXECUTE STATEMENT` com `BREAK`/`LEAVE`, e blocos compostos `BEGIN ... END`; os parametros declarados agora entram no escopo do corpo, a forma parametrizada de `EXECUTE STATEMENT` em loop também já está coberta, e as cláusulas `WITH AUTONOMOUS TRANSACTION` e `WITH CALLER PRIVILEGES` já são aceitas no subset também no caso simples, mas ainda faltam as variacoes PSQL mais completas.
+- `EXECUTE BLOCK` segue parcial no mock: aceita parâmetros, `RETURNS`, `SUSPEND`, `EXIT`, `EXECUTE STATEMENT` simples, `IF ... THEN ... ELSE` com blocos compostos, loops `WHILE`, `FOR SELECT` e `FOR EXECUTE STATEMENT` com `BREAK`/`LEAVE`, tratamento básico de `WHEN ANY DO`/`WHEN SQLCODE [<codigo>] DO`/`WHEN GDSCODE [<nome>] DO`/`WHEN EXCEPTION <nome> DO` e blocos compostos `BEGIN ... END`; os parametros declarados agora entram no escopo do corpo, a forma parametrizada de `EXECUTE STATEMENT` em loop também já está coberta, `WITH AUTONOMOUS TRANSACTION` já executa em transacao independente, e as cláusulas `WITH COMMON TRANSACTION` e `WITH CALLER PRIVILEGES` já são aceitas no subset também no caso simples, com ordem livre das clausulas opcionais já coberta pelos testes; `WITH COMMON TRANSACTION` em `ON EXTERNAL` já respeita a transação externa no mock, os handlers de erro básicos já são escolhidos em ordem, `WHEN EXCEPTION` já casa com o nome lógico da exceção simulada (`E_FAIL`), `WHEN SQLCODE` já compara o `ErrorCode` da exceção Firebird simulada e agora também cobre a forma `SQLCODE -803` para violações de chave, e `WHEN GDSCODE` já reconhece um pequeno conjunto de aliases do provider em falhas Firebird simuladas, incluindo `no_dup`, `unique_key_violation`, `primary_key`, `primary_key_notnull`, `not_valid`, `foreign_key`, `referenced_row` e `not_null_violation`, com suporte a listas separadas por virgula nos seletores de `WHEN SQLCODE` e `WHEN GDSCODE`, mas ainda faltam as variacoes PSQL mais completas.
+- `AS CURSOR` já é aceito nos loops `FOR SELECT` e `FOR EXECUTE STATEMENT` do subset Firebird.
+- As cláusulas `ON EXTERNAL [DATA SOURCE]`, `AS USER`, `PASSWORD` e `ROLE` já são aceitas pelo parser do `EXECUTE STATEMENT` no subset, com ordem livre das clausulas opcionais coberta pelos testes, o mock já reflete `AS USER`/`ROLE` nos valores de contexto `CURRENT_USER`/`CURRENT_ROLE` durante a execução, e o clone externo preserva um `ConnectionString` observável com `DATA SOURCE`, `USER`, `ROLE` e `PASSWORD` tanto no caso simples quanto no loop `FOR EXECUTE STATEMENT`, com `DataSource` derivado dessa string, mas a semântica de conexão externa ainda não foi implementada.
 - `ALTER SEQUENCE RESTART [WITH]` já está coberto no mock e respeita rollback transacional.
 - `CREATE/DROP GENERATOR` e `ALTER GENERATOR RESTART [WITH]` já estão cobertos como aliases de sequence DDL.
 - `SET GENERATOR <name> TO <value>` já está coberto como alias Firebird legado de sequence DDL.
@@ -67,12 +69,33 @@
 - Agregação Firebird com `COUNT`, `SUM`, `HAVING`, `ORDER BY` ordinal e `LIST()` já está coberta nas surfaces de mock e Dapper.
 - As variáveis de trigger Firebird `INSERTING`, `UPDATING` e `DELETING` já estão cobertas durante a execução de triggers da surface mock e Dapper.
 - `RDB$SET_CONTEXT` já está coberto para `USER_SESSION` e `USER_TRANSACTION`.
-- Surface do provider já inclui factory, data source, batch, projection/returning, suíte de testes dedicada e benchmark CRUD, então o foco restante fica em comportamento específico do Firebird e no subconjunto de PSQL ainda não modelado.
-- TODO: validar com mais precisão as diferenças restantes de PSQL e os UDFs que ainda não aparecem nas suítes atuais.
-- TODO: revisar com mais precisão as regras de identação/quote e o subconjunto restante de PSQL do Firebird conforme os próximos cenários de uso.
+- Surface do provider já inclui factory, data source, batch, projection/returning, suíte de testes dedicada e benchmark CRUD, e o projeto `benchmark/DbSqlLikeMem.Benchmarks` já ganhou a suíte Firebird em memória e os catálogos da matriz; o que ainda falta é fechar a comparação externa, publicar a Wiki e completar as matrizes de performance do Firebird.
+- `EXECUTE STATEMENT ... INTO` no caso simples já está coberto no mock e na surface Dapper, com atribuição da primeira linha retornada às variáveis locais do bloco.
+
+### TODO Implementação
+
+- TODO: modelar com mais fidelidade a conexão externa de `EXECUTE STATEMENT`, incluindo alvo externo real e as diferenças de isolamento que ainda não existem no mock.
+- TODO: revisar as variações PSQL restantes do `EXECUTE BLOCK`, especialmente os handlers mais específicos de exceção ainda não modelados.
+
+### TODO Fidelidade
+
+- TODO: criar testes de fidelidade para os handlers de exceção mais específicos que ainda faltam no `EXECUTE BLOCK`.
+
+### TODO Benchmark
+
+- TODO: completar a cobertura Firebird no projeto `benchmark/DbSqlLikeMem.Benchmarks`, fechando o catálogo/wiki e a comparação externa além da suíte `DbSqlLikeMem` já criada.
+- TODO: fechar a comparação externa do Firebird no benchmark e revisar a publicação da Wiki com os relatórios gerados.
+- TODO: configurar benchmarks separados para `EXECUTE STATEMENT` simples, `EXECUTE STATEMENT ... INTO`, `FOR EXECUTE STATEMENT` parametrizado e cenários com transacao/autenticacao externa.
+- TODO: criar benchmark para as novas variações PSQL assim que os caminhos de execução entrarem no mock.
+
+### TODO Documentação e Wiki
+
+- TODO: atualizar a documentação Firebird com tudo o que ainda estiver pendente na implementação, nos testes de fidelidade e nos benchmarks.
+- TODO: refletir na Wiki o progresso real do Firebird, incluindo os itens já entregues e os itens que ainda faltam.
+- TODO: manter o backlog Firebird sincronizado com os novos cenários cobertos no mock, na surface Dapper e no projeto de benchmark.
 
 ## 3 Aplicações típicas
 
-- Implementação estimada: **47%**.
+- Implementação estimada: **90%**.
 - Sistemas legados e aplicações corporativas com Firebird embutido ou on-premises.
 - Cenários de migração gradual para bancos com sintaxe SQL próxima, sem perder as regras específicas do Firebird.

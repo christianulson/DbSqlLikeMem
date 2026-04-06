@@ -97,6 +97,18 @@ public static class ProviderCatalog
             IndexRefs: ["3.5.1", "3.5.2", "3.5.3"],
             Notes: "Comparação contra Microsoft.Data.Sqlite em memória, sem container."),
         new(
+            ProviderId.Firebird,
+            "Firebird",
+            "5.0",
+            BenchmarkEngine.NotAvailable,
+            null,
+            SupportsUpsert: true,
+            SupportsSequence: true,
+            SupportsStringAggregate: true,
+            SupportsComparableBenchmarks: false,
+            IndexRefs: [],
+            Notes: "Benchmark Firebird em memória usando DbSqlLikeMem; a comparação externa real ainda não foi provisionada."),
+        new(
             ProviderId.Db2,
             "DB2",
             "11",

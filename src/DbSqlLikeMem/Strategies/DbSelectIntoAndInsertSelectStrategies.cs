@@ -2,6 +2,19 @@ namespace DbSqlLikeMem;
 
 internal static class DbSelectIntoAndInsertSelectStrategies
 {
+    private enum ExecuteBlockExceptionHandlerKind
+    {
+        Any,
+        SqlCode,
+        GdsCode,
+        Exception
+    }
+
+    private sealed record ExecuteBlockExceptionHandler(
+        ExecuteBlockExceptionHandlerKind Kind,
+        IReadOnlyList<string> Selectors,
+        string BodySql);
+
     /// <summary>
     /// EN: Dispatches parsed AST commands to ExecuteNonQuery handlers.
     /// PT: Despacha comandos AST parseados para handlers de ExecuteNonQuery.
@@ -593,6 +606,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         string bodySql)
     {
         var affectedTotal = 0;
+        var exceptionHandlers = new List<ExecuteBlockExceptionHandler>();
 
         foreach (var statementSql in SplitExecuteBlockStatements(bodySql, connection.ExecutionDialect))
         {
@@ -605,16 +619,38 @@ internal static class DbSelectIntoAndInsertSelectStrategies
                 continue;
             }
 
-            var affected = connection.ExecuteNonQueryWithPipeline(
-                statementSql,
-                scopedParameters,
-                allowMerge: connection.ExecutionDialect.SupportsMerge,
-                unionUsesSelectMessage: false,
-                tryExecuteTransactionControl: null,
-                tryExecuteSpecialCommand: (string sqlRaw, out DmlExecutionResult affectedRows) =>
-                    TryExecuteExecuteBlockSpecialCommand(connection, scopedParameters, sqlRaw, out affectedRows));
+            if (TryParseExecuteBlockWhenExceptionHandlerStatement(statementSql, connection.ExecutionDialect, out var handler))
+            {
+                exceptionHandlers.Add(handler);
+                continue;
+            }
 
-            affectedTotal += affected;
+            try
+            {
+                var affected = connection.ExecuteNonQueryWithPipeline(
+                    statementSql,
+                    scopedParameters,
+                    allowMerge: connection.ExecutionDialect.SupportsMerge,
+                    unionUsesSelectMessage: false,
+                    tryExecuteTransactionControl: null,
+                    tryExecuteSpecialCommand: (string sqlRaw, out DmlExecutionResult affectedRows) =>
+                        TryExecuteExecuteBlockSpecialCommand(connection, scopedParameters, sqlRaw, out affectedRows));
+
+                affectedTotal += affected;
+            }
+            catch (ExecuteBlockLoopBreakException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                var matchedHandler = exceptionHandlers.FirstOrDefault(handler => MatchesExecuteBlockExceptionHandler(handler, connection, ex));
+                if (matchedHandler is null)
+                    throw;
+
+                affectedTotal += ExecuteExecuteBlockBody(connection, scopedParameters, matchedHandler.BodySql);
+                break;
+            }
         }
 
         return affectedTotal;
@@ -693,6 +729,171 @@ internal static class DbSelectIntoAndInsertSelectStrategies
 
         bodySql = statementSql[innerStart..innerEnd].Trim();
         return true;
+    }
+
+    private static bool TryParseExecuteBlockWhenExceptionHandlerStatement(
+        string sqlRaw,
+        ISqlDialect dialect,
+        out ExecuteBlockExceptionHandler handler)
+    {
+        handler = new ExecuteBlockExceptionHandler(ExecuteBlockExceptionHandlerKind.Any, [], string.Empty);
+
+        if (string.IsNullOrWhiteSpace(sqlRaw))
+            return false;
+
+        var tokens = new SqlTokenizer(sqlRaw, dialect).Tokenize()
+            .Where(static token => token.Kind != SqlTokenKind.EndOfFile)
+            .ToList();
+
+        if (tokens.Count < 4
+            || !SqlQueryParserContext.IsWord(tokens[0], "WHEN")
+            || (!SqlQueryParserContext.IsWord(tokens[1], "ANY")
+                && !SqlQueryParserContext.IsWord(tokens[1], "SQLCODE")
+                && !SqlQueryParserContext.IsWord(tokens[1], "GDSCODE")
+                && !SqlQueryParserContext.IsWord(tokens[1], "EXCEPTION")))
+        {
+            return false;
+        }
+
+        var handlerKind = SqlQueryParserContext.IsWord(tokens[1], "ANY")
+            ? ExecuteBlockExceptionHandlerKind.Any
+            : SqlQueryParserContext.IsWord(tokens[1], "SQLCODE")
+                ? ExecuteBlockExceptionHandlerKind.SqlCode
+                : SqlQueryParserContext.IsWord(tokens[1], "GDSCODE")
+                    ? ExecuteBlockExceptionHandlerKind.GdsCode
+                    : ExecuteBlockExceptionHandlerKind.Exception;
+
+        var selectors = Array.Empty<string>();
+        var doSearchStartIndex = 2;
+        if (handlerKind == ExecuteBlockExceptionHandlerKind.Exception)
+        {
+            if (tokens.Count < 5)
+                return false;
+
+            selectors = ParseExecuteBlockExceptionHandlerSelectors(sqlRaw, tokens, 2, FindTopLevelTokenIndex(tokens, 2, SqlConst.DO));
+            doSearchStartIndex = 3;
+        }
+        else if (handlerKind != ExecuteBlockExceptionHandlerKind.Any
+            && !SqlQueryParserContext.IsWord(tokens[2], SqlConst.DO))
+        {
+            if (tokens.Count < 5)
+                return false;
+
+            selectors = ParseExecuteBlockExceptionHandlerSelectors(sqlRaw, tokens, 2, FindTopLevelTokenIndex(tokens, 2, SqlConst.DO));
+            doSearchStartIndex = 3;
+        }
+
+        var doIndex = FindTopLevelTokenIndex(tokens, doSearchStartIndex, SqlConst.DO);
+        if (doIndex < 0)
+            return false;
+
+        var bodyStartIndex = doIndex + 1;
+        if (bodyStartIndex >= tokens.Count)
+            return false;
+
+        if (SqlQueryParserContext.IsWord(tokens[bodyStartIndex], SqlConst.BEGIN))
+        {
+            if (!TryExtractCompoundBlock(sqlRaw, tokens, bodyStartIndex, out var handlerSql, out var trailingSql))
+                return false;
+
+            if (!string.IsNullOrWhiteSpace(TrimLeadingStatementTerminators(trailingSql)))
+                return false;
+
+            handler = new ExecuteBlockExceptionHandler(
+                handlerKind,
+                selectors,
+                handlerSql);
+            return true;
+        }
+
+        var bodySql = sqlRaw[tokens[bodyStartIndex].Position..].Trim().TrimEnd(';').Trim();
+        if (bodySql.Length == 0)
+            return false;
+
+        handler = new ExecuteBlockExceptionHandler(
+            handlerKind,
+            selectors,
+            bodySql);
+        return true;
+    }
+
+    private static bool MatchesExecuteBlockExceptionHandler(
+        ExecuteBlockExceptionHandler handler,
+        DbConnectionMockBase connection,
+        Exception ex)
+    {
+        _ = connection;
+
+        return handler.Kind switch
+        {
+            ExecuteBlockExceptionHandlerKind.Any => true,
+            ExecuteBlockExceptionHandlerKind.SqlCode => ex is SqlMockException sqlEx
+                && (handler.Selectors.Count == 0
+                    || handler.Selectors.Any(selector => int.TryParse(selector, NumberStyles.Integer, CultureInfo.InvariantCulture, out var sqlCode)
+                        && (sqlEx.ErrorCode == sqlCode || MatchesFirebirdSqlCode(sqlCode, sqlEx.ErrorCode)))),
+            ExecuteBlockExceptionHandlerKind.GdsCode => ex is SqlMockException sqlGdsEx
+                && (handler.Selectors.Count == 0
+                    || handler.Selectors.Any(selector => TryMatchFirebirdGdsCodeSelector(selector, sqlGdsEx.ErrorCode))),
+            ExecuteBlockExceptionHandlerKind.Exception => ex is SqlMockException sqlException
+                && (handler.Selectors.Count == 0
+                    || handler.Selectors.Any(selector => string.Equals(selector, sqlException.ExceptionName, StringComparison.OrdinalIgnoreCase))),
+            _ => false
+        };
+    }
+
+    private static string[] ParseExecuteBlockExceptionHandlerSelectors(
+        string sqlRaw,
+        IReadOnlyList<SqlToken> tokens,
+        int selectorStartIndex,
+        int doIndex)
+    {
+        if (selectorStartIndex >= doIndex)
+            return [];
+
+        var selectorRaw = sqlRaw[
+            tokens[selectorStartIndex].Position..tokens[doIndex].Position]
+            .Trim();
+
+        if (selectorRaw.Length == 0)
+            return [];
+
+        return selectorRaw
+            .Split(',')
+            .Select(selector => selector.Trim())
+            .Where(selector => selector.Length > 0)
+            .ToArray();
+    }
+
+    private static bool MatchesFirebirdSqlCode(int sqlCode, int errorCode)
+        => sqlCode == -803 && (
+            errorCode == 1062
+            || errorCode == 1048
+            || errorCode == 1452
+            || errorCode == 1451);
+
+    private static bool TryMatchFirebirdGdsCodeSelector(string selector, int errorCode)
+    {
+        if (string.IsNullOrWhiteSpace(selector))
+            return false;
+
+        var normalized = selector.Trim().Replace('-', '_');
+        return normalized.ToLowerInvariant() switch
+        {
+            "no_dup" => errorCode == 1062,
+            "duplicate_key" => errorCode == 1062,
+            "unique_key_violation" => errorCode == 1062,
+            "primary_key_violation" => errorCode == 1062,
+            "primary_key" => errorCode == 1062,
+            "not_null_violation" => errorCode == 1048,
+            "primary_key_notnull" => errorCode == 1048,
+            "not_valid" => errorCode == 1048,
+            "column_cannot_be_null" => errorCode == 1048,
+            "foreign_key" => errorCode == 1452,
+            "foreign_key_violation" => errorCode == 1452,
+            "referenced_row" => errorCode == 1451,
+            "row_is_referenced" => errorCode == 1451,
+            _ => false
+        };
     }
 
     private static bool TryExecuteExecuteBlockSpecialCommand(
@@ -815,22 +1016,67 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     {
         affectedRows = new DmlExecutionResult();
 
-        if (!TryParseExecuteBlockExecuteStatement(sqlRaw, connection.ExecutionDialect, connection, scopedParameters, out var statementSql, out var statementBindings))
+        if (!TryParseExecuteBlockExecuteStatement(sqlRaw, connection.ExecutionDialect, connection, scopedParameters, out var statementSql, out var statementBindings, out var intoVariables, out var useExternalConnection, out var useAutonomousTransaction, out var useCommonTransaction, out var externalUser, out var externalRole, out var externalPassword, out var externalDataSource))
             return false;
 
         if (!TryRenderExecuteStatementSql(statementSql, statementBindings, connection.ExecutionDialect, out var renderedSql))
             return false;
 
-        var affected = connection.ExecuteNonQueryWithPipeline(
-            renderedSql,
-            scopedParameters,
-            allowMerge: connection.ExecutionDialect.SupportsMerge,
-            unionUsesSelectMessage: false,
-            tryExecuteTransactionControl: null,
-            tryExecuteSpecialCommand: null);
+        var targetConnection = (useExternalConnection || useAutonomousTransaction) && !useCommonTransaction
+            ? CreateExternalExecuteStatementConnection(connection, externalDataSource, externalUser, externalRole, externalPassword)
+            : connection;
 
-        affectedRows = DmlExecutionResult.ForCount(affected);
-        return true;
+        var previousCurrentUser = targetConnection.FirebirdCurrentUser;
+        var previousCurrentRole = targetConnection.FirebirdCurrentRole;
+        if (!string.IsNullOrWhiteSpace(externalUser))
+            targetConnection.FirebirdCurrentUser = externalUser!;
+
+        if (!string.IsNullOrWhiteSpace(externalRole))
+            targetConnection.FirebirdCurrentRole = externalRole!;
+
+        try
+        {
+            if (intoVariables.Count > 0)
+            {
+                var result = useAutonomousTransaction
+                    ? ExecuteInAutonomousTransaction(targetConnection, statementConnection => ExecuteExecuteStatementSelect(statementConnection, renderedSql, scopedParameters))
+                    : ExecuteExecuteStatementSelect(targetConnection, renderedSql, scopedParameters);
+
+                if (result.Columns.Count != intoVariables.Count)
+                    throw new InvalidOperationException("EXECUTE STATEMENT INTO variable count does not match the SELECT list.");
+
+                if (result.Count > 1)
+                    throw new InvalidOperationException("EXECUTE STATEMENT INTO can return at most one row.");
+
+                var row = result.Count > 0 ? result[0] : null;
+                for (var i = 0; i < intoVariables.Count; i++)
+                {
+                    var value = row is not null && row.TryGetValue(i, out var rawValue) ? rawValue : null;
+                    if (value is DBNull)
+                        value = null;
+
+                    if (!scopedParameters.TrySetLocalParameterValue(intoVariables[i], value))
+                        throw new InvalidOperationException($"EXECUTE STATEMENT INTO variable '{intoVariables[i]}' was not declared in the EXECUTE BLOCK scope.");
+                }
+
+                affectedRows = DmlExecutionResult.ForCount(0);
+                return true;
+            }
+
+            var affected = useAutonomousTransaction
+                ? ExecuteInAutonomousTransaction(targetConnection, statementConnection => ExecuteExecuteStatementNonQuery(statementConnection, renderedSql, scopedParameters))
+                : ExecuteExecuteStatementNonQuery(targetConnection, renderedSql, scopedParameters);
+
+            affectedRows = DmlExecutionResult.ForCount(affected.AffectedRows);
+            return true;
+        }
+        finally
+        {
+            targetConnection.FirebirdCurrentUser = previousCurrentUser;
+            targetConnection.FirebirdCurrentRole = previousCurrentRole;
+            if (!ReferenceEquals(targetConnection, connection))
+                targetConnection.Dispose();
+        }
     }
 
     private static bool TryExecuteExecuteBlockForSelectStatement(
@@ -906,61 +1152,75 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     {
         affectedRows = new DmlExecutionResult();
 
-        if (!TryParseExecuteBlockForExecuteStatementLoop(sqlRaw, connection, scopedParameters, out var selectSql, out var intoVariables, out var bodySql, out var bodyIsCompound))
+        if (!TryParseExecuteBlockForExecuteStatementLoop(sqlRaw, connection, scopedParameters, out var selectSql, out var intoVariables, out var bodySql, out var bodyIsCompound, out var useExternalConnection, out var useAutonomousTransaction, out var useCommonTransaction, out var externalUser, out var externalRole, out var externalPassword, out var externalDataSource))
             return false;
 
-        var context = QueryExecutionContext.FromConnection(connection, scopedParameters);
-        var parsedSelect = SqlQueryParser.Parse(
-            selectSql,
-            connection.Db,
-            connection.ExecutionDialect,
-            scopedParameters);
+        var statementConnection = (useExternalConnection || useAutonomousTransaction) && !useCommonTransaction
+            ? CreateExternalExecuteStatementConnection(connection, externalDataSource, externalUser, externalRole, externalPassword)
+            : connection;
 
-        if (parsedSelect is not SqlSelectQuery selectQuery)
-            throw new InvalidOperationException("FOR EXECUTE STATEMENT requires a SELECT query.");
+        var previousCurrentUser = statementConnection.FirebirdCurrentUser;
+        var previousCurrentRole = statementConnection.FirebirdCurrentRole;
+        if (!string.IsNullOrWhiteSpace(externalUser))
+            statementConnection.FirebirdCurrentUser = externalUser!;
 
-        var executor = context.CreateExecutor();
-        var result = executor.ExecuteSelect(selectQuery);
-        if (result.Columns.Count != intoVariables.Count)
-            throw new InvalidOperationException("FOR EXECUTE STATEMENT INTO variable count does not match the SELECT list.");
+        if (!string.IsNullOrWhiteSpace(externalRole))
+            statementConnection.FirebirdCurrentRole = externalRole!;
 
-        var affectedTotal = 0;
-        foreach (var row in result)
+        try
         {
-            for (var i = 0; i < intoVariables.Count; i++)
-            {
-                var value = row.TryGetValue(i, out var rawValue) ? rawValue : null;
-                if (value is DBNull)
-                    value = null;
+            var result = useAutonomousTransaction
+                ? ExecuteInAutonomousTransaction(statementConnection, stmtConn => ExecuteExecuteBlockForExecuteStatementSelect(stmtConn, selectSql, scopedParameters))
+                : ExecuteExecuteBlockForExecuteStatementSelect(statementConnection, selectSql, scopedParameters);
 
-                if (!scopedParameters.TrySetLocalParameterValue(intoVariables[i], value))
-                    throw new InvalidOperationException($"FOR EXECUTE STATEMENT variable '{intoVariables[i]}' was not declared in the EXECUTE BLOCK scope.");
-            }
+            if (result.Columns.Count != intoVariables.Count)
+                throw new InvalidOperationException("FOR EXECUTE STATEMENT INTO variable count does not match the SELECT list.");
 
-            try
+            var affectedTotal = 0;
+            foreach (var row in result)
             {
-                if (bodyIsCompound)
-                    affectedTotal += ExecuteExecuteBlockBody(connection, scopedParameters, bodySql);
-                else
+                for (var i = 0; i < intoVariables.Count; i++)
                 {
-                    affectedTotal += connection.ExecuteNonQueryWithPipeline(
-                        bodySql,
-                        scopedParameters,
-                        allowMerge: connection.ExecutionDialect.SupportsMerge,
-                        unionUsesSelectMessage: false,
-                        tryExecuteTransactionControl: null,
-                        tryExecuteSpecialCommand: (string sqlBody, out DmlExecutionResult bodyAffected) =>
-                            TryExecuteExecuteBlockSpecialCommand(connection, scopedParameters, sqlBody, out bodyAffected));
+                    var value = row.TryGetValue(i, out var rawValue) ? rawValue : null;
+                    if (value is DBNull)
+                        value = null;
+
+                    if (!scopedParameters.TrySetLocalParameterValue(intoVariables[i], value))
+                        throw new InvalidOperationException($"FOR EXECUTE STATEMENT variable '{intoVariables[i]}' was not declared in the EXECUTE BLOCK scope.");
+                }
+
+                try
+                {
+                    if (bodyIsCompound)
+                        affectedTotal += ExecuteExecuteBlockBody(connection, scopedParameters, bodySql);
+                    else
+                    {
+                        affectedTotal += connection.ExecuteNonQueryWithPipeline(
+                            bodySql,
+                            scopedParameters,
+                            allowMerge: connection.ExecutionDialect.SupportsMerge,
+                            unionUsesSelectMessage: false,
+                            tryExecuteTransactionControl: null,
+                            tryExecuteSpecialCommand: (string sqlBody, out DmlExecutionResult bodyAffected) =>
+                                TryExecuteExecuteBlockSpecialCommand(connection, scopedParameters, sqlBody, out bodyAffected));
+                    }
+                }
+                catch (ExecuteBlockLoopBreakException)
+                {
+                    break;
                 }
             }
-            catch (ExecuteBlockLoopBreakException)
-            {
-                break;
-            }
-        }
 
-        affectedRows = DmlExecutionResult.ForCount(affectedTotal);
-        return true;
+            affectedRows = DmlExecutionResult.ForCount(affectedTotal);
+            return true;
+        }
+        finally
+        {
+            statementConnection.FirebirdCurrentUser = previousCurrentUser;
+            statementConnection.FirebirdCurrentRole = previousCurrentRole;
+            if (!ReferenceEquals(statementConnection, connection))
+                statementConnection.Dispose();
+        }
     }
 
     private static bool TryParseExecuteBlockForExecuteStatementLoop(
@@ -970,12 +1230,26 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         out string selectSql,
         out IReadOnlyList<string> intoVariables,
         out string bodySql,
-        out bool bodyIsCompound)
+        out bool bodyIsCompound,
+        out bool useExternalConnection,
+        out bool useAutonomousTransaction,
+        out bool useCommonTransaction,
+        out string? externalUser,
+        out string? externalRole,
+        out string? externalPassword,
+        out string? externalDataSource)
     {
         selectSql = string.Empty;
         intoVariables = [];
         bodySql = string.Empty;
         bodyIsCompound = false;
+        useExternalConnection = false;
+        useAutonomousTransaction = false;
+        useCommonTransaction = false;
+        externalUser = null;
+        externalRole = null;
+        externalPassword = null;
+        externalDataSource = null;
 
         if (string.IsNullOrWhiteSpace(sqlRaw))
             return false;
@@ -1009,13 +1283,28 @@ internal static class DbSelectIntoAndInsertSelectStrategies
                 connection,
                 scopedParameters,
                 out var dynamicSql,
-                out var executeStatementBindings))
+                out var executeStatementBindings,
+                out var invocationUseExternalConnection,
+                out var invocationUseAutonomousTransaction,
+                out var invocationUseCommonTransaction,
+                out var invocationExternalUser,
+                out var invocationExternalRole,
+                out var invocationExternalPassword,
+                out var invocationExternalDataSource))
         {
             return false;
         }
 
         if (!TryRenderExecuteStatementSql(dynamicSql, executeStatementBindings, connection.ExecutionDialect, out selectSql))
             return false;
+
+        useExternalConnection = invocationUseExternalConnection;
+        useAutonomousTransaction = invocationUseAutonomousTransaction;
+        useCommonTransaction = invocationUseCommonTransaction;
+        externalUser = invocationExternalUser;
+        externalRole = invocationExternalRole;
+        externalPassword = invocationExternalPassword;
+        externalDataSource = invocationExternalDataSource;
 
         var intoClauseSql = TokensToSql(sqlRaw, tokens[(intoIndex + 1)..doIndex]);
         var rawIntoVariables = intoClauseSql.SplitRawByComma();
@@ -1058,10 +1347,24 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         DbConnectionMockBase connection,
         SqlExecuteBlockParameterCollection scopedParameters,
         out string dynamicSql,
-        out IReadOnlyList<ExecuteStatementParameterBinding> bindings)
+        out IReadOnlyList<ExecuteStatementParameterBinding> bindings,
+        out bool useExternalConnection,
+        out bool useAutonomousTransaction,
+        out bool useCommonTransaction,
+        out string? externalUser,
+        out string? externalRole,
+        out string? externalPassword,
+        out string? externalDataSource)
     {
         dynamicSql = string.Empty;
         bindings = [];
+        useExternalConnection = false;
+        useAutonomousTransaction = false;
+        useCommonTransaction = false;
+        externalUser = null;
+        externalRole = null;
+        externalPassword = null;
+        externalDataSource = null;
 
         if (tokens.Count == 0)
             return false;
@@ -1102,7 +1405,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             bindings = parameterBindings;
         }
 
-        if (!TryConsumeExecuteStatementOptionClauses(tokens, ref index))
+        if (!TryConsumeExecuteStatementOptionClauses(sqlRaw, tokens, ref index, out useExternalConnection, out useAutonomousTransaction, out useCommonTransaction, out externalUser, out externalRole, out externalPassword, out externalDataSource))
             return false;
 
         if (index < tokens.Count)
@@ -1119,39 +1422,158 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     }
 
     private static bool TryConsumeExecuteStatementOptionClauses(
+        string sqlRaw,
         IReadOnlyList<SqlToken> tokens,
-        ref int index)
+        ref int index,
+        out bool useExternalConnection,
+        out bool useAutonomousTransaction,
+        out bool useCommonTransaction,
+        out string? externalUser,
+        out string? externalRole,
+        out string? externalPassword,
+        out string? externalDataSource)
     {
-        while (index < tokens.Count && SqlQueryParserContext.IsWord(tokens[index], SqlConst.WITH))
+        useExternalConnection = false;
+        useAutonomousTransaction = false;
+        useCommonTransaction = false;
+        externalUser = null;
+        externalRole = null;
+        externalPassword = null;
+        externalDataSource = null;
+        while (index < tokens.Count)
         {
-            if (index + 2 < tokens.Count
-                && SqlQueryParserContext.IsWord(tokens[index + 1], "AUTONOMOUS")
-                && SqlQueryParserContext.IsWord(tokens[index + 2], SqlConst.TRANSACTION))
+            if (SqlQueryParserContext.IsWord(tokens[index], SqlConst.WITH))
             {
-                index += 3;
+                if (index + 2 < tokens.Count
+                    && SqlQueryParserContext.IsWord(tokens[index + 1], "AUTONOMOUS")
+                    && SqlQueryParserContext.IsWord(tokens[index + 2], SqlConst.TRANSACTION))
+                {
+                    if (useCommonTransaction)
+                        return false;
+
+                    useAutonomousTransaction = true;
+                    index += 3;
+                    continue;
+                }
+
+                if (index + 2 < tokens.Count
+                    && SqlQueryParserContext.IsWord(tokens[index + 1], "CALLER")
+                    && SqlQueryParserContext.IsWord(tokens[index + 2], "PRIVILEGES"))
+                {
+                    index += 3;
+                    continue;
+                }
+
+                if (index + 2 < tokens.Count
+                    && SqlQueryParserContext.IsWord(tokens[index + 1], "COMMON")
+                    && SqlQueryParserContext.IsWord(tokens[index + 2], SqlConst.TRANSACTION))
+                {
+                    if (useAutonomousTransaction)
+                        return false;
+
+                    useCommonTransaction = true;
+                    index += 3;
+                    continue;
+                }
+
+                return false;
+            }
+
+            if (SqlQueryParserContext.IsWord(tokens[index], "ON"))
+            {
+                if (index + 1 >= tokens.Count || !SqlQueryParserContext.IsWord(tokens[index + 1], "EXTERNAL"))
+                    return false;
+
+                useExternalConnection = true;
+                index += 2;
+                if (index + 1 < tokens.Count
+                    && SqlQueryParserContext.IsWord(tokens[index], "DATA")
+                    && SqlQueryParserContext.IsWord(tokens[index + 1], "SOURCE"))
+                {
+                    index += 2;
+                }
+
+                if (!TryConsumeExecuteStatementOptionExpression(sqlRaw, tokens, ref index, out var optionSql))
+                    return false;
+                externalDataSource = NormalizeExecuteStatementOptionValue(optionSql);
+
                 continue;
             }
 
-            if (index + 2 < tokens.Count
-                && SqlQueryParserContext.IsWord(tokens[index + 1], "CALLER")
-                && SqlQueryParserContext.IsWord(tokens[index + 2], "PRIVILEGES"))
+            if (SqlQueryParserContext.IsWord(tokens[index], "AS"))
             {
-                index += 3;
+                if (index + 1 >= tokens.Count || !SqlQueryParserContext.IsWord(tokens[index + 1], "USER"))
+                    return false;
+
+                index += 2;
+                if (!TryConsumeExecuteStatementOptionExpression(sqlRaw, tokens, ref index, out var optionSql))
+                    return false;
+
+                externalUser = NormalizeExecuteStatementOptionValue(optionSql);
+
                 continue;
             }
 
-            if (index + 2 < tokens.Count
-                && SqlQueryParserContext.IsWord(tokens[index + 1], "COMMON")
-                && SqlQueryParserContext.IsWord(tokens[index + 2], SqlConst.TRANSACTION))
+            if (SqlQueryParserContext.IsWord(tokens[index], "PASSWORD")
+                || SqlQueryParserContext.IsWord(tokens[index], "ROLE"))
             {
-                index += 3;
+                var optionName = tokens[index].Text;
+                index++;
+                if (!TryConsumeExecuteStatementOptionExpression(sqlRaw, tokens, ref index, out var optionSql))
+                    return false;
+                if (string.Equals(optionName, "ROLE", StringComparison.OrdinalIgnoreCase))
+                    externalRole = NormalizeExecuteStatementOptionValue(optionSql);
+                else
+                    externalPassword = NormalizeExecuteStatementOptionValue(optionSql);
+
                 continue;
             }
 
-            return false;
+            return true;
         }
 
         return true;
+    }
+
+    private static bool TryConsumeExecuteStatementOptionExpression(
+        string sqlRaw,
+        IReadOnlyList<SqlToken> tokens,
+        ref int index,
+        out string optionSql)
+    {
+        var startIndex = index;
+        var depth = 0;
+
+        while (index < tokens.Count)
+        {
+            var token = tokens[index];
+            if (depth == 0 && (SqlQueryParserContext.IsWord(token, SqlConst.WITH)
+                || SqlQueryParserContext.IsWord(token, "ON")
+                || SqlQueryParserContext.IsWord(token, "AS")
+                || SqlQueryParserContext.IsWord(token, "PASSWORD")
+                || SqlQueryParserContext.IsWord(token, "ROLE")
+                || (token.Kind == SqlTokenKind.Symbol && token.Text == ";")))
+            {
+                break;
+            }
+
+            if (token.Kind == SqlTokenKind.Symbol)
+            {
+                if (token.Text == "(")
+                {
+                    depth++;
+                }
+                else if (token.Text == ")" && depth > 0)
+                {
+                    depth--;
+                }
+            }
+
+            index++;
+        }
+
+        optionSql = index > startIndex ? TokensToSql(sqlRaw, tokens[startIndex..index]).Trim() : string.Empty;
+        return index > startIndex;
     }
 
     private static bool TryParseExecuteBlockExecuteStatement(
@@ -1160,10 +1582,26 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         DbConnectionMockBase connection,
         SqlExecuteBlockParameterCollection scopedParameters,
         out string statementSql,
-        out IReadOnlyList<ExecuteStatementParameterBinding> bindings)
+        out IReadOnlyList<ExecuteStatementParameterBinding> bindings,
+        out IReadOnlyList<string> intoVariables,
+        out bool useExternalConnection,
+        out bool useAutonomousTransaction,
+        out bool useCommonTransaction,
+        out string? externalUser,
+        out string? externalRole,
+        out string? externalPassword,
+        out string? externalDataSource)
     {
         statementSql = string.Empty;
         bindings = [];
+        intoVariables = [];
+        useExternalConnection = false;
+        useAutonomousTransaction = false;
+        useCommonTransaction = false;
+        externalUser = null;
+        externalRole = null;
+        externalPassword = null;
+        externalDataSource = null;
 
         if (string.IsNullOrWhiteSpace(sqlRaw))
             return false;
@@ -1179,14 +1617,179 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             return false;
         }
 
-        return TryParseExecuteStatementInvocation(
+        var intoIndex = FindTopLevelTokenIndex(tokens, 2, SqlConst.INTO);
+        var invocationTokens = intoIndex >= 0
+            ? tokens[2..intoIndex]
+            : tokens[2..];
+
+        if (!TryParseExecuteStatementInvocation(
             sqlRaw,
-            tokens[2..],
+            invocationTokens,
             dialect,
             connection,
             scopedParameters,
             out statementSql,
-            out bindings);
+            out bindings,
+            out useExternalConnection,
+            out useAutonomousTransaction,
+            out useCommonTransaction,
+            out externalUser,
+            out externalRole,
+            out externalPassword,
+            out externalDataSource))
+        {
+            return false;
+        }
+
+        if (intoIndex < 0)
+            return true;
+
+        var intoClauseSql = TokensToSql(sqlRaw, tokens[(intoIndex + 1)..]).Trim().TrimEnd(';').Trim();
+        intoClauseSql = StripExecuteBlockForSelectCursorClause(intoClauseSql, dialect);
+        if (string.IsNullOrWhiteSpace(intoClauseSql))
+            return false;
+
+        var rawIntoVariables = intoClauseSql.SplitRawByComma();
+        if (rawIntoVariables.Count == 0)
+            return false;
+
+        var variables = new List<string>(rawIntoVariables.Count);
+        foreach (var rawVariable in rawIntoVariables)
+        {
+            var normalized = rawVariable.Trim().TrimEnd(';').Trim().TrimStart(':', '@', '?');
+            if (string.IsNullOrWhiteSpace(normalized))
+                return false;
+
+            if (normalized.IndexOf(' ') >= 0)
+                return false;
+
+            variables.Add(normalized);
+        }
+
+        intoVariables = variables;
+        return true;
+    }
+
+    private static DbConnectionMockBase CreateExternalExecuteStatementConnection(
+        DbConnectionMockBase connection,
+        string? externalDataSource,
+        string? externalUser,
+        string? externalRole,
+        string? externalPassword)
+    {
+        var externalConnection = Activator.CreateInstance(connection.GetType(), connection.Db) as DbConnectionMockBase;
+        if (externalConnection is null)
+            throw new InvalidOperationException($"Unable to create external connection for '{connection.GetType().Name}'.");
+
+        externalConnection.UseAutoSqlDialect = connection.UseAutoSqlDialect;
+        externalConnection.CaptureExecutionPlans = connection.CaptureExecutionPlans;
+        externalConnection.CaptureAffectedRowSnapshots = connection.CaptureAffectedRowSnapshots;
+        var connectionString = BuildExternalExecuteStatementConnectionString(externalDataSource, externalUser, externalRole, externalPassword);
+        if (!string.IsNullOrWhiteSpace(connectionString))
+            externalConnection.ConnectionString = connectionString;
+        externalConnection.FirebirdCurrentUser = connection.FirebirdCurrentUser;
+        externalConnection.FirebirdCurrentRole = connection.FirebirdCurrentRole;
+        return externalConnection;
+    }
+
+    private static string BuildExternalExecuteStatementConnectionString(
+        string? externalDataSource,
+        string? externalUser,
+        string? externalRole,
+        string? externalPassword)
+    {
+        var parts = new List<string>(4);
+        if (!string.IsNullOrWhiteSpace(externalDataSource))
+            parts.Add($"DATA SOURCE={externalDataSource}");
+        if (!string.IsNullOrWhiteSpace(externalUser))
+            parts.Add($"USER={externalUser}");
+        if (!string.IsNullOrWhiteSpace(externalRole))
+            parts.Add($"ROLE={externalRole}");
+        if (!string.IsNullOrWhiteSpace(externalPassword))
+            parts.Add($"PASSWORD={externalPassword}");
+        return string.Join("; ", parts);
+    }
+
+    private static DmlExecutionResult ExecuteExecuteStatementNonQuery(
+        DbConnectionMockBase connection,
+        string renderedSql,
+        SqlExecuteBlockParameterCollection scopedParameters)
+    {
+        var affected = connection.ExecuteNonQueryWithPipeline(
+            renderedSql,
+            scopedParameters,
+            allowMerge: connection.ExecutionDialect.SupportsMerge,
+            unionUsesSelectMessage: false,
+            tryExecuteTransactionControl: null,
+            tryExecuteSpecialCommand: null);
+
+        return DmlExecutionResult.ForCount(affected);
+    }
+
+    private static TableResultMock ExecuteExecuteStatementSelect(
+        DbConnectionMockBase connection,
+        string renderedSql,
+        SqlExecuteBlockParameterCollection scopedParameters)
+    {
+        var parsedStatement = SqlQueryParser.Parse(
+            renderedSql,
+            connection.Db,
+            connection.ExecutionDialect,
+            scopedParameters);
+
+        if (parsedStatement is not SqlSelectQuery selectQuery)
+            throw new InvalidOperationException("EXECUTE STATEMENT INTO requires a SELECT statement.");
+
+        var context = QueryExecutionContext.FromConnection(connection, scopedParameters);
+        var executor = context.CreateExecutor();
+        return executor.ExecuteSelect(selectQuery);
+    }
+
+    private static TableResultMock ExecuteExecuteBlockForExecuteStatementSelect(
+        DbConnectionMockBase connection,
+        string selectSql,
+        SqlExecuteBlockParameterCollection scopedParameters)
+    {
+        var parsedSelect = SqlQueryParser.Parse(
+            selectSql,
+            connection.Db,
+            connection.ExecutionDialect,
+            scopedParameters);
+
+        if (parsedSelect is not SqlSelectQuery selectQuery)
+            throw new InvalidOperationException("FOR EXECUTE STATEMENT requires a SELECT query.");
+
+        var context = QueryExecutionContext.FromConnection(connection, scopedParameters);
+        var executor = context.CreateExecutor();
+        return executor.ExecuteSelect(selectQuery);
+    }
+
+    private static T ExecuteInAutonomousTransaction<T>(
+        DbConnectionMockBase connection,
+        Func<DbConnectionMockBase, T> action)
+    {
+        if (connection.State != ConnectionState.Open)
+            connection.Open();
+
+        using var transaction = connection.BeginTransaction();
+        try
+        {
+            var result = action(connection);
+            transaction.Commit();
+            return result;
+        }
+        catch
+        {
+            try
+            {
+                transaction.Rollback();
+            }
+            catch
+            {
+            }
+
+            throw;
+        }
     }
 
     private static IReadOnlyList<ExecuteStatementParameterBinding>? ParseExecuteStatementBindings(

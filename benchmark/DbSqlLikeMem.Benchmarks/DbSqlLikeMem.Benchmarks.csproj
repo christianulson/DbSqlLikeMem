@@ -25,6 +25,8 @@
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\DbSqlLikeMem.Db2\DbSqlLikeMem.Db2.csproj" />
 		<ProjectReference Include="..\..\src\DbSqlLikeMem.MiniProfiler.TestTools\DbSqlLikeMem.MiniProfiler.TestTools.csproj" />
+		<ProjectReference Include="..\..\src\DbSqlLikeMem.Firebird\DbSqlLikeMem.Firebird.csproj" />
+		<ProjectReference Include="..\..\src\DbSqlLikeMem.Firebird.TestTools\DbSqlLikeMem.Firebird.TestTools.csproj" />
 		<ProjectReference Include="..\..\src\DbSqlLikeMem.MariaDb\DbSqlLikeMem.MariaDb.csproj" />
 		<ProjectReference Include="..\..\src\DbSqlLikeMem.Db2.TestTools\DbSqlLikeMem.Db2.TestTools.csproj" />
 		<ProjectReference Include="..\..\src\DbSqlLikeMem.MariaDb.TestTools\DbSqlLikeMem.MariaDb.TestTools.csproj" />
@@ -45,6 +47,8 @@
 		<Using Include="BenchmarkDotNet.Attributes" />
 		<Using Include="BenchmarkDotNet.Running" />
 		<Using Include="DbSqlLikeMem.Benchmarks.Core" />
+		<Using Include="DbSqlLikeMem.Firebird" />
+		<Using Include="DbSqlLikeMem.Firebird.TestTools" />
 		<Using Include="DbSqlLikeMem.TestTools" />
 		<Using Include="System.Data.Common" />
 	</ItemGroup>

@@ -723,7 +723,15 @@ public abstract class DbConnectionMockBase(
     /// PT: String de conexão simulada.
     /// </summary>
     [AllowNull]
-    public override string ConnectionString { get; set; } = "";
+    public override string ConnectionString
+    {
+        get => _connectionString;
+        set
+        {
+            _connectionString = value ?? string.Empty;
+            _dataSource = ParseConnectionStringDataSource(_connectionString);
+        }
+    }
 
     /// <summary>
     /// EN: Simulated connection timeout.
@@ -745,12 +753,24 @@ public abstract class DbConnectionMockBase(
     /// </summary>
     public override ConnectionState State => _state;
 
-    private readonly string _dataSource = "";
+    private string _dataSource = "";
     /// <summary>
     /// EN: Simulated data source.
     /// PT: Fonte de dados simulada.
     /// </summary>
     public override string DataSource => _dataSource;
+
+    /// <summary>
+    /// EN: Firebird session user used by context resolvers.
+    /// PT: Usuario de sessao Firebird usado pelos resolvedores de contexto.
+    /// </summary>
+    internal string FirebirdCurrentUser { get; set; } = "SYSDBA";
+
+    /// <summary>
+    /// EN: Firebird session role used by context resolvers.
+    /// PT: Role de sessao Firebird usada pelos resolvedores de contexto.
+    /// </summary>
+    internal string FirebirdCurrentRole { get; set; } = "NONE";
 
     private static string ResolveInitialDatabase(DbMock db, string? defaultDatabase)
     {
@@ -761,6 +781,30 @@ public abstract class DbConnectionMockBase(
             return "DefaultSchema";
 
         return db.GetSchemaName(null);
+    }
+
+    private string _connectionString = "";
+
+    private static string ParseConnectionStringDataSource(string connectionString)
+    {
+        if (string.IsNullOrWhiteSpace(connectionString))
+            return string.Empty;
+
+        var parts = connectionString.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        foreach (var part in parts)
+        {
+            var equalsIndex = part.IndexOf('=');
+            if (equalsIndex <= 0)
+                continue;
+
+            var key = part[..equalsIndex].Trim();
+            if (!key.Equals("DATA SOURCE", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            return part[(equalsIndex + 1)..].Trim();
+        }
+
+        return string.Empty;
     }
 
     /// <summary>

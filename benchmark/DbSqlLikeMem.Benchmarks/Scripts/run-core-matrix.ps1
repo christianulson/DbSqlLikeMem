@@ -1,4 +1,5 @@
 $targets = @(
+    '*Firebird_DbSqlLikeMem_Benchmarks*',
     '*MariaDb_DbSqlLikeMem_Benchmarks*',
     '*MariaDb_Testcontainers_Benchmarks*',
     '*MySql_DbSqlLikeMem_Benchmarks*',

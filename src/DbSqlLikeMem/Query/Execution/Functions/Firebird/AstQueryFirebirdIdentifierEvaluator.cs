@@ -26,13 +26,13 @@ internal static class AstQueryFirebirdIdentifierEvaluator
         if (identifier.Name.Equals("CURRENT_USER", StringComparison.OrdinalIgnoreCase)
             || identifier.Name.Equals("USER", StringComparison.OrdinalIgnoreCase))
         {
-            result = "SYSDBA";
+            result = connection.FirebirdCurrentUser;
             return true;
         }
 
         if (identifier.Name.Equals("CURRENT_ROLE", StringComparison.OrdinalIgnoreCase))
         {
-            result = "NONE";
+            result = connection.FirebirdCurrentRole;
             return true;
         }
 

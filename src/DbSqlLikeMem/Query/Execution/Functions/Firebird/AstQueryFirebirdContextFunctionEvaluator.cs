@@ -98,9 +98,9 @@ internal static class AstQueryFirebirdContextFunctionEvaluator
         {
             case "CURRENT_USER":
             case "USER":
-                return "SYSDBA";
+                return context.Connection.FirebirdCurrentUser;
             case "CURRENT_ROLE":
-                return "NONE";
+                return context.Connection.FirebirdCurrentRole;
             case "CURRENT_DATABASE":
             case "CURRENT_CATALOG":
             case "DB_NAME":

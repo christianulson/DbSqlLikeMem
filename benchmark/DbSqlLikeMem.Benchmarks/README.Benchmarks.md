@@ -21,6 +21,7 @@ Estrutura pensada para comparar **DbSqlLikeMem** contra **banco real** usando o 
 ```powershell
 dotnet run -c Release --filter *MariaDb_DbSqlLikeMem_Benchmarks*
 dotnet run -c Release --filter *MariaDb_Testcontainers_Benchmarks*
+dotnet run -c Release --filter *Firebird_DbSqlLikeMem_Benchmarks*
 dotnet run -c Release --filter *MySql_DbSqlLikeMem_Benchmarks*
 dotnet run -c Release --filter *MySql_Testcontainers_Benchmarks*
 dotnet run -c Release --filter *Npgsql_DbSqlLikeMem_Benchmarks*

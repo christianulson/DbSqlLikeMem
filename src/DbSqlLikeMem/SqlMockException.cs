@@ -1,4 +1,4 @@
-﻿using System.Runtime.Serialization;
+using System.Runtime.Serialization;
 
 namespace DbSqlLikeMem;
 
@@ -15,6 +15,12 @@ public class SqlMockException : Exception
     /// PT: Obtém o código de erro associado à falha.
     /// </summary>
     public int ErrorCode { get; }
+
+    /// <summary>
+    /// EN: Gets the logical exception name used by WHEN EXCEPTION handlers.
+    /// PT: Obtém o nome lógico da excecao usado pelos handlers WHEN EXCEPTION.
+    /// </summary>
+    public string ExceptionName { get; } = "E_FAIL";
     /// <summary>
     /// EN: Initializes the exception with message and error code.
     /// PT: Inicializa a exceção com mensagem e código de erro.

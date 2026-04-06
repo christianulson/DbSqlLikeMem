@@ -6,6 +6,28 @@ namespace DbSqlLikeMem.Firebird.Test;
 /// </summary>
 public sealed class FirebirdExecuteBlockTests : XUnitTestBase
 {
+    private sealed class FirebirdConnectionSpyMock : FirebirdConnectionMock
+    {
+        public static string? LastSetConnectionString { get; private set; }
+        public static string? LastSetDataSource { get; private set; }
+
+        public FirebirdConnectionSpyMock(FirebirdDbMock? db = null, string? defaultDatabase = null)
+            : base(db, defaultDatabase)
+        {
+        }
+
+        public override string ConnectionString
+        {
+            get => base.ConnectionString;
+            set
+            {
+                LastSetConnectionString = value;
+                base.ConnectionString = value;
+                LastSetDataSource = base.DataSource;
+            }
+        }
+    }
+
     private readonly FirebirdDbMock db;
     private readonly FirebirdConnectionMock connection;
     private readonly ITableMock users;
@@ -194,6 +216,34 @@ END
     }
 
     /// <summary>
+    /// EN: Verifies EXECUTE BLOCK assigns the first row returned by EXECUTE STATEMENT into scoped variables.
+    /// PT: Verifica se EXECUTE BLOCK atribui a primeira linha retornada por EXECUTE STATEMENT em variaveis no escopo.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldExecuteExecuteStatementInto()
+    {
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK
+RETURNS (outValue INT)
+AS
+BEGIN
+    EXECUTE STATEMENT 'SELECT 42 FROM RDB$DATABASE' INTO :outValue;
+    INSERT INTO Users (Id, Name) VALUES (:outValue, 'Into');
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Single(users);
+        Assert.Contains(users, row => row[0]?.Equals(42) == true);
+    }
+
+    /// <summary>
     /// EN: Verifies EXECUTE BLOCK executes parameterized EXECUTE STATEMENT payloads with Firebird clauses in the supported subset.
     /// PT: Verifica se EXECUTE BLOCK executa cargas parametrizadas de EXECUTE STATEMENT com clausulas Firebird no subset suportado.
     /// </summary>
@@ -216,6 +266,753 @@ END
         Assert.Equal(1, affected);
         Assert.Single(users);
         Assert.Contains(users, row => row[0]?.Equals(10) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK keeps autonomous EXECUTE STATEMENT changes after the outer transaction rolls back.
+    /// PT: Verifica se EXECUTE BLOCK mantem alteracoes autonomas de EXECUTE STATEMENT depois do rollback da transacao externa.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldCommitAutonomousExecuteStatementChanges()
+    {
+        using var outerTransaction = connection.BeginTransaction();
+
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (13, ''Autonomous'')'
+        WITH AUTONOMOUS TRANSACTION;
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        outerTransaction.Rollback();
+
+        Assert.Equal(1, affected);
+        Assert.Single(users);
+        Assert.Contains(users, row => row[0]?.Equals(13) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK keeps common-transaction EXECUTE STATEMENT changes tied to the outer transaction.
+    /// PT: Verifica se EXECUTE BLOCK mantem alteracoes de EXECUTE STATEMENT com transacao comum presas à transacao externa.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldFollowCommonExecuteStatementTransaction()
+    {
+        using var outerTransaction = connection.BeginTransaction();
+
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (14, ''Common'')'
+        ON EXTERNAL DATA SOURCE 'ignored'
+        WITH COMMON TRANSACTION;
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        outerTransaction.Rollback();
+
+        Assert.Equal(1, affected);
+        Assert.Empty(users);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK can recover from an error using a WHEN ANY DO handler.
+    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler WHEN ANY DO.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldHandleWhenAnyDo()
+    {
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO MissingTable (Id, Name) VALUES (1, ''Fail'')';
+    WHEN ANY DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (15, 'Handled');
+    END
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Single(users);
+        Assert.Contains(users, row => row[0]?.Equals(15) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK can recover from an error using a WHEN SQLCODE DO handler.
+    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler WHEN SQLCODE DO.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldHandleWhenSqlCodeDo()
+    {
+        users.AddPrimaryKeyIndexes("Id");
+        users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "Seed" });
+
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (1, ''Fail'')';
+    WHEN SQLCODE DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (16, 'SqlCode');
+    END
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Equal(2, users.Count);
+        Assert.Contains(users, row => row[0]?.Equals(1) == true && row[1]?.Equals("Seed") == true);
+        Assert.Contains(users, row => row[0]?.Equals(16) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK can recover from a duplicate-key error using the Firebird SQLCODE -803 form.
+    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando a forma Firebird SQLCODE -803.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldHandleWhenSqlCodeMinus803Do()
+    {
+        users.AddPrimaryKeyIndexes("Id");
+        users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "Seed" });
+
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (1, ''Fail'')';
+    WHEN SQLCODE -803 DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (27, 'SqlCodeMinus803');
+    END
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Equal(2, users.Count);
+        Assert.Contains(users, row => row[0]?.Equals(1) == true && row[1]?.Equals("Seed") == true);
+        Assert.Contains(users, row => row[0]?.Equals(27) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK can resolve a comma-separated WHEN SQLCODE selector list.
+    /// PT: Verifica se EXECUTE BLOCK consegue resolver uma lista de seletores WHEN SQLCODE separada por virgula.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldHandleWhenSqlCodeSelectorListDo()
+    {
+        users.AddPrimaryKeyIndexes("Id");
+        users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "Seed" });
+
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (1, ''Fail'')';
+    WHEN SQLCODE -999, -803 DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (32, 'SqlCodeSelectorList');
+    END
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Equal(2, users.Count);
+        Assert.Contains(users, row => row[0]?.Equals(1) == true && row[1]?.Equals("Seed") == true);
+        Assert.Contains(users, row => row[0]?.Equals(32) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK can recover from an error using a WHEN GDSCODE DO handler.
+    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler WHEN GDSCODE DO.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldHandleWhenGdsCodeDo()
+    {
+        users.AddPrimaryKeyIndexes("Id");
+        users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "Seed" });
+
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (1, ''Fail'')';
+    WHEN GDSCODE DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (17, 'GdsCode');
+    END
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Equal(2, users.Count);
+        Assert.Contains(users, row => row[0]?.Equals(1) == true && row[1]?.Equals("Seed") == true);
+        Assert.Contains(users, row => row[0]?.Equals(17) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK can recover from an error using a specific WHEN SQLCODE &lt;code&gt; DO handler.
+    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler especifico WHEN SQLCODE &lt;codigo&gt; DO.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldHandleWhenSqlCodeSpecificDo()
+    {
+        users.AddPrimaryKeyIndexes("Id");
+        users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "Seed" });
+
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (1, ''Fail'')';
+    WHEN SQLCODE 1062 DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (19, 'SqlCodeSpecific');
+    END
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Equal(2, users.Count);
+        Assert.Contains(users, row => row[0]?.Equals(1) == true && row[1]?.Equals("Seed") == true);
+        Assert.Contains(users, row => row[0]?.Equals(19) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK can recover from an error using a specific WHEN GDSCODE &lt;name&gt; DO handler.
+    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler especifico WHEN GDSCODE &lt;nome&gt; DO.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldHandleWhenGdsCodeSpecificDo()
+    {
+        users.AddPrimaryKeyIndexes("Id");
+        users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "Seed" });
+
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (1, ''Fail'')';
+    WHEN GDSCODE no_dup DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (20, 'GdsCodeSpecific');
+    END
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Equal(2, users.Count);
+        Assert.Contains(users, row => row[0]?.Equals(1) == true && row[1]?.Equals("Seed") == true);
+        Assert.Contains(users, row => row[0]?.Equals(20) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK can recover from a duplicate-key error using a specific WHEN GDSCODE primary_key DO handler.
+    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando um handler especifico WHEN GDSCODE primary_key DO.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldHandleWhenGdsCodePrimaryKeyDo()
+    {
+        users.AddPrimaryKeyIndexes("Id");
+        users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "Seed" });
+
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (1, ''Fail'')';
+    WHEN GDSCODE primary_key DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (25, 'PrimaryKey');
+    END
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Equal(2, users.Count);
+        Assert.Contains(users, row => row[0]?.Equals(1) == true && row[1]?.Equals("Seed") == true);
+        Assert.Contains(users, row => row[0]?.Equals(25) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK can recover from a foreign-key error using a specific WHEN GDSCODE foreign_key DO handler.
+    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave estrangeira usando um handler especifico WHEN GDSCODE foreign_key DO.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldHandleWhenGdsCodeForeignKeyDo()
+    {
+        var parents = db.AddTable("Parents");
+        parents.AddColumn("Id", DbType.Int32, false);
+        parents.AddPrimaryKeyIndexes("Id");
+        parents.Add(new Dictionary<int, object?> { [0] = 1 });
+
+        var children = db.AddTable("Children");
+        children.AddColumn("ParentId", DbType.Int32, false);
+        children.CreateForeignKey(
+            "FK_CHILDREN_PARENTS",
+            "Parents",
+            [("ParentId", "Id")]);
+
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO Children (ParentId) VALUES (999)';
+    WHEN GDSCODE foreign_key DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (23, 'ForeignKey');
+    END
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Single(users);
+        Assert.Contains(users, row => row[0]?.Equals(23) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK can recover from a not-null error using a specific WHEN GDSCODE not_null_violation DO handler.
+    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de not null usando um handler especifico WHEN GDSCODE not_null_violation DO.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldHandleWhenGdsCodeNotNullDo()
+    {
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (1, NULL)';
+    WHEN GDSCODE not_null_violation DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (24, 'NotNull');
+    END
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Single(users);
+        Assert.Contains(users, row => row[0]?.Equals(24) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK can recover from a referenced-row error using a specific WHEN GDSCODE referenced_row DO handler.
+    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de linha referenciada usando um handler especifico WHEN GDSCODE referenced_row DO.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldHandleWhenGdsCodeReferencedRowDo()
+    {
+        var parents = db.AddTable("Parents");
+        parents.AddColumn("Id", DbType.Int32, false);
+        parents.AddPrimaryKeyIndexes("Id");
+        parents.Add(new Dictionary<int, object?> { [0] = 1 });
+
+        var children = db.AddTable("Children");
+        children.AddColumn("ParentId", DbType.Int32, false);
+        children.CreateForeignKey(
+            "FK_CHILDREN_PARENTS",
+            "Parents",
+            [("ParentId", "Id")]);
+        children.Add(new Dictionary<int, object?> { [0] = 1 });
+
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'DELETE FROM Parents WHERE Id = 1';
+    WHEN GDSCODE referenced_row DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (26, 'ReferencedRow');
+    END
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Single(users);
+        Assert.Contains(users, row => row[0]?.Equals(26) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK can recover from a not-null error using a specific WHEN GDSCODE primary_key_notnull DO handler.
+    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de not null usando um handler especifico WHEN GDSCODE primary_key_notnull DO.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldHandleWhenGdsCodePrimaryKeyNotNullDo()
+    {
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (1, NULL)';
+    WHEN GDSCODE primary_key_notnull DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (28, 'PrimaryKeyNotNull');
+    END
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Single(users);
+        Assert.Contains(users, row => row[0]?.Equals(28) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK can recover from a not-null error using a specific WHEN GDSCODE not_valid DO handler.
+    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de not null usando um handler especifico WHEN GDSCODE not_valid DO.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldHandleWhenGdsCodeNotValidDo()
+    {
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (1, NULL)';
+    WHEN GDSCODE not_valid DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (29, 'NotValid');
+    END
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Single(users);
+        Assert.Contains(users, row => row[0]?.Equals(29) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK can resolve a comma-separated WHEN GDSCODE selector list.
+    /// PT: Verifica se EXECUTE BLOCK consegue resolver uma lista de seletores WHEN GDSCODE separada por virgula.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldHandleWhenGdsCodeSelectorListDo()
+    {
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (1, NULL)';
+    WHEN GDSCODE primary_key, not_valid DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (30, 'SelectorList');
+    END
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Single(users);
+        Assert.Contains(users, row => row[0]?.Equals(30) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK keeps the first matching WHEN handler when multiple handlers are present.
+    /// PT: Verifica se EXECUTE BLOCK preserva o primeiro handler WHEN correspondente quando ha varios handlers.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldUseFirstWhenHandler()
+    {
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO MissingTable (Id, Name) VALUES (1, ''Fail'')';
+    WHEN SQLCODE 1062 DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (21, 'FirstHandler');
+    END
+    WHEN ANY DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (22, 'SecondHandler');
+    END
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Single(users);
+        Assert.Contains(users, row => row[0]?.Equals(21) == true);
+        Assert.DoesNotContain(users, row => row[0]?.Equals(22) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK can recover from an error using a WHEN EXCEPTION &lt;name&gt; DO handler.
+    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler WHEN EXCEPTION &lt;nome&gt; DO.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldHandleWhenExceptionDo()
+    {
+        users.AddPrimaryKeyIndexes("Id");
+        users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "Seed" });
+
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (1, ''Fail'')';
+    WHEN EXCEPTION E_FAIL DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (18, 'Exception');
+    END
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Equal(2, users.Count);
+        Assert.Contains(users, row => row[0]?.Equals(1) == true && row[1]?.Equals("Seed") == true);
+        Assert.Contains(users, row => row[0]?.Equals(18) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK does not match WHEN EXCEPTION handlers with a different logical name.
+    /// PT: Verifica se EXECUTE BLOCK nao corresponde a handlers WHEN EXCEPTION com nome logico diferente.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldNotHandleWhenExceptionWithDifferentName()
+    {
+        users.AddPrimaryKeyIndexes("Id");
+        users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "Seed" });
+
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (1, ''Fail'')';
+    WHEN EXCEPTION E_OTHER DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (31, 'WrongException');
+    END
+END
+"""
+        };
+
+        Assert.Throws<SqlMockException>(() => command.ExecuteNonQuery());
+        Assert.Single(users);
+        Assert.Contains(users, row => row[0]?.Equals(1) == true && row[1]?.Equals("Seed") == true);
+        Assert.DoesNotContain(users, row => row[0]?.Equals(31) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies ON EXTERNAL DATA SOURCE is preserved on the cloned external connection.
+    /// PT: Verifica se ON EXTERNAL DATA SOURCE e preservado na conexao externa clonada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldPreserveExternalDataSourceOnClonedConnection()
+    {
+        FirebirdConnectionSpyMock.LastSetConnectionString = null;
+        var spyConnection = new FirebirdConnectionSpyMock(db);
+        spyConnection.Open();
+
+        using var command = new FirebirdCommandMock(spyConnection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (40, ''ExternalDs'')'
+        ON EXTERNAL DATA SOURCE 'fb://external-db'
+        AS USER 'SYSDBA'
+        PASSWORD 'masterkey'
+        ROLE 'RDB$ADMIN';
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Contains("DATA SOURCE=fb://external-db", FirebirdConnectionSpyMock.LastSetConnectionString);
+        Assert.Contains("USER=SYSDBA", FirebirdConnectionSpyMock.LastSetConnectionString);
+        Assert.Contains("ROLE=RDB$ADMIN", FirebirdConnectionSpyMock.LastSetConnectionString);
+        Assert.Contains("PASSWORD=masterkey", FirebirdConnectionSpyMock.LastSetConnectionString);
+        Assert.Equal("fb://external-db", FirebirdConnectionSpyMock.LastSetDataSource);
+        Assert.Contains(users, row => row[0]?.Equals(40) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK accepts Firebird external EXECUTE STATEMENT clauses in the supported subset.
+    /// PT: Verifica se EXECUTE BLOCK aceita clausulas externas do EXECUTE STATEMENT do Firebird no subset suportado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldAcceptExternalExecuteStatementClauses()
+    {
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (11, ''External'')'
+        ROLE 'RDB$ADMIN'
+        PASSWORD 'masterkey'
+        AS USER 'SYSDBA'
+        ON EXTERNAL DATA SOURCE 'ignored'
+        WITH CALLER PRIVILEGES;
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Single(users);
+        Assert.Contains(users, row => row[0]?.Equals(11) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE STATEMENT external user and role clauses affect Firebird context values in the mock.
+    /// PT: Verifica se as clausulas externas de usuario e role do EXECUTE STATEMENT afetam os valores de contexto Firebird no mock.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldUseExternalExecuteStatementIdentity()
+    {
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK
+RETURNS (ctx VARCHAR(80))
+AS
+BEGIN
+    EXECUTE STATEMENT 'SELECT CURRENT_USER || ''|'' || CURRENT_ROLE FROM RDB$DATABASE'
+        AS USER 'ALTUSER'
+        ROLE 'RDB$ADMIN'
+        ON EXTERNAL DATA SOURCE 'ignored'
+        INTO :ctx;
+    INSERT INTO Users (Id, Name) VALUES (12, :ctx);
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Single(users);
+        Assert.Contains(users, row => row[0]?.Equals(12) == true);
+        Assert.Contains(users, row => row[1]?.Equals("ALTUSER|RDB$ADMIN") == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE STATEMENT accepts Firebird option clauses in different orders inside EXECUTE BLOCK.
+    /// PT: Verifica se EXECUTE STATEMENT aceita clausulas de opcao do Firebird em ordens diferentes dentro de EXECUTE BLOCK.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldAcceptExecuteStatementOptionClausesInAnyOrder()
+    {
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK AS
+BEGIN
+    EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (12, ''Ordered'')'
+        PASSWORD 'masterkey'
+        ON EXTERNAL DATA SOURCE 'ignored'
+        ROLE 'RDB$ADMIN'
+        AS USER 'SYSDBA'
+        WITH COMMON TRANSACTION;
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Single(users);
+        Assert.Contains(users, row => row[0]?.Equals(12) == true);
     }
 
     /// <summary>
@@ -418,6 +1215,42 @@ END
     }
 
     /// <summary>
+    /// EN: Verifies EXECUTE BLOCK accepts AS CURSOR on FOR SELECT loops while preserving the selected rows.
+    /// PT: Verifica se EXECUTE BLOCK aceita AS CURSOR em loops FOR SELECT enquanto preserva as linhas selecionadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldExecuteForSelectLoopWithCursor()
+    {
+        var numbers = db.AddTable("NumbersCursor");
+        numbers.AddColumn("Id", DbType.Int32, false);
+        numbers.Add(new Dictionary<int, object?> { [0] = 1 });
+        numbers.Add(new Dictionary<int, object?> { [0] = 2 });
+
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK (tenantId INT = 0)
+RETURNS (counter INT)
+AS
+BEGIN
+    FOR SELECT Id FROM NumbersCursor ORDER BY Id INTO counter AS CURSOR cur DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (:counter, 'Cursor');
+    END
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(2, affected);
+        Assert.Equal(2, users.Count);
+        Assert.Contains(users, row => row[0]?.Equals(1) == true);
+        Assert.Contains(users, row => row[0]?.Equals(2) == true);
+    }
+
+    /// <summary>
     /// EN: Verifies EXECUTE BLOCK evaluates FOR EXECUTE STATEMENT loops and assigns selected values to scoped variables.
     /// PT: Verifica se EXECUTE BLOCK avalia loops FOR EXECUTE STATEMENT e atribui os valores selecionados a variaveis no escopo.
     /// </summary>
@@ -441,6 +1274,44 @@ BEGIN
     FOR EXECUTE STATEMENT 'SELECT Id FROM NumbersExec ORDER BY Id' INTO counter DO
     BEGIN
         INSERT INTO Users (Id, Name) VALUES (:counter, 'ForExec');
+    END
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(3, affected);
+        Assert.Equal(3, users.Count);
+        Assert.Contains(users, row => row[0]?.Equals(1) == true);
+        Assert.Contains(users, row => row[0]?.Equals(2) == true);
+        Assert.Contains(users, row => row[0]?.Equals(3) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies EXECUTE BLOCK accepts AS CURSOR on FOR EXECUTE STATEMENT loops while preserving the selected rows.
+    /// PT: Verifica se EXECUTE BLOCK aceita AS CURSOR em loops FOR EXECUTE STATEMENT enquanto preserva as linhas selecionadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldExecuteForExecuteStatementLoopWithCursor()
+    {
+        var numbers = db.AddTable("NumbersExecCursor");
+        numbers.AddColumn("Id", DbType.Int32, false);
+        numbers.Add(new Dictionary<int, object?> { [0] = 1 });
+        numbers.Add(new Dictionary<int, object?> { [0] = 2 });
+        numbers.Add(new Dictionary<int, object?> { [0] = 3 });
+
+        using var command = new FirebirdCommandMock(connection)
+        {
+            CommandText = """
+EXECUTE BLOCK (tenantId INT = 0)
+RETURNS (counter INT)
+AS
+BEGIN
+    FOR EXECUTE STATEMENT 'SELECT Id FROM NumbersExecCursor ORDER BY Id' INTO counter AS CURSOR cur DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (:counter, 'ForExecCursor');
     END
 END
 """
@@ -528,6 +1399,57 @@ END
         Assert.Contains(users, row => row[0]?.Equals(1) == true);
         Assert.Contains(users, row => row[0]?.Equals(2) == true);
         Assert.Contains(users, row => row[0]?.Equals(3) == true);
+    }
+
+    /// <summary>
+    /// EN: Verifies FOR EXECUTE STATEMENT preserves the external connection string details in the cloned connection.
+    /// PT: Verifica se FOR EXECUTE STATEMENT preserva os detalhes da connection string externa na conexao clonada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "FirebirdMock")]
+    public void ExecuteBlock_ShouldPreserveExternalDataSourceOnForExecuteStatementLoop()
+    {
+        FirebirdConnectionSpyMock.LastSetConnectionString = null;
+
+        var numbers = db.AddTable("NumbersExternal");
+        numbers.AddColumn("Id", DbType.Int32, false);
+        numbers.Add(new Dictionary<int, object?> { [0] = 1 });
+        numbers.Add(new Dictionary<int, object?> { [0] = 2 });
+
+        var spyConnection = new FirebirdConnectionSpyMock(db);
+        spyConnection.Open();
+
+        using var command = new FirebirdCommandMock(spyConnection)
+        {
+            CommandText = """
+EXECUTE BLOCK (tenantId INT = 0)
+RETURNS (counter INT)
+AS
+BEGIN
+    FOR EXECUTE STATEMENT 'SELECT Id FROM NumbersExternal ORDER BY Id'
+        ON EXTERNAL DATA SOURCE 'fb://external-loop'
+        AS USER 'SYSDBA'
+        PASSWORD 'masterkey'
+        ROLE 'RDB$ADMIN'
+        INTO counter DO
+    BEGIN
+        INSERT INTO Users (Id, Name) VALUES (:counter, 'ForExecExternal');
+    END
+END
+"""
+        };
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(2, affected);
+        Assert.Contains("DATA SOURCE=fb://external-loop", FirebirdConnectionSpyMock.LastSetConnectionString);
+        Assert.Contains("USER=SYSDBA", FirebirdConnectionSpyMock.LastSetConnectionString);
+        Assert.Contains("ROLE=RDB$ADMIN", FirebirdConnectionSpyMock.LastSetConnectionString);
+        Assert.Contains("PASSWORD=masterkey", FirebirdConnectionSpyMock.LastSetConnectionString);
+        Assert.Equal("fb://external-loop", FirebirdConnectionSpyMock.LastSetDataSource);
+        Assert.Equal(2, users.Count);
+        Assert.Contains(users, row => row[0]?.Equals(1) == true);
+        Assert.Contains(users, row => row[0]?.Equals(2) == true);
     }
 
     /// <summary>
