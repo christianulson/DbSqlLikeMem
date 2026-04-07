@@ -667,7 +667,7 @@ INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) 
 
         var namePrefixExpr = Dialect.StringPrefixExpression("Name", 2);
         var nameLenExpr = Dialect.StringLengthExpression("Name");
-        var textMatchAlready = Dialect.Provider is ProviderId.Sqlite or ProviderId.Oracle or ProviderId.Npgsql or ProviderId.Db2 ? 0 : 1;
+        var textMatchAlready = Dialect.Provider is ProviderId.Sqlite or ProviderId.Oracle or ProviderId.Npgsql or ProviderId.Db2 or ProviderId.Firebird ? 0 : 1;
 
         using var command = Connection.CreateCommand();
         command.CommandText = $"""

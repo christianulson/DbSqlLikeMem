@@ -850,6 +850,8 @@ public abstract class DbConnectionMockBase(
 
     private readonly Dictionary<string, ITableMock> _temporaryTables =
         new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, ITableMock> _globalTemporaryTables =
+        new(StringComparer.OrdinalIgnoreCase);
 
     #region Table
 
@@ -902,7 +904,7 @@ public abstract class DbConnectionMockBase(
         if (CurrentTransaction != null)
         {
             AttachTransactionJournal(table);
-            RecordCreatedTable((TableMock)table, TransactionTableRegistrationKind.ConnectionTemporary, key);
+            RecordCreatedTable(table, TransactionTableRegistrationKind.ConnectionTemporary, key);
             if (materializedRows is { Count: > 0 })
             {
                 var clonedRows = new List<Dictionary<int, object?>>(materializedRows.Count);
@@ -915,6 +917,50 @@ public abstract class DbConnectionMockBase(
         return table;
     }
 
+    private static ITableMock CloneGlobalTemporaryTable(
+        TableMock source,
+        bool includeRows)
+    {
+        var columnDefinitions = source.Columns.Values
+            .OrderBy(static column => column.Index)
+            .Select(static column => new Col(
+                column.Name,
+                column.DbType,
+                column.Nullable,
+                column.Size,
+                column.DecimalPlaces,
+                column.Identity,
+                column.DefaultValue,
+                [.. column.EnumValues]))
+            .ToArray();
+
+        IEnumerable<Dictionary<int, object?>>? rows = null;
+        if (includeRows)
+        {
+            rows = source.Select(static row => row.ToDictionary(entry => entry.Key, entry => entry.Value)).ToArray();
+        }
+
+        var clone = source.Schema.CreateTableInstance(source.TableName, columnDefinitions, rows);
+        clone.NextIdentity = source.NextIdentity;
+        clone.AllowIdentityInsert = source.AllowIdentityInsert;
+        clone.PartitionClauseSql = source.PartitionClauseSql;
+
+        if (source.PrimaryKeyIndexes.Count > 0)
+        {
+            clone.AddPrimaryKeyIndexes(
+                [.. source.PrimaryKeyIndexes
+                    .OrderBy(static index => index)
+                    .Select(index => source.Columns.Values.First(column => column.Index == index).Name)]);
+        }
+
+        foreach (var index in source.Indexes.Values)
+        {
+            clone.CreateIndex(index.Name, index.KeyCols, [.. index.Include], index.Unique);
+        }
+
+        return clone;
+    }
+
     internal ITableMock AddGlobalTemporaryTable(
         string tableName,
         IEnumerable<Col>? columns = null,
@@ -922,11 +968,14 @@ public abstract class DbConnectionMockBase(
         string? schemaName = null)
     {
         var materializedRows = rows as IReadOnlyList<Dictionary<int, object?>> ?? rows?.ToList();
-        var table = Db.AddGlobalTemporaryTable(
+        var definition = Db.AddGlobalTemporaryTable(
             tableName,
             columns,
             CurrentTransaction == null ? materializedRows : null,
             schemaName);
+        var table = CloneGlobalTemporaryTable((TableMock)definition, materializedRows is { Count: > 0 });
+        var key = BuildTemporaryTableKey(tableName, schemaName);
+        _globalTemporaryTables[key] = table;
 
         if (CurrentTransaction != null)
         {
@@ -934,7 +983,7 @@ public abstract class DbConnectionMockBase(
             RecordCreatedTable(
                 (TableMock)table,
                 TransactionTableRegistrationKind.GlobalTemporary,
-                BuildTemporaryTableKey(tableName, schemaName));
+                key);
             if (materializedRows is { Count: > 0 })
             {
                 var clonedRows = new List<Dictionary<int, object?>>(materializedRows.Count);
@@ -968,7 +1017,31 @@ public abstract class DbConnectionMockBase(
         string tableName,
         out ITableMock? tb,
         string? schemaName = null)
-        => Db.TryGetGlobalTemporaryTable(tableName, out tb, schemaName);
+    {
+        var key = BuildTemporaryTableKey(tableName, schemaName);
+        if (_globalTemporaryTables.TryGetValue(key, out tb))
+        {
+            if (Db.TryGetGlobalTemporaryTable(tableName, out _, schemaName))
+            {
+                return true;
+            }
+
+            _globalTemporaryTables.Remove(key);
+            tb = null;
+            return false;
+        }
+
+        if (!Db.TryGetGlobalTemporaryTable(tableName, out var globalTable, schemaName)
+            || globalTable is not TableMock globalTableMock)
+        {
+            tb = null;
+            return false;
+        }
+
+        tb = CloneGlobalTemporaryTable(globalTableMock, includeRows: false);
+        _globalTemporaryTables[key] = tb;
+        return true;
+    }
 
     /// <summary>
     /// EN: Creates and adds a table to the database.
@@ -1090,6 +1163,12 @@ public abstract class DbConnectionMockBase(
         }
 
         foreach (var candidate in Db.ListGlobalTemporaryTables(table.Schema.SchemaName))
+        {
+            if (ReferenceEquals(candidate, table))
+                return TransactionTableRegistrationKind.GlobalTemporary;
+        }
+
+        foreach (var candidate in _globalTemporaryTables.Values)
         {
             if (ReferenceEquals(candidate, table))
                 return TransactionTableRegistrationKind.GlobalTemporary;
@@ -1245,7 +1324,18 @@ public abstract class DbConnectionMockBase(
         string? schemaName = null)
     {
         var tables = Db.ListTables(schemaName ?? Database).ToList();
-        tables.AddRange(Db.ListGlobalTemporaryTables(schemaName ?? Database));
+        foreach (var globalTable in Db.ListGlobalTemporaryTables(schemaName ?? Database))
+        {
+            if (globalTable is TableMock globalTableMock
+                && TryGetGlobalTemporaryTable(globalTableMock.TableName, out var table, schemaName))
+            {
+                if (table is not null)
+                {
+                    tables.Add(table);
+                }
+            }
+        }
+
         tables.AddRange(ListTemporaryTables(schemaName));
         return tables.AsReadOnly();
     }
@@ -1350,15 +1440,17 @@ public abstract class DbConnectionMockBase(
 
         if (scope == TemporaryTableScope.Global)
         {
+            var temporaryKey = BuildTemporaryTableKey(tableName, targetSchema);
             if (CurrentTransaction != null
-                && Db.TryGetGlobalTemporaryTable(tableName, out var globalTable, targetSchema)
+                && _globalTemporaryTables.TryGetValue(temporaryKey, out var globalTable)
                 && globalTable is TableMock globalTableMock)
             {
                 RecordDroppedTable(
                     globalTableMock,
                     TransactionTableRegistrationKind.GlobalTemporary,
-                    BuildTemporaryTableKey(tableName, targetSchema));
+                    temporaryKey);
             }
+            _globalTemporaryTables.Remove(temporaryKey);
             Db.DropGlobalTemporaryTable(tableName, ifExists, targetSchema);
             ClearSelectPlanCache();
             return;
@@ -2607,6 +2699,7 @@ public abstract class DbConnectionMockBase(
                 _temporaryTables[registrationKey] = table;
                 break;
             case TransactionTableRegistrationKind.GlobalTemporary:
+                _globalTemporaryTables[registrationKey] = table;
                 Db.RestoreGlobalTemporaryTable(table, table.Schema.SchemaName);
                 break;
             default:
@@ -2626,6 +2719,7 @@ public abstract class DbConnectionMockBase(
                 _temporaryTables.Remove(registrationKey);
                 break;
             case TransactionTableRegistrationKind.GlobalTemporary:
+                _globalTemporaryTables.Remove(registrationKey);
                 Db.RemoveGlobalTemporaryTable(table.TableName, table.Schema.SchemaName);
                 break;
             default:
@@ -2748,6 +2842,16 @@ public abstract class DbConnectionMockBase(
         }
 
         _temporaryTables.Clear();
+
+        foreach (var table in _globalTemporaryTables.Values)
+        {
+            while (table.Count > 0)
+                table.RemoveAt(table.Count - 1);
+
+            table.NextIdentity = 1;
+        }
+
+        _globalTemporaryTables.Clear();
     }
 
     internal void MaybeDelayOrDrop()

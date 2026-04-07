@@ -3562,10 +3562,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     private static TemporaryTableScope GetEffectiveTemporaryTableScope(
         TemporaryTableScope scope,
         ISqlDialect dialect)
-        => scope == TemporaryTableScope.Global
-           && dialect.Name.Equals("firebird", StringComparison.OrdinalIgnoreCase)
-            ? TemporaryTableScope.Connection
-            : scope;
+        => scope;
 
     /// <summary>
     /// EN: Implements ExecuteInsertSmart.

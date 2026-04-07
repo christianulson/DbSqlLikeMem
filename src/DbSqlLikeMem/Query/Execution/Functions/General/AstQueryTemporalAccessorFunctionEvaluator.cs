@@ -175,6 +175,7 @@ internal static class AstQueryTemporalAccessorFunctionEvaluator
         {
             result = unit switch
             {
+                TemporalUnit.Day => (int)Math.Truncate(timeSpan.TotalDays),
                 TemporalUnit.Hour => timeSpan.Hours,
                 TemporalUnit.Minute => timeSpan.Minutes,
                 TemporalUnit.Second => timeSpan.Seconds,

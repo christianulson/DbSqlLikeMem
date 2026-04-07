@@ -1,3 +1,5 @@
+using System.Data.Common;
+
 namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
@@ -41,7 +43,9 @@ public static class ProviderConnectionStringResolver
             var value = Environment.GetEnvironmentVariable(variableName);
             if (!string.IsNullOrWhiteSpace(value))
             {
-                connectionString = value;
+                connectionString = provider == ProviderId.Oracle
+                    ? EnsureOracleConnectionTimeout(value)
+                    : value;
                 sourceName = variableName;
                 return true;
             }
@@ -94,5 +98,16 @@ public static class ProviderConnectionStringResolver
             ],
             _ => Array.Empty<string>()
         };
+
+    private static string EnsureOracleConnectionTimeout(string connectionString)
+    {
+        var builder = new DbConnectionStringBuilder
+        {
+            ConnectionString = connectionString
+        };
+
+        builder["Connection Timeout"] = 120;
+        return builder.ConnectionString;
+    }
 }
 

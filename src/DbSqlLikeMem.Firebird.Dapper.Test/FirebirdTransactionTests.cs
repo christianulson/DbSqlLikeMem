@@ -52,12 +52,34 @@ public sealed class FirebirdTransactionTests(
     public void ResetAllVolatileData_ShouldClearRowsAndResetIdentity_Test() => ResetAllVolatileData_ShouldClearRowsAndResetIdentity_Dapper();
 
     /// <summary>
-    /// EN: Verifies database volatile-data reset respects the global temporary table inclusion flag.
-    /// PT: Verifica se o reset de dados volateis no banco respeita a flag de inclusao de tabelas temporarias globais.
+    /// EN: Verifies database volatile-data reset respects the global temporary table flag for Firebird rows.
+    /// PT: Verifica se o reset de dados volateis no banco respeita a flag de tabelas temporarias globais para linhas do Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdTransaction")]
-    public void ResetVolatileData_OnDb_ShouldRespectGlobalTemporaryTablesFlag_Test() => ResetVolatileData_OnDb_ShouldRespectGlobalTemporaryTablesFlag_Dapper();
+    public void ResetVolatileData_OnDb_ShouldRespectGlobalTemporaryTablesFlag_Test()
+    {
+        var db = CreateDb();
+        var users = db.AddTable("users");
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("name", DbType.String, false);
+        users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "Ana" });
+
+        using var connection = CreateConnection(db);
+        connection.Open();
+        connection.Execute("CREATE GLOBAL TEMPORARY TABLE gtmp_users AS SELECT id, name FROM users");
+
+        var globalTemp = connection.GetTable("gtmp_users");
+        globalTemp.Should().ContainSingle();
+
+        db.ResetVolatileData(includeGlobalTemporaryTables: false);
+        users.Should().BeEmpty();
+        globalTemp.Should().ContainSingle();
+
+        db.ResetVolatileData(includeGlobalTemporaryTables: true);
+        globalTemp.Should().BeEmpty();
+        globalTemp.Columns.Count.Should().Be(2);
+    }
 
     /// <summary>
     /// EN: Verifies resetting volatile data on the database preserves table definitions.

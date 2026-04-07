@@ -20,14 +20,14 @@ public abstract partial class BenchmarkSessionBase
     /// PT-br: Gera um nome único de tabela temporária para a tabela de usuários usada em uma execução de benchmark.
     /// </summary>
     /// <returns>EN: A unique temporary users table name. PT-br: Um nome único de tabela temporária de usuários.</returns>
-    protected virtual string NewUsersTableName() => $"USR";
+    protected virtual string NewUsersTableName() => $"USR_{NextToken()}";
 
     /// <summary>
     /// EN: Generates a unique temporary table name for the orders table used by a benchmark run.
     /// PT-br: Gera um nome único de tabela temporária para a tabela de pedidos usada em uma execução de benchmark.
     /// </summary>
     /// <returns>EN: A unique temporary orders table name. PT-br: Um nome único de tabela temporária de pedidos.</returns>
-    protected virtual string NewOrdersTableName() => $"ORD";
+    protected virtual string NewOrdersTableName() => $"ORD_{NextToken()}";
 
     /// <summary>
     /// EN: Generates a unique temporary sequence name for sequence-based benchmark operations.

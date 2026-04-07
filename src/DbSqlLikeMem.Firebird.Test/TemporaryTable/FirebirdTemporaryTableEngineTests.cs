@@ -71,4 +71,48 @@ SELECT id FROM tmp_users ORDER BY id;";
         connB.TryGetTemporaryTable("tmp_users", out var tempB).Should().BeFalse();
         tempA.Should().ContainSingle();
     }
+
+    /// <summary>
+    /// EN: Verifies global temporary table rows stay isolated from secondary connections.
+    /// PT: Verifica se as linhas de uma tabela temporaria global permanecem isoladas de conexoes secundarias.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "TemporaryTable")]
+    public void GlobalTemporaryTable_ShouldBeSessionScoped()
+    {
+        var db = new FirebirdDbMock();
+        var users = db.AddTable("users");
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("name", DbType.String, false);
+        users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John" });
+
+        using var connA = new FirebirdConnectionMock(db);
+        using var connB = new FirebirdConnectionMock(db);
+        connA.Open();
+        connB.Open();
+
+        using (var cmd = new FirebirdCommandMock(connA))
+        {
+            cmd.CommandText = """
+CREATE GLOBAL TEMPORARY TABLE gtmp_users (
+    id INTEGER,
+    name VARCHAR(100)
+) ON COMMIT PRESERVE ROWS
+""";
+            cmd.ExecuteNonQuery();
+        }
+
+        using (var cmd = new FirebirdCommandMock(connA))
+        {
+            cmd.CommandText = "INSERT INTO gtmp_users (id, name) VALUES (1, 'Alice')";
+            cmd.ExecuteNonQuery();
+        }
+
+        using (var cmd = new FirebirdCommandMock(connB))
+        {
+            cmd.CommandText = "SELECT COUNT(*) FROM gtmp_users";
+            var count = Convert.ToInt32(cmd.ExecuteScalar(), CultureInfo.InvariantCulture);
+            count.Should().Be(0);
+        }
+    }
 }

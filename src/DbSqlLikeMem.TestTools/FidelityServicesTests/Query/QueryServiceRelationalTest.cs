@@ -370,6 +370,7 @@ ORDER BY u.Id
         var noteLenExpr = Dialect.StringLengthExpression(noteLenSource);
         var nameLenTextExpr = $"TRIM({Dialect.StringCastExpression(nameLenExpr, 10)})";
         var noteLenTextExpr = $"TRIM({Dialect.StringCastExpression($"COALESCE(MAX({noteLenExpr}), 0)", 10)})";
+        var textMatchAlready = Dialect.Provider is ProviderId.Sqlite or ProviderId.Oracle or ProviderId.Npgsql or ProviderId.Db2 or ProviderId.Firebird ? 0 : 1;
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
 SELECT
@@ -393,13 +394,13 @@ ORDER BY u.Id
         using var reader = command.ExecuteReader();
 
         reader.Read().Should().BeTrue();
-        ValidateJoinTextCaseLengthRow(reader, 1, "ALICE", "alice", "Alice", "5", "1", 1, 0, 0, 1, 1);
+        ValidateJoinTextCaseLengthRow(reader, 1, "ALICE", "alice", "Alice", "5", "1", 1, textMatchAlready, textMatchAlready, 1, 1);
 
         reader.Read().Should().BeTrue();
-        ValidateJoinTextCaseLengthRow(reader, 2, "BOB", "bob", "Bob", "3", "1", 0, 0, 0, 0, 1);
+        ValidateJoinTextCaseLengthRow(reader, 2, "BOB", "bob", "Bob", "3", "1", 0, textMatchAlready, textMatchAlready, 0, 1);
 
         reader.Read().Should().BeTrue();
-        ValidateJoinTextCaseLengthRow(reader, 3, "CARLA", "carla", "Carla", "5", "0", 1, 0, 0, 0, 0);
+        ValidateJoinTextCaseLengthRow(reader, 3, "CARLA", "carla", "Carla", "5", "0", 1, textMatchAlready, textMatchAlready, 0, 0);
 
         reader.Read().Should().BeFalse();
         GC.KeepAlive(usersTable);
@@ -647,7 +648,7 @@ ORDER BY u.Id, o.Id
         var ordersTable = ResolveScenarioTableName(orders);
         var orderUserIdColumn = GetOrderUserIdColumn(usersTable);
         var orderCountExpr = "COUNT(*)";
-        var expectedNextDayAfterOrder = Dialect.Provider == ProviderId.Firebird ? 0 : 1;
+        var expectedNextDayAfterOrder = 1;
 
         var nowExpr = Dialect.TemporalCurrentTimestampExpression();
         var nextDayExpr = Dialect.TemporalDateAddExpression();

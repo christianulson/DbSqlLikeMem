@@ -56,10 +56,37 @@ internal sealed class AstQueryFunctionEvaluator(
         if (_tryEvalUserDefinedScalarFunction(fn, row, group, ctes, out var userDefinedResult))
             return userDefinedResult;
 
-        if (IsSpecialSyntaxFunctionName(fn.Name)
-            && _tryEvalScalarFunctionFamilies[^1](context, fn, row, group, ctes, evalArg, out var specialSyntaxResult))
+        if (fn.Name.Equals("EXTRACT", StringComparison.OrdinalIgnoreCase))
         {
-            return specialSyntaxResult;
+            Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, TemporalUnit> getTemporalUnit =
+                (SqlExpr expr, EvalRow evalRow, EvalGroup? evalGroup, IDictionary<string, Source> evalCtes) =>
+                    expr switch
+                    {
+                        RawSqlExpr raw => AstQueryExecutionRuntimeHelper.ResolveTemporalUnit(raw.Sql),
+                        IdentifierExpr identifier => AstQueryExecutionRuntimeHelper.ResolveTemporalUnit(identifier.Name),
+                        ColumnExpr column => AstQueryExecutionRuntimeHelper.ResolveTemporalUnit(column.Name),
+                        LiteralExpr literal => AstQueryExecutionRuntimeHelper.ResolveTemporalUnit(Convert.ToString(literal.Value, CultureInfo.InvariantCulture) ?? string.Empty),
+                        _ => AstQueryExecutionRuntimeHelper.ResolveTemporalUnit(Convert.ToString(evalArg(0), CultureInfo.InvariantCulture) ?? string.Empty)
+                    };
+
+            if (AstQueryTemporalAccessorFunctionEvaluator.TryEvaluate(
+                fn,
+                row,
+                group,
+                ctes,
+                evalArg,
+                getTemporalUnit,
+                AstQueryExecutionRuntimeHelper.ResolveTemporalUnit,
+                out var extractResult))
+            {
+                return extractResult;
+            }
+        }
+
+        if (IsSpecialSyntaxFunctionName(fn.Name))
+        {
+            if (_tryEvalScalarFunctionFamilies[^1](context, fn, row, group, ctes, evalArg, out var specialSyntaxResult))
+                return specialSyntaxResult;
         }
 
         if (!IsSpecialSyntaxFunctionName(fn.Name)

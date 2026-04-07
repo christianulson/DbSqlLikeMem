@@ -11,6 +11,22 @@ public sealed class SqlAzureDbSqlLikeMemSession()
     : DbSqlLikeMemBenchmarkSessionBase(new SqlAzureProviderSqlDialect())
 {
     private readonly SqlAzureDbMock Db = new() { ThreadSafe = true };
+
+    /// <summary>
+    /// EN: Skips benchmark features that SQL Azure does not support in this mock session.
+    /// PT-br: Ignora recursos de benchmark que o SQL Azure nao suporta nesta sessao mock.
+    /// </summary>
+    /// <param name="feature">EN: The benchmark feature to execute. PT-br: O recurso de benchmark a ser executado.</param>
+    public override void Execute(BenchmarkFeatureId feature)
+    {
+        if (feature == BenchmarkFeatureId.WindowNthValue)
+        {
+            return;
+        }
+
+        base.Execute(feature);
+    }
+
     /// <summary>
     /// EN: Creates a new DbSqlLikeMem SQL Azure mock connection.
     /// PT-br: Cria uma nova conexão mock DbSqlLikeMem de SQL Azure.

@@ -100,6 +100,20 @@ internal static class AstQueryPostgresDateFunctionEvaluator
             || unit == AstQueryExecutorBase.TemporalUnit.Unknown
             || !AstQueryExecutorBase.TryCoerceDateTime(value, out var dateTime))
         {
+            if (AstQueryExecutorBase.TryCoerceTimeSpan(value, out var timeSpan))
+            {
+                result = unit switch
+                {
+                    AstQueryExecutorBase.TemporalUnit.Day => (int)Math.Truncate(timeSpan.TotalDays),
+                    AstQueryExecutorBase.TemporalUnit.Hour => timeSpan.Hours,
+                    AstQueryExecutorBase.TemporalUnit.Minute => timeSpan.Minutes,
+                    AstQueryExecutorBase.TemporalUnit.Second => timeSpan.Seconds,
+                    AstQueryExecutorBase.TemporalUnit.Millisecond => timeSpan.Milliseconds,
+                    _ => null
+                };
+                return true;
+            }
+
             result = null;
             return true;
         }
