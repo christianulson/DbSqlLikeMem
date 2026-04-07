@@ -277,7 +277,9 @@ public abstract class BenchmarkSuiteBase
     protected virtual void LogBenchmarkIssue(BenchmarkFeatureId feature, Exception ex)
     {
         var root = ex.GetBaseException();
-        var message = $"[NA-{root.GetType().Name}] {feature}: {root.Message} -- {ex.StackTrace}{Environment.NewLine}{Environment.NewLine}";
+        var message = root is NotSupportedException
+            ? $"[NA-{root.GetType().Name}] {feature}: {root.Message}{Environment.NewLine}{Environment.NewLine}"
+            : $"[NA-{root.GetType().Name}] {feature}: {root.Message} -- {ex.StackTrace}{Environment.NewLine}{Environment.NewLine}";
 
         Console.WriteLine(message);
 

@@ -942,7 +942,7 @@ FROM SYSIBM.SYSDUMMY1
             // ODP.NET and DB2 parameters can reject some DbType assignments in this mock flow.
             // Keep the default DbType and normalize the value payload for this shared test helper.
         }
-        else if (isFirebirdParameter && (dbType == DbType.Currency || dbType == DbType.DateTimeOffset))
+        else if (isFirebirdParameter && (dbType == DbType.Currency || dbType == DbType.DateTimeOffset || dbType == DbType.Guid))
         {
             // Firebird's parameter implementation rejects these DbType values in this path.
             // Keep the payload-based flow and let the provider infer the storage type.
@@ -1000,6 +1000,7 @@ FROM SYSIBM.SYSDUMMY1
 
         return (dbType, value) switch
         {
+            (DbType.Guid, Guid guid) => guid.ToString("D", CultureInfo.InvariantCulture),
             (DbType.DateTimeOffset, DateTimeOffset dateTimeOffset) => dateTimeOffset.ToString("O", CultureInfo.InvariantCulture),
             _ => value
         };

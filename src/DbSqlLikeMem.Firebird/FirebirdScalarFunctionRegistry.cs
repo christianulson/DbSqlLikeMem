@@ -23,14 +23,37 @@ internal static class FirebirdScalarFunctionRegistry
         RegisterTemporalIdentifier(dialect, "CURRENT_DATE", "DATE", SqlTemporalFunctionKind.Date);
         RegisterTemporalIdentifier(dialect, "CURRENT_TIME", "TIME", SqlTemporalFunctionKind.Time);
         RegisterTemporalIdentifier(dialect, "CURRENT_TIMESTAMP", "TIMESTAMP", SqlTemporalFunctionKind.DateTime);
+        RegisterTemporalIdentifier(dialect, "CURRENT DATE", "DATE", SqlTemporalFunctionKind.Date);
+        RegisterTemporalIdentifier(dialect, "CURRENT TIME", "TIME", SqlTemporalFunctionKind.Time);
+        RegisterTemporalIdentifier(dialect, "CURRENT TIMESTAMP", "TIMESTAMP", SqlTemporalFunctionKind.DateTime);
         RegisterTemporalIdentifier(dialect, "LOCALTIME", "TIME", SqlTemporalFunctionKind.Time);
         RegisterTemporalIdentifier(dialect, "LOCALTIMESTAMP", "TIMESTAMP", SqlTemporalFunctionKind.DateTime);
         RegisterTemporalIdentifier(dialect, "NOW", "TIMESTAMP", SqlTemporalFunctionKind.DateTime);
-        RegisterTemporalIdentifier(dialect, "TODAY", "DATE", SqlTemporalFunctionKind.Date);
-        RegisterTemporalIdentifier(dialect, "TOMORROW", "DATE", SqlTemporalFunctionKind.Date);
-        RegisterTemporalIdentifier(dialect, "YESTERDAY", "DATE", SqlTemporalFunctionKind.Date);
+        RegisterTemporalIdentifier(
+            dialect,
+            "TODAY",
+            "DATE",
+            SqlTemporalFunctionKind.Date,
+            TryEvalFirebirdRelativeDateToken);
+        RegisterTemporalIdentifier(
+            dialect,
+            "TOMORROW",
+            "DATE",
+            SqlTemporalFunctionKind.Date,
+            TryEvalFirebirdRelativeDateToken);
+        RegisterTemporalIdentifier(
+            dialect,
+            "YESTERDAY",
+            "DATE",
+            SqlTemporalFunctionKind.Date,
+            TryEvalFirebirdRelativeDateToken);
 
-        RegisterScalar(dialect, "DATEADD", "TIMESTAMP", DbFunctionCategory.DateTime);
+        RegisterScalar(
+            dialect,
+            "DATEADD",
+            "TIMESTAMP",
+            DbFunctionCategory.DateTime,
+            AstQueryFirebirdScalarFunctionEvaluator.TryEvaluate);
     }
 
     private static void RegisterControlFlowFunctions(ISqlDialect dialect)
@@ -244,9 +267,45 @@ internal static class FirebirdScalarFunctionRegistry
         ISqlDialect dialect,
         string name,
         string returnTypeSql,
-        SqlTemporalFunctionKind kind)
-        => dialect.AddScalarFunction(
-            DbFunctionDef.CreateTemporal(name, returnTypeSql, kind, DbInvocationStyle.Identifier));
+        SqlTemporalFunctionKind kind,
+        AstQueryGeneralScalarFunctionHandler? executor = null)
+    {
+        var definition = DbFunctionDef.CreateTemporal(name, returnTypeSql, kind, DbInvocationStyle.Identifier);
+        if (executor is not null)
+        {
+            definition = definition with
+            {
+                AstExecutor = executor
+            };
+        }
+
+        dialect.AddScalarFunction(definition);
+    }
+
+    private static bool TryEvalFirebirdRelativeDateToken(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(context, nameof(context));
+        ArgumentNullExceptionCompatible.ThrowIfNull(fn, nameof(fn));
+        _ = evalArg;
+
+        result = null;
+        if (fn.Args.Count != 0)
+            return false;
+
+        result = fn.Name.ToUpperInvariant() switch
+        {
+            "TODAY" => context.EvaluationLocalNow.Date,
+            "TOMORROW" => context.EvaluationLocalNow.Date.AddDays(1),
+            "YESTERDAY" => context.EvaluationLocalNow.Date.AddDays(-1),
+            _ => null
+        };
+
+        return result is not null;
+    }
 
     private static void RegisterScalar(
         ISqlDialect dialect,

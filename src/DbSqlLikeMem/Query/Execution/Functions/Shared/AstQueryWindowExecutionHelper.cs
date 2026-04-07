@@ -217,7 +217,32 @@ internal static class AstQueryWindowExecutionHelper
         var countAllRows = countArg is null || countArg is StarExpr;
         var countDistinct = windowFunctionExpr.Distinct;
 
-        if (windowFunctionExpr.Spec.Frame is null || partitionContext.CoversWholePartition())
+        if (windowFunctionExpr.Spec.Frame is null)
+        {
+            if (windowFunctionExpr.Spec.OrderBy.Count == 0)
+            {
+                mapAllRows(
+                    map,
+                    part,
+                    countAllRows
+                        ? CountWholePartition(part)
+                        : CountWholePartition(context, part, countArg!, ctes, eval, valueSelector, countDistinct));
+                return;
+            }
+
+            FillOrderedCount(
+                partitionContext,
+                map,
+                countArg!,
+                ctes,
+                eval,
+                valueSelector,
+                countAllRows,
+                countDistinct);
+            return;
+        }
+
+        if (partitionContext.CoversWholePartition())
         {
             mapAllRows(
                 map,
@@ -240,6 +265,42 @@ internal static class AstQueryWindowExecutionHelper
             map[part[i]] = countAllRows
                 ? frameRange.EndIndex - frameRange.StartIndex + 1L
                 : CountFrame(context, frameRange, part, countArg!, ctes, eval, valueSelector, countDistinct);
+        }
+
+        static void FillOrderedCount(
+            WindowPartitionExecutionContext partitionContext,
+            Dictionary<EvalRow, object?> target,
+            SqlExpr countArg,
+            IDictionary<string, Source> ctes,
+            Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
+            Func<EvalRow, object?>? valueSelector,
+            bool countAllRows,
+            bool countDistinct)
+        {
+            var part = partitionContext.Part;
+            var valuesByPeerEnd = new Dictionary<int, long>(Math.Max(1, part.Count));
+
+            foreach (var peerGroup in partitionContext.GetPeerGroups())
+            {
+                if (!valuesByPeerEnd.TryGetValue(peerGroup.End, out var value))
+                {
+                    value = countAllRows
+                        ? peerGroup.End + 1L
+                        : CountFrame(
+                            partitionContext.QueryExecutionContext,
+                            new RowsFrameRange(0, peerGroup.End, false),
+                            part,
+                            countArg,
+                            ctes,
+                            eval,
+                            valueSelector,
+                            countDistinct);
+                    valuesByPeerEnd[peerGroup.End] = value;
+                }
+
+                for (var i = peerGroup.Start; i <= peerGroup.End; i++)
+                    target[part[i]] = value;
+            }
         }
 
         static void mapAllRows(

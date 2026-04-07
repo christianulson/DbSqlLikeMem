@@ -78,7 +78,7 @@ public sealed class FirebirdFunctionTests(
         if (version < FirebirdDialect.FunctionDdlMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(() => ExecuteNonQuery(connection, "CREATE OR REPLACE FUNCTION fn_users(baseValue INT, incrementValue INT) RETURNS INT AS BEGIN RETURN baseValue + incrementValue; END"));
-            Assert.Contains("CREATE FUNCTION", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("CREATE OR REPLACE FUNCTION", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -134,8 +134,9 @@ public sealed class FirebirdFunctionTests(
     public void ExtractDateAndTimestampFields_ShouldReturnExpectedValues()
     {
         using var connection = CreateOpenConnection(FirebirdDbVersions.Default);
+        var now = DateTime.Now;
 
-        Assert.Equal(DateTime.Now.Year, Convert.ToInt32(ExecuteScalar(connection, "SELECT EXTRACT(YEAR FROM CURRENT_DATE) FROM RDB$DATABASE"), CultureInfo.InvariantCulture));
+        Assert.Equal(now.Year, Convert.ToInt32(ExecuteScalar(connection, "SELECT EXTRACT(YEAR FROM CURRENT_DATE) FROM RDB$DATABASE"), CultureInfo.InvariantCulture));
         Assert.InRange(Convert.ToInt32(ExecuteScalar(connection, "SELECT EXTRACT(MONTH FROM CURRENT_DATE) FROM RDB$DATABASE"), CultureInfo.InvariantCulture), 1, 12);
         Assert.InRange(Convert.ToInt32(ExecuteScalar(connection, "SELECT EXTRACT(DAY FROM CURRENT_DATE) FROM RDB$DATABASE"), CultureInfo.InvariantCulture), 1, 31);
         Assert.InRange(Convert.ToInt32(ExecuteScalar(connection, "SELECT EXTRACT(HOUR FROM CURRENT_TIMESTAMP) FROM RDB$DATABASE"), CultureInfo.InvariantCulture), 0, 23);
@@ -159,7 +160,7 @@ public sealed class FirebirdFunctionTests(
 
         Assert.Equal("yes", ExecuteScalar(connection, "SELECT IIF(1 = 1, 'yes', 'no') FROM RDB$DATABASE"));
         Assert.Equal(2, Convert.ToInt32(ExecuteScalar(connection, "SELECT DECODE('b', 'a', 1, 'b', 2, 0) FROM RDB$DATABASE"), CultureInfo.InvariantCulture));
-        Assert.Null(ExecuteScalar(connection, "SELECT NULLIF(1, 1) FROM RDB$DATABASE"));
+        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT NULLIF(1, 1) FROM RDB$DATABASE"));
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT NULLIF(1, 2) FROM RDB$DATABASE"), CultureInfo.InvariantCulture));
         Assert.Equal("fallback", ExecuteScalar(connection, "SELECT COALESCE(NULL, 'fallback') FROM RDB$DATABASE"));
     }
@@ -269,7 +270,7 @@ public sealed class FirebirdFunctionTests(
         var crc32 = Convert.ToInt32(ExecuteScalar(connection, "SELECT HASH('Firebird' USING CRC32) FROM RDB$DATABASE"), CultureInfo.InvariantCulture);
         Assert.Equal(hash1, hash2);
         Assert.NotEqual(0L, hash1);
-        Assert.Null(ExecuteScalar(connection, "SELECT HASH(NULL) FROM RDB$DATABASE"));
+        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT HASH(NULL) FROM RDB$DATABASE"));
         Assert.Equal(unchecked((int)ComputeCrc32(System.Text.Encoding.UTF8.GetBytes("Firebird"))), crc32);
     }
 
@@ -483,7 +484,7 @@ public sealed class FirebirdFunctionTests(
         Assert.Equal(0d, Convert.ToDouble(ExecuteScalar(connection, "SELECT SINH(0) FROM RDB$DATABASE"), CultureInfo.InvariantCulture), 12);
         Assert.Equal(0d, Convert.ToDouble(ExecuteScalar(connection, "SELECT TAN(0) FROM RDB$DATABASE"), CultureInfo.InvariantCulture), 12);
         Assert.Equal(0d, Convert.ToDouble(ExecuteScalar(connection, "SELECT TANH(0) FROM RDB$DATABASE"), CultureInfo.InvariantCulture), 12);
-        Assert.Equal(1d, Convert.ToDouble(ExecuteScalar(connection, "SELECT ACOSH(1) FROM RDB$DATABASE"), CultureInfo.InvariantCulture), 12);
+        Assert.Equal(0d, Convert.ToDouble(ExecuteScalar(connection, "SELECT ACOSH(1) FROM RDB$DATABASE"), CultureInfo.InvariantCulture), 12);
         Assert.Equal(0d, Convert.ToDouble(ExecuteScalar(connection, "SELECT ASINH(0) FROM RDB$DATABASE"), CultureInfo.InvariantCulture), 12);
         Assert.Equal(0d, Convert.ToDouble(ExecuteScalar(connection, "SELECT ATANH(0) FROM RDB$DATABASE"), CultureInfo.InvariantCulture), 12);
     }
@@ -549,8 +550,8 @@ public sealed class FirebirdFunctionTests(
         Assert.Equal("SNAPSHOT TABLE STABILITY", ExecuteScalar(connection, "SELECT RDB$GET_CONTEXT('SYSTEM', 'ISOLATION_LEVEL') FROM RDB$DATABASE"));
         ExecuteNonQuery(connection, "UPDATE Users SET Name = 'Ana2' WHERE Id = 999");
         Assert.Equal(0L, Convert.ToInt64(ExecuteScalar(connection, "SELECT RDB$GET_CONTEXT('SYSTEM', 'ROW_COUNT') FROM RDB$DATABASE"), CultureInfo.InvariantCulture));
-        Assert.Null(ExecuteScalar(connection, "SELECT RDB$GET_CONTEXT('SYSTEM', 'WIRE_COMPRESSED') FROM RDB$DATABASE"));
-        Assert.Null(ExecuteScalar(connection, "SELECT RDB$GET_CONTEXT('SYSTEM', 'WIRE_ENCRYPTED') FROM RDB$DATABASE"));
+        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT RDB$GET_CONTEXT('SYSTEM', 'WIRE_COMPRESSED') FROM RDB$DATABASE"));
+        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT RDB$GET_CONTEXT('SYSTEM', 'WIRE_ENCRYPTED') FROM RDB$DATABASE"));
         Assert.Equal(DateTime.Now.Date, Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT TODAY FROM RDB$DATABASE")).Date);
         Assert.Equal(DateTime.Now.Date.AddDays(1), Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT TOMORROW FROM RDB$DATABASE")).Date);
         Assert.Equal(DateTime.Now.Date.AddDays(-1), Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT YESTERDAY FROM RDB$DATABASE")).Date);
@@ -604,6 +605,7 @@ public sealed class FirebirdFunctionTests(
         using var connection = CreateOpenConnection(FirebirdDbVersions.Default);
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         using var currentProcess = System.Diagnostics.Process.GetCurrentProcess();
+        var now = DateTime.Now;
 
         Assert.Equal("SYSDBA", ExecuteScalar(connection, "SELECT RDB$GET_CONTEXT('SYSTEM', 'CURRENT_USER') FROM RDB$DATABASE"));
         Assert.Equal("NONE", ExecuteScalar(connection, "SELECT RDB$GET_CONTEXT('SYSTEM', 'CURRENT_ROLE') FROM RDB$DATABASE"));
@@ -619,15 +621,15 @@ public sealed class FirebirdFunctionTests(
         Assert.Equal("SNAPSHOT TABLE STABILITY", ExecuteScalar(connection, "SELECT RDB$GET_CONTEXT('SYSTEM', 'ISOLATION_LEVEL') FROM RDB$DATABASE"));
         ExecuteNonQuery(connection, "UPDATE Users SET Name = 'Ana2' WHERE Id = 999");
         Assert.Equal(0L, Convert.ToInt64(ExecuteScalar(connection, "SELECT RDB$GET_CONTEXT('SYSTEM', 'ROW_COUNT') FROM RDB$DATABASE"), CultureInfo.InvariantCulture));
-        Assert.Null(ExecuteScalar(connection, "SELECT RDB$GET_CONTEXT('SYSTEM', 'WIRE_COMPRESSED') FROM RDB$DATABASE"));
-        Assert.Null(ExecuteScalar(connection, "SELECT RDB$GET_CONTEXT('SYSTEM', 'WIRE_ENCRYPTED') FROM RDB$DATABASE"));
-        Assert.Equal(DateTime.Now.Date, Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT TODAY FROM RDB$DATABASE")).Date);
-        Assert.Equal(DateTime.Now.Date.AddDays(1), Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT TOMORROW FROM RDB$DATABASE")).Date);
-        Assert.Equal(DateTime.Now.Date.AddDays(-1), Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT YESTERDAY FROM RDB$DATABASE")).Date);
+        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT RDB$GET_CONTEXT('SYSTEM', 'WIRE_COMPRESSED') FROM RDB$DATABASE"));
+        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT RDB$GET_CONTEXT('SYSTEM', 'WIRE_ENCRYPTED') FROM RDB$DATABASE"));
+        Assert.Equal(now.Date, Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT TODAY FROM RDB$DATABASE")).Date);
+        Assert.Equal(now.Date.AddDays(1), Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT TOMORROW FROM RDB$DATABASE")).Date);
+        Assert.Equal(now.Date.AddDays(-1), Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT YESTERDAY FROM RDB$DATABASE")).Date);
         Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT NOW FROM RDB$DATABASE"));
-        Assert.Equal(DateTime.Now.Date, Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT 'TODAY' FROM RDB$DATABASE")).Date);
-        Assert.Equal(DateTime.Now.Date.AddDays(1), Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT 'TOMORROW' FROM RDB$DATABASE")).Date);
-        Assert.Equal(DateTime.Now.Date.AddDays(-1), Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT 'YESTERDAY' FROM RDB$DATABASE")).Date);
+        Assert.Equal(now.Date, Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT 'TODAY' FROM RDB$DATABASE")).Date);
+        Assert.Equal(now.Date.AddDays(1), Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT 'TOMORROW' FROM RDB$DATABASE")).Date);
+        Assert.Equal(now.Date.AddDays(-1), Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT 'YESTERDAY' FROM RDB$DATABASE")).Date);
         Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT 'NOW' FROM RDB$DATABASE"));
         Assert.Equal("00000", ExecuteScalar(connection, "SELECT SQLSTATE FROM RDB$DATABASE"));
         Assert.Equal(0, ExecuteScalar(connection, "SELECT SQLCODE FROM RDB$DATABASE"));

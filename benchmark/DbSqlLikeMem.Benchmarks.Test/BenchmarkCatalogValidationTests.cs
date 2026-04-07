@@ -1,4 +1,5 @@
 using DbSqlLikeMem.Benchmarks.Core;
+using DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 using DbSqlLikeMem.TestTools;
 using Xunit;
 
@@ -39,5 +40,19 @@ public sealed class BenchmarkCatalogValidationTests(
         Assert.True(options.UseInProcess);
         Assert.False(options.IsTest);
         Assert.Equal(["--filter", "*Insert*"], options.BenchmarkDotNetArgs);
+    }
+
+    /// <summary>
+    /// EN: Ensures the SQLite mock session can execute the stored procedure benchmark without parameter-direction errors.
+    /// PT: Garante que a sessao mock de SQLite execute o benchmark de procedimento armazenado sem erros de direcao de parametro.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void SqliteSession_RunFeature_StoredProcedureCall_ShouldNotThrow()
+    {
+        using var session = new SqliteDbSqlLikeMemSession();
+
+        session.Initialize();
+        session.RunFeature(BenchmarkFeatureId.StoredProcedureCall);
     }
 }

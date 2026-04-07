@@ -13,6 +13,7 @@ public partial class QueryServiceTest<T>
     public int RunWindowRankDenseRank(params object[] pars)
     {
         var users = (string)pars[0];
+        var expectedFirstName = pars.Length > 1 ? (string)pars[1] : "Alice";
         var usersTable = ResolveScenarioTableName(users);
 
         using var command = Connection.CreateCommand();
@@ -29,7 +30,7 @@ ORDER BY Name, Id
         using var reader = command.ExecuteReader();
 
         reader.Read().Should().BeTrue();
-        ValidateWindowRankDenseRow(reader, "Alice", 1, 1, 1);
+        ValidateWindowRankDenseRow(reader, expectedFirstName, 1, 1, 1);
 
         reader.Read().Should().BeTrue();
         ValidateWindowRankDenseRow(reader, "Bravo", 2, 2, 2);
@@ -65,6 +66,7 @@ ORDER BY Name, Id
     public int RunWindowFirstLastValue(params object[] pars)
     {
         var users = (string)pars[0];
+        var expectedFirstName = pars.Length > 1 ? (string)pars[1] : "Alice";
         var usersTable = ResolveScenarioTableName(users);
 
         using var command = Connection.CreateCommand();
@@ -80,16 +82,16 @@ ORDER BY Id
         using var reader = command.ExecuteReader();
 
         reader.Read().Should().BeTrue();
-        ValidateWindowFirstLastRow(reader, "Alice", "Alice", "Charlie");
+        ValidateWindowFirstLastRow(reader, expectedFirstName, expectedFirstName, "Charlie");
 
         reader.Read().Should().BeTrue();
-        ValidateWindowFirstLastRow(reader, "Bravo", "Alice", "Charlie");
+        ValidateWindowFirstLastRow(reader, "Bravo", expectedFirstName, "Charlie");
 
         reader.Read().Should().BeTrue();
-        ValidateWindowFirstLastRow(reader, "Bravo", "Alice", "Charlie");
+        ValidateWindowFirstLastRow(reader, "Bravo", expectedFirstName, "Charlie");
 
         reader.Read().Should().BeTrue();
-        ValidateWindowFirstLastRow(reader, "Charlie", "Alice", "Charlie");
+        ValidateWindowFirstLastRow(reader, "Charlie", expectedFirstName, "Charlie");
 
         reader.Read().Should().BeFalse();
         GC.KeepAlive(usersTable);
@@ -114,6 +116,7 @@ ORDER BY Id
     public int RunWindowNtile(params object[] pars)
     {
         var users = (string)pars[0];
+        var expectedFirstName = pars.Length > 1 ? (string)pars[1] : "Alice";
         var usersTable = ResolveScenarioTableName(users);
 
         using var command = Connection.CreateCommand();
@@ -128,7 +131,7 @@ ORDER BY Name, Id
         using var reader = command.ExecuteReader();
 
         reader.Read().Should().BeTrue();
-        ValidateWindowNtileRow(reader, "Alice", 1);
+        ValidateWindowNtileRow(reader, expectedFirstName, 1);
 
         reader.Read().Should().BeTrue();
         ValidateWindowNtileRow(reader, "Bravo", 1);
@@ -160,6 +163,7 @@ ORDER BY Name, Id
     public int RunWindowPercentRankCumeDist(params object[] pars)
     {
         var users = (string)pars[0];
+        var expectedFirstName = pars.Length > 1 ? (string)pars[1] : "Alice";
         var usersTable = ResolveScenarioTableName(users);
         var percentRankExpr = Dialect.Provider == ProviderId.Firebird
             ? "ROUND(CASE WHEN COUNT(*) OVER () <= 1 THEN 0 ELSE 1.0 * (RANK() OVER (ORDER BY Name, Id) - 1) / (COUNT(*) OVER () - 1) END, 6)"
@@ -185,7 +189,7 @@ ORDER BY Name, Id
         using var reader = command.ExecuteReader();
 
         reader.Read().Should().BeTrue();
-        ValidateWindowPercentRankCumeDistRow(reader, "Alice", 0.0m, 0.25m);
+        ValidateWindowPercentRankCumeDistRow(reader, expectedFirstName, 0.0m, 0.25m);
 
         reader.Read().Should().BeTrue();
         ValidateWindowPercentRankCumeDistRow(reader, "Bravo", 0.333333m, 0.5m);
@@ -224,6 +228,7 @@ ORDER BY Name, Id
         }
 
         var users = (string)pars[0];
+        var expectedFirstName = pars.Length > 1 ? (string)pars[1] : "Alice";
         var usersTable = ResolveScenarioTableName(users);
 
         using var command = Connection.CreateCommand();
@@ -238,7 +243,7 @@ ORDER BY Id
         using var reader = command.ExecuteReader();
 
         reader.Read().Should().BeTrue();
-        ValidateWindowNthValueRow(reader, "Alice", "Bravo");
+        ValidateWindowNthValueRow(reader, expectedFirstName, "Bravo");
 
         reader.Read().Should().BeTrue();
         ValidateWindowNthValueRow(reader, "Bravo", "Bravo");

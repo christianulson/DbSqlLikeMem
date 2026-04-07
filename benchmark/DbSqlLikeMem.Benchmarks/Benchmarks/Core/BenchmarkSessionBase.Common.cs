@@ -1060,12 +1060,16 @@ VALUES (
             parameter.ParameterName = name;
 
             var parameterTypeName = parameter.GetType().FullName;
+            var isOracleParameter = parameterTypeName == "Oracle.ManagedDataAccess.Client.OracleParameter";
             var isFirebirdParameter = parameterTypeName == "FirebirdSql.Data.FirebirdClient.FbParameter";
             var isDb2Parameter = parameterTypeName is "IBM.Data.Db2.DB2Parameter"
                 or "IBM.Data.DB2.Core.DB2Parameter"
                 or "IBM.Data.DB2.iSeries.iDB2Parameter";
 
-            if (isFirebirdParameter && (dbType == DbType.Currency || dbType == DbType.DateTimeOffset || dbType == DbType.Guid))
+            if (isOracleParameter)
+            {
+            }
+            else if (isFirebirdParameter && (dbType == DbType.Currency || dbType == DbType.DateTimeOffset || dbType == DbType.Guid))
             {
                 // Firebird rejects these DbType assignments in this benchmark path.
                 // Keep the payload-based flow and let the provider infer the storage type.
@@ -1454,12 +1458,16 @@ VALUES (
             var parameter = command.CreateParameter();
             parameter.ParameterName = name;
             var parameterTypeName = parameter.GetType().FullName;
+            var isOracleParameter = parameterTypeName == "Oracle.ManagedDataAccess.Client.OracleParameter";
             var isFirebirdParameter = parameterTypeName == "FirebirdSql.Data.FirebirdClient.FbParameter";
             var isDb2Parameter = parameterTypeName is "IBM.Data.Db2.DB2Parameter"
                 or "IBM.Data.DB2.Core.DB2Parameter"
                 or "IBM.Data.DB2.iSeries.iDB2Parameter";
 
-            if (isFirebirdParameter && (dbType == DbType.Currency || dbType == DbType.DateTimeOffset))
+            if (isOracleParameter)
+            {
+            }
+            else if (isFirebirdParameter && (dbType == DbType.Currency || dbType == DbType.DateTimeOffset || dbType == DbType.Guid))
             {
                 // Firebird rejects these DbType assignments in this benchmark path.
                 // Keep the payload-based flow and let the provider infer the storage type.
@@ -1473,7 +1481,9 @@ VALUES (
                 parameter.DbType = dbType;
             }
 
-            parameter.Value = isDb2Parameter
+            parameter.Value = isOracleParameter
+                ? NormalizeOracleParameterValue(value)
+                : isDb2Parameter
                 ? NormalizeDb2ParameterValue(dbType, value)
                 : isFirebirdParameter
                     ? NormalizeFirebirdParameterValue(dbType, value)
@@ -1509,6 +1519,19 @@ VALUES (
             };
         }
 
+        private static object NormalizeOracleParameterValue(object? value)
+        {
+            if (value is null)
+                return DBNull.Value;
+
+            return value switch
+            {
+                TimeSpan timeSpan => timeSpan.ToString("c", CultureInfo.InvariantCulture),
+                Guid guid => guid.ToString("D", CultureInfo.InvariantCulture),
+                _ => value
+            };
+        }
+
         public void Dispose()
         {
             connection.Dispose();
@@ -1529,16 +1552,20 @@ VALUES (
             AddParameter(command, "note", DbType.String, "benchmark", ParameterDirection.Input);
             AddParameter(command, "counter", DbType.Int32, DBNull.Value, ParameterDirection.Output);
             AddParameter(command, "message", DbType.String, DBNull.Value, ParameterDirection.Output);
-            AddParameter(command, "resultCode", DbType.Int32, DBNull.Value, ParameterDirection.ReturnValue);
+            var resultCodeApplied = AddParameter(command, "resultCode", DbType.Int32, DBNull.Value, ParameterDirection.ReturnValue);
 
             var affected = command.ExecuteNonQuery();
             GC.KeepAlive(command.Parameters["counter"].Value);
             GC.KeepAlive(command.Parameters["message"].Value);
+            if (!resultCodeApplied)
+            {
+                command.Parameters["resultCode"].Value = 0;
+            }
             GC.KeepAlive(command.Parameters["resultCode"].Value);
             return affected;
         }
 
-        private static void AddParameter(
+        private static bool AddParameter(
             DbCommand command,
             string name,
             DbType dbType,
@@ -1548,9 +1575,23 @@ VALUES (
             var parameter = command.CreateParameter();
             parameter.ParameterName = name;
             parameter.DbType = dbType;
-            parameter.Direction = direction;
+            var directionApplied = TrySetDirection(parameter, direction);
             parameter.Value = value ?? DBNull.Value;
             command.Parameters.Add(parameter);
+            return directionApplied;
+        }
+
+        private static bool TrySetDirection(DbParameter parameter, ParameterDirection direction)
+        {
+            try
+            {
+                parameter.Direction = direction;
+                return true;
+            }
+            catch (ArgumentException) when (direction != ParameterDirection.Input)
+            {
+                return false;
+            }
         }
 
         public void Dispose()

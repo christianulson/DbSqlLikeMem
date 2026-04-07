@@ -86,23 +86,30 @@ SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10");
             ExecuteNonQuery(createSql);
         }
 
-        using var command = Connection.CreateCommand();
-        command.CommandText = $"SELECT Id FROM {sessionTempTable} ORDER BY Id";
-
-        using var reader = command.ExecuteReader();
         var ids = new List<int>();
-        while (reader.Read())
+        try
         {
-            ids.Add(reader.GetInt32(0));
-        }
+            using var command = Connection.CreateCommand();
+            command.CommandText = $"SELECT Id FROM {sessionTempTable} ORDER BY Id";
 
-        if (ids.Count != 2 || ids[0] != 1 || ids[1] != 2)
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                ids.Add(reader.GetInt32(0));
+            }
+
+            if (ids.Count != 2 || ids[0] != 1 || ids[1] != 2)
+            {
+                throw new InvalidOperationException($"Unexpected temporary-table projected rows for {Dialect.DisplayName}: [{string.Join(",", ids)}].");
+            }
+
+            GC.KeepAlive(ids);
+            return ids;
+        }
+        finally
         {
-            throw new InvalidOperationException($"Unexpected temporary-table projected rows for {Dialect.DisplayName}: [{string.Join(",", ids)}].");
+            TryDropTemporaryTable(tempTable);
         }
-
-        GC.KeepAlive(ids);
-        return ids;
     }
 
     private string BuildTemporaryTableName(string uId, bool isMockConnection)
@@ -230,6 +237,18 @@ SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10";
 
     private static string CountRowsSql(string tableName)
         => $"SELECT COUNT(*) FROM {tableName}";
+
+    private void TryDropTemporaryTable(string tempTable)
+    {
+        try
+        {
+            ExecuteNonQuery(Dialect.DropTemporaryUsersTable(tempTable));
+        }
+        catch
+        {
+            // Ignore cleanup failures during benchmark teardown.
+        }
+    }
 
     private static bool IsMissingTemporaryTableException(Exception ex)
     {

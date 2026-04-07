@@ -272,6 +272,7 @@ internal static class AstQueryFunctionDispatchHelper
     private static bool IsSpecialSyntaxFunctionName(string name)
         => name.Equals("CAST", StringComparison.OrdinalIgnoreCase)
             || name.Equals("CONVERT", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("EXTRACT", StringComparison.OrdinalIgnoreCase)
             || name.Equals("PARSE", StringComparison.OrdinalIgnoreCase)
             || name.Equals("TRY_PARSE", StringComparison.OrdinalIgnoreCase);
 
@@ -292,3 +293,4 @@ internal static class AstQueryFunctionDispatchHelper
         return false;
     }
 }
+

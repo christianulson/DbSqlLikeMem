@@ -1,3 +1,5 @@
+using static DbSqlLikeMem.AstQueryExecutorBase;
+
 namespace DbSqlLikeMem;
 
 internal static class AstQueryFirebirdScalarFunctionEvaluator
@@ -71,8 +73,63 @@ internal static class AstQueryFirebirdScalarFunctionEvaluator
         if (string.Equals(fn.Name, "MINVALUE", StringComparison.OrdinalIgnoreCase))
             return TryEvalMinMaxFunction(context, fn, evalArg, isGreatest: false, out result);
 
+        if (string.Equals(fn.Name, "DATEADD", StringComparison.OrdinalIgnoreCase))
+            return TryEvalDateAddFunction(context, fn, evalArg, out result);
+
         result = null;
         return false;
+    }
+
+    private static bool TryEvalDateAddFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+
+        if (fn.Args.Count < 3)
+        {
+            result = null;
+            return true;
+        }
+
+        var unitText = fn.Args[0] is RawSqlExpr rawUnit
+            ? rawUnit.Sql
+            : Convert.ToString(evalArg(0), CultureInfo.InvariantCulture) ?? string.Empty;
+
+        var unit = AstQueryExecutionRuntimeHelper.ResolveTemporalUnit(unitText);
+        if (unit == TemporalUnit.Unknown)
+        {
+            result = null;
+            return true;
+        }
+
+        var amountValue = evalArg(1);
+        var baseValue = evalArg(2);
+        if (AstQueryExecutorBase.IsNullish(baseValue)
+            || !AstQueryExecutorBase.TryCoerceDateTime(baseValue, out var dateTime)
+            || AstQueryExecutorBase.IsNullish(amountValue)
+            || !AstQueryExecutorBase.TryConvertNumericToDouble(amountValue, out var amount))
+        {
+            result = null;
+            return true;
+        }
+
+        result = unit switch
+        {
+            TemporalUnit.Year => dateTime.AddYears((int)Math.Truncate(amount)),
+            TemporalUnit.Month => dateTime.AddMonths((int)Math.Truncate(amount)),
+            TemporalUnit.Week => dateTime.AddDays(amount * 7d),
+            TemporalUnit.Day => dateTime.AddDays(amount),
+            TemporalUnit.Hour => dateTime.AddHours(amount),
+            TemporalUnit.Minute => dateTime.AddMinutes(amount),
+            TemporalUnit.Second => dateTime.AddSeconds(amount),
+            TemporalUnit.Millisecond => dateTime.AddMilliseconds(amount),
+            _ => null
+        };
+
+        return true;
     }
 
     private static bool TryEvalMinMaxFunction(

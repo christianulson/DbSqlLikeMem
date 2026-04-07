@@ -63,6 +63,22 @@ internal static class SqlTemporalFunctionEvaluator
         if (context.Dialect is null || string.IsNullOrWhiteSpace(functionName))
             return false;
 
+        if (context.Dialect.Name.Equals("firebird", StringComparison.OrdinalIgnoreCase))
+        {
+            switch (functionName.Trim())
+            {
+                case "TODAY":
+                    value = localNow.Date;
+                    return true;
+                case "TOMORROW":
+                    value = localNow.Date.AddDays(1);
+                    return true;
+                case "YESTERDAY":
+                    value = localNow.Date.AddDays(-1);
+                    return true;
+            }
+        }
+
         if (!context.Dialect.AllowsTemporalIdentifier(functionName))
             return false;
 

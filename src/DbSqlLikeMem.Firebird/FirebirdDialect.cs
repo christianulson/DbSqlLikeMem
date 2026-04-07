@@ -60,11 +60,8 @@ internal partial class FirebirdDialect : SqlDialectBase, ISqlDialect
     /// </summary>
     public override SqlStringEscapeStyle StringEscapeStyle => SqlStringEscapeStyle.doubled_quote;
 
-    /// <summary>
-    /// EN: Gets or sets text comparison.
-    /// PT: Obtém ou define text comparison.
-    /// </summary>
-    public override StringComparison TextComparison => StringComparison.OrdinalIgnoreCase;
+    /// <inheritdoc />
+    public override StringComparison TextComparison => StringComparison.Ordinal;
 
     /// <summary>
     /// EN: Gets whether fetch first is supported.

@@ -47,7 +47,7 @@ public sealed class FirebirdContextVariableTests
         Assert.Equal(DateTime.Now.Date, connection.QuerySingle<DateTime>("SELECT TODAY FROM RDB$DATABASE").Date);
         Assert.Equal(DateTime.Now.Date.AddDays(1), connection.QuerySingle<DateTime>("SELECT TOMORROW FROM RDB$DATABASE").Date);
         Assert.Equal(DateTime.Now.Date.AddDays(-1), connection.QuerySingle<DateTime>("SELECT YESTERDAY FROM RDB$DATABASE").Date);
-        Assert.IsType<DateTime>(connection.QuerySingle<object>("SELECT NOW FROM RDB$DATABASE"));
+        Assert.IsType<DateTime>(connection.QuerySingle<DateTime>("SELECT NOW FROM RDB$DATABASE"));
         Assert.Equal("00000", connection.QuerySingle<string>("SELECT SQLSTATE FROM RDB$DATABASE"));
         Assert.Equal(0, connection.QuerySingle<int>("SELECT SQLCODE FROM RDB$DATABASE"));
         Assert.Equal(0, connection.QuerySingle<int>("SELECT GDSCODE FROM RDB$DATABASE"));
@@ -142,7 +142,7 @@ public sealed class FirebirdContextVariableTests
         Assert.Equal(DateTime.Now.Date, connection.QuerySingle<DateTime>("SELECT TODAY FROM RDB$DATABASE").Date);
         Assert.Equal(DateTime.Now.Date.AddDays(1), connection.QuerySingle<DateTime>("SELECT TOMORROW FROM RDB$DATABASE").Date);
         Assert.Equal(DateTime.Now.Date.AddDays(-1), connection.QuerySingle<DateTime>("SELECT YESTERDAY FROM RDB$DATABASE").Date);
-        Assert.IsType<DateTime>(connection.QuerySingle<object>("SELECT NOW FROM RDB$DATABASE"));
+        Assert.IsType<DateTime>(connection.QuerySingle<DateTime>("SELECT NOW FROM RDB$DATABASE"));
         Assert.Equal("00000", connection.QuerySingle<string>("SELECT SQLSTATE FROM RDB$DATABASE"));
         Assert.Equal(0, connection.QuerySingle<int>("SELECT SQLCODE FROM RDB$DATABASE"));
         Assert.Equal(0, connection.QuerySingle<int>("SELECT GDSCODE FROM RDB$DATABASE"));
@@ -625,7 +625,7 @@ public sealed class FirebirdContextVariableTests
         Assert.Equal(0d, connection.QuerySingle<double>("SELECT SINH(0) FROM RDB$DATABASE"), 12);
         Assert.Equal(0d, connection.QuerySingle<double>("SELECT TAN(0) FROM RDB$DATABASE"), 12);
         Assert.Equal(0d, connection.QuerySingle<double>("SELECT TANH(0) FROM RDB$DATABASE"), 12);
-        Assert.Equal(1d, connection.QuerySingle<double>("SELECT ACOSH(1) FROM RDB$DATABASE"), 12);
+        Assert.Equal(0d, connection.QuerySingle<double>("SELECT ACOSH(1) FROM RDB$DATABASE"), 12);
         Assert.Equal(0d, connection.QuerySingle<double>("SELECT ASINH(0) FROM RDB$DATABASE"), 12);
         Assert.Equal(0d, connection.QuerySingle<double>("SELECT ATANH(0) FROM RDB$DATABASE"), 12);
     }

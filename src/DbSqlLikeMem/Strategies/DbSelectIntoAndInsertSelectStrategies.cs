@@ -137,14 +137,13 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         ISqlDialect dialect)
     {
         _ = pars;
-        _ = dialect;
         DmlExecutionResult affected;
         if (!connection.Db.ThreadSafe)
-            affected = ExecuteDropTableImpl(connection, query);
+            affected = ExecuteDropTableImpl(connection, query, dialect);
         else
         {
             lock (connection.Db.SyncRoot)
-                affected = ExecuteDropTableImpl(connection, query);
+                affected = ExecuteDropTableImpl(connection, query, dialect);
         }
 
         connection.SetLastFoundRows(affected.AffectedRows);
@@ -153,15 +152,17 @@ internal static class DbSelectIntoAndInsertSelectStrategies
 
     private static DmlExecutionResult ExecuteDropTableImpl(
         DbConnectionMockBase connection,
-        SqlDropTableQuery query)
+        SqlDropTableQuery query,
+        ISqlDialect dialect)
     {
         var tableName = query.Table?.Name;
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(tableName, nameof(tableName));
+        var scope = GetEffectiveTemporaryTableScope(query.Scope, dialect);
         connection.DropTable(
             tableName!,
             query.IfExists,
             query.Temporary,
-            query.Scope,
+            scope,
             query.Table?.DbName);
         return new DmlExecutionResult();
     }
@@ -3476,7 +3477,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(tableName, nameof(tableName));
 
         var schemaName = query.Table?.DbName;
-        var tempScope = query.Scope;
+        var tempScope = GetEffectiveTemporaryTableScope(query.Scope, context.Dialect);
         ITableMock newTable = null!;
 
         if (!query.Temporary)
@@ -3557,6 +3558,14 @@ internal static class DbSelectIntoAndInsertSelectStrategies
 
         return new DmlExecutionResult();
     }
+
+    private static TemporaryTableScope GetEffectiveTemporaryTableScope(
+        TemporaryTableScope scope,
+        ISqlDialect dialect)
+        => scope == TemporaryTableScope.Global
+           && dialect.Name.Equals("firebird", StringComparison.OrdinalIgnoreCase)
+            ? TemporaryTableScope.Connection
+            : scope;
 
     /// <summary>
     /// EN: Implements ExecuteInsertSmart.

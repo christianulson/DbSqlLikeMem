@@ -456,7 +456,9 @@ public abstract partial class BenchmarkSessionBase(
     protected virtual void LogBenchmarkIssue(string txt, BenchmarkFeatureId feature, Exception ex)
     {
         var root = ex.GetBaseException();
-        var message = $"[{txt}-{root.GetType().Name}] {feature}: {root.Message} -- {ex.StackTrace}{Environment.NewLine}{Environment.NewLine}";
+        var message = root is NotSupportedException
+            ? $"[{txt}-{root.GetType().Name}] {feature}: {root.Message}{Environment.NewLine}{Environment.NewLine}"
+            : $"[{txt}-{root.GetType().Name}] {feature}: {root.Message} -- {ex.StackTrace}{Environment.NewLine}{Environment.NewLine}";
 
         Console.WriteLine(message);
 
@@ -469,7 +471,7 @@ public abstract partial class BenchmarkSessionBase(
             }
             Errors.GetOrAdd(root.Message, 0);
 
-            var file = Path.Combine("Logs", $"{GetType().Namespace}-errors.log");
+            var file = Path.Combine("Logs", $"{GetType().Namespace}-{Dialect.DisplayName}-errors.log");
             if (!File.Exists(file))
                 File.Create(file).Dispose();
             File.AppendAllText(
@@ -1010,7 +1012,7 @@ public abstract partial class BenchmarkSessionBase(
         var state = GetPreparedUsersQueryState(
             "WindowRankDenseRank",
             (1, "Aaron"), (2, "Bravo"), (3, "Bravo"), (4, "Charlie"));
-        var value = state.Service.RunWindowRankDenseRank(state.UsersTable);
+        var value = state.Service.RunWindowRankDenseRank(state.UsersTable, "Aaron");
         GC.KeepAlive(value);
     }
 
@@ -1019,7 +1021,7 @@ public abstract partial class BenchmarkSessionBase(
         var state = GetPreparedUsersQueryState(
             "WindowFirstLastValue",
             (1, "Aaron"), (2, "Bravo"), (3, "Bravo"), (4, "Charlie"));
-        var value = state.Service.RunWindowFirstLastValue(state.UsersTable);
+        var value = state.Service.RunWindowFirstLastValue(state.UsersTable, "Aaron");
         GC.KeepAlive(value);
     }
 
@@ -1028,7 +1030,7 @@ public abstract partial class BenchmarkSessionBase(
         var state = GetPreparedUsersQueryState(
             "WindowNtile",
             (1, "Aaron"), (2, "Bravo"), (3, "Bravo"), (4, "Charlie"));
-        var value = state.Service.RunWindowNtile(state.UsersTable);
+        var value = state.Service.RunWindowNtile(state.UsersTable, "Aaron");
         GC.KeepAlive(value);
     }
 
@@ -1037,7 +1039,7 @@ public abstract partial class BenchmarkSessionBase(
         var state = GetPreparedUsersQueryState(
             "WindowPercentRankCumeDist",
             (1, "Aaron"), (2, "Bravo"), (3, "Bravo"), (4, "Charlie"));
-        var value = state.Service.RunWindowPercentRankCumeDist(state.UsersTable);
+        var value = state.Service.RunWindowPercentRankCumeDist(state.UsersTable, "Aaron");
         GC.KeepAlive(value);
     }
 
@@ -1046,7 +1048,7 @@ public abstract partial class BenchmarkSessionBase(
         var state = GetPreparedUsersQueryState(
             "WindowNthValue",
             (1, "Aaron"), (2, "Bravo"), (3, "Bravo"), (4, "Charlie"));
-        var value = state.Service.RunWindowNthValue(state.UsersTable);
+        var value = state.Service.RunWindowNthValue(state.UsersTable, "Aaron");
         GC.KeepAlive(value);
     }
 
@@ -1219,9 +1221,9 @@ public abstract partial class BenchmarkSessionBase(
     protected virtual void RunSelectScalarCaseMatrix()
     {
         var state = GetPreparedUsersOrdersQueryState(
-            "UsersOrdersThreeRows",
-            [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
-            [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]);
+            "UsersOrdersScalarCaseMatrix",
+            [(1, "Alice"), (2, "Bob"), (3, "Carla")],
+            [(1, 1, "o-1"), (2, 1, "o-2"), (3, 1, "o-3"), (4, 2, "o-4")]);
         var value = state.Service.RunSelectScalarCaseMatrix(state.UsersTable, state.OrdersTable);
         GC.KeepAlive(value);
     }

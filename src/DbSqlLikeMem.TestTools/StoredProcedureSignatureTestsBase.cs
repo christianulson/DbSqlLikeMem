@@ -385,7 +385,7 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
             var scheduledAt1 = new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.Zero);
             AddParameter(cmd1, "tenantId", DbType.Int32, 10, ParameterDirection.Input);
             FluentActions.Invoking(() => AddParameter(cmd1, "scheduledAt", DbType.DateTimeOffset, scheduledAt1, ParameterDirection.InputOutput))
-                .Should().Throw<InvalidCastException>();
+                .Should().Throw<ArgumentException>();
             return;
         }
 
