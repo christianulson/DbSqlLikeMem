@@ -1,5 +1,6 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace DbSqlLikeMem.TestTools;
 
@@ -46,11 +47,39 @@ public abstract class XUnitTestBase : IDisposable
     protected static bool IsProviderContainerComparisonEnabled(ProviderId provider)
         => provider switch
         {
-            ProviderId.Db2 => Environment.GetEnvironmentVariable("RUN_DB2_CONTAINER_TESTS") == "true",
+            ProviderId.Db2 => Environment.GetEnvironmentVariable("RUN_DB2_CONTAINER_TESTS") == "true"
+                && IsDb2NativeClientAvailable(),
             ProviderId.MariaDb => Environment.GetEnvironmentVariable("RUN_MARIADB_CONTAINER_TESTS") == "true",
             ProviderId.Firebird => Environment.GetEnvironmentVariable("RUN_FIREBIRD_CONTAINER_TESTS") == "true",
             _ => true,
         };
+
+    private static bool IsDb2NativeClientAvailable()
+    {
+#if NET6_0_OR_GREATER
+        if (!NativeLibrary.TryLoad("db2app64.dll", out var handle))
+            return false;
+
+        NativeLibrary.Free(handle);
+        return true;
+#else
+        var handle = LoadLibrary("db2app64.dll");
+        if (handle == IntPtr.Zero)
+            return false;
+
+        FreeLibrary(handle);
+        return true;
+#endif
+    }
+
+#if !NET6_0_OR_GREATER
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    private static extern IntPtr LoadLibrary(string lpFileName);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool FreeLibrary(IntPtr hModule);
+#endif
 
     /// <summary>
     /// EN: Resolves whether performance fidelity tests should also run against a container.
