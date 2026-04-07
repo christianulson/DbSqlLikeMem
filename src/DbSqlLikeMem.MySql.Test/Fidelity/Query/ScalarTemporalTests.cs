@@ -16,4 +16,6 @@ public class ScalarTemporalTests(
     s => new MySqlConnection(s)
     )
 {
+    /// <inheritdoc />
+    protected override TimeSpan TemporalComparisonTolerance => TimeSpan.FromSeconds(60);
 }

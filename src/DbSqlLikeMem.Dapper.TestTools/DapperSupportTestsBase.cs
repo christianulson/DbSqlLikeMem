@@ -79,6 +79,26 @@ public abstract class DapperSupportTestsBase(
     protected abstract ProviderSqlDialect Dialect { get; }
 
     /// <summary>
+    /// EN: Indicates whether the current provider shares global temporary-table definitions across connections.
+    /// PT: Indica se o provedor atual compartilha definicoes de tabelas temporarias globais entre conexoes.
+    /// </summary>
+    protected virtual bool GlobalTemporaryTablesShareDefinitionAcrossConnections => Dialect.Provider switch
+    {
+        ProviderId.SqlServer or ProviderId.SqlAzure or ProviderId.Oracle or ProviderId.Firebird => true,
+        _ => false
+    };
+
+    /// <summary>
+    /// EN: Indicates whether the current provider shares global temporary-table rows across connections.
+    /// PT: Indica se o provedor atual compartilha linhas de tabelas temporarias globais entre conexoes.
+    /// </summary>
+    protected virtual bool GlobalTemporaryTablesShareRowsAcrossConnections => Dialect.Provider switch
+    {
+        ProviderId.SqlServer or ProviderId.SqlAzure => true,
+        _ => false
+    };
+
+    /// <summary>
     /// EN: Builds the pagination query using provider-specific syntax derived from the dialect hook.
     /// PT: Monta a query de paginacao usando a sintaxe especifica do provedor derivada do hook do dialeto.
     /// </summary>
@@ -2026,12 +2046,26 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
         var globalTemp = connection.GetTable("gtmp_users");
         globalTemp.Should().ContainSingle();
 
+        var sharesGlobalTempDefinition = db.GlobalTemporaryTablesShareDefinitionAcrossConnections;
+        var sharesGlobalTempRows = db.GlobalTemporaryTablesShareRowsAcrossConnections;
+
         db.ResetVolatileData(includeGlobalTemporaryTables: false);
         users.Should().BeEmpty();
         globalTemp.Should().ContainSingle();
 
         db.ResetVolatileData(includeGlobalTemporaryTables: true);
-        globalTemp.Should().BeEmpty();
+        if (!sharesGlobalTempDefinition)
+        {
+            globalTemp.Should().ContainSingle();
+        }
+        else if (sharesGlobalTempRows)
+        {
+            globalTemp.Should().BeEmpty();
+        }
+        else
+        {
+            globalTemp.Should().ContainSingle();
+        }
         globalTemp.Columns.Count.Should().Be(2);
     }
 
@@ -2182,8 +2216,8 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
     }
 
     /// <summary>
-    /// EN: Verifies closing a connection preserves permanent tables and shared global temporary state.
-    /// PT: Verifica se fechar uma conexao preserva tabelas permanentes e o estado compartilhado de tabelas temporarias globais.
+    /// EN: Verifies closing a connection preserves permanent rows and provider-specific global temporary-table state.
+    /// PT: Verifica se fechar uma conexao preserva linhas permanentes e o estado especifico do provedor das tabelas temporarias globais.
     /// </summary>
     protected void Close_ShouldPreservePermanentAndGlobalSharedState_Dapper()
     {
@@ -2208,8 +2242,23 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
         connA.Close();
 
         users.Should().ContainSingle();
-        var globalTempFromConnB = connB.GetTable("gtmp_users");
-        globalTempFromConnB.Should().ContainSingle();
+        var sharesGlobalTempDefinition = db.GlobalTemporaryTablesShareDefinitionAcrossConnections;
+        var sharesGlobalTempRows = db.GlobalTemporaryTablesShareRowsAcrossConnections;
+
+        if (!sharesGlobalTempDefinition)
+        {
+            FluentActions.Invoking(() => connB.GetTable("gtmp_users")).Should().Throw<InvalidOperationException>();
+        }
+        else if (sharesGlobalTempRows)
+        {
+            var globalTempFromConnB = connB.GetTable("gtmp_users");
+            globalTempFromConnB.Should().ContainSingle();
+        }
+        else
+        {
+            var globalTempFromConnB = connB.GetTable("gtmp_users");
+            globalTempFromConnB.Should().BeEmpty();
+        }
         connA.TryGetTemporaryTable("temp_users", out var _).Should().BeFalse();
     }
 

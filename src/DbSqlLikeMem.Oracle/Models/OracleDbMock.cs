@@ -8,6 +8,12 @@ public class OracleDbMock : DbMock
 {
     internal override SqlDialectBase Dialect { get; set; }
 
+    /// <inheritdoc />
+    public override bool GlobalTemporaryTablesShareDefinitionAcrossConnections => true;
+
+    /// <inheritdoc />
+    public override bool GlobalTemporaryTablesShareRowsAcrossConnections => false;
+
     /// <summary>
     /// EN: Implements OracleDbMock.
     /// PT: Implementa OracleDbMock.

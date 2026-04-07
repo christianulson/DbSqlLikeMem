@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.Db2.Test.Strategy;
+namespace DbSqlLikeMem.Db2.Test.Strategy;
 /// <summary>
 /// EN: Covers transaction commit and rollback scenarios in the Db2 mock.
 /// PT: Cobre cenarios de commit e rollback de transacao no mock Db2.
@@ -211,8 +211,7 @@ public sealed class Db2TransactionTests(
         connA.Close();
 
         Assert.Single(users);
-        var globalTempFromConnB = connB.GetTable("gtmp_users");
-        Assert.Single(globalTempFromConnB);
+        Assert.Throws<InvalidOperationException>(() => connB.GetTable("gtmp_users"));
         Assert.False(connA.TryGetTemporaryTable("temp_users", out var _));
     }
 
@@ -565,7 +564,7 @@ public sealed class Db2TransactionTests(
         db.ResetVolatileData(includeGlobalTemporaryTables: true);
 
         // Assert 2
-        Assert.Empty(globalTemp);
+        Assert.Single(globalTemp);
         Assert.Equal(2, globalTemp.Columns.Count);
     }
 }

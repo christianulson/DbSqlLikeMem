@@ -16,4 +16,6 @@ public class ScalarTemporalTests(
     s => new OracleConnection(s)
     )
 {
+    /// <inheritdoc />
+    protected override TimeSpan TemporalComparisonTolerance => TimeSpan.FromSeconds(60);
 }

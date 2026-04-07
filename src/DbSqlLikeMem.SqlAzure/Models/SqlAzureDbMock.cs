@@ -7,6 +7,12 @@ namespace DbSqlLikeMem.SqlAzure;
 /// </summary>
 public class SqlAzureDbMock : SqlServerDbMock
 {
+    /// <inheritdoc />
+    public override bool GlobalTemporaryTablesShareDefinitionAcrossConnections => true;
+
+    /// <inheritdoc />
+    public override bool GlobalTemporaryTablesShareRowsAcrossConnections => true;
+
     /// <summary>
     /// EN: Creates an in-memory SQL Azure database mock for the provided compatibility version.
     /// PT: Cria um banco simulado em memoria do SQL Azure para a versao de compatibilidade informada.

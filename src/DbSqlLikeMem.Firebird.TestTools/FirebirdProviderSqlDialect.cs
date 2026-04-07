@@ -25,6 +25,12 @@ public sealed class FirebirdProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsReleaseSavepoints => true;
 
     /// <inheritdoc />
+    public override bool GlobalTemporaryTablesShareDefinitionAcrossConnections => true;
+
+    /// <inheritdoc />
+    public override bool GlobalTemporaryTablesShareRowsAcrossConnections => false;
+
+    /// <inheritdoc />
     public override string TemporaryUsersTableName(string tableName) => tableName;
 
     /// <inheritdoc />

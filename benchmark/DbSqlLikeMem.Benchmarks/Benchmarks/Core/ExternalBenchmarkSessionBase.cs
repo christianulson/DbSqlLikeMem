@@ -63,6 +63,14 @@ public abstract class ExternalBenchmarkSessionBase(
     }
 
     /// <summary>
+    /// EN: Skips the stored procedure benchmark for external runtimes that do not expose the mock procedure registry.
+    /// PT-br: Ignora o benchmark de procedimento armazenado para runtimes externos que nao expõem o registro mock de procedimentos.
+    /// </summary>
+    protected override void RunStoredProcedureCall()
+    {
+    }
+
+    /// <summary>
     /// EN: Starts the external runtime and returns the connection string that should be used by the session.
     /// PT-br: Inicia o runtime externo e retorna a string de conexão que deve ser usada pela sessão.
     /// </summary>

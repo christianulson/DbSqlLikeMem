@@ -43,6 +43,18 @@ public abstract class ProviderSqlDialect
     public virtual bool SupportsSavepoints => true;
 
     /// <summary>
+    /// EN: Indicates whether global temporary table definitions are visible across connections.
+    /// PT: Indica se as definicoes de tabelas temporarias globais ficam visiveis entre conexoes.
+    /// </summary>
+    public virtual bool GlobalTemporaryTablesShareDefinitionAcrossConnections => false;
+
+    /// <summary>
+    /// EN: Indicates whether global temporary table rows are visible across connections.
+    /// PT: Indica se as linhas de tabelas temporarias globais ficam visiveis entre conexoes.
+    /// </summary>
+    public virtual bool GlobalTemporaryTablesShareRowsAcrossConnections => false;
+
+    /// <summary>
     /// EN: Indicates whether the provider supports releasing savepoints in the benchmark flow.
     /// PT: Indica se o provedor suporta liberar savepoints no fluxo de benchmark.
     /// </summary>
@@ -497,4 +509,3 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(tableName)} (
     /// </summary>
     public virtual string DropSequence(string sequenceName) => $"DROP SEQUENCE {sequenceName}";
 }
-

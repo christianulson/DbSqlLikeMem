@@ -213,8 +213,8 @@ public sealed class SqliteTransactionTests(
         connA.Close();
 
         users.Should().ContainSingle();
-        var globalTempFromConnB = connB.GetTable("gtmp_users");
-        globalTempFromConnB.Should().ContainSingle();
+        Action act = () => connB.GetTable("gtmp_users");
+        act.Should().Throw<InvalidOperationException>();
         connA.TryGetTemporaryTable("temp_users", out var _).Should().BeFalse();
     }
 
@@ -519,7 +519,7 @@ public sealed class SqliteTransactionTests(
         db.ResetVolatileData(includeGlobalTemporaryTables: true);
 
         // Assert 2
-        globalTemp.Should().BeEmpty();
+        globalTemp.Should().ContainSingle();
         globalTemp.Columns.Count.Should().Be(2);
     }
 

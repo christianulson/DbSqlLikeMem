@@ -464,20 +464,37 @@ public abstract partial class BenchmarkSessionBase(
 
         lock (_logSync)
         {
-            if (Errors.TryGetValue(root.Message, out int value))
+            var errorKey = $"{GetType().FullName}|{Dialect.DisplayName}|{feature}|{root.GetType().FullName}|{root.Message}";
+            if (Errors.TryGetValue(errorKey, out int value))
             {
-                Errors[root.Message] = value + 1;
+                Errors[errorKey] = value + 1;
                 return;
             }
-            Errors.GetOrAdd(root.Message, 0);
+            Errors.GetOrAdd(errorKey, 0);
 
-            var file = Path.Combine("Logs", $"{GetType().Namespace}-{Dialect.DisplayName}-errors.log");
-            if (!File.Exists(file))
-                File.Create(file).Dispose();
+            var directory = GetLogDirectory();
+            Directory.CreateDirectory(directory);
+
+            var file = Path.Combine(directory, GetSafeLogFileName($"{GetType().FullName}-{Dialect.DisplayName}-errors.log"));
             File.AppendAllText(
                 file,
                 message + Environment.NewLine);
         }
+    }
+
+    private static string GetLogDirectory() => Path.Combine(AppContext.BaseDirectory, "Logs");
+
+    private static string GetSafeLogFileName(string fileName)
+    {
+        var invalidChars = Path.GetInvalidFileNameChars();
+        var sanitized = new char[fileName.Length];
+
+        for (var i = 0; i < fileName.Length; i++)
+        {
+            sanitized[i] = Array.IndexOf(invalidChars, fileName[i]) >= 0 ? '_' : fileName[i];
+        }
+
+        return new string(sanitized).Trim();
     }
 
     /// <summary>

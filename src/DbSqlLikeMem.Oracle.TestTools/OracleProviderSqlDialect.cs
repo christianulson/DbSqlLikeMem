@@ -33,6 +33,12 @@ public sealed class OracleProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsReleaseSavepoints => false;
 
     /// <inheritdoc />
+    public override bool GlobalTemporaryTablesShareDefinitionAcrossConnections => true;
+
+    /// <inheritdoc />
+    public override bool GlobalTemporaryTablesShareRowsAcrossConnections => false;
+
+    /// <inheritdoc />
     public override string CreateTemporaryUsersTable(string tableName) =>
         $@"
 CREATE GLOBAL TEMPORARY TABLE {TemporaryUsersTableName(tableName)} (

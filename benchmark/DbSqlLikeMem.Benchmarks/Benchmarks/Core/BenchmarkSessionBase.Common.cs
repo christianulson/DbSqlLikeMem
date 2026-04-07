@@ -14,29 +14,30 @@ public abstract partial class BenchmarkSessionBase
 {
     private readonly object _preparedStateSync = new();
     private readonly Dictionary<string, IDisposable> _preparedStates = [];
+    private readonly string _scopeToken = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
 
     /// <summary>
     /// EN: Generates a unique temporary table name for the users table used by a benchmark run.
     /// PT-br: Gera um nome único de tabela temporária para a tabela de usuários usada em uma execução de benchmark.
     /// </summary>
     /// <returns>EN: A unique temporary users table name. PT-br: Um nome único de tabela temporária de usuários.</returns>
-    protected virtual string NewUsersTableName() => $"USR_{NextToken()}";
+    protected virtual string NewUsersTableName() => $"USR_{_scopeToken}_{NextToken()}";
 
     /// <summary>
     /// EN: Generates a unique temporary table name for the orders table used by a benchmark run.
     /// PT-br: Gera um nome único de tabela temporária para a tabela de pedidos usada em uma execução de benchmark.
     /// </summary>
     /// <returns>EN: A unique temporary orders table name. PT-br: Um nome único de tabela temporária de pedidos.</returns>
-    protected virtual string NewOrdersTableName() => $"ORD_{NextToken()}";
+    protected virtual string NewOrdersTableName() => $"ORD_{_scopeToken}_{NextToken()}";
 
     /// <summary>
     /// EN: Generates a unique temporary sequence name for sequence-based benchmark operations.
     /// PT-br: Gera um nome único de sequência temporária para operações de benchmark baseadas em sequência.
     /// </summary>
     /// <returns>EN: A unique temporary sequence name. PT-br: Um nome único de sequência temporária.</returns>
-    protected virtual string NewSequenceName() => $"SEQ_{NextToken()}";
+    protected virtual string NewSequenceName() => $"SEQ_{_scopeToken}_{NextToken()}";
 
-    protected virtual string NewSavepointName() => $"SP_{NextToken()}";
+    protected virtual string NewSavepointName() => $"SP_{_scopeToken}_{NextToken()}";
 
     protected static string NextToken() => Interlocked.Increment(ref _objectCounter).ToString("x8", CultureInfo.InvariantCulture).ToUpperInvariant();
 

@@ -77,7 +77,7 @@ public sealed class FirebirdTransactionTests(
         globalTemp.Should().ContainSingle();
 
         db.ResetVolatileData(includeGlobalTemporaryTables: true);
-        globalTemp.Should().BeEmpty();
+        globalTemp.Should().ContainSingle();
         globalTemp.Columns.Count.Should().Be(2);
     }
 

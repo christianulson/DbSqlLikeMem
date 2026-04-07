@@ -212,7 +212,7 @@ public sealed class OracleTransactionTests(
 
         Assert.Single(users);
         var globalTempFromConnB = connB.GetTable("gtmp_users");
-        Assert.Single(globalTempFromConnB);
+        Assert.Empty(globalTempFromConnB);
         Assert.False(connA.TryGetTemporaryTable("temp_users", out var _));
     }
 
@@ -555,7 +555,7 @@ public sealed class OracleTransactionTests(
         db.ResetVolatileData(includeGlobalTemporaryTables: true);
 
         // Assert 2
-        Assert.Empty(globalTemp);
+        Assert.Single(globalTemp);
         Assert.Equal(2, globalTemp.Columns.Count);
     }
 }

@@ -8,6 +8,12 @@ public class SqlServerDbMock : DbMock
 {
     internal override SqlDialectBase Dialect { get; set; }
 
+    /// <inheritdoc />
+    public override bool GlobalTemporaryTablesShareDefinitionAcrossConnections => true;
+
+    /// <inheritdoc />
+    public override bool GlobalTemporaryTablesShareRowsAcrossConnections => true;
+
     /// <summary>
     /// EN: Initializes an in-memory SQL Server mock database with the requested version.
     /// PT: Inicializa um banco SQL Server simulado em memória com a versão informada.

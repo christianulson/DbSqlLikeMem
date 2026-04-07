@@ -8,6 +8,12 @@ public class FirebirdDbMock : DbMock
 {
     internal override SqlDialectBase Dialect { get; set; }
 
+    /// <inheritdoc />
+    public override bool GlobalTemporaryTablesShareDefinitionAcrossConnections => true;
+
+    /// <inheritdoc />
+    public override bool GlobalTemporaryTablesShareRowsAcrossConnections => false;
+
     /// <summary>
     /// EN: Initializes an in-memory Firebird mock database with the requested version.
     /// PT: Inicializa um banco Firebird simulado em memória com a versão informada.

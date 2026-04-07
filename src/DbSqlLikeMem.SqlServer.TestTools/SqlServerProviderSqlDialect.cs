@@ -22,6 +22,12 @@ public class SqlServerProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsReleaseSavepoints => false;
 
     /// <inheritdoc />
+    public override bool GlobalTemporaryTablesShareDefinitionAcrossConnections => true;
+
+    /// <inheritdoc />
+    public override bool GlobalTemporaryTablesShareRowsAcrossConnections => true;
+
+    /// <inheritdoc />
     public override string TemporaryUsersTableName(string tableName) =>
         tableName.StartsWith("#", StringComparison.Ordinal) ? tableName : $"#{tableName}";
 

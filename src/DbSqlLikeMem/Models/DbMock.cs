@@ -26,6 +26,18 @@ public abstract class DbMock
     /// </summary>
     public bool CaptureExecutionPlans { get; set; } = true;
 
+    /// <summary>
+    /// EN: Indicates whether global temporary table definitions are shared across connections for this database.
+    /// PT: Indica se as definicoes de tabelas temporarias globais sao compartilhadas entre conexoes neste banco.
+    /// </summary>
+    public virtual bool GlobalTemporaryTablesShareDefinitionAcrossConnections => false;
+
+    /// <summary>
+    /// EN: Indicates whether global temporary table rows are shared across connections for this database.
+    /// PT: Indica se as linhas de tabelas temporarias globais sao compartilhadas entre conexoes neste banco.
+    /// </summary>
+    public virtual bool GlobalTemporaryTablesShareRowsAcrossConnections => false;
+
     internal object SyncRoot { get; } = new();
 
     internal abstract SqlDialectBase Dialect { get; set; }
