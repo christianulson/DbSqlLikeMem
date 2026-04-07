@@ -46,7 +46,7 @@ internal static class FirebirdValueHelper
         if (token.Equals("null", StringComparison.OrdinalIgnoreCase))
             return isNullable
                 ? null
-                : throw new FirebirdMockException(SqlExceptionMessages.ColumnDoesNotAcceptNull(), 0);
+                : throw (FirebirdExceptionFactory.ColumnCannotBeNull(CurrentColumn ?? string.Empty));
 
         var m = _list.Match(token);
         if (m.Success)

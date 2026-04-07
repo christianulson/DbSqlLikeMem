@@ -145,7 +145,14 @@ internal static class AstQueryExpressionEvaluationHelper
         if (left is null || left is DBNull || right is null || right is DBNull)
             return false;
 
-        return context.EvalComparisonBinary(expression.Op, left, right);
+        var comparisonResult = context.EvalComparisonBinary(expression.Op, left, right);
+        if (ShouldTraceGroupedCaseWhenBinary(expression))
+        {
+            Console.WriteLine(
+                $"[CmpDebug][{expression.Op}] left={left ?? "NULL"} ({left!.GetType().Name}) right={right ?? "NULL"} ({right!.GetType().Name}) result={comparisonResult}");
+        }
+
+        return comparisonResult;
     }
 
     internal static bool TryEvalLogicalBinary(
@@ -167,4 +174,33 @@ internal static class AstQueryExpressionEvaluationHelper
 
         return expression.Op is SqlBinaryOp.And or SqlBinaryOp.Or;
     }
+
+    private static bool ShouldTraceGroupedCaseWhenBinary(BinaryExpr expression)
+        => expression.Op == SqlBinaryOp.GreaterOrEqual
+            && (ContainsParameter(expression.Left, "cutoff") || ContainsParameter(expression.Right, "cutoff"));
+
+    private static bool ContainsParameter(SqlExpr expression, string parameterName)
+        => expression switch
+        {
+            ParameterExpr parameter => parameter.Name.TrimStart('@', ':', '?')
+                .Equals(parameterName, StringComparison.OrdinalIgnoreCase),
+            BinaryExpr binary => ContainsParameter(binary.Left, parameterName) || ContainsParameter(binary.Right, parameterName),
+            UnaryExpr unary => ContainsParameter(unary.Expr, parameterName),
+            CaseExpr caseExpr => (caseExpr.BaseExpr is not null && ContainsParameter(caseExpr.BaseExpr, parameterName))
+                || caseExpr.Whens.Any(when => ContainsParameter(when.When, parameterName) || ContainsParameter(when.Then, parameterName))
+                || (caseExpr.ElseExpr is not null && ContainsParameter(caseExpr.ElseExpr, parameterName)),
+            FunctionCallExpr functionCall => functionCall.Args.Any(arg => ContainsParameter(arg, parameterName)),
+            CallExpr call => call.Args.Any(arg => ContainsParameter(arg, parameterName)),
+            LikeExpr likeExpr => ContainsParameter(likeExpr.Left, parameterName)
+                || ContainsParameter(likeExpr.Pattern, parameterName)
+                || (likeExpr.Escape is not null && ContainsParameter(likeExpr.Escape, parameterName)),
+            InExpr inExpr => ContainsParameter(inExpr.Left, parameterName)
+                || inExpr.Items.Any(item => ContainsParameter(item, parameterName)),
+            IsNullExpr isNullExpr => ContainsParameter(isNullExpr.Expr, parameterName),
+            BetweenExpr betweenExpr => ContainsParameter(betweenExpr.Expr, parameterName)
+                || ContainsParameter(betweenExpr.Low, parameterName)
+                || ContainsParameter(betweenExpr.High, parameterName),
+            RowExpr rowExpr => rowExpr.Items.Any(item => ContainsParameter(item, parameterName)),
+            _ => false
+        };
 }

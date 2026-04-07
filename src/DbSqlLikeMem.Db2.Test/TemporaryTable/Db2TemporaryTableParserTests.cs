@@ -116,7 +116,7 @@ WHERE `tenantid` = 10";
     public void Parse_CreateOrReplaceTable_ShouldThrow(int version)
     {
         const string sql = "CREATE OR REPLACE TABLE tmp_users AS SELECT id FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new Db2DbMock(), Get(version, v => new Db2Dialect(v))));
+        Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new Db2DbMock(), Get(version, v => new Db2Dialect(v))));
     }
 
     /// <summary>

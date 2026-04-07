@@ -113,7 +113,7 @@ WHERE tenantid = 10",
         var d = Get(version, v => new OracleDialect(v));
         var db = Get(version, v => new OracleDbMock(v));
         const string sql = "CREATE OR REPLACE TABLE tmp_users AS SELECT id FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, d));
+        Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
     }
 
     /// <summary>

@@ -1481,6 +1481,34 @@ VALUES (
             command.Parameters.Add(parameter);
         }
 
+        private static object NormalizeDb2ParameterValue(DbType dbType, object? value)
+        {
+            if (value is null)
+                return DBNull.Value;
+
+            return (dbType, value) switch
+            {
+                (DbType.Guid, Guid guid) => guid.ToString("D", CultureInfo.InvariantCulture),
+                (DbType.Time, TimeSpan timeSpan) => timeSpan.ToString("c", CultureInfo.InvariantCulture),
+                (DbType.DateTime, DateTime dateTime) => dateTime.ToString("O", CultureInfo.InvariantCulture),
+                (DbType.DateTimeOffset, DateTimeOffset dateTimeOffset) => dateTimeOffset.ToString("O", CultureInfo.InvariantCulture),
+                _ => value
+            };
+        }
+
+        private static object NormalizeFirebirdParameterValue(DbType dbType, object? value)
+        {
+            if (value is null)
+                return DBNull.Value;
+
+            return (dbType, value) switch
+            {
+                (DbType.Guid, Guid guid) => guid.ToString("D", CultureInfo.InvariantCulture),
+                (DbType.DateTimeOffset, DateTimeOffset dateTimeOffset) => dateTimeOffset.ToString("O", CultureInfo.InvariantCulture),
+                _ => value
+            };
+        }
+
         public void Dispose()
         {
             connection.Dispose();

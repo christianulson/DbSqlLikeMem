@@ -2102,6 +2102,7 @@ public abstract class TableMock
     public Dictionary<int, object?> RemoveAt(int idx)
     {
         var it = _items[idx];
+        Schema.ValidateForeignKeysOnDelete(TableName, this, [it]);
         RemoveRowFromIndexes(idx, it);
         // Remove from PK index and shift positions
         if (_primaryKeyIndexes.Count > 0)

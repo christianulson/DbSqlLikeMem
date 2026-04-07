@@ -301,6 +301,18 @@ public abstract class SequenceTestsBase<T, T2>(
         try
         {
             var tableName = ResolveScenarioTableName(users, uId);
+            if (dialect.Provider == ProviderId.Firebird)
+            {
+                ExecuteNonQueryOnConnection(connection, $"INSERT INTO {tableName} (Id, Name) VALUES (NEXT VALUE FOR {sequence}, 'Seq-A')");
+                ExecuteNonQueryOnConnection(connection, $"INSERT INTO {tableName} (Id, Name) VALUES (NEXT VALUE FOR {sequence}, 'Seq-B')");
+
+                var result1 = ExecuteAggregateReadback(connection, tableName);
+                result1.MinId.Should().Be(10L);
+                result1.MaxId.Should().Be(11L);
+                result1.RowCount.Should().Be(2L);
+                return result1;
+            }
+
             var first = Convert.ToInt64(sequenceService.RunSequenceNextValue(sequence), CultureInfo.InvariantCulture);
             ExecuteNonQueryOnConnection(connection, dialect.InsertUser(tableName, (int)first, $"Seq-{first}"));
             var second = Convert.ToInt64(sequenceService.RunSequenceNextValue(sequence), CultureInfo.InvariantCulture);
@@ -364,17 +376,36 @@ public abstract class SequenceTestsBase<T, T2>(
 
         try
         {
-            var first = Convert.ToInt64(serviceTest.RunSequenceNextValue(sequence), CultureInfo.InvariantCulture);
-            var current = Convert.ToInt64(ExecuteScalarOnConnection(connection, dialect.CurrentSequenceValue(sequence))!, CultureInfo.InvariantCulture);
-            var second = Convert.ToInt64(serviceTest.RunSequenceNextValue(sequence), CultureInfo.InvariantCulture);
-            var currentAfterSecond = Convert.ToInt64(ExecuteScalarOnConnection(connection, dialect.CurrentSequenceValue(sequence))!, CultureInfo.InvariantCulture);
+            if (dialect.Provider == ProviderId.Firebird)
+            {
+                var first = Convert.ToInt64(ExecuteScalarOnConnection(connection, dialect.NextSequenceValue(sequence))!, CultureInfo.InvariantCulture);
+                var current = Convert.ToInt64(ExecuteScalarOnConnection(connection, dialect.CurrentSequenceValue(sequence))!, CultureInfo.InvariantCulture);
+                var second = Convert.ToInt64(ExecuteScalarOnConnection(connection, dialect.NextSequenceValue(sequence))!, CultureInfo.InvariantCulture);
+                var currentAfterSecond = Convert.ToInt64(ExecuteScalarOnConnection(connection, dialect.CurrentSequenceValue(sequence))!, CultureInfo.InvariantCulture);
 
-            first.Should().Be(10L);
-            current.Should().Be(10L);
-            second.Should().Be(11L);
-            currentAfterSecond.Should().Be(11L);
+                first.Should().Be(10L);
+                current.Should().Be(10L);
+                second.Should().Be(11L);
+                currentAfterSecond.Should().Be(11L);
 
-            return (first, current, second, currentAfterSecond);
+                return (first, current, second, currentAfterSecond);
+            }
+
+            using var transaction = connection.BeginTransaction();
+
+            var firstValue = Convert.ToInt64(ExecuteScalarOnConnection(connection, dialect.NextSequenceValue(sequence), transaction)!, CultureInfo.InvariantCulture);
+            var currentValue = Convert.ToInt64(ExecuteScalarOnConnection(connection, dialect.CurrentSequenceValue(sequence), transaction)!, CultureInfo.InvariantCulture);
+            var secondValue = Convert.ToInt64(ExecuteScalarOnConnection(connection, dialect.NextSequenceValue(sequence), transaction)!, CultureInfo.InvariantCulture);
+            var currentAfterSecondValue = Convert.ToInt64(ExecuteScalarOnConnection(connection, dialect.CurrentSequenceValue(sequence), transaction)!, CultureInfo.InvariantCulture);
+
+            transaction.Commit();
+
+            firstValue.Should().Be(10L);
+            currentValue.Should().Be(10L);
+            secondValue.Should().Be(11L);
+            currentAfterSecondValue.Should().Be(11L);
+
+            return (firstValue, currentValue, secondValue, currentAfterSecondValue);
         }
         finally
         {
@@ -447,6 +478,37 @@ FROM SYSIBM.SYSDUMMY1
                 Convert.ToInt32(db2Reader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(1);
                 Convert.ToInt32(db2Reader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(1);
                 db2Reader.Read().Should().BeFalse();
+                return 1;
+            }
+
+            if (dialect.Provider == ProviderId.Firebird)
+            {
+                var firstSeqValue = Convert.ToInt64(serviceTest.RunSequenceNextValue(sequence), CultureInfo.InvariantCulture);
+                var secondSeqValue = Convert.ToInt64(serviceTest.RunSequenceNextValue(sequence), CultureInfo.InvariantCulture);
+
+                using var firebirdCommand = connection.CreateCommand();
+                firebirdCommand.CommandText = $"""
+SELECT
+    {firstSeqValue} AS SeqValue,
+    {secondSeqValue} AS SeqValue2,
+    CASE WHEN {firstSeqValue} BETWEEN 10 AND 11 THEN 1 ELSE 0 END AS FirstInRange,
+    CASE WHEN {secondSeqValue} BETWEEN 10 AND 11 THEN 1 ELSE 0 END AS SecondInRange,
+    CASE WHEN {firstSeqValue} < {secondSeqValue} THEN 1 ELSE 0 END AS IsAscending,
+    CASE WHEN {firstSeqValue} = 10 THEN 1 ELSE 0 END AS FirstIsTen,
+    CASE WHEN {secondSeqValue} = 11 THEN 1 ELSE 0 END AS SecondIsEleven
+FROM RDB$DATABASE
+""";
+
+                using var firebirdReader = firebirdCommand.ExecuteReader();
+                firebirdReader.Read().Should().BeTrue();
+                Convert.ToInt64(firebirdReader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(10L);
+                Convert.ToInt64(firebirdReader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(11L);
+                Convert.ToInt32(firebirdReader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(1);
+                Convert.ToInt32(firebirdReader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(1);
+                Convert.ToInt32(firebirdReader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(1);
+                Convert.ToInt32(firebirdReader.GetValue(5), CultureInfo.InvariantCulture).Should().Be(1);
+                Convert.ToInt32(firebirdReader.GetValue(6), CultureInfo.InvariantCulture).Should().Be(1);
+                firebirdReader.Read().Should().BeFalse();
                 return 1;
             }
 
@@ -673,7 +735,7 @@ ORDER BY u.Id
 
     private string GetSingleRowLimitClause()
         => dialect.Provider == ProviderId.Firebird
-            ? "FETCH FIRST 1 ROWS ONLY"
+            ? "FROM RDB$DATABASE"
             : "LIMIT 1";
 
     private string ResolveScenarioTableName(string users, string uId)
@@ -692,11 +754,21 @@ ORDER BY u.Id
 
     private static object? ExecuteScalarOnConnection(
         DbConnection connection,
-        string sql)
+        string sql,
+        DbTransaction? transaction = null)
     {
         using var command = connection.CreateCommand();
         command.CommandText = sql;
-        return command.ExecuteScalar();
+        command.Transaction = transaction;
+        var value = command.ExecuteScalar();
+        if (value is not DBNull)
+            return value;
+
+        using var reader = command.ExecuteReader();
+        if (!reader.Read())
+            return value;
+
+        return reader.IsDBNull(0) ? DBNull.Value : reader.GetValue(0);
     }
 
     private static string NewToken()

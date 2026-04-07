@@ -28,7 +28,34 @@ public class CreateTableWithFKScenario<T>
     /// <exception cref="NotImplementedException"></exception>
     public void DropScenario(BaseServiceTest<T> service, params object[] pars)
     {
-        service.ExecuteNonQuery(service.Dialect.DropTable((string)pars[1], (string)pars[2]));
-        service.ExecuteNonQuery(service.Dialect.DropTable((string)pars[0], (string)pars[2]));
+        try
+        {
+            service.ExecuteNonQuery(service.Dialect.DropTable((string)pars[1], (string)pars[2]));
+        }
+        catch (Exception ex) when (IsMissingTableException(ex))
+        {
+        }
+
+        try
+        {
+            service.ExecuteNonQuery(service.Dialect.DropTable((string)pars[0], (string)pars[2]));
+        }
+        catch (Exception ex) when (IsMissingTableException(ex))
+        {
+        }
+    }
+
+    private static bool IsMissingTableException(Exception ex)
+    {
+        var message = ex.GetBaseException().Message;
+        return message.Contains("does not exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("doesn't exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("doesnt exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("not exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("undefined name", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("not found", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("ora-00942", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("tabela ou view", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("given key was not present", StringComparison.OrdinalIgnoreCase);
     }
 }

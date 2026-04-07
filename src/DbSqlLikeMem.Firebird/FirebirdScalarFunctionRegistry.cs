@@ -67,7 +67,19 @@ internal static class FirebirdScalarFunctionRegistry
 
     private static void RegisterSequenceFunctions(ISqlDialect dialect)
     {
-        RegisterScalar(dialect, "GEN_ID", "BIGINT", DbFunctionCategory.System);
+        RegisterScalar(
+            dialect,
+            "NEXT_VALUE_FOR",
+            "BIGINT",
+            DbFunctionCategory.System,
+            AstQueryFirebirdScalarFunctionEvaluator.TryEvaluate);
+
+        RegisterScalar(
+            dialect,
+            "GEN_ID",
+            "BIGINT",
+            DbFunctionCategory.System,
+            AstQueryFirebirdScalarFunctionEvaluator.TryEvaluate);
     }
 
     private static void RegisterBinaryFunctions(ISqlDialect dialect)

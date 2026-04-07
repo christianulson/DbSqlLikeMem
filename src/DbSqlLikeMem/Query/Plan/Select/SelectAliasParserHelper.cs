@@ -243,7 +243,8 @@ internal static class SelectAliasParserHelper
             || span.EndsWith("<>", StringComparison.Ordinal)
             || span.EndsWith("!=", StringComparison.Ordinal)
             || span.EndsWith(">=", StringComparison.Ordinal)
-            || span.EndsWith("<=", StringComparison.Ordinal))
+            || span.EndsWith("<=", StringComparison.Ordinal)
+            || span.EndsWith("||", StringComparison.Ordinal))
         {
             return true;
         }

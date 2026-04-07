@@ -35,10 +35,17 @@ public sealed class FirebirdProviderSqlDialectTests
         var usersTable = dialect.CreateUsersTable("Users", "ABCD1234");
         var tempTable = dialect.CreateTemporaryUsersTable("Users");
         var sequenceSql = dialect.NextSequenceValue("SEQ_USERS");
+        var sequenceSelectSql = dialect.SelectNextSequenceValue("SEQ_USERS");
+        var batchInsertSql = dialect.InsertUsers("Users", (1, "Ana"), (2, "Beto"));
 
         Assert.Contains("CREATE TABLE Users_ABCD1234", usersTable);
         Assert.Contains("BLOB SUB_TYPE TEXT", usersTable);
         Assert.Contains("CREATE GLOBAL TEMPORARY TABLE Users", tempTable);
         Assert.Contains("NEXT VALUE FOR SEQ_USERS", sequenceSql);
+        Assert.Contains("FROM RDB$DATABASE", sequenceSelectSql);
+        Assert.Contains("INSERT INTO Users (Id, Name, IsActive, Balance, CreatedAt)", batchInsertSql);
+        Assert.Contains("FROM (", batchInsertSql);
+        Assert.Contains("UNION ALL SELECT 2 AS counter FROM RDB$DATABASE", batchInsertSql);
+        Assert.Contains("User-' || counter", batchInsertSql);
     }
 }

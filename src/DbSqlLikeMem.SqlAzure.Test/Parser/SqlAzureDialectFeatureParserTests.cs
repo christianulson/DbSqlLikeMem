@@ -85,7 +85,7 @@ public sealed class SqlAzureDialectFeatureParserTests(
     {
         var dialect = CreateDialect(compatibilityLevel);
         var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
             "CREATE OR REPLACE FUNCTION fn_users(@baseValue INT, @incrementValue INT) RETURNS INT AS BEGIN RETURN @baseValue + @incrementValue END",
             db,
             dialect));

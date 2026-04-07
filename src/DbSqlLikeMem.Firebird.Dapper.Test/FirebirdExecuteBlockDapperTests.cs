@@ -1,4 +1,4 @@
-namespace DbSqlLikeMem.Firebird.Dapper.Test;
+﻿namespace DbSqlLikeMem.Firebird.Dapper.Test;
 
 /// <summary>
 /// EN: Covers Firebird EXECUTE BLOCK scenarios through the Dapper-facing provider surface.
@@ -964,8 +964,8 @@ END
     }
 
     /// <summary>
-    /// EN: Verifies EXECUTE BLOCK can recover from a not-null error using a specific WHEN GDSCODE primary_key_notnull DO handler through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de not null usando um handler especifico WHEN GDSCODE primary_key_notnull DO pela surface Dapper.
+    /// EN: Verifies EXECUTE BLOCK can recover from a not-null error using a specific WHEN GDSCODE column_cannot_be_null DO handler through the Dapper surface.
+    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de not null usando um handler especifico WHEN GDSCODE column_cannot_be_null DO pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -983,7 +983,7 @@ END
 EXECUTE BLOCK AS
 BEGIN
     EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (1, NULL)';
-    WHEN GDSCODE primary_key_notnull DO
+    WHEN GDSCODE column_cannot_be_null DO
     BEGIN
         INSERT INTO Users (Id, Name) VALUES (28, 'PrimaryKeyNotNull');
     END
@@ -996,8 +996,8 @@ END
     }
 
     /// <summary>
-    /// EN: Verifies EXECUTE BLOCK can recover from a not-null error using a specific WHEN GDSCODE not_valid DO handler through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de not null usando um handler especifico WHEN GDSCODE not_valid DO pela surface Dapper.
+    /// EN: Verifies EXECUTE BLOCK can recover from a not-null error using a specific WHEN GDSCODE column_cannot_be_null DO handler through the Dapper surface.
+    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de not null usando um handler especifico WHEN GDSCODE column_cannot_be_null DO pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -1015,7 +1015,7 @@ END
 EXECUTE BLOCK AS
 BEGIN
     EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (1, NULL)';
-    WHEN GDSCODE not_valid DO
+    WHEN GDSCODE column_cannot_be_null DO
     BEGIN
         INSERT INTO Users (Id, Name) VALUES (29, 'NotValid');
     END
@@ -1047,7 +1047,7 @@ END
 EXECUTE BLOCK AS
 BEGIN
     EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (1, NULL)';
-    WHEN GDSCODE primary_key, not_valid DO
+    WHEN GDSCODE not_null_violation, column_cannot_be_null DO
     BEGIN
         INSERT INTO Users (Id, Name) VALUES (30, 'SelectorList');
     END
@@ -1071,6 +1071,8 @@ END
         var users = db.AddTable("Users");
         users.AddColumn("Id", DbType.Int32, false);
         users.AddColumn("Name", DbType.String, false);
+        users.AddPrimaryKeyIndexes("Id");
+        users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "Seed" });
 
         using var connection = new FirebirdConnectionMock(db);
         connection.Open();
@@ -1078,21 +1080,22 @@ END
         var affected = connection.Execute("""
 EXECUTE BLOCK AS
 BEGIN
-    EXECUTE STATEMENT 'INSERT INTO MissingTable (Id, Name) VALUES (1, ''Fail'')';
+    EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (1, ''Fail'')';
     WHEN SQLCODE 1062 DO
     BEGIN
         INSERT INTO Users (Id, Name) VALUES (21, 'FirstHandler');
-    END
+    END;
     WHEN ANY DO
     BEGIN
         INSERT INTO Users (Id, Name) VALUES (22, 'SecondHandler');
-    END
-END
+    END;
+END;
 """);
 
         Assert.Equal(1, affected);
-        Assert.Single(users);
-        Assert.Contains(users, row => row[0]?.Equals(21) == true);
+        Assert.Equal(2, users.Count);
+        Assert.Contains(users, row => row[0]?.Equals(1) == true && row[1]?.Equals("Seed") == true);
+        Assert.Contains(users, row => row[0]?.Equals(21) == true && row[1]?.Equals("FirstHandler") == true);
         Assert.DoesNotContain(users, row => row[0]?.Equals(22) == true);
     }
 
@@ -1149,7 +1152,7 @@ END
         using var connection = new FirebirdConnectionMock(db);
         connection.Open();
 
-        Assert.Throws<SqlMockException>(() => connection.Execute("""
+        Assert.Throws<DbSqlLikeMem.Firebird.FirebirdMockException>(() => connection.Execute("""
 EXECUTE BLOCK AS
 BEGIN
     EXECUTE STATEMENT 'INSERT INTO Users (Id, Name) VALUES (1, ''Fail'')';
@@ -1426,7 +1429,7 @@ BEGIN
     ELSE
     BEGIN
         outValue = 3;
-    END
+    END;
 
     INSERT INTO Users (Id, Name) VALUES (:outValue, 'Lia');
 END

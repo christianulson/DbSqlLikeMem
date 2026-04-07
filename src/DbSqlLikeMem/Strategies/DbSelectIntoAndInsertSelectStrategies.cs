@@ -637,6 +637,12 @@ internal static class DbSelectIntoAndInsertSelectStrategies
 
             try
             {
+                if (TryExecuteExecuteBlockSpecialCommand(connection, scopedParameters, statementSql, out var specialAffected))
+                {
+                    affectedTotal += specialAffected.AffectedRows;
+                    continue;
+                }
+
                 var affected = connection.ExecuteNonQueryWithPipeline(
                     statementSql,
                     scopedParameters,
@@ -1398,7 +1404,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             bindings = parameterBindings;
         }
 
-        if (!TryConsumeExecuteStatementOptionClauses(sqlRaw, tokens, ref index, out useExternalConnection, out useAutonomousTransaction, out useCommonTransaction, out externalUser, out externalRole, out externalPassword, out externalDataSource))
+        if (!TryConsumeExecuteStatementOptionClauses(sqlRaw, tokens, dialect, ref index, out useExternalConnection, out useAutonomousTransaction, out useCommonTransaction, out externalUser, out externalRole, out externalPassword, out externalDataSource))
             return false;
 
         if (index < tokens.Count)
@@ -1417,6 +1423,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     private static bool TryConsumeExecuteStatementOptionClauses(
         string sqlRaw,
         IReadOnlyList<SqlToken> tokens,
+        ISqlDialect dialect,
         ref int index,
         out bool useExternalConnection,
         out bool useAutonomousTransaction,
@@ -1486,7 +1493,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
                     index += 2;
                 }
 
-                if (!TryConsumeExecuteStatementOptionExpression(sqlRaw, tokens, ref index, out var optionSql))
+                if (!TryConsumeExecuteStatementOptionExpression(sqlRaw, tokens, dialect, ref index, out var optionSql))
                     return false;
                 externalDataSource = NormalizeExecuteStatementOptionValue(optionSql);
 
@@ -1499,7 +1506,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
                     return false;
 
                 index += 2;
-                if (!TryConsumeExecuteStatementOptionExpression(sqlRaw, tokens, ref index, out var optionSql))
+                if (!TryConsumeExecuteStatementOptionExpression(sqlRaw, tokens, dialect, ref index, out var optionSql))
                     return false;
 
                 externalUser = NormalizeExecuteStatementOptionValue(optionSql);
@@ -1512,7 +1519,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             {
                 var optionName = tokens[index].Text;
                 index++;
-                if (!TryConsumeExecuteStatementOptionExpression(sqlRaw, tokens, ref index, out var optionSql))
+                if (!TryConsumeExecuteStatementOptionExpression(sqlRaw, tokens, dialect, ref index, out var optionSql))
                     return false;
                 if (string.Equals(optionName, "ROLE", StringComparison.OrdinalIgnoreCase))
                     externalRole = NormalizeExecuteStatementOptionValue(optionSql);
@@ -1531,6 +1538,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     private static bool TryConsumeExecuteStatementOptionExpression(
         string sqlRaw,
         IReadOnlyList<SqlToken> tokens,
+        ISqlDialect dialect,
         ref int index,
         out string optionSql)
     {
@@ -1565,8 +1573,32 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             index++;
         }
 
-        optionSql = index > startIndex ? TokensToSql(sqlRaw, SliceTokens(tokens, startIndex, index)).Trim() : string.Empty;
+        optionSql = index > startIndex
+            ? RenderTokensToSql(SliceTokens(tokens, startIndex, index), dialect).Trim()
+            : string.Empty;
         return index > startIndex;
+    }
+
+    private static string RenderTokensToSql(
+        IReadOnlyList<SqlToken> tokens,
+        ISqlDialect dialect)
+    {
+        if (tokens.Count == 0)
+            return string.Empty;
+
+        var sb = new StringBuilder();
+        SqlToken? prev = null;
+        foreach (var token in tokens)
+        {
+            var renderedText = TokenToSql(token, dialect);
+            if (sb.Length > 0 && NeedsSpace(prev, token))
+                sb.Append(' ');
+
+            sb.Append(renderedText);
+            prev = token;
+        }
+
+        return sb.ToString().Trim();
     }
 
     private static bool TryParseExecuteBlockExecuteStatement(
@@ -1825,18 +1857,19 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         if (parameterTokens.Count == 0)
             return [];
 
-        var itemsSql = TokensToSql(sqlRaw, parameterTokens).SplitRawByComma();
-        if (itemsSql.Any(string.IsNullOrWhiteSpace))
+        var itemsTokens = SplitTokensRawByComma(parameterTokens);
+        if (itemsTokens.Any(static item => item.Count == 0))
             return null;
 
-        var bindings = new List<ExecuteStatementParameterBinding>(itemsSql.Count);
+        var bindings = new List<ExecuteStatementParameterBinding>(itemsTokens.Count);
         ExecuteStatementParameterBindingKind? bindingKind = null;
         HashSet<string>? namedBindingNames = null;
 
-        foreach (var itemSql in itemsSql)
+        foreach (var itemTokens in itemsTokens)
         {
             if (!TryParseExecuteStatementBinding(
-                    itemSql,
+                    sqlRaw,
+                    itemTokens,
                     connection,
                     scopedParameters,
                     out var binding,
@@ -1864,7 +1897,8 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     }
 
     private static bool TryParseExecuteStatementBinding(
-        string itemSql,
+        string sqlRaw,
+        IReadOnlyList<SqlToken> itemTokens,
         DbConnectionMockBase connection,
         SqlExecuteBlockParameterCollection scopedParameters,
         out ExecuteStatementParameterBinding binding,
@@ -1873,32 +1907,53 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         binding = default;
         kind = ExecuteStatementParameterBindingKind.Positional;
 
-        var tokens = new SqlTokenizer(itemSql, connection.ExecutionDialect).Tokenize()
-            .Where(static token => token.Kind != SqlTokenKind.EndOfFile)
-            .ToList();
-        if (tokens.Count == 0)
+        if (itemTokens.Count == 0)
             return false;
 
-        var assignIndex = FindTopLevelAssignmentIndex(tokens);
+        var assignIndex = FindTopLevelAssignmentIndex(itemTokens);
         if (assignIndex >= 0)
         {
-            var assignToken = tokens[assignIndex];
-            var assignTokenLength = assignToken.Kind == SqlTokenKind.Operator && assignToken.Text == ":=" ? 1 : 2;
+            var nameTokens = SliceTokens(itemTokens, 0, assignIndex);
+            if (nameTokens.Count == 0)
+                return false;
 
-            var nameSql = TokensToSql(itemSql, SliceTokens(tokens, 0, assignIndex)).Trim();
+            var nameSql = TokensToSql(sqlRaw, nameTokens).Trim();
             if (string.IsNullOrWhiteSpace(nameSql))
                 return false;
 
             var name = nameSql.TrimStart(':', '@', '?');
-            var exprStartIndex = assignIndex + assignTokenLength;
-            if (exprStartIndex >= tokens.Count)
+            var exprStartIndex = assignIndex + 1;
+            if (assignIndex + 1 < itemTokens.Count
+                && itemTokens[assignIndex].Text == ":"
+                && itemTokens[assignIndex + 1].Text == "=")
+            {
+                exprStartIndex = assignIndex + 2;
+            }
+
+            var exprTokens = SliceTokensFrom(itemTokens, exprStartIndex);
+            if (exprTokens.Count == 0)
                 return false;
 
-            var exprSql = TokensToSql(itemSql, SliceTokensFrom(tokens, exprStartIndex)).Trim();
+            var exprSql = TokensToSql(sqlRaw, exprTokens).Trim();
             if (string.IsNullOrWhiteSpace(exprSql))
                 return false;
 
+            if (exprTokens.Count == 1 && exprTokens[0].Kind == SqlTokenKind.String)
+            {
+                binding = ExecuteStatementParameterBinding.Named(name, exprTokens[0].Text);
+                kind = ExecuteStatementParameterBindingKind.Named;
+                return true;
+            }
+
+            if (TryParseExecuteStatementStringLiteral(exprSql, out var literalValue))
+            {
+                binding = ExecuteStatementParameterBinding.Named(name, literalValue);
+                kind = ExecuteStatementParameterBindingKind.Named;
+                return true;
+            }
+
             var expr = SqlExpressionParser.ParseScalar(exprSql, connection.Db, connection.ExecutionDialect, scopedParameters);
+
             if (!TryEvaluateExecuteBlockExpression(expr, connection, scopedParameters, out var value))
                 return false;
 
@@ -1907,13 +1962,175 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             return true;
         }
 
+        if (itemTokens.Count == 1 && itemTokens[0].Kind == SqlTokenKind.String)
+        {
+            binding = ExecuteStatementParameterBinding.Positional(itemTokens[0].Text);
+            kind = ExecuteStatementParameterBindingKind.Positional;
+            return true;
+        }
+
+        var itemSql = TokensToSql(sqlRaw, itemTokens).Trim();
+        if (string.IsNullOrWhiteSpace(itemSql))
+            return false;
+
         var positionalExpr = SqlExpressionParser.ParseScalar(itemSql, connection.Db, connection.ExecutionDialect, scopedParameters);
+
         if (!TryEvaluateExecuteBlockExpression(positionalExpr, connection, scopedParameters, out var positionalValue))
             return false;
 
         binding = ExecuteStatementParameterBinding.Positional(positionalValue);
         kind = ExecuteStatementParameterBindingKind.Positional;
         return true;
+    }
+
+    private static bool TryParseExecuteStatementStringLiteral(string sql, out object? value)
+    {
+        value = null;
+        if (string.IsNullOrWhiteSpace(sql) || sql.Length < 2)
+            return false;
+
+        var trimmed = sql.Trim();
+        if (trimmed.Length < 2 || trimmed[0] != '\'' || trimmed[^1] != '\'')
+            return false;
+
+        var sb = new StringBuilder(trimmed.Length - 2);
+        for (var i = 1; i < trimmed.Length - 1; i++)
+        {
+            var ch = trimmed[i];
+            if (ch == '\'' && i + 1 < trimmed.Length - 1 && trimmed[i + 1] == '\'')
+            {
+                sb.Append('\'');
+                i++;
+                continue;
+            }
+
+            sb.Append(ch);
+        }
+
+        value = sb.ToString();
+        return true;
+    }
+
+    private static List<IReadOnlyList<SqlToken>> SplitTokensRawByComma(IReadOnlyList<SqlToken> tokens)
+    {
+        var res = new List<IReadOnlyList<SqlToken>>();
+        if (tokens.Count == 0)
+            return res;
+
+        var depth = 0;
+        var start = 0;
+        for (var i = 0; i < tokens.Count; i++)
+        {
+            var token = tokens[i];
+            if (token.Kind == SqlTokenKind.Symbol && token.Text == "(")
+            {
+                depth++;
+                continue;
+            }
+
+            if (token.Kind == SqlTokenKind.Symbol && token.Text == ")" && depth > 0)
+            {
+                depth--;
+                continue;
+            }
+
+            if (depth == 0 && token.Kind == SqlTokenKind.Symbol && token.Text == ",")
+            {
+                res.Add(SliceTokens(tokens, start, i));
+                start = i + 1;
+            }
+        }
+
+        res.Add(SliceTokens(tokens, start, tokens.Count));
+        return res;
+    }
+
+    private static int FindTopLevelAssignmentRawIndex(string sql)
+    {
+        var depth = 0;
+        var inSingleQuote = false;
+        var inDoubleQuote = false;
+
+        for (var i = 0; i < sql.Length; i++)
+        {
+            var ch = sql[i];
+
+            if (inSingleQuote)
+            {
+                if (ch == '\\' && i + 1 < sql.Length)
+                {
+                    i++;
+                    continue;
+                }
+
+                if (ch == '\'' && i + 1 < sql.Length && sql[i + 1] == '\'')
+                {
+                    i++;
+                    continue;
+                }
+
+                if (ch == '\'')
+                    inSingleQuote = false;
+
+                continue;
+            }
+
+            if (inDoubleQuote)
+            {
+                if (ch == '\\' && i + 1 < sql.Length)
+                {
+                    i++;
+                    continue;
+                }
+
+                if (ch == '"' && i + 1 < sql.Length && sql[i + 1] == '"')
+                {
+                    i++;
+                    continue;
+                }
+
+                if (ch == '"')
+                    inDoubleQuote = false;
+
+                continue;
+            }
+
+            if (ch == '\'')
+            {
+                inSingleQuote = true;
+                continue;
+            }
+
+            if (ch == '"')
+            {
+                inDoubleQuote = true;
+                continue;
+            }
+
+            if (ch == '(')
+            {
+                depth++;
+                continue;
+            }
+
+            if (ch == ')')
+            {
+                if (depth > 0)
+                    depth--;
+                continue;
+            }
+
+            if (depth == 0)
+            {
+                if (ch == ':' && i + 1 < sql.Length && sql[i + 1] == '=')
+                    return i;
+
+                if (ch == '=')
+                    return i;
+            }
+        }
+
+        return -1;
     }
 
     private static bool TryRenderExecuteStatementSql(
@@ -3260,7 +3477,21 @@ internal static class DbSelectIntoAndInsertSelectStrategies
 
         var schemaName = query.Table?.DbName;
         var tempScope = query.Scope;
-        if (tempScope == TemporaryTableScope.Global)
+        ITableMock newTable = null!;
+
+        if (!query.Temporary)
+        {
+            if (connection.TryGetTable(tableName!, out _, schemaName))
+            {
+                if (query.IfNotExists)
+                    return new DmlExecutionResult();
+
+                throw new InvalidOperationException(SqlExceptionMessages.TableAlreadyExists(tableName!));
+            }
+
+            newTable = connection.AddTable(tableName!, schemaName: schemaName);
+        }
+        else if (tempScope == TemporaryTableScope.Global)
         {
             if (connection.TryGetGlobalTemporaryTable(tableName!, out _, schemaName))
             {
@@ -3275,9 +3506,13 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         }
 
         var executor = context.CreateExecutor();
-        var newTable = tempScope == TemporaryTableScope.Global
-            ? connection.AddGlobalTemporaryTable(tableName!, schemaName: schemaName)
-            : connection.AddTemporaryTable(tableName!, schemaName: schemaName);
+        if (query.Temporary)
+        {
+            if (tempScope == TemporaryTableScope.Global)
+                newTable = connection.AddGlobalTemporaryTable(tableName!, schemaName: schemaName);
+            else
+                newTable = connection.AddTemporaryTable(tableName!, schemaName: schemaName);
+        }
 
         if (query.AsSelect is null)
         {

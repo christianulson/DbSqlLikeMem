@@ -46,10 +46,10 @@ CREATE TABLE {tableName}_{uId} (
     Id INTEGER NOT NULL PRIMARY KEY,
     Name VARCHAR(100) NOT NULL,
     Email VARCHAR(150),
-    IsActive SMALLINT NOT NULL DEFAULT 1,
+    IsActive SMALLINT DEFAULT 1 NOT NULL,
     Age SMALLINT,
-    Balance DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-    CreatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    Balance DECIMAL(12,2) DEFAULT 0.00 NOT NULL,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     UpdatedAt TIMESTAMP,
     ProfileJson BLOB SUB_TYPE TEXT
 )";
@@ -62,10 +62,10 @@ CREATE TABLE {tableName}_{uId} (
     {usersTableName}Id INTEGER NOT NULL,
     Note VARCHAR(100) NOT NULL,
     OrderNumber VARCHAR(40) NOT NULL,
-    Amount DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-    Quantity INTEGER NOT NULL DEFAULT 1,
-    IsPaid SMALLINT NOT NULL DEFAULT 0,
-    OrderedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    Amount DECIMAL(12,2) DEFAULT 0.00 NOT NULL,
+    Quantity INTEGER DEFAULT 1 NOT NULL,
+    IsPaid SMALLINT DEFAULT 0 NOT NULL,
+    OrderedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     DeliveredAt TIMESTAMP,
     ExtraJson BLOB SUB_TYPE TEXT,
     CONSTRAINT FK_{tableName}_{uId}_{usersTableName} FOREIGN KEY ({usersTableName}Id) REFERENCES {usersTableName}(Id)
@@ -83,7 +83,37 @@ CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (Order
 
     /// <inheritdoc />
     public override string InsertUsers(string tableName, params (int id, string name)[] values) =>
-        $"INSERT INTO {tableName} (Id, Name, IsActive, Balance, CreatedAt) VALUES {string.Join(",", values.Select(_ => $"({_.id}, '{_.name}', 1, 0.00, CURRENT_TIMESTAMP)"))}";
+        BuildInsertUsers(tableName, values);
+
+    private static string BuildInsertUsers(string tableName, (int id, string name)[] values)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.Append("INSERT INTO ");
+        sb.Append(tableName);
+        sb.AppendLine(" (Id, Name, IsActive, Balance, CreatedAt)");
+        sb.AppendLine("SELECT counter, 'User-' || counter, 1, 0.00, CURRENT_TIMESTAMP");
+        sb.AppendLine("FROM (");
+
+        for (var i = 0; i < values.Length; i++)
+        {
+            if (i == 0)
+            {
+                sb.Append("    SELECT ");
+            }
+            else
+            {
+                sb.Append("    UNION ALL SELECT ");
+            }
+
+            sb.Append(values[i].id);
+            sb.Append(" AS counter FROM RDB$DATABASE");
+            sb.AppendLine();
+        }
+
+        sb.Append(')');
+        sb.AppendLine(" q");
+        return sb.ToString();
+    }
 
     /// <inheritdoc />
     public override string InsertOrder(
@@ -104,6 +134,24 @@ CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (Order
         $"SELECT Name FROM {tableName} WHERE Id = {id}";
 
     /// <inheritdoc />
+    public override string SelectScalarSubquery(string usersTable, string ordersTable) =>
+        $"""
+SELECT (
+    SELECT COUNT(*)
+    FROM {ordersTable} o
+    WHERE o.{usersTable}Id = 1
+)
+FROM RDB$DATABASE
+""";
+
+    /// <inheritdoc />
+    public override string SelectParameterProjection(string projectionList) =>
+        $@"
+SELECT
+    {projectionList}
+FROM RDB$DATABASE";
+
+    /// <inheritdoc />
     public override string CountJoinForUser(string usersTable, string ordersTable, int userId) =>
         $"SELECT COUNT(*) FROM {usersTable} u INNER JOIN {ordersTable} o ON o.{usersTable}Id = u.Id WHERE u.Id = {userId}";
 
@@ -121,7 +169,7 @@ CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (Order
 
     /// <inheritdoc />
     public override string DateScalar() =>
-        "SELECT CURRENT_TIMESTAMP";
+        "SELECT CURRENT_TIMESTAMP FROM RDB$DATABASE";
 
     /// <inheritdoc />
     public override string StringAggregate(string tableName) =>
@@ -148,6 +196,10 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
         $"NEXT VALUE FOR {sequenceName}";
 
     /// <inheritdoc />
+    public override string SelectNextSequenceValue(string sequenceName) =>
+        $"SELECT NEXT VALUE FOR {sequenceName} AS SeqValue FROM RDB$DATABASE";
+
+    /// <inheritdoc />
     public override string CurrentSequenceValue(string sequenceName) =>
         $"SELECT GEN_ID({sequenceName}, 0) FROM RDB$DATABASE";
 
@@ -161,11 +213,11 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
 
     /// <inheritdoc />
     public override string StringAggregateOrdered(string tableName) =>
-        $"SELECT LIST(Name, ',') FROM {tableName} ORDER BY Name";
+        $"SELECT LIST(Name, ',') FROM {tableName}";
 
     /// <inheritdoc />
     public override string StringAggregateDistinct(string tableName) =>
-        $"SELECT LIST(Name, ',') FROM (SELECT DISTINCT Name FROM {tableName}) q";
+        $"SELECT LIST(Name, ',') FROM (SELECT DISTINCT Name FROM {tableName} ORDER BY Name) q";
 
     /// <inheritdoc />
     public override string StringAggregateCustomSeparator(string tableName, string separator) =>
@@ -174,6 +226,10 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
     /// <inheritdoc />
     public override string StringAggregateLargeGroup(string tableName) =>
         $"SELECT LIST(Name, ',') FROM {tableName}";
+
+    /// <inheritdoc />
+    public override string StringPrefixExpression(string expression, int length) =>
+        $"SUBSTRING({expression} FROM 1 FOR {length})";
 
     /// <inheritdoc />
     public override string StringLengthExpression(string expression) =>
@@ -206,4 +262,3 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
     public override string OuterApplyProjection(string usersTable, string ordersTable) =>
         $"SELECT COUNT(*) FROM {usersTable} u";
 }
-

@@ -47,7 +47,7 @@ public sealed class FirebirdDialectFeatureParserTests(
     {
         var dialect = new FirebirdDialect(FirebirdDbVersions.Default);
         var db = new FirebirdDbMock(FirebirdDbVersions.Default);
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
             "CREATE OR REPLACE FUNCTION fn_users(baseValue INT, incrementValue INT) RETURNS INT AS BEGIN RETURN baseValue + incrementValue; END",
             db, dialect));
         Assert.Contains("CREATE OR REPLACE FUNCTION", ex.Message, StringComparison.OrdinalIgnoreCase);

@@ -110,7 +110,7 @@ WHERE tenantid = 10",
     {
         var db = Get(version, v => new NpgsqlDbMock(v));
         const string sql = "CREATE OR REPLACE TABLE tmp_users AS SELECT id FROM users";
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new NpgsqlDialect(v))));
+        Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new NpgsqlDialect(v))));
     }
 
     /// <summary>

@@ -42,8 +42,8 @@ public sealed class FirebirdContextVariableTests
         Assert.Equal("SNAPSHOT TABLE STABILITY", connection.QuerySingle<string>("SELECT RDB$GET_CONTEXT('SYSTEM', 'ISOLATION_LEVEL') FROM RDB$DATABASE"));
         connection.Execute("UPDATE Users SET Name = 'Ana2' WHERE Id = 999");
         Assert.Equal(0L, connection.QuerySingle<long>("SELECT RDB$GET_CONTEXT('SYSTEM', 'ROW_COUNT') FROM RDB$DATABASE"));
-        Assert.Null(connection.QuerySingle<object?>("SELECT RDB$GET_CONTEXT('SYSTEM', 'WIRE_COMPRESSED') FROM RDB$DATABASE"));
-        Assert.Null(connection.QuerySingle<object?>("SELECT RDB$GET_CONTEXT('SYSTEM', 'WIRE_ENCRYPTED') FROM RDB$DATABASE"));
+        Assert.Null(connection.QuerySingle<string?>("SELECT RDB$GET_CONTEXT('SYSTEM', 'WIRE_COMPRESSED') FROM RDB$DATABASE"));
+        Assert.Null(connection.QuerySingle<string?>("SELECT RDB$GET_CONTEXT('SYSTEM', 'WIRE_ENCRYPTED') FROM RDB$DATABASE"));
         Assert.Equal(DateTime.Now.Date, connection.QuerySingle<DateTime>("SELECT TODAY FROM RDB$DATABASE").Date);
         Assert.Equal(DateTime.Now.Date.AddDays(1), connection.QuerySingle<DateTime>("SELECT TOMORROW FROM RDB$DATABASE").Date);
         Assert.Equal(DateTime.Now.Date.AddDays(-1), connection.QuerySingle<DateTime>("SELECT YESTERDAY FROM RDB$DATABASE").Date);
@@ -137,8 +137,8 @@ public sealed class FirebirdContextVariableTests
         Assert.Equal("SNAPSHOT TABLE STABILITY", connection.QuerySingle<string>("SELECT RDB$GET_CONTEXT('SYSTEM', 'ISOLATION_LEVEL') FROM RDB$DATABASE"));
         connection.Execute("UPDATE Users SET Name = 'Ana2' WHERE Id = 999");
         Assert.Equal(0L, connection.QuerySingle<long>("SELECT RDB$GET_CONTEXT('SYSTEM', 'ROW_COUNT') FROM RDB$DATABASE"));
-        Assert.Null(connection.QuerySingle<object?>("SELECT RDB$GET_CONTEXT('SYSTEM', 'WIRE_COMPRESSED') FROM RDB$DATABASE"));
-        Assert.Null(connection.QuerySingle<object?>("SELECT RDB$GET_CONTEXT('SYSTEM', 'WIRE_ENCRYPTED') FROM RDB$DATABASE"));
+        Assert.Null(connection.QuerySingle<string?>("SELECT RDB$GET_CONTEXT('SYSTEM', 'WIRE_COMPRESSED') FROM RDB$DATABASE"));
+        Assert.Null(connection.QuerySingle<string?>("SELECT RDB$GET_CONTEXT('SYSTEM', 'WIRE_ENCRYPTED') FROM RDB$DATABASE"));
         Assert.Equal(DateTime.Now.Date, connection.QuerySingle<DateTime>("SELECT TODAY FROM RDB$DATABASE").Date);
         Assert.Equal(DateTime.Now.Date.AddDays(1), connection.QuerySingle<DateTime>("SELECT TOMORROW FROM RDB$DATABASE").Date);
         Assert.Equal(DateTime.Now.Date.AddDays(-1), connection.QuerySingle<DateTime>("SELECT YESTERDAY FROM RDB$DATABASE").Date);

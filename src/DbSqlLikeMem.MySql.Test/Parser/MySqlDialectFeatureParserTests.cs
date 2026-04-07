@@ -153,7 +153,7 @@ public sealed class MySqlDialectFeatureParserTests(
     {
         var d = Get(version, v => new MySqlDialect(v));
         var db = Get(version, v => new MySqlDbMock(v));
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
             "CREATE OR REPLACE FUNCTION fn_users(baseValue INT, incrementValue INT) RETURNS INT RETURN baseValue + incrementValue",
             db, d));
         Assert.Contains("CREATE OR REPLACE FUNCTION", ex.Message, StringComparison.OrdinalIgnoreCase);

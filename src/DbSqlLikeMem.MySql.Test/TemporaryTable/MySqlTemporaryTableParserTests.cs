@@ -114,7 +114,7 @@ WHERE `tenantid` = 10",
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "CREATE OR REPLACE TABLE tmp_users AS SELECT id FROM users";
         Action act = () => SqlQueryParser.Parse(sql, db, d);
-        act.Should().Throw<InvalidOperationException>();
+        act.Should().Throw<NotSupportedException>();
     }
 
     /// <summary>

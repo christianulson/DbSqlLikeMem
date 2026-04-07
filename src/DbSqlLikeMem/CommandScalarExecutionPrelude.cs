@@ -595,7 +595,10 @@ internal static class CommandScalarExecutionPrelude
             return false;
 
         if (!TryEvaluateConstantScalarExpression(context, args[2], out var baseDateValue))
-            return false;
+        {
+            if (!TryResolveTemporalBaseValue(context, args[2], out baseDateValue))
+                return false;
+        }
 
         if (IsNullish(baseDateValue) || !TryCoerceDateTime(baseDateValue, out var dateTimeValue))
         {
@@ -618,6 +621,26 @@ internal static class CommandScalarExecutionPrelude
 
         value = ApplyDateDelta(dateTimeValue, unit, Convert.ToInt32((amountValue ?? 0m).ToDec()));
         return true;
+    }
+
+    private static bool TryResolveTemporalBaseValue(
+        QueryExecutionContext context,
+        SqlExpr expr,
+        out object? value)
+    {
+        value = null;
+
+        switch (expr)
+        {
+            case IdentifierExpr identifier:
+                return context.TryEvaluateZeroArgIdentifier(identifier.Name, out value);
+            case FunctionCallExpr functionCall when functionCall.Args.Count == 0:
+                return context.TryEvaluateZeroArgCall(functionCall.Name, out value);
+            case CallExpr call when call.Args.Count == 0:
+                return context.TryEvaluateZeroArgCall(call.Name, out value);
+            default:
+                return false;
+        }
     }
 
     private static bool TryEvaluateConstantJsonFunction(

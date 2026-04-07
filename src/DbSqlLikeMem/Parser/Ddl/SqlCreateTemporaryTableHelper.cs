@@ -18,8 +18,51 @@ internal static class SqlCreateTemporaryTableHelper
         "ON",
     };
 
+    private static readonly HashSet<string> TypeContinuationTokens = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "WITH",
+        "WITHOUT",
+        "NATIONAL",
+        "CHARACTER",
+        "LONG",
+        "VAR",
+    };
+
+    private static readonly HashSet<string> ColumnTypeStarterTokens = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "INT",
+        "INTEGER",
+        "SMALLINT",
+        "BIGINT",
+        "DECIMAL",
+        "NUMERIC",
+        "NUMBER",
+        "FLOAT",
+        "REAL",
+        "DOUBLE",
+        "BOOLEAN",
+        "BOOL",
+        "DATE",
+        "TIME",
+        "TIMESTAMP",
+        "DATETIME",
+        "CHAR",
+        "VARCHAR",
+        "NCHAR",
+        "NVARCHAR",
+        "TEXT",
+        "CLOB",
+        "NCLOB",
+        "BLOB",
+        "BINARY",
+        "VARBINARY",
+        "GUID",
+        "UUID",
+    };
+
     internal static SqlCreateTemporaryTableQuery ParseCreateTemporaryTable(
-        this SqlQueryParserContext ctx
+        this SqlQueryParserContext ctx,
+        bool orReplace
         )
     {
         var isTemporary = false;
@@ -50,6 +93,9 @@ internal static class SqlCreateTemporaryTableHelper
             throw new InvalidOperationException("CREATE TEMPORARY TABLE requires TABLE keyword.");
 
         ctx.Consume(); // TABLE
+
+        if (orReplace && !ctx.Dialect.SupportsCreateOrReplaceTableDdl)
+            throw ctx.NotSupported("CREATE OR REPLACE TABLE");
 
         var ifNotExists = false;
         if (ctx.IsWord(SqlConst.IF))
@@ -101,6 +147,8 @@ internal static class SqlCreateTemporaryTableHelper
 
                 var typeTokens = new List<SqlToken>();
                 var depth = 0;
+                var lastTopLevelToken = default(SqlToken?);
+                var sawTypeToken = false;
                 for (var i = 1; i < defTokens.Count; i++)
                 {
                     var token = defTokens[i];
@@ -111,6 +159,19 @@ internal static class SqlCreateTemporaryTableHelper
                         depth++;
                     else if (token.Text == ")" && depth > 0)
                         depth--;
+
+                    if (depth == 0)
+                    {
+                        if (sawTypeToken
+                            && IsColumnTypeStarterToken(token)
+                            && !IsTypeContinuationToken(lastTopLevelToken))
+                        {
+                            throw new InvalidOperationException("CREATE TEMPORARY TABLE column list must separate columns with commas.");
+                        }
+
+                        sawTypeToken = true;
+                        lastTopLevelToken = token;
+                    }
 
                     typeTokens.Add(token);
                 }
@@ -202,14 +263,21 @@ internal static class SqlCreateTemporaryTableHelper
             isTemporary = tempScope != TemporaryTableScope.None;
         }
 
-        if (!isTemporary)
-            throw SqlUnsupported.NotSupportedParser("CREATE sem TEMPORARY TABLE");
+        if (!isTemporary && !ctx.Dialect.SupportsCreateTableDdl)
+            throw ctx.NotSupported("CREATE TABLE");
+
+        if (!isTemporary
+            && sel is null
+            && columnDefinitions.Count == 0)
+        {
+            throw new InvalidOperationException(SqlExceptionMessages.InvalidCreateTableStatement());
+        }
 
         return new SqlCreateTemporaryTableQuery
         {
-            Temporary = true,
+            Temporary = isTemporary,
             Scope = tempScope == TemporaryTableScope.None
-                ? TemporaryTableScope.Connection
+                ? (isTemporary ? TemporaryTableScope.Connection : TemporaryTableScope.None)
                 : tempScope,
             IfNotExists = ifNotExists,
             Table = table,
@@ -244,6 +312,15 @@ internal static class SqlCreateTemporaryTableHelper
     private static bool IsColumnConstraintToken(SqlToken token)
         => token.Kind is SqlTokenKind.Identifier or SqlTokenKind.Keyword
            && ColumnConstraintTokens.Contains(token.Text);
+
+    private static bool IsTypeContinuationToken(SqlToken? token)
+        => token is not null
+           && token.Value.Kind is SqlTokenKind.Identifier or SqlTokenKind.Keyword
+           && TypeContinuationTokens.Contains(token.Value.Text);
+
+    private static bool IsColumnTypeStarterToken(SqlToken token)
+        => token.Kind is SqlTokenKind.Identifier or SqlTokenKind.Keyword
+           && ColumnTypeStarterTokens.Contains(token.Text);
 
     private static string TokensToSql(IReadOnlyList<SqlToken> tokens)
         => string.Join(" ", tokens.Select(static token => token.Text)).Trim();

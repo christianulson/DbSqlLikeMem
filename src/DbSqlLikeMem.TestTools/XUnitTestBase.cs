@@ -39,7 +39,7 @@ public abstract class XUnitTestBase : IDisposable
 
     /// <summary>
     /// EN: Resolves whether the specified provider can run container comparisons in the current environment.
-    /// PT: ResolveRowsFrameRange se o provedor informado pode executar comparacoes com container no ambiente atual.
+    /// PT: Resolve se o provedor informado pode executar comparacoes com container no ambiente atual.
     /// </summary>
     /// <param name="provider">EN: The provider being evaluated. PT: O provedor avaliado.</param>
     /// <returns>EN: True when the provider is allowed to run container comparisons. PT: True quando o provedor pode executar comparacoes com container.</returns>
@@ -48,6 +48,7 @@ public abstract class XUnitTestBase : IDisposable
         {
             ProviderId.Db2 => Environment.GetEnvironmentVariable("RUN_DB2_CONTAINER_TESTS") == "true",
             ProviderId.MariaDb => Environment.GetEnvironmentVariable("RUN_MARIADB_CONTAINER_TESTS") == "true",
+            ProviderId.Firebird => Environment.GetEnvironmentVariable("RUN_FIREBIRD_CONTAINER_TESTS") == "true",
             _ => true,
         };
 

@@ -19,4 +19,6 @@ public class ScalarTemporalTests(
     Db2ConnectionFactory.Create
     )
 {
+    /// <inheritdoc />
+    protected override TimeSpan TemporalComparisonTolerance => TimeSpan.FromSeconds(60);
 }

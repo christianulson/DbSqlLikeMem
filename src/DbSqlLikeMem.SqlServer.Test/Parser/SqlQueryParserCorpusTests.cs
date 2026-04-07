@@ -93,9 +93,12 @@ public sealed class SqlQueryParserCorpusTests(
             var trimmed = sql.TrimStart();
             if (trimmed.Contains(SqlConst.WITH, StringComparison.OrdinalIgnoreCase))
                 minVersion = SqlServerDialect.WithCteMinVersion;
-
-
-            yield return Case(sql, why, SqlCaseExpectation.ThrowInvalid, minVersion);
+            if (trimmed.StartsWith("CREATE TABLE", StringComparison.OrdinalIgnoreCase))
+                yield return Case(sql, why, SqlCaseExpectation.ParseOk, minVersion);
+            else if (trimmed.StartsWith("CREATE OR REPLACE TABLE", StringComparison.OrdinalIgnoreCase))
+                yield return Case(sql, why, SqlCaseExpectation.ThrowNotSupported, minVersion);
+            else
+                yield return Case(sql, why, SqlCaseExpectation.ThrowInvalid, minVersion);
         }
 
         // Recursos não suportados pelo dialeto
@@ -615,7 +618,11 @@ select id
 
         // CREATE TABLE
         yield return new object[] {
-    "CREATE TABLE users (id INT)"
+        "CREATE TABLE users (id INT)"
+};
+
+        yield return new object[] {
+        "CREATE OR REPLACE TABLE users AS SELECT 1"
 };
 
         // CALL procedure

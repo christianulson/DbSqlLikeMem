@@ -89,6 +89,16 @@ internal interface ISqlDialect
     bool SupportsSequenceDdl { get; }
     bool SupportsFunctionDdl { get; }
     bool SupportsCreateOrReplaceFunctionDdl { get; }
+    /// <summary>
+    /// EN: Indicates whether CREATE TABLE statements are supported by the current dialect.
+    /// PT: Indica se instrucoes CREATE TABLE sao suportadas pelo dialeto atual.
+    /// </summary>
+    bool SupportsCreateTableDdl { get; }
+    /// <summary>
+    /// EN: Indicates whether CREATE OR REPLACE TABLE statements are supported by the current dialect.
+    /// PT: Indica se instrucoes CREATE OR REPLACE TABLE sao suportadas pelo dialeto atual.
+    /// </summary>
+    bool SupportsCreateOrReplaceTableDdl { get; }
     bool SupportsAlterTableAddColumn { get; }
     bool SupportsNextValueForSequenceExpression { get; }
     bool SupportsPreviousValueForSequenceExpression { get; }

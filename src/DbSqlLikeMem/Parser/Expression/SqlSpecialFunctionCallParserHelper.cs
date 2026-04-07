@@ -416,18 +416,9 @@ internal static class SqlSpecialFunctionCallParserHelper
     {
         expr = default!;
 
-        var sourceTokens = ctx.ReadTokensUntilTopLevelStop("FROM");
+        var sourceTokens = ctx.ReadTokensUntilTopLevelStop("FROM", ",");
         if (sourceTokens.Count == 0)
             throw ctx.Error("SUBSTRING requires a source expression", ctx.Peek());
-
-        if (!ctx.IsKeywordOrIdentifierWord("FROM"))
-            throw ctx.Error("SUBSTRING requires FROM", ctx.Peek());
-
-        ctx.Consume(); // FROM
-
-        var positionTokens = ctx.ReadTokensUntilTopLevelStop(SqlConst.FOR);
-        if (positionTokens.Count == 0)
-            throw ctx.Error("SUBSTRING requires a position after FROM", ctx.Peek());
 
         var sourceExpr = SqlExpressionParser.ParseScalar(
             ctx.TokensToSql(sourceTokens).Trim(),
@@ -435,18 +426,76 @@ internal static class SqlSpecialFunctionCallParserHelper
             ctx.Dialect,
             ctx.Parameters,
             ctx.CustomFunctionSupported);
-        var positionExpr = SqlExpressionParser.ParseScalar(
-            ctx.TokensToSql(positionTokens).Trim(),
-            ctx.Db,
-            ctx.Dialect,
-            ctx.Parameters,
-            ctx.CustomFunctionSupported);
 
-        var args = new List<SqlExpr> { sourceExpr, positionExpr };
-        if (ctx.IsKeywordOrIdentifierWord(SqlConst.FOR))
+        var args = new List<SqlExpr> { sourceExpr };
+
+        if (ctx.IsKeywordOrIdentifierWord("FROM"))
         {
-            ctx.Consume(); // FOR
-            args.Add(parseExpression(0));
+            ctx.Consume(); // FROM
+
+            var positionTokens = ctx.ReadTokensUntilTopLevelStop(SqlConst.FOR);
+            if (positionTokens.Count == 0)
+                throw ctx.Error("SUBSTRING requires a position after FROM", ctx.Peek());
+
+            var positionExpr = SqlExpressionParser.ParseScalar(
+                ctx.TokensToSql(positionTokens).Trim(),
+                ctx.Db,
+                ctx.Dialect,
+                ctx.Parameters,
+                ctx.CustomFunctionSupported);
+
+            args.Add(positionExpr);
+
+            if (ctx.IsKeywordOrIdentifierWord(SqlConst.FOR))
+            {
+                ctx.Consume(); // FOR
+                args.Add(parseExpression(0));
+            }
+        }
+        else if (ctx.IsSymbol(","))
+        {
+            ctx.Consume(); // ,
+
+            var remainderTokens = ctx.ReadTokensUntilMatchingParen();
+            if (remainderTokens.Count == 0)
+                throw ctx.Error("SUBSTRING requires a position after the source expression", ctx.Peek());
+
+            var remainderList = remainderTokens as List<SqlToken> ?? new List<SqlToken>(remainderTokens);
+            var splitIndex = FindTopLevelCommaIndex(remainderList);
+            var positionTokens = splitIndex >= 0
+                ? remainderList.GetRange(0, splitIndex)
+                : remainderList;
+            var lengthTokens = splitIndex >= 0
+                ? remainderList.GetRange(splitIndex + 1, remainderList.Count - splitIndex - 1)
+                : [];
+
+            if (positionTokens.Count == 0)
+                throw ctx.Error("SUBSTRING requires a position after the source expression", ctx.Peek());
+
+            var positionExpr = SqlExpressionParser.ParseScalar(
+                ctx.TokensToSql(positionTokens).Trim(),
+                ctx.Db,
+                ctx.Dialect,
+                ctx.Parameters,
+                ctx.CustomFunctionSupported);
+
+            args.Add(positionExpr);
+
+            if (lengthTokens.Count > 0)
+            {
+                var lengthExpr = SqlExpressionParser.ParseScalar(
+                    ctx.TokensToSql(lengthTokens).Trim(),
+                    ctx.Db,
+                    ctx.Dialect,
+                    ctx.Parameters,
+                    ctx.CustomFunctionSupported);
+
+                args.Add(lengthExpr);
+            }
+        }
+        else
+        {
+            throw ctx.Error("SUBSTRING requires FROM", ctx.Peek());
         }
 
         ExpectSymbol(ctx, ")");
@@ -454,6 +503,44 @@ internal static class SqlSpecialFunctionCallParserHelper
         expr = new CallExpr("SUBSTRING", [.. args])
             .BindScalarFunctionDefinition(ctx.Dialect);
         return true;
+    }
+
+    private static int FindTopLevelCommaIndex(IReadOnlyList<SqlToken> tokens)
+    {
+        var depth = 0;
+        var caseDepth = 0;
+
+        for (var i = 0; i < tokens.Count; i++)
+        {
+            var token = tokens[i];
+
+            if (depth == 0)
+            {
+                if (SqlExpressionParserContext.IsKeywordOrIdentifierWord(token, "CASE"))
+                {
+                    caseDepth++;
+                }
+                else if (caseDepth > 0 && SqlExpressionParserContext.IsKeywordOrIdentifierWord(token, SqlConst.END))
+                {
+                    caseDepth--;
+                }
+                else if (caseDepth == 0 && token.Kind == SqlTokenKind.Symbol && token.Text == ",")
+                {
+                    return i;
+                }
+            }
+
+            if (token.Kind == SqlTokenKind.Symbol && token.Text == "(")
+            {
+                depth++;
+            }
+            else if (token.Kind == SqlTokenKind.Symbol && token.Text == ")")
+            {
+                depth = Math.Max(0, depth - 1);
+            }
+        }
+
+        return -1;
     }
 
     private static bool TryParseFirebirdHash(

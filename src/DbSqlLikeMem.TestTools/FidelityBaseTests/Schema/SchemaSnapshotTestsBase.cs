@@ -249,6 +249,7 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
             ProviderId.MariaDb when major >= 100 => major,
             ProviderId.MariaDb when major > 0 => major * 10 + minor,
             ProviderId.Db2 => 2,
+            ProviderId.Firebird when major >= 10 => major / 10,
             _ when major > 0 => major,
             _ => 1,
         };
@@ -306,4 +307,3 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
         return (major, minor);
     }
 }
-

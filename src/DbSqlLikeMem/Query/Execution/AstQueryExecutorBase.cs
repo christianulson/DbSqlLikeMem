@@ -37,9 +37,6 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
     private IDataParameterCollection _pars => _context.DbParameters;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, ITableMock> _resolvedBaseTableCache = new(StringComparer.OrdinalIgnoreCase);
-    private readonly DateTime _evaluationLocalNow = DateTime.Now;
-    private readonly DateTime _evaluationUtcNow = DateTime.UtcNow;
-
     internal sealed record InSubqueryLookupState(
         List<object?> Values,
         HashSet<InLookupScalarKey>? ScalarCandidates,
@@ -230,8 +227,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             row,
             group,
             ctes,
-            _evaluationLocalNow,
-            _evaluationUtcNow,
+            _context.EvaluationLocalNow,
+            _context.EvaluationUtcNow,
             i => i < fn.Args.Count ? Eval(fn.Args[i], row, group, ctes) : null,
             FunctionEvaluator);
 
@@ -1251,7 +1248,10 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
             var first = g.Rows.Count > 0 ? g.Rows[0] : EvalRow.Empty();
             for (int i = 0; i < groupedColumnCount; i++)
-                outRow[i] = selectPlan.Evaluators[i](first, eg);
+            {
+                var value = selectPlan.Evaluators[i](first, eg);
+                outRow[i] = value;
+            }
 
             res.Add(outRow);
             res.JoinFields.Add(first.Fields);
@@ -1490,6 +1490,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
 
             case CaseExpr c:
+                if (ShouldTraceGroupedCaseWhenCase(c))
+                {
+                    Console.WriteLine(
+                        $"[CaseDebug][ast] base={(c.BaseExpr is null ? "NULL" : c.BaseExpr.GetType().Name)} whenCount={c.Whens.Count} else={(c.ElseExpr is null ? "NULL" : c.ElseExpr.GetType().Name)}");
+                }
                 return EvalCase(c, row, group, ctes);
 
             case JsonAccessExpr ja:
@@ -1520,6 +1525,39 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         }
     }
 
+    private static bool ShouldTraceGroupedCaseWhenCase(CaseExpr c)
+        => ContainsParameter(c, "cutoff");
+
+    private static bool ContainsParameter(SqlExpr expression, string parameterName)
+        => expression switch
+        {
+            ParameterExpr parameter => parameter.Name.TrimStart('@', ':', '?')
+                .Equals(parameterName, StringComparison.OrdinalIgnoreCase),
+            BinaryExpr binary => ContainsParameter(binary.Left, parameterName) || ContainsParameter(binary.Right, parameterName),
+            UnaryExpr unary => ContainsParameter(unary.Expr, parameterName),
+            CaseExpr caseExpr => (caseExpr.BaseExpr is not null && ContainsParameter(caseExpr.BaseExpr, parameterName))
+                || caseExpr.Whens.Any(when => ContainsParameter(when.When, parameterName) || ContainsParameter(when.Then, parameterName))
+                || (caseExpr.ElseExpr is not null && ContainsParameter(caseExpr.ElseExpr, parameterName)),
+            FunctionCallExpr functionCall => functionCall.Args.Any(arg => ContainsParameter(arg, parameterName)),
+            CallExpr call => call.Args.Any(arg => ContainsParameter(arg, parameterName)),
+            LikeExpr likeExpr => ContainsParameter(likeExpr.Left, parameterName)
+                || ContainsParameter(likeExpr.Pattern, parameterName)
+                || (likeExpr.Escape is not null && ContainsParameter(likeExpr.Escape, parameterName)),
+            InExpr inExpr => ContainsParameter(inExpr.Left, parameterName)
+                || inExpr.Items.Any(item => ContainsParameter(item, parameterName)),
+            IsNullExpr isNullExpr => ContainsParameter(isNullExpr.Expr, parameterName),
+            BetweenExpr betweenExpr => ContainsParameter(betweenExpr.Expr, parameterName)
+                || ContainsParameter(betweenExpr.Low, parameterName)
+                || ContainsParameter(betweenExpr.High, parameterName),
+            RowExpr rowExpr => rowExpr.Items.Any(item => ContainsParameter(item, parameterName)),
+            _ => false
+        };
+
+    private static string FormatDebugValue(object? value)
+        => value is null or DBNull
+            ? "NULL"
+            : $"{value} ({value.GetType().Name})";
+
     private object? EvalIdentifier(IdentifierExpr identifier, EvalRow row)
     {
         if (QueryRowValueHelper.TryResolveIdentifier(identifier.Name, row, out var resolvedColumn))
@@ -1529,8 +1567,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
         if (_context.TryResolveIdentifier(
                 identifier,
-                _evaluationLocalNow,
-                _evaluationUtcNow,
+                _context.EvaluationLocalNow,
+                _context.EvaluationUtcNow,
                 Cnn,
                 out var resolved))
         {

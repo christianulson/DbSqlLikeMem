@@ -85,7 +85,7 @@ public sealed class FirebirdFunctionTests(
         ExecuteNonQuery(connection, "CREATE FUNCTION fn_users(baseValue INT, incrementValue INT) RETURNS INT AS BEGIN RETURN baseValue + incrementValue; END");
         Assert.Equal(42, Convert.ToInt32(ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
 
-        var notSupported = Assert.Throws<InvalidOperationException>(() => ExecuteNonQuery(connection, "CREATE OR REPLACE FUNCTION fn_users(baseValue INT, incrementValue INT) RETURNS INT AS BEGIN RETURN baseValue + incrementValue + 1; END"));
+        var notSupported = Assert.Throws<NotSupportedException>(() => ExecuteNonQuery(connection, "CREATE OR REPLACE FUNCTION fn_users(baseValue INT, incrementValue INT) RETURNS INT AS BEGIN RETURN baseValue + incrementValue + 1; END"));
         Assert.Contains("CREATE OR REPLACE FUNCTION", notSupported.Message, StringComparison.OrdinalIgnoreCase);
     }
 

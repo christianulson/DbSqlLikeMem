@@ -56,6 +56,12 @@ internal sealed class AstQueryFunctionEvaluator(
         if (_tryEvalUserDefinedScalarFunction(fn, row, group, ctes, out var userDefinedResult))
             return userDefinedResult;
 
+        if (IsSpecialSyntaxFunctionName(fn.Name)
+            && _tryEvalScalarFunctionFamilies[^1](context, fn, row, group, ctes, evalArg, out var specialSyntaxResult))
+        {
+            return specialSyntaxResult;
+        }
+
         if (!IsSpecialSyntaxFunctionName(fn.Name)
             && _tryEvalBoundScalarFunction(context, fn, evalArg, out var boundScalarResult))
             return boundScalarResult;

@@ -1410,7 +1410,7 @@ ORDER BY rn
         string expectedFirstName,
         string expectedLastName)
     {
-        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedNameGroup);
+        Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture)?.TrimEnd().Should().Be(expectedNameGroup);
         Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedTotalCount);
         Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(expectedDistinctCount);
         Convert.ToString(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedFirstName);

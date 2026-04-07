@@ -20,6 +20,7 @@ internal static class SelectPlanBuilderHelper
         var windowSlots = new List<WindowSlot>(projectedItemCount);
         var windowSlotLookup = new Dictionary<WindowFunctionExpr, int>(ReferenceEqualityComparer<WindowFunctionExpr>.Instance);
         var hasNestedWindowExpressions = false;
+        var hasRuntimeParameters = false;
         var usedAliases = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var sampleFirst = sampleRows.Count > 0 ? sampleRows[0] : null;
         var sampleSingleSource = sampleFirst is not null
@@ -63,6 +64,9 @@ internal static class SelectPlanBuilderHelper
                 extractedAlias,
                 expression,
                 evalExpression);
+
+            if (!hasRuntimeParameters && ContainsRuntimeParameter(expression))
+                hasRuntimeParameters = true;
         }
         //#if DEBUG
         //#pragma warning disable CA1303
@@ -77,7 +81,8 @@ internal static class SelectPlanBuilderHelper
             Evaluators = evaluators,
             WindowSlotIndexes = windowSlotIndexes,
             WindowSlots = windowSlots,
-            HasNestedWindowExpressions = hasNestedWindowExpressions
+            HasNestedWindowExpressions = hasNestedWindowExpressions,
+            HasRuntimeParameters = hasRuntimeParameters
         };
     }
 
@@ -135,6 +140,32 @@ internal static class SelectPlanBuilderHelper
         columns.Add(SelectPlanProjectionHelper.CreateSelectPlanColumn(tableAlias, columnAlias, columns.Count, inferredDbType, isNullable, isJsonFragment));
         evaluators.Add(CreateSelectPlanEvaluator(expression, ctes, context, windowSlotIndexes, windowSlots, windowSlotLookup, ref hasNestedWindowExpressions, evalExpression));
     }
+
+    private static bool ContainsRuntimeParameter(SqlExpr expression)
+        => expression switch
+        {
+            ParameterExpr => true,
+            BinaryExpr binary => ContainsRuntimeParameter(binary.Left) || ContainsRuntimeParameter(binary.Right),
+            UnaryExpr unary => ContainsRuntimeParameter(unary.Expr),
+            CaseExpr caseExpr => (caseExpr.BaseExpr is not null && ContainsRuntimeParameter(caseExpr.BaseExpr))
+                || caseExpr.Whens.Any(when => ContainsRuntimeParameter(when.When) || ContainsRuntimeParameter(when.Then))
+                || (caseExpr.ElseExpr is not null && ContainsRuntimeParameter(caseExpr.ElseExpr)),
+            FunctionCallExpr functionCall => functionCall.Args.Any(ContainsRuntimeParameter),
+            CallExpr call => call.Args.Any(ContainsRuntimeParameter),
+            LikeExpr likeExpr => ContainsRuntimeParameter(likeExpr.Left)
+                || ContainsRuntimeParameter(likeExpr.Pattern)
+                || (likeExpr.Escape is not null && ContainsRuntimeParameter(likeExpr.Escape)),
+            InExpr inExpr => ContainsRuntimeParameter(inExpr.Left)
+                || inExpr.Items.Any(ContainsRuntimeParameter),
+            IsNullExpr isNullExpr => ContainsRuntimeParameter(isNullExpr.Expr),
+            BetweenExpr betweenExpr => ContainsRuntimeParameter(betweenExpr.Expr)
+                || ContainsRuntimeParameter(betweenExpr.Low)
+                || ContainsRuntimeParameter(betweenExpr.High),
+            RowExpr rowExpr => rowExpr.Items.Any(ContainsRuntimeParameter),
+            JsonAccessExpr jsonAccessExpr => ContainsRuntimeParameter(jsonAccessExpr.Target)
+                || ContainsRuntimeParameter(jsonAccessExpr.Path),
+            _ => false
+        };
 
     private static bool TryInferProjectedJsonFragment(
         SqlExpr expression,
@@ -211,22 +242,44 @@ internal static class SelectPlanBuilderHelper
             {
                 hasNestedWindowExpressions = true;
                 CollectNestedWindowSlots(expression, windowSlots, windowSlotLookup, context);
-                return (row, group) => EvaluateExpressionWithWindowSupport(
+                var windowAwareEvaluator = (Func<AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, object?>)((row, group) => EvaluateExpressionWithWindowSupport(
                     expression,
                     row,
                     group,
                     ctes,
                     windowSlots,
                     windowSlotLookup,
-                    evalExpression);
+                    evalExpression));
+
+                return WrapDebugEvaluatorIfNeeded(expression, windowAwareEvaluator);
             }
 
-            return (row, group) => evalExpression(expression, row, group, ctes);
+            var evaluator = (Func<AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, object?>)((row, group) => evalExpression(expression, row, group, ctes));
+            return WrapDebugEvaluatorIfNeeded(expression, evaluator);
         }
 
         var slotIndex = EnsureWindowSlot(windowFunction, windowSlots, windowSlotLookup, context);
         windowSlotIndexes.Add(slotIndex);
-        return (row, group) => windowSlots[slotIndex].Map.TryGetValue(row, out var value) ? value : null;
+        return WrapDebugEvaluatorIfNeeded(
+            expression,
+            (row, group) => windowSlots[slotIndex].Map.TryGetValue(row, out var value) ? value : null);
+    }
+
+    private static Func<AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, object?> WrapDebugEvaluatorIfNeeded(
+        SqlExpr expression,
+        Func<AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, object?> evaluator)
+    {
+        if (!ContainsParameter(expression, "cutoff"))
+            return evaluator;
+
+        var exprDebug = SqlExprPrinter.Print(expression);
+        return (row, group) =>
+        {
+            var value = evaluator(row, group);
+            Console.WriteLine(
+                $"[SelectPlanDebug][cutoff] expr={exprDebug} value={FormatDebugValue(value)} row={string.Join(", ", row.Fields.Select(kvp => $"{kvp.Key}={kvp.Value ?? "NULL"}"))}");
+            return value;
+        };
     }
 
     private static DbType InferDbTypeFromExpression(
@@ -1114,6 +1167,36 @@ internal static class SelectPlanBuilderHelper
 
         return false;
     }
+
+    private static bool ContainsParameter(SqlExpr expression, string parameterName)
+        => expression switch
+        {
+            ParameterExpr parameter => parameter.Name.TrimStart('@', ':', '?')
+                .Equals(parameterName, StringComparison.OrdinalIgnoreCase),
+            BinaryExpr binary => ContainsParameter(binary.Left, parameterName) || ContainsParameter(binary.Right, parameterName),
+            UnaryExpr unary => ContainsParameter(unary.Expr, parameterName),
+            CaseExpr caseExpr => (caseExpr.BaseExpr is not null && ContainsParameter(caseExpr.BaseExpr, parameterName))
+                || caseExpr.Whens.Any(when => ContainsParameter(when.When, parameterName) || ContainsParameter(when.Then, parameterName))
+                || (caseExpr.ElseExpr is not null && ContainsParameter(caseExpr.ElseExpr, parameterName)),
+            FunctionCallExpr functionCall => functionCall.Args.Any(arg => ContainsParameter(arg, parameterName)),
+            CallExpr call => call.Args.Any(arg => ContainsParameter(arg, parameterName)),
+            LikeExpr likeExpr => ContainsParameter(likeExpr.Left, parameterName)
+                || ContainsParameter(likeExpr.Pattern, parameterName)
+                || (likeExpr.Escape is not null && ContainsParameter(likeExpr.Escape, parameterName)),
+            InExpr inExpr => ContainsParameter(inExpr.Left, parameterName)
+                || inExpr.Items.Any(item => ContainsParameter(item, parameterName)),
+            IsNullExpr isNullExpr => ContainsParameter(isNullExpr.Expr, parameterName),
+            BetweenExpr betweenExpr => ContainsParameter(betweenExpr.Expr, parameterName)
+                || ContainsParameter(betweenExpr.Low, parameterName)
+                || ContainsParameter(betweenExpr.High, parameterName),
+            RowExpr rowExpr => rowExpr.Items.Any(item => ContainsParameter(item, parameterName)),
+            _ => false
+        };
+
+    private static string FormatDebugValue(object? value)
+        => value is null or DBNull
+            ? "NULL"
+            : $"{value} ({value.GetType().Name})";
 
     private static bool TryInferDbTypeFromRawSqlExpression(string sql, out DbType dbType)
     {

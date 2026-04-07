@@ -102,12 +102,17 @@ public abstract class BaseServiceTest<T>(
         string sql,
         DbTransaction? transaction = null)
     {
-        sql = NormalizeScenarioSql(sql);
-        using var command = Connection.CreateCommand();
-        command.CommandText = sql;
-        command.Transaction = transaction;
+        using var gate = ProviderExecutionGate.Acquire(Connection, dialect.Provider);
+        var total = 0;
+        foreach (var statement in SplitSqlStatements(NormalizeScenarioSql(sql)))
+        {
+            using var command = Connection.CreateCommand();
+            command.CommandText = PrepareStatementForExecution(statement);
+            command.Transaction = transaction;
+            total += command.ExecuteNonQuery();
+        }
 
-        return command.ExecuteNonQuery();
+        return total;
     }
 
     /// <summary>
@@ -116,15 +121,21 @@ public abstract class BaseServiceTest<T>(
     /// </summary>
     /// <param name="sql">EN: The SQL command text to execute. PT: O texto do comando SQL a ser executado.</param>
     /// <param name="transaction">EN: The optional transaction associated with the command execution. PT: A transacao opcional associada a execucao do comando.</param>
-    internal async Task<int> ExecuteNonQueryAsync(
+    internal Task<int> ExecuteNonQueryAsync(
         string sql,
         DbTransaction? transaction = null)
     {
-        sql = NormalizeScenarioSql(sql);
-        using var command = Connection.CreateCommand();
-        command.CommandText = sql;
-        command.Transaction = transaction;
-        return await command.ExecuteNonQueryAsync().ConfigureAwait(false);
+        using var gate = ProviderExecutionGate.Acquire(Connection, dialect.Provider);
+        var total = 0;
+        foreach (var statement in SplitSqlStatements(NormalizeScenarioSql(sql)))
+        {
+            using var command = Connection.CreateCommand();
+            command.CommandText = PrepareStatementForExecution(statement);
+            command.Transaction = transaction;
+            total += command.ExecuteNonQuery();
+        }
+
+        return Task.FromResult(total);
     }
 
     /// <summary>
@@ -142,7 +153,15 @@ public abstract class BaseServiceTest<T>(
         using var command = Connection.CreateCommand();
         command.CommandText = sql;
         command.Transaction = transaction;
-        return command.ExecuteScalar();
+        var value = command.ExecuteScalar();
+        if (value is not DBNull || dialect.Provider != ProviderId.Firebird)
+            return value;
+
+        using var reader = command.ExecuteReader();
+        if (!reader.Read())
+            return value;
+
+        return reader.IsDBNull(0) ? DBNull.Value : reader.GetValue(0);
     }
 
     /// <summary>
@@ -213,5 +232,65 @@ public abstract class BaseServiceTest<T>(
         }
 
         return sql;
+    }
+
+    private static IReadOnlyList<string> SplitSqlStatements(string sql)
+    {
+        var statements = new List<string>();
+        var current = new System.Text.StringBuilder(sql.Length);
+        var inSingleQuote = false;
+
+        for (var i = 0; i < sql.Length; i++)
+        {
+            var ch = sql[i];
+
+            if (ch == '\'')
+            {
+                current.Append(ch);
+
+                if (inSingleQuote && i + 1 < sql.Length && sql[i + 1] == '\'')
+                {
+                    current.Append(sql[++i]);
+                    continue;
+                }
+
+                inSingleQuote = !inSingleQuote;
+                continue;
+            }
+
+            if (ch == ';' && !inSingleQuote)
+            {
+                AddStatement(statements, current);
+                continue;
+            }
+
+            current.Append(ch);
+        }
+
+        AddStatement(statements, current);
+        return statements;
+    }
+
+    private string PrepareStatementForExecution(string statement)
+    {
+        if (dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure
+            && statement.TrimStart().StartsWith("MERGE", StringComparison.OrdinalIgnoreCase)
+            && !statement.TrimEnd().EndsWith(";"))
+        {
+            return statement + ";";
+        }
+
+        return statement;
+    }
+
+    private static void AddStatement(
+        ICollection<string> statements,
+        System.Text.StringBuilder current)
+    {
+        var statement = current.ToString().Trim();
+        if (statement.Length != 0)
+            statements.Add(statement);
+
+        current.Clear();
     }
 }

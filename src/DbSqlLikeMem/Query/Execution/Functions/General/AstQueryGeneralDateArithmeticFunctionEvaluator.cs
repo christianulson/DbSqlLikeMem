@@ -181,13 +181,18 @@ internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
 
         var amountValue = evalArg(1);
         var baseValue = evalArg(2);
-        if (AstQueryExecutorBase.IsNullish(amountValue) || AstQueryExecutorBase.IsNullish(baseValue))
+        if (AstQueryExecutorBase.IsNullish(baseValue)
+            || !AstQueryExecutorBase.TryCoerceDateTime(baseValue, out var dateTime))
         {
-            result = null;
-            return true;
+            if (!TryResolveTemporalBaseValue(context, fn.Args[2], out baseValue)
+                || !AstQueryExecutorBase.TryCoerceDateTime(baseValue, out dateTime))
+            {
+                result = null;
+                return true;
+            }
         }
 
-        if (!AstQueryExecutorBase.TryCoerceDateTime(baseValue, out var dateTime))
+        if (AstQueryExecutorBase.IsNullish(amountValue))
         {
             result = null;
             return true;
@@ -212,5 +217,28 @@ internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
             _ => null
         };
         return true;
+    }
+
+    private static bool TryResolveTemporalBaseValue(
+        QueryExecutionContext context,
+        SqlExpr expr,
+        out object? value)
+    {
+        value = null;
+
+        switch (expr)
+        {
+            case RawSqlExpr rawBase:
+                return context.IsKnownTemporalFunctionName(rawBase.Sql)
+                    && context.TryEvaluateZeroArgIdentifier(rawBase.Sql, out value);
+            case IdentifierExpr identifierBase:
+                return context.TryEvaluateZeroArgIdentifier(identifierBase.Name, out value);
+            case FunctionCallExpr callBase when callBase.Args.Count == 0:
+                return context.TryEvaluateZeroArgCall(callBase.Name, out value);
+            case CallExpr callBase when callBase.Args.Count == 0:
+                return context.TryEvaluateZeroArgCall(callBase.Name, out value);
+            default:
+                return false;
+        }
     }
 }

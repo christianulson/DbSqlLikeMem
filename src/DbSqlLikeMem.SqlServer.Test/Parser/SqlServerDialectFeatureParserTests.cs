@@ -1233,7 +1233,7 @@ public sealed class SqlServerDialectFeatureParserTests(
     {
         var d = Get(version, v => new SqlServerDialect(v));
         var db = Get(version, v => new SqlServerDbMock(v));
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
             "CREATE OR REPLACE FUNCTION fn_users(@baseValue INT, @incrementValue INT) RETURNS INT AS BEGIN RETURN @baseValue + @incrementValue END",
             db, d));
         Assert.Contains("CREATE OR REPLACE FUNCTION", ex.Message, StringComparison.OrdinalIgnoreCase);

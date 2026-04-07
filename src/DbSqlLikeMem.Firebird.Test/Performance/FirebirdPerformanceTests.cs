@@ -240,7 +240,7 @@ BEGIN
     ELSE
     BEGIN
         outValue = 0;
-    END
+    END;
 
     INSERT INTO Users (Id, Name) VALUES (:outValue, 'Bench');
     DELETE FROM Users WHERE Id = :outValue;

@@ -32,7 +32,7 @@ internal static class AstQuerySelectExecutionHelper
             evalExpression,
             resolveColumn);
 
-        if (cacheKey is not null && !plan.HasNestedWindowExpressions)
+        if (cacheKey is not null && !plan.HasNestedWindowExpressions && !plan.HasRuntimeParameters)
             context.Connection.TryCacheSelectPlan(cacheKey, plan.CanBeCachedWithoutClone ? plan : plan.CloneForCache());
 
         return plan;

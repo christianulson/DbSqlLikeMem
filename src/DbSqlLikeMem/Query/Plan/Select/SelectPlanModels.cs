@@ -12,6 +12,8 @@ internal sealed class SelectPlan
 
     public bool HasNestedWindowExpressions { get; init; }
 
+    public bool HasRuntimeParameters { get; init; }
+
     public bool HasWindowFunctions => WindowSlots.Count > 0;
 
     public bool CanBeCachedWithoutClone => !HasWindowFunctions && !HasNestedWindowExpressions;
@@ -23,7 +25,8 @@ internal sealed class SelectPlan
             Evaluators = Evaluators,
             WindowSlotIndexes = WindowSlotIndexes,
             WindowSlots = CloneWindowSlots(forExecution: false),
-            HasNestedWindowExpressions = HasNestedWindowExpressions
+            HasNestedWindowExpressions = HasNestedWindowExpressions,
+            HasRuntimeParameters = HasRuntimeParameters
         };
 
     internal SelectPlan CloneForExecution()
@@ -35,7 +38,8 @@ internal sealed class SelectPlan
             Evaluators = CloneEvaluatorsForExecution(clonedWindowSlots),
             WindowSlotIndexes = WindowSlotIndexes,
             WindowSlots = clonedWindowSlots,
-            HasNestedWindowExpressions = HasNestedWindowExpressions
+            HasNestedWindowExpressions = HasNestedWindowExpressions,
+            HasRuntimeParameters = HasRuntimeParameters
         };
     }
 

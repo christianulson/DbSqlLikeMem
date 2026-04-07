@@ -96,8 +96,12 @@ public sealed class SqlQueryParserCorpusTests(
                 minVersion = NpgsqlDialect.WithCteMinVersion;
             if (ContainsJsonArrowOperators(sql))
                 minVersion = Math.Max(minVersion, NpgsqlDialect.JsonbMinVersion);
-
-            yield return Case(sql, why, SqlCaseExpectation.ThrowInvalid, minVersion);
+            if (trimmed.StartsWith("CREATE TABLE", StringComparison.OrdinalIgnoreCase))
+                yield return Case(sql, why, SqlCaseExpectation.ParseOk, minVersion);
+            else if (trimmed.StartsWith("CREATE OR REPLACE TABLE", StringComparison.OrdinalIgnoreCase))
+                yield return Case(sql, why, SqlCaseExpectation.ThrowNotSupported, minVersion);
+            else
+                yield return Case(sql, why, SqlCaseExpectation.ThrowInvalid, minVersion);
         }
 
         // Não-Select / incompletas (ThrowInvalid)
@@ -112,9 +116,10 @@ public sealed class SqlQueryParserCorpusTests(
                 minVersion = NpgsqlDialect.WithCteMinVersion;
             if (ContainsJsonArrowOperators(sql))
                 minVersion = Math.Max(minVersion, NpgsqlDialect.JsonbMinVersion);
-
-
-            yield return Case(sql, why, SqlCaseExpectation.ThrowInvalid, minVersion);
+            if (trimmed.StartsWith("CREATE OR REPLACE TABLE", StringComparison.OrdinalIgnoreCase))
+                yield return Case(sql, why, SqlCaseExpectation.ThrowNotSupported, minVersion);
+            else
+                yield return Case(sql, why, SqlCaseExpectation.ThrowInvalid, minVersion);
         }
     }
 
@@ -616,6 +621,10 @@ select id
         // CREATE TABLE
         yield return new object[] {
     "CREATE TABLE users (id INT)"
+};
+
+        yield return new object[] {
+    "CREATE OR REPLACE TABLE users AS SELECT 1"
 };
 
         // CALL procedure

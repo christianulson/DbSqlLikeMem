@@ -26,14 +26,59 @@ internal static class AstQueryFunctionDispatchHelper
         IDictionary<string, Source> ctes,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
     {
+        var traceGroupedCaseWhen = @case.Whens.Any(when => ContainsParameter(when.When, "cutoff") || ContainsParameter(when.Then, "cutoff"))
+            || (@case.BaseExpr is not null && ContainsParameter(@case.BaseExpr, "cutoff"))
+            || (@case.ElseExpr is not null && ContainsParameter(@case.ElseExpr, "cutoff"));
         foreach (var whenThen in @case.Whens)
         {
-            if (eval(whenThen.When, row, group, ctes).ToBool())
-                return eval(whenThen.Then, row, group, ctes);
+            var condition = eval(whenThen.When, row, group, ctes);
+            if (!condition.ToBool())
+                continue;
+
+            var thenValue = eval(whenThen.Then, row, group, ctes);
+            if (traceGroupedCaseWhen)
+            {
+                Console.WriteLine(
+                    $"[CaseDebug][searched] condition={condition ?? "NULL"} then={thenValue ?? "NULL"} row={string.Join(", ", row.Fields.Select(kvp => $"{kvp.Key}={kvp.Value ?? "NULL"}"))}");
+            }
+
+            return thenValue;
         }
 
-        return context.EvaluateCaseElse(@case, row, group, ctes, eval);
+        var elseValue = context.EvaluateCaseElse(@case, row, group, ctes, eval);
+        if (traceGroupedCaseWhen)
+        {
+            Console.WriteLine(
+                $"[CaseDebug][searched] else={elseValue ?? "NULL"} row={string.Join(", ", row.Fields.Select(kvp => $"{kvp.Key}={kvp.Value ?? "NULL"}"))}");
+        }
+
+        return elseValue;
     }
+
+    private static bool ContainsParameter(SqlExpr expression, string parameterName)
+        => expression switch
+        {
+            ParameterExpr parameter => parameter.Name.TrimStart('@', ':', '?')
+                .Equals(parameterName, StringComparison.OrdinalIgnoreCase),
+            BinaryExpr binary => ContainsParameter(binary.Left, parameterName) || ContainsParameter(binary.Right, parameterName),
+            UnaryExpr unary => ContainsParameter(unary.Expr, parameterName),
+            CaseExpr caseExpr => (caseExpr.BaseExpr is not null && ContainsParameter(caseExpr.BaseExpr, parameterName))
+                || caseExpr.Whens.Any(when => ContainsParameter(when.When, parameterName) || ContainsParameter(when.Then, parameterName))
+                || (caseExpr.ElseExpr is not null && ContainsParameter(caseExpr.ElseExpr, parameterName)),
+            FunctionCallExpr functionCall => functionCall.Args.Any(arg => ContainsParameter(arg, parameterName)),
+            CallExpr call => call.Args.Any(arg => ContainsParameter(arg, parameterName)),
+            LikeExpr likeExpr => ContainsParameter(likeExpr.Left, parameterName)
+                || ContainsParameter(likeExpr.Pattern, parameterName)
+                || (likeExpr.Escape is not null && ContainsParameter(likeExpr.Escape, parameterName)),
+            InExpr inExpr => ContainsParameter(inExpr.Left, parameterName)
+                || inExpr.Items.Any(item => ContainsParameter(item, parameterName)),
+            IsNullExpr isNullExpr => ContainsParameter(isNullExpr.Expr, parameterName),
+            BetweenExpr betweenExpr => ContainsParameter(betweenExpr.Expr, parameterName)
+                || ContainsParameter(betweenExpr.Low, parameterName)
+                || ContainsParameter(betweenExpr.High, parameterName),
+            RowExpr rowExpr => rowExpr.Items.Any(item => ContainsParameter(item, parameterName)),
+            _ => false
+        };
 
     internal static object? EvaluateSimpleCase(
         this QueryExecutionContext context,

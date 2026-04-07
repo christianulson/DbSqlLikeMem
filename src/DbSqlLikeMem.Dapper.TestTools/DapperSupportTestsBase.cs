@@ -113,12 +113,22 @@ public abstract class DapperSupportTestsBase(
             new { id = 4, category = "B", amount = 10 }
         });
 
-        var rows = connection.Query<(string category, int score)>(@"SELECT
+        const string sql = @"SELECT
   category,
   CAST(SUM(CASE WHEN amount >= @cutoff THEN 1 ELSE 0 END) AS DECIMAL(10,0)) score
 FROM dapper_case_group
 GROUP BY category
-ORDER BY category", new { cutoff = 50 }).ToList();
+ORDER BY category";
+        var parameters = new { cutoff = 50 };
+
+        var debugRows = connection.Query<dynamic>(sql, parameters).ToList();
+        for (var i = 0; i < debugRows.Count; i++)
+        {
+            var row = (IDictionary<string, object?>)debugRows[i]!;
+            Console.WriteLine($"[DapperSmoke][GroupedCaseWhen][{i}] {string.Join(", ", row.Select(kvp => $"{kvp.Key}={kvp.Value ?? "NULL"}"))}");
+        }
+
+        var rows = connection.Query<(string category, int score)>(sql, parameters).ToList();
 
         rows.Should().Equal([("A", 1), ("B", 1)]);
     }
@@ -283,7 +293,7 @@ WHERE u.id = 1");
 
         var rows = connection.Query<(string category, int score)>(@"SELECT
   category,
-  CAST(SUM(CASE WHEN amount >= @high THEN 2 WHEN amount >= @mid THEN 1 ELSE 0 END) AS DECIMAL(10,0)) score
+  SUM(CASE WHEN amount >= @high THEN 2 WHEN amount >= @mid THEN 1 ELSE 0 END) score
 FROM dapper_case_having
 GROUP BY category
 HAVING SUM(CASE WHEN amount >= @high THEN 2 WHEN amount >= @mid THEN 1 ELSE 0 END) >= @minScore

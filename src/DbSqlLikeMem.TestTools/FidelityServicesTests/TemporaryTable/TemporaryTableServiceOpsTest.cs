@@ -68,6 +68,18 @@ AS SELECT Id, Name
 FROM {sourceUsersTable}
 WHERE TenantId = 10");
         }
+        else if (Dialect.Provider == ProviderId.Firebird
+            && Connection is not DbConnectionMockBase)
+        {
+            ExecuteNonQuery($@"
+CREATE GLOBAL TEMPORARY TABLE {tempTable} (
+    Id INTEGER,
+    Name VARCHAR(100)
+) ON COMMIT PRESERVE ROWS");
+            ExecuteNonQuery($@"
+INSERT INTO {tempTable} (Id, Name)
+SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10");
+        }
         else
         {
             var createSql = BuildCreateTemporaryTableSql(tempTable, sourceUsersTable);

@@ -161,10 +161,14 @@ ORDER BY Name, Id
     {
         var users = (string)pars[0];
         var usersTable = ResolveScenarioTableName(users);
-        var percentRankExpr = Dialect.Provider == ProviderId.Npgsql
+        var percentRankExpr = Dialect.Provider == ProviderId.Firebird
+            ? "ROUND(CASE WHEN COUNT(*) OVER () <= 1 THEN 0 ELSE 1.0 * (RANK() OVER (ORDER BY Name, Id) - 1) / (COUNT(*) OVER () - 1) END, 6)"
+            : Dialect.Provider == ProviderId.Npgsql
             ? "ROUND((PERCENT_RANK() OVER (ORDER BY Name, Id))::numeric, 6)"
             : "ROUND(PERCENT_RANK() OVER (ORDER BY Name, Id), 6)";
-        var cumeDistExpr = Dialect.Provider == ProviderId.Npgsql
+        var cumeDistExpr = Dialect.Provider == ProviderId.Firebird
+            ? "ROUND(CASE WHEN COUNT(*) OVER () = 0 THEN 0 ELSE 1.0 * COUNT(*) OVER (ORDER BY Name, Id) / COUNT(*) OVER () END, 6)"
+            : Dialect.Provider == ProviderId.Npgsql
             ? "ROUND((CUME_DIST() OVER (ORDER BY Name, Id))::numeric, 6)"
             : "ROUND(CUME_DIST() OVER (ORDER BY Name, Id), 6)";
 

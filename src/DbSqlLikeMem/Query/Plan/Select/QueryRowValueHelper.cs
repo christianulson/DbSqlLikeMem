@@ -101,12 +101,26 @@ internal static class QueryRowValueHelper
 
     private static object? ResolveNamedParam(IDataParameterCollection parameters, string name)
     {
-        var normalizedName = name.TrimStart('@', ':');
+        var normalizedName = name.TrimStart('@', ':', '?');
         foreach (IDataParameter parameter in parameters)
         {
-            var parameterName = parameter.ParameterName?.TrimStart('@', ':');
+            var parameterName = parameter.ParameterName?.TrimStart('@', ':', '?');
             if (string.Equals(parameterName, normalizedName, StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.Equals(normalizedName, "cutoff", StringComparison.OrdinalIgnoreCase))
+                {
+                    Console.WriteLine(
+                        $"[ParamDebug] name={name} normalized={normalizedName} matched={parameter.ParameterName ?? "null"} value={parameter.Value ?? "NULL"}");
+                }
+
                 return NormalizeParameterValue(parameter);
+            }
+        }
+
+        if (string.Equals(normalizedName, "cutoff", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.WriteLine(
+                $"[ParamDebug] name={name} normalized={normalizedName} not-found available=[{string.Join(", ", parameters.Cast<IDataParameter>().Select(p => p.ParameterName ?? "null"))}]");
         }
 
         return null;

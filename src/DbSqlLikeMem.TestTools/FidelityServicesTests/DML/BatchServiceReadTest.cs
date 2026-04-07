@@ -49,9 +49,8 @@ public partial class BatchServiceTest<T>
         ExecuteNonQuery(Dialect.InsertUser(users, 2, "Bob"), transaction);
         ExecuteNonQuery(Dialect.UpdateUserNameById(users, 2, "Bob-v2"), transaction);
         ExecuteNonQuery(Dialect.DeleteUserById(users, 1), transaction);
+        var count = Convert.ToInt32(ExecuteScalar(Dialect.CountRows(users), transaction), CultureInfo.InvariantCulture);
         transaction.Commit();
-
-        var count = Convert.ToInt32(ExecuteScalar(Dialect.CountRows(users)), CultureInfo.InvariantCulture);
         if (count != 1)
         {
             throw new InvalidOperationException($"Unexpected non-query batch count for {Dialect.DisplayName}: {count}.");

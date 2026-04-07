@@ -17,6 +17,12 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
     where T2 : DbConnection
 {
     /// <summary>
+    /// EN: Returns the allowed drift between mock and container temporal results.
+    /// PT: Retorna a variacao permitida entre resultados temporais do mock e do container.
+    /// </summary>
+    protected virtual TimeSpan TemporalComparisonTolerance => TimeSpan.FromSeconds(10);
+
+    /// <summary>
     /// EN: Verifies scalar temporal functions, current-time predicates, and ordered reads for the current provider.
     /// PT: Verifica funcoes temporais escalares, predicados de tempo atual e leituras ordenadas para o provedor atual.
     /// </summary>
@@ -52,9 +58,9 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
                 try
                 {
                     var resultContainer = RunScalarTemporalMatrix(serviceTestContainer, users);
-                    resultMock.DateScalar.Should().BeCloseTo(resultContainer.DateScalar, TimeSpan.FromSeconds(10));
-                    resultMock.CurrentTimestamp.Should().BeCloseTo(resultContainer.CurrentTimestamp, TimeSpan.FromSeconds(10));
-                    resultMock.DateAdd.Should().BeCloseTo(resultContainer.DateAdd, TimeSpan.FromSeconds(10));
+                    resultMock.DateScalar.Should().BeCloseTo(resultContainer.DateScalar, TemporalComparisonTolerance);
+                    resultMock.CurrentTimestamp.Should().BeCloseTo(resultContainer.CurrentTimestamp, TemporalComparisonTolerance);
+                    resultMock.DateAdd.Should().BeCloseTo(resultContainer.DateAdd, TemporalComparisonTolerance);
                     resultMock.WhereCount.Should().Be(resultContainer.WhereCount);
                     resultMock.OrderedName.Should().Be(resultContainer.OrderedName);
                 }

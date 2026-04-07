@@ -234,7 +234,7 @@ internal static class AstQueryAggregateEvaluator
         IReadOnlyList<object?> values)
     {
         var separator = GetAggregateSeparator(fn.Args, group, ctes, eval);
-        return name switch
+        var result = name switch
         {
             SqlConst.SUM => AggregateNumericValues(values, AggregateNumericOperation.Sum),
             SqlConst.AVG => AggregateNumericValues(values, AggregateNumericOperation.Average),
@@ -269,6 +269,15 @@ internal static class AstQueryAggregateEvaluator
             SqlConst.CV => AggregateCoefficientOfVariation(values),
             _ => null
         };
+
+        if (name == SqlConst.SUM
+            && fn.Args.Count > 0
+            && ContainsParameter(fn.Args[0], "cutoff"))
+        {
+            Console.WriteLine($"[AggDebug][SUM][final] result={FormatDebugValue(result)}");
+        }
+
+        return result;
     }
 
     private static object? EvalJsonGroupObjectAggregate(
@@ -1278,9 +1287,18 @@ internal static class AstQueryAggregateEvaluator
 
         var values = new List<object?>(group.Rows.Count);
         HashSet<string>? seen = fn.Distinct ? new HashSet<string>(StringComparer.Ordinal) : null;
+        var traceGroupedCaseWhen = fn.Name.Equals(SqlConst.SUM, StringComparison.OrdinalIgnoreCase)
+            && fn.Args.Count > 0
+            && ContainsParameter(fn.Args[0], "cutoff");
+        var rowIndex = 0;
         foreach (var r in group.Rows)
         {
             var v = eval(fn.Args[0], r, null, ctes);
+            if (traceGroupedCaseWhen)
+            {
+                Console.WriteLine(
+                    $"[AggDebug][SUM][{rowIndex}] value={v ?? "NULL"} row={string.Join(", ", r.Fields.Select(kvp => $"{kvp.Key}={kvp.Value ?? "NULL"}"))}");
+            }
             if (!IsNullish(v))
             {
                 if (seen is not null)
@@ -1291,9 +1309,41 @@ internal static class AstQueryAggregateEvaluator
                 }
                 values.Add(v);
             }
+
+            rowIndex++;
         }
         return values;
     }
+
+    private static bool ContainsParameter(SqlExpr expression, string parameterName)
+        => expression switch
+        {
+            ParameterExpr parameter => parameter.Name.TrimStart('@', ':', '?')
+                .Equals(parameterName, StringComparison.OrdinalIgnoreCase),
+            BinaryExpr binary => ContainsParameter(binary.Left, parameterName) || ContainsParameter(binary.Right, parameterName),
+            UnaryExpr unary => ContainsParameter(unary.Expr, parameterName),
+            CaseExpr caseExpr => (caseExpr.BaseExpr is not null && ContainsParameter(caseExpr.BaseExpr, parameterName))
+                || caseExpr.Whens.Any(when => ContainsParameter(when.When, parameterName) || ContainsParameter(when.Then, parameterName))
+                || (caseExpr.ElseExpr is not null && ContainsParameter(caseExpr.ElseExpr, parameterName)),
+            FunctionCallExpr functionCall => functionCall.Args.Any(arg => ContainsParameter(arg, parameterName)),
+            CallExpr call => call.Args.Any(arg => ContainsParameter(arg, parameterName)),
+            LikeExpr likeExpr => ContainsParameter(likeExpr.Left, parameterName)
+                || ContainsParameter(likeExpr.Pattern, parameterName)
+                || (likeExpr.Escape is not null && ContainsParameter(likeExpr.Escape, parameterName)),
+            InExpr inExpr => ContainsParameter(inExpr.Left, parameterName)
+                || inExpr.Items.Any(item => ContainsParameter(item, parameterName)),
+            IsNullExpr isNullExpr => ContainsParameter(isNullExpr.Expr, parameterName),
+            BetweenExpr betweenExpr => ContainsParameter(betweenExpr.Expr, parameterName)
+                || ContainsParameter(betweenExpr.Low, parameterName)
+                || ContainsParameter(betweenExpr.High, parameterName),
+            RowExpr rowExpr => rowExpr.Items.Any(item => ContainsParameter(item, parameterName)),
+            _ => false
+        };
+
+    private static string FormatDebugValue(object? value)
+        => value is null or DBNull
+            ? "NULL"
+            : $"{value} ({value.GetType().Name})";
 
     private static bool IsNearlyZero(double value, double epsilon = 1e-12)
     {

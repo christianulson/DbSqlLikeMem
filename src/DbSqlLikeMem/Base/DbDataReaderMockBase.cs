@@ -335,8 +335,11 @@ public abstract class DbDataReaderMockBase(
     /// </summary>
     public override object GetValue(int ordinal)
     {
-        var v = NormalizeReaderValue(ordinal, this[ordinal]);
-        return v is HashSet<string> hs ? string.Join(",", hs) : v;
+        var rawRow = _resultSets[_currentResultSetIndex][_currentIndex];
+        var raw = rawRow.TryGetValue(ordinal, out var rawValue) ? rawValue : null;
+        var value = NormalizeReaderValue(ordinal, raw ?? DBNull.Value);
+
+        return value is HashSet<string> hs ? string.Join(",", hs) : value;
     }
     /// <summary>
     /// EN: Gets the typed value of the specified column.
@@ -427,6 +430,15 @@ public abstract class DbDataReaderMockBase(
             _ => value
         };
     }
+
+    private bool ShouldTraceScoreColumn(int ordinal)
+        => _columnsDic[_currentResultSetIndex].TryGetValue(ordinal, out var column)
+            && column.ColumName.Equals("score", StringComparison.OrdinalIgnoreCase);
+
+    private static string FormatDebugValue(object? value)
+        => value is null or DBNull
+            ? "NULL"
+            : $"{value} ({value.GetType().Name})";
     /// <summary>
     /// EN: Disposes the data reader and associated resources.
     /// PT: Descarta o data leitor e recursos associados.

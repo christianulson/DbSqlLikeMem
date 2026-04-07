@@ -1,4 +1,4 @@
-namespace DbSqlLikeMem;
+﻿namespace DbSqlLikeMem;
 
 internal delegate object? AstQueryEvalTryCast(FunctionCallExpr fn, Func<int, object?> evalArg);
 
@@ -267,8 +267,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
             return DBNull.Value;
 
         var v = evalArg(0);
-        var type = fn.Args[1] is RawSqlExpr trx ? trx.Sql : (evalArg(1)?.ToString() ?? "");
-        type = type.Trim();
+        var type = GetTargetTypeName(fn.Args[1], evalArg);
         if (AstQueryExecutorBase.IsNullish(v))
             return DBNull.Value;
 
@@ -281,6 +280,8 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 if (v is long l) return (int)l;
                 if (v is int i) return i;
                 if (v is decimal d) return (int)d;
+                if (AstQueryExecutorBase.TryConvertNumericToInt64(v!, out var numericLong)) return (int)numericLong;
+                if (AstQueryExecutorBase.TryConvertNumericToDecimal(v, out var numericDecimal)) return (int)numericDecimal;
                 if (v is IConvertible)
                 {
                     try
@@ -292,8 +293,9 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                         // fall back to text parsing below
                     }
                 }
-                if (int.TryParse(invariantText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var ix)) return ix;
-                if (long.TryParse(invariantText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var lx)) return (int)lx;
+                var text = (v!.ToString() ?? invariantText).Trim();
+                if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var ix)) return ix;
+                if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var lx)) return (int)lx;
                 return DBNull.Value;
             }
 
@@ -301,6 +303,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 || type.StartsWith("NUMERIC", StringComparison.OrdinalIgnoreCase))
             {
                 if (v is decimal dd) return dd;
+                if (AstQueryExecutorBase.TryConvertNumericToDecimal(v, out var numericDecimal)) return numericDecimal;
                 if (v is IConvertible)
                 {
                     try
@@ -312,7 +315,8 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                         // fall back to text parsing below
                     }
                 }
-                if (decimal.TryParse(invariantText, NumberStyles.Any, CultureInfo.InvariantCulture, out var dx)) return dx;
+                var text = (v!.ToString() ?? invariantText).Trim();
+                if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var dx)) return dx;
                 return null;
             }
 
@@ -323,7 +327,9 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 if (v is double dfx) return dfx;
                 if (v is float ffx) return (double)ffx;
                 if (v is decimal ddx) return (double)ddx;
-                if (double.TryParse(invariantText, NumberStyles.Any, CultureInfo.InvariantCulture, out var fx)) return fx;
+                if (AstQueryExecutorBase.TryConvertNumericToDouble(v, out var numericDouble)) return numericDouble;
+                var text = (v!.ToString() ?? invariantText).Trim();
+                if (double.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var fx)) return fx;
                 return DBNull.Value;
             }
 
@@ -335,7 +341,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 return AstQueryExecutionRuntimeHelper.TryCoerceDateTime(v, out var dt) ? dt : DBNull.Value;
             }
 
-            return Convert.ToString(v, CultureInfo.InvariantCulture);
+            return FormatTextCastValue(context, v!);
         }
         catch
         {
@@ -356,8 +362,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
         if (AstQueryExecutorBase.IsNullish(value))
             return swallowErrors ? DBNull.Value : null;
 
-        var type = fn.Args[1] is RawSqlExpr rx ? rx.Sql : (evalArg(1)?.ToString() ?? string.Empty);
-        type = type.Trim();
+        var type = GetTargetTypeName(fn.Args[1], evalArg);
         var cultureName = fn.Args.Count > 2 ? evalArg(2)?.ToString() : null;
 
         try
@@ -420,10 +425,18 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
             return null;
 
         var v = evalArg(0);
-        var type = fn.Args[1] is RawSqlExpr rx ? rx.Sql : (evalArg(1)?.ToString() ?? "");
-        type = type.Trim();
+        var type = GetTargetTypeName(fn.Args[1], evalArg);
         if (AstQueryExecutorBase.IsNullish(v))
             return null;
+
+        var traceGroupedCaseWhen = fn.Args.Count > 0 && ContainsParameter(fn.Args[0], "cutoff");
+
+        if (string.Equals(fn.Name, "CAST", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fn.Name, "CONVERT", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.WriteLine(
+                $"[CastDebug][entry] name={fn.Name} trace={traceGroupedCaseWhen} arg0={FormatDebugValue(v)} type={type}");
+        }
 
         try
         {
@@ -433,7 +446,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 return bytes;
 
             if (IsTextCastTypeName(type))
-                return Convert.ToString(v, CultureInfo.InvariantCulture) ?? string.Empty;
+                return FormatTextCastValue(context, v!);
 
             if ((context.Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para CAST.")).IsIntegerCastTypeName(type))
             {
@@ -451,33 +464,84 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                         // fall back to text parsing below
                     }
                 }
-                var text = invariantText.Trim();
+                var text = (v!.ToString() ?? invariantText).Trim();
                 if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var ix)) return ix;
                 if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var lx)) return (int)lx;
                 if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var dx)) return (int)dx;
                 if (IsSqlServerDialect(context.Dialect))
                     throw new InvalidCastException();
+                if (string.Equals(fn.Name, "CAST", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(fn.Name, "CONVERT", StringComparison.OrdinalIgnoreCase))
+                {
+                    Console.WriteLine(
+                        $"[CastDebug][INT] input={FormatDebugValue(v)} type={type} result=0 (fallback)");
+                }
                 return 0;
             }
 
             if (type.StartsWith("DECIMAL", StringComparison.OrdinalIgnoreCase)
                 || type.StartsWith("NUMERIC", StringComparison.OrdinalIgnoreCase))
             {
-                if (v is decimal dd) return dd;
-                if (v is IConvertible)
+                object? decimalResult;
+                if (v is decimal dd)
+                {
+                    decimalResult = dd;
+                }
+                else if (AstQueryExecutorBase.TryConvertNumericToDecimal(v, out var numericDecimal))
+                {
+                    decimalResult = numericDecimal;
+                }
+                else if (v is IConvertible)
                 {
                     try
                     {
-                        return Convert.ToDecimal(v, CultureInfo.InvariantCulture);
+                        decimalResult = Convert.ToDecimal(v, CultureInfo.InvariantCulture);
                     }
                     catch
                     {
                         // fall back to text parsing below
+                        decimalResult = null;
                     }
                 }
-                if (decimal.TryParse(invariantText, NumberStyles.Any, CultureInfo.InvariantCulture, out var dx)) return dx;
+                else
+                {
+                    decimalResult = null;
+                }
+
+                if (decimalResult is not null)
+                {
+                    if (string.Equals(fn.Name, "CAST", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(fn.Name, "CONVERT", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Console.WriteLine(
+                            $"[CastDebug][DECIMAL] input={FormatDebugValue(v)} type={type} result={FormatDebugValue(decimalResult)}");
+                    }
+
+                return decimalResult;
+            }
+
+                var text = (v!.ToString() ?? invariantText).Trim();
+                if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var dx))
+                {
+                    if (string.Equals(fn.Name, "CAST", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(fn.Name, "CONVERT", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Console.WriteLine(
+                            $"[CastDebug][DECIMAL] input={FormatDebugValue(v)} type={type} result={FormatDebugValue(dx)}");
+                    }
+
+                return dx;
+            }
                 if (IsSqlServerDialect(context.Dialect))
                     throw new InvalidCastException();
+
+                if (string.Equals(fn.Name, "CAST", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(fn.Name, "CONVERT", StringComparison.OrdinalIgnoreCase))
+                {
+                    Console.WriteLine(
+                        $"[CastDebug][DECIMAL] input={FormatDebugValue(v)} type={type} result=0m (fallback)");
+                }
+
                 return 0m;
             }
 
@@ -488,9 +552,17 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 if (v is double dfx) return dfx;
                 if (v is float ffx) return (double)ffx;
                 if (v is decimal ddx) return (double)ddx;
-                if (double.TryParse(invariantText, NumberStyles.Any, CultureInfo.InvariantCulture, out var fx)) return fx;
+                if (AstQueryExecutorBase.TryConvertNumericToDouble(v, out var numericDouble)) return numericDouble;
+                var text = (v!.ToString() ?? invariantText).Trim();
+                if (double.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var fx)) return fx;
                 if (IsSqlServerDialect(context.Dialect))
                     throw new InvalidCastException();
+                if (string.Equals(fn.Name, "CAST", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(fn.Name, "CONVERT", StringComparison.OrdinalIgnoreCase))
+                {
+                    Console.WriteLine(
+                        $"[CastDebug][FLOAT] input={FormatDebugValue(v)} type={type} result=0d (fallback)");
+                }
                 return 0d;
             }
 
@@ -505,6 +577,12 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 if (IsSqlServerDialect(context.Dialect))
                     throw new InvalidCastException();
 
+                if (string.Equals(fn.Name, "CAST", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(fn.Name, "CONVERT", StringComparison.OrdinalIgnoreCase))
+                {
+                    Console.WriteLine(
+                        $"[CastDebug][DATE] input={FormatDebugValue(v)} type={type} result=NULL (fallback)");
+                }
                 return null;
             }
 
@@ -531,7 +609,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 return ValidateJsonOrNull(serialized);
             }
 
-            return Convert.ToString(v, CultureInfo.InvariantCulture);
+            return FormatTextCastValue(context, v!);
         }
 #pragma warning disable CA1031
         catch (Exception e)
@@ -547,6 +625,40 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
 
     private static bool IsSqlServerDialect(ISqlDialect? dialect)
         => dialect is not null && string.Equals(dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsFirebirdDialect(ISqlDialect? dialect)
+        => dialect is not null && string.Equals(dialect.Name, "firebird", StringComparison.OrdinalIgnoreCase);
+
+    private static string FormatTextCastValue(QueryExecutionContext context, object value)
+    {
+        var text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        if (!IsFirebirdDialect(context.Connection.ProviderExecutionDialect))
+            return text;
+
+        if (!IsNumericValue(value))
+            return text;
+
+        if (!AstQueryBinaryArithmeticHelper.TryConvertNumericToDecimal(value, out var numeric))
+            return text;
+
+        if (numeric != decimal.Truncate(numeric))
+            return text;
+
+        return decimal.Truncate(numeric).ToString(CultureInfo.InvariantCulture);
+    }
+
+    private static bool IsNumericValue(object value)
+        => value is byte
+            or sbyte
+            or short
+            or ushort
+            or int
+            or uint
+            or long
+            or ulong
+            or float
+            or double
+            or decimal;
 
     private static bool IsTextCastTypeName(string typeName)
     {
@@ -577,4 +689,45 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
             || typeName.StartsWith("VARBINARY", StringComparison.OrdinalIgnoreCase)
             || typeName.StartsWith("BLOB", StringComparison.OrdinalIgnoreCase);
     }
+
+    private static string GetTargetTypeName(SqlExpr expr, Func<int, object?> evalArg)
+        => expr switch
+        {
+            RawSqlExpr raw => raw.Sql.Trim(),
+            IdentifierExpr identifier => identifier.Name.Trim(),
+            ColumnExpr column => $"{column.Qualifier}.{column.Name}".Trim(),
+            FunctionCallExpr call => SqlExprPrinter.Print(call).Trim(),
+            CallExpr call => SqlExprPrinter.Print(call).Trim(),
+            _ => (evalArg(1)?.ToString() ?? string.Empty).Trim()
+        };
+
+    private static bool ContainsParameter(SqlExpr expression, string parameterName)
+        => expression switch
+        {
+            ParameterExpr parameter => parameter.Name.TrimStart('@', ':', '?')
+                .Equals(parameterName, StringComparison.OrdinalIgnoreCase),
+            BinaryExpr binary => ContainsParameter(binary.Left, parameterName) || ContainsParameter(binary.Right, parameterName),
+            UnaryExpr unary => ContainsParameter(unary.Expr, parameterName),
+            CaseExpr caseExpr => (caseExpr.BaseExpr is not null && ContainsParameter(caseExpr.BaseExpr, parameterName))
+                || caseExpr.Whens.Any(when => ContainsParameter(when.When, parameterName) || ContainsParameter(when.Then, parameterName))
+                || (caseExpr.ElseExpr is not null && ContainsParameter(caseExpr.ElseExpr, parameterName)),
+            FunctionCallExpr functionCall => functionCall.Args.Any(arg => ContainsParameter(arg, parameterName)),
+            CallExpr call => call.Args.Any(arg => ContainsParameter(arg, parameterName)),
+            LikeExpr likeExpr => ContainsParameter(likeExpr.Left, parameterName)
+                || ContainsParameter(likeExpr.Pattern, parameterName)
+                || (likeExpr.Escape is not null && ContainsParameter(likeExpr.Escape, parameterName)),
+            InExpr inExpr => ContainsParameter(inExpr.Left, parameterName)
+                || inExpr.Items.Any(item => ContainsParameter(item, parameterName)),
+            IsNullExpr isNullExpr => ContainsParameter(isNullExpr.Expr, parameterName),
+            BetweenExpr betweenExpr => ContainsParameter(betweenExpr.Expr, parameterName)
+                || ContainsParameter(betweenExpr.Low, parameterName)
+                || ContainsParameter(betweenExpr.High, parameterName),
+            RowExpr rowExpr => rowExpr.Items.Any(item => ContainsParameter(item, parameterName)),
+            _ => false
+        };
+
+    private static string FormatDebugValue(object? value)
+        => value is null or DBNull
+            ? "NULL"
+            : $"{value} ({value.GetType().Name})";
 }

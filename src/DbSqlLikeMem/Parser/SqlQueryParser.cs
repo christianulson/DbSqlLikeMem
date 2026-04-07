@@ -855,9 +855,17 @@ internal sealed class SqlQueryParser
         if (_ctx.IsWord(SqlConst.TRIGGER))
             return _ctx.ParseCreateTrigger(orReplace);
 
+        if (_ctx.IsWord(SqlConst.TABLE)
+            || _ctx.IsWord(SqlConst.GLOBAL)
+            || _ctx.IsWord(SqlConst.TEMPORARY)
+            || _ctx.IsWord(SqlConst.TEMP))
+        {
+            return SqlCreateTemporaryTableHelper.ParseCreateTemporaryTable(_ctx, orReplace);
+        }
+
         if (orReplace)
-            throw new InvalidOperationException("CREATE OR REPLACE is only supported for VIEW, FUNCTION and PROCEDURE statements.");
-        return SqlCreateTemporaryTableHelper.ParseCreateTemporaryTable(_ctx);
+            throw new InvalidOperationException("CREATE OR REPLACE is only supported for VIEW, FUNCTION, PROCEDURE and TABLE statements.");
+        return SqlCreateTemporaryTableHelper.ParseCreateTemporaryTable(_ctx, orReplace: false);
     }
 
     private SqlQueryBase ParseAlter()

@@ -8,7 +8,7 @@ internal static class AstQueryFirebirdScalarFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!string.Equals(context.Dialect.Name, "firebird", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(context.Connection.ProviderExecutionDialect.Name, "firebird", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -34,6 +34,12 @@ internal static class AstQueryFirebirdScalarFunctionEvaluator
 
         if (string.Equals(fn.Name, "GEN_UUID", StringComparison.OrdinalIgnoreCase))
             return TryEvalGenUuidFunction(fn, out result);
+
+        if (string.Equals(fn.Name, "GEN_ID", StringComparison.OrdinalIgnoreCase))
+            return TryEvalGenIdFunction(context.Connection, fn.Args, evalArg, out result);
+
+        if (string.Equals(fn.Name, "NEXT_VALUE_FOR", StringComparison.OrdinalIgnoreCase))
+            return TryEvalNextValueForFunction(context.Connection, fn.Args, out result);
 
         if (string.Equals(fn.Name, "HASH", StringComparison.OrdinalIgnoreCase))
             return TryEvalHashFunction(fn, evalArg, out result);
@@ -417,6 +423,91 @@ internal static class AstQueryFirebirdScalarFunctionEvaluator
         return true;
     }
 
+    private static bool TryEvalGenIdFunction(
+        DbConnectionMockBase connection,
+        IReadOnlyList<SqlExpr> args,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        result = null;
+
+        if (args.Count != 2)
+            return false;
+
+        var sequenceRef = TryReadSequenceReference(args[0]);
+        if (sequenceRef is null)
+            return false;
+
+        if (!connection.TryGetSequence(sequenceRef.SequenceName, out var sequence, sequenceRef.SchemaName) || sequence is null)
+            throw new InvalidOperationException($"Sequence not found: {sequenceRef.DisplayName}");
+
+        connection.CaptureSequenceStateForRollback(sequenceRef.SequenceName, sequenceRef.SchemaName);
+        var baseValue = sequence.CurrentValue ?? 0L;
+        var increment = Convert.ToInt64(evalArg(1), CultureInfo.InvariantCulture);
+        var value = sequence.SetValue(baseValue + increment, true);
+        connection.SetSessionSequenceValue(sequenceRef.SequenceName, value, sequenceRef.SchemaName);
+        result = value;
+        return true;
+    }
+
+    private static bool TryEvalNextValueForFunction(
+        DbConnectionMockBase connection,
+        IReadOnlyList<SqlExpr> args,
+        out object? result)
+    {
+        result = null;
+
+        if (args.Count != 1)
+            return false;
+
+        var sequenceRef = TryReadSequenceReference(args[0]);
+        if (sequenceRef is null)
+            return false;
+
+        if (!connection.TryGetSequence(sequenceRef.SequenceName, out var sequence, sequenceRef.SchemaName) || sequence is null)
+            throw new InvalidOperationException($"Sequence not found: {sequenceRef.DisplayName}");
+
+        connection.CaptureSequenceStateForRollback(sequenceRef.SequenceName, sequenceRef.SchemaName);
+        var value = sequence.NextValue();
+        connection.SetSessionSequenceValue(sequenceRef.SequenceName, value, sequenceRef.SchemaName);
+        result = value;
+        return true;
+    }
+
+    private static SequenceReference? TryReadSequenceReference(SqlExpr expr)
+    {
+        return expr switch
+        {
+            IdentifierExpr id => NormalizeSequenceReference(id.Name),
+            ColumnExpr c => NormalizeSequenceReference(string.IsNullOrWhiteSpace(c.Qualifier) ? c.Name : $"{c.Qualifier}.{c.Name}"),
+            LiteralExpr lit when lit.Value is not null => NormalizeSequenceReference(Convert.ToString(lit.Value, CultureInfo.InvariantCulture)),
+            RawSqlExpr raw => NormalizeSequenceReference(raw.Sql),
+            _ => null
+        };
+    }
+
+    private static SequenceReference? NormalizeSequenceReference(string? sequenceName)
+    {
+        if (string.IsNullOrWhiteSpace(sequenceName))
+            return null;
+
+        var trimmed = sequenceName!.Trim().Trim('\'', '"');
+        var parts = trimmed
+            .Split('.')
+            .Select(s => s.Trim())
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(part => part.Trim('\'', '"').NormalizeName())
+            .Where(part => !string.IsNullOrWhiteSpace(part))
+            .ToArray();
+
+        if (parts.Length == 0)
+            return null;
+
+        return parts.Length == 1
+            ? new SequenceReference(null, parts[0])
+            : new SequenceReference(parts[^2], parts[^1]);
+    }
+
     private static bool TryParseUuidBytes(string text, out byte[] bytes)
     {
         bytes = [];
@@ -560,5 +651,12 @@ internal static class AstQueryFirebirdScalarFunctionEvaluator
         var current = Convert.ToInt64(value, CultureInfo.InvariantCulture);
         result = ~current;
         return true;
+    }
+
+    private sealed record SequenceReference(string? SchemaName, string SequenceName)
+    {
+        public string DisplayName => string.IsNullOrWhiteSpace(SchemaName)
+            ? SequenceName
+            : $"{SchemaName}.{SequenceName}";
     }
 }

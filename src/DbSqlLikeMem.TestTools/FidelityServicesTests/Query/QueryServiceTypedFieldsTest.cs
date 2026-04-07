@@ -472,6 +472,14 @@ INSERT INTO {tableName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) 
             _ => string.Empty
         };
 
+        var agePlusBalanceSuffix = Dialect.Provider switch
+        {
+            ProviderId.Sqlite => ".0",
+            ProviderId.Db2 => ".00",
+            ProviderId.SqlServer or ProviderId.SqlAzure => ".00",
+            _ => string.Empty
+        };
+
         using var command = Connection.CreateCommand();
         command.CommandText = $"""
 SELECT
@@ -493,13 +501,13 @@ ORDER BY Id
         var rows = new List<QueryResultRowSnapshot>(3);
 
         reader.Read().Should().BeTrue();
-        rows.Add(ValidateCastRow(reader, 1, "1", "31", "36", $"11{roundedBalanceSuffix}", $"21{roundedBalanceSuffix}", "1", "1", "1", $"42{roundedBalanceSuffix}"));
+        rows.Add(ValidateCastRow(reader, 1, "1", "31", "36", $"11{roundedBalanceSuffix}", $"21{roundedBalanceSuffix}", "1", "1", "1", $"42{agePlusBalanceSuffix}"));
 
         reader.Read().Should().BeTrue();
-        rows.Add(ValidateCastRow(reader, 2, "2", "27", "32", $"20{roundedBalanceSuffix}", $"41{roundedBalanceSuffix}", "3", "0", "0", $"47{roundedBalanceSuffix}"));
+        rows.Add(ValidateCastRow(reader, 2, "2", "27", "32", $"20{roundedBalanceSuffix}", $"41{roundedBalanceSuffix}", "3", "0", "0", $"47{agePlusBalanceSuffix}"));
 
         reader.Read().Should().BeTrue();
-        rows.Add(ValidateCastRow(reader, 3, "3", "0", "5", $"5{roundedBalanceSuffix}", $"10{roundedBalanceSuffix}", "30", "1", "1", $"5{roundedBalanceSuffix}"));
+        rows.Add(ValidateCastRow(reader, 3, "3", "0", "5", $"5{roundedBalanceSuffix}", $"10{roundedBalanceSuffix}", "30", "1", "1", $"5{agePlusBalanceSuffix}"));
 
         reader.Read().Should().BeFalse();
 

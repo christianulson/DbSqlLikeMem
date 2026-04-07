@@ -124,7 +124,7 @@ internal static class SqlAliasParserHelper
         ThrowIfUnsupportedAliasQuote(right, dialect, options);
 
         var lastLeft = left.TrimEnd();
-        if (Regex.IsMatch(lastLeft, @"(<=>|<>|!=|>=|<=|=|>|<|\+|-|\*|/|,)\s*$", RegexOptions.CultureInvariant))
+        if (Regex.IsMatch(lastLeft, @"(<=>|<>|!=|>=|<=|=|>|<|\|\||\+|-|\*|/|,)\s*$", RegexOptions.CultureInvariant))
             return null;
         if (Regex.IsMatch(lastLeft, @"\b(NEXT|PREVIOUS)\s+VALUE\s+FOR\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
             return null;

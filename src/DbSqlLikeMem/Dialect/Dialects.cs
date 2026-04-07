@@ -635,6 +635,18 @@ internal abstract class SqlDialectBase : ISqlDialect
 
     public virtual bool SupportsCreateOrReplaceFunctionDdl => false;
 
+    /// <summary>
+    /// EN: Indicates whether CREATE TABLE statements are supported by this dialect.
+    /// PT: Indica se instrucoes CREATE TABLE sao suportadas por este dialeto.
+    /// </summary>
+    public virtual bool SupportsCreateTableDdl => true;
+
+    /// <summary>
+    /// EN: Indicates whether CREATE OR REPLACE TABLE statements are supported by this dialect.
+    /// PT: Indica se instrucoes CREATE OR REPLACE TABLE sao suportadas por este dialeto.
+    /// </summary>
+    public virtual bool SupportsCreateOrReplaceTableDdl => false;
+
     public virtual bool SupportsAlterTableAddColumn => false;
 
     public virtual bool SupportsNextValueForSequenceExpression
