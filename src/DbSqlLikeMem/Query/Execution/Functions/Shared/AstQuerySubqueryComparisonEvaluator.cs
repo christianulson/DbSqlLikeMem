@@ -251,21 +251,21 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
             false,
             false);
 
-        if (innerFilterExpr is not null)
-            rows = rows.Where(r => _eval(innerFilterExpr, r, null, ctes).ToBool());
-
         var estimatedCount = AstQueryAggregateEvaluator.GetKnownRowCount(rows);
-        var presence = estimatedCount > 0
-            ? new HashSet<string>(StringComparer.Ordinal)
-            : new HashSet<string>(StringComparer.Ordinal);
+        var presence = new HashSet<string>(StringComparer.Ordinal);
+        var hasInnerFilter = innerFilterExpr is not null;
 
         if (rows is List<EvalRow> rowList)
         {
             for (var i = 0; i < rowList.Count; i++)
             {
+                var candidate = rowList[i];
+                if (hasInnerFilter && !_eval(innerFilterExpr!, candidate, null, ctes).ToBool())
+                    continue;
+
                 if (!AstQuerySubqueryLookupSupport.TryBuildCorrelatedLookupCompositeKey(
                         keyPairs,
-                        rowList[i],
+                        candidate,
                         ctes,
                         useInnerSide: true,
                         eval: _eval,
@@ -279,6 +279,9 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
         {
             foreach (var candidate in rows)
             {
+                if (hasInnerFilter && !_eval(innerFilterExpr!, candidate, null, ctes).ToBool())
+                    continue;
+
                 if (!AstQuerySubqueryLookupSupport.TryBuildCorrelatedLookupCompositeKey(
                         keyPairs,
                         candidate,
@@ -731,20 +734,22 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
             false,
             false);
 
-        if (innerFilterExpr is not null)
-            rows = rows.Where(r => _eval(innerFilterExpr, r, null, ctes).ToBool());
-
         var estimatedCount = AstQueryAggregateEvaluator.GetKnownRowCount(rows);
         var compositeCounts = estimatedCount > 0
             ? new Dictionary<string, int>(estimatedCount, StringComparer.Ordinal)
             : new Dictionary<string, int>(StringComparer.Ordinal);
+        var hasInnerFilter = innerFilterExpr is not null;
         if (rows is List<EvalRow> rowList)
         {
             for (var i = 0; i < rowList.Count; i++)
             {
+                var candidate = rowList[i];
+                if (hasInnerFilter && !_eval(innerFilterExpr!, candidate, null, ctes).ToBool())
+                    continue;
+
                 if (!AstQuerySubqueryLookupSupport.TryBuildCorrelatedLookupCompositeKey(
                         keyPairs,
-                        rowList[i],
+                        candidate,
                         ctes,
                         useInnerSide: true,
                         eval: _eval,
@@ -761,6 +766,9 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
         {
             foreach (var candidate in rows)
             {
+                if (hasInnerFilter && !_eval(innerFilterExpr!, candidate, null, ctes).ToBool())
+                    continue;
+
                 if (!AstQuerySubqueryLookupSupport.TryBuildCorrelatedLookupCompositeKey(
                         keyPairs,
                         candidate,

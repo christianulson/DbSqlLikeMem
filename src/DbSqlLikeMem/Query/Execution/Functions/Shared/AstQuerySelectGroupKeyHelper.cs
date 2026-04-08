@@ -6,29 +6,33 @@ internal static class AstQuerySelectGroupKeyHelper
         SqlSelectQuery query,
         Func<string, SqlExpr> parseExpr)
     {
-        var keyExprs = new List<SqlExpr>(query.GroupBy.Count);
+        var groupBy = query.GroupBy;
+        var selectItems = query.SelectItems;
+        var groupByCount = groupBy.Count;
+        var selectItemsCount = selectItems.Count;
+        var keyExprs = new SqlExpr[groupByCount];
 
-        foreach (var groupByRaw in query.GroupBy)
+        for (var i = 0; i < groupByCount; i++)
         {
-            var raw = groupByRaw.Trim();
+            var raw = groupBy[i];
             if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var ord))
             {
                 if (ord < 1)
                     throw new InvalidOperationException("invalid: GROUP BY ordinal must be >= 1");
 
                 var idx = ord - 1;
-                if (idx >= query.SelectItems.Count)
+                if (idx >= selectItemsCount)
                     throw new InvalidOperationException($"invalid: GROUP BY ordinal {ord} out of range");
 
-                var selectItem = query.SelectItems[idx];
+                var selectItem = selectItems[idx];
                 var (exprRaw, _) = SelectAliasParserHelper.SplitTrailingAsAlias(selectItem.Raw, selectItem.Alias);
-                keyExprs.Add(parseExpr(exprRaw));
+                keyExprs[i] = parseExpr(exprRaw);
                 continue;
             }
 
-            keyExprs.Add(parseExpr(groupByRaw));
+            keyExprs[i] = parseExpr(raw);
         }
 
-        return [.. keyExprs];
+        return keyExprs;
     }
 }

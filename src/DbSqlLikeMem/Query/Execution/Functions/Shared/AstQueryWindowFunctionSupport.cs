@@ -4,6 +4,23 @@ namespace DbSqlLikeMem;
 
 internal static class AstQueryWindowFunctionSupport
 {
+    internal enum WindowFunctionKind
+    {
+        Other,
+        RowNumber,
+        Rank,
+        DenseRank,
+        Ntile,
+        PercentRank,
+        CumeDist,
+        Lag,
+        Lead,
+        FirstValue,
+        LastValue,
+        NthValue,
+        Count
+    }
+
     internal static bool SupportsWindowFrame(string functionName)
     {
         if (string.IsNullOrWhiteSpace(functionName))
@@ -13,6 +30,49 @@ internal static class AstQueryWindowFunctionSupport
             || functionName.Equals("FIRST_VALUE", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("LAST_VALUE", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("NTH_VALUE", StringComparison.OrdinalIgnoreCase);
+    }
+
+    internal static WindowFunctionKind ClassifyWindowFunction(string functionName)
+    {
+        if (string.IsNullOrWhiteSpace(functionName))
+            return WindowFunctionKind.Other;
+
+        if (functionName.Equals("RANK", StringComparison.OrdinalIgnoreCase))
+            return WindowFunctionKind.Rank;
+
+        if (functionName.Equals("DENSE_RANK", StringComparison.OrdinalIgnoreCase))
+            return WindowFunctionKind.DenseRank;
+
+        if (functionName.Equals("NTILE", StringComparison.OrdinalIgnoreCase))
+            return WindowFunctionKind.Ntile;
+
+        if (functionName.Equals("PERCENT_RANK", StringComparison.OrdinalIgnoreCase))
+            return WindowFunctionKind.PercentRank;
+
+        if (functionName.Equals("CUME_DIST", StringComparison.OrdinalIgnoreCase))
+            return WindowFunctionKind.CumeDist;
+
+        if (functionName.Equals("LAG", StringComparison.OrdinalIgnoreCase))
+            return WindowFunctionKind.Lag;
+
+        if (functionName.Equals("LEAD", StringComparison.OrdinalIgnoreCase))
+            return WindowFunctionKind.Lead;
+
+        if (functionName.Equals("FIRST_VALUE", StringComparison.OrdinalIgnoreCase))
+            return WindowFunctionKind.FirstValue;
+
+        if (functionName.Equals("LAST_VALUE", StringComparison.OrdinalIgnoreCase))
+            return WindowFunctionKind.LastValue;
+
+        if (functionName.Equals("NTH_VALUE", StringComparison.OrdinalIgnoreCase))
+            return WindowFunctionKind.NthValue;
+
+        if (functionName.Equals("COUNT", StringComparison.OrdinalIgnoreCase))
+            return WindowFunctionKind.Count;
+
+        return functionName.Equals("ROW_NUMBER", StringComparison.OrdinalIgnoreCase)
+            ? WindowFunctionKind.RowNumber
+            : WindowFunctionKind.Other;
     }
 
     internal static bool TryReadIntLiteral(SqlExpr expr, out int value)

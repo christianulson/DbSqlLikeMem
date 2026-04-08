@@ -14,28 +14,41 @@ internal static class AstQueryWindowExecutionHelper
         if (slots.Count == 0 || rows.Count == 0)
             return;
 
+        var dialectInstance = context.Dialect ?? throw new InvalidOperationException("Dialect is required for window function validation.");
+        var isSqlServer = dialectInstance.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase);
+
         foreach (var slotGroup in GroupWindowSlotsBySpec(slots))
         {
-            var spec = slotGroup[0].Expr.Spec;
+            var firstSlot = slotGroup[0];
+            var firstExpr = firstSlot.Expr;
+            var spec = firstExpr.Spec;
+            var frame = spec.Frame;
+            var orderByCount = spec.OrderBy.Count;
+            var hasFrame = frame is not null;
             var partitions = WindowPartitionHelper.BuildPartitions(
-                slotGroup[0].Expr,
+                firstExpr,
                 rows,
                 (expr, row) => eval(expr, row, null, ctes),
                 context.NormalizeDistinctKey);
 
             foreach (var part in partitions.Values)
             {
+                var partCount = part.Count;
+                var sampleRow = part[0];
                 var orderValuesByRow = WindowPartitionHelper.SortPartition(
                     part,
                     spec.OrderBy,
                     (expr, row) => eval(expr, row, null, ctes),
                     context.CompareSql);
                 var partitionContext = new WindowPartitionExecutionContext(context, part, spec, ctes, orderValuesByRow, eval);
+                var slotGroupCount = slotGroup.Count;
 
-                foreach (var slot in slotGroup)
+                for (var slotIndex = 0; slotIndex < slotGroupCount; slotIndex++)
                 {
+                    var slot = slotGroup[slotIndex];
+                    var slotMap = slot.Map;
                     var w = slot.Expr;
-                    var dialectInstance = context.Dialect ?? throw new InvalidOperationException("Dialect is required for window function validation.");
+                    var windowName = w.Name;
                     var windowDefinition = w.ResolvedWindowFunction;
                     if (windowDefinition is null
                         && dialectInstance.TryGetWindowFunctionDefinition(w, out var resolvedWindowDefinition))
@@ -43,99 +56,134 @@ internal static class AstQueryWindowExecutionHelper
                         windowDefinition = resolvedWindowDefinition;
                     }
 
-                    var isRowNumber = dialectInstance.IsRowNumberWindowFunction(w.Name);
-                    var isRank = w.Name.Equals("RANK", StringComparison.OrdinalIgnoreCase);
-                    var isDenseRank = w.Name.Equals("DENSE_RANK", StringComparison.OrdinalIgnoreCase);
-                    var isNtile = w.Name.Equals("NTILE", StringComparison.OrdinalIgnoreCase);
-                    var isPercentRank = w.Name.Equals("PERCENT_RANK", StringComparison.OrdinalIgnoreCase);
-                    var isCumeDist = w.Name.Equals("CUME_DIST", StringComparison.OrdinalIgnoreCase);
-                    var isLag = w.Name.Equals("LAG", StringComparison.OrdinalIgnoreCase);
-                    var isLead = w.Name.Equals("LEAD", StringComparison.OrdinalIgnoreCase);
-                    var isFirstValue = w.Name.Equals("FIRST_VALUE", StringComparison.OrdinalIgnoreCase);
-                    var isLastValue = w.Name.Equals("LAST_VALUE", StringComparison.OrdinalIgnoreCase);
-                    var isNthValue = w.Name.Equals("NTH_VALUE", StringComparison.OrdinalIgnoreCase);
-                    var isCount = w.Name.Equals("COUNT", StringComparison.OrdinalIgnoreCase);
-                    var isAggregateWindow = AggregateFunctionCatalog.Contains(w.Name);
-                    var isSqlServer = dialectInstance.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase);
+                    var windowKind = AstQueryWindowFunctionSupport.ClassifyWindowFunction(windowName);
+                    var isAggregateWindow = windowKind == AstQueryWindowFunctionSupport.WindowFunctionKind.Other
+                        && AggregateFunctionCatalog.Contains(windowName);
 
                     var resolvedWindowDefinition1 = windowDefinition
-                        ?? throw SqlUnsupported.NotSupported(dialectInstance, $"window functions ({w.Name})");
+                        ?? throw SqlUnsupported.NotSupported(dialectInstance, $"window functions ({windowName})");
+                    var args = w.Args;
+                    var argsCount = args.Count;
 
                     if (isSqlServer
-                        && w.Spec.Frame is not null
-                        && !AstQueryWindowFunctionSupport.SupportsWindowFrame(w.Name))
+                        && hasFrame
+                        && !AstQueryWindowFunctionSupport.SupportsWindowFrame(windowName))
                     {
                         throw new InvalidOperationException(
-                            $"Window function '{w.Name}' does not support ROWS, RANGE or GROUPS clauses.");
+                            $"Window function '{windowName}' does not support ROWS, RANGE or GROUPS clauses.");
                     }
 
-                    if (resolvedWindowDefinition1.RequiresOrderBy && w.Spec.OrderBy.Count == 0)
-                        throw new InvalidOperationException($"Window function '{w.Name}' requires ORDER BY in OVER clause.");
+                    if (resolvedWindowDefinition1.RequiresOrderBy && orderByCount == 0)
+                        throw new InvalidOperationException($"Window function '{windowName}' requires ORDER BY in OVER clause.");
 
-                    if (isRowNumber)
+                    var firstArg = argsCount > 0 ? args[0] : null;
+                    Func<EvalRow, object?>? valueSelector = null;
+
+                    if (windowKind == AstQueryWindowFunctionSupport.WindowFunctionKind.RowNumber)
                     {
                         long rn = 1;
-                        foreach (var r in part)
+                        for (var i = 0; i < partCount; i++)
                         {
-                            slot.Map[r] = rn;
-                            rn++;
+                            slotMap[part[i]] = rn++;
                         }
                         continue;
                     }
 
-                    var valueSelector = part.Count > 0
-                        ? partitionContext.TryCreateWindowValueSelector(
-                            w.Args.Count > 0 ? w.Args[0] : null!,
-                            part[0])
-                        : null;
-
-                    if (isNtile)
+                    if (windowKind == AstQueryWindowFunctionSupport.WindowFunctionKind.Ntile)
                     {
-                        partitionContext.FillNtile(slot.Map, w, ctes, eval);
+                        partitionContext.FillNtile(slotMap, w, ctes, eval);
                         continue;
                     }
 
-                    if (isCount)
+                    if (windowKind == AstQueryWindowFunctionSupport.WindowFunctionKind.Count)
                     {
-                        partitionContext.FillCount(slot.Map, w, ctes, eval, valueSelector);
+                        if (firstArg is not null && firstArg is not StarExpr)
+                            valueSelector = GetValueSelector(partitionContext, firstArg, sampleRow);
+
+                        partitionContext.FillCount(
+                            slotMap,
+                            w,
+                            ctes,
+                            eval,
+                            valueSelector);
                         continue;
                     }
 
                     if (isAggregateWindow)
                     {
-                        partitionContext.FillAggregate(slot.Map, w, ctes, eval);
+                        partitionContext.FillAggregate(slotMap, w, ctes, eval);
                         continue;
                     }
 
-                    if (isPercentRank || isCumeDist)
+                    if (windowKind is AstQueryWindowFunctionSupport.WindowFunctionKind.PercentRank
+                        or AstQueryWindowFunctionSupport.WindowFunctionKind.CumeDist)
                     {
-                        partitionContext.FillPercentRankOrCumeDist(slot.Map, isPercentRank);
+                        partitionContext.FillPercentRankOrCumeDist(
+                            slotMap,
+                            windowKind == AstQueryWindowFunctionSupport.WindowFunctionKind.PercentRank);
                         continue;
                     }
 
-                    if (isLag || isLead)
+                    if (windowKind is AstQueryWindowFunctionSupport.WindowFunctionKind.Lag
+                        or AstQueryWindowFunctionSupport.WindowFunctionKind.Lead)
                     {
-                        partitionContext.FillLagOrLead(slot.Map, w, ctes, eval, valueSelector, isLead);
+                        valueSelector ??= firstArg is null
+                            ? null
+                            : GetValueSelector(partitionContext, firstArg, sampleRow);
+
+                        partitionContext.FillLagOrLead(
+                            slotMap,
+                            w,
+                            ctes,
+                            eval,
+                            valueSelector,
+                            windowKind == AstQueryWindowFunctionSupport.WindowFunctionKind.Lead);
                         continue;
                     }
 
-                    if (isFirstValue || isLastValue)
+                    if (windowKind is AstQueryWindowFunctionSupport.WindowFunctionKind.FirstValue
+                        or AstQueryWindowFunctionSupport.WindowFunctionKind.LastValue)
                     {
-                        partitionContext.FillFirstOrLastValue(slot.Map, w, ctes, eval, valueSelector, isLastValue);
+                        valueSelector ??= firstArg is null
+                            ? null
+                            : GetValueSelector(partitionContext, firstArg, sampleRow);
+
+                        partitionContext.FillFirstOrLastValue(
+                            slotMap,
+                            w,
+                            ctes,
+                            eval,
+                            valueSelector,
+                            windowKind == AstQueryWindowFunctionSupport.WindowFunctionKind.LastValue);
                         continue;
                     }
 
-                    if (isNthValue)
+                    if (windowKind == AstQueryWindowFunctionSupport.WindowFunctionKind.NthValue)
                     {
-                        partitionContext.FillNthValue(slot.Map, w, ctes, eval, valueSelector);
+                        valueSelector ??= firstArg is null
+                            ? null
+                            : GetValueSelector(partitionContext, firstArg, sampleRow);
+
+                        partitionContext.FillNthValue(slotMap, w, ctes, eval, valueSelector);
                         continue;
                     }
 
-                    partitionContext.FillRankOrDenseRank(slot.Map, context.CompareSql, isRank);
+                    partitionContext.FillRankOrDenseRank(
+                        slotMap,
+                        context.CompareSql,
+                        windowKind == AstQueryWindowFunctionSupport.WindowFunctionKind.Rank);
                 }
             }
         }
     }
+
+    private static Func<EvalRow, object?>? GetValueSelector(
+        WindowPartitionExecutionContext partitionContext,
+        SqlExpr? firstArg,
+        EvalRow sampleRow)
+        => firstArg is null
+            ? null
+            : partitionContext.TryCreateWindowValueSelector(firstArg, sampleRow);
 
     private static List<List<WindowSlot>> GroupWindowSlotsBySpec(List<WindowSlot> slots)
     {
@@ -152,7 +200,11 @@ internal static class AstQueryWindowExecutionHelper
             group.Add(slot);
         }
 
-        return [.. groups.Values];
+        var groupedSlots = new List<List<WindowSlot>>(groups.Count);
+        foreach (var group in groups.Values)
+            groupedSlots.Add(group);
+
+        return groupedSlots;
     }
 
     internal static string BuildWindowSpecCacheKey(WindowSpec spec)

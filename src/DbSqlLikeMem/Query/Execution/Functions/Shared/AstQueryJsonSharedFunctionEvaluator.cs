@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json.Nodes;
 
 namespace DbSqlLikeMem;
@@ -33,18 +34,38 @@ internal static class AstQueryJsonSharedFunctionEvaluator
 
     internal static string BuildJsonArray(IEnumerable<object?> values)
     {
-        var parts = values.Select(static value =>
+        var estimatedCapacity = values is ICollection<object?> collection
+            ? Math.Max(2, (collection.Count * 8) + 2)
+            : values is IReadOnlyCollection<object?> readOnlyCollection
+                ? Math.Max(2, (readOnlyCollection.Count * 8) + 2)
+                : 16;
+        var builder = new StringBuilder(estimatedCapacity);
+        builder.Append('[');
+        var isFirst = true;
+        foreach (var value in values)
         {
+            if (!isFirst)
+                builder.Append(',');
+
+            isFirst = false;
+
             if (value is null or DBNull)
-                return "null";
+            {
+                builder.Append("null");
+                continue;
+            }
 
             if (value is JsonElement element)
-                return element.GetRawText();
+            {
+                builder.Append(element.GetRawText());
+                continue;
+            }
 
-            return JsonSerializer.Serialize(value);
-        });
+            builder.Append(JsonSerializer.Serialize(value));
+        }
 
-        return "[" + string.Join(",", parts) + "]";
+        builder.Append(']');
+        return builder.ToString();
     }
 
     internal static JsonNode CloneJsonNode(JsonNode node)

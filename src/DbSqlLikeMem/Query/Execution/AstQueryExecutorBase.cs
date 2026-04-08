@@ -112,7 +112,6 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         => _havingHelper ??= new AstQueryHavingHelper(
             () => context.Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para HAVING."),
             ParseExpr,
-            AggregateExpressionInspector.WalkHasAggregate,
             SelectAliasParserHelper.SplitTrailingAsAlias);
 
     private AstQueryPartitionHelper PartitionHelper

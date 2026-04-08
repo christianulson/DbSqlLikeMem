@@ -104,16 +104,33 @@ internal static class DbInsertStrategy
         var supportsTriggers = dialect.SupportsTriggers;
         var hasBeforeInsertTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeInsert);
         var hasAfterInsertTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.AfterInsert);
-        var hasBeforeUpdateTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeUpdate);
-        var hasAfterUpdateTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.AfterUpdate);
-        var onDupChangedColumns = new List<string>(query.OnDupAssignsParsed.Count);
-        for (var i = 0; i < query.OnDupAssignsParsed.Count; i++)
-            onDupChangedColumns.Add(query.OnDupAssignsParsed[i].Column);
-        var requiresOldSnapshotForIndex = HasIndexedKeyChanges(tableMock, onDupChangedColumns);
         ValidateInsertPartitions(query, tableMock);
         ValidatePartitionedInsertRows(query, tableMock, newRows);
         var canUseBatchInsert = CanUseBatchInsert(context, table, tableName, query.Table.DbName, tableMock);
-        var affectedIndexes = new List<int>();
+        var affectedIndexes = new List<int>(newRows.Count);
+        var hasBeforeUpdateTrigger = false;
+        var hasAfterUpdateTrigger = false;
+        var requiresOldSnapshotForIndex = false;
+        var hasInsertConflictTargets = tableMock.PrimaryKeyIndexes.Count > 0;
+
+        if (query.HasOnDuplicateKeyUpdate)
+        {
+            var onDupChangedColumns = new List<string>(query.OnDupAssignsParsed.Count);
+            for (var i = 0; i < query.OnDupAssignsParsed.Count; i++)
+                onDupChangedColumns.Add(query.OnDupAssignsParsed[i].Column);
+
+            requiresOldSnapshotForIndex = HasIndexedKeyChanges(tableMock, onDupChangedColumns);
+            hasBeforeUpdateTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeUpdate);
+            hasAfterUpdateTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.AfterUpdate);
+            foreach (var index in tableMock.Indexes.Values)
+            {
+                if (index.Unique)
+                {
+                    hasInsertConflictTargets = true;
+                    break;
+                }
+            }
+        }
 
         if (query.IsReplace)
             return ExecuteReplaceCore(context, query, table, tableMock, newRows, targetRowCountBefore);
@@ -125,88 +142,108 @@ internal static class DbInsertStrategy
         {
             var beforeCount = table.Count;
             tableMock.AddBatch(newRows);
+            var afterCount = beforeCount + newRows.Count;
             insertedCount = newRows.Count;
-            for (int i = beforeCount; i < table.Count; i++)
+            for (int i = beforeCount; i < afterCount; i++)
                 affectedIndexes.Add(i);
-            TrySetLastInsertId(context, table, table[table.Count - 1]);
+            TrySetLastInsertId(context, table, newRows[^1]);
         }
         else if (query.HasOnDuplicateKeyUpdate
             && newRows.Count > 1
             && canUseBatchInsert)
         {
-            var pendingInsertRows = new List<Dictionary<int, object?>>(newRows.Count);
-            HashSet<IndexKey>? pendingPrimaryKeys = tableMock.PrimaryKeyIndexes.Count > 0
-                ? new HashSet<IndexKey>()
-                : null;
-            var pendingUniqueKeys = new Dictionary<IndexDef, HashSet<IndexKey>>(tableMock.Indexes.Count);
-            foreach (var index in tableMock.Indexes.Values)
+            if (!hasInsertConflictTargets)
             {
-                if (index.Unique)
-                    pendingUniqueKeys[index] = new HashSet<IndexKey>();
+                var beforeCount = table.Count;
+                tableMock.AddBatch(newRows);
+                var afterCount = beforeCount + newRows.Count;
+                insertedCount = newRows.Count;
+                for (int i = beforeCount; i < afterCount; i++)
+                    affectedIndexes.Add(i);
+                TrySetLastInsertId(context, table, newRows[^1]);
             }
-
-            foreach (var newRow in newRows)
+            else
             {
-                if (pendingInsertRows.Count > 0
-                    && HasPendingBatchConflict(tableMock, pendingPrimaryKeys, pendingUniqueKeys, newRow))
-                {
-                    var before = table.Count;
-                    FlushPendingInsertBatch(context, table, tableMock, pendingInsertRows, pendingPrimaryKeys, pendingUniqueKeys, ref insertedCount);
-                    for (int i = before; i < table.Count; i++) affectedIndexes.Add(i);
-                }
-
-                var conflictIdx = tableMock.FindConflictingRowIndex(newRow, out _, out _);
-                if (conflictIdx is null)
-                {
-                    pendingInsertRows.Add(newRow);
-                    RegisterPendingBatchKeys(tableMock, pendingPrimaryKeys, pendingUniqueKeys, newRow);
-                    continue;
-                }
-                var beforeFlush = table.Count;
-                FlushPendingInsertBatch(context, table, tableMock, pendingInsertRows, pendingPrimaryKeys, pendingUniqueKeys, ref insertedCount);
-                for (int i = beforeFlush; i < table.Count; i++) affectedIndexes.Add(i);
-
-                if (query.IsOnConflictDoNothing)
-                    continue;
-                if (!ShouldApplyOnConflictUpdateWhere(query, table, conflictIdx.Value, newRow, context))
-                    continue;
-
-                var oldSnapshot = requiresOldSnapshotForIndex || hasBeforeUpdateTrigger || hasAfterUpdateTrigger
-                    ? TableMock.SnapshotRow(table[conflictIdx.Value])
+                var pendingInsertRows = new List<Dictionary<int, object?>>(newRows.Count);
+                HashSet<IndexKey>? pendingPrimaryKeys = tableMock.PrimaryKeyIndexes.Count > 0
+                    ? new HashSet<IndexKey>()
                     : null;
-                var simulatedUpdated = TableMock.CloneRow(table[conflictIdx.Value]);
-                ApplyOnDuplicateUpdateAstInMemory(
-                    table,
-                    conflictIdx.Value,
-                    newRow,
-                    query.OnDupAssignsParsed,
-                    context,
-                    simulatedUpdated);
-                tableMock.ValidateForeignKeysOnRow(simulatedUpdated);
+                Dictionary<IndexDef, HashSet<IndexKey>>? pendingUniqueKeys = null;
+                foreach (var index in tableMock.Indexes.Values)
+                {
+                    if (index.Unique)
+                    {
+                        pendingUniqueKeys ??= new Dictionary<IndexDef, HashSet<IndexKey>>(tableMock.Indexes.Count);
+                        pendingUniqueKeys[index] = new HashSet<IndexKey>();
+                    }
+                }
+                var tracksPendingBatchConflicts = pendingPrimaryKeys is not null || pendingUniqueKeys is not null;
 
-                if (hasBeforeUpdateTrigger)
-                    TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, TableMock.SnapshotRow(newRow));
+                foreach (var newRow in newRows)
+                {
+                    if (pendingInsertRows.Count > 0
+                        && tracksPendingBatchConflicts
+                        && HasPendingBatchConflict(tableMock, pendingPrimaryKeys, pendingUniqueKeys, newRow))
+                    {
+                        var before = table.Count;
+                        FlushPendingInsertBatch(context, table, tableMock, pendingInsertRows, pendingPrimaryKeys, pendingUniqueKeys, ref insertedCount);
+                        for (int i = before; i < table.Count; i++) affectedIndexes.Add(i);
+                    }
 
-                ApplyOnDuplicateUpdateAst(
-                    table,
-                    conflictIdx.Value,
-                    newRow,
-                    query.OnDupAssignsParsed,
-                    context);
+                    var conflictIdx = tableMock.FindConflictingRowIndex(newRow, out _, out _);
+                    if (conflictIdx is null)
+                    {
+                        pendingInsertRows.Add(newRow);
+                        if (tracksPendingBatchConflicts)
+                            RegisterPendingBatchKeys(tableMock, pendingPrimaryKeys, pendingUniqueKeys, newRow);
+                        continue;
+                    }
+                    var beforeFlush = table.Count;
+                    FlushPendingInsertBatch(context, table, tableMock, pendingInsertRows, pendingPrimaryKeys, pendingUniqueKeys, ref insertedCount);
+                    for (int i = beforeFlush; i < table.Count; i++) affectedIndexes.Add(i);
 
-                if (hasAfterUpdateTrigger)
-                    TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, TableMock.SnapshotRow(table[conflictIdx.Value]));
+                    if (query.IsOnConflictDoNothing)
+                        continue;
+                    if (!ShouldApplyOnConflictUpdateWhere(query, table, conflictIdx.Value, newRow, context))
+                        continue;
 
-                if (requiresOldSnapshotForIndex)
-                    tableMock.UpdateIndexesWithRow(conflictIdx.Value, oldSnapshot, table[conflictIdx.Value]);
-                else
-                    tableMock.UpdateIndexesWithRow(conflictIdx.Value);
-                updatedCount++;
-                affectedIndexes.Add(conflictIdx.Value);
+                    var oldSnapshot = requiresOldSnapshotForIndex || hasBeforeUpdateTrigger || hasAfterUpdateTrigger
+                        ? TableMock.SnapshotRow(table[conflictIdx.Value])
+                        : null;
+                    var simulatedUpdated = TableMock.CloneRow(table[conflictIdx.Value]);
+                    ApplyOnDuplicateUpdateAstInMemory(
+                        table,
+                        conflictIdx.Value,
+                        newRow,
+                        query.OnDupAssignsParsed,
+                        context,
+                        simulatedUpdated);
+                    tableMock.ValidateForeignKeysOnRow(simulatedUpdated);
+
+                    if (hasBeforeUpdateTrigger)
+                        TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, TableMock.SnapshotRow(newRow));
+
+                    ApplyOnDuplicateUpdateAst(
+                        table,
+                        conflictIdx.Value,
+                        newRow,
+                        query.OnDupAssignsParsed,
+                        context);
+
+                    if (hasAfterUpdateTrigger)
+                        TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, TableMock.SnapshotRow(table[conflictIdx.Value]));
+
+                    if (requiresOldSnapshotForIndex)
+                        tableMock.UpdateIndexesWithRow(conflictIdx.Value, oldSnapshot, table[conflictIdx.Value]);
+                    else
+                        tableMock.UpdateIndexesWithRow(conflictIdx.Value);
+                    updatedCount++;
+                    affectedIndexes.Add(conflictIdx.Value);
+                }
+                var beforeFinalFlush = table.Count;
+                FlushPendingInsertBatch(context, table, tableMock, pendingInsertRows, pendingPrimaryKeys, pendingUniqueKeys, ref insertedCount);
+                for (int i = beforeFinalFlush; i < table.Count; i++) affectedIndexes.Add(i);
             }
-            var beforeFinalFlush = table.Count;
-            FlushPendingInsertBatch(context, table, tableMock, pendingInsertRows, pendingPrimaryKeys, pendingUniqueKeys, ref insertedCount);
-            for (int i = beforeFinalFlush; i < table.Count; i++) affectedIndexes.Add(i);
         }
         else
         {
@@ -217,9 +254,12 @@ internal static class DbInsertStrategy
                     // Insercao normal
                     if (query.IsOnConflictDoNothing)
                     {
-                        var conflictIdx1 = tableMock.FindConflictingRowIndex(newRow, out _, out _);
-                        if (conflictIdx1 is not null)
-                            continue;
+                        if (hasInsertConflictTargets)
+                        {
+                            var conflictIdx1 = tableMock.FindConflictingRowIndex(newRow, out _, out _);
+                            if (conflictIdx1 is not null)
+                                continue;
+                        }
                     }
 
                     tableMock.ValidateForeignKeysOnRow(newRow);
@@ -525,7 +565,7 @@ internal static class DbInsertStrategy
         TableMock tableMock,
         List<Dictionary<int, object?>> pendingInsertRows,
         HashSet<IndexKey>? pendingPrimaryKeys,
-        Dictionary<IndexDef, HashSet<IndexKey>> pendingUniqueKeys,
+        Dictionary<IndexDef, HashSet<IndexKey>>? pendingUniqueKeys,
         ref int insertedCount)
     {
         if (pendingInsertRows.Count == 0)
@@ -536,16 +576,22 @@ internal static class DbInsertStrategy
         TrySetLastInsertId(context, table, pendingInsertRows[^1]);
         pendingInsertRows.Clear();
         pendingPrimaryKeys?.Clear();
-        foreach (var keys in pendingUniqueKeys.Values)
-            keys.Clear();
+        if (pendingUniqueKeys is not null)
+        {
+            foreach (var keys in pendingUniqueKeys.Values)
+                keys.Clear();
+        }
     }
 
     private static bool HasPendingBatchConflict(
         TableMock tableMock,
         HashSet<IndexKey>? pendingPrimaryKeys,
-        Dictionary<IndexDef, HashSet<IndexKey>> pendingUniqueKeys,
+        Dictionary<IndexDef, HashSet<IndexKey>>? pendingUniqueKeys,
         IReadOnlyDictionary<int, object?> newRow)
     {
+        if (pendingPrimaryKeys is null && pendingUniqueKeys is null)
+            return false;
+
         if (pendingPrimaryKeys is not null)
         {
             var newPkKey = tableMock.BuildPkKey(newRow);
@@ -553,11 +599,14 @@ internal static class DbInsertStrategy
                 return true;
         }
 
-        foreach (var it in pendingUniqueKeys)
+        if (pendingUniqueKeys is not null)
         {
-            var newKey = it.Key.BuildIndexKey(newRow);
-            if (it.Value.Contains(newKey))
-                return true;
+            foreach (var it in pendingUniqueKeys)
+            {
+                var newKey = it.Key.BuildIndexKey(newRow);
+                if (it.Value.Contains(newKey))
+                    return true;
+            }
         }
 
         return false;
@@ -566,13 +615,16 @@ internal static class DbInsertStrategy
     private static void RegisterPendingBatchKeys(
         TableMock tableMock,
         HashSet<IndexKey>? pendingPrimaryKeys,
-        Dictionary<IndexDef, HashSet<IndexKey>> pendingUniqueKeys,
+        Dictionary<IndexDef, HashSet<IndexKey>>? pendingUniqueKeys,
         IReadOnlyDictionary<int, object?> row)
     {
         pendingPrimaryKeys?.Add(tableMock.BuildPkKey(row));
 
-        foreach (var it in pendingUniqueKeys)
-            it.Value.Add(it.Key.BuildIndexKey(row));
+        if (pendingUniqueKeys is not null)
+        {
+            foreach (var it in pendingUniqueKeys)
+                it.Value.Add(it.Key.BuildIndexKey(row));
+        }
     }
 
     private static void ValidateInsertPartitions(SqlInsertQuery query, TableMock table)

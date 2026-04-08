@@ -447,6 +447,22 @@ public abstract class TableMock
     }
 
     /// <summary>
+    /// EN: Tries to find a row by primary key values already ordered by the PK definition.
+    /// PT: Tenta encontrar uma linha por valores de chave primaria ja ordenados pela definicao da PK.
+    /// </summary>
+    /// <param name="values">EN: Primary key values in PK order. PT: Valores da chave primaria na ordem da PK.</param>
+    /// <param name="rowIndex">EN: Found row index. PT: Indice da linha encontrada.</param>
+    /// <returns>EN: True if a matching row was found. PT: True se uma linha correspondente foi encontrada.</returns>
+    internal bool TryFindRowByPkValues(object?[] values, out int rowIndex)
+    {
+        rowIndex = -1;
+        if (_primaryKeyIndexes.Count == 0 || _pkIndexArray.Length != values.Length)
+            return false;
+
+        return _pkIndex.TryGetValue(new IndexKey(values), out rowIndex);
+    }
+
+    /// <summary>
     /// EN: Rebuilds the PK index from all current rows.
     /// PT: Reconstrói o índice PK a partir de todas as linhas atuais.
     /// </summary>
@@ -613,13 +629,18 @@ public abstract class TableMock
         Dictionary<int, object?> row,
         Dictionary<int, object?>? oldRowSnapshot = null,
         int previousNextIdentity = 0)
-        => MutationApplied?.Invoke(new TableMutationNotification(
+    {
+        if (MutationApplied is null)
+            return;
+
+        MutationApplied(new TableMutationNotification(
             this,
             kind,
             rowIndex,
             row,
             oldRowSnapshot,
             previousNextIdentity));
+    }
 
     internal bool HasRegisteredTriggers()
     {
@@ -1224,8 +1245,9 @@ public abstract class TableMock
         var batchPrimaryKeys = _primaryKeyIndexes.Count > 0
             ? new HashSet<IndexKey>()
             : null;
+        var hasMutationApplied = MutationApplied is not null;
 
-        var previousNextIdentities = new int[values.Count];
+        int[]? previousNextIdentities = hasMutationApplied ? new int[values.Count] : null;
         var batchUniqueDicts = new Dictionary<IndexDef, HashSet<IndexKey>>(uniqueIndexes.Length);
         foreach (var index in uniqueIndexes)
             batchUniqueDicts[index] = new HashSet<IndexKey>();
@@ -1238,7 +1260,9 @@ public abstract class TableMock
         for (var valueIndex = 0; valueIndex < values.Count; valueIndex++)
         {
             var row = values[valueIndex];
-            previousNextIdentities[valueIndex] = NextIdentity;
+            if (hasMutationApplied)
+                previousNextIdentities![valueIndex] = NextIdentity;
+
             ApplyDefaultValues(row);
             RefreshPersistedComputedValues(row);
             ValidateForeignKeysOnRow(row);
@@ -1286,13 +1310,16 @@ public abstract class TableMock
                 _pkIndex[pkKeys![rowOffset]] = rowIndex;
         }
 
-        for (var rowOffset = 0; rowOffset < values.Count; rowOffset++)
+        if (hasMutationApplied)
         {
-            NotifyMutationApplied(
-                TableMutationKind.Insert,
-                startIndex + rowOffset,
-                values[rowOffset],
-                previousNextIdentity: previousNextIdentities[rowOffset]);
+            for (var rowOffset = 0; rowOffset < values.Count; rowOffset++)
+            {
+                NotifyMutationApplied(
+                    TableMutationKind.Insert,
+                    startIndex + rowOffset,
+                    values[rowOffset],
+                    previousNextIdentity: previousNextIdentities![rowOffset]);
+            }
         }
 
         return this;
@@ -1316,7 +1343,8 @@ public abstract class TableMock
     /// <param name="value">EN: Row to insert. PT: Linha a inserir.</param>
     public ITableMock Add(Dictionary<int, object?> value)
     {
-        var previousNextIdentity = NextIdentity;
+        var hasMutationApplied = MutationApplied is not null;
+        var previousNextIdentity = hasMutationApplied ? NextIdentity : 0;
         ApplyDefaultValues(value);
         RefreshPersistedComputedValues(value);
         ValidateForeignKeysOnRow(value);
@@ -1331,11 +1359,14 @@ public abstract class TableMock
             var pkKey = BuildPkKey(value);
             _pkIndex[pkKey] = newIdx;
         }
-        NotifyMutationApplied(
-            TableMutationKind.Insert,
-            newIdx,
-            value,
-            previousNextIdentity: previousNextIdentity);
+        if (hasMutationApplied)
+        {
+            NotifyMutationApplied(
+                TableMutationKind.Insert,
+                newIdx,
+                value,
+                previousNextIdentity: previousNextIdentity);
+        }
         return this;
     }
 
@@ -1729,12 +1760,37 @@ public abstract class TableMock
             eqConditionsByName.TryAdd(trimmed, cond);
         }
 
+        if (table is TableMock tableMock)
+        {
+            var pkValues = new object?[tableMock.PkIndexArray.Length];
+            for (var i = 0; i < tableMock.PkIndexArray.Length; i++)
+            {
+                var pkIdx = tableMock.PkIndexArray[i];
+                var col = tableMock.ColumnsByIndex.TryGetValue(pkIdx, out var columnName)
+                    ? tableMock.GetColumn(columnName)
+                    : table.Columns.Values.First(c => c.Index == pkIdx);
+                if (!eqConditionsByName.TryGetValue(col.Name, out var matchingCond))
+                    return false;
+
+                table.CurrentColumn = matchingCond.C;
+                var resolved = table.Resolve(matchingCond.V, col.DbType, col.Nullable, pars, table.Columns);
+                table.CurrentColumn = null;
+                pkValues[i] = resolved is DBNull ? null : resolved;
+            }
+
+            if (!tableMock.TryFindRowByPkValues(pkValues, out rowIndex))
+                return false;
+
+            var pkMatchedRow = table[rowIndex];
+            return IsMatchSimple(table, pars, conditions, pkMatchedRow);
+        }
+
         var syntheticRow = new Dictionary<int, object?>(table.PrimaryKeyIndexes.Count);
 
         foreach (var pkIdx in table.PrimaryKeyIndexes)
         {
-            var col = table is TableMock tableMock && tableMock.ColumnsByIndex.TryGetValue(pkIdx, out var columnName)
-                ? tableMock.GetColumn(columnName)
+            var col = table is TableMock tableAsMock && tableAsMock.ColumnsByIndex.TryGetValue(pkIdx, out var columnName)
+                ? tableAsMock.GetColumn(columnName)
                 : table.Columns.Values.First(c => c.Index == pkIdx);
             if (!eqConditionsByName.TryGetValue(col.Name, out var matchingCond))
                 return false;
@@ -1748,8 +1804,8 @@ public abstract class TableMock
         if (!table.TryFindRowByPk(syntheticRow, out rowIndex))
             return false;
 
-        var row = table[rowIndex];
-        return IsMatchSimple(table, pars, conditions, row);
+        var syntheticMatchedRow = table[rowIndex];
+        return IsMatchSimple(table, pars, conditions, syntheticMatchedRow);
     }
 
     internal static bool IsMatchSimple(
@@ -2101,6 +2157,7 @@ public abstract class TableMock
     /// </summary>
     public Dictionary<int, object?> RemoveAt(int idx)
     {
+        var hasMutationApplied = MutationApplied is not null;
         var it = _items[idx];
         Schema.ValidateForeignKeysOnDelete(TableName, this, [it]);
         RemoveRowFromIndexes(idx, it);
@@ -2125,7 +2182,8 @@ public abstract class TableMock
         }
         _items.RemoveAt(idx);
         ShiftIndexPositionsAfterDelete(idx);
-        NotifyMutationApplied(TableMutationKind.Delete, idx, it);
+        if (hasMutationApplied)
+            NotifyMutationApplied(TableMutationKind.Delete, idx, it);
         return it;
     }
 
@@ -2138,8 +2196,9 @@ public abstract class TableMock
         int colIdx,
         object? value)
     {
+        var hasMutationApplied = MutationApplied is not null;
         var row = _items[rowIdx];
-        var oldRow = CloneRow(row);
+        var oldRow = hasMutationApplied ? CloneRow(row) : null;
         // If changing a PK column, update the PK index
         if (_primaryKeyIndexes.Count > 0 && _primaryKeyIndexes.Contains(colIdx))
         {
@@ -2155,7 +2214,8 @@ public abstract class TableMock
             row[colIdx] = value;
             RefreshPersistedComputedValues(row);
         }
-        NotifyMutationApplied(TableMutationKind.Update, rowIdx, row, oldRow);
+        if (hasMutationApplied)
+            NotifyMutationApplied(TableMutationKind.Update, rowIdx, row, oldRow);
     }
 
     internal int FindRowIndexByReference(Dictionary<int, object?> row)

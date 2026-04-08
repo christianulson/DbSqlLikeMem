@@ -399,26 +399,33 @@ internal static class AstQueryAggregateEvaluator
         if (pairs.Count == 0)
             return null;
 
-        var meanX = pairs.Average(p => p.X);
-        var meanY = pairs.Average(p => p.Y);
-        var sumXY = pairs.Sum(p => (p.X - meanX) * (p.Y - meanY));
+        var sumX = 0d;
+        var sumY = 0d;
+        for (var i = 0; i < pairs.Count; i++)
+        {
+            sumX += pairs[i].X;
+            sumY += pairs[i].Y;
+        }
+
+        var meanX = sumX / pairs.Count;
+        var meanY = sumY / pairs.Count;
+        var sumXY = 0d;
+        var sumXX = 0d;
+        var sumYY = 0d;
+        for (var i = 0; i < pairs.Count; i++)
+        {
+            var dx = pairs[i].X - meanX;
+            var dy = pairs[i].Y - meanY;
+            sumXY += dx * dy;
+            sumXX += dx * dx;
+            sumYY += dy * dy;
+        }
 
         if (name is "COVAR_POP")
             return sumXY / pairs.Count;
 
         if (name is "COVAR_SAMP")
             return pairs.Count < 2 ? null : sumXY / (pairs.Count - 1);
-
-        var sumXX = pairs.Sum(p =>
-        {
-            var dx = p.X - meanX;
-            return dx * dx;
-        });
-        var sumYY = pairs.Sum(p =>
-        {
-            var dy = p.Y - meanY;
-            return dy * dy;
-        });
 
         if (sumXX == 0d || sumYY == 0d)
             return null;
@@ -444,7 +451,7 @@ internal static class AstQueryAggregateEvaluator
 
         if (name is "APPROX_COUNT_DISTINCT" or "APPROX_COUNT_DISTINCT_AGG" or "APPROX_COUNT_DISTINCT_DETAIL")
         {
-            var set = new HashSet<object?>();
+            var set = new HashSet<object?>(EqualityComparer<object?>.Default);
             foreach (var row in group.Rows)
             {
                 var value = eval(fn.Args[0], row, null, ctes);
@@ -490,19 +497,27 @@ internal static class AstQueryAggregateEvaluator
         if (pairs.Count == 0)
             return null;
 
-        var meanX = pairs.Average(p => p.X);
-        var meanY = pairs.Average(p => p.Y);
-        var sumXX = pairs.Sum(p =>
+        var sumX = 0d;
+        var sumY = 0d;
+        for (var i = 0; i < pairs.Count; i++)
         {
-            var dx = p.X - meanX;
-            return dx * dx;
-        });
-        var sumYY = pairs.Sum(p =>
+            sumX += pairs[i].X;
+            sumY += pairs[i].Y;
+        }
+
+        var meanX = sumX / pairs.Count;
+        var meanY = sumY / pairs.Count;
+        var sumXX = 0d;
+        var sumYY = 0d;
+        var sumXY = 0d;
+        for (var i = 0; i < pairs.Count; i++)
         {
-            var dy = p.Y - meanY;
-            return dy * dy;
-        });
-        var sumXY = pairs.Sum(p => (p.X - meanX) * (p.Y - meanY));
+            var dx = pairs[i].X - meanX;
+            var dy = pairs[i].Y - meanY;
+            sumXX += dx * dx;
+            sumYY += dy * dy;
+            sumXY += dx * dy;
+        }
 
         return name switch
         {
@@ -619,15 +634,23 @@ internal static class AstQueryAggregateEvaluator
         if (values.Count == 0)
             return null;
 
-        var filtered = new List<object?>(values.Count);
+        object?[] filtered = new object?[values.Count];
+        var filteredCount = 0;
         for (var i = 0; i < values.Count; i++)
         {
             var value = values[i];
             if (!IsNullish(value))
-                filtered.Add(value);
+                filtered[filteredCount++] = value;
         }
 
-        return filtered.Count == 0 ? null : filtered.ToArray();
+        if (filteredCount == 0)
+            return null;
+
+        if (filteredCount == filtered.Length)
+            return filtered;
+
+        Array.Resize(ref filtered, filteredCount);
+        return filtered;
     }
 
     private static object? AggregateVariance(IReadOnlyList<object?> values, bool sample)
@@ -1071,12 +1094,16 @@ internal static class AstQueryAggregateEvaluator
                 if (IsNullish(value))
                     continue;
 
-                var text = value?.ToString() ?? string.Empty;
+                var text = string.Empty;
                 if (seen is not null)
                 {
-                    if (!AstQueryAggregateKeyHelper.TryGetStringAggregateKeyAndText(value, useOrdinalTextComparison: true, out _, out var key)
+                    if (!AstQueryAggregateKeyHelper.TryGetStringAggregateKeyAndText(value, useOrdinalTextComparison: true, out text, out var key)
                         || !seen.Add(key))
                         continue;
+                }
+                else
+                {
+                    text = value?.ToString() ?? string.Empty;
                 }
 
                 if (!hasValue)
@@ -1099,12 +1126,16 @@ internal static class AstQueryAggregateEvaluator
                 if (IsNullish(value))
                     continue;
 
-                var text = value?.ToString() ?? string.Empty;
+                var text = string.Empty;
                 if (seen is not null)
                 {
-                    if (!AstQueryAggregateKeyHelper.TryGetStringAggregateKeyAndText(value, useOrdinalTextComparison: true, out _, out var key)
+                    if (!AstQueryAggregateKeyHelper.TryGetStringAggregateKeyAndText(value, useOrdinalTextComparison: true, out text, out var key)
                         || !seen.Add(key))
                         continue;
+                }
+                else
+                {
+                    text = value?.ToString() ?? string.Empty;
                 }
 
                 if (!hasValue)
@@ -1134,19 +1165,48 @@ internal static class AstQueryAggregateEvaluator
         for (var i = 0; i < rows.Count; i++)
             orderedRows.Add(rows[i]);
 
+        var stableIndexByRow = new Dictionary<AstQueryExecutorBase.EvalRow, int>(orderedRows.Count);
+        for (var i = 0; i < orderedRows.Count; i++)
+            stableIndexByRow[orderedRows[i]] = i;
+
+        var orderValuesByRow = WindowOrderValueHelper.BuildWindowOrderValuesByRow(
+            orderedRows,
+            orderBy,
+            (expr, row) => eval(expr, row, null, ctes));
+
+        if (orderBy.Count == 1)
+        {
+            var orderItem = orderBy[0];
+            orderedRows.Sort((leftRow, rightRow) =>
+            {
+                var leftValues = orderValuesByRow[leftRow];
+                var rightValues = orderValuesByRow[rightRow];
+                var comparison = context.CompareSql(leftValues[0], rightValues[0]);
+                if (comparison != 0)
+                    return orderItem.Desc ? -comparison : comparison;
+
+                return stableIndexByRow.TryGetValue(leftRow, out var li) && stableIndexByRow.TryGetValue(rightRow, out var ri)
+                    ? li.CompareTo(ri)
+                    : 0;
+            });
+            return orderedRows;
+        }
+
         orderedRows.Sort((leftRow, rightRow) =>
         {
+            var leftValues = orderValuesByRow[leftRow];
+            var rightValues = orderValuesByRow[rightRow];
+
             for (var i = 0; i < orderBy.Count; i++)
             {
-                var item = orderBy[i];
-                var leftValue = eval(item.Expr, leftRow, null, ctes);
-                var rightValue = eval(item.Expr, rightRow, null, ctes);
-                var comparison = context.CompareSql(leftValue, rightValue);
+                var comparison = context.CompareSql(leftValues[i], rightValues[i]);
                 if (comparison != 0)
-                    return item.Desc ? -comparison : comparison;
+                    return orderBy[i].Desc ? -comparison : comparison;
             }
 
-            return 0;
+            return stableIndexByRow.TryGetValue(leftRow, out var li) && stableIndexByRow.TryGetValue(rightRow, out var ri)
+                ? li.CompareTo(ri)
+                : 0;
         });
 
         return orderedRows;
@@ -1286,7 +1346,11 @@ internal static class AstQueryAggregateEvaluator
             return null;
 
         var values = new List<object?>(group.Rows.Count);
-        HashSet<string>? seen = fn.Distinct ? new HashSet<string>(StringComparer.Ordinal) : null;
+        HashSet<string>? seen = null;
+        if (fn.Distinct)
+        {
+            seen = new HashSet<string>(StringComparer.Ordinal);
+        }
         var traceGroupedCaseWhen = fn.Name.Equals(SqlConst.SUM, StringComparison.OrdinalIgnoreCase)
             && fn.Args.Count > 0
             && ContainsParameter(fn.Args[0], "cutoff");
