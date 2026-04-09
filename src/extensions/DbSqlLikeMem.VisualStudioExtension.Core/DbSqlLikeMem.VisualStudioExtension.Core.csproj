@@ -5,7 +5,7 @@
 		<Description>Core domain and services for the DbSqlLikeMem Visual Studio extension prototype.</Description>
 	</PropertyGroup>
 	<ItemGroup>
-	  <Compile Include="..\DbSqlLikeMem\Compatibility\FrameworkPolyfills.cs" Link="Compatibility\FrameworkPolyfills.cs" />
+	  <Compile Include="..\..\code\DbSqlLikeMem\Compatibility\FrameworkPolyfills.cs" Link="Compatibility\FrameworkPolyfills.cs" />
 	</ItemGroup>
 	
 </Project>

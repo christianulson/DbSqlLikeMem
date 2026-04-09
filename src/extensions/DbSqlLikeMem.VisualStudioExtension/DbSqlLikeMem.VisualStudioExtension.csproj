@@ -1,9 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net472</TargetFrameworks>
+    <TargetFramework>net472</TargetFramework>
     <UseWPF>true</UseWPF>
-    <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
     <OutputType>Library</OutputType>
     <AssemblyName>DbSqlLikeMem.VisualStudioExtension</AssemblyName>
     <RootNamespace>DbSqlLikeMem.VisualStudioExtension</RootNamespace>
@@ -32,11 +30,12 @@
     <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="17.14.2120" PrivateAssets="all" />
     <PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.14.40265" ExcludeAssets="runtime" NoWarn="NU1605" />
 
+	<PackageReference Include="FirebirdSql.Data.FirebirdClient" Version="7.10.1" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
-    <PackageReference Include="Npgsql" Version="8.0.3" />
-    <PackageReference Include="MySqlConnector" Version="2.5.0" />
-    <PackageReference Include="Oracle.ManagedDataAccess" Version="23.5.1" />
     <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="8.0.5" />
+    <PackageReference Include="MySqlConnector" Version="2.5.0" />
+    <PackageReference Include="Npgsql" Version="8.0.3" />
+    <PackageReference Include="Oracle.ManagedDataAccess" Version="23.5.1" />
   </ItemGroup>
 
   <ItemGroup>

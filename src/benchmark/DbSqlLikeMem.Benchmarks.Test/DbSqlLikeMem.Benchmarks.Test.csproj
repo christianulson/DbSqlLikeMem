@@ -11,7 +11,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\src\DbSqlLikeMem.TestTools\DbSqlLikeMem.TestTools.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.TestTools\DbSqlLikeMem.TestTools.csproj" />
 		<ProjectReference Include="..\DbSqlLikeMem.Benchmarks\DbSqlLikeMem.Benchmarks.csproj" />
 	</ItemGroup>
 

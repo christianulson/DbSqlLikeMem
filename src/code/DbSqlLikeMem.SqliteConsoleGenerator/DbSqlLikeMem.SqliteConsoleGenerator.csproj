@@ -12,7 +12,7 @@
 
   <ItemGroup>
     <Content Include="appsettings.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
 
@@ -25,8 +25,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DbSqlLikeMem.VisualStudioExtension.Core\DbSqlLikeMem.VisualStudioExtension.Core.csproj" />
-    <ProjectReference Include="..\DbSqlLikeMem.Oracle\DbSqlLikeMem.Oracle.csproj" />
+    <ProjectReference Include="..\..\extensions\DbSqlLikeMem.VisualStudioExtension.Core\DbSqlLikeMem.VisualStudioExtension.Core.csproj" />
+    <ProjectReference Include="..\DbSqlLikeMem.Sqlite\DbSqlLikeMem.Sqlite.csproj" />
   </ItemGroup>
 
 </Project>

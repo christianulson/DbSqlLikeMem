@@ -25,8 +25,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DbSqlLikeMem.VisualStudioExtension.Core\DbSqlLikeMem.VisualStudioExtension.Core.csproj" />
-    <ProjectReference Include="..\DbSqlLikeMem.Sqlite\DbSqlLikeMem.Sqlite.csproj" />
+    <ProjectReference Include="..\..\extensions\DbSqlLikeMem.VisualStudioExtension.Core\DbSqlLikeMem.VisualStudioExtension.Core.csproj" />
+    <ProjectReference Include="..\DbSqlLikeMem.Npgsql\DbSqlLikeMem.Npgsql.csproj" />
   </ItemGroup>
 
 </Project>

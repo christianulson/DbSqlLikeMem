@@ -1,6 +1,6 @@
 ﻿param(
-    [string] $ArtifactsDir = "../../docs/Wiki/BenchmarkResults/results",
-    [string] $OutFile = "../../docs/Wiki/performance-matrix-app-specific.md",
+    [string] $ArtifactsDir = "../../../docs/Wiki/BenchmarkResults/results",
+    [string] $OutFile = "../../../docs/Wiki/performance-matrix-app-specific.md",
     [string] $CatalogFile = ".\benchmark-feature-map.app-specific.json"
 )
 
@@ -119,6 +119,20 @@ function Parse-BenchmarkReport {
     return $results
 }
 
+function Get-SupportedFeatures {
+    param([Parameter(Mandatory)] [pscustomobject] $Provider)
+
+    if ($Provider.PSObject.Properties.Name -contains 'supportsAppFeatures') {
+        return @($Provider.supportsAppFeatures)
+    }
+
+    if ($Provider.PSObject.Properties.Name -contains 'supportsMockFeatures') {
+        return @($Provider.supportsMockFeatures)
+    }
+
+    return @()
+}
+
 $catalog = Get-Content $CatalogFile -Raw | ConvertFrom-Json
 $reportFiles = Get-ChildItem -Path $ArtifactsDir -Filter '*-report-github.md' | Sort-Object Name
 
@@ -130,46 +144,65 @@ foreach ($file in $reportFiles) {
 $lines = New-Object System.Collections.Generic.List[string]
 $null = $lines.Add('# Performance features - App Specific')
 $null = $lines.Add('')
-$null = $lines.Add('> Gerado automaticamente a partir dos relatórios `*-report-github.md` do BenchmarkDotNet e do catálogo `benchmark-feature-map.json`.')
-$null = $lines.Add('> Percentual: valor positivo = app mais rápida; valor negativo = banco mais rápido.')
+$null = $lines.Add('> Gerado automaticamente a partir dos relatórios `*-report-github.md` do BenchmarkDotNet e do catálogo `benchmark-feature-map.app-specific.json`.')
+$null = $lines.Add('> Tabela única com uma coluna por banco/provider.')
 $null = $lines.Add('')
 
+$providerTitles = New-Object System.Collections.Generic.List[string]
 foreach ($provider in $catalog.providers) {
-    $title = Get-DisplayTitle -Provider $provider
+    $providerTitles.Add((Get-DisplayTitle -Provider $provider)) | Out-Null
+}
 
-    $mockReportName = "DbSqlLikeMem.Benchmarks.Suites.$($provider.id)_DbSqlLikeMem_Benchmarks-report-github.md"
+$header = '| Feature | ' + (($providerTitles | ForEach-Object { $_ }) -join ' | ') + ' | Description |'
+$sep = '|---|' + (($providerTitles | ForEach-Object { '---:' }) -join '|') + '|:---:|'
+$null = $lines.Add($header)
+$null = $lines.Add($sep)
 
-    $mockResults = if ($reports.ContainsKey($mockReportName)) { $reports[$mockReportName] } else { @{} }
+$category = $null
 
-    $null = $lines.Add("## $title")
-    $null = $lines.Add('')
-    $null = $lines.Add("| Feature | DbSqlLikeMem |")
-    $null = $lines.Add("|---|---:|")
+foreach ($feature in ($catalog.features | Sort-Object category, id)) {
+    if ($category -ne $feature.category) {
+        $category = $feature.category
+        $null = $lines.Add("| **$category** |  |  |  |  |  |  |")
+    }
 
-    foreach ($feature in $catalog.features) {
-        $mockSupported = @($provider.supportsMockFeatures) -contains $feature.id
+    $row = New-Object System.Collections.Generic.List[string]
+    $row.Add([string]$feature.displayName) | Out-Null
+
+    foreach ($provider in $catalog.providers) {
+        $mockReportName = "DbSqlLikeMem.Benchmarks.Suites.$($provider.id)_DbSqlLikeMem_Benchmarks-report-github.md"
+        $mockResults = if ($reports.ContainsKey($mockReportName)) { $reports[$mockReportName] } else { @{} }
+        $supportedFeatures = Get-SupportedFeatures -Provider $provider
+        $supported = $supportedFeatures -contains $feature.id
 
         $mockCell = 'N/A'
 
-        $mockValue = $null
-
-        if ($mockSupported) {
+        if ($supported) {
             if ($mockResults.ContainsKey($feature.id)) {
-                $mockValue = $mockResults[$feature.id]
-                $mockCell = $mockValue.Raw
+                $culture = [System.Globalization.CultureInfo]::GetCultureInfo('pt-BR')
+                $mockCell = [math]::Round($mockResults[$feature.id].Microseconds, 2, [System.MidpointRounding]::AwayFromZero).ToString('N2', $culture) + ' ' + ([string][char]0x03BC) +'s'
             }
             else {
                 $mockCell = 'pending'
             }
         }
 
-        $null = $lines.Add("| $($feature.id) | $mockCell |")
+        $row.Add($mockCell) | Out-Null
     }
 
-    $null = $lines.Add('')
-    $null = $lines.Add('Source files:')
-    $null = $lines.Add("- ./$ArtifactsDir/results/$($mockReportName.Replace('-github.md', '.html'))")
-    $null = $lines.Add('')
+    $notes = if ($feature.PSObject.Properties['notes']) { $feature.notes } else { '' }
+
+    $null = $lines.Add('| ' + ($row -join ' | ') + ' | ' + $($notes) + ' |')
+}
+
+$null = $lines.Add('')
+$null = $lines.Add('## Source files')
+$null = $lines.Add('')
+
+foreach ($provider in $catalog.providers) {
+    $title = Get-DisplayTitle -Provider $provider
+    $mockReportName = "DbSqlLikeMem.Benchmarks.Suites.$($provider.id)_DbSqlLikeMem_Benchmarks-report-github.md"
+    $null = $lines.Add("- $($title): ./$ArtifactsDir/results/$($mockReportName.Replace('-github.md', '.html'))")
 }
 
 $dir = Split-Path -Parent $OutFile

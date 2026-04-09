@@ -1,6 +1,6 @@
 ﻿param(
-    [string] $ArtifactsDir = "../../docs/Wiki/BenchmarkResults/results",
-    [string] $OutFile = "../../docs/Wiki/performance-matrix.md",
+    [string] $ArtifactsDir = "../../../docs/Wiki/BenchmarkResults/results",
+    [string] $OutFile = "../../../docs/Wiki/performance-matrix.md",
     [string] $CatalogFile = ".\benchmark-feature-map.json"
 )
 
