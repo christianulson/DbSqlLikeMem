@@ -235,6 +235,122 @@ public sealed class Db2MockTests
     }
 
     /// <summary>
+    /// EN: Verifies positional parameters still resolve when a named parameter appears before them.
+    /// PT: Verifica se parametros posicionais continuam sendo resolvidos quando um parametro nomeado aparece antes deles.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void Select_WithMixedNamedAndPositionalParameters_ShouldReturnExpectedRow()
+    {
+        using var seed = _connection.CreateCommand();
+        seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (10, 'Beta', NULL)";
+        Assert.Equal(1, seed.ExecuteNonQuery());
+
+        using var command = _connection.CreateCommand();
+        command.CommandText = "SELECT Name FROM Users WHERE Name = @name FETCH FIRST ? ROWS ONLY";
+
+        var named = command.CreateParameter();
+        named.ParameterName = "name";
+        named.DbType = DbType.String;
+        named.Value = "Beta";
+        command.Parameters.Add(named);
+
+        var positional = command.CreateParameter();
+        positional.ParameterName = "p0";
+        positional.DbType = DbType.Int32;
+        positional.Value = 1;
+        command.Parameters.Add(positional);
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal("Beta", reader.GetString(0));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies a simple named parameter lookup returns the matching user name.
+    /// PT: Verifica se uma consulta simples com parametro nomeado retorna o nome de usuario correspondente.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void Select_WithNamedParameter_ShouldReturnExpectedName()
+    {
+        using var seed = _connection.CreateCommand();
+        seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (12, 'Bob', NULL)";
+        Assert.Equal(1, seed.ExecuteNonQuery());
+
+        using var command = _connection.CreateCommand();
+        command.CommandText = "SELECT Name FROM Users WHERE Name = @name";
+
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = "name";
+        parameter.DbType = DbType.String;
+        parameter.Value = "Bob";
+        command.Parameters.Add(parameter);
+
+        Assert.Equal("Bob", Convert.ToString(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies a literal string equality filter matches the seeded Bob row.
+    /// PT: Verifica se um filtro literal de igualdade de string encontra a linha Bob semeada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void Select_CountWithLiteralStringEquality_ShouldReturnExpectedCount()
+    {
+        using var seed = _connection.CreateCommand();
+        seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (12, 'Bob', NULL)";
+        Assert.Equal(1, seed.ExecuteNonQuery());
+
+        using var command = _connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM Users WHERE Name = 'Bob'";
+
+        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies a string equality filter on a non-primary-key column still matches the seeded row.
+    /// PT: Verifica se um filtro de igualdade de string em uma coluna que nao e chave primaria continua encontrando a linha semeada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void Select_CountWithStringEqualityOnNonPrimaryKeyColumn_ShouldReturnExpectedCount()
+    {
+        using var seed = _connection.CreateCommand();
+        seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (11, 'Bob', NULL)";
+        Assert.Equal(1, seed.ExecuteNonQuery());
+
+        using var command = _connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM Users WHERE Name = 'Bob'";
+
+        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies a scalar subquery count on a foreign-key column returns the seeded row total.
+    /// PT: Verifica se uma subconsulta escalar de contagem em uma coluna de chave estrangeira retorna o total de linhas semeadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void Select_ScalarSubqueryCountOnForeignKeyColumn_ShouldReturnExpectedValue()
+    {
+        using var seed = _connection.CreateCommand();
+        seed.CommandText = """
+            INSERT INTO Orders (OrderId, UserId, Amount) VALUES (201, 1, 10.00);
+            INSERT INTO Orders (OrderId, UserId, Amount) VALUES (202, 1, 20.00);
+            INSERT INTO Orders (OrderId, UserId, Amount) VALUES (203, 2, 30.00);
+            """;
+        Assert.Equal(3, seed.ExecuteNonQuery());
+
+        using var command = _connection.CreateCommand();
+        command.CommandText = "SELECT (SELECT COUNT(*) FROM Orders o WHERE o.UserId = 1) FROM SYSIBM.SYSDUMMY1";
+
+        Assert.Equal(2L, Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
     /// EN: Verifies rolled back transactions discard their changes.
     /// PT: Verifica se transacoes revertidas descartam suas alteracoes.
     /// </summary>

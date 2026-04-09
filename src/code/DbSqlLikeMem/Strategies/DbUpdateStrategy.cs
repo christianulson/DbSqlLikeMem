@@ -34,6 +34,7 @@ internal static class DbUpdateStrategy
         SqlUpdateQuery query)
     {
         var connection = context.Connection;
+        context.ResetPositionalParameterCursor();
         var pars = context.DbParameters;
         var capturePlans = context.CaptureExecutionPlans;
         var sw = capturePlans ? Stopwatch.StartNew() : null;
@@ -52,14 +53,18 @@ internal static class DbUpdateStrategy
         var setPairs = new (string Col, string Val)[query.Set.Count];
         for (var i = 0; i < query.Set.Count; i++)
             setPairs[i] = (query.Set[i].Col, query.Set[i].ExprRaw);
+        var parsedSetPairs = query.SetParsed;
         var changedCols = new string[setPairs.Length];
         for (var i = 0; i < setPairs.Length; i++)
             changedCols[i] = setPairs[i].Col;
+        var positionalSetParameterCount = CountPositionalParameters(parsedSetPairs);
+        var whereContextBase = context.Fork();
+        whereContextBase.AdvancePositionalParameterCursor(positionalSetParameterCount);
+        var setContextBase = context.Fork();
 
         int updated = 0;
         var tableMock = (TableMock)table;
         var affectedIndexes = new List<int>();
-        var parsedSetPairs = query.SetParsed;
         var supportsTriggers = dialect.SupportsTriggers;
         var hasBeforeUpdateTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeUpdate);
         var hasAfterUpdateTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.AfterUpdate);
@@ -68,11 +73,11 @@ internal static class DbUpdateStrategy
         var captureAffectedRowSnapshots = connection.CaptureAffectedRowSnapshots;
         var affectedRowsData = captureAffectedRowSnapshots ? new List<IReadOnlyDictionary<int, object?>>() : null;
 
-        void ProcessRow(int rowIdx)
+        void ProcessMatchedRow(int rowIdx)
         {
             var row = table[rowIdx];
-            if (!TableMock.IsMatchSimple(table, pars, conditions, row))
-                return;
+            var simulatedSetContext = setContextBase.Fork();
+            var rowSetContext = setContextBase.Fork();
 
             var oldSnapshot = (hasBeforeUpdateTrigger || hasAfterUpdateTrigger || requiresOldSnapshotForIndex)
                 ? TableMock.SnapshotRow(row)
@@ -80,7 +85,7 @@ internal static class DbUpdateStrategy
 
             // Simula Update (reaproveitado por validacoes/trigger)
             var simulated = TableMock.CloneRow(row);
-            UpdateRowValuesInMemory(table, pars, setPairs, parsedSetPairs, simulated, context);
+            UpdateRowValuesInMemory(table, setPairs, parsedSetPairs, simulated, simulatedSetContext);
 
             // Valida Unique Constraints antes de aplicar (somente quando necessario)
             if (requiresUniqueValidation)
@@ -91,7 +96,7 @@ internal static class DbUpdateStrategy
             if (hasBeforeUpdateTrigger)
                 TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, simulated);
 
-            UpdateRowValues(table, pars, setPairs, parsedSetPairs, rowIdx, row, context);
+            UpdateRowValues(table, setPairs, parsedSetPairs, rowIdx, row, rowSetContext);
 
             if (hasAfterUpdateTrigger)
                 TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, TableMock.SnapshotRow(table[rowIdx]));
@@ -108,14 +113,20 @@ internal static class DbUpdateStrategy
         }
 
         if (conditions.Count > 0
-            && TableMock.TryFindRowByPkConditions(table, pars, conditions, out var pkRowIndex))
+            && TableMock.TryFindRowByPkConditions(table, whereContextBase.Fork(), pars, conditions, out var pkRowIndex))
         {
-            ProcessRow(pkRowIndex);
+            ProcessMatchedRow(pkRowIndex);
         }
         else
         {
             for (var rowIdx = 0; rowIdx < table.Count; rowIdx++)
-                ProcessRow(rowIdx);
+            {
+                var row = table[rowIdx];
+                if (!TableMock.IsMatchSimple(table, whereContextBase.Fork(), pars, conditions, row))
+                    continue;
+
+                ProcessMatchedRow(rowIdx);
+            }
         }
 
         if (metricsEnabled)
@@ -142,6 +153,90 @@ internal static class DbUpdateStrategy
             AffectedRowsData = captureAffectedRowSnapshots ? affectedRowsData! : new List<IReadOnlyDictionary<int, object?>>()
         };
     }
+
+    private static int CountPositionalParameters(IReadOnlyList<SqlAssignment> parsedSetPairs)
+    {
+        var count = 0;
+        for (var i = 0; i < parsedSetPairs.Count; i++)
+            count += CountPositionalParameters(parsedSetPairs[i].ValueExpr);
+
+        return count;
+    }
+
+    private static int CountPositionalParameters(SqlExpr? expr)
+    {
+        if (expr is null)
+            return 0;
+
+        return expr switch
+        {
+            ParameterExpr parameter => string.Equals(parameter.Name.Trim(), "?", StringComparison.Ordinal) ? 1 : 0,
+            UnaryExpr unary => CountPositionalParameters(unary.Expr),
+            BinaryExpr binary => CountPositionalParameters(binary.Left) + CountPositionalParameters(binary.Right),
+            InExpr inExpr => CountPositionalParameters(inExpr.Left) + CountPositionalParameters(inExpr.Items),
+            LikeExpr likeExpr => CountPositionalParameters(likeExpr.Left)
+                + CountPositionalParameters(likeExpr.Pattern)
+                + CountPositionalParameters(likeExpr.Escape),
+            IsNullExpr isNullExpr => CountPositionalParameters(isNullExpr.Expr),
+            SubqueryExpr => 0,
+            RowExpr rowExpr => CountPositionalParameters(rowExpr.Items),
+            ExistsExpr => 0,
+            QuantifiedComparisonExpr quantified => CountPositionalParameters(quantified.Left),
+            FunctionCallExpr functionCall => CountPositionalParameters(functionCall.Args),
+            JsonAccessExpr jsonAccess => CountPositionalParameters(jsonAccess.Target) + CountPositionalParameters(jsonAccess.Path),
+            CallExpr call => CountPositionalParameters(call.Args) + CountPositionalParameters(call.Filter),
+            WindowFunctionExpr windowFunction => CountPositionalParameters(windowFunction.Args) + CountPositionalParameters(windowFunction.Spec),
+            BetweenExpr between => CountPositionalParameters(between.Expr) + CountPositionalParameters(between.Low) + CountPositionalParameters(between.High),
+            CaseExpr caseExpr => CountPositionalParameters(caseExpr.BaseExpr)
+                + CountPositionalParameters(caseExpr.Whens)
+                + CountPositionalParameters(caseExpr.ElseExpr),
+            RawSqlExpr or IdentifierExpr or ColumnExpr or LiteralExpr or StarExpr => 0,
+            _ => 0
+        };
+    }
+
+    private static int CountPositionalParameters(IReadOnlyList<SqlExpr> exprs)
+    {
+        var count = 0;
+        for (var i = 0; i < exprs.Count; i++)
+            count += CountPositionalParameters(exprs[i]);
+
+        return count;
+    }
+
+    private static int CountPositionalParameters(IReadOnlyList<CaseWhenThen> whenThens)
+    {
+        var count = 0;
+        for (var i = 0; i < whenThens.Count; i++)
+            count += CountPositionalParameters(whenThens[i].When) + CountPositionalParameters(whenThens[i].Then);
+
+        return count;
+    }
+
+    private static int CountPositionalParameters(WindowSpec spec)
+        => CountPositionalParameters(spec.PartitionBy)
+            + CountPositionalParameters(spec.OrderBy)
+            + CountPositionalParameters(spec.Frame);
+
+    private static int CountPositionalParameters(IReadOnlyList<WindowOrderItem> items)
+    {
+        var count = 0;
+        for (var i = 0; i < items.Count; i++)
+            count += CountPositionalParameters(items[i].Expr);
+
+        return count;
+    }
+
+    private static int CountPositionalParameters(WindowFrameSpec? frame)
+    {
+        if (frame is null)
+            return 0;
+
+        return CountPositionalParameters(frame.Start) + CountPositionalParameters(frame.End);
+    }
+
+    private static int CountPositionalParameters(WindowFrameBound bound)
+        => 0;
     private static bool HasIndexedKeyChanges(ITableMock table, IReadOnlyList<string> changedCols)
     {
         var changedCount = changedCols.Count;
@@ -225,7 +320,6 @@ internal static class DbUpdateStrategy
 
     private static void UpdateRowValues(
         ITableMock table,
-        DbParameterCollection? pars,
         (string Col, string Val)[] setPairs,
         IReadOnlyList<SqlAssignment> parsedSetPairs,
         int rowIdx,
@@ -239,14 +333,13 @@ internal static class DbUpdateStrategy
             if (info.GetGenValue != null) continue;
 
             var parsedExpr = i < parsedSetPairs.Count ? parsedSetPairs[i].ValueExpr : null;
-            var raw = ResolveSetValue(table, pars, row, info, Col, Val, parsedExpr, context);
+            var raw = ResolveSetValue(table, row, info, Col, Val, parsedExpr, context);
             table.UpdateRowColumn(rowIdx, info.Index, raw);
         }
     }
 
     private static void UpdateRowValuesInMemory(
         ITableMock table,
-        DbParameterCollection? pars,
         (string Col, string Val)[] setPairs,
         IReadOnlyList<SqlAssignment> parsedSetPairs,
         IDictionary<int, object?> row,
@@ -259,14 +352,13 @@ internal static class DbUpdateStrategy
             var info = table.GetColumn(Col);
             if (info.GetGenValue != null) continue;
             var parsedExpr = i < parsedSetPairs.Count ? parsedSetPairs[i].ValueExpr : null;
-            var raw = ResolveSetValue(table, pars, readOnlyRow, info, Col, Val, parsedExpr, context);
+            var raw = ResolveSetValue(table, readOnlyRow, info, Col, Val, parsedExpr, context);
             row[info.Index] = raw;
         }
     }
 
     private static object? ResolveSetValue(
         ITableMock table,
-        DbParameterCollection? pars,
         IReadOnlyDictionary<int, object?> row,
         ColumnDef info,
         string colName,
@@ -275,18 +367,22 @@ internal static class DbUpdateStrategy
         QueryExecutionContext context)
     {
         table.CurrentColumn = colName;
+        var trimmedExprRaw = exprRaw.Trim();
         try
         {
-            if (TryResolveCastAsJsonValue(parsedExpr, pars, out var castJsonValue))
+            if (TryResolveCastAsJsonValue(parsedExpr, context, out var castJsonValue))
                 return castJsonValue;
 
-            if (TryEvalArithmeticSetValue(exprRaw, table, row, pars, info.DbType, info.Nullable, out var arith))
+            if (TryEvalArithmeticSetValue(trimmedExprRaw, table, row, context, info.DbType, info.Nullable, out var arith))
                 return arith;
 
-            if (TryResolveTemporalSetValue(exprRaw, context, out var temporalValue))
+            if (TryResolveTemporalSetValue(trimmedExprRaw, context, out var temporalValue))
                 return temporalValue;
 
-            var raw = table.Resolve(exprRaw, info.DbType, info.Nullable, pars, table.Columns);
+            if (context.TryResolveParameter(trimmedExprRaw, out var parameterValue))
+                return parameterValue;
+
+            var raw = table.Resolve(trimmedExprRaw, info.DbType, info.Nullable, context.DbParameters, table.Columns);
             return raw is DBNull ? null : raw;
         }
         finally
@@ -297,7 +393,7 @@ internal static class DbUpdateStrategy
 
     private static bool TryResolveCastAsJsonValue(
         SqlExpr? parsedExpr,
-        DbParameterCollection? pars,
+        QueryExecutionContext context,
         out object? value)
     {
         value = null;
@@ -307,7 +403,7 @@ internal static class DbUpdateStrategy
             || !IsJsonCastType(cast.Args[1]))
             return false;
 
-        if (!TryResolveCastOperandValue(cast.Args[0], pars, out var operand))
+        if (!TryResolveCastOperandValue(cast.Args[0], context, out var operand))
             return false;
 
         value = NormalizeJsonCastValue(operand);
@@ -335,7 +431,7 @@ internal static class DbUpdateStrategy
 
     private static bool TryResolveCastOperandValue(
         SqlExpr expr,
-        DbParameterCollection? pars,
+        QueryExecutionContext context,
         out object? value)
     {
         switch (expr)
@@ -344,43 +440,11 @@ internal static class DbUpdateStrategy
                 value = lit.Value;
                 return true;
             case ParameterExpr p:
-                return TryResolveParameterValue(pars, p.Name, out value);
+                return context.TryResolveParameter(p.Name, out value);
             default:
                 value = null;
                 return false;
         }
-    }
-
-    private static bool TryResolveParameterValue(
-        DbParameterCollection? pars,
-        string parameterToken,
-        out object? value)
-    {
-        value = null;
-        if (pars is null)
-            return false;
-
-        if (parameterToken == "?")
-        {
-            if (pars.Count <= 0 || pars[0] is not IDataParameter first)
-                return false;
-
-            value = first.Value is DBNull ? null : first.Value;
-            return true;
-        }
-
-        var normalized = parameterToken.TrimStart('@', ':', '?');
-        foreach (IDataParameter p in pars)
-        {
-            var candidate = (p.ParameterName ?? string.Empty).TrimStart('@', ':', '?');
-            if (!string.Equals(candidate, normalized, StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            value = p.Value is DBNull ? null : p.Value;
-            return true;
-        }
-
-        return false;
     }
 
     private static object? NormalizeJsonCastValue(object? operand)
@@ -420,7 +484,7 @@ internal static class DbUpdateStrategy
         string exprRaw,
         ITableMock table,
         IReadOnlyDictionary<int, object?> row,
-        DbParameterCollection? pars,
+        QueryExecutionContext context,
         DbType dbType,
         bool isNullable,
         out object? value)
@@ -460,8 +524,8 @@ internal static class DbUpdateStrategy
         if (leftTok.Length == 0 || rightTok.Length == 0)
             return false;
 
-        object? leftVal = ResolveOperand(leftTok, table, row, pars, dbType, isNullable);
-        object? rightVal = ResolveOperand(rightTok, table, row, pars, dbType, isNullable);
+        object? leftVal = ResolveOperand(leftTok, table, row, context, dbType, isNullable);
+        object? rightVal = ResolveOperand(rightTok, table, row, context, dbType, isNullable);
 
         if (leftVal is null || leftVal is DBNull || rightVal is null || rightVal is DBNull)
         {
@@ -521,7 +585,7 @@ internal static class DbUpdateStrategy
         string token,
         ITableMock table,
         IReadOnlyDictionary<int, object?> row,
-        DbParameterCollection? pars,
+        QueryExecutionContext context,
         DbType dbType,
         bool isNullable)
     {
@@ -537,7 +601,10 @@ internal static class DbUpdateStrategy
         }
 
         table.CurrentColumn = null;
-        var raw = table.Resolve(token, dbType, isNullable, pars, table.Columns);
+        if (context.TryResolveParameter(token, out var parameterValue))
+            return parameterValue;
+
+        var raw = table.Resolve(token, dbType, isNullable, context.DbParameters, table.Columns);
         return raw is DBNull ? null : raw;
     }
 

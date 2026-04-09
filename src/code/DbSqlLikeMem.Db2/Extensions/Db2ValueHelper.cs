@@ -35,15 +35,24 @@ internal static class Db2ValueHelper
     {
         token = token.Trim();
 
+        // ---------- parâmetro posicional ? ---------------------------
+        if (token == "?")
+        {
+            if (TryResolvePositionalParameter(pars, out var positionalValue))
+                return positionalValue;
+
+            throw new Db2MockException(SqlExceptionMessages.ParameterNotFound("?"));
+        }
+
         // ---------- parâmetro Dapper @p -------------------------------
         if (token.StartsWith("@"))
         {
             var name = token[1..]
                 .Replace("\r\n", string.Empty)
                 .Replace(";", string.Empty);
-            if (pars == null || !pars.Contains(name))
+            if (!TryResolveNamedParameter(pars, name, out var namedValue))
                 throw new Db2MockException(SqlExceptionMessages.ParameterNotFound(name));
-            return ((DB2Parameter)pars[name]).Value;
+            return namedValue;
         }
 
         // ---------- literal NULL --------------------------------------
@@ -77,6 +86,97 @@ internal static class Db2ValueHelper
 
         // ---------- tipos padrões -------------------------------------
         return ValidateColumnValue(dbType.Parse(token), colDict);
+    }
+
+    private static bool TryResolvePositionalParameter(
+        IDataParameterCollection? pars,
+        out object? value)
+    {
+        value = null;
+        if (pars is null || pars.Count == 0)
+            return false;
+
+        foreach (IDataParameter parameter in pars)
+        {
+            if (!IsPositionalParameter(parameter.ParameterName))
+                continue;
+
+            value = parameter.Value is DBNull ? null : parameter.Value;
+            return true;
+        }
+
+        if (pars[0] is IDataParameter first)
+        {
+            value = first.Value is DBNull ? null : first.Value;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryResolveNamedParameter(
+        IDataParameterCollection? pars,
+        string name,
+        out object? value)
+    {
+        value = null;
+        if (pars is null || string.IsNullOrWhiteSpace(name))
+            return false;
+
+        var normalized = name.Trim();
+        var candidates = new[]
+        {
+            normalized,
+            "@" + normalized,
+            ":" + normalized,
+            "?" + normalized
+        };
+
+        foreach (var candidate in candidates)
+        {
+            if (!pars.Contains(candidate))
+                continue;
+
+            if (pars[candidate] is not IDataParameter parameter)
+                continue;
+
+            value = parameter.Value is DBNull ? null : parameter.Value;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsPositionalParameter(string? parameterName)
+    {
+        if (string.IsNullOrWhiteSpace(parameterName))
+            return true;
+
+        var normalized = parameterName!.Trim().TrimStart('@', ':', '?');
+        if (normalized.Length == 0)
+            return true;
+
+        if (normalized.All(char.IsDigit))
+            return true;
+
+        if (normalized[0] is not ('p' or 'P'))
+            return false;
+
+        var hasDigit = false;
+        for (var i = 1; i < normalized.Length; i++)
+        {
+            var ch = normalized[i];
+            if (char.IsDigit(ch))
+            {
+                hasDigit = true;
+                continue;
+            }
+
+            if (ch != '_')
+                return false;
+        }
+
+        return hasDigit;
     }
 
     private static bool TryParseEnumOrSet(

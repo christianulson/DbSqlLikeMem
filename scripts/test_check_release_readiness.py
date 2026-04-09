@@ -346,7 +346,7 @@ class CheckReleaseReadinessDocsTests(unittest.TestCase):
         )
         cls._write(
             root / "docs" / "Wiki" / "Providers-and-Compatibility.md",
-            "MySQL\nSQL Server\nSQL Azure\nOracle\nPostgreSQL\nSQLite\nDB2\ndocs/old/providers-and-features.md\n",
+            "MySQL\nMariaDB\nFirebird\nSQL Server\nSQL Azure\nOracle\nPostgreSQL\nSQLite\nDB2\ndocs/old/providers-and-features.md\n",
         )
 
     @staticmethod

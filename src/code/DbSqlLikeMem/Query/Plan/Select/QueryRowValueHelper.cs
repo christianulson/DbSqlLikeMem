@@ -4,10 +4,7 @@ internal static class QueryRowValueHelper
 {
     internal static object? ResolveParam(this QueryExecutionContext context, string name)
     {
-        if (name == "?")
-            return ResolvePositionalParam(context.Parameters);
-
-        return ResolveNamedParam(context.Parameters, name);
+        return context.TryResolveParameter(name, out var value) ? value : null;
     }
 
     internal static object? ResolveIdentifier(string name, AstQueryExecutorBase.EvalRow row)
@@ -96,39 +93,6 @@ internal static class QueryRowValueHelper
         return result;
     }
 
-    private static object? ResolvePositionalParam(IDataParameterCollection parameters)
-        => parameters.Count > 0 ? NormalizeParameterValue((IDataParameter)parameters[0]!) : null;
-
-    private static object? ResolveNamedParam(IDataParameterCollection parameters, string name)
-    {
-        var normalizedName = name.TrimStart('@', ':', '?');
-        foreach (IDataParameter parameter in parameters)
-        {
-            var parameterName = parameter.ParameterName?.TrimStart('@', ':', '?');
-            if (string.Equals(parameterName, normalizedName, StringComparison.OrdinalIgnoreCase))
-            {
-                if (string.Equals(normalizedName, "cutoff", StringComparison.OrdinalIgnoreCase))
-                {
-                    Console.WriteLine(
-                        $"[ParamDebug] name={name} normalized={normalizedName} matched={parameter.ParameterName ?? "null"} value={parameter.Value ?? "NULL"}");
-                }
-
-                return NormalizeParameterValue(parameter);
-            }
-        }
-
-        if (string.Equals(normalizedName, "cutoff", StringComparison.OrdinalIgnoreCase))
-        {
-            Console.WriteLine(
-                $"[ParamDebug] name={name} normalized={normalizedName} not-found available=[{string.Join(", ", parameters.Cast<IDataParameter>().Select(p => p.ParameterName ?? "null"))}]");
-        }
-
-        return null;
-    }
-
-    private static object? NormalizeParameterValue(IDataParameter parameter)
-        => parameter.Value is DBNull ? null : parameter.Value;
-
     private static bool TrySplitQualifiedIdentifier(string name, out string qualifier, out string columnName)
     {
         qualifier = string.Empty;
@@ -149,7 +113,12 @@ internal static class QueryRowValueHelper
         out object? value)
     {
         if (row.TryGetSingleSource(out var singleSource))
-            return TryResolveQualifiedNameValue(singleSource!, name, row, out value);
+        {
+            if (TryResolveQualifiedNameValue(singleSource!, name, row, out value))
+                return true;
+
+            return row.TryGetValue(name, out value);
+        }
 
         foreach (var source in row.Sources.Values)
         {
@@ -179,7 +148,12 @@ internal static class QueryRowValueHelper
         out object? value)
     {
         if (row.TryGetSingleSource(out var singleSource))
-            return TryResolveColumnFromSource(singleSource!, columnName, row, out value);
+        {
+            if (TryResolveColumnFromSource(singleSource!, columnName, row, out value))
+                return true;
+
+            return row.TryGetValue(columnName, out value);
+        }
 
         foreach (var source in row.Sources.Values)
         {

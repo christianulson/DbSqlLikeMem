@@ -250,39 +250,51 @@ def collect_package_nls_tokens(value: object) -> set[str]:
 
 def check_required_files(root: Path) -> list[str]:
     wiki_paths = get_wiki_doc_paths(root)
-    required_paths = [
-        root / "CHANGELOG.md",
-        root / "README.md",
-        root / "src" / "README.md",
-        root / "docs" / "publishing.md",
-        root / "docs" / "README.md",
-        root / "docs" / "getting-started.md",
-        root / "docs" / "wiki_setup" / "README.md",
-        root / "docs" / "features-backlog" / "index.md",
-        root / "docs" / "features-backlog" / "progress-update-checklist.md",
-        root / "docs" / "features-backlog" / "status-operational.md",
-        root / "docs" / "cross-dialect-smoke-snapshot.md",
-        root / "docs" / "cross-dialect-aggregation-snapshot.md",
-        root / "docs" / "cross-dialect-parser-snapshot.md",
-        root / "docs" / "cross-dialect-strategy-snapshot.md",
-        root / "templates" / "dbsqllikemem" / "README.md",
-        root / "templates" / "dbsqllikemem" / "review-checklist.md",
-        root / "templates" / "dbsqllikemem" / "review-metadata.json",
-        root / "templates" / "dbsqllikemem" / "vCurrent" / "api" / "model.template.txt",
-        root / "templates" / "dbsqllikemem" / "vCurrent" / "api" / "repository.template.txt",
-        root / "templates" / "dbsqllikemem" / "vCurrent" / "worker" / "model.template.txt",
-        root / "templates" / "dbsqllikemem" / "vCurrent" / "worker" / "repository.template.txt",
-        root / "templates" / "dbsqllikemem" / "vNext" / "README.md",
-        root / "scripts" / "check_nuget_package_metadata.py",
-        root / ".github" / "pull_request_template.md",
-        root / ".github" / "workflows" / "nuget-publish.yml",
-        root / ".github" / "workflows" / "vsix-publish.yml",
-        root / ".github" / "workflows" / "vscode-extension-publish.yml",
-        root / "src" / "DbSqlLikeMem.VsCodeExtension" / "package.json",
-        root / "src" / "DbSqlLikeMem.VsCodeExtension" / "README.md",
-        root / "src" / "DbSqlLikeMem.VisualStudioExtension" / "README.md",
-        root / "src" / "DbSqlLikeMem.VisualStudioExtension" / "source.extension.vsixmanifest",
-        root / "eng" / "visualstudio" / "PublishManifest.json",
+    required_path_groups = [
+        (root / "CHANGELOG.md",),
+        (root / "README.md",),
+        (root / "src" / "README.md",),
+        (root / "docs" / "publishing.md",),
+        (root / "docs" / "README.md",),
+        (root / "docs" / "getting-started.md",),
+        (root / "docs" / "wiki_setup" / "README.md",),
+        (root / "docs" / "features-backlog" / "index.md",),
+        (root / "docs" / "features-backlog" / "progress-update-checklist.md",),
+        (root / "docs" / "features-backlog" / "status-operational.md",),
+        (root / "docs" / "cross-dialect-smoke-snapshot.md",),
+        (root / "docs" / "cross-dialect-aggregation-snapshot.md",),
+        (root / "docs" / "cross-dialect-parser-snapshot.md",),
+        (root / "docs" / "cross-dialect-strategy-snapshot.md",),
+        (root / "templates" / "dbsqllikemem" / "README.md",),
+        (root / "templates" / "dbsqllikemem" / "review-checklist.md",),
+        (root / "templates" / "dbsqllikemem" / "review-metadata.json",),
+        (root / "templates" / "dbsqllikemem" / "vCurrent" / "api" / "model.template.txt",),
+        (root / "templates" / "dbsqllikemem" / "vCurrent" / "api" / "repository.template.txt",),
+        (root / "templates" / "dbsqllikemem" / "vCurrent" / "worker" / "model.template.txt",),
+        (root / "templates" / "dbsqllikemem" / "vCurrent" / "worker" / "repository.template.txt",),
+        (root / "templates" / "dbsqllikemem" / "vNext" / "README.md",),
+        (root / "scripts" / "check_nuget_package_metadata.py",),
+        (root / ".github" / "pull_request_template.md",),
+        (root / ".github" / "workflows" / "nuget-publish.yml",),
+        (root / ".github" / "workflows" / "vsix-publish.yml",),
+        (root / ".github" / "workflows" / "vscode-extension-publish.yml",),
+        (
+            root / "src" / "extensions" / "DbSqlLikeMem.VsCodeExtension" / "package.json",
+            root / "src" / "DbSqlLikeMem.VsCodeExtension" / "package.json",
+        ),
+        (
+            root / "src" / "extensions" / "DbSqlLikeMem.VsCodeExtension" / "README.md",
+            root / "src" / "DbSqlLikeMem.VsCodeExtension" / "README.md",
+        ),
+        (
+            root / "src" / "extensions" / "DbSqlLikeMem.VisualStudioExtension" / "README.md",
+            root / "src" / "DbSqlLikeMem.VisualStudioExtension" / "README.md",
+        ),
+        (
+            root / "src" / "extensions" / "DbSqlLikeMem.VisualStudioExtension" / "source.extension.vsixmanifest",
+            root / "src" / "DbSqlLikeMem.VisualStudioExtension" / "source.extension.vsixmanifest",
+        ),
+        (root / "eng" / "visualstudio" / "PublishManifest.json",),
     ]
 
     failures: list[str] = []
@@ -290,9 +302,9 @@ def check_required_files(root: Path) -> list[str]:
         if path is None:
             failures.append(f"required wiki file not found for '{label}'")
 
-    for path in required_paths:
-        if not path.exists():
-            failures.append(f"required file not found: {path.relative_to(root)}")
+    for path_group in required_path_groups:
+        if resolve_first_existing_path(*path_group) is None:
+            failures.append(f"required file not found: {path_group[0].relative_to(root)}")
 
     return failures
 
@@ -503,6 +515,8 @@ def check_docs(root: Path) -> list[str]:
     if wiki_providers is not None:
         checks[wiki_providers] = [
             "MySQL",
+            "MariaDB",
+            "Firebird",
             "SQL Server",
             "SQL Azure",
             "Oracle",
@@ -764,7 +778,13 @@ def check_template_review_metadata(root: Path) -> list[str]:
 
 
 def check_vscode_extension(root: Path, repository_url: str) -> tuple[list[str], list[str]]:
-    package_path = root / "src" / "DbSqlLikeMem.VsCodeExtension" / "package.json"
+    package_path = resolve_first_existing_path(
+        root / "src" / "extensions" / "DbSqlLikeMem.VsCodeExtension" / "package.json",
+        root / "src" / "DbSqlLikeMem.VsCodeExtension" / "package.json",
+    )
+    if package_path is None:
+        return [f"src/extensions/DbSqlLikeMem.VsCodeExtension/package.json: missing package.json"], []
+
     data = json.loads(load_text(package_path))
     extension_root = package_path.parent
 
@@ -773,14 +793,14 @@ def check_vscode_extension(root: Path, repository_url: str) -> tuple[list[str], 
 
     version = str(data.get("version", "")).strip()
     failures.extend(
-        validate_semver("src/DbSqlLikeMem.VsCodeExtension/package.json", version)
+        validate_semver("src/extensions/DbSqlLikeMem.VsCodeExtension/package.json", version)
     )
 
     scripts = data.get("scripts", {})
     for script_name in ("compile", "package", "publish", "vscode:prepublish", "generate:icon"):
         if not str(scripts.get(script_name, "")).strip():
             failures.append(
-                f"src/DbSqlLikeMem.VsCodeExtension/package.json: missing script '{script_name}'"
+                f"src/extensions/DbSqlLikeMem.VsCodeExtension/package.json: missing script '{script_name}'"
             )
 
     expected_urls = {
@@ -792,32 +812,32 @@ def check_vscode_extension(root: Path, repository_url: str) -> tuple[list[str], 
     actual_repo_url = str(data.get("repository", {}).get("url", "")).strip()
     if actual_repo_url != expected_urls["repository.url"]:
         failures.append(
-            "src/DbSqlLikeMem.VsCodeExtension/package.json: "
+            "src/extensions/DbSqlLikeMem.VsCodeExtension/package.json: "
             f"repository.url mismatch (expected '{expected_urls['repository.url']}', found '{actual_repo_url}')"
         )
 
     actual_bugs_url = str(data.get("bugs", {}).get("url", "")).strip()
     if actual_bugs_url != expected_urls["bugs.url"]:
         failures.append(
-            "src/DbSqlLikeMem.VsCodeExtension/package.json: "
+            "src/extensions/DbSqlLikeMem.VsCodeExtension/package.json: "
             f"bugs.url mismatch (expected '{expected_urls['bugs.url']}', found '{actual_bugs_url}')"
         )
 
     actual_homepage = str(data.get("homepage", "")).strip()
     if actual_homepage != expected_urls["homepage"]:
         failures.append(
-            "src/DbSqlLikeMem.VsCodeExtension/package.json: "
+            "src/extensions/DbSqlLikeMem.VsCodeExtension/package.json: "
             f"homepage mismatch (expected '{expected_urls['homepage']}', found '{actual_homepage}')"
         )
 
     publisher = str(data.get("publisher", "")).strip()
     if not publisher:
-        failures.append("src/DbSqlLikeMem.VsCodeExtension/package.json: missing 'publisher'")
+        failures.append("src/extensions/DbSqlLikeMem.VsCodeExtension/package.json: missing 'publisher'")
 
     icon_path = extension_root / str(data.get("icon", "")).strip()
     if not icon_path.exists():
         failures.append(
-            f"src/DbSqlLikeMem.VsCodeExtension/package.json: referenced icon not found at '{icon_path.relative_to(root)}'"
+            f"src/extensions/DbSqlLikeMem.VsCodeExtension/package.json: referenced icon not found at '{icon_path.relative_to(root)}'"
         )
 
     required_files = [
@@ -838,12 +858,12 @@ def check_vscode_extension(root: Path, repository_url: str) -> tuple[list[str], 
     for token in sorted(referenced_tokens):
         if token not in package_nls:
             failures.append(
-                "src/DbSqlLikeMem.VsCodeExtension/package.json: "
+                "src/extensions/DbSqlLikeMem.VsCodeExtension/package.json: "
                 f"missing '{token}' in package.nls.json"
             )
         if token not in package_nls_pt_br:
             warnings.append(
-                "src/DbSqlLikeMem.VsCodeExtension/package.json: "
+                "src/extensions/DbSqlLikeMem.VsCodeExtension/package.json: "
                 f"missing '{token}' in package.nls.pt-br.json"
             )
 
@@ -861,7 +881,7 @@ def check_vscode_extension(root: Path, repository_url: str) -> tuple[list[str], 
             command_id = activation_event.split(":", 1)[1]
             if command_id not in command_ids:
                 failures.append(
-                    "src/DbSqlLikeMem.VsCodeExtension/package.json: "
+                    "src/extensions/DbSqlLikeMem.VsCodeExtension/package.json: "
                     f"activation event references unknown command '{command_id}'"
                 )
 
@@ -877,7 +897,7 @@ def check_vscode_extension(root: Path, repository_url: str) -> tuple[list[str], 
             view_id = activation_event.split(":", 1)[1]
             if view_id not in view_ids:
                 failures.append(
-                    "src/DbSqlLikeMem.VsCodeExtension/package.json: "
+                    "src/extensions/DbSqlLikeMem.VsCodeExtension/package.json: "
                     f"activation event references unknown view '{view_id}'"
                 )
 
@@ -889,38 +909,64 @@ def check_visual_studio_extension(
     repository_url: str,
     strict_marketplace_placeholders: bool,
 ) -> tuple[list[str], list[str]]:
-    vsix_manifest_path = root / "src" / "DbSqlLikeMem.VisualStudioExtension" / "source.extension.vsixmanifest"
-    vsix_project_path = root / "src" / "DbSqlLikeMem.VisualStudioExtension" / "DbSqlLikeMem.VisualStudioExtension.csproj"
+    vsix_manifest_path = resolve_first_existing_path(
+        root
+        / "src"
+        / "extensions"
+        / "DbSqlLikeMem.VisualStudioExtension"
+        / "source.extension.vsixmanifest",
+        root / "src" / "DbSqlLikeMem.VisualStudioExtension" / "source.extension.vsixmanifest",
+    )
+    vsix_project_path = resolve_first_existing_path(
+        root
+        / "src"
+        / "extensions"
+        / "DbSqlLikeMem.VisualStudioExtension"
+        / "DbSqlLikeMem.VisualStudioExtension.csproj",
+        root / "src" / "DbSqlLikeMem.VisualStudioExtension" / "DbSqlLikeMem.VisualStudioExtension.csproj",
+    )
     publish_manifest_path = root / "eng" / "visualstudio" / "PublishManifest.json"
 
     failures: list[str] = []
     warnings: list[str] = []
 
+    if vsix_manifest_path is None:
+        failures.append(
+            "src/extensions/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest: missing VSIX manifest"
+        )
+        return failures, warnings
+
+    if vsix_project_path is None:
+        failures.append(
+            "src/extensions/DbSqlLikeMem.VisualStudioExtension/DbSqlLikeMem.VisualStudioExtension.csproj: missing VSIX project"
+        )
+        return failures, warnings
+
     vsix_root = ET.fromstring(load_text(vsix_manifest_path))
     namespace = {"vsix": "http://schemas.microsoft.com/developer/vsx-schema/2011"}
     identifier = vsix_root.find("vsix:Identifier", namespace)
     if identifier is None:
-        failures.append("src/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest: missing Identifier node")
+        failures.append("src/extensions/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest: missing Identifier node")
     else:
         version_node = identifier.find("vsix:Version", namespace)
         version_text = (version_node.text or "").strip() if version_node is not None else None
         failures.extend(
             validate_semver(
-                "src/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest",
+                "src/extensions/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest",
                 version_text,
             )
-            )
+        )
 
     minimum_visual_studio_version = parse_minimum_visual_studio_version(vsix_project_path)
     if not minimum_visual_studio_version:
         failures.append(
-            "src/DbSqlLikeMem.VisualStudioExtension/DbSqlLikeMem.VisualStudioExtension.csproj: missing MinimumVisualStudioVersion"
+            "src/extensions/DbSqlLikeMem.VisualStudioExtension/DbSqlLikeMem.VisualStudioExtension.csproj: missing MinimumVisualStudioVersion"
         )
 
     supported_products = vsix_root.findall(".//vsix:SupportedProducts/vsix:VisualStudio", namespace)
     if not supported_products:
         failures.append(
-            "src/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest: missing SupportedProducts/VisualStudio entries"
+            "src/extensions/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest: missing SupportedProducts/VisualStudio entries"
         )
     elif minimum_visual_studio_version:
         expected_prefix = f"[{minimum_visual_studio_version},"
@@ -928,7 +974,7 @@ def check_visual_studio_extension(
             version_range = str(product.attrib.get("Version", "")).strip()
             if not version_range.startswith(expected_prefix):
                 failures.append(
-                    "src/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest: "
+                    "src/extensions/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest: "
                     f"supported Visual Studio range '{version_range}' does not align with MinimumVisualStudioVersion '{minimum_visual_studio_version}'"
                 )
 
@@ -950,7 +996,7 @@ def check_visual_studio_extension(
     else:
         overview_candidates = [
             publish_manifest_path.parent / overview,
-            root / "src" / "DbSqlLikeMem.VisualStudioExtension" / overview,
+            root / "src" / "extensions" / "DbSqlLikeMem.VisualStudioExtension" / overview,
         ]
         if not any(candidate.exists() for candidate in overview_candidates):
             failures.append(

@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Dict, List
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-TEST_PATTERN = "src/*/*GapTests.cs"
+TEST_PATTERN = "src/code/**/*GapTests.cs"
 OUTPUT_PATH = REPO_ROOT / "docs" / "old" / "gap-tests-technical-backlog.md"
 
 
@@ -23,6 +23,8 @@ class ItemMeta:
 
 PROVIDER_LABELS = {
     "Db2": "DB2",
+    "Firebird": "Firebird",
+    "MariaDb": "MariaDB",
     "MySql": "MySQL",
     "Oracle": "Oracle",
     "PostgreSql": "PostgreSQL",

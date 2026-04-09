@@ -71,6 +71,7 @@ internal static class DbInsertStrategy
         SqlInsertQuery query)
     {
         var connection = context.Connection;
+        context.ResetPositionalParameterCursor();
         var dialect = context.Dialect;
         var pars = context.DbParameters;
         var capturePlans = context.CaptureExecutionPlans;
@@ -1001,7 +1002,8 @@ internal static class DbInsertStrategy
         var pars = context.DbParameters;
         table.CurrentColumn = colDef.Name;
         object? resolved;
-        if (TryResolveCastAsJsonValue(parsedExpr, context.DbParameters, out var castJsonValue))
+        var trimmedRawValue = rawValue.Trim();
+        if (TryResolveCastAsJsonValue(parsedExpr, context, out var castJsonValue))
         {
             resolved = castJsonValue;
         }
@@ -1011,9 +1013,11 @@ internal static class DbInsertStrategy
         }
         else
         {
-            resolved = TryResolveTemporalValue(rawValue, context, out var temporalValue)
+            resolved = TryResolveTemporalValue(trimmedRawValue, context, out var temporalValue)
                 ? temporalValue
-                : table.Resolve(rawValue, colDef.DbType, colDef.Nullable, context.DbParameters, table.Columns);
+                : context.TryResolveParameter(trimmedRawValue, out var parameterValue)
+                    ? parameterValue
+                    : table.Resolve(rawValue, colDef.DbType, colDef.Nullable, context.DbParameters, table.Columns);
         }
         table.CurrentColumn = null;
 
@@ -1060,17 +1064,17 @@ internal static class DbInsertStrategy
         if (parsedExpr is null)
             return false;
 
-        object? Eval(SqlExpr expr)
-        {
-            return expr switch
+            object? Eval(SqlExpr expr)
             {
-                LiteralExpr lit => lit.Value,
-                ParameterExpr p when TryResolveParameterValue(context.DbParameters, p.Name, out var parameterValue) => parameterValue,
-                IdentifierExpr id when context.TryEvaluateZeroArgIdentifier(id.Name, out var temporalIdentifierValue) => temporalIdentifierValue,
-                ColumnExpr c when context.TryEvaluateZeroArgIdentifier(c.Name, out var temporalColumnValue) => temporalColumnValue,
-                _ => null
-            };
-        }
+                return expr switch
+                {
+                    LiteralExpr lit => lit.Value,
+                    ParameterExpr p when context.TryResolveParameter(p.Name, out var parameterValue) => parameterValue,
+                    IdentifierExpr id when context.TryEvaluateZeroArgIdentifier(id.Name, out var temporalIdentifierValue) => temporalIdentifierValue,
+                    ColumnExpr c when context.TryEvaluateZeroArgIdentifier(c.Name, out var temporalColumnValue) => temporalColumnValue,
+                    _ => null
+                };
+            }
 
         if (parsedExpr is CallExpr call)
         {
@@ -1097,7 +1101,7 @@ internal static class DbInsertStrategy
 
     private static bool TryResolveCastAsJsonValue(
         SqlExpr? parsedExpr,
-        DbParameterCollection? pars,
+        QueryExecutionContext context,
         out object? value)
     {
         value = null;
@@ -1107,7 +1111,7 @@ internal static class DbInsertStrategy
             || !IsJsonCastType(cast.Args[1]))
             return false;
 
-        if (!TryResolveCastOperandValue(cast.Args[0], pars, out var operand))
+        if (!TryResolveCastOperandValue(cast.Args[0], context, out var operand))
             return false;
 
         value = NormalizeJsonCastValue(operand);
@@ -1135,7 +1139,7 @@ internal static class DbInsertStrategy
 
     private static bool TryResolveCastOperandValue(
         SqlExpr expr,
-        DbParameterCollection? pars,
+        QueryExecutionContext context,
         out object? value)
     {
         switch (expr)
@@ -1144,43 +1148,11 @@ internal static class DbInsertStrategy
                 value = lit.Value;
                 return true;
             case ParameterExpr p:
-                return TryResolveParameterValue(pars, p.Name, out value);
+                return context.TryResolveParameter(p.Name, out value);
             default:
                 value = null;
                 return false;
         }
-    }
-
-    private static bool TryResolveParameterValue(
-        DbParameterCollection? pars,
-        string parameterToken,
-        out object? value)
-    {
-        value = null;
-        if (pars is null)
-            return false;
-
-        if (parameterToken == "?")
-        {
-            if (pars.Count <= 0 || pars[0] is not IDataParameter first)
-                return false;
-
-            value = first.Value is DBNull ? null : first.Value;
-            return true;
-        }
-
-        var normalized = parameterToken.TrimStart('@', ':', '?');
-        foreach (IDataParameter p in pars)
-        {
-            var candidate = (p.ParameterName ?? string.Empty).TrimStart('@', ':', '?');
-            if (!string.Equals(candidate, normalized, StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            value = p.Value is DBNull ? null : p.Value;
-            return true;
-        }
-
-        return false;
     }
 
     private static object? NormalizeJsonCastValue(object? operand)

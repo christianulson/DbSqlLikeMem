@@ -48,6 +48,7 @@ internal static class DbMergeStrategy
         SqlMergeQuery query)
     {
         var connection = context.Connection;
+        context.ResetPositionalParameterCursor();
         var pars = context.DbParameters;
         var dialect = context.Dialect;
         var sql = query.RawSql;
@@ -386,7 +387,7 @@ internal static class DbMergeStrategy
         return expr switch
         {
             LiteralExpr lit => lit.Value is DBNull ? null : lit.Value,
-            ParameterExpr p => TryResolveParameterValue(context.DbParameters, p.Name, out var value) ? value : null,
+            ParameterExpr p => context.TryResolveParameter(p.Name, out var value) ? value : null,
             UnaryExpr { Op: SqlUnaryOp.Not, Expr: var inner } => EvaluateValuesSourceNot(inner, context),
             BinaryExpr { Op: SqlBinaryOp.Add } b => EvaluateValuesSourceArithmetic(b, context, static (left, right) => left + right),
             BinaryExpr { Op: SqlBinaryOp.Subtract } b => EvaluateValuesSourceArithmetic(b, context, static (left, right) => left - right),
@@ -451,38 +452,6 @@ internal static class DbMergeStrategy
         var leftText = left is null or DBNull ? string.Empty : left.ToString() ?? string.Empty;
         var rightText = right is null or DBNull ? string.Empty : right.ToString() ?? string.Empty;
         return string.Concat(leftText, rightText);
-    }
-
-    private static bool TryResolveParameterValue(
-        DbParameterCollection? pars,
-        string parameterToken,
-        out object? value)
-    {
-        value = null;
-        if (pars is null)
-            return false;
-
-        if (parameterToken == "?")
-        {
-            if (pars.Count <= 0 || pars[0] is not IDataParameter first)
-                return false;
-
-            value = first.Value is DBNull ? null : first.Value;
-            return true;
-        }
-
-        var normalized = parameterToken.TrimStart('@', ':', '?');
-        foreach (IDataParameter p in pars)
-        {
-            var candidate = (p.ParameterName ?? string.Empty).TrimStart('@', ':', '?');
-            if (!string.Equals(candidate, normalized, StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            value = p.Value is DBNull ? null : p.Value;
-            return true;
-        }
-
-        return false;
     }
 
     private static List<string> SplitTopLevelCommaSeparated(string raw)

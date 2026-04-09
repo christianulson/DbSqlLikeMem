@@ -77,6 +77,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
     private AstQuerySqlServerUtilityFunctionEvaluator? _sqlServerUtilityFunctionEvaluator;
     private AstQuerySqlServerSessionFunctionEvaluator? _sqlServerSessionFunctionEvaluator;
     private AstQuerySqlServerCompatibilityFunctionEvaluator? _sqlServerCompatibilityFunctionEvaluator;
+    private int _evalDepth;
 
     private AstQuerySubqueryLookupEvaluator SubqueryLookupEvaluator
         => _subqueryLookupEvaluator ??= new AstQuerySubqueryLookupEvaluator(
@@ -1403,6 +1404,12 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         EvalGroup? group,
         IDictionary<string, Source> ctes)
     {
+        var topLevelEval = _evalDepth++ == 0;
+        if (topLevelEval)
+            _context.ResetPositionalParameterCursor();
+
+        try
+        {
         switch (expr)
         {
             case LiteralExpr l:
@@ -1511,6 +1518,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
             default:
                 throw new InvalidOperationException($"Expr não suportada no executor: {expr.GetType().Name}");
+        }
+        }
+        finally
+        {
+            _evalDepth--;
         }
     }
 

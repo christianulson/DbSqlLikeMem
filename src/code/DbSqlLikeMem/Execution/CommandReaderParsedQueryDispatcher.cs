@@ -45,6 +45,8 @@ internal static class CommandReaderParsedQueryDispatcher
         Action<SqlMergeQuery>? executeMerge,
         QueryExecutionContext? context)
     {
+        context?.ResetPositionalParameterCursor();
+
         switch (query)
         {
             case SqlCreateTemporaryTableQuery tempQ:

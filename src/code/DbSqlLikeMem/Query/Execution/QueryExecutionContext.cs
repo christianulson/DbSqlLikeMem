@@ -66,6 +66,8 @@ internal sealed class QueryExecutionContext
     /// </summary>
     public bool ThreadSafe { get; }
 
+    private int _positionalParameterCursor;
+
     /// <summary>
     /// EN: Raw SQL text of the command being executed, when available.
     /// PT: Texto SQL bruto do comando sendo executado, quando disponível.
@@ -131,6 +133,192 @@ internal sealed class QueryExecutionContext
         HasActiveTransaction = connection.HasActiveTransaction;
         EvaluationLocalNow = DateTime.Now;
         EvaluationUtcNow = DateTime.UtcNow;
+    }
+
+    private QueryExecutionContext(
+        QueryExecutionContext source,
+        int positionalParameterCursor)
+    {
+        Connection = source.Connection;
+        Dialect = source.Dialect;
+        Parameters = source.Parameters;
+        DbParameters = source.DbParameters;
+        Database = source.Database;
+        Metrics = source.Metrics;
+        MetricsEnabled = source.MetricsEnabled;
+        CaptureExecutionPlans = source.CaptureExecutionPlans;
+        CaptureAffectedRowSnapshots = source.CaptureAffectedRowSnapshots;
+        ThreadSafe = source.ThreadSafe;
+        CurrentQueryText = source.CurrentQueryText;
+        SimulatedLatencyMs = source.SimulatedLatencyMs;
+        DropProbability = source.DropProbability;
+        HasActiveTransaction = source.HasActiveTransaction;
+        EvaluationLocalNow = source.EvaluationLocalNow;
+        EvaluationUtcNow = source.EvaluationUtcNow;
+        _positionalParameterCursor = positionalParameterCursor;
+    }
+
+    /// <summary>
+    /// EN: Resets the positional parameter cursor used to resolve SQL `?` placeholders in order.
+    /// PT: Reinicia o cursor de parametros posicionais usado para resolver placeholders SQL `?` em ordem.
+    /// </summary>
+    internal void ResetPositionalParameterCursor()
+        => _positionalParameterCursor = 0;
+
+    /// <summary>
+    /// EN: Creates a shallow copy that preserves the current positional-parameter cursor.
+    /// PT: Cria uma copia rasa que preserva o cursor atual de parametros posicionais.
+    /// </summary>
+    internal QueryExecutionContext Fork()
+        => new(this, _positionalParameterCursor);
+
+    /// <summary>
+    /// EN: Advances the positional-parameter cursor by a fixed number of consumed placeholders.
+    /// PT: Avanca o cursor de parametros posicionais por uma quantidade fixa de placeholders consumidos.
+    /// </summary>
+    internal void AdvancePositionalParameterCursor(int count)
+    {
+        if (count > 0)
+            _positionalParameterCursor += count;
+    }
+
+    /// <summary>
+    /// EN: Resolves the next positional parameter value for the current expression evaluation.
+    /// PT: Resolve o proximo valor de parametro posicional para a avaliacao atual da expressao.
+    /// </summary>
+    /// <returns>EN: The next positional parameter value, or null when none is available. PT: O proximo valor de parametro posicional, ou null quando nao houver nenhum.</returns>
+    internal object? ResolveNextPositionalParameter()
+    {
+        TryResolveNextPositionalParameter(out var value);
+        return value;
+    }
+
+    /// <summary>
+    /// EN: Resolves the next positional parameter value and reports whether a value was available.
+    /// PT: Resolve o proximo valor de parametro posicional e informa se havia um valor disponivel.
+    /// </summary>
+    /// <returns>EN: True when a positional parameter was consumed. PT: Verdadeiro quando um parametro posicional foi consumido.</returns>
+    internal bool TryResolveNextPositionalParameter(out object? value)
+    {
+        var positionalParameters = new List<IDataParameter>();
+        foreach (IDataParameter parameter in Parameters)
+        {
+            if (IsPositionalParameter(parameter.ParameterName))
+                positionalParameters.Add(parameter);
+        }
+
+        if (positionalParameters.Count == 0)
+        {
+            value = null;
+            return false;
+        }
+
+        var index = _positionalParameterCursor++;
+        if (index >= positionalParameters.Count)
+        {
+            value = null;
+            return false;
+        }
+
+        value = positionalParameters[index].Value;
+        if (value is DBNull)
+            value = null;
+
+        return true;
+    }
+
+    /// <summary>
+    /// EN: Resolves a named or positional parameter token against the current command parameters.
+    /// PT: Resolve um token de parametro nomeado ou posicional contra os parametros atuais do comando.
+    /// </summary>
+    internal bool TryResolveParameter(string parameterToken, out object? value)
+    {
+        value = null;
+
+        if (string.IsNullOrWhiteSpace(parameterToken))
+            return false;
+
+        if (parameterToken == "?")
+            return TryResolveNextPositionalParameter(out value);
+
+        var normalized = parameterToken.TrimStart('@', ':', '?');
+
+        if (TryResolveParameterFromCollection(normalized, out value))
+            return true;
+
+        foreach (IDataParameter parameter in Parameters)
+        {
+            var candidate = parameter.ParameterName?.TrimStart('@', ':', '?');
+            if (string.Equals(candidate, normalized, StringComparison.OrdinalIgnoreCase))
+            {
+                value = parameter.Value is DBNull ? null : parameter.Value;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool TryResolveParameterFromCollection(string normalizedParameterName, out object? value)
+    {
+        value = null;
+        if (string.IsNullOrWhiteSpace(normalizedParameterName))
+            return false;
+
+        var candidates = new[]
+        {
+            normalizedParameterName,
+            "@" + normalizedParameterName,
+            ":" + normalizedParameterName,
+            "?" + normalizedParameterName
+        };
+
+        foreach (var candidate in candidates)
+        {
+            var index = DbParameters.IndexOf(candidate);
+            if (index < 0)
+                continue;
+
+            if (DbParameters[index] is not IDataParameter parameter)
+                continue;
+
+            value = parameter.Value is DBNull ? null : parameter.Value;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsPositionalParameter(string? parameterName)
+    {
+        if (string.IsNullOrWhiteSpace(parameterName))
+            return true;
+
+        var normalized = parameterName!.Trim().TrimStart('@', ':', '?');
+        if (normalized.Length == 0)
+            return true;
+
+        if (normalized.All(char.IsDigit))
+            return true;
+
+        if (normalized[0] is not ('p' or 'P'))
+            return false;
+
+        var hasDigit = false;
+        for (var i = 1; i < normalized.Length; i++)
+        {
+            var ch = normalized[i];
+            if (char.IsDigit(ch))
+            {
+                hasDigit = true;
+                continue;
+            }
+
+            if (ch != '_')
+                return false;
+        }
+
+        return hasDigit;
     }
 
     /// <summary>

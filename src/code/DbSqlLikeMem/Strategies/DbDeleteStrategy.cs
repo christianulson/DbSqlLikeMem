@@ -57,10 +57,10 @@ internal static class DbDeleteStrategy
         var hasBeforeDeleteTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeDelete);
         var hasAfterDeleteTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.AfterDelete);
 
-        foreach (var i in GetCandidateRowIndexes(table, pars, conditions))
+        foreach (var i in GetCandidateRowIndexes(table, context, pars, conditions))
         {
             var row = table[i];
-            if (TableMock.IsMatchSimple(table, pars, conditions, row))
+            if (TableMock.IsMatchSimple(table, context.Fork(), pars, conditions, row))
             {
                 // Para o RETURNING, precisamos capturar o estado ANTES da remoção.
                 // Usamos snapshots para garantir que se o objeto row for alterado por triggers,
@@ -125,11 +125,12 @@ internal static class DbDeleteStrategy
     }
     private static IEnumerable<int> GetCandidateRowIndexes(
         ITableMock table,
+        QueryExecutionContext context,
         DbParameterCollection? pars,
         List<(string C, string Op, string V)> conditions)
     {
         if (conditions.Count > 0
-            && TableMock.TryFindRowByPkConditions(table, pars, conditions, out var rowIndex))
+            && TableMock.TryFindRowByPkConditions(table, context.Fork(), pars, conditions, out var rowIndex))
         {
             yield return rowIndex;
             yield break;

@@ -67,8 +67,8 @@ internal sealed class AstQueryIndexHelper(
             }));
 
         var positions = LookupIndexWithMetrics(src.Physical, best, key);
-        if (positions is null)
-            return [];
+        if (positions is null || positions.Count == 0)
+            return null;
 
         return src.RowsByIndexes(positions.Keys);
     }
@@ -189,8 +189,7 @@ internal sealed class AstQueryIndexHelper(
             case 1:
                 if (!TryGetPkValue(pkIndexes[0], out var pkValue0))
                 {
-                    rows = [];
-                    return true;
+                    return false;
                 }
 
                 if (!tableMock.TryFindRowByPkValues(pkValue0, out var rowIndex))
@@ -205,8 +204,7 @@ internal sealed class AstQueryIndexHelper(
                 if (!TryGetPkValue(pkIndexes[0], out var pkValue1)
                     || !TryGetPkValue(pkIndexes[1], out var pkValue2))
                 {
-                    rows = [];
-                    return true;
+                    return false;
                 }
 
                 if (!tableMock.TryFindRowByPkValues(pkValue1, pkValue2, out var rowIndex2))
@@ -222,8 +220,7 @@ internal sealed class AstQueryIndexHelper(
                     || !TryGetPkValue(pkIndexes[1], out var pkValue4)
                     || !TryGetPkValue(pkIndexes[2], out var pkValue5))
                 {
-                    rows = [];
-                    return true;
+                    return false;
                 }
 
                 if (!tableMock.TryFindRowByPkValues(pkValue3, pkValue4, pkValue5, out var rowIndex3))
@@ -240,8 +237,7 @@ internal sealed class AstQueryIndexHelper(
                 {
                     if (!TryGetPkValue(pkIndexes[i], out var pkValue))
                     {
-                        rows = [];
-                        return true;
+                        return false;
                     }
 
                     pkValues[i] = pkValue;

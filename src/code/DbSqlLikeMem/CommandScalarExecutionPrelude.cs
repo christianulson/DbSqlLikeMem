@@ -18,6 +18,7 @@ internal static class CommandScalarExecutionPrelude
     {
         scalar = DBNull.Value;
         var context = QueryExecutionContext.FromConnection(connection, pars);
+        context.ResetPositionalParameterCursor();
         if (connection.TryHandleExecuteReaderPrelude(
             commandType,
             commandText,
@@ -156,6 +157,7 @@ internal static class CommandScalarExecutionPrelude
         out object? scalar)
     {
         scalar = DBNull.Value;
+        context.ResetPositionalParameterCursor();
 
         if (query.Ctes.Count > 0
             || query.Joins.Count > 0
@@ -254,6 +256,7 @@ internal static class CommandScalarExecutionPrelude
         out object? scalar)
     {
         scalar = DBNull.Value;
+        context.ResetPositionalParameterCursor();
 
         if (query.Ctes.Count > 0
             || query.Joins.Count > 0

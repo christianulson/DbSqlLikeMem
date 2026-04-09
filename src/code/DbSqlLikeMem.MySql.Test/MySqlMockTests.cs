@@ -1993,6 +1993,8 @@ public sealed class MySqlMockTests
         };
         command.ExecuteNonQuery();
 
+        Assert.Equal("  MiXeD  ", _connection.Db.GetTable("Users")[0][1]);
+
         command.CommandText = "SELECT LOWER(Name) FROM Users WHERE Id = 22";
         Assert.Equal("  mixed  ", command.ExecuteScalar());
 

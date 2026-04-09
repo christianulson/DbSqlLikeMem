@@ -1805,10 +1805,139 @@ public abstract class TableMock
     /// PT: Tenta encontrar uma unica linha usando atalho PK quando as condicoes WHERE correspondem a uma igualdade exata de PK.
     /// </summary>
     /// <param name="table">EN: Target table. PT: Tabela alvo.</param>
+    /// <param name="context"></param>
     /// <param name="pars">EN: Query parameters. PT: Parametros da consulta.</param>
     /// <param name="conditions">EN: Parsed WHERE conditions. PT: Condicoes WHERE parseadas.</param>
     /// <param name="rowIndex">EN: Found row index. PT: Indice da linha encontrada.</param>
     /// <returns>EN: True if a single row was found via PK shortcut. PT: True se uma unica linha foi encontrada via atalho PK.</returns>
+    internal static bool TryFindRowByPkConditions(
+        ITableMock table,
+        QueryExecutionContext? context,
+        DbParameterCollection? pars,
+        List<(string C, string Op, string V)> conditions,
+        out int rowIndex)
+    {
+        rowIndex = -1;
+        if (conditions.Count == 0 || table.PrimaryKeyIndexes.Count == 0)
+            return false;
+
+        var eqConditions = new List<(string C, string Op, string V)>(conditions.Count);
+        foreach (var condition in conditions)
+        {
+            if (condition.Op == "=")
+                eqConditions.Add(condition);
+        }
+
+        if (eqConditions.Count < table.PrimaryKeyIndexes.Count)
+            return false;
+
+        if (table is TableMock tableMock)
+        {
+            var pkIndexes = tableMock.PkIndexArray;
+            if (pkIndexes.Length == 1)
+            {
+                if (!TryResolvePkConditionValue(pkIndexes[0], out var pkValue0))
+                    return false;
+
+                if (!tableMock.TryFindRowByPkValues(pkValue0, out rowIndex))
+                    return false;
+
+                var pkMatchedRow1 = table[rowIndex];
+                return IsMatchSimple(table, context, pars, conditions, pkMatchedRow1);
+            }
+
+            if (pkIndexes.Length == 2)
+            {
+                if (!TryResolvePkConditionValue(pkIndexes[0], out var pkValue0)
+                    || !TryResolvePkConditionValue(pkIndexes[1], out var pkValue1))
+                {
+                    return false;
+                }
+
+                if (!tableMock.TryFindRowByPkValues(pkValue0, pkValue1, out rowIndex))
+                    return false;
+
+                var pkMatchedRow2 = table[rowIndex];
+                return IsMatchSimple(table, context, pars, conditions, pkMatchedRow2);
+            }
+
+            if (pkIndexes.Length == 3)
+            {
+                if (!TryResolvePkConditionValue(pkIndexes[0], out var pkValue0)
+                    || !TryResolvePkConditionValue(pkIndexes[1], out var pkValue1)
+                    || !TryResolvePkConditionValue(pkIndexes[2], out var pkValue2))
+                {
+                    return false;
+                }
+
+                if (!tableMock.TryFindRowByPkValues(pkValue0, pkValue1, pkValue2, out rowIndex))
+                    return false;
+
+                var pkMatchedRow3 = table[rowIndex];
+                return IsMatchSimple(table, context, pars, conditions, pkMatchedRow3);
+            }
+
+            var pkValues = new object?[pkIndexes.Length];
+            for (var i = 0; i < pkIndexes.Length; i++)
+            {
+                if (!TryResolvePkConditionValue(pkIndexes[i], out var pkValue))
+                    return false;
+
+                pkValues[i] = pkValue;
+            }
+
+            if (!tableMock.TryFindRowByPkValues(pkValues, out rowIndex))
+                return false;
+
+            var pkMatchedRow4 = table[rowIndex];
+            return IsMatchSimple(table, context, pars, conditions, pkMatchedRow4);
+
+            bool TryResolvePkConditionValue(int pkIdx, out object? value)
+            {
+                var col = tableMock.ColumnsByIndex.TryGetValue(pkIdx, out var columnName)
+                    ? tableMock.GetColumn(columnName)
+                    : table.Columns.Values.First(c => c.Index == pkIdx);
+                if (!TryFindMatchingCondition(eqConditions, col.Name, out var matchingCond))
+                {
+                    value = null;
+                    return false;
+                }
+
+                value = ResolveConditionValue(table, context, pars, matchingCond.V, col.DbType, col.Nullable);
+                return true;
+            }
+        }
+
+        var eqConditionsByName = new Dictionary<string, (string C, string Op, string V)>(eqConditions.Count * 2, StringComparer.OrdinalIgnoreCase);
+        foreach (var cond in eqConditions)
+        {
+            var normalized = cond.C.NormalizeName();
+            eqConditionsByName.TryAdd(normalized, cond);
+
+            var trimmed = cond.C.Trim('`', '"', '[', ']').NormalizeName();
+            eqConditionsByName.TryAdd(trimmed, cond);
+        }
+
+        var syntheticRow = new Dictionary<int, object?>(table.PrimaryKeyIndexes.Count);
+
+        foreach (var pkIdx in table.PrimaryKeyIndexes)
+        {
+            var col = table is TableMock tableAsMock && tableAsMock.ColumnsByIndex.TryGetValue(pkIdx, out var columnName)
+                ? tableAsMock.GetColumn(columnName)
+                : table.Columns.Values.First(c => c.Index == pkIdx);
+            if (!eqConditionsByName.TryGetValue(col.Name, out var matchingCond))
+                return false;
+
+            syntheticRow[pkIdx] = ResolveConditionValue(table, context, pars, matchingCond.V, col.DbType, col.Nullable);
+        }
+
+        if (!table.TryFindRowByPk(syntheticRow, out rowIndex))
+            return false;
+
+        var syntheticMatchedRow = table[rowIndex];
+        return IsMatchSimple(table, context, pars, conditions, syntheticMatchedRow);
+    }
+
     internal static bool TryFindRowByPkConditions(
         ITableMock table,
         DbParameterCollection? pars,
@@ -1977,6 +2106,111 @@ public abstract class TableMock
 
         matchingCondition = default;
         return false;
+    }
+
+    internal static bool IsMatchSimple(
+        ITableMock table,
+        QueryExecutionContext? context,
+        DbParameterCollection? pars,
+        List<(string C, string Op, string V)> conditions,
+        IReadOnlyDictionary<int, object?> row)
+    {
+        foreach (var cond in conditions)
+        {
+            var info = table.GetColumn(cond.C);
+            var actual = info.GetGenValue != null ? info.GetGenValue(row, table) : row[info.Index];
+
+            if (cond.Op.Equals(SqlConst.IN, StringComparison.OrdinalIgnoreCase))
+            {
+                var rhs = cond.V.Trim();
+
+                var candidates = rhs.StartsWith("(")
+                    && rhs.EndsWith(")")
+                    ? GetCandidatesFromSub(table, pars, cond, info, rhs)
+                    : GetCanditateFromTable(table, pars, cond, info, rhs);
+
+                var matched = false;
+                foreach (var cand in candidates)
+                {
+                    if (ValuesEqual(actual, cand))
+                    {
+                        matched = true;
+                        break;
+                    }
+                }
+
+                if (!matched)
+                    return false;
+
+                continue;
+            }
+
+            if (!TryMatchComparison(table, context, pars, cond, info, actual, out var value)
+                || !value)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool TryMatchComparison(
+        ITableMock table,
+        QueryExecutionContext? context,
+        DbParameterCollection? pars,
+        (string C, string Op, string V) cond,
+        ColumnDef info, object? actual,
+        out bool value)
+    {
+        value = default;
+
+        switch (cond.Op)
+        {
+            case "=":
+            case "<>":
+            case "!=":
+            case "<":
+            case "<=":
+            case ">":
+            case ">=":
+                table.CurrentColumn = cond.C;
+                var exp = ResolveConditionValue(table, context, pars, cond.V, info.DbType, info.Nullable);
+                table.CurrentColumn = null;
+
+                if (cond.Op == "=")
+                {
+                    value = ValuesEqual(actual, exp);
+                    return true;
+                }
+
+                if (cond.Op is "<>" or "!=")
+                {
+                    value = !ValuesEqual(actual, exp);
+                    return true;
+                }
+
+                value = CompareSimple(actual, exp, cond.Op);
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static object? ResolveConditionValue(
+        ITableMock table,
+        QueryExecutionContext? context,
+        DbParameterCollection? pars,
+        string token,
+        DbType dbType,
+        bool isNullable)
+    {
+        var trimmed = token.Trim();
+        if (context is not null && context.TryResolveParameter(trimmed, out var contextualValue))
+            return contextualValue;
+
+        var resolved = table.Resolve(trimmed, dbType, isNullable, pars, table.Columns);
+        return resolved is DBNull ? null : resolved;
     }
 
     internal static bool IsMatchSimple(
