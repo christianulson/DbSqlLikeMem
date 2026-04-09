@@ -62,11 +62,38 @@ internal static class SqlCreateTemporaryTableHelper
 
     internal static SqlCreateTemporaryTableQuery ParseCreateTemporaryTable(
         this SqlQueryParserContext ctx,
-        bool orReplace
-        )
+        bool orReplace)
     {
-        var isTemporary = false;
-        var tempScope = TemporaryTableScope.None;
+        ParseCreateTemporaryTableScope(ctx, out var isTemporary, out var tempScope);
+        EnsureCreateTemporaryTableKeyword(ctx);
+
+        if (orReplace && !ctx.Dialect.SupportsCreateOrReplaceTableDdl)
+            throw ctx.NotSupported("CREATE OR REPLACE TABLE");
+
+        var ifNotExists = ParseCreateTemporaryTableIfNotExists(ctx);
+
+        var table = ctx.ParseQualifiedObjectName();
+        var columnDefinitions = ParseCreateTemporaryTableColumnDefinitions(ctx);
+        var selectSql = ParseCreateTemporaryTableSelectSql(ctx);
+
+        return Build(
+            ctx,
+            ifNotExists,
+            table,
+            columnDefinitions,
+            selectSql,
+            tempScope,
+            isTemporary);
+    }
+
+    private static void ParseCreateTemporaryTableScope(
+        SqlQueryParserContext ctx,
+        out bool isTemporary,
+        out TemporaryTableScope tempScope)
+    {
+        isTemporary = false;
+        tempScope = TemporaryTableScope.None;
+
         if (ctx.IsWord(SqlConst.GLOBAL))
         {
             ctx.Consume();
@@ -88,146 +115,156 @@ internal static class SqlCreateTemporaryTableHelper
             isTemporary = true;
             tempScope = TemporaryTableScope.Connection;
         }
+    }
 
+    private static void EnsureCreateTemporaryTableKeyword(SqlQueryParserContext ctx)
+    {
         if (!ctx.IsWord(SqlConst.TABLE))
             throw new InvalidOperationException("CREATE TEMPORARY TABLE requires TABLE keyword.");
 
         ctx.Consume(); // TABLE
+    }
 
-        if (orReplace && !ctx.Dialect.SupportsCreateOrReplaceTableDdl)
-            throw ctx.NotSupported("CREATE OR REPLACE TABLE");
+    private static bool ParseCreateTemporaryTableIfNotExists(SqlQueryParserContext ctx)
+    {
+        if (!ctx.IsWord(SqlConst.IF))
+            return false;
 
-        var ifNotExists = false;
-        if (ctx.IsWord(SqlConst.IF))
-        {
-            ctx.Consume();
-            if (!ctx.IsWord(SqlConst.NOT))
-                throw new InvalidOperationException("IF must be followed by NOT in CREATE TEMPORARY TABLE.");
+        ctx.Consume();
+        if (!ctx.IsWord(SqlConst.NOT))
+            throw new InvalidOperationException("IF must be followed by NOT in CREATE TEMPORARY TABLE.");
 
-            ctx.Consume();
-            if (!ctx.IsWord(SqlConst.EXISTS))
-                throw new InvalidOperationException("NOT must be followed by EXISTS in CREATE TEMPORARY TABLE.");
+        ctx.Consume();
+        if (!ctx.IsWord(SqlConst.EXISTS))
+            throw new InvalidOperationException("NOT must be followed by EXISTS in CREATE TEMPORARY TABLE.");
 
-            ctx.Consume();
-            ifNotExists = true;
-        }
+        ctx.Consume();
+        return true;
+    }
 
-        var table = ctx.ParseQualifiedObjectName();
-
+    private static List<Col> ParseCreateTemporaryTableColumnDefinitions(SqlQueryParserContext ctx)
+    {
         var columnDefinitions = new List<Col>();
-        if (ctx.IsSymbol("("))
+        if (!ctx.IsSymbol("("))
+            return columnDefinitions;
+
+        var rawColumnsBlock = ctx.ReadBalancedParenRawTokens();
+        var defs = SqlRawCommaSplitterHelper.SplitRawByComma(rawColumnsBlock);
+
+        if (defs.Count == 0 || string.IsNullOrWhiteSpace(rawColumnsBlock))
+            throw new InvalidOperationException("CREATE TEMPORARY TABLE column list requires at least one column name.");
+
+        if (string.IsNullOrWhiteSpace(defs[0]))
+            throw new InvalidOperationException("CREATE TEMPORARY TABLE column list cannot start with a comma.");
+
+        if (string.IsNullOrWhiteSpace(defs[^1]))
+            throw new InvalidOperationException("CREATE TEMPORARY TABLE column list cannot end with a comma.");
+
+        if (defs.Any(string.IsNullOrWhiteSpace))
+            throw new InvalidOperationException("CREATE TEMPORARY TABLE column list has an empty entry between commas.");
+
+        foreach (var def in defs)
+            columnDefinitions.Add(ParseCreateTemporaryTableColumnDefinition(def, ctx));
+
+        return columnDefinitions;
+    }
+
+    private static Col ParseCreateTemporaryTableColumnDefinition(string def, SqlQueryParserContext ctx)
+    {
+        var defTokens = new SqlTokenizer(def, ctx.Dialect).Tokenize()
+            .Where(t => t.Kind != SqlTokenKind.EndOfFile)
+            .ToList();
+
+        if (defTokens.Count == 0)
+            throw new InvalidOperationException("CREATE TEMPORARY TABLE column list requires at least one column name.");
+
+        var firstColToken = defTokens[0];
+        if (firstColToken.Kind is not (SqlTokenKind.Identifier or SqlTokenKind.Keyword))
+            throw new InvalidOperationException($"CREATE TEMPORARY TABLE column list expects a column name, found {firstColToken.Kind} '{firstColToken.Text}'.");
+
+        var typeTokens = CollectCreateTemporaryTableTypeTokens(defTokens);
+        if (typeTokens.Count == 0)
+            throw new InvalidOperationException("CREATE TEMPORARY TABLE column list requires a column type.");
+
+        var typeSql = TokensToSql(typeTokens);
+        var dbType = SqlParameterDbTypeParserHelper.ParseDbType(typeSql);
+        var size = TryParseSize(typeSql, dbType);
+        var decimalPlaces = TryParseDecimalPlaces(typeSql, dbType);
+        var nullable = !HasNotNullConstraint(defTokens);
+        return new Col(firstColToken.Text, dbType, nullable, size, decimalPlaces);
+    }
+
+    private static List<SqlToken> CollectCreateTemporaryTableTypeTokens(IReadOnlyList<SqlToken> defTokens)
+    {
+        var typeTokens = new List<SqlToken>();
+        var depth = 0;
+        var lastTopLevelToken = default(SqlToken?);
+        var sawTypeToken = false;
+
+        for (var i = 1; i < defTokens.Count; i++)
         {
-            var rawColumnsBlock = ctx.ReadBalancedParenRawTokens();
-            var defs = SqlRawCommaSplitterHelper.SplitRawByComma(rawColumnsBlock);
+            var token = defTokens[i];
+            if (depth == 0 && IsColumnConstraintToken(token))
+                break;
 
-            if (defs.Count == 0 || string.IsNullOrWhiteSpace(rawColumnsBlock))
-                throw new InvalidOperationException("CREATE TEMPORARY TABLE column list requires at least one column name.");
+            if (token.Text == "(")
+                depth++;
+            else if (token.Text == ")" && depth > 0)
+                depth--;
 
-            if (string.IsNullOrWhiteSpace(defs[0]))
-                throw new InvalidOperationException("CREATE TEMPORARY TABLE column list cannot start with a comma.");
-
-            if (string.IsNullOrWhiteSpace(defs[^1]))
-                throw new InvalidOperationException("CREATE TEMPORARY TABLE column list cannot end with a comma.");
-
-            if (defs.Any(string.IsNullOrWhiteSpace))
-                throw new InvalidOperationException("CREATE TEMPORARY TABLE column list has an empty entry between commas.");
-
-            foreach (var def in defs)
+            if (depth == 0)
             {
-                var defTokens = new SqlTokenizer(def, ctx.Dialect).Tokenize()
-                    .Where(t => t.Kind != SqlTokenKind.EndOfFile)
-                    .ToList();
-
-                if (defTokens.Count == 0)
-                    throw new InvalidOperationException("CREATE TEMPORARY TABLE column list requires at least one column name.");
-
-                var firstColToken = defTokens[0];
-                if (firstColToken.Kind is not (SqlTokenKind.Identifier or SqlTokenKind.Keyword))
-                    throw new InvalidOperationException($"CREATE TEMPORARY TABLE column list expects a column name, found {firstColToken.Kind} '{firstColToken.Text}'.");
-
-                var typeTokens = new List<SqlToken>();
-                var depth = 0;
-                var lastTopLevelToken = default(SqlToken?);
-                var sawTypeToken = false;
-                for (var i = 1; i < defTokens.Count; i++)
+                if (sawTypeToken
+                    && IsColumnTypeStarterToken(token)
+                    && !IsTypeContinuationToken(lastTopLevelToken))
                 {
-                    var token = defTokens[i];
-                    if (depth == 0 && IsColumnConstraintToken(token))
-                        break;
-
-                    if (token.Text == "(")
-                        depth++;
-                    else if (token.Text == ")" && depth > 0)
-                        depth--;
-
-                    if (depth == 0)
-                    {
-                        if (sawTypeToken
-                            && IsColumnTypeStarterToken(token)
-                            && !IsTypeContinuationToken(lastTopLevelToken))
-                        {
-                            throw new InvalidOperationException("CREATE TEMPORARY TABLE column list must separate columns with commas.");
-                        }
-
-                        sawTypeToken = true;
-                        lastTopLevelToken = token;
-                    }
-
-                    typeTokens.Add(token);
+                    throw new InvalidOperationException("CREATE TEMPORARY TABLE column list must separate columns with commas.");
                 }
 
-                if (typeTokens.Count == 0)
-                    throw new InvalidOperationException("CREATE TEMPORARY TABLE column list requires a column type.");
-
-                var typeSql = TokensToSql(typeTokens);
-                var dbType = SqlParameterDbTypeParserHelper.ParseDbType(typeSql);
-                var size = TryParseSize(typeSql, dbType);
-                var decimalPlaces = TryParseDecimalPlaces(typeSql, dbType);
-                var nullable = true;
-                for (var i = 0; i < defTokens.Count - 1; i++)
-                {
-                    if (!defTokens[i].Text.Equals("NOT", StringComparison.OrdinalIgnoreCase))
-                        continue;
-
-                    if (defTokens[i + 1].Text.Equals("NULL", StringComparison.OrdinalIgnoreCase))
-                    {
-                        nullable = false;
-                        break;
-                    }
-                }
-
-                columnDefinitions.Add(new Col(firstColToken.Text, dbType, nullable, size, decimalPlaces));
+                sawTypeToken = true;
+                lastTopLevelToken = token;
             }
+
+            typeTokens.Add(token);
         }
 
-        string? selectSql = null;
-        if (ctx.IsWord(SqlConst.AS))
+        return typeTokens;
+    }
+
+    private static bool HasNotNullConstraint(IReadOnlyList<SqlToken> defTokens)
+    {
+        for (var i = 0; i < defTokens.Count - 1; i++)
         {
-            ctx.Consume(); // AS
+            if (!defTokens[i].Text.Equals("NOT", StringComparison.OrdinalIgnoreCase))
+                continue;
 
-            var rest = new List<SqlToken>();
-            while (!ctx.IsEnd())
-                rest.Add(ctx.Consume());
-
-            EnsureBodyExistsAfterAs(rest, "CREATE TEMPORARY TABLE ... AS");
-            EnsureNoUnexpectedTrailingStatementAfterBody(rest, "CREATE TEMPORARY TABLE ... AS");
-
-            selectSql = ctx.TokensToSql(rest).Trim();
+            if (defTokens[i + 1].Text.Equals("NULL", StringComparison.OrdinalIgnoreCase))
+                return true;
         }
-        else
+
+        return false;
+    }
+
+    private static string? ParseCreateTemporaryTableSelectSql(SqlQueryParserContext ctx)
+    {
+        if (!ctx.IsWord(SqlConst.AS))
         {
             while (!ctx.IsEnd())
                 ctx.Consume();
+
+            return null;
         }
 
-        return Build(
-            ctx,
-            ifNotExists,
-            table,
-            columnDefinitions,
-            selectSql,
-            tempScope,
-            isTemporary);
+        ctx.Consume(); // AS
+
+        var rest = new List<SqlToken>();
+        while (!ctx.IsEnd())
+            rest.Add(ctx.Consume());
+
+        EnsureBodyExistsAfterAs(rest, "CREATE TEMPORARY TABLE ... AS");
+        EnsureNoUnexpectedTrailingStatementAfterBody(rest, "CREATE TEMPORARY TABLE ... AS");
+
+        return ctx.TokensToSql(rest).Trim();
     }
 
     internal static SqlCreateTemporaryTableQuery Build(

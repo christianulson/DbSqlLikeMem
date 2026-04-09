@@ -147,21 +147,19 @@ internal static class SelectPlanBuilderHelper
             ParameterExpr => true,
             BinaryExpr binary => ContainsRuntimeParameter(binary.Left) || ContainsRuntimeParameter(binary.Right),
             UnaryExpr unary => ContainsRuntimeParameter(unary.Expr),
-            CaseExpr caseExpr => (caseExpr.BaseExpr is not null && ContainsRuntimeParameter(caseExpr.BaseExpr))
-                || caseExpr.Whens.Any(when => ContainsRuntimeParameter(when.When) || ContainsRuntimeParameter(when.Then))
-                || (caseExpr.ElseExpr is not null && ContainsRuntimeParameter(caseExpr.ElseExpr)),
-            FunctionCallExpr functionCall => functionCall.Args.Any(ContainsRuntimeParameter),
-            CallExpr call => call.Args.Any(ContainsRuntimeParameter),
+            CaseExpr caseExpr => ContainsRuntimeParameterCase(caseExpr),
+            FunctionCallExpr functionCall => ContainsRuntimeParameterList(functionCall.Args),
+            CallExpr call => ContainsRuntimeParameterList(call.Args),
             LikeExpr likeExpr => ContainsRuntimeParameter(likeExpr.Left)
                 || ContainsRuntimeParameter(likeExpr.Pattern)
                 || (likeExpr.Escape is not null && ContainsRuntimeParameter(likeExpr.Escape)),
             InExpr inExpr => ContainsRuntimeParameter(inExpr.Left)
-                || inExpr.Items.Any(ContainsRuntimeParameter),
+                || ContainsRuntimeParameterList(inExpr.Items),
             IsNullExpr isNullExpr => ContainsRuntimeParameter(isNullExpr.Expr),
             BetweenExpr betweenExpr => ContainsRuntimeParameter(betweenExpr.Expr)
                 || ContainsRuntimeParameter(betweenExpr.Low)
                 || ContainsRuntimeParameter(betweenExpr.High),
-            RowExpr rowExpr => rowExpr.Items.Any(ContainsRuntimeParameter),
+            RowExpr rowExpr => ContainsRuntimeParameterList(rowExpr.Items),
             JsonAccessExpr jsonAccessExpr => ContainsRuntimeParameter(jsonAccessExpr.Target)
                 || ContainsRuntimeParameter(jsonAccessExpr.Path),
             _ => false
@@ -388,7 +386,7 @@ internal static class SelectPlanBuilderHelper
             BinaryExpr binary => ContainsStringAggregate(binary.Left, context)
                 || ContainsStringAggregate(binary.Right, context),
             InExpr inExpr => ContainsStringAggregate(inExpr.Left, context)
-                || inExpr.Items.Any(item => ContainsStringAggregate(item, context)),
+                || ContainsStringAggregateList(inExpr.Items, context),
             LikeExpr likeExpr => ContainsStringAggregate(likeExpr.Left, context)
                 || ContainsStringAggregate(likeExpr.Pattern, context)
                 || (likeExpr.Escape is not null && ContainsStringAggregate(likeExpr.Escape, context)),
@@ -398,12 +396,38 @@ internal static class SelectPlanBuilderHelper
             BetweenExpr betweenExpr => ContainsStringAggregate(betweenExpr.Expr, context)
                 || ContainsStringAggregate(betweenExpr.Low, context)
                 || ContainsStringAggregate(betweenExpr.High, context),
-            RowExpr rowExpr => rowExpr.Items.Any(item => ContainsStringAggregate(item, context)),
-            CaseExpr caseExpr => (caseExpr.BaseExpr is not null && ContainsStringAggregate(caseExpr.BaseExpr, context))
-                || caseExpr.Whens.Any(when => ContainsStringAggregate(when.When, context) || ContainsStringAggregate(when.Then, context))
-                || (caseExpr.ElseExpr is not null && ContainsStringAggregate(caseExpr.ElseExpr, context)),
+            RowExpr rowExpr => ContainsStringAggregateList(rowExpr.Items, context),
+            CaseExpr caseExpr => ContainsStringAggregateCase(caseExpr, context),
             _ => false
         };
+    }
+
+    private static bool ContainsStringAggregateList(IReadOnlyList<SqlExpr> expressions, QueryExecutionContext context)
+    {
+        var expressionCount = expressions.Count;
+        for (var i = 0; i < expressionCount; i++)
+        {
+            if (ContainsStringAggregate(expressions[i], context))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool ContainsStringAggregateCase(CaseExpr caseExpr, QueryExecutionContext context)
+    {
+        if (caseExpr.BaseExpr is not null && ContainsStringAggregate(caseExpr.BaseExpr, context))
+            return true;
+
+        var whenCount = caseExpr.Whens.Count;
+        for (var i = 0; i < whenCount; i++)
+        {
+            var when = caseExpr.Whens[i];
+            if (ContainsStringAggregate(when.When, context) || ContainsStringAggregate(when.Then, context))
+                return true;
+        }
+
+        return caseExpr.ElseExpr is not null && ContainsStringAggregate(caseExpr.ElseExpr, context);
     }
 
     private static bool TryGetStringAggregateDefinition(
@@ -485,7 +509,7 @@ internal static class SelectPlanBuilderHelper
     {
         dbType = DbType.Object;
 
-        if (binary.Op is not (SqlBinaryOp.Add or SqlBinaryOp.Subtract or SqlBinaryOp.Multiply or SqlBinaryOp.Divide))
+        if (!IsArithmeticBinaryOperator(binary.Op))
             return false;
 
         if (!AggregateExpressionInspector.WalkHasAggregate(binary))
@@ -494,6 +518,17 @@ internal static class SelectPlanBuilderHelper
         var leftDbType = InferDbTypeFromExpression(binary.Left, sampleRows, sampleFirst, sampleSingleSource, ctes, context, evalExpression);
         var rightDbType = InferDbTypeFromExpression(binary.Right, sampleRows, sampleFirst, sampleSingleSource, ctes, context, evalExpression);
 
+        return TryPromoteArithmeticBinaryDbType(leftDbType, rightDbType, out dbType);
+    }
+
+    private static bool IsArithmeticBinaryOperator(SqlBinaryOp op)
+        => op is SqlBinaryOp.Add or SqlBinaryOp.Subtract or SqlBinaryOp.Multiply or SqlBinaryOp.Divide;
+
+    private static bool TryPromoteArithmeticBinaryDbType(
+        DbType leftDbType,
+        DbType rightDbType,
+        out DbType dbType)
+    {
         if (leftDbType is DbType.Single or DbType.Double
             || rightDbType is DbType.Single or DbType.Double)
         {
@@ -510,6 +545,7 @@ internal static class SelectPlanBuilderHelper
             return true;
         }
 
+        dbType = DbType.Object;
         return false;
     }
 
@@ -578,25 +614,72 @@ internal static class SelectPlanBuilderHelper
         if (candidateTypes.Count == 0)
             return DbType.Object;
 
-        if (candidateTypes.Any(type => type == DbType.String))
+        var hasString = false;
+        var hasDouble = false;
+        var hasDecimal = false;
+        var hasInt64 = false;
+        var hasIntegral = false;
+        var hasBoolean = false;
+        var firstKnownType = DbType.Object;
+
+        for (var i = 0; i < candidateTypes.Count; i++)
+        {
+            var type = candidateTypes[i];
+            if (type != DbType.Object && firstKnownType == DbType.Object)
+                firstKnownType = type;
+
+            if (type == DbType.String)
+            {
+                hasString = true;
+                continue;
+            }
+
+            if (type is DbType.Double or DbType.Single)
+            {
+                hasDouble = true;
+                continue;
+            }
+
+            if (type is DbType.Currency or DbType.Decimal or DbType.VarNumeric)
+            {
+                hasDecimal = true;
+                continue;
+            }
+
+            if (type is DbType.Int64 or DbType.UInt64)
+            {
+                hasInt64 = true;
+                continue;
+            }
+
+            if (IsIntegralArithmeticDbType(type))
+            {
+                hasIntegral = true;
+                continue;
+            }
+
+            if (type == DbType.Boolean)
+                hasBoolean = true;
+        }
+
+        if (hasString)
             return DbType.String;
 
-        if (candidateTypes.Any(type => type is DbType.Double or DbType.Single))
+        if (hasDouble)
             return DbType.Double;
 
-        if (candidateTypes.Any(type => type is DbType.Currency or DbType.Decimal or DbType.VarNumeric))
+        if (hasDecimal)
             return DbType.Decimal;
 
-        if (candidateTypes.Any(type => type is DbType.Int64 or DbType.UInt64))
+        if (hasInt64)
             return DbType.Int64;
 
-        if (candidateTypes.Any(type => IsIntegralArithmeticDbType(type)))
+        if (hasIntegral)
             return DbType.Int32;
 
-        if (candidateTypes.Any(type => type == DbType.Boolean))
+        if (hasBoolean)
             return DbType.Boolean;
 
-        var firstKnownType = candidateTypes.FirstOrDefault(type => type != DbType.Object);
         return firstKnownType;
     }
 
@@ -841,13 +924,13 @@ internal static class SelectPlanBuilderHelper
         return expression switch
         {
             WindowFunctionExpr => true,
-            FunctionCallExpr fn => fn.Args.Any(ContainsWindowFunction),
-            CallExpr call => call.Args.Any(ContainsWindowFunction)
-                || call.WithinGroupOrderBy is not null && call.WithinGroupOrderBy.Any(item => ContainsWindowFunction(item.Expr))
+            FunctionCallExpr fn => ContainsWindowFunctionList(fn.Args),
+            CallExpr call => ContainsWindowFunctionList(call.Args)
+                || ContainsWindowFunctionWindowOrderItems(call.WithinGroupOrderBy)
                 || (call.Filter is not null && ContainsWindowFunction(call.Filter)),
             UnaryExpr unary => ContainsWindowFunction(unary.Expr),
             BinaryExpr binary => ContainsWindowFunction(binary.Left) || ContainsWindowFunction(binary.Right),
-            InExpr inExpr => ContainsWindowFunction(inExpr.Left) || inExpr.Items.Any(ContainsWindowFunction),
+            InExpr inExpr => ContainsWindowFunction(inExpr.Left) || ContainsWindowFunctionList(inExpr.Items),
             LikeExpr likeExpr => ContainsWindowFunction(likeExpr.Left)
                 || ContainsWindowFunction(likeExpr.Pattern)
                 || (likeExpr.Escape is not null && ContainsWindowFunction(likeExpr.Escape)),
@@ -857,13 +940,54 @@ internal static class SelectPlanBuilderHelper
             BetweenExpr betweenExpr => ContainsWindowFunction(betweenExpr.Expr)
                 || ContainsWindowFunction(betweenExpr.Low)
                 || ContainsWindowFunction(betweenExpr.High),
-            RowExpr rowExpr => rowExpr.Items.Any(ContainsWindowFunction),
-            CaseExpr caseExpr => (caseExpr.BaseExpr is not null && ContainsWindowFunction(caseExpr.BaseExpr))
-                || caseExpr.Whens.Any(when => ContainsWindowFunction(when.When) || ContainsWindowFunction(when.Then))
-                || (caseExpr.ElseExpr is not null && ContainsWindowFunction(caseExpr.ElseExpr)),
+            RowExpr rowExpr => ContainsWindowFunctionList(rowExpr.Items),
+            CaseExpr caseExpr => ContainsWindowFunctionCase(caseExpr),
             QuantifiedComparisonExpr quantified => ContainsWindowFunction(quantified.Left) || ContainsWindowFunction(quantified.Subquery),
             _ => false
         };
+    }
+
+    private static bool ContainsWindowFunctionList(IReadOnlyList<SqlExpr> expressions)
+    {
+        var expressionCount = expressions.Count;
+        for (var i = 0; i < expressionCount; i++)
+        {
+            if (ContainsWindowFunction(expressions[i]))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool ContainsWindowFunctionWindowOrderItems(IReadOnlyList<WindowOrderItem>? orderItems)
+    {
+        if (orderItems is null)
+            return false;
+
+        var orderItemCount = orderItems.Count;
+        for (var i = 0; i < orderItemCount; i++)
+        {
+            if (ContainsWindowFunction(orderItems[i].Expr))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool ContainsWindowFunctionCase(CaseExpr caseExpr)
+    {
+        if (caseExpr.BaseExpr is not null && ContainsWindowFunction(caseExpr.BaseExpr))
+            return true;
+
+        var whenCount = caseExpr.Whens.Count;
+        for (var i = 0; i < whenCount; i++)
+        {
+            var when = caseExpr.Whens[i];
+            if (ContainsWindowFunction(when.When) || ContainsWindowFunction(when.Then))
+                return true;
+        }
+
+        return caseExpr.ElseExpr is not null && ContainsWindowFunction(caseExpr.ElseExpr);
     }
 
     private static void CollectNestedWindowSlots(
@@ -1175,23 +1299,49 @@ internal static class SelectPlanBuilderHelper
                 .Equals(parameterName, StringComparison.OrdinalIgnoreCase),
             BinaryExpr binary => ContainsParameter(binary.Left, parameterName) || ContainsParameter(binary.Right, parameterName),
             UnaryExpr unary => ContainsParameter(unary.Expr, parameterName),
-            CaseExpr caseExpr => (caseExpr.BaseExpr is not null && ContainsParameter(caseExpr.BaseExpr, parameterName))
-                || caseExpr.Whens.Any(when => ContainsParameter(when.When, parameterName) || ContainsParameter(when.Then, parameterName))
-                || (caseExpr.ElseExpr is not null && ContainsParameter(caseExpr.ElseExpr, parameterName)),
-            FunctionCallExpr functionCall => functionCall.Args.Any(arg => ContainsParameter(arg, parameterName)),
-            CallExpr call => call.Args.Any(arg => ContainsParameter(arg, parameterName)),
+            CaseExpr caseExpr => ContainsParameterCase(caseExpr, parameterName),
+            FunctionCallExpr functionCall => ContainsParameterList(functionCall.Args, parameterName),
+            CallExpr call => ContainsParameterList(call.Args, parameterName),
             LikeExpr likeExpr => ContainsParameter(likeExpr.Left, parameterName)
                 || ContainsParameter(likeExpr.Pattern, parameterName)
                 || (likeExpr.Escape is not null && ContainsParameter(likeExpr.Escape, parameterName)),
             InExpr inExpr => ContainsParameter(inExpr.Left, parameterName)
-                || inExpr.Items.Any(item => ContainsParameter(item, parameterName)),
+                || ContainsParameterList(inExpr.Items, parameterName),
             IsNullExpr isNullExpr => ContainsParameter(isNullExpr.Expr, parameterName),
             BetweenExpr betweenExpr => ContainsParameter(betweenExpr.Expr, parameterName)
                 || ContainsParameter(betweenExpr.Low, parameterName)
                 || ContainsParameter(betweenExpr.High, parameterName),
-            RowExpr rowExpr => rowExpr.Items.Any(item => ContainsParameter(item, parameterName)),
+            RowExpr rowExpr => ContainsParameterList(rowExpr.Items, parameterName),
             _ => false
         };
+
+    private static bool ContainsParameterCase(CaseExpr caseExpr, string parameterName)
+    {
+        if (caseExpr.BaseExpr is not null && ContainsParameter(caseExpr.BaseExpr, parameterName))
+            return true;
+
+        var whenCount = caseExpr.Whens.Count;
+        for (var i = 0; i < whenCount; i++)
+        {
+            var when = caseExpr.Whens[i];
+            if (ContainsParameter(when.When, parameterName) || ContainsParameter(when.Then, parameterName))
+                return true;
+        }
+
+        return caseExpr.ElseExpr is not null && ContainsParameter(caseExpr.ElseExpr, parameterName);
+    }
+
+    private static bool ContainsParameterList(IReadOnlyList<SqlExpr> expressions, string parameterName)
+    {
+        var expressionCount = expressions.Count;
+        for (var i = 0; i < expressionCount; i++)
+        {
+            if (ContainsParameter(expressions[i], parameterName))
+                return true;
+        }
+
+        return false;
+    }
 
     private static string FormatDebugValue(object? value)
         => value is null or DBNull
@@ -1454,18 +1604,16 @@ internal static class SelectPlanBuilderHelper
         => expression switch
         {
             FunctionCallExpr function => IsSideEffectFunctionName(function.Name)
-                || function.Args.Any(ContainsSideEffectFunction),
+                || ContainsSideEffectFunctionList(function.Args),
             CallExpr call => IsSideEffectFunctionName(call.Name)
-                || call.Args.Any(ContainsSideEffectFunction),
+                || ContainsSideEffectFunctionList(call.Args),
             BinaryExpr binary => ContainsSideEffectFunction(binary.Left)
                 || ContainsSideEffectFunction(binary.Right),
             UnaryExpr unary => ContainsSideEffectFunction(unary.Expr),
-            CaseExpr caseExpr => (caseExpr.BaseExpr is not null && ContainsSideEffectFunction(caseExpr.BaseExpr))
-                || caseExpr.Whens.Any(when => ContainsSideEffectFunction(when.When) || ContainsSideEffectFunction(when.Then))
-                || (caseExpr.ElseExpr is not null && ContainsSideEffectFunction(caseExpr.ElseExpr)),
-            RowExpr row => row.Items.Any(ContainsSideEffectFunction),
+            CaseExpr caseExpr => ContainsSideEffectFunctionCase(caseExpr),
+            RowExpr row => ContainsSideEffectFunctionList(row.Items),
             InExpr inExpr => ContainsSideEffectFunction(inExpr.Left)
-                || inExpr.Items.Any(ContainsSideEffectFunction),
+                || ContainsSideEffectFunctionList(inExpr.Items),
             LikeExpr likeExpr => ContainsSideEffectFunction(likeExpr.Left)
                 || ContainsSideEffectFunction(likeExpr.Pattern)
                 || (likeExpr.Escape is not null && ContainsSideEffectFunction(likeExpr.Escape)),
@@ -1490,4 +1638,62 @@ internal static class SelectPlanBuilderHelper
             || string.Equals(name, SqlConst.LASTVAL, StringComparison.OrdinalIgnoreCase)
             || string.Equals(name, "GEN_ID", StringComparison.OrdinalIgnoreCase)
             || string.Equals(name, "PREVIOUS_VALUE_FOR", StringComparison.OrdinalIgnoreCase);
+
+    private static bool ContainsRuntimeParameterCase(CaseExpr caseExpr)
+    {
+        if (caseExpr.BaseExpr is not null && ContainsRuntimeParameter(caseExpr.BaseExpr))
+            return true;
+
+        var whens = caseExpr.Whens;
+        var whenCount = whens.Count;
+        for (var i = 0; i < whenCount; i++)
+        {
+            var when = whens[i];
+            if (ContainsRuntimeParameter(when.When) || ContainsRuntimeParameter(when.Then))
+                return true;
+        }
+
+        return caseExpr.ElseExpr is not null && ContainsRuntimeParameter(caseExpr.ElseExpr);
+    }
+
+    private static bool ContainsRuntimeParameterList(IReadOnlyList<SqlExpr> expressions)
+    {
+        var expressionCount = expressions.Count;
+        for (var i = 0; i < expressionCount; i++)
+        {
+            if (ContainsRuntimeParameter(expressions[i]))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool ContainsSideEffectFunctionCase(CaseExpr caseExpr)
+    {
+        if (caseExpr.BaseExpr is not null && ContainsSideEffectFunction(caseExpr.BaseExpr))
+            return true;
+
+        var whens = caseExpr.Whens;
+        var whenCount = whens.Count;
+        for (var i = 0; i < whenCount; i++)
+        {
+            var when = whens[i];
+            if (ContainsSideEffectFunction(when.When) || ContainsSideEffectFunction(when.Then))
+                return true;
+        }
+
+        return caseExpr.ElseExpr is not null && ContainsSideEffectFunction(caseExpr.ElseExpr);
+    }
+
+    private static bool ContainsSideEffectFunctionList(IReadOnlyList<SqlExpr> expressions)
+    {
+        var expressionCount = expressions.Count;
+        for (var i = 0; i < expressionCount; i++)
+        {
+            if (ContainsSideEffectFunction(expressions[i]))
+                return true;
+        }
+
+        return false;
+    }
 }

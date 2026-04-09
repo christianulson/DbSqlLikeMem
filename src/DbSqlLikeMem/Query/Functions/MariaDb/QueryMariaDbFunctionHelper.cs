@@ -831,66 +831,100 @@ internal static class QueryMariaDbFunctionHelper
         if (schema.ValueKind != JsonValueKind.Object)
             return true;
 
-        if (schema.TryGetProperty("type", out var typeNode))
+        return ValidateJsonSchemaType(document, schema)
+            && ValidateJsonSchemaEnum(document, schema)
+            && ValidateJsonSchemaRequired(document, schema)
+            && ValidateJsonSchemaProperties(document, schema)
+            && ValidateJsonSchemaItems(document, schema);
+    }
+
+    private static bool ValidateJsonSchemaType(JsonElement document, JsonElement schema)
+    {
+        if (!schema.TryGetProperty("type", out var typeNode)
+            || typeNode.ValueKind != JsonValueKind.String)
         {
-            if (typeNode.ValueKind == JsonValueKind.String)
-            {
-                var typeName = typeNode.GetString() ?? string.Empty;
-                if (!SchemaTypeMatches(document, typeName))
-                    return false;
-            }
+            return true;
         }
 
-        if (schema.TryGetProperty("enum", out var enumNode) && enumNode.ValueKind == JsonValueKind.Array)
+        var typeName = typeNode.GetString() ?? string.Empty;
+        return SchemaTypeMatches(document, typeName);
+    }
+
+    private static bool ValidateJsonSchemaEnum(JsonElement document, JsonElement schema)
+    {
+        if (!schema.TryGetProperty("enum", out var enumNode)
+            || enumNode.ValueKind != JsonValueKind.Array)
         {
-            var matched = enumNode.EnumerateArray().Any(candidate => JsonElementEquals(candidate, document));
-            if (!matched)
+            return true;
+        }
+
+        return enumNode.EnumerateArray().Any(candidate => JsonElementEquals(candidate, document));
+    }
+
+    private static bool ValidateJsonSchemaRequired(JsonElement document, JsonElement schema)
+    {
+        if (!schema.TryGetProperty("required", out var requiredNode)
+            || requiredNode.ValueKind != JsonValueKind.Array
+            || document.ValueKind != JsonValueKind.Object)
+        {
+            return true;
+        }
+
+        var documentProps = GetJsonObjectPropertyMap(document);
+        foreach (var required in requiredNode.EnumerateArray())
+        {
+            if (required.ValueKind != JsonValueKind.String)
+                continue;
+
+            var requiredName = required.GetString() ?? string.Empty;
+            if (!documentProps.ContainsKey(requiredName))
                 return false;
-        }
-
-        if (schema.TryGetProperty("required", out var requiredNode)
-            && requiredNode.ValueKind == JsonValueKind.Array
-            && document.ValueKind == JsonValueKind.Object)
-        {
-            var documentProps = document.EnumerateObject().ToDictionary(static prop => prop.Name, static prop => prop.Value, StringComparer.Ordinal);
-            foreach (var required in requiredNode.EnumerateArray())
-            {
-                if (required.ValueKind != JsonValueKind.String)
-                    continue;
-
-                var requiredName = required.GetString() ?? string.Empty;
-                if (!documentProps.ContainsKey(requiredName))
-                    return false;
-            }
-        }
-
-        if (schema.TryGetProperty("properties", out var propertiesNode)
-            && propertiesNode.ValueKind == JsonValueKind.Object
-            && document.ValueKind == JsonValueKind.Object)
-        {
-            var documentProps = document.EnumerateObject().ToDictionary(static prop => prop.Name, static prop => prop.Value, StringComparer.Ordinal);
-            foreach (var prop in propertiesNode.EnumerateObject())
-            {
-                if (!documentProps.TryGetValue(prop.Name, out var documentProperty))
-                    continue;
-
-                if (!ValidateJsonSchema(documentProperty, prop.Value))
-                    return false;
-            }
-        }
-
-        if (schema.TryGetProperty("items", out var itemsNode)
-            && document.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var item in document.EnumerateArray())
-            {
-                if (!ValidateJsonSchema(item, itemsNode))
-                    return false;
-            }
         }
 
         return true;
     }
+
+    private static bool ValidateJsonSchemaProperties(JsonElement document, JsonElement schema)
+    {
+        if (!schema.TryGetProperty("properties", out var propertiesNode)
+            || propertiesNode.ValueKind != JsonValueKind.Object
+            || document.ValueKind != JsonValueKind.Object)
+        {
+            return true;
+        }
+
+        var documentProps = GetJsonObjectPropertyMap(document);
+        foreach (var prop in propertiesNode.EnumerateObject())
+        {
+            if (!documentProps.TryGetValue(prop.Name, out var documentProperty))
+                continue;
+
+            if (!ValidateJsonSchema(documentProperty, prop.Value))
+                return false;
+        }
+
+        return true;
+    }
+
+    private static bool ValidateJsonSchemaItems(JsonElement document, JsonElement schema)
+    {
+        if (!schema.TryGetProperty("items", out var itemsNode)
+            || document.ValueKind != JsonValueKind.Array)
+        {
+            return true;
+        }
+
+        foreach (var item in document.EnumerateArray())
+        {
+            if (!ValidateJsonSchema(item, itemsNode))
+                return false;
+        }
+
+        return true;
+    }
+
+    private static Dictionary<string, JsonElement> GetJsonObjectPropertyMap(JsonElement element)
+        => element.EnumerateObject().ToDictionary(static prop => prop.Name, static prop => prop.Value, StringComparer.Ordinal);
 
     private static bool SchemaTypeMatches(JsonElement document, string typeName)
     {

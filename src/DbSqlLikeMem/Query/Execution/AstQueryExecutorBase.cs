@@ -146,16 +146,6 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             BuildCorrelatedExistsPatternSource,
             GetOrEvaluateSubqueryFirstColumnValuesForOperation);
 
-    private bool TryGetYearPartitionFunctionInfo(
-        SqlExpr expr,
-        Source src,
-        string partitionedColumnName,
-        out SqlExpr columnExpr)
-        => PartitionHelper.TryGetYearPartitionFunctionInfo(expr, src, partitionedColumnName, out columnExpr);
-
-    private static bool TryResolvePartitionYearConstant(object? rawValue, out int year)
-        => AstQueryPartitionHelper.TryResolvePartitionYearConstant(rawValue, out year);
-
     private Source BuildCorrelatedExistsPatternSource(
         string cacheKey,
         SqlTableSource tableSource,

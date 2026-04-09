@@ -15,14 +15,16 @@ internal static class AstQueryCorrelatedExistsSupport
 
         var conjuncts = new List<SqlExpr>();
         AstQuerySubqueryLookupSupport.FlattenConjuncts(where, conjuncts);
-        if (conjuncts.Count == 0)
+        var conjunctCount = conjuncts.Count;
+        if (conjunctCount == 0)
             return false;
 
-        var pairs = new List<CorrelatedLookupKeyPair>();
-        var filterParts = new List<SqlExpr>();
+        var pairs = new List<CorrelatedLookupKeyPair>(conjunctCount);
+        var filterParts = new List<SqlExpr>(conjunctCount);
 
-        foreach (var conjunct in conjuncts)
+        for (var i = 0; i < conjunctCount; i++)
         {
+            var conjunct = conjuncts[i];
             if (TryGetCorrelatedCountEquality(conjunct, source, out var innerKeyExpr, out var outerKeyExpr))
             {
                 pairs.Add(new CorrelatedLookupKeyPair(innerKeyExpr, outerKeyExpr));
@@ -54,19 +56,21 @@ internal static class AstQueryCorrelatedExistsSupport
         Func<string, SqlTableSource, IDictionary<string, Source>, Source> buildPatternSource,
         Func<SqlTableSource, IDictionary<string, Source>, Source> resolveSource)
     {
+        var name = tableSource.Name;
         if (tableSource.Derived is null
             && tableSource.DerivedUnion is null
             && tableSource.TableFunction is null
             && tableSource.Pivot is null
             && tableSource.Unpivot is null
-            && !string.IsNullOrWhiteSpace(tableSource.Name)
-            && !tableSource.Name!.Equals("DUAL", StringComparison.OrdinalIgnoreCase)
-            && !ctes.ContainsKey(tableSource.Name!))
+            && !string.IsNullOrWhiteSpace(name)
+            && !name!.Equals("DUAL", StringComparison.OrdinalIgnoreCase)
+            && !ctes.ContainsKey(name!))
         {
+            var normalizedName = name.NormalizeName();
             var cacheKey = string.Concat(
                 tableSource.DbName ?? string.Empty,
                 '\u001F',
-                tableSource.Name?.NormalizeName());
+                normalizedName);
 
             return buildPatternSource(cacheKey, tableSource, ctes);
         }
@@ -127,10 +131,23 @@ internal static class AstQueryCorrelatedExistsSupport
             return string.Empty;
 
         var source = table;
-        var fragments = new List<string>(keyPairs.Count + 4);
+        var keyPairCount = keyPairs.Count;
+        var fragmentCapacity = keyPairCount;
+        List<SqlExpr>? conjuncts = null;
 
-        foreach (var pair in keyPairs)
+        if (innerFilterExpr is not null)
         {
+            conjuncts = new List<SqlExpr>();
+            AstQuerySubqueryLookupSupport.FlattenConjuncts(innerFilterExpr, conjuncts);
+            var conjunctCount = conjuncts.Count;
+            fragmentCapacity += conjunctCount;
+        }
+
+        var fragments = new List<string>(fragmentCapacity);
+
+        for (var i = 0; i < keyPairCount; i++)
+        {
+            var pair = keyPairs[i];
             var left = NormalizeCorrelatedExistsExpressionForCacheKey(pair.InnerExpr, source);
             var right = NormalizeCorrelatedExistsExpressionForCacheKey(pair.OuterExpr, source);
             if (string.IsNullOrWhiteSpace(left) || string.IsNullOrWhiteSpace(right))
@@ -141,12 +158,12 @@ internal static class AstQueryCorrelatedExistsSupport
                 : $"{right} = {left}");
         }
 
-        if (innerFilterExpr is not null)
+        if (conjuncts is not null)
         {
-            var conjuncts = new List<SqlExpr>();
-            AstQuerySubqueryLookupSupport.FlattenConjuncts(innerFilterExpr, conjuncts);
-            foreach (var conjunct in conjuncts)
+            var conjunctCount = conjuncts.Count;
+            for (var i = 0; i < conjunctCount; i++)
             {
+                var conjunct = conjuncts[i];
                 var normalized = NormalizeCorrelatedExistsExpressionForCacheKey(conjunct, source);
                 if (!string.IsNullOrWhiteSpace(normalized))
                     fragments.Add(normalized);
@@ -155,6 +172,9 @@ internal static class AstQueryCorrelatedExistsSupport
 
         if (fragments.Count == 0)
             return string.Empty;
+
+        if (fragments.Count == 1)
+            return $"SELECT 1 FROM {sourceSql} T1 WHERE {fragments[0]}";
 
         fragments.Sort(StringComparer.OrdinalIgnoreCase);
         return $"SELECT 1 FROM {sourceSql} T1 WHERE {string.Join(" AND ", fragments)}";
@@ -176,11 +196,12 @@ internal static class AstQueryCorrelatedExistsSupport
     {
         var conjuncts = new List<SqlExpr>();
         AstQuerySubqueryLookupSupport.FlattenConjuncts(predicate, conjuncts);
-        if (conjuncts.Count == 0)
+        var conjunctCount = conjuncts.Count;
+        if (conjunctCount == 0)
             return string.Empty;
 
-        var segments = new List<string>(conjuncts.Count);
-        for (var i = 0; i < conjuncts.Count; i++)
+        var segments = new List<string>(conjunctCount);
+        for (var i = 0; i < conjunctCount; i++)
         {
             var segment = NormalizeCorrelatedExistsConjunctForCacheKey(conjuncts[i], source);
             if (!string.IsNullOrWhiteSpace(segment))
@@ -189,6 +210,9 @@ internal static class AstQueryCorrelatedExistsSupport
 
         if (segments.Count == 0)
             return string.Empty;
+
+        if (segments.Count == 1)
+            return segments[0];
 
         segments.Sort(StringComparer.OrdinalIgnoreCase);
         return segments.Count == 1
@@ -203,7 +227,13 @@ internal static class AstQueryCorrelatedExistsSupport
         if (conjunct is BinaryExpr binary && binary.Op == SqlBinaryOp.Eq)
         {
             var left = NormalizeCorrelatedExistsExpressionForCacheKey(binary.Left, source);
+            if (string.IsNullOrWhiteSpace(left))
+                return string.Empty;
+
             var right = NormalizeCorrelatedExistsExpressionForCacheKey(binary.Right, source);
+            if (string.IsNullOrWhiteSpace(right))
+                return string.Empty;
+
             return StringComparer.Ordinal.Compare(left, right) <= 0
                 ? $"{left} = {right}"
                 : $"{right} = {left}";
@@ -217,8 +247,19 @@ internal static class AstQueryCorrelatedExistsSupport
         SqlTableSource source)
     {
         var text = SqlExprPrinter.Print(expr);
-        text = ReplaceIdentifierQualifierForCacheKey(text, source.Alias, "T1");
-        text = ReplaceIdentifierQualifierForCacheKey(text, source.Name, "T1");
+        if (text.IndexOf('.') < 0)
+            return text;
+
+        var alias = source.Alias;
+        var name = source.Name;
+
+        if (!string.IsNullOrWhiteSpace(alias))
+            text = ReplaceIdentifierQualifierForCacheKey(text, alias, "T1");
+
+        if (!string.IsNullOrWhiteSpace(name)
+            && !string.Equals(name, alias, StringComparison.OrdinalIgnoreCase))
+            text = ReplaceIdentifierQualifierForCacheKey(text, name, "T1");
+
         return text;
     }
 
@@ -231,14 +272,19 @@ internal static class AstQueryCorrelatedExistsSupport
             return sql;
 
         var safeQualifier = qualifier!;
-        var sb = new StringBuilder(sql.Length);
-        for (var i = 0; i < sql.Length; i++)
+        var sqlLength = sql.Length;
+        var qualifierLength = safeQualifier.Length;
+        if (sql.IndexOf(safeQualifier, StringComparison.OrdinalIgnoreCase) < 0)
+            return sql;
+
+        var sb = new StringBuilder(sqlLength);
+        for (var i = 0; i < sqlLength; i++)
         {
             if (IsIdentifierQualifierReferenceAt(sql, i, safeQualifier))
             {
                 sb.Append(replacement);
                 sb.Append('.');
-                i += safeQualifier.Length;
+                i += qualifierLength;
                 continue;
             }
 
@@ -259,18 +305,21 @@ internal static class AstQueryCorrelatedExistsSupport
         if (startIndex < 0 || startIndex >= sql.Length || string.IsNullOrWhiteSpace(qualifier))
             return false;
 
-        if (startIndex + qualifier.Length >= sql.Length)
+        var sqlLength = sql.Length;
+        var qualifierLength = qualifier.Length;
+
+        if (startIndex + qualifierLength >= sqlLength)
             return false;
 
         if (startIndex > 0 && IsSqlIdentifierChar(sql[startIndex - 1]))
             return false;
 
-        for (var i = 0; i < qualifier.Length; i++)
+        for (var i = 0; i < qualifierLength; i++)
         {
             if (char.ToUpperInvariant(sql[startIndex + i]) != char.ToUpperInvariant(qualifier[i]))
                 return false;
         }
 
-        return sql[startIndex + qualifier.Length] == '.';
+        return sql[startIndex + qualifierLength] == '.';
     }
 }

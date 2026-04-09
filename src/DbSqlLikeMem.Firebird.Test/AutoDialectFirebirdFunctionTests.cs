@@ -1,4 +1,4 @@
-namespace DbSqlLikeMem.Test;
+namespace DbSqlLikeMem.Firebird.Test;
 
 /// <summary>
 /// EN: Verifies the fallback automatic dialect picks up Firebird-specific function registrations when the Firebird assembly is available.
@@ -33,7 +33,7 @@ public sealed class AutoDialectFirebirdFunctionTests(
     public void AutoDialect_ShouldParseFirebirdFunctionFamilies()
     {
         var dialect = new AutoSqlDialect();
-        var db = new FirebirdDbMock(FirebirdDbVersions.Default);
+        var db = new FirebirdDbMock();
 
         var dateAdd = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATEADD(1 DAY TO CURRENT_TIMESTAMP)", db, dialect));
         var hash = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("HASH('Firebird' USING CRC32)", db, dialect));
@@ -57,7 +57,7 @@ public sealed class AutoDialectFirebirdFunctionTests(
     [Trait("Category", "FirebirdMock")]
     public void AutoDialect_ShouldExecuteFirebirdFunctionFamilies()
     {
-        var db = new FirebirdDbMock(FirebirdDbVersions.Default);
+        var db = new FirebirdDbMock();
         using var connection = new FirebirdConnectionMock(db);
         connection.Open();
         connection.UseAutoSqlDialect = true;

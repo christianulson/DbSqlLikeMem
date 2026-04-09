@@ -23,6 +23,12 @@
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+
+		<!--<ErrorReport>prompt</ErrorReport>
+		<EnableNETAnalyzers>true</EnableNETAnalyzers>
+		<AnalysisModeSecurity>All</AnalysisModeSecurity>
+		<AnalysisMode>all</AnalysisMode>
+		<AnalysisLevel>latest-all</AnalysisLevel>-->
 	</PropertyGroup>
 
 	<PropertyGroup>

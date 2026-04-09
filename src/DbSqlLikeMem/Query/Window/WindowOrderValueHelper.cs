@@ -2,6 +2,25 @@ namespace DbSqlLikeMem;
 
 internal static class WindowOrderValueHelper
 {
+    internal static object?[][] BuildWindowOrderValuesByIndex(
+        List<AstQueryExecutorBase.EvalRow> partition,
+        IReadOnlyList<WindowOrderItem> orderBy,
+        Func<SqlExpr, AstQueryExecutorBase.EvalRow, object?> evalOrderExpression)
+    {
+        var orderValuesByIndex = new object?[partition.Count][];
+        for (var i = 0; i < partition.Count; i++)
+        {
+            var row = partition[i];
+            var values = new object?[orderBy.Count];
+            for (var j = 0; j < orderBy.Count; j++)
+                values[j] = evalOrderExpression(orderBy[j].Expr, row);
+
+            orderValuesByIndex[i] = values;
+        }
+
+        return orderValuesByIndex;
+    }
+
     internal static Dictionary<AstQueryExecutorBase.EvalRow, object?[]> BuildWindowOrderValuesByRow(
         List<AstQueryExecutorBase.EvalRow> partition,
         IReadOnlyList<WindowOrderItem> orderBy,

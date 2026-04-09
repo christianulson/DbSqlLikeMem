@@ -58,6 +58,8 @@
   **PT-BR:** Testes unitários e de integração que exigem comportamento SQL sem executar um servidor de banco real.
 - **EN:** Fast feedback scenarios in CI/CD pipelines where deterministic setup matters.  
   **PT-BR:** Cenários de feedback rápido em pipelines CI/CD onde setup determinístico é importante.
+- **EN:** Vibe coding workflows that benefit from shorter test cycles and faster iteration.  
+  **PT-BR:** Fluxos de vibe coding que se beneficiam de ciclos de teste mais curtos e iteração mais rápida.
 - **EN:** Multi-dialect test suites where the same repository/service logic is validated against different providers.  
   **PT-BR:** Suítes de teste multi-dialeto onde a mesma lógica de repositório/serviço é validada em provedores diferentes.
 

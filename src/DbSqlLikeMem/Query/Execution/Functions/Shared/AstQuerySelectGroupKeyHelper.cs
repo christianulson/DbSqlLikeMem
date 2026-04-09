@@ -10,6 +10,9 @@ internal static class AstQuerySelectGroupKeyHelper
         var selectItems = query.SelectItems;
         var groupByCount = groupBy.Count;
         var selectItemsCount = selectItems.Count;
+        if (groupByCount == 0)
+            return Array.Empty<SqlExpr>();
+
         var keyExprs = new SqlExpr[groupByCount];
 
         for (var i = 0; i < groupByCount; i++)

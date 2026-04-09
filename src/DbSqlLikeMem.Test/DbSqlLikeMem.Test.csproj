@@ -7,17 +7,15 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\DbSqlLikeMem.CsvReader\DbSqlLikeMem.CsvReader.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />
-		<ProjectReference Include="..\DbSqlLikeMem.Firebird\DbSqlLikeMem.Firebird.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />
 		<ProjectReference Include="..\DbSqlLikeMem.TestTools\DbSqlLikeMem.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<Using Include="DbSqlLikeMem"/>
-		<Using Include="DbSqlLikeMem.Firebird"/>
-		<Using Include="DbSqlLikeMem.TestTools"/>
-		<Using Include="System.Data.Common"/>
-		<Using Include="System.Text.Json"/>
-		<Using Include="Xunit"/>
+		<Using Include="DbSqlLikeMem" />
+		<Using Include="DbSqlLikeMem.TestTools" />
+		<Using Include="System.Data.Common" />
+		<Using Include="System.Text.Json" />
+		<Using Include="Xunit" />
 	</ItemGroup>
 </Project>
 

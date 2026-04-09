@@ -50,35 +50,57 @@ internal static class AstQuerySqliteDateFunctionEvaluator
         }
 
         var format = evalArg(0)?.ToString() ?? string.Empty;
-        DateTime dateTime;
-        if (fn.Args.Count > 1)
+        if (!TryResolveSqliteStrftimeBaseDateTime(fn, evalArg, out var dateTime))
         {
-            var baseValue = evalArg(1);
-            if (AstQueryExecutorBase.IsNullish(baseValue))
-            {
-                result = null;
-                return true;
-            }
-
-            if (AstQueryExecutorBase.TryCoerceDateTime(baseValue, out var parsed))
-            {
-                dateTime = parsed;
-            }
-            else if (AstQueryExecutorBase.TryConvertNumericToDouble(baseValue, out var epoch))
-            {
-                dateTime = DateTimeOffset.FromUnixTimeSeconds((long)epoch).DateTime;
-            }
-            else
-            {
-                result = null;
-                return true;
-            }
+            result = null;
+            return true;
         }
-        else
+
+        ApplySqliteStrftimeModifiers(fn, evalArg, ref dateTime);
+
+        result = FormatSqliteStrftime(format, dateTime);
+        return true;
+    }
+
+    private static bool TryResolveSqliteStrftimeBaseDateTime(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out DateTime dateTime)
+    {
+        if (fn.Args.Count <= 1)
         {
             dateTime = DateTime.Now;
+            return true;
         }
 
+        var baseValue = evalArg(1);
+        if (AstQueryExecutorBase.IsNullish(baseValue))
+        {
+            dateTime = default;
+            return false;
+        }
+
+        if (AstQueryExecutorBase.TryCoerceDateTime(baseValue, out var parsed))
+        {
+            dateTime = parsed;
+            return true;
+        }
+
+        if (AstQueryExecutorBase.TryConvertNumericToDouble(baseValue, out var epoch))
+        {
+            dateTime = DateTimeOffset.FromUnixTimeSeconds((long)epoch).DateTime;
+            return true;
+        }
+
+        dateTime = default;
+        return false;
+    }
+
+    private static void ApplySqliteStrftimeModifiers(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        ref DateTime dateTime)
+    {
         for (var i = 2; i < fn.Args.Count; i++)
         {
             var modifier = evalArg(i)?.ToString();
@@ -106,9 +128,6 @@ internal static class AstQuerySqliteDateFunctionEvaluator
             if (AstQueryExecutorBase.TryParseDateModifier(modifier!, out var unit, out var amount))
                 dateTime = AstQueryExecutorBase.ApplyDateDelta(dateTime, unit, amount);
         }
-
-        result = FormatSqliteStrftime(format, dateTime);
-        return true;
     }
 
     private static string FormatSqliteStrftime(string format, DateTime dateTime)

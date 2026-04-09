@@ -158,29 +158,104 @@ internal sealed class AstQueryIndexHelper(
         if (primaryKeyIndexes.Count == 0)
             return false;
 
-        var pkValues = new Dictionary<int, object?>(primaryKeyIndexes.Count);
-        foreach (var pkIdx in primaryKeyIndexes)
+        var pkIndexes = tableMock.PkIndexArray;
+        if (pkIndexes.Length == 0)
+            return false;
+
+        bool TryGetPkValue(int pkIdx, out object? value)
         {
             if (!tableMock.ColumnsByIndex.TryGetValue(pkIdx, out var pkColumnName))
+            {
+                value = null;
                 return false;
+            }
 
             var normalizedColumn = pkColumnName.NormalizeName();
-            if (!equalsByColumn.TryGetValue(normalizedColumn, out var value))
+            if (!equalsByColumn.TryGetValue(normalizedColumn, out var resolvedValue))
+            {
+                value = null;
                 return false;
+            }
 
-            pkValues[pkIdx] = value;
+            value = resolvedValue;
+            return true;
         }
 
         _recordPrimaryKeyHintMetric(tableMock, hintPlan);
         _incrementIndexLookupMetric();
-        if (!tableMock.TryFindRowByPk(pkValues, out var rowIndex))
-        {
-            rows = [];
-            return true;
-        }
 
-        rows = src.RowsByIndexes(rowIndex);
-        return true;
+        switch (pkIndexes.Length)
+        {
+            case 1:
+                if (!TryGetPkValue(pkIndexes[0], out var pkValue0))
+                {
+                    rows = [];
+                    return true;
+                }
+
+                if (!tableMock.TryFindRowByPkValues(pkValue0, out var rowIndex))
+                {
+                    rows = [];
+                    return true;
+                }
+
+                rows = src.RowsByIndexes(rowIndex);
+                return true;
+            case 2:
+                if (!TryGetPkValue(pkIndexes[0], out var pkValue1)
+                    || !TryGetPkValue(pkIndexes[1], out var pkValue2))
+                {
+                    rows = [];
+                    return true;
+                }
+
+                if (!tableMock.TryFindRowByPkValues(pkValue1, pkValue2, out var rowIndex2))
+                {
+                    rows = [];
+                    return true;
+                }
+
+                rows = src.RowsByIndexes(rowIndex2);
+                return true;
+            case 3:
+                if (!TryGetPkValue(pkIndexes[0], out var pkValue3)
+                    || !TryGetPkValue(pkIndexes[1], out var pkValue4)
+                    || !TryGetPkValue(pkIndexes[2], out var pkValue5))
+                {
+                    rows = [];
+                    return true;
+                }
+
+                if (!tableMock.TryFindRowByPkValues(pkValue3, pkValue4, pkValue5, out var rowIndex3))
+                {
+                    rows = [];
+                    return true;
+                }
+
+                rows = src.RowsByIndexes(rowIndex3);
+                return true;
+            default:
+                var pkValues = new object?[pkIndexes.Length];
+                for (var i = 0; i < pkIndexes.Length; i++)
+                {
+                    if (!TryGetPkValue(pkIndexes[i], out var pkValue))
+                    {
+                        rows = [];
+                        return true;
+                    }
+
+                    pkValues[i] = pkValue;
+                }
+
+                if (!tableMock.TryFindRowByPkValues(pkValues, out var rowIndex4))
+                {
+                    rows = [];
+                    return true;
+                }
+
+                rows = src.RowsByIndexes(rowIndex4);
+                return true;
+        }
     }
 
     private IReadOnlyDictionary<int, Dictionary<string, object?>>? LookupIndexWithMetrics(

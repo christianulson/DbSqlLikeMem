@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem;
+namespace DbSqlLikeMem;
 
 internal delegate object? AstQueryEvalTryCast(FunctionCallExpr fn, Func<int, object?> evalArg);
 
@@ -67,6 +67,13 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
         tryEvalToNumberFunction ?? throw new ArgumentNullException(nameof(tryEvalToNumberFunction));
 
     internal bool TryEvaluate(
+        FunctionCallExpr fn,
+        QueryExecutionContext context,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvaluateCore(fn, context, evalArg, out result);
+
+    private bool TryEvaluateCore(
         FunctionCallExpr fn,
         QueryExecutionContext context,
         Func<int, object?> evalArg,
@@ -370,41 +377,17 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
             var culture = string.IsNullOrWhiteSpace(cultureName)
                 ? CultureInfo.InvariantCulture
                 : CultureInfo.GetCultureInfo(cultureName!);
-            var text = Convert.ToString(value, culture) ?? string.Empty;
+            if (TryEvalParseIntegerResult(context, type, value!, culture, swallowErrors, out var integerResult))
+                return integerResult;
 
-            if ((context.Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para PARSE.")).IsIntegerCastTypeName(type))
-            {
-                if (int.TryParse(text, NumberStyles.Integer, culture, out var parsedInt))
-                    return parsedInt;
-                return swallowErrors ? DBNull.Value : null;
-            }
+            if (TryEvalParseDecimalResult(type, value!, culture, swallowErrors, out var decimalResult))
+                return decimalResult;
 
-            if (type.StartsWith("DECIMAL", StringComparison.OrdinalIgnoreCase)
-                || type.StartsWith("NUMERIC", StringComparison.OrdinalIgnoreCase))
-            {
-                if (decimal.TryParse(text, NumberStyles.Any, culture, out var parsedDecimal))
-                    return parsedDecimal;
-                return swallowErrors ? DBNull.Value : null;
-            }
+            if (TryEvalParseFloatingResult(type, value!, culture, swallowErrors, out var floatingResult))
+                return floatingResult;
 
-            if (type.StartsWith("FLOAT", StringComparison.OrdinalIgnoreCase)
-                || type.StartsWith("REAL", StringComparison.OrdinalIgnoreCase)
-                || type.StartsWith("DOUBLE", StringComparison.OrdinalIgnoreCase))
-            {
-                if (double.TryParse(text, NumberStyles.Any, culture, out var parsedDouble))
-                    return parsedDouble;
-                return swallowErrors ? DBNull.Value : null;
-            }
-
-            if (type.StartsWith("DATE", StringComparison.OrdinalIgnoreCase)
-                || type.StartsWith("DATETIME", StringComparison.OrdinalIgnoreCase)
-                || type.StartsWith("SMALLDATETIME", StringComparison.OrdinalIgnoreCase))
-            {
-                var dateText = Convert.ToString(value, culture);
-                if (AstQueryExecutionRuntimeHelper.TryCoerceDateTime(dateText, out var parsedDate))
-                    return parsedDate;
-                return swallowErrors ? DBNull.Value : null;
-            }
+            if (TryEvalParseDateResult(type, value!, culture, swallowErrors, out var dateResult))
+                return dateResult;
 
             return Convert.ToString(value, CultureInfo.InvariantCulture);
         }
@@ -414,6 +397,95 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 return DBNull.Value;
             throw;
         }
+    }
+
+    private static bool TryEvalParseIntegerResult(
+        QueryExecutionContext context,
+        string type,
+        object value,
+        CultureInfo culture,
+        bool swallowErrors,
+        out object? result)
+    {
+        result = null;
+        if (!context.Dialect.IsIntegerCastTypeName(type))
+            return false;
+
+        var text = Convert.ToString(value, culture) ?? string.Empty;
+        if (int.TryParse(text, NumberStyles.Integer, culture, out var parsedInt))
+        {
+            result = parsedInt;
+            return true;
+        }
+
+        result = swallowErrors ? DBNull.Value : null;
+        return true;
+    }
+
+    private static bool TryEvalParseDecimalResult(
+        string type,
+        object value,
+        CultureInfo culture,
+        bool swallowErrors,
+        out object? result)
+    {
+        result = null;
+        if (!IsDecimalCastTypeName(type))
+            return false;
+
+        var text = Convert.ToString(value, culture) ?? string.Empty;
+        if (decimal.TryParse(text, NumberStyles.Any, culture, out var parsedDecimal))
+        {
+            result = parsedDecimal;
+            return true;
+        }
+
+        result = swallowErrors ? DBNull.Value : null;
+        return true;
+    }
+
+    private static bool TryEvalParseFloatingResult(
+        string type,
+        object value,
+        CultureInfo culture,
+        bool swallowErrors,
+        out object? result)
+    {
+        result = null;
+        if (!IsFloatingCastTypeName(type))
+            return false;
+
+        var text = Convert.ToString(value, culture) ?? string.Empty;
+        if (double.TryParse(text, NumberStyles.Any, culture, out var parsedDouble))
+        {
+            result = parsedDouble;
+            return true;
+        }
+
+        result = swallowErrors ? DBNull.Value : null;
+        return true;
+    }
+
+    private static bool TryEvalParseDateResult(
+        string type,
+        object value,
+        CultureInfo culture,
+        bool swallowErrors,
+        out object? result)
+    {
+        result = null;
+        if (!IsDateCastTypeName(type))
+            return false;
+
+        var dateText = Convert.ToString(value, culture);
+        if (AstQueryExecutionRuntimeHelper.TryCoerceDateTime(dateText, out var parsedDate))
+        {
+            result = parsedDate;
+            return true;
+        }
+
+        result = swallowErrors ? DBNull.Value : null;
+        return true;
     }
 
     private static object? EvalCast(
@@ -431,183 +503,30 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
 
         var traceGroupedCaseWhen = fn.Args.Count > 0 && ContainsParameter(fn.Args[0], "cutoff");
 
-        if (string.Equals(fn.Name, "CAST", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(fn.Name, "CONVERT", StringComparison.OrdinalIgnoreCase))
-        {
-            Console.WriteLine(
-                $"[CastDebug][entry] name={fn.Name} trace={traceGroupedCaseWhen} arg0={FormatDebugValue(v)} type={type}");
-        }
+        LogCastEntry(fn, traceGroupedCaseWhen, v!, type);
 
         try
         {
-            var invariantText = Convert.ToString(v, CultureInfo.InvariantCulture) ?? string.Empty;
-
             if (v is byte[] bytes && IsBinaryCastTypeName(type))
                 return bytes;
 
             if (IsTextCastTypeName(type))
                 return FormatTextCastValue(context, v!);
 
-            if ((context.Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para CAST.")).IsIntegerCastTypeName(type))
-            {
-                if (v is long l) return (int)l;
-                if (v is int i) return i;
-                if (v is decimal d) return (int)d;
-                if (v is IConvertible)
-                {
-                    try
-                    {
-                        return Convert.ToInt32(v, CultureInfo.InvariantCulture);
-                    }
-                    catch
-                    {
-                        // fall back to text parsing below
-                    }
-                }
-                var text = (v!.ToString() ?? invariantText).Trim();
-                if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var ix)) return ix;
-                if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var lx)) return (int)lx;
-                if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var dx)) return (int)dx;
-                if (IsSqlServerDialect(context.Dialect))
-                    throw new InvalidCastException();
-                if (string.Equals(fn.Name, "CAST", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(fn.Name, "CONVERT", StringComparison.OrdinalIgnoreCase))
-                {
-                    Console.WriteLine(
-                        $"[CastDebug][INT] input={FormatDebugValue(v)} type={type} result=0 (fallback)");
-                }
-                return 0;
-            }
+            if (TryEvalCastIntegerResult(context, fn, v!, type, out var integerResult))
+                return integerResult;
 
-            if (type.StartsWith("DECIMAL", StringComparison.OrdinalIgnoreCase)
-                || type.StartsWith("NUMERIC", StringComparison.OrdinalIgnoreCase))
-            {
-                object? decimalResult;
-                if (v is decimal dd)
-                {
-                    decimalResult = dd;
-                }
-                else if (AstQueryExecutorBase.TryConvertNumericToDecimal(v, out var numericDecimal))
-                {
-                    decimalResult = numericDecimal;
-                }
-                else if (v is IConvertible)
-                {
-                    try
-                    {
-                        decimalResult = Convert.ToDecimal(v, CultureInfo.InvariantCulture);
-                    }
-                    catch
-                    {
-                        // fall back to text parsing below
-                        decimalResult = null;
-                    }
-                }
-                else
-                {
-                    decimalResult = null;
-                }
-
-                if (decimalResult is not null)
-                {
-                    if (string.Equals(fn.Name, "CAST", StringComparison.OrdinalIgnoreCase)
-                        || string.Equals(fn.Name, "CONVERT", StringComparison.OrdinalIgnoreCase))
-                    {
-                        Console.WriteLine(
-                            $"[CastDebug][DECIMAL] input={FormatDebugValue(v)} type={type} result={FormatDebugValue(decimalResult)}");
-                    }
-
+            if (TryEvalCastDecimalResult(context, fn, v!, type, out var decimalResult))
                 return decimalResult;
-            }
 
-                var text = (v!.ToString() ?? invariantText).Trim();
-                if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var dx))
-                {
-                    if (string.Equals(fn.Name, "CAST", StringComparison.OrdinalIgnoreCase)
-                        || string.Equals(fn.Name, "CONVERT", StringComparison.OrdinalIgnoreCase))
-                    {
-                        Console.WriteLine(
-                            $"[CastDebug][DECIMAL] input={FormatDebugValue(v)} type={type} result={FormatDebugValue(dx)}");
-                    }
+            if (TryEvalCastFloatingResult(context, fn, v!, type, out var floatingResult))
+                return floatingResult;
 
-                return dx;
-            }
-                if (IsSqlServerDialect(context.Dialect))
-                    throw new InvalidCastException();
+            if (TryEvalCastDateResult(context, fn, v!, type, out var dateResult))
+                return dateResult;
 
-                if (string.Equals(fn.Name, "CAST", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(fn.Name, "CONVERT", StringComparison.OrdinalIgnoreCase))
-                {
-                    Console.WriteLine(
-                        $"[CastDebug][DECIMAL] input={FormatDebugValue(v)} type={type} result=0m (fallback)");
-                }
-
-                return 0m;
-            }
-
-            if (type.StartsWith("FLOAT", StringComparison.OrdinalIgnoreCase)
-                || type.StartsWith("REAL", StringComparison.OrdinalIgnoreCase)
-                || type.StartsWith("DOUBLE", StringComparison.OrdinalIgnoreCase))
-            {
-                if (v is double dfx) return dfx;
-                if (v is float ffx) return (double)ffx;
-                if (v is decimal ddx) return (double)ddx;
-                if (AstQueryExecutorBase.TryConvertNumericToDouble(v, out var numericDouble)) return numericDouble;
-                var text = (v!.ToString() ?? invariantText).Trim();
-                if (double.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var fx)) return fx;
-                if (IsSqlServerDialect(context.Dialect))
-                    throw new InvalidCastException();
-                if (string.Equals(fn.Name, "CAST", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(fn.Name, "CONVERT", StringComparison.OrdinalIgnoreCase))
-                {
-                    Console.WriteLine(
-                        $"[CastDebug][FLOAT] input={FormatDebugValue(v)} type={type} result=0d (fallback)");
-                }
-                return 0d;
-            }
-
-            if (type.StartsWith("DATE", StringComparison.OrdinalIgnoreCase)
-                || type.StartsWith("DATETIME", StringComparison.OrdinalIgnoreCase)
-                || type.StartsWith("SMALLDATETIME", StringComparison.OrdinalIgnoreCase)
-                || type.StartsWith("TIMESTAMP", StringComparison.OrdinalIgnoreCase))
-            {
-                if (AstQueryExecutionRuntimeHelper.TryCoerceDateTime(v, out var dt))
-                    return dt;
-
-                if (IsSqlServerDialect(context.Dialect))
-                    throw new InvalidCastException();
-
-                if (string.Equals(fn.Name, "CAST", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(fn.Name, "CONVERT", StringComparison.OrdinalIgnoreCase))
-                {
-                    Console.WriteLine(
-                        $"[CastDebug][DATE] input={FormatDebugValue(v)} type={type} result=NULL (fallback)");
-                }
-                return null;
-            }
-
-            if (type.Equals("JSON", StringComparison.OrdinalIgnoreCase))
-            {
-                static string? ValidateJsonOrNull(string? json)
-                {
-                    if (json is null || string.IsNullOrWhiteSpace(json))
-                        return null;
-
-                    var normalizedJson = json.Trim();
-
-                    QueryJsonFunctionHelper.TryGetJsonRootElement(normalizedJson, out _);
-                    return normalizedJson;
-                }
-
-                if (v is string s)
-                    return ValidateJsonOrNull(s);
-
-                if (v is JsonElement je)
-                    return ValidateJsonOrNull(je.GetRawText());
-
-                var serialized = JsonSerializer.Serialize(v);
-                return ValidateJsonOrNull(serialized);
-            }
+            if (TryEvalCastJsonResult(v!, type, out var jsonResult))
+                return jsonResult;
 
             return FormatTextCastValue(context, v!);
         }
@@ -623,11 +542,268 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
 #pragma warning restore CA1031
     }
 
+    private static void LogCastEntry(
+        FunctionCallExpr fn,
+        bool traceGroupedCaseWhen,
+        object value,
+        string type)
+    {
+        if (!IsCastDebugFunction(fn.Name))
+            return;
+
+        Console.WriteLine(
+            $"[CastDebug][entry] name={fn.Name} trace={traceGroupedCaseWhen} arg0={FormatDebugValue(value)} type={type}");
+    }
+
+    private static bool TryEvalCastIntegerResult(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        object value,
+        string type,
+        out object? result)
+    {
+        result = null;
+        if (!context.Dialect.IsIntegerCastTypeName(type))
+            return false;
+
+        var invariantText = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        if (value is long l) { result = (int)l; return true; }
+        if (value is int i) { result = i; return true; }
+        if (value is decimal d) { result = (int)d; return true; }
+        if (value is IConvertible)
+        {
+            try
+            {
+                result = Convert.ToInt32(value, CultureInfo.InvariantCulture);
+                return true;
+            }
+            catch
+            {
+                // fall back to text parsing below
+            }
+        }
+
+        var text = (value.ToString() ?? invariantText).Trim();
+        if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var ix))
+        {
+            result = ix;
+            return true;
+        }
+
+        if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var lx))
+        {
+            result = (int)lx;
+            return true;
+        }
+
+        if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var dx))
+        {
+            result = (int)dx;
+            return true;
+        }
+
+        if (IsSqlServerDialect(context.Dialect))
+            throw new InvalidCastException();
+
+        LogCastFallback(fn.Name, "INT", value, type, "0");
+        result = 0;
+        return true;
+    }
+
+    private static bool TryEvalCastDecimalResult(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        object value,
+        string type,
+        out object? result)
+    {
+        result = null;
+        if (!IsDecimalCastTypeName(type))
+            return false;
+
+        var invariantText = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        if (value is decimal dd)
+            result = dd;
+        else if (AstQueryExecutorBase.TryConvertNumericToDecimal(value, out var numericDecimal))
+            result = numericDecimal;
+        else if (value is IConvertible)
+        {
+            try
+            {
+                result = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+            }
+            catch
+            {
+                // fall back to text parsing below
+            }
+        }
+
+        if (result is not null)
+        {
+            LogCastSuccess(fn.Name, "DECIMAL", value, type, result);
+            return true;
+        }
+
+        var text = (value.ToString() ?? invariantText).Trim();
+        if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var dx))
+        {
+            result = dx;
+            LogCastSuccess(fn.Name, "DECIMAL", value, type, result);
+            return true;
+        }
+
+        if (IsSqlServerDialect(context.Dialect))
+            throw new InvalidCastException();
+
+        LogCastFallback(fn.Name, "DECIMAL", value, type, "0m");
+        result = 0m;
+        return true;
+    }
+
+    private static bool TryEvalCastFloatingResult(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        object value,
+        string type,
+        out object? result)
+    {
+        result = null;
+        if (!IsFloatingCastTypeName(type))
+            return false;
+
+        var invariantText = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        if (value is double dfx) { result = dfx; return true; }
+        if (value is float ffx) { result = (double)ffx; return true; }
+        if (value is decimal ddx) { result = (double)ddx; return true; }
+        if (AstQueryExecutorBase.TryConvertNumericToDouble(value, out var numericDouble)) { result = numericDouble; return true; }
+
+        var text = (value.ToString() ?? invariantText).Trim();
+        if (double.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var fx))
+        {
+            result = fx;
+            return true;
+        }
+
+        if (IsSqlServerDialect(context.Dialect))
+            throw new InvalidCastException();
+
+        LogCastFallback(fn.Name, "FLOAT", value, type, "0d");
+        result = 0d;
+        return true;
+    }
+
+    private static bool TryEvalCastDateResult(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        object value,
+        string type,
+        out object? result)
+    {
+        result = null;
+        if (!IsDateCastTypeName(type))
+            return false;
+
+        if (AstQueryExecutionRuntimeHelper.TryCoerceDateTime(value, out var dt))
+        {
+            result = dt;
+            return true;
+        }
+
+        if (IsSqlServerDialect(context.Dialect))
+            throw new InvalidCastException();
+
+        LogCastFallback(fn.Name, "DATE", value, type, "NULL");
+        result = null;
+        return true;
+    }
+
+    private static bool TryEvalCastJsonResult(
+        object value,
+        string type,
+        out object? result)
+    {
+        result = null;
+        if (!string.Equals(type, "JSON", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        static string? ValidateJsonOrNull(string? json)
+        {
+            if (json is null || string.IsNullOrWhiteSpace(json))
+                return null;
+
+            var normalizedJson = json.Trim();
+            QueryJsonFunctionHelper.TryGetJsonRootElement(normalizedJson, out _);
+            return normalizedJson;
+        }
+
+        if (value is string s)
+        {
+            result = ValidateJsonOrNull(s);
+            return true;
+        }
+
+        if (value is JsonElement je)
+        {
+            result = ValidateJsonOrNull(je.GetRawText());
+            return true;
+        }
+
+        result = ValidateJsonOrNull(JsonSerializer.Serialize(value));
+        return true;
+    }
+
+    private static void LogCastSuccess(
+        string functionName,
+        string category,
+        object value,
+        string type,
+        object? result)
+    {
+        if (!IsCastDebugFunction(functionName))
+            return;
+
+        Console.WriteLine(
+            $"[CastDebug][{category}] input={FormatDebugValue(value)} type={type} result={FormatDebugValue(result)}");
+    }
+
+    private static void LogCastFallback(
+        string functionName,
+        string category,
+        object value,
+        string type,
+        string fallbackText)
+    {
+        if (!IsCastDebugFunction(functionName))
+            return;
+
+        Console.WriteLine(
+            $"[CastDebug][{category}] input={FormatDebugValue(value)} type={type} result={fallbackText} (fallback)");
+    }
+
     private static bool IsSqlServerDialect(ISqlDialect? dialect)
         => dialect is not null && string.Equals(dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsFirebirdDialect(ISqlDialect? dialect)
         => dialect is not null && string.Equals(dialect.Name, "firebird", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsCastDebugFunction(string functionName)
+        => string.Equals(functionName, "CAST", StringComparison.OrdinalIgnoreCase)
+           || string.Equals(functionName, "CONVERT", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsDecimalCastTypeName(string typeName)
+        => typeName.StartsWith("DECIMAL", StringComparison.OrdinalIgnoreCase)
+           || typeName.StartsWith("NUMERIC", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsFloatingCastTypeName(string typeName)
+        => typeName.StartsWith("FLOAT", StringComparison.OrdinalIgnoreCase)
+           || typeName.StartsWith("REAL", StringComparison.OrdinalIgnoreCase)
+           || typeName.StartsWith("DOUBLE", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsDateCastTypeName(string typeName)
+        => typeName.StartsWith("DATE", StringComparison.OrdinalIgnoreCase)
+           || typeName.StartsWith("DATETIME", StringComparison.OrdinalIgnoreCase)
+           || typeName.StartsWith("SMALLDATETIME", StringComparison.OrdinalIgnoreCase)
+           || typeName.StartsWith("TIMESTAMP", StringComparison.OrdinalIgnoreCase);
 
     private static string FormatTextCastValue(QueryExecutionContext context, object value)
     {

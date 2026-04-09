@@ -77,10 +77,12 @@ internal static class AstQueryInMembershipHelper
         Func<SubqueryExpr, EvalRow, IDictionary<string, Source>, InSubqueryLookupState> getScalarLookup,
         Func<SubqueryExpr, EvalRow, IDictionary<string, Source>, InSubqueryLookupState> getRowLookup)
     {
-        if (expression.Items.Count == 0)
+        var items = expression.Items;
+        var itemCount = items.Count;
+        if (itemCount == 0)
             return true;
 
-        if (expression.Items.Count == 1 && expression.Items[0] is SubqueryExpr subquery)
+        if (itemCount == 1 && items[0] is SubqueryExpr subquery)
         {
             if (leftVal is object?[] leftRow)
             {
@@ -111,9 +113,11 @@ internal static class AstQueryInMembershipHelper
         if (context.TryEvaluateInSubqueryMembership(expression, leftVal, row, ctes, eval, getScalarLookup, getRowLookup, ref hasNullCandidate, out var subqueryState))
             return subqueryState;
 
-        foreach (var item in expression.Items)
+        var items = expression.Items;
+        var itemCount = items.Count;
+        for (var i = 0; i < itemCount; i++)
         {
-            var candidate = eval(item, row, group, ctes);
+            var candidate = eval(items[i], row, group, ctes);
             if (context.TryEvaluateEnumerableMembership(leftVal, candidate, ref hasNullCandidate, out var enumerableState))
             {
                 if (enumerableState.Matched)
@@ -143,7 +147,8 @@ internal static class AstQueryInMembershipHelper
     {
         _ = eval;
         state = default;
-        if (expression.Items.Count != 1 || expression.Items[0] is not SubqueryExpr subquery)
+        var items = expression.Items;
+        if (items.Count != 1 || items[0] is not SubqueryExpr subquery)
             return false;
 
         if (leftVal is object?[] leftRow)
@@ -184,7 +189,38 @@ internal static class AstQueryInMembershipHelper
         out InMembershipState state)
     {
         state = default;
-        if (candidateValue is not IEnumerable enumerable || candidateValue is string)
+        if (candidateValue is string)
+            return false;
+
+        var rowCandidateArray = candidateValue as object?[][];
+        if (rowCandidateArray is not null
+            && leftVal is object?[] leftRow)
+        {
+            state = context.EvaluateRowMembershipCandidates(leftRow, rowCandidateArray, ref hasNullCandidate);
+            return true;
+        }
+
+        if (candidateValue is object?[] candidateArray
+            && rowCandidateArray is null)
+        {
+            state = context.EvaluateMembershipCandidates(leftVal, candidateArray, ref hasNullCandidate);
+            return true;
+        }
+
+        if (candidateValue is IReadOnlyList<object?[]> rowCandidateList
+            && leftVal is object?[] leftRowList)
+        {
+            state = context.EvaluateRowMembershipCandidates(leftRowList, rowCandidateList, ref hasNullCandidate);
+            return true;
+        }
+
+        if (candidateValue is IReadOnlyList<object?> candidateList)
+        {
+            state = context.EvaluateMembershipCandidates(leftVal, candidateList, ref hasNullCandidate);
+            return true;
+        }
+
+        if (candidateValue is not IEnumerable enumerable)
             return false;
 
         state = context.EvaluateMembershipCandidates(leftVal, enumerable, ref hasNullCandidate);
@@ -197,8 +233,38 @@ internal static class AstQueryInMembershipHelper
         IEnumerable candidates,
         ref bool hasNullCandidate)
     {
+        if (candidates is IReadOnlyList<object?> candidateList)
+        {
+            var candidateCount = candidateList.Count;
+            for (var i = 0; i < candidateCount; i++)
+            {
+                var candidate = candidateList[i];
+                if (context.TryEvaluateCandidateMembership(leftVal, candidate, ref hasNullCandidate, out var state))
+                    return state;
+            }
+
+            return CreateMembershipState(matched: false, hasNullCandidate);
+        }
+
         foreach (var candidate in candidates)
         {
+            if (context.TryEvaluateCandidateMembership(leftVal, candidate, ref hasNullCandidate, out var state))
+                return state;
+        }
+
+        return CreateMembershipState(matched: false, hasNullCandidate);
+    }
+
+    private static InMembershipState EvaluateMembershipCandidates(
+        this QueryExecutionContext context,
+        object leftVal,
+        object?[] candidates,
+        ref bool hasNullCandidate)
+    {
+        var candidateCount = candidates.Length;
+        for (var i = 0; i < candidateCount; i++)
+        {
+            var candidate = candidates[i];
             if (context.TryEvaluateCandidateMembership(leftVal, candidate, ref hasNullCandidate, out var state))
                 return state;
         }
@@ -212,8 +278,44 @@ internal static class AstQueryInMembershipHelper
         IEnumerable<object?[]> candidates,
         ref bool hasNullCandidate)
     {
+        if (candidates is IReadOnlyList<object?[]> candidateList)
+        {
+            var candidateCount = candidateList.Count;
+            for (var i = 0; i < candidateCount; i++)
+            {
+                var candidate = candidateList[i];
+                if (context.TryEvaluateRowCandidateMembership(leftRow, candidate, ref hasNullCandidate, out var state)
+                    && state.Matched)
+                {
+                    return state;
+                }
+            }
+
+            return CreateMembershipState(matched: false, hasNullCandidate);
+        }
+
         foreach (var candidate in candidates)
         {
+            if (context.TryEvaluateRowCandidateMembership(leftRow, candidate, ref hasNullCandidate, out var state)
+                && state.Matched)
+            {
+                return state;
+            }
+        }
+
+        return CreateMembershipState(matched: false, hasNullCandidate);
+    }
+
+    private static InMembershipState EvaluateRowMembershipCandidates(
+        this QueryExecutionContext context,
+        object?[] leftRow,
+        object?[][] candidates,
+        ref bool hasNullCandidate)
+    {
+        var candidateCount = candidates.Length;
+        for (var i = 0; i < candidateCount; i++)
+        {
+            var candidate = candidates[i];
             if (context.TryEvaluateRowCandidateMembership(leftRow, candidate, ref hasNullCandidate, out var state)
                 && state.Matched)
             {
@@ -276,10 +378,11 @@ internal static class AstQueryInMembershipHelper
 
     private static bool RowValuesMatch(this QueryExecutionContext context, object?[] left, object?[] right)
     {
-        if (left.Length != right.Length)
+        var leftLength = left.Length;
+        if (leftLength != right.Length)
             return false;
 
-        for (var i = 0; i < left.Length; i++)
+        for (var i = 0; i < leftLength; i++)
         {
             if (!left[i].EqualsSql(right[i], context))
                 return false;

@@ -28,6 +28,16 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         bool unionUsesSelectMessage)
     {
         using var _ = connection.Metrics.BeginAmbientScope();
+        return ExecuteParsedNonQueryCore(connection, query, context, allowMerge, unionUsesSelectMessage);
+    }
+
+    private static DmlExecutionResult ExecuteParsedNonQueryCore(
+        DbConnectionMockBase connection,
+        SqlQueryBase query,
+        QueryExecutionContext context,
+        bool allowMerge,
+        bool unionUsesSelectMessage)
+    {
         return query switch
         {
             SqlInsertQuery insertQ => connection.ExecuteInsert(insertQ, context),
@@ -2058,41 +2068,13 @@ internal static class DbSelectIntoAndInsertSelectStrategies
 
             if (inSingleQuote)
             {
-                if (ch == '\\' && i + 1 < sql.Length)
-                {
-                    i++;
-                    continue;
-                }
-
-                if (ch == '\'' && i + 1 < sql.Length && sql[i + 1] == '\'')
-                {
-                    i++;
-                    continue;
-                }
-
-                if (ch == '\'')
-                    inSingleQuote = false;
-
+                ConsumeSingleQuotedCharacter(sql, ref i, ref inSingleQuote, ch);
                 continue;
             }
 
             if (inDoubleQuote)
             {
-                if (ch == '\\' && i + 1 < sql.Length)
-                {
-                    i++;
-                    continue;
-                }
-
-                if (ch == '"' && i + 1 < sql.Length && sql[i + 1] == '"')
-                {
-                    i++;
-                    continue;
-                }
-
-                if (ch == '"')
-                    inDoubleQuote = false;
-
+                ConsumeDoubleQuotedCharacter(sql, ref i, ref inDoubleQuote, ch);
                 continue;
             }
 
@@ -2132,6 +2114,50 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         }
 
         return -1;
+    }
+
+    private static void ConsumeSingleQuotedCharacter(
+        string sql,
+        ref int index,
+        ref bool inSingleQuote,
+        char ch)
+    {
+        if (ch == '\\' && index + 1 < sql.Length)
+        {
+            index++;
+            return;
+        }
+
+        if (ch == '\'' && index + 1 < sql.Length && sql[index + 1] == '\'')
+        {
+            index++;
+            return;
+        }
+
+        if (ch == '\'')
+            inSingleQuote = false;
+    }
+
+    private static void ConsumeDoubleQuotedCharacter(
+        string sql,
+        ref int index,
+        ref bool inDoubleQuote,
+        char ch)
+    {
+        if (ch == '\\' && index + 1 < sql.Length)
+        {
+            index++;
+            return;
+        }
+
+        if (ch == '"' && index + 1 < sql.Length && sql[index + 1] == '"')
+        {
+            index++;
+            return;
+        }
+
+        if (ch == '"')
+            inDoubleQuote = false;
     }
 
     private static bool TryRenderExecuteStatementSql(
@@ -3419,7 +3445,17 @@ internal static class DbSelectIntoAndInsertSelectStrategies
 
     private static DbType ParseDbTypeFromSqlType(string sqlType)
     {
-        return sqlType.Trim().NormalizeName() switch
+        var normalizedType = sqlType.Trim().NormalizeName();
+        var typeNameEnd = normalizedType.IndexOf('(');
+        var spaceIndex = normalizedType.IndexOf(' ');
+        if (spaceIndex >= 0 && (typeNameEnd < 0 || spaceIndex < typeNameEnd))
+            typeNameEnd = spaceIndex;
+
+        var typeName = typeNameEnd >= 0
+            ? normalizedType[..typeNameEnd]
+            : normalizedType;
+
+        return typeName switch
         {
             "INT" or "INTEGER" or "SMALLINT" => DbType.Int32,
             "BIGINT" => DbType.Int64,

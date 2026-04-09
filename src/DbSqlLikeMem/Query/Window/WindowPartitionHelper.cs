@@ -31,20 +31,21 @@ internal static class WindowPartitionHelper
         List<AstQueryExecutorBase.EvalRow> partition,
         IReadOnlyList<WindowOrderItem> orderBy,
         Func<SqlExpr, AstQueryExecutorBase.EvalRow, object?> evalOrderExpression,
-        Func<object?, object?, int> compareSql)
+        Func<object?, object?, int> compareSql,
+        bool includeOrderValues = true)
     {
         if (orderBy.Count == 0 || partition.Count < 2)
             return null;
+
+        var orderIndexes = new int[partition.Count];
+        for (var i = 0; i < partition.Count; i++)
+            orderIndexes[i] = i;
 
         // EN: Ensure deterministic ordering for peers (equal ORDER BY values) so window functions like NTILE/LAG/LEAD
         // preserve the original row sequence when the ORDER BY does not provide a tie-breaker.
         // PT: Garante ordenacao deterministica para peers (valores iguais no ORDER BY) para que funcoes de janela como
         // NTILE/LAG/LEAD preservem a sequencia original das linhas quando o ORDER BY nao define desempate.
-        var stableIndexByRow = new Dictionary<AstQueryExecutorBase.EvalRow, int>(partition.Count);
-        for (var i = 0; i < partition.Count; i++)
-            stableIndexByRow[partition[i]] = i;
-
-        var orderValuesByRow = WindowOrderValueHelper.BuildWindowOrderValuesByRow(
+        var orderValuesByIndex = WindowOrderValueHelper.BuildWindowOrderValuesByIndex(
             partition,
             orderBy,
             evalOrderExpression);
@@ -52,26 +53,25 @@ internal static class WindowPartitionHelper
         if (orderBy.Count == 1)
         {
             var orderItem = orderBy[0];
-            partition.Sort((leftRow, rightRow) =>
+            Array.Sort(orderIndexes, (leftIndex, rightIndex) =>
             {
-                var leftValue = orderValuesByRow[leftRow][0];
-                var rightValue = orderValuesByRow[rightRow][0];
+                var leftValue = orderValuesByIndex[leftIndex][0];
+                var rightValue = orderValuesByIndex[rightIndex][0];
                 var comparison = compareSql(leftValue, rightValue);
                 if (comparison != 0)
                     return orderItem.Desc ? -comparison : comparison;
 
-                return stableIndexByRow.TryGetValue(leftRow, out var li) && stableIndexByRow.TryGetValue(rightRow, out var ri)
-                    ? li.CompareTo(ri)
-                    : 0;
+                return leftIndex.CompareTo(rightIndex);
             });
 
-            return orderValuesByRow;
+            ReorderPartition(partition, orderIndexes);
+            return includeOrderValues ? BuildOrderValuesByRow(partition, orderValuesByIndex, orderIndexes) : null;
         }
 
-        partition.Sort((leftRow, rightRow) =>
+        Array.Sort(orderIndexes, (leftIndex, rightIndex) =>
         {
-            var leftValues = orderValuesByRow[leftRow];
-            var rightValues = orderValuesByRow[rightRow];
+            var leftValues = orderValuesByIndex[leftIndex];
+            var rightValues = orderValuesByIndex[rightIndex];
 
             for (var i = 0; i < orderBy.Count; i++)
             {
@@ -80,12 +80,39 @@ internal static class WindowPartitionHelper
                     return orderBy[i].Desc ? -comparison : comparison;
             }
 
-            return stableIndexByRow.TryGetValue(leftRow, out var li) && stableIndexByRow.TryGetValue(rightRow, out var ri)
-                ? li.CompareTo(ri)
-                : 0;
+            return leftIndex.CompareTo(rightIndex);
         });
 
+        ReorderPartition(partition, orderIndexes);
+        return includeOrderValues ? BuildOrderValuesByRow(partition, orderValuesByIndex, orderIndexes) : null;
+    }
+
+    private static Dictionary<AstQueryExecutorBase.EvalRow, object?[]> BuildOrderValuesByRow(
+        List<AstQueryExecutorBase.EvalRow> partition,
+        object?[][] orderValuesByIndex,
+        int[] orderIndexes)
+    {
+        var orderValuesByRow = new Dictionary<AstQueryExecutorBase.EvalRow, object?[]>(
+            Math.Max(1, partition.Count),
+            ReferenceEqualityComparer<AstQueryExecutorBase.EvalRow>.Instance);
+
+        for (var i = 0; i < partition.Count; i++)
+            orderValuesByRow[partition[i]] = orderValuesByIndex[orderIndexes[i]];
+
         return orderValuesByRow;
+    }
+
+    private static void ReorderPartition(List<AstQueryExecutorBase.EvalRow> partition, int[] orderIndexes)
+    {
+        if (orderIndexes.Length <= 1)
+            return;
+
+        var orderedRows = new AstQueryExecutorBase.EvalRow[orderIndexes.Length];
+        for (var i = 0; i < orderIndexes.Length; i++)
+            orderedRows[i] = partition[orderIndexes[i]];
+
+        partition.Clear();
+        partition.AddRange(orderedRows);
     }
 
     private static WindowPartitionKey BuildPartitionKey(

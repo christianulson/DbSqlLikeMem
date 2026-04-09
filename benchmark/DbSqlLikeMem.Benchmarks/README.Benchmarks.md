@@ -85,4 +85,4 @@ docker compose -f docker-compose.benchmarks.yml up -d
 
 powershell -ExecutionPolicy Bypass -File ./Scripts/start-benchmark-databases.robust.ps1
 powershell -ExecutionPolicy Bypass -File ./Scripts/run-benchmarks-preprovisioned.ps1 --inprocess --filter "*DbSqlLikeMem*"
-powershell -ExecutionPolicy Bypass -File ./Scripts/run-benchmarks-preprovisioned.ps1 --inprocess  --filter "*Sqlite*"
+powershell -ExecutionPolicy Bypass -File ./Scripts/run-benchmarks-preprovisioned.ps1 --inprocess --filter "*Sqlite*"

@@ -1062,12 +1062,17 @@ internal static class AstQueryAggregateEvaluator
             return null;
 
         var hasDirectValueSelector = TryCreateStringAggregateValueSelector(fn.Args[0], out var valueSelector);
-        var rows = group.Rows;
-        if (fn.WithinGroupOrderBy is { Count: > 0 } orderBy && group.Rows.Count > 1)
+        List<AstQueryExecutorBase.EvalRow> rows = group.Rows;
+        var rowCount = rows.Count;
+        if (rowCount == 0)
+            return null;
+
+        if (fn.WithinGroupOrderBy is { Count: > 0 } orderBy && rowCount > 1)
             rows = OrderStringAggregateRows(context, orderBy, group.Rows, ctes, eval);
 
         HashSet<string>? seen = fn.Distinct ? new HashSet<string>(StringComparer.Ordinal) : null;
-        if (rows.Count == 1)
+        rowCount = rows.Count;
+        if (rowCount == 1)
         {
             var singleValue = hasDirectValueSelector
                 ? valueSelector!(rows[0])
@@ -1084,11 +1089,11 @@ internal static class AstQueryAggregateEvaluator
         var separator = separatorObj?.ToString() ?? defaultSeparator ?? string.Empty;
         StringBuilder? builder = null;
         var hasValue = false;
-        var estimatedCapacity = EstimateStringAggregateCapacity(rows.Count, separator.Length);
+        var estimatedCapacity = EstimateStringAggregateCapacity(rowCount, separator.Length);
 
         if (!hasDirectValueSelector)
         {
-            for (var i = 0; i < rows.Count; i++)
+            for (var i = 0; i < rowCount; i++)
             {
                 var value = eval(fn.Args[0], rows[i], null, ctes);
                 if (IsNullish(value))
@@ -1120,7 +1125,7 @@ internal static class AstQueryAggregateEvaluator
         }
         else
         {
-            for (var i = 0; i < rows.Count; i++)
+            for (var i = 0; i < rowCount; i++)
             {
                 var value = valueSelector!(rows[i]);
                 if (IsNullish(value))
@@ -1157,59 +1162,58 @@ internal static class AstQueryAggregateEvaluator
     private static List<AstQueryExecutorBase.EvalRow> OrderStringAggregateRows(
         QueryExecutionContext context,
         IReadOnlyList<WindowOrderItem> orderBy,
-        IReadOnlyList<AstQueryExecutorBase.EvalRow> rows,
+        List<AstQueryExecutorBase.EvalRow> rows,
         IDictionary<string, Source> ctes,
         Func<SqlExpr, AstQueryExecutorBase.EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
     {
-        var orderedRows = new List<AstQueryExecutorBase.EvalRow>(rows.Count);
-        for (var i = 0; i < rows.Count; i++)
-            orderedRows.Add(rows[i]);
+        var rowCount = rows.Count;
+        var orderedIndexes = new int[rowCount];
+        for (var i = 0; i < rowCount; i++)
+            orderedIndexes[i] = i;
 
-        var stableIndexByRow = new Dictionary<AstQueryExecutorBase.EvalRow, int>(orderedRows.Count);
-        for (var i = 0; i < orderedRows.Count; i++)
-            stableIndexByRow[orderedRows[i]] = i;
-
-        var orderValuesByRow = WindowOrderValueHelper.BuildWindowOrderValuesByRow(
-            orderedRows,
+        var orderValuesByIndex = WindowOrderValueHelper.BuildWindowOrderValuesByIndex(
+            rows,
             orderBy,
             (expr, row) => eval(expr, row, null, ctes));
+        var orderByCount = orderBy.Count;
 
-        if (orderBy.Count == 1)
+        if (orderByCount == 1)
         {
             var orderItem = orderBy[0];
-            orderedRows.Sort((leftRow, rightRow) =>
+            Array.Sort(orderedIndexes, (leftIndex, rightIndex) =>
             {
-                var leftValues = orderValuesByRow[leftRow];
-                var rightValues = orderValuesByRow[rightRow];
-                var comparison = context.CompareSql(leftValues[0], rightValues[0]);
+                var comparison = context.CompareSql(orderValuesByIndex[leftIndex][0], orderValuesByIndex[rightIndex][0]);
                 if (comparison != 0)
                     return orderItem.Desc ? -comparison : comparison;
 
-                return stableIndexByRow.TryGetValue(leftRow, out var li) && stableIndexByRow.TryGetValue(rightRow, out var ri)
-                    ? li.CompareTo(ri)
-                    : 0;
+                return leftIndex.CompareTo(rightIndex);
             });
-            return orderedRows;
+            var orderedRows1 = new List<AstQueryExecutorBase.EvalRow>(rowCount);
+            for (var i = 0; i < rowCount; i++)
+                orderedRows1.Add(rows[orderedIndexes[i]]);
+
+            return orderedRows1;
         }
 
-        orderedRows.Sort((leftRow, rightRow) =>
+        Array.Sort(orderedIndexes, (leftIndex, rightIndex) =>
         {
-            var leftValues = orderValuesByRow[leftRow];
-            var rightValues = orderValuesByRow[rightRow];
-
-            for (var i = 0; i < orderBy.Count; i++)
+            var leftValues = orderValuesByIndex[leftIndex];
+            var rightValues = orderValuesByIndex[rightIndex];
+            for (var i = 0; i < orderByCount; i++)
             {
                 var comparison = context.CompareSql(leftValues[i], rightValues[i]);
                 if (comparison != 0)
                     return orderBy[i].Desc ? -comparison : comparison;
             }
 
-            return stableIndexByRow.TryGetValue(leftRow, out var li) && stableIndexByRow.TryGetValue(rightRow, out var ri)
-                ? li.CompareTo(ri)
-                : 0;
+            return leftIndex.CompareTo(rightIndex);
         });
 
-        return orderedRows;
+        var orderedRows2 = new List<AstQueryExecutorBase.EvalRow>(rowCount);
+        for (var i = 0; i < rowCount; i++)
+            orderedRows2.Add(rows[orderedIndexes[i]]);
+
+        return orderedRows2;
     }
 
     private static string? GetStringAggregateDefaultSeparator(string name)

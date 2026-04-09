@@ -14,21 +14,42 @@ internal static class AstQuerySubqueryLookupSupport
     {
         key = string.Empty;
 
-        if (keyPairs.Count == 0)
+        var keyPairCount = keyPairs.Count;
+        if (keyPairCount == 0)
             return false;
 
-        var sb = new StringBuilder();
-        for (var i = 0; i < keyPairs.Count; i++)
+        var sb = new StringBuilder(keyPairCount * 32);
+        if (useInnerSide)
         {
-            var expr = useInnerSide ? keyPairs[i].InnerExpr : keyPairs[i].OuterExpr;
-            var value = eval(expr, row, null, ctes);
-            if (value is null || value is DBNull)
-                return false;
+            for (var i = 0; i < keyPairCount; i++)
+            {
+                var pair = keyPairs[i];
+                var expr = pair.InnerExpr;
+                var value = eval(expr, row, null, ctes);
+                if (value is null || value is DBNull)
+                    return false;
 
-            if (!TryCreateInLookupScalarKey(value, null, out var component))
-                return false;
+                if (!TryCreateInLookupScalarKey(value, null, out var component))
+                    return false;
 
-            AppendLookupScalarKeyComponent(sb, component);
+                AppendLookupScalarKeyComponent(sb, component);
+            }
+        }
+        else
+        {
+            for (var i = 0; i < keyPairCount; i++)
+            {
+                var pair = keyPairs[i];
+                var expr = pair.OuterExpr;
+                var value = eval(expr, row, null, ctes);
+                if (value is null || value is DBNull)
+                    return false;
+
+                if (!TryCreateInLookupScalarKey(value, null, out var component))
+                    return false;
+
+                AppendLookupScalarKeyComponent(sb, component);
+            }
         }
 
         key = sb.ToString();
@@ -172,12 +193,14 @@ internal static class AstQuerySubqueryLookupSupport
     {
         key = string.Empty;
 
-        if (values.Count == 0)
+        var valuesCount = values.Count;
+        if (valuesCount == 0)
             return false;
 
-        var sb = new StringBuilder();
-        foreach (var value in values)
+        var sb = new StringBuilder(valuesCount * 32);
+        for (var i = 0; i < valuesCount; i++)
         {
+            var value = values[i];
             if (!TryCreateInLookupScalarKey(value, null, out var component))
                 return false;
 
@@ -190,14 +213,17 @@ internal static class AstQuerySubqueryLookupSupport
 
     internal static void AppendLookupScalarKeyComponent(StringBuilder sb, InLookupScalarKey component)
     {
+        var kindLength = component.Kind.Length;
+        var valueLength = component.Value.Length;
+
         if (sb.Length > 0)
             sb.Append('|');
 
-        sb.Append(component.Kind.Length);
+        sb.Append(kindLength);
         sb.Append(':');
         sb.Append(component.Kind);
         sb.Append(';');
-        sb.Append(component.Value.Length);
+        sb.Append(valueLength);
         sb.Append(':');
         sb.Append(component.Value);
     }
@@ -221,11 +247,15 @@ internal static class AstQuerySubqueryLookupSupport
 
     internal static SqlExpr CombineConjuncts(IReadOnlyList<SqlExpr> conjuncts)
     {
-        if (conjuncts.Count == 0)
+        var conjunctCount = conjuncts.Count;
+        if (conjunctCount == 0)
             throw new InvalidOperationException("Nenhum conjuncto para combinar.");
 
+        if (conjunctCount == 1)
+            return conjuncts[0];
+
         var combined = conjuncts[0];
-        for (var i = 1; i < conjuncts.Count; i++)
+        for (var i = 1; i < conjunctCount; i++)
             combined = new BinaryExpr(SqlBinaryOp.And, combined, conjuncts[i]);
 
         return combined;

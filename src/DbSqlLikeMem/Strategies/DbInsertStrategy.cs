@@ -98,6 +98,7 @@ internal static class DbInsertStrategy
             newRows = CreateRowsFromValues(context, query, table);
         }
 
+        var newRowsCount = newRows.Count;
         int insertedCount = 0;
         int updatedCount = 0;
         var tableMock = (TableMock)table;
@@ -137,27 +138,27 @@ internal static class DbInsertStrategy
 
         if (!query.HasOnDuplicateKeyUpdate
             && !query.IsOnConflictDoNothing
-            && newRows.Count > 1
+            && newRowsCount > 1
             && canUseBatchInsert)
         {
             var beforeCount = table.Count;
             tableMock.AddBatch(newRows);
-            var afterCount = beforeCount + newRows.Count;
-            insertedCount = newRows.Count;
+            var afterCount = beforeCount + newRowsCount;
+            insertedCount = newRowsCount;
             for (int i = beforeCount; i < afterCount; i++)
                 affectedIndexes.Add(i);
             TrySetLastInsertId(context, table, newRows[^1]);
         }
         else if (query.HasOnDuplicateKeyUpdate
-            && newRows.Count > 1
+            && newRowsCount > 1
             && canUseBatchInsert)
         {
             if (!hasInsertConflictTargets)
             {
                 var beforeCount = table.Count;
                 tableMock.AddBatch(newRows);
-                var afterCount = beforeCount + newRows.Count;
-                insertedCount = newRows.Count;
+                var afterCount = beforeCount + newRowsCount;
+                insertedCount = newRowsCount;
                 for (int i = beforeCount; i < afterCount; i++)
                     affectedIndexes.Add(i);
                 TrySetLastInsertId(context, table, newRows[^1]);
@@ -168,22 +169,35 @@ internal static class DbInsertStrategy
                 HashSet<IndexKey>? pendingPrimaryKeys = tableMock.PrimaryKeyIndexes.Count > 0
                     ? new HashSet<IndexKey>()
                     : null;
-                Dictionary<IndexDef, HashSet<IndexKey>>? pendingUniqueKeys = null;
+                List<(IndexDef Index, HashSet<IndexKey> Keys)>? pendingUniqueKeys = null;
                 foreach (var index in tableMock.Indexes.Values)
                 {
                     if (index.Unique)
                     {
-                        pendingUniqueKeys ??= new Dictionary<IndexDef, HashSet<IndexKey>>(tableMock.Indexes.Count);
-                        pendingUniqueKeys[index] = new HashSet<IndexKey>();
+                        pendingUniqueKeys ??= new List<(IndexDef Index, HashSet<IndexKey> Keys)>();
+                        pendingUniqueKeys.Add((index, new HashSet<IndexKey>()));
                     }
                 }
                 var tracksPendingBatchConflicts = pendingPrimaryKeys is not null || pendingUniqueKeys is not null;
 
                 foreach (var newRow in newRows)
                 {
+                    IndexKey? pendingBatchPrimaryKey = null;
+                    IndexKey[]? pendingBatchUniqueKeys = null;
+                    if (tracksPendingBatchConflicts)
+                    {
+                        BuildPendingBatchKeys(
+                            tableMock,
+                            pendingPrimaryKeys,
+                            pendingUniqueKeys,
+                            newRow,
+                            out pendingBatchPrimaryKey,
+                            out pendingBatchUniqueKeys);
+                    }
+
                     if (pendingInsertRows.Count > 0
                         && tracksPendingBatchConflicts
-                        && HasPendingBatchConflict(tableMock, pendingPrimaryKeys, pendingUniqueKeys, newRow))
+                        && HasPendingBatchConflict(pendingPrimaryKeys, pendingUniqueKeys, pendingBatchPrimaryKey, pendingBatchUniqueKeys))
                     {
                         var before = table.Count;
                         FlushPendingInsertBatch(context, table, tableMock, pendingInsertRows, pendingPrimaryKeys, pendingUniqueKeys, ref insertedCount);
@@ -195,7 +209,7 @@ internal static class DbInsertStrategy
                     {
                         pendingInsertRows.Add(newRow);
                         if (tracksPendingBatchConflicts)
-                            RegisterPendingBatchKeys(tableMock, pendingPrimaryKeys, pendingUniqueKeys, newRow);
+                            RegisterPendingBatchKeys(pendingPrimaryKeys, pendingUniqueKeys, pendingBatchPrimaryKey, pendingBatchUniqueKeys);
                         continue;
                     }
                     var beforeFlush = table.Count;
@@ -357,7 +371,7 @@ internal static class DbInsertStrategy
             sw!.Stop();
             var metrics = new SqlPlanRuntimeMetrics(
                 InputTables: query.InsertSelect is null ? 1 : 1 + CountInputTables(query.InsertSelect),
-                EstimatedRowsRead: targetRowCountBefore + newRows.Count,
+                EstimatedRowsRead: targetRowCountBefore + newRowsCount,
                 ActualRows: affected,
                 ElapsedMs: sw.ElapsedMilliseconds);
             var plan = SqlExecutionPlanFormatter.FormatInsert(
@@ -475,18 +489,16 @@ internal static class DbInsertStrategy
             AffectedRowsData = affectedRowsData
         };
     }
-    private static bool HasIndexedKeyChanges(ITableMock table, IReadOnlyCollection<string> changedCols)
+    private static bool HasIndexedKeyChanges(ITableMock table, IReadOnlyList<string> changedCols)
     {
         if (changedCols.Count == 0)
             return false;
-
-        var changedSet = new HashSet<string>(changedCols, StringComparer.OrdinalIgnoreCase);
 
         foreach (var pkIndex in table.PrimaryKeyIndexes)
         {
             foreach (var column in table.Columns.Values)
             {
-                if (column.Index == pkIndex && changedSet.Contains(column.Name))
+                if (column.Index == pkIndex && ContainsChangedColumn(changedCols, column.Name))
                     return true;
             }
         }
@@ -495,9 +507,20 @@ internal static class DbInsertStrategy
         {
             foreach (var keyCol in index.KeyCols)
             {
-                if (changedSet.Contains(keyCol))
+                if (ContainsChangedColumn(changedCols, keyCol))
                     return true;
             }
+        }
+
+        return false;
+    }
+
+    private static bool ContainsChangedColumn(IReadOnlyList<string> changedCols, string columnName)
+    {
+        for (var i = 0; i < changedCols.Count; i++)
+        {
+            if (string.Equals(changedCols[i], columnName, StringComparison.OrdinalIgnoreCase))
+                return true;
         }
 
         return false;
@@ -565,7 +588,7 @@ internal static class DbInsertStrategy
         TableMock tableMock,
         List<Dictionary<int, object?>> pendingInsertRows,
         HashSet<IndexKey>? pendingPrimaryKeys,
-        Dictionary<IndexDef, HashSet<IndexKey>>? pendingUniqueKeys,
+        List<(IndexDef Index, HashSet<IndexKey> Keys)>? pendingUniqueKeys,
         ref int insertedCount)
     {
         if (pendingInsertRows.Count == 0)
@@ -578,33 +601,31 @@ internal static class DbInsertStrategy
         pendingPrimaryKeys?.Clear();
         if (pendingUniqueKeys is not null)
         {
-            foreach (var keys in pendingUniqueKeys.Values)
-                keys.Clear();
+            foreach (var item in pendingUniqueKeys)
+                item.Keys.Clear();
         }
     }
 
     private static bool HasPendingBatchConflict(
-        TableMock tableMock,
         HashSet<IndexKey>? pendingPrimaryKeys,
-        Dictionary<IndexDef, HashSet<IndexKey>>? pendingUniqueKeys,
-        IReadOnlyDictionary<int, object?> newRow)
+        List<(IndexDef Index, HashSet<IndexKey> Keys)>? pendingUniqueKeys,
+        IndexKey? pendingPrimaryKey,
+        IndexKey[]? pendingUniqueKeysForRow)
     {
         if (pendingPrimaryKeys is null && pendingUniqueKeys is null)
             return false;
 
-        if (pendingPrimaryKeys is not null)
+        if (pendingPrimaryKeys is not null && pendingPrimaryKey is { } pkKey)
         {
-            var newPkKey = tableMock.BuildPkKey(newRow);
-            if (pendingPrimaryKeys.Contains(newPkKey))
+            if (pendingPrimaryKeys.Contains(pkKey))
                 return true;
         }
 
-        if (pendingUniqueKeys is not null)
+        if (pendingUniqueKeys is not null && pendingUniqueKeysForRow is not null)
         {
-            foreach (var it in pendingUniqueKeys)
+            for (var i = 0; i < pendingUniqueKeys.Count; i++)
             {
-                var newKey = it.Key.BuildIndexKey(newRow);
-                if (it.Value.Contains(newKey))
+                if (pendingUniqueKeys[i].Keys.Contains(pendingUniqueKeysForRow[i]))
                     return true;
             }
         }
@@ -613,17 +634,40 @@ internal static class DbInsertStrategy
     }
 
     private static void RegisterPendingBatchKeys(
+        HashSet<IndexKey>? pendingPrimaryKeys,
+        List<(IndexDef Index, HashSet<IndexKey> Keys)>? pendingUniqueKeys,
+        IndexKey? pendingPrimaryKey,
+        IndexKey[]? pendingUniqueKeysForRow)
+    {
+        if (pendingPrimaryKeys is not null && pendingPrimaryKey is { } pkKey)
+            pendingPrimaryKeys.Add(pkKey);
+
+        if (pendingUniqueKeys is not null && pendingUniqueKeysForRow is not null)
+        {
+            for (var i = 0; i < pendingUniqueKeys.Count; i++)
+                pendingUniqueKeys[i].Keys.Add(pendingUniqueKeysForRow[i]);
+        }
+    }
+
+    private static void BuildPendingBatchKeys(
         TableMock tableMock,
         HashSet<IndexKey>? pendingPrimaryKeys,
-        Dictionary<IndexDef, HashSet<IndexKey>>? pendingUniqueKeys,
-        IReadOnlyDictionary<int, object?> row)
+        List<(IndexDef Index, HashSet<IndexKey> Keys)>? pendingUniqueKeys,
+        IReadOnlyDictionary<int, object?> row,
+        out IndexKey? pendingPrimaryKey,
+        out IndexKey[]? pendingUniqueKeysForRow)
     {
-        pendingPrimaryKeys?.Add(tableMock.BuildPkKey(row));
+        pendingPrimaryKey = null;
+        pendingUniqueKeysForRow = null;
+
+        if (pendingPrimaryKeys is not null)
+            pendingPrimaryKey = tableMock.BuildPkKey(row);
 
         if (pendingUniqueKeys is not null)
         {
-            foreach (var it in pendingUniqueKeys)
-                it.Value.Add(it.Key.BuildIndexKey(row));
+            pendingUniqueKeysForRow = new IndexKey[pendingUniqueKeys.Count];
+            for (var i = 0; i < pendingUniqueKeys.Count; i++)
+                pendingUniqueKeysForRow[i] = pendingUniqueKeys[i].Index.BuildIndexKey(row);
         }
     }
 
@@ -745,28 +789,42 @@ internal static class DbInsertStrategy
         List<ColumnDef>? orderedTableColumns = null;
         List<ColumnDef>? nonIdentityColumns = null;
 
-        if (colNames.Count > 0)
-            explicitTargetColumns = [.. colNames.Select(colName => ResolveInsertColumn(table, colName, dialect))];
+        var colNamesCount = colNames.Count;
+        if (colNamesCount > 0)
+        {
+            explicitTargetColumns = new ColumnDef[colNamesCount];
+            for (var i = 0; i < colNamesCount; i++)
+                explicitTargetColumns[i] = ResolveInsertColumn(table, colNames[i], dialect);
+        }
         else
         {
             orderedTableColumns = [.. table.Columns.Values.OrderBy(c => c.Index)];
-            nonIdentityColumns = [.. orderedTableColumns.Where(c => !c.Identity)];
+            var orderedCount = orderedTableColumns.Count;
+            nonIdentityColumns = new List<ColumnDef>(orderedCount);
+            for (var i = 0; i < orderedCount; i++)
+            {
+                var col = orderedTableColumns[i];
+                if (!col.Identity)
+                    nonIdentityColumns.Add(col);
+            }
         }
 
-        for (var rowIndex = 0; rowIndex < query.ValuesRaw.Count; rowIndex++)
+        var valuesRawCount = query.ValuesRaw.Count;
+        var valuesExprCount = query.ValuesExpr.Count;
+        for (var rowIndex = 0; rowIndex < valuesRawCount; rowIndex++)
         {
             var valueBlock = query.ValuesRaw[rowIndex];
-            var parsedExprBlock = rowIndex < query.ValuesExpr.Count
+            var parsedExprBlock = rowIndex < valuesExprCount
                 ? query.ValuesExpr[rowIndex]
                 : null;
 
             // Validação de count
-            if (colNames.Count > 0 && colNames.Count != valueBlock.Count)
-                throw new InvalidOperationException($"Column count ({colNames.Count}) does not match value count ({valueBlock.Count}).");
+            if (colNamesCount > 0 && colNamesCount != valueBlock.Count)
+                throw new InvalidOperationException($"Column count ({colNamesCount}) does not match value count ({valueBlock.Count}).");
 
             var newRow = new Dictionary<int, object?>(Math.Max(1, valueBlock.Count));
 
-            if (colNames.Count == 0 && valueBlock.Count > 0)
+            if (colNamesCount == 0 && valueBlock.Count > 0)
             {
                 var targetCols = valueBlock.Count == orderedTableColumns!.Count
                     ? orderedTableColumns
@@ -781,9 +839,9 @@ internal static class DbInsertStrategy
                     SetColValue(context, table, targetCols[i], valueBlock[i], parsedExpr, newRow);
                 }
             }
-            else if (colNames.Count > 0)
+            else if (colNamesCount > 0)
             {
-                for (int i = 0; i < explicitTargetColumns!.Length; i++)
+                for (var i = 0; i < explicitTargetColumns!.Length; i++)
                 {
                     var parsedExpr = parsedExprBlock is not null && i < parsedExprBlock.Count
                         ? parsedExprBlock[i]
@@ -840,8 +898,13 @@ internal static class DbInsertStrategy
         if (string.IsNullOrWhiteSpace(candidate))
             return;
 
-        if (!candidates.Any(existing => string.Equals(existing, candidate, StringComparison.Ordinal)))
-            candidates.Add(candidate!);
+        for (var i = 0; i < candidates.Count; i++)
+        {
+            if (string.Equals(candidates[i], candidate, StringComparison.Ordinal))
+                return;
+        }
+
+        candidates.Add(candidate!);
     }
 
     private static string? UnwrapInsertColumnIdentifier(string value, char quoteStart, bool isAllowed)

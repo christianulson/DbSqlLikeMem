@@ -3,7 +3,18 @@ namespace DbSqlLikeMem;
 internal static class SqlParameterDbTypeParserHelper
 {
     internal static DbType ParseDbType(string typeSql)
-        => typeSql.Trim().NormalizeName().Split(' ').First(static part => !string.IsNullOrWhiteSpace(part)).ToUpperInvariant() switch
+    {
+        var normalizedType = typeSql.Trim().NormalizeName();
+        var typeNameEnd = normalizedType.IndexOf('(');
+        var spaceIndex = normalizedType.IndexOf(' ');
+        if (spaceIndex >= 0 && (typeNameEnd < 0 || spaceIndex < typeNameEnd))
+            typeNameEnd = spaceIndex;
+
+        var typeName = typeNameEnd >= 0
+            ? normalizedType[..typeNameEnd]
+            : normalizedType;
+
+        return typeName.ToUpperInvariant() switch
         {
             "INT" or "INTEGER" or "SMALLINT" => DbType.Int32,
             "BIGINT" => DbType.Int64,
@@ -17,4 +28,5 @@ internal static class SqlParameterDbTypeParserHelper
             "BLOB" or "BINARY" or "VARBINARY" => DbType.Binary,
             _ => DbType.String,
         };
+    }
 }

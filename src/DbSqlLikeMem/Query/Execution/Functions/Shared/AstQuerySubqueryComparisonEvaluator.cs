@@ -168,8 +168,9 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
         if (string.IsNullOrWhiteSpace(canonicalSql))
             return false;
 
-        var cacheFields = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-        for (var i = 0; i < keyPairs.Count; i++)
+        var keyPairCount = keyPairs.Count;
+        var cacheFields = new Dictionary<string, object?>(keyPairCount, StringComparer.OrdinalIgnoreCase);
+        for (var i = 0; i < keyPairCount; i++)
         {
             var outerExpr = keyPairs[i].OuterExpr;
             var outerName = AstQueryCorrelatedExistsSupport.FormatCorrelatedLookupCacheFieldName(outerExpr);
@@ -253,14 +254,51 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
 
         var estimatedCount = AstQueryAggregateEvaluator.GetKnownRowCount(rows);
         var presence = new HashSet<string>(StringComparer.Ordinal);
-        var hasInnerFilter = innerFilterExpr is not null;
+        var innerFilter = innerFilterExpr;
 
-        if (rows is List<EvalRow> rowList)
+        if (innerFilter is null)
+        {
+            if (rows is List<EvalRow> rowList)
+            {
+                for (var i = 0; i < rowList.Count; i++)
+                {
+                    var candidate = rowList[i];
+
+                    if (!AstQuerySubqueryLookupSupport.TryBuildCorrelatedLookupCompositeKey(
+                            keyPairs,
+                            candidate,
+                            ctes,
+                            useInnerSide: true,
+                            eval: _eval,
+                            out var compositeKey))
+                        return null;
+
+                    presence.Add(compositeKey);
+                }
+            }
+            else
+            {
+                foreach (var candidate in rows)
+                {
+                    if (!AstQuerySubqueryLookupSupport.TryBuildCorrelatedLookupCompositeKey(
+                            keyPairs,
+                            candidate,
+                            ctes,
+                            useInnerSide: true,
+                            eval: _eval,
+                            out var compositeKey))
+                        return null;
+
+                    presence.Add(compositeKey);
+                }
+            }
+        }
+        else if (rows is List<EvalRow> rowList)
         {
             for (var i = 0; i < rowList.Count; i++)
             {
                 var candidate = rowList[i];
-                if (hasInnerFilter && !_eval(innerFilterExpr!, candidate, null, ctes).ToBool())
+                if (!_eval(innerFilter, candidate, null, ctes).ToBool())
                     continue;
 
                 if (!AstQuerySubqueryLookupSupport.TryBuildCorrelatedLookupCompositeKey(
@@ -279,7 +317,7 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
         {
             foreach (var candidate in rows)
             {
-                if (hasInnerFilter && !_eval(innerFilterExpr!, candidate, null, ctes).ToBool())
+                if (!_eval(innerFilter, candidate, null, ctes).ToBool())
                     continue;
 
                 if (!AstQuerySubqueryLookupSupport.TryBuildCorrelatedLookupCompositeKey(
@@ -398,51 +436,47 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
             return false;
         }
 
-        if (equalsByColumn.Count == 1)
-        {
-            using var enumerator = equalsByColumn.GetEnumerator();
-            if (!enumerator.MoveNext())
-                return true;
+        if (!TryResolveSimpleEqualityColumns(src, equalsByColumn, out var resolvedEqualities))
+            return false;
 
-            var kv = enumerator.Current;
-            if (!src.TryGetQualifiedColumnName(kv.Key, out var qualifiedColumnName)
-                || string.IsNullOrWhiteSpace(qualifiedColumnName))
-            {
-                return false;
-            }
+        return TryExistsWithResolvedEqualities(src, resolvedEqualities, out exists);
+    }
 
-            var qualifiedName = qualifiedColumnName ?? string.Empty;
-
-            foreach (var rawRow in src.Rows())
-            {
-                if (rawRow.TryGetValue(qualifiedName, out var actualValue)
-                    && actualValue.EqualsSql(kv.Value, _context))
-                {
-                    exists = true;
-                    return true;
-                }
-            }
-
-            return true;
-        }
-
-        var resolvedEqualities = new (string QualifiedColumnName, object? Value)[equalsByColumn.Count];
-        var resolvedEqualitiesCount = 0;
+    private bool TryResolveSimpleEqualityColumns(
+        Source src,
+        IReadOnlyDictionary<string, object?> equalsByColumn,
+        out List<(string QualifiedColumnName, object? Value)> resolvedEqualities)
+    {
+        resolvedEqualities = new List<(string QualifiedColumnName, object? Value)>(equalsByColumn.Count);
         foreach (var kv in equalsByColumn)
         {
             if (!src.TryGetQualifiedColumnName(kv.Key, out var qualifiedColumnName)
                 || string.IsNullOrWhiteSpace(qualifiedColumnName))
             {
+                resolvedEqualities = [];
                 return false;
             }
 
-            resolvedEqualities[resolvedEqualitiesCount++] = (qualifiedColumnName!, kv.Value);
+            resolvedEqualities.Add((qualifiedColumnName!, kv.Value));
         }
+
+        return true;
+    }
+
+    private bool TryExistsWithResolvedEqualities(
+        Source src,
+        IReadOnlyList<(string QualifiedColumnName, object? Value)> resolvedEqualities,
+        out bool exists)
+    {
+        exists = false;
+
+        if (resolvedEqualities.Count == 0)
+            return true;
 
         foreach (var rawRow in src.Rows())
         {
             var matches = true;
-            for (var i = 0; i < resolvedEqualitiesCount; i++)
+            for (var i = 0; i < resolvedEqualities.Count; i++)
             {
                 var equality = resolvedEqualities[i];
                 if (!rawRow.TryGetValue(equality.QualifiedColumnName, out var actualValue)
@@ -738,13 +772,51 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
         var compositeCounts = estimatedCount > 0
             ? new Dictionary<string, int>(estimatedCount, StringComparer.Ordinal)
             : new Dictionary<string, int>(StringComparer.Ordinal);
-        var hasInnerFilter = innerFilterExpr is not null;
-        if (rows is List<EvalRow> rowList)
+        var innerFilter = innerFilterExpr;
+
+        if (innerFilter is null)
+        {
+            if (rows is List<EvalRow> rowList)
+            {
+                for (var i = 0; i < rowList.Count; i++)
+                {
+                    var candidate = rowList[i];
+
+                    if (!AstQuerySubqueryLookupSupport.TryBuildCorrelatedLookupCompositeKey(
+                            keyPairs,
+                            candidate,
+                            ctes,
+                            useInnerSide: true,
+                            eval: _eval,
+                            out var compositeKey))
+                        return null;
+
+                    IncrementCount(compositeCounts, compositeKey);
+                }
+            }
+            else
+            {
+                foreach (var candidate in rows)
+                {
+                    if (!AstQuerySubqueryLookupSupport.TryBuildCorrelatedLookupCompositeKey(
+                            keyPairs,
+                            candidate,
+                            ctes,
+                            useInnerSide: true,
+                            eval: _eval,
+                            out var compositeKey))
+                        return null;
+
+                    IncrementCount(compositeCounts, compositeKey);
+                }
+            }
+        }
+        else if (rows is List<EvalRow> rowList)
         {
             for (var i = 0; i < rowList.Count; i++)
             {
                 var candidate = rowList[i];
-                if (hasInnerFilter && !_eval(innerFilterExpr!, candidate, null, ctes).ToBool())
+                if (!_eval(innerFilter, candidate, null, ctes).ToBool())
                     continue;
 
                 if (!AstQuerySubqueryLookupSupport.TryBuildCorrelatedLookupCompositeKey(
@@ -756,17 +828,14 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
                         out var compositeKey))
                     return null;
 
-                if (compositeCounts.TryGetValue(compositeKey, out var currentCount))
-                    compositeCounts[compositeKey] = currentCount + 1;
-                else
-                    compositeCounts[compositeKey] = 1;
+                IncrementCount(compositeCounts, compositeKey);
             }
         }
         else
         {
             foreach (var candidate in rows)
             {
-                if (hasInnerFilter && !_eval(innerFilterExpr!, candidate, null, ctes).ToBool())
+                if (!_eval(innerFilter, candidate, null, ctes).ToBool())
                     continue;
 
                 if (!AstQuerySubqueryLookupSupport.TryBuildCorrelatedLookupCompositeKey(
@@ -778,13 +847,21 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
                         out var compositeKey))
                     return null;
 
-                if (compositeCounts.TryGetValue(compositeKey, out var currentCount))
-                    compositeCounts[compositeKey] = currentCount + 1;
-                else
-                    compositeCounts[compositeKey] = 1;
+                IncrementCount(compositeCounts, compositeKey);
             }
         }
 
         return new CorrelatedCountLookupState(compositeCounts, keyPairs, innerFilterExpr);
+    }
+
+    private static void IncrementCount(Dictionary<string, int> counts, string key)
+    {
+        if (counts.TryGetValue(key, out var currentCount))
+        {
+            counts[key] = currentCount + 1;
+            return;
+        }
+
+        counts[key] = 1;
     }
 }

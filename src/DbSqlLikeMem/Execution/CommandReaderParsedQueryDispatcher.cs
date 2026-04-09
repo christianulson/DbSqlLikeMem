@@ -20,54 +20,79 @@ internal static class CommandReaderParsedQueryDispatcher
         if (connection.Metrics.Enabled)
             connection.Metrics.IncrementReaderQueryTypeHit(query.GetType().Name);
 
+        DispatchParsedReaderQueryCore(
+            connection,
+            query,
+            pars,
+            executor,
+            tables,
+            executeInsert,
+            executeUpdate,
+            executeDelete,
+            executeMerge,
+            context: null);
+    }
+
+    private static void DispatchParsedReaderQueryCore(
+        DbConnectionMockBase connection,
+        SqlQueryBase query,
+        DbParameterCollection pars,
+        IAstQueryExecutor executor,
+        ICollection<TableResultMock> tables,
+        Func<SqlInsertQuery, TableResultMock?>? executeInsert,
+        Func<SqlUpdateQuery, TableResultMock?>? executeUpdate,
+        Func<SqlDeleteQuery, TableResultMock?>? executeDelete,
+        Action<SqlMergeQuery>? executeMerge,
+        QueryExecutionContext? context)
+    {
         switch (query)
         {
             case SqlCreateTemporaryTableQuery tempQ:
-                connection.ExecuteCreateTemporaryTableAsSelect(tempQ, pars, connection.ExecutionDialect);
+                ExecuteCreateTemporaryTableAsSelect(connection, tempQ, pars, context);
                 break;
             case SqlCreateViewQuery viewQ:
-                connection.ExecuteCreateView(viewQ, pars, connection.ExecutionDialect);
+                ExecuteCreateView(connection, viewQ, pars, context);
                 break;
             case SqlAlterTableAddColumnQuery alterAddColumnQ:
-                connection.ExecuteAlterTableAddColumn(alterAddColumnQ, pars, connection.ExecutionDialect);
+                ExecuteAlterTableAddColumn(connection, alterAddColumnQ, pars, context);
                 break;
             case SqlAlterSequenceQuery alterSequenceQ:
-                connection.ExecuteAlterSequence(alterSequenceQ, pars, connection.ExecutionDialect);
+                ExecuteAlterSequence(connection, alterSequenceQ, pars, context);
                 break;
             case SqlCreateIndexQuery createIndexQ:
-                connection.ExecuteCreateIndex(createIndexQ, pars, connection.ExecutionDialect);
+                ExecuteCreateIndex(connection, createIndexQ, pars, context);
                 break;
             case SqlCreateSequenceQuery createSequenceQ:
-                connection.ExecuteCreateSequence(createSequenceQ, pars, connection.ExecutionDialect);
+                ExecuteCreateSequence(connection, createSequenceQ, pars, context);
                 break;
             case SqlCreateProcedureQuery createProcedureQ:
-                connection.ExecuteCreateProcedure(createProcedureQ, pars, connection.ExecutionDialect);
+                ExecuteCreateProcedure(connection, createProcedureQ, pars, context);
                 break;
             case SqlDropViewQuery dropViewQ:
-                connection.ExecuteDropView(dropViewQ, pars, connection.ExecutionDialect);
+                ExecuteDropView(connection, dropViewQ, pars, context);
                 break;
             case SqlDropTableQuery dropTableQ:
-                connection.ExecuteDropTable(dropTableQ, pars, connection.ExecutionDialect);
+                ExecuteDropTable(connection, dropTableQ, pars, context);
                 break;
             case SqlDropIndexQuery dropIndexQ:
-                connection.ExecuteDropIndex(dropIndexQ, pars, connection.ExecutionDialect);
+                ExecuteDropIndex(connection, dropIndexQ, pars, context);
                 break;
             case SqlDropSequenceQuery dropSequenceQ:
-                connection.ExecuteDropSequence(dropSequenceQ, pars, connection.ExecutionDialect);
+                ExecuteDropSequence(connection, dropSequenceQ, pars, context);
                 break;
             case SqlDropProcedureQuery dropProcedureQ:
-                connection.ExecuteDropProcedure(dropProcedureQ, pars, connection.ExecutionDialect);
+                ExecuteDropProcedure(connection, dropProcedureQ, pars, context);
                 break;
             case SqlDropTriggerQuery dropTriggerQ:
-                connection.ExecuteDropTrigger(dropTriggerQ, pars, connection.ExecutionDialect);
+                ExecuteDropTrigger(connection, dropTriggerQ, pars, context);
                 break;
             case SqlExecuteBlockQuery executeBlockQ:
-                connection.ExecuteExecuteBlock(executeBlockQ, pars, connection.ExecutionDialect);
+                ExecuteExecuteBlock(connection, executeBlockQ, pars, context);
                 break;
             case SqlInsertQuery insertQ:
                 if (executeInsert is null)
                 {
-                    connection.ExecuteInsert(insertQ, pars, connection.ExecutionDialect);
+                    ExecuteInsert(connection, insertQ, pars, context);
                 }
                 else
                 {
@@ -79,7 +104,7 @@ internal static class CommandReaderParsedQueryDispatcher
             case SqlUpdateQuery updateQ:
                 if (executeUpdate is null)
                 {
-                    connection.ExecuteUpdateSmart(updateQ, pars, connection.ExecutionDialect);
+                    ExecuteUpdateSmart(connection, updateQ, pars, context);
                 }
                 else
                 {
@@ -91,7 +116,7 @@ internal static class CommandReaderParsedQueryDispatcher
             case SqlDeleteQuery deleteQ:
                 if (executeDelete is null)
                 {
-                    connection.ExecuteDeleteSmart(deleteQ, pars, connection.ExecutionDialect);
+                    ExecuteDeleteSmart(connection, deleteQ, pars, context);
                 }
                 else
                 {
@@ -115,7 +140,7 @@ internal static class CommandReaderParsedQueryDispatcher
                     unionQ.RawSql));
                 break;
             default:
-                throw SqlUnsupported.NotSupportedCommandType(connection.ExecutionDialect, "ExecuteReader", query.GetType());
+                throw SqlUnsupported.NotSupportedCommandType(GetDialect(connection, context), "ExecuteReader", query.GetType());
         }
     }
 
@@ -137,97 +162,223 @@ internal static class CommandReaderParsedQueryDispatcher
         if (context.MetricsEnabled)
             context.Metrics.IncrementReaderQueryTypeHit(query.GetType().Name);
 
-        switch (query)
-        {
-            case SqlCreateTemporaryTableQuery tempQ:
-                connection.ExecuteCreateTemporaryTableAsSelect(tempQ, context.DbParameters, context.Dialect);
-                break;
-            case SqlCreateViewQuery viewQ:
-                connection.ExecuteCreateView(viewQ, context.DbParameters, context.Dialect);
-                break;
-            case SqlAlterTableAddColumnQuery alterAddColumnQ:
-                connection.ExecuteAlterTableAddColumn(alterAddColumnQ, context.DbParameters, context.Dialect);
-                break;
-            case SqlAlterSequenceQuery alterSequenceQ:
-                connection.ExecuteAlterSequence(alterSequenceQ, context.DbParameters, context.Dialect);
-                break;
-            case SqlCreateIndexQuery createIndexQ:
-                connection.ExecuteCreateIndex(createIndexQ, context.DbParameters, context.Dialect);
-                break;
-            case SqlCreateSequenceQuery createSequenceQ:
-                connection.ExecuteCreateSequence(createSequenceQ, context.DbParameters, context.Dialect);
-                break;
-            case SqlCreateProcedureQuery createProcedureQ:
-                connection.ExecuteCreateProcedure(createProcedureQ, context.DbParameters, context.Dialect);
-                break;
-            case SqlDropViewQuery dropViewQ:
-                connection.ExecuteDropView(dropViewQ, context.DbParameters, context.Dialect);
-                break;
-            case SqlDropTableQuery dropTableQ:
-                connection.ExecuteDropTable(dropTableQ, context.DbParameters, context.Dialect);
-                break;
-            case SqlDropIndexQuery dropIndexQ:
-                connection.ExecuteDropIndex(dropIndexQ, context.DbParameters, context.Dialect);
-                break;
-            case SqlDropSequenceQuery dropSequenceQ:
-                connection.ExecuteDropSequence(dropSequenceQ, context.DbParameters, context.Dialect);
-                break;
-            case SqlDropProcedureQuery dropProcedureQ:
-                connection.ExecuteDropProcedure(dropProcedureQ, context.DbParameters, context.Dialect);
-                break;
-            case SqlDropTriggerQuery dropTriggerQ:
-                connection.ExecuteDropTrigger(dropTriggerQ, context.DbParameters, context.Dialect);
-                break;
-            case SqlExecuteBlockQuery executeBlockQ:
-                connection.ExecuteExecuteBlock(executeBlockQ, context.DbParameters, context.Dialect);
-                break;
-            case SqlInsertQuery insertQ:
-                if (executeInsert is null)
-                {
-                    connection.ExecuteInsert(insertQ, context);
-                }
-                else
-                {
-                    var result = executeInsert(insertQ);
-                    if (result is not null)
-                        tables.Add(result);
-                }
-                break;
-            case SqlUpdateQuery updateQ:
-                if (executeUpdate is null)
-                {
-                    connection.ExecuteUpdateSmart(updateQ, context);
-                }
-                else
-                {
-                    var result = executeUpdate(updateQ);
-                    if (result is not null)
-                        tables.Add(result);
-                }
-                break;
-            case SqlDeleteQuery deleteQ:
-                if (executeDelete is null)
-                {
-                    connection.ExecuteDeleteSmart(deleteQ, context);
-                }
-                else
-                {
-                    var result = executeDelete(deleteQ);
-                    if (result is not null)
-                        tables.Add(result);
-                }
-                break;
-            case SqlMergeQuery mergeQ when executeMerge is not null:
-                executeMerge(mergeQ);
-                break;
-            case SqlSelectQuery selectQ:
-                tables.Add(executor.ExecuteSelect(selectQ));
-                break;
-            case SqlUnionQuery unionQ:
-                tables.Add(executor.ExecuteUnion(unionQ.Parts, unionQ.AllFlags, unionQ.OrderBy, unionQ.RowLimit, unionQ.RawSql));
-                break;
-            default:
-                throw SqlUnsupported.NotSupportedCommandType(context.Dialect, "ExecuteReader", query.GetType());
-        }
+        DispatchParsedReaderQueryCore(
+            connection,
+            query,
+            context.DbParameters,
+            executor,
+            tables,
+            executeInsert,
+            executeUpdate,
+            executeDelete,
+            executeMerge,
+            context);
+    }
+
+    private static ISqlDialect GetDialect(DbConnectionMockBase connection, QueryExecutionContext? context)
+        => context?.Dialect ?? connection.ExecutionDialect;
+
+    private static void ExecuteCreateTemporaryTableAsSelect(
+        DbConnectionMockBase connection,
+        SqlCreateTemporaryTableQuery query,
+        DbParameterCollection pars,
+        QueryExecutionContext? context)
+    {
+        if (context is null)
+            connection.ExecuteCreateTemporaryTableAsSelect(query, pars, connection.ExecutionDialect);
+        else
+            connection.ExecuteCreateTemporaryTableAsSelect(query, context.DbParameters, context.Dialect);
+    }
+
+    private static void ExecuteCreateView(
+        DbConnectionMockBase connection,
+        SqlCreateViewQuery query,
+        DbParameterCollection pars,
+        QueryExecutionContext? context)
+    {
+        if (context is null)
+            connection.ExecuteCreateView(query, pars, connection.ExecutionDialect);
+        else
+            connection.ExecuteCreateView(query, context.DbParameters, context.Dialect);
+    }
+
+    private static void ExecuteAlterTableAddColumn(
+        DbConnectionMockBase connection,
+        SqlAlterTableAddColumnQuery query,
+        DbParameterCollection pars,
+        QueryExecutionContext? context)
+    {
+        if (context is null)
+            connection.ExecuteAlterTableAddColumn(query, pars, connection.ExecutionDialect);
+        else
+            connection.ExecuteAlterTableAddColumn(query, context.DbParameters, context.Dialect);
+    }
+
+    private static void ExecuteAlterSequence(
+        DbConnectionMockBase connection,
+        SqlAlterSequenceQuery query,
+        DbParameterCollection pars,
+        QueryExecutionContext? context)
+    {
+        if (context is null)
+            connection.ExecuteAlterSequence(query, pars, connection.ExecutionDialect);
+        else
+            connection.ExecuteAlterSequence(query, context.DbParameters, context.Dialect);
+    }
+
+    private static void ExecuteCreateIndex(
+        DbConnectionMockBase connection,
+        SqlCreateIndexQuery query,
+        DbParameterCollection pars,
+        QueryExecutionContext? context)
+    {
+        if (context is null)
+            connection.ExecuteCreateIndex(query, pars, connection.ExecutionDialect);
+        else
+            connection.ExecuteCreateIndex(query, context.DbParameters, context.Dialect);
+    }
+
+    private static void ExecuteCreateSequence(
+        DbConnectionMockBase connection,
+        SqlCreateSequenceQuery query,
+        DbParameterCollection pars,
+        QueryExecutionContext? context)
+    {
+        if (context is null)
+            connection.ExecuteCreateSequence(query, pars, connection.ExecutionDialect);
+        else
+            connection.ExecuteCreateSequence(query, context.DbParameters, context.Dialect);
+    }
+
+    private static void ExecuteCreateProcedure(
+        DbConnectionMockBase connection,
+        SqlCreateProcedureQuery query,
+        DbParameterCollection pars,
+        QueryExecutionContext? context)
+    {
+        if (context is null)
+            connection.ExecuteCreateProcedure(query, pars, connection.ExecutionDialect);
+        else
+            connection.ExecuteCreateProcedure(query, context.DbParameters, context.Dialect);
+    }
+
+    private static void ExecuteDropView(
+        DbConnectionMockBase connection,
+        SqlDropViewQuery query,
+        DbParameterCollection pars,
+        QueryExecutionContext? context)
+    {
+        if (context is null)
+            connection.ExecuteDropView(query, pars, connection.ExecutionDialect);
+        else
+            connection.ExecuteDropView(query, context.DbParameters, context.Dialect);
+    }
+
+    private static void ExecuteDropTable(
+        DbConnectionMockBase connection,
+        SqlDropTableQuery query,
+        DbParameterCollection pars,
+        QueryExecutionContext? context)
+    {
+        if (context is null)
+            connection.ExecuteDropTable(query, pars, connection.ExecutionDialect);
+        else
+            connection.ExecuteDropTable(query, context.DbParameters, context.Dialect);
+    }
+
+    private static void ExecuteDropIndex(
+        DbConnectionMockBase connection,
+        SqlDropIndexQuery query,
+        DbParameterCollection pars,
+        QueryExecutionContext? context)
+    {
+        if (context is null)
+            connection.ExecuteDropIndex(query, pars, connection.ExecutionDialect);
+        else
+            connection.ExecuteDropIndex(query, context.DbParameters, context.Dialect);
+    }
+
+    private static void ExecuteDropSequence(
+        DbConnectionMockBase connection,
+        SqlDropSequenceQuery query,
+        DbParameterCollection pars,
+        QueryExecutionContext? context)
+    {
+        if (context is null)
+            connection.ExecuteDropSequence(query, pars, connection.ExecutionDialect);
+        else
+            connection.ExecuteDropSequence(query, context.DbParameters, context.Dialect);
+    }
+
+    private static void ExecuteDropProcedure(
+        DbConnectionMockBase connection,
+        SqlDropProcedureQuery query,
+        DbParameterCollection pars,
+        QueryExecutionContext? context)
+    {
+        if (context is null)
+            connection.ExecuteDropProcedure(query, pars, connection.ExecutionDialect);
+        else
+            connection.ExecuteDropProcedure(query, context.DbParameters, context.Dialect);
+    }
+
+    private static void ExecuteDropTrigger(
+        DbConnectionMockBase connection,
+        SqlDropTriggerQuery query,
+        DbParameterCollection pars,
+        QueryExecutionContext? context)
+    {
+        if (context is null)
+            connection.ExecuteDropTrigger(query, pars, connection.ExecutionDialect);
+        else
+            connection.ExecuteDropTrigger(query, context.DbParameters, context.Dialect);
+    }
+
+    private static void ExecuteExecuteBlock(
+        DbConnectionMockBase connection,
+        SqlExecuteBlockQuery query,
+        DbParameterCollection pars,
+        QueryExecutionContext? context)
+    {
+        if (context is null)
+            connection.ExecuteExecuteBlock(query, pars, connection.ExecutionDialect);
+        else
+            connection.ExecuteExecuteBlock(query, context.DbParameters, context.Dialect);
+    }
+
+    private static void ExecuteInsert(
+        DbConnectionMockBase connection,
+        SqlInsertQuery query,
+        DbParameterCollection pars,
+        QueryExecutionContext? context)
+    {
+        if (context is null)
+            connection.ExecuteInsert(query, pars, connection.ExecutionDialect);
+        else
+            connection.ExecuteInsert(query, context);
+    }
+
+    private static void ExecuteUpdateSmart(
+        DbConnectionMockBase connection,
+        SqlUpdateQuery query,
+        DbParameterCollection pars,
+        QueryExecutionContext? context)
+    {
+        if (context is null)
+            connection.ExecuteUpdateSmart(query, pars, connection.ExecutionDialect);
+        else
+            connection.ExecuteUpdateSmart(query, context);
+    }
+
+    private static void ExecuteDeleteSmart(
+        DbConnectionMockBase connection,
+        SqlDeleteQuery query,
+        DbParameterCollection pars,
+        QueryExecutionContext? context)
+    {
+        if (context is null)
+            connection.ExecuteDeleteSmart(query, pars, connection.ExecutionDialect);
+        else
+            connection.ExecuteDeleteSmart(query, context);
     }
 }

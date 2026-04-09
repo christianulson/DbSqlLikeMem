@@ -6,12 +6,13 @@ internal static class AstQueryInSubqueryLookupBuilder
         List<object?>? values)
     {
         var safeValues = values ?? [];
-        if (safeValues.Count == 0)
+        var safeValuesCount = safeValues.Count;
+        if (safeValuesCount == 0)
             return new AstQueryExecutorBase.InSubqueryLookupState(safeValues, [], null, null, HasNullCandidate: false);
 
         var hasNullCandidate = false;
         var scalarCandidates = new HashSet<AstQueryExecutorBase.InLookupScalarKey>();
-        for (var i = 0; i < safeValues.Count; i++)
+        for (var i = 0; i < safeValuesCount; i++)
         {
             var value = safeValues[i];
             if (AstQueryBinarySupportHelper.IsSqlNullLike(value))
@@ -32,12 +33,13 @@ internal static class AstQueryInSubqueryLookupBuilder
     internal static AstQueryExecutorBase.InSubqueryLookupState BuildRowState(
         List<object?[]> values)
     {
-        if (values.Count == 0)
-            return new AstQueryExecutorBase.InSubqueryLookupState([], null, values, new HashSet<string>(StringComparer.Ordinal), HasNullCandidate: false);
+        var valuesCount = values.Count;
+        if (valuesCount == 0)
+            return new AstQueryExecutorBase.InSubqueryLookupState([], null, values, null, HasNullCandidate: false);
 
         var hasNullCandidate = false;
         var rowCandidates = new HashSet<string>(StringComparer.Ordinal);
-        for (var i = 0; i < values.Count; i++)
+        for (var i = 0; i < valuesCount; i++)
         {
             var value = values[i];
             if (AstQueryBinarySupportHelper.HasNullElement(value))

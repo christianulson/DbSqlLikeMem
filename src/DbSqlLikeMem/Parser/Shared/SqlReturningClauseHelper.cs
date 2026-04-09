@@ -105,38 +105,27 @@ internal static class SqlReturningClauseHelper
         switch (expr)
         {
             case CallExpr call:
-                if (IsAggregateFunctionName(call.Name))
-                    return true;
-                return call.Args.Any(ContainsAggregateFunction);
+                return ContainsAggregateFunctionInCall(call.Name, call.Args);
             case FunctionCallExpr fn:
-                if (IsAggregateFunctionName(fn.Name))
-                    return true;
-                return fn.Args.Any(ContainsAggregateFunction);
+                return ContainsAggregateFunctionInCall(fn.Name, fn.Args);
             case UnaryExpr unary:
                 return ContainsAggregateFunction(unary.Expr);
             case BinaryExpr binary:
-                return ContainsAggregateFunction(binary.Left) || ContainsAggregateFunction(binary.Right);
+                return ContainsAggregateFunctionInBinary(binary);
             case InExpr inExpr:
                 return ContainsAggregateFunction(inExpr.Left) || inExpr.Items.Any(ContainsAggregateFunction);
             case LikeExpr likeExpr:
-                return ContainsAggregateFunction(likeExpr.Left)
-                    || ContainsAggregateFunction(likeExpr.Pattern)
-                    || (likeExpr.Escape is not null && ContainsAggregateFunction(likeExpr.Escape));
+                return ContainsAggregateFunctionInLike(likeExpr);
             case IsNullExpr isNullExpr:
                 return ContainsAggregateFunction(isNullExpr.Expr);
             case RowExpr rowExpr:
-                return rowExpr.Items.Any(ContainsAggregateFunction);
+                return ContainsAggregateFunctionInRow(rowExpr);
             case CaseExpr caseExpr:
-                return (caseExpr.BaseExpr is not null && ContainsAggregateFunction(caseExpr.BaseExpr))
-                    || caseExpr.Whens.Any(when => ContainsAggregateFunction(when.When) || ContainsAggregateFunction(when.Then))
-                    || (caseExpr.ElseExpr is not null && ContainsAggregateFunction(caseExpr.ElseExpr));
+                return ContainsAggregateFunctionInCase(caseExpr);
             case WindowFunctionExpr windowExpr:
-                return windowExpr.Args.Any(ContainsAggregateFunction)
-                    || windowExpr.Spec.PartitionBy.Any(ContainsAggregateFunction)
-                    || windowExpr.Spec.OrderBy.Any(item => ContainsAggregateFunction(item.Expr));
+                return ContainsAggregateFunctionInWindow(windowExpr);
             case JsonAccessExpr jsonAccessExpr:
-                return ContainsAggregateFunction(jsonAccessExpr.Target)
-                    || ContainsAggregateFunction(jsonAccessExpr.Path);
+                return ContainsAggregateFunctionInJsonAccess(jsonAccessExpr);
             case QuantifiedComparisonExpr quantifiedComparisonExpr:
                 return ContainsAggregateFunction(quantifiedComparisonExpr.Left);
             case ExistsExpr:
@@ -145,6 +134,34 @@ internal static class SqlReturningClauseHelper
                 return false;
         }
     }
+
+    private static bool ContainsAggregateFunctionInCall(string name, IReadOnlyList<SqlExpr> args)
+        => IsAggregateFunctionName(name) || args.Any(ContainsAggregateFunction);
+
+    private static bool ContainsAggregateFunctionInBinary(BinaryExpr binary)
+        => ContainsAggregateFunction(binary.Left) || ContainsAggregateFunction(binary.Right);
+
+    private static bool ContainsAggregateFunctionInLike(LikeExpr likeExpr)
+        => ContainsAggregateFunction(likeExpr.Left)
+           || ContainsAggregateFunction(likeExpr.Pattern)
+           || (likeExpr.Escape is not null && ContainsAggregateFunction(likeExpr.Escape));
+
+    private static bool ContainsAggregateFunctionInRow(RowExpr rowExpr)
+        => rowExpr.Items.Any(ContainsAggregateFunction);
+
+    private static bool ContainsAggregateFunctionInCase(CaseExpr caseExpr)
+        => (caseExpr.BaseExpr is not null && ContainsAggregateFunction(caseExpr.BaseExpr))
+           || caseExpr.Whens.Any(when => ContainsAggregateFunction(when.When) || ContainsAggregateFunction(when.Then))
+           || (caseExpr.ElseExpr is not null && ContainsAggregateFunction(caseExpr.ElseExpr));
+
+    private static bool ContainsAggregateFunctionInWindow(WindowFunctionExpr windowExpr)
+        => windowExpr.Args.Any(ContainsAggregateFunction)
+           || windowExpr.Spec.PartitionBy.Any(ContainsAggregateFunction)
+           || windowExpr.Spec.OrderBy.Any(item => ContainsAggregateFunction(item.Expr));
+
+    private static bool ContainsAggregateFunctionInJsonAccess(JsonAccessExpr jsonAccessExpr)
+        => ContainsAggregateFunction(jsonAccessExpr.Target)
+           || ContainsAggregateFunction(jsonAccessExpr.Path);
 
     private static bool IsAggregateFunctionName(string name)
     {

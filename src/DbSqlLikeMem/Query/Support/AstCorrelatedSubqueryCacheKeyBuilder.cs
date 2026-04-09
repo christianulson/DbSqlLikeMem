@@ -81,8 +81,10 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
         StringBuilder sb,
         IReadOnlyList<KeyValuePair<string, object?>> cacheFields)
     {
-        foreach (var kv in cacheFields)
+        var cacheFieldCount = cacheFields.Count;
+        for (var i = 0; i < cacheFieldCount; i++)
         {
+            var kv = cacheFields[i];
             sb.Append(kv.Key);
             sb.Append('=');
             sb.Append(NormalizeSubqueryCacheValue(kv.Value));
@@ -146,11 +148,13 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     private static List<KeyValuePair<string, object?>> GetOrderedCorrelatedSubqueryCacheFields(AstQueryExecutorBase.EvalRow row)
     {
+        var fieldCount = row.Fields.Count;
+
         if (row.OrdinalIndexes is null
             || row.OrdinalValues is null
             || row.OrdinalIndexes.Count == 0)
         {
-            var fields = new List<KeyValuePair<string, object?>>(row.Fields.Count);
+            var fields = new List<KeyValuePair<string, object?>>(fieldCount);
             foreach (var kv in row.Fields)
                 fields.Add(kv);
 
@@ -158,7 +162,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
             return fields;
         }
 
-        var ordered = new List<KeyValuePair<string, object?>>(row.Fields.Count);
+        var ordered = new List<KeyValuePair<string, object?>>(fieldCount);
         var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         var ordinalIndexes = new List<KeyValuePair<string, int>>(row.OrdinalIndexes.Count);
@@ -188,9 +192,10 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
             ordered.Add(new KeyValuePair<string, object?>(kv.Key, row.OrdinalValues[kv.Value]));
         }
 
-        if (visited.Count < row.Fields.Count)
+        var visitedCount = visited.Count;
+        if (visitedCount < fieldCount)
         {
-            var remaining = new List<KeyValuePair<string, object?>>(row.Fields.Count);
+            var remaining = new List<KeyValuePair<string, object?>>(fieldCount - visitedCount);
             foreach (var kv in row.Fields)
                 remaining.Add(kv);
 
@@ -278,11 +283,11 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
     /// </summary>
     private static HashSet<string> ExtractQualifiedSqlIdentifiers(string sql)
     {
-        var identifiers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         if (string.IsNullOrWhiteSpace(sql))
-            return identifiers;
+            return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         var matches = _qualifiedSqlIdentifierRegex.Matches(sql);
+        var identifiers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (Match match in matches)
         {
@@ -301,11 +306,12 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
         string sql,
         IReadOnlyList<KeyValuePair<string, object?>> fields)
     {
-        if (string.IsNullOrWhiteSpace(sql) || fields.Count == 0)
+        var fieldCount = fields.Count;
+        if (string.IsNullOrWhiteSpace(sql) || fieldCount == 0)
             return false;
 
         var qualifiers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        for (var i = 0; i < fields.Count; i++)
+        for (var i = 0; i < fieldCount; i++)
         {
             var key = fields[i].Key;
             var dot = key.IndexOf('.');
@@ -497,11 +503,12 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
     /// </summary>
     private static IReadOnlyDictionary<string, string> ExtractSubqueryAliasMap(string sql)
     {
-        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         if (string.IsNullOrWhiteSpace(sql))
-            return map;
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         var matches = _subqueryAliasDeclarationRegex.Matches(sql);
+        var map = new Dictionary<string, string>(matches.Count, StringComparer.OrdinalIgnoreCase);
+        var nextAliasIndex = 1;
 
         foreach (Match match in matches)
         {
@@ -512,8 +519,8 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
             if (string.IsNullOrWhiteSpace(alias) || _sqlAliasReservedTokens.Contains(alias))
                 continue;
 
-            if (!map.ContainsKey(alias))
-                map[alias] = $"T{map.Count + 1}";
+            if (map.TryAdd(alias, $"T{nextAliasIndex}"))
+                nextAliasIndex++;
         }
 
         return map;
@@ -554,18 +561,20 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
         if (string.IsNullOrWhiteSpace(sql) || string.IsNullOrWhiteSpace(alias))
             return sql;
 
-        var sb = new StringBuilder(sql.Length);
+        var sqlLength = sql.Length;
+        var aliasLength = alias.Length;
+        var sb = new StringBuilder(sqlLength);
 
-        for (var i = 0; i < sql.Length; i++)
+        for (var i = 0; i < sqlLength; i++)
         {
             if (TryAppendProtectedSqlSegment(sql, ref i, sb))
                 continue;
 
-            if (IsAliasQualifierReferenceAt(sql, i, alias))
+            if (IsAliasQualifierReferenceAt(sql, i, alias, sqlLength, aliasLength))
             {
                 sb.Append(replacementAlias);
                 sb.Append('.');
-                i += alias.Length;
+                i += aliasLength;
                 continue;
             }
 
@@ -582,24 +591,26 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
     private static bool IsAliasQualifierReferenceAt(
         string sql,
         int startIndex,
-        string alias)
+        string alias,
+        int sqlLength,
+        int aliasLength)
     {
-        if (startIndex < 0 || startIndex >= sql.Length || string.IsNullOrWhiteSpace(alias))
+        if (startIndex < 0 || startIndex >= sqlLength || string.IsNullOrWhiteSpace(alias))
             return false;
 
-        if (startIndex + alias.Length >= sql.Length)
+        if (startIndex + aliasLength >= sqlLength)
             return false;
 
         if (startIndex > 0 && IsSqlIdentifierChar(sql[startIndex - 1]))
             return false;
 
-        for (var i = 0; i < alias.Length; i++)
+        for (var i = 0; i < aliasLength; i++)
         {
             if (char.ToUpperInvariant(sql[startIndex + i]) != char.ToUpperInvariant(alias[i]))
                 return false;
         }
 
-        return sql[startIndex + alias.Length] == '.';
+        return sql[startIndex + aliasLength] == '.';
     }
 
     /// <summary>
@@ -1345,8 +1356,9 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
         if (value is object?[] tuple)
         {
-            var parts = new string[tuple.Length];
-            for (var i = 0; i < tuple.Length; i++)
+            var tupleCount = tuple.Length;
+            var parts = new string[tupleCount];
+            for (var i = 0; i < tupleCount; i++)
                 parts[i] = NormalizeSubqueryCacheValue(tuple[i]);
 
             return "[" + string.Join(",", parts) + "]";

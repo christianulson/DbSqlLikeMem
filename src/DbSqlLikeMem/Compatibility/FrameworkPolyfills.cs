@@ -94,7 +94,7 @@ namespace System
         /// <summary>
         /// HashCode.ToHashCode - Compatibility
         /// </summary>
-        public int ToHashCode() => _value;
+        public readonly int ToHashCode() => _value;
     }
 }
 #endif

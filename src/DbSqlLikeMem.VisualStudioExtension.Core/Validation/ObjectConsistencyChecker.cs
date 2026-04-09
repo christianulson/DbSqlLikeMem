@@ -149,7 +149,7 @@ public sealed class ObjectConsistencyChecker
         IDatabaseMetadataProvider provider,
         CancellationToken cancellationToken = default)
     {
-        var databaseObject = await provider.GetObjectAsync(connection, snapshot.Reference, cancellationToken);
+        var databaseObject = await provider.GetObjectAsync(connection, snapshot.Reference, cancellationToken).ConfigureAwait(false);
 
         if (databaseObject is null)
         {

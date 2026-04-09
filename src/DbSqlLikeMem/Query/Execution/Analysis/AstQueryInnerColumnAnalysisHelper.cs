@@ -83,48 +83,23 @@ internal static class AstQueryInnerColumnAnalysisHelper
             case IsNullExpr isNull:
                 return ExpressionReferencesInnerColumns(isNull.Expr, source);
             case BinaryExpr binary:
-                return ExpressionReferencesInnerColumns(binary.Left, source)
-                    || ExpressionReferencesInnerColumns(binary.Right, source);
+                return ExpressionReferencesInnerColumnsInBinary(binary, source);
             case LikeExpr like:
-                return ExpressionReferencesInnerColumns(like.Left, source)
-                    || ExpressionReferencesInnerColumns(like.Pattern, source)
-                    || (like.Escape is not null && ExpressionReferencesInnerColumns(like.Escape, source));
+                return ExpressionReferencesInnerColumnsInLike(like, source);
             case InExpr inExpr:
-                if (ExpressionReferencesInnerColumns(inExpr.Left, source))
-                    return true;
-
-                foreach (var item in inExpr.Items)
-                {
-                    if (ExpressionReferencesInnerColumns(item, source))
-                        return true;
-                }
-
-                return false;
+                return ExpressionReferencesInnerColumnsInIn(inExpr, source);
             case BetweenExpr between:
-                return ExpressionReferencesInnerColumns(between.Expr, source)
-                    || ExpressionReferencesInnerColumns(between.Low, source)
-                    || ExpressionReferencesInnerColumns(between.High, source);
+                return ExpressionReferencesInnerColumnsInBetween(between, source);
             case FunctionCallExpr fn:
                 return fn.Args.Any(arg => ExpressionReferencesInnerColumns(arg, source));
             case CallExpr call:
                 return call.Args.Any(arg => ExpressionReferencesInnerColumns(arg, source));
             case JsonAccessExpr json:
-                return ExpressionReferencesInnerColumns(json.Target, source)
-                    || ExpressionReferencesInnerColumns(json.Path, source);
+                return ExpressionReferencesInnerColumnsInJsonAccess(json, source);
             case RowExpr row:
                 return row.Items.Any(item => ExpressionReferencesInnerColumns(item, source));
             case CaseExpr c:
-                if (c.BaseExpr is not null && ExpressionReferencesInnerColumns(c.BaseExpr, source))
-                    return true;
-
-                foreach (var when in c.Whens)
-                {
-                    if (ExpressionReferencesInnerColumns(when.When, source)
-                        || ExpressionReferencesInnerColumns(when.Then, source))
-                        return true;
-                }
-
-                return c.ElseExpr is not null && ExpressionReferencesInnerColumns(c.ElseExpr, source);
+                return ExpressionReferencesInnerColumnsInCase(c, source);
             case SubqueryExpr:
             case RawSqlExpr:
             case StarExpr:
@@ -151,47 +126,116 @@ internal static class AstQueryInnerColumnAnalysisHelper
             case IsNullExpr isNull:
                 return ExpressionUsesOnlyInnerColumnsOrConstants(isNull.Expr, source);
             case BinaryExpr binary:
-                return ExpressionUsesOnlyInnerColumnsOrConstants(binary.Left, source)
-                    && ExpressionUsesOnlyInnerColumnsOrConstants(binary.Right, source);
+                return ExpressionUsesOnlyInnerColumnsOrConstantsInBinary(binary, source);
             case LikeExpr like:
-                return ExpressionUsesOnlyInnerColumnsOrConstants(like.Left, source)
-                    && ExpressionUsesOnlyInnerColumnsOrConstants(like.Pattern, source)
-                    && (like.Escape is null || ExpressionUsesOnlyInnerColumnsOrConstants(like.Escape, source));
+                return ExpressionUsesOnlyInnerColumnsOrConstantsInLike(like, source);
             case InExpr inExpr:
-                if (!ExpressionUsesOnlyInnerColumnsOrConstants(inExpr.Left, source))
-                    return false;
-
-                return inExpr.Items.All(item => ExpressionUsesOnlyInnerColumnsOrConstants(item, source));
+                return ExpressionUsesOnlyInnerColumnsOrConstantsInIn(inExpr, source);
             case BetweenExpr between:
-                return ExpressionUsesOnlyInnerColumnsOrConstants(between.Expr, source)
-                    && ExpressionUsesOnlyInnerColumnsOrConstants(between.Low, source)
-                    && ExpressionUsesOnlyInnerColumnsOrConstants(between.High, source);
+                return ExpressionUsesOnlyInnerColumnsOrConstantsInBetween(between, source);
             case FunctionCallExpr fn:
                 return fn.Args.All(arg => ExpressionUsesOnlyInnerColumnsOrConstants(arg, source));
             case CallExpr call:
                 return call.Args.All(arg => ExpressionUsesOnlyInnerColumnsOrConstants(arg, source));
             case JsonAccessExpr json:
-                return ExpressionUsesOnlyInnerColumnsOrConstants(json.Target, source)
-                    && ExpressionUsesOnlyInnerColumnsOrConstants(json.Path, source);
+                return ExpressionUsesOnlyInnerColumnsOrConstantsInJsonAccess(json, source);
             case RowExpr row:
                 return row.Items.All(item => ExpressionUsesOnlyInnerColumnsOrConstants(item, source));
             case CaseExpr c:
-                if (c.BaseExpr is not null && !ExpressionUsesOnlyInnerColumnsOrConstants(c.BaseExpr, source))
-                    return false;
-
-                foreach (var when in c.Whens)
-                {
-                    if (!ExpressionUsesOnlyInnerColumnsOrConstants(when.When, source)
-                        || !ExpressionUsesOnlyInnerColumnsOrConstants(when.Then, source))
-                        return false;
-                }
-
-                return c.ElseExpr is null || ExpressionUsesOnlyInnerColumnsOrConstants(c.ElseExpr, source);
+                return ExpressionUsesOnlyInnerColumnsOrConstantsInCase(c, source);
             case SubqueryExpr:
             case RawSqlExpr:
             case StarExpr:
             default:
                 return false;
         }
+    }
+
+    private static bool ExpressionReferencesInnerColumnsInBinary(BinaryExpr binary, Source source)
+        => ExpressionReferencesInnerColumns(binary.Left, source)
+           || ExpressionReferencesInnerColumns(binary.Right, source);
+
+    private static bool ExpressionReferencesInnerColumnsInLike(LikeExpr like, Source source)
+        => ExpressionReferencesInnerColumns(like.Left, source)
+           || ExpressionReferencesInnerColumns(like.Pattern, source)
+           || (like.Escape is not null && ExpressionReferencesInnerColumns(like.Escape, source));
+
+    private static bool ExpressionReferencesInnerColumnsInIn(InExpr inExpr, Source source)
+    {
+        if (ExpressionReferencesInnerColumns(inExpr.Left, source))
+            return true;
+
+        foreach (var item in inExpr.Items)
+        {
+            if (ExpressionReferencesInnerColumns(item, source))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool ExpressionReferencesInnerColumnsInBetween(BetweenExpr between, Source source)
+        => ExpressionReferencesInnerColumns(between.Expr, source)
+           || ExpressionReferencesInnerColumns(between.Low, source)
+           || ExpressionReferencesInnerColumns(between.High, source);
+
+    private static bool ExpressionReferencesInnerColumnsInJsonAccess(JsonAccessExpr json, Source source)
+        => ExpressionReferencesInnerColumns(json.Target, source)
+           || ExpressionReferencesInnerColumns(json.Path, source);
+
+    private static bool ExpressionReferencesInnerColumnsInCase(CaseExpr c, Source source)
+    {
+        if (c.BaseExpr is not null && ExpressionReferencesInnerColumns(c.BaseExpr, source))
+            return true;
+
+        foreach (var when in c.Whens)
+        {
+            if (ExpressionReferencesInnerColumns(when.When, source)
+                || ExpressionReferencesInnerColumns(when.Then, source))
+                return true;
+        }
+
+        return c.ElseExpr is not null && ExpressionReferencesInnerColumns(c.ElseExpr, source);
+    }
+
+    private static bool ExpressionUsesOnlyInnerColumnsOrConstantsInBinary(BinaryExpr binary, Source source)
+        => ExpressionUsesOnlyInnerColumnsOrConstants(binary.Left, source)
+           && ExpressionUsesOnlyInnerColumnsOrConstants(binary.Right, source);
+
+    private static bool ExpressionUsesOnlyInnerColumnsOrConstantsInLike(LikeExpr like, Source source)
+        => ExpressionUsesOnlyInnerColumnsOrConstants(like.Left, source)
+           && ExpressionUsesOnlyInnerColumnsOrConstants(like.Pattern, source)
+           && (like.Escape is null || ExpressionUsesOnlyInnerColumnsOrConstants(like.Escape, source));
+
+    private static bool ExpressionUsesOnlyInnerColumnsOrConstantsInIn(InExpr inExpr, Source source)
+    {
+        if (!ExpressionUsesOnlyInnerColumnsOrConstants(inExpr.Left, source))
+            return false;
+
+        return inExpr.Items.All(item => ExpressionUsesOnlyInnerColumnsOrConstants(item, source));
+    }
+
+    private static bool ExpressionUsesOnlyInnerColumnsOrConstantsInBetween(BetweenExpr between, Source source)
+        => ExpressionUsesOnlyInnerColumnsOrConstants(between.Expr, source)
+           && ExpressionUsesOnlyInnerColumnsOrConstants(between.Low, source)
+           && ExpressionUsesOnlyInnerColumnsOrConstants(between.High, source);
+
+    private static bool ExpressionUsesOnlyInnerColumnsOrConstantsInJsonAccess(JsonAccessExpr json, Source source)
+        => ExpressionUsesOnlyInnerColumnsOrConstants(json.Target, source)
+           && ExpressionUsesOnlyInnerColumnsOrConstants(json.Path, source);
+
+    private static bool ExpressionUsesOnlyInnerColumnsOrConstantsInCase(CaseExpr c, Source source)
+    {
+        if (c.BaseExpr is not null && !ExpressionUsesOnlyInnerColumnsOrConstants(c.BaseExpr, source))
+            return false;
+
+        foreach (var when in c.Whens)
+        {
+            if (!ExpressionUsesOnlyInnerColumnsOrConstants(when.When, source)
+                || !ExpressionUsesOnlyInnerColumnsOrConstants(when.Then, source))
+                return false;
+        }
+
+        return c.ElseExpr is null || ExpressionUsesOnlyInnerColumnsOrConstants(c.ElseExpr, source);
     }
 }

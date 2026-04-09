@@ -57,363 +57,23 @@ internal static class AstQueryPostgresJsonFunctionEvaluator
             return false;
         }
 
-        if (name is "TO_JSON" or "TO_JSONB" or "ROW_TO_JSON")
+        return name switch
         {
-            var value = evalArg(0);
-            result = AstQueryExecutorBase.IsNullish(value) ? null : JsonSerializer.Serialize(value);
-            return true;
-        }
-
-        if (name is "JSON_SCALAR" or "JSON_SERIALIZE")
-        {
-            if (!context.Dialect.TryGetScalarFunctionDefinition(name, out _))
-            {
-                result = null;
-                return false;
-            }
-
-            if (fn.Args.Count == 0)
-            {
-                result = null;
-                return true;
-            }
-
-            var value = evalArg(0);
-            if (AstQueryExecutorBase.IsNullish(value))
-            {
-                result = null;
-                return true;
-            }
-
-            if (!TryParseJsonCandidate(value!, out var candidate))
-            {
-                result = null;
-                return true;
-            }
-
-            result = candidate.GetRawText();
-            return true;
-        }
-
-        if (name is "JSONB_PATH_EXISTS" or "JSONB_PATH_QUERY_ARRAY")
-        {
-            if (!context.Dialect.TryGetScalarFunctionDefinition(name, out _))
-            {
-                result = null;
-                return false;
-            }
-
-            if (fn.Args.Count < 2)
-                throw new InvalidOperationException($"{name}() espera JSONB e jsonpath.");
-
-            var value = evalArg(0);
-            var path = evalArg(1)?.ToString();
-            if (AstQueryExecutorBase.IsNullish(value) || string.IsNullOrWhiteSpace(path))
-            {
-                result = null;
-                return true;
-            }
-
-            if (!TryParseJsonElement(value!, out var element))
-            {
-                result = null;
-                return true;
-            }
-
-            if (!TryReadPostgresJsonPath(element, path!, out var target))
-            {
-                result = name == "JSONB_PATH_EXISTS" ? false : "[]";
-                return true;
-            }
-
-            if (name == "JSONB_PATH_EXISTS")
-            {
-                result = true;
-                return true;
-            }
-
-            result = BuildJsonArray([target]);
-            return true;
-        }
-
-        if (name is "JSON_TYPEOF" or "JSONB_TYPEOF")
-        {
-            var value = evalArg(0);
-            if (AstQueryExecutorBase.IsNullish(value))
-            {
-                result = null;
-                return true;
-            }
-
-            if (!TryParseJsonElement(value!, out var element))
-            {
-                result = null;
-                return true;
-            }
-
-            result = element.ValueKind switch
-            {
-                JsonValueKind.Object => "object",
-                JsonValueKind.Array => "array",
-                JsonValueKind.String => "string",
-                JsonValueKind.Number => "number",
-                JsonValueKind.True => "boolean",
-                JsonValueKind.False => "boolean",
-                JsonValueKind.Null => "null",
-                _ => null
-            };
-            return true;
-        }
-
-        if (name is "JSON_ARRAY_LENGTH" or "JSONB_ARRAY_LENGTH")
-        {
-            var value = evalArg(0);
-            if (AstQueryExecutorBase.IsNullish(value))
-            {
-                result = null;
-                return true;
-            }
-
-            if (!TryParseJsonElement(value!, out var element)
-                || element.ValueKind != JsonValueKind.Array)
-            {
-                result = null;
-                return true;
-            }
-
-            result = element.GetArrayLength();
-            return true;
-        }
-
-        if (name is "JSON_BUILD_ARRAY" or "JSONB_BUILD_ARRAY")
-        {
-            var values = new object?[fn.Args.Count];
-            for (var i = 0; i < fn.Args.Count; i++)
-                values[i] = evalArg(i);
-
-            result = BuildJsonArray(values);
-            return true;
-        }
-
-        if (name is "JSON_BUILD_OBJECT" or "JSONB_BUILD_OBJECT")
-        {
-            if (fn.Args.Count % 2 != 0)
-                throw new InvalidOperationException($"{name}() espera um numero par de argumentos.");
-
-            var pairs = new List<(string Key, object? Value)>();
-            for (var i = 0; i < fn.Args.Count; i += 2)
-            {
-                var key = evalArg(i)?.ToString() ?? string.Empty;
-                var val = evalArg(i + 1);
-                pairs.Add((key, val));
-            }
-
-            result = BuildJsonObject(pairs);
-            return true;
-        }
-
-        if (name is "JSON_EXTRACT_PATH" or "JSONB_EXTRACT_PATH" or "JSON_EXTRACT_PATH_TEXT" or "JSONB_EXTRACT_PATH_TEXT")
-        {
-            if (fn.Args.Count == 0)
-            {
-                result = null;
-                return true;
-            }
-
-            var value = evalArg(0);
-            if (AstQueryExecutorBase.IsNullish(value))
-            {
-                result = null;
-                return true;
-            }
-
-            if (!TryParseJsonElement(value!, out var element))
-            {
-                result = null;
-                return true;
-            }
-
-            for (var i = 1; i < fn.Args.Count; i++)
-            {
-                var pathSegment = evalArg(i)?.ToString();
-                JsonElement nextElement;
-                if (string.IsNullOrEmpty(pathSegment)
-                    || !TryReadPostgresJsonPathElement(element, pathSegment!, out nextElement))
-                {
-                    result = null;
-                    return true;
-                }
-
-                element = nextElement;
-            }
-
-            if (name.EndsWith("_TEXT", StringComparison.Ordinal))
-            {
-                result = element.ValueKind switch
-                {
-                    JsonValueKind.String => element.GetString(),
-                    JsonValueKind.Null => null,
-                    _ => element.GetRawText()
-                };
-                return true;
-            }
-
-            result = element.GetRawText();
-            return true;
-        }
-
-        if (name is "JSON_STRIP_NULLS" or "JSONB_STRIP_NULLS")
-        {
-            if (fn.Args.Count == 0)
-            {
-                result = null;
-                return true;
-            }
-
-            var value = evalArg(0);
-            if (AstQueryExecutorBase.IsNullish(value) || !TryParseJsonNode(value!, out var root) || root is null)
-            {
-                result = null;
-                return true;
-            }
-
-            var normalized = AstQueryJsonSharedFunctionEvaluator.CloneJsonNode(root);
-            AstQueryJsonSharedFunctionEvaluator.StripJsonNullProperties(normalized);
-            result = normalized.ToJsonString();
-            return true;
-        }
-
-        if (name is "JSONB_OBJECT")
-        {
-            return TryBuildJsonbObjectFunction(fn, evalArg, out result);
-        }
-
-        if (name is "JSONB_SET" or "JSONB_SET_LAX")
-        {
-            if (fn.Args.Count < 3)
-                throw new InvalidOperationException($"{name}() espera JSON, caminho e novo valor.");
-
-            var json = evalArg(0);
-            var pathValue = evalArg(1);
-            var newValue = evalArg(2);
-            if (AstQueryExecutorBase.IsNullish(json) || AstQueryExecutorBase.IsNullish(pathValue) || !TryParseJsonNode(json!, out var root) || root is null)
-            {
-                result = null;
-                return true;
-            }
-
-            if (!TryParsePostgresJsonPathTokens(pathValue!, out var tokens))
-            {
-                result = null;
-                return true;
-            }
-
-            if (name is "JSONB_SET_LAX" && AstQueryExecutorBase.IsNullish(newValue))
-            {
-                var createIfMissingLax = fn.Args.Count < 4 || Convert.ToBoolean(evalArg(3), CultureInfo.InvariantCulture);
-                var treatment = fn.Args.Count > 4
-                    ? (evalArg(4)?.ToString() ?? "use_json_null").Trim().ToLowerInvariant()
-                    : "use_json_null";
-
-                if (treatment == "return_target")
-                {
-                    result = root.ToJsonString();
-                    return true;
-                }
-
-                if (treatment == "delete_key")
-                {
-                    if (tokens.Count > 0)
-                    {
-                        if (createIfMissingLax || TryGetJsonNodeAtPath(root, tokens, out _))
-                            TryRemoveJsonPathValue(root, tokens);
-                    }
-
-                    result = root.ToJsonString();
-                    return true;
-                }
-
-                if (treatment == "raise_exception")
-                    throw new InvalidOperationException("JSONB_SET_LAX() recebeu null com tratamento raise_exception.");
-
-                newValue = null;
-            }
-
-            var createIfMissing = fn.Args.Count < 4 || Convert.ToBoolean(evalArg(3), CultureInfo.InvariantCulture);
-            if (!createIfMissing && !TryGetJsonNodeAtPath(root, tokens, out _))
-            {
-                result = root.ToJsonString();
-                return true;
-            }
-
-            if (!TrySetJsonPathValue(ref root, tokens, newValue))
-            {
-                result = null;
-                return true;
-            }
-
-            result = root.ToJsonString();
-            return true;
-        }
-
-        if (name is "JSONB_INSERT")
-        {
-            if (fn.Args.Count < 3)
-                throw new InvalidOperationException("JSONB_INSERT() espera JSON, caminho e novo valor.");
-
-            var json = evalArg(0);
-            var pathValue = evalArg(1);
-            var newValue = evalArg(2);
-            var insertAfter = fn.Args.Count > 3 && Convert.ToBoolean(evalArg(3), CultureInfo.InvariantCulture);
-            if (AstQueryExecutorBase.IsNullish(json) || AstQueryExecutorBase.IsNullish(pathValue) || !TryParseJsonNode(json!, out var root) || root is null)
-            {
-                result = null;
-                return true;
-            }
-
-            if (!TryParsePostgresJsonPathTokens(pathValue!, out var tokens)
-                || tokens.Count == 0)
-            {
-                result = null;
-                return true;
-            }
-
-            if (!TryInsertJsonPathValue(root, tokens, newValue, insertAfter))
-            {
-                result = null;
-                return true;
-            }
-
-            result = root.ToJsonString();
-            return true;
-        }
-
-        if (name is "JSONB_PRETTY")
-        {
-            if (fn.Args.Count == 0)
-            {
-                result = null;
-                return true;
-            }
-
-            var value = evalArg(0);
-            if (AstQueryExecutorBase.IsNullish(value) || !TryParseJsonElement(value!, out var element))
-            {
-                result = null;
-                return true;
-            }
-
-            var options = new JsonSerializerOptions
-            {
-                WriteIndented = true
-            };
-            result = JsonSerializer.Serialize(element, options)
-                .Replace("\r\n", "\n");
-            return true;
-        }
-
-        result = null;
-        return false;
+            "TO_JSON" or "TO_JSONB" or "ROW_TO_JSON" => TryEvaluateToJson(evalArg, out result),
+            "JSON_SCALAR" or "JSON_SERIALIZE" => TryEvaluateJsonScalar(context, name, fn, evalArg, out result),
+            "JSONB_PATH_EXISTS" or "JSONB_PATH_QUERY_ARRAY" => TryEvaluateJsonPath(name, context, fn, evalArg, out result),
+            "JSON_TYPEOF" or "JSONB_TYPEOF" => TryEvaluateJsonTypeof(evalArg, out result),
+            "JSON_ARRAY_LENGTH" or "JSONB_ARRAY_LENGTH" => TryEvaluateJsonArrayLength(evalArg, out result),
+            "JSON_BUILD_ARRAY" or "JSONB_BUILD_ARRAY" => TryEvaluateJsonBuildArray(fn, evalArg, out result),
+            "JSON_BUILD_OBJECT" or "JSONB_BUILD_OBJECT" => TryEvaluateJsonBuildObject(name, fn, evalArg, out result),
+            "JSON_EXTRACT_PATH" or "JSONB_EXTRACT_PATH" or "JSON_EXTRACT_PATH_TEXT" or "JSONB_EXTRACT_PATH_TEXT" => TryEvaluateJsonExtractPath(name, fn, evalArg, out result),
+            "JSON_STRIP_NULLS" or "JSONB_STRIP_NULLS" => TryEvaluateJsonStripNulls(fn, evalArg, out result),
+            "JSONB_OBJECT" => TryBuildJsonbObjectFunction(fn, evalArg, out result),
+            "JSONB_SET" or "JSONB_SET_LAX" => TryEvaluateJsonSet(name, fn, evalArg, out result),
+            "JSONB_INSERT" => TryEvaluateJsonInsert(fn, evalArg, out result),
+            "JSONB_PRETTY" => TryEvaluateJsonPretty(fn, evalArg, out result),
+            _ => TryReturnFalse(out result)
+        };
     }
 
     internal static bool TryEvalJsonbObjectFunction(
@@ -496,6 +156,410 @@ internal static class AstQueryPostgresJsonFunctionEvaluator
         }
 
         element = JsonSerializer.SerializeToElement(text);
+        return true;
+    }
+
+    private static bool TryReturnFalse(out object? result)
+    {
+        result = null;
+        return false;
+    }
+
+    private static bool TryEvaluateToJson(Func<int, object?> evalArg, out object? result)
+    {
+        var value = evalArg(0);
+        result = AstQueryExecutorBase.IsNullish(value) ? null : JsonSerializer.Serialize(value);
+        return true;
+    }
+
+    private static bool TryEvaluateJsonScalar(
+        QueryExecutionContext context,
+        string name,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!context.Dialect.TryGetScalarFunctionDefinition(name, out _))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count == 0)
+        {
+            result = null;
+            return true;
+        }
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!TryParseJsonCandidate(value!, out var candidate))
+        {
+            result = null;
+            return true;
+        }
+
+        result = candidate.GetRawText();
+        return true;
+    }
+
+    private static bool TryEvaluateJsonPath(
+        string name,
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!context.Dialect.TryGetScalarFunctionDefinition(name, out _))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException($"{name}() espera JSONB e jsonpath.");
+
+        var value = evalArg(0);
+        var path = evalArg(1)?.ToString();
+        if (AstQueryExecutorBase.IsNullish(value) || string.IsNullOrWhiteSpace(path))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!TryParseJsonElement(value!, out var element))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!TryReadPostgresJsonPath(element, path!, out var target))
+        {
+            result = name == "JSONB_PATH_EXISTS" ? false : "[]";
+            return true;
+        }
+
+        if (name == "JSONB_PATH_EXISTS")
+        {
+            result = true;
+            return true;
+        }
+
+        result = BuildJsonArray([target]);
+        return true;
+    }
+
+    private static bool TryEvaluateJsonTypeof(Func<int, object?> evalArg, out object? result)
+    {
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!TryParseJsonElement(value!, out var element))
+        {
+            result = null;
+            return true;
+        }
+
+        result = element.ValueKind switch
+        {
+            JsonValueKind.Object => "object",
+            JsonValueKind.Array => "array",
+            JsonValueKind.String => "string",
+            JsonValueKind.Number => "number",
+            JsonValueKind.True => "boolean",
+            JsonValueKind.False => "boolean",
+            JsonValueKind.Null => "null",
+            _ => null
+        };
+        return true;
+    }
+
+    private static bool TryEvaluateJsonArrayLength(Func<int, object?> evalArg, out object? result)
+    {
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!TryParseJsonElement(value!, out var element)
+            || element.ValueKind != JsonValueKind.Array)
+        {
+            result = null;
+            return true;
+        }
+
+        result = element.GetArrayLength();
+        return true;
+    }
+
+    private static bool TryEvaluateJsonBuildArray(FunctionCallExpr fn, Func<int, object?> evalArg, out object? result)
+    {
+        var values = new object?[fn.Args.Count];
+        for (var i = 0; i < fn.Args.Count; i++)
+            values[i] = evalArg(i);
+
+        result = BuildJsonArray(values);
+        return true;
+    }
+
+    private static bool TryEvaluateJsonBuildObject(
+        string name,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (fn.Args.Count % 2 != 0)
+            throw new InvalidOperationException($"{name}() espera um numero par de argumentos.");
+
+        var pairs = new List<(string Key, object? Value)>();
+        for (var i = 0; i < fn.Args.Count; i += 2)
+        {
+            var key = evalArg(i)?.ToString() ?? string.Empty;
+            var val = evalArg(i + 1);
+            pairs.Add((key, val));
+        }
+
+        result = BuildJsonObject(pairs);
+        return true;
+    }
+
+    private static bool TryEvaluateJsonExtractPath(
+        string name,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (fn.Args.Count == 0)
+        {
+            result = null;
+            return true;
+        }
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!TryParseJsonElement(value!, out var element))
+        {
+            result = null;
+            return true;
+        }
+
+        for (var i = 1; i < fn.Args.Count; i++)
+        {
+            var pathSegment = evalArg(i)?.ToString();
+            JsonElement nextElement;
+            if (string.IsNullOrEmpty(pathSegment)
+                || !TryReadPostgresJsonPathElement(element, pathSegment!, out nextElement))
+            {
+                result = null;
+                return true;
+            }
+
+            element = nextElement;
+        }
+
+        if (name.EndsWith("_TEXT", StringComparison.Ordinal))
+        {
+            result = element.ValueKind switch
+            {
+                JsonValueKind.String => element.GetString(),
+                JsonValueKind.Null => null,
+                _ => element.GetRawText()
+            };
+            return true;
+        }
+
+        result = element.GetRawText();
+        return true;
+    }
+
+    private static bool TryEvaluateJsonStripNulls(FunctionCallExpr fn, Func<int, object?> evalArg, out object? result)
+    {
+        if (fn.Args.Count == 0)
+        {
+            result = null;
+            return true;
+        }
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value) || !TryParseJsonNode(value!, out var root) || root is null)
+        {
+            result = null;
+            return true;
+        }
+
+        var normalized = AstQueryJsonSharedFunctionEvaluator.CloneJsonNode(root);
+        AstQueryJsonSharedFunctionEvaluator.StripJsonNullProperties(normalized);
+        result = normalized.ToJsonString();
+        return true;
+    }
+
+    private static bool TryEvaluateJsonSet(
+        string name,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (fn.Args.Count < 3)
+            throw new InvalidOperationException($"{name}() espera JSON, caminho e novo valor.");
+
+        var json = evalArg(0);
+        var pathValue = evalArg(1);
+        var newValue = evalArg(2);
+        if (AstQueryExecutorBase.IsNullish(json) || AstQueryExecutorBase.IsNullish(pathValue) || !TryParseJsonNode(json!, out var root) || root is null)
+        {
+            result = null;
+            return true;
+        }
+
+        if (!TryParsePostgresJsonPathTokens(pathValue!, out var tokens))
+        {
+            result = null;
+            return true;
+        }
+
+        if (name is "JSONB_SET_LAX" && AstQueryExecutorBase.IsNullish(newValue))
+        {
+            if (TryHandleJsonSetLax(root, tokens, fn, evalArg, out result, out newValue))
+                return true;
+        }
+
+        var createIfMissing = fn.Args.Count < 4 || Convert.ToBoolean(evalArg(3), CultureInfo.InvariantCulture);
+        if (!createIfMissing && !TryGetJsonNodeAtPath(root, tokens, out _))
+        {
+            result = root.ToJsonString();
+            return true;
+        }
+
+        if (!TrySetJsonPathValue(ref root, tokens, newValue))
+        {
+            result = null;
+            return true;
+        }
+
+        result = root.ToJsonString();
+        return true;
+    }
+
+    private static bool TryHandleJsonSetLax(
+        JsonNode root,
+        IReadOnlyList<JsonPathToken> tokens,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result,
+        out object? newValue)
+    {
+        var createIfMissingLax = fn.Args.Count < 4 || Convert.ToBoolean(evalArg(3), CultureInfo.InvariantCulture);
+        var treatment = fn.Args.Count > 4
+            ? (evalArg(4)?.ToString() ?? "use_json_null").Trim().ToLowerInvariant()
+            : "use_json_null";
+
+        if (treatment == "return_target")
+        {
+            result = root.ToJsonString();
+            newValue = null;
+            return true;
+        }
+
+        if (treatment == "delete_key")
+        {
+            if (tokens.Count > 0)
+            {
+                if (createIfMissingLax || TryGetJsonNodeAtPath(root, tokens, out _))
+                    TryRemoveJsonPathValue(root, tokens);
+            }
+
+            result = root.ToJsonString();
+            newValue = null;
+            return true;
+        }
+
+        if (treatment == "raise_exception")
+            throw new InvalidOperationException("JSONB_SET_LAX() recebeu null com tratamento raise_exception.");
+
+        result = null;
+        newValue = null;
+        return false;
+    }
+
+    private static bool TryEvaluateJsonInsert(FunctionCallExpr fn, Func<int, object?> evalArg, out object? result)
+    {
+        if (fn.Args.Count < 3)
+            throw new InvalidOperationException("JSONB_INSERT() espera JSON, caminho e novo valor.");
+
+        var json = evalArg(0);
+        var pathValue = evalArg(1);
+        var newValue = evalArg(2);
+        var insertAfter = fn.Args.Count > 3 && Convert.ToBoolean(evalArg(3), CultureInfo.InvariantCulture);
+        if (AstQueryExecutorBase.IsNullish(json) || AstQueryExecutorBase.IsNullish(pathValue) || !TryParseJsonNode(json!, out var root) || root is null)
+        {
+            result = null;
+            return true;
+        }
+
+        if (!TryParsePostgresJsonPathTokens(pathValue!, out var tokens)
+            || tokens.Count == 0)
+        {
+            result = null;
+            return true;
+        }
+
+        return TryApplyJsonInsert(root, tokens, newValue, insertAfter, out result);
+    }
+
+    private static bool TryApplyJsonInsert(
+        JsonNode root,
+        IReadOnlyList<JsonPathToken> tokens,
+        object? newValue,
+        bool insertAfter,
+        out object? result)
+    {
+        if (!TryInsertJsonPathValue(root, tokens, newValue, insertAfter))
+        {
+            result = null;
+            return true;
+        }
+
+        result = root.ToJsonString();
+        return true;
+    }
+
+    private static bool TryEvaluateJsonPretty(FunctionCallExpr fn, Func<int, object?> evalArg, out object? result)
+    {
+        if (fn.Args.Count == 0)
+        {
+            result = null;
+            return true;
+        }
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value) || !TryParseJsonElement(value!, out var element))
+        {
+            result = null;
+            return true;
+        }
+
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = true
+        };
+        result = JsonSerializer.Serialize(element, options)
+            .Replace("\r\n", "\n");
         return true;
     }
 
@@ -617,40 +681,46 @@ internal static class AstQueryPostgresJsonFunctionEvaluator
         out object? result)
     {
         if (fn.Args.Count == 1)
-        {
-            if (!TryReadPostgresTextArray(evalArg(0), out var entries) || entries.Count % 2 != 0)
-            {
-                result = null;
-                return true;
-            }
-
-            var pairs = new List<(string Key, object? Value)>();
-            for (var i = 0; i < entries.Count; i += 2)
-                pairs.Add((entries[i], entries[i + 1]));
-
-            result = BuildJsonObject(pairs);
-            return true;
-        }
+            return TryBuildJsonbObjectFromEntries(evalArg(0), out result);
 
         if (fn.Args.Count == 2)
+            return TryBuildJsonbObjectFromParallelArrays(evalArg(0), evalArg(1), out result);
+
+        result = null;
+        return true;
+    }
+
+    private static bool TryBuildJsonbObjectFromEntries(object? value, out object? result)
+    {
+        if (!TryReadPostgresTextArray(value, out var entries) || entries.Count % 2 != 0)
         {
-            if (!TryReadPostgresTextArray(evalArg(0), out var keys)
-                || !TryReadPostgresTextArray(evalArg(1), out var values)
-                || keys.Count != values.Count)
-            {
-                result = null;
-                return true;
-            }
-
-            var pairs = new List<(string Key, object? Value)>();
-            for (var i = 0; i < keys.Count; i++)
-                pairs.Add((keys[i], values[i]));
-
-            result = BuildJsonObject(pairs);
+            result = null;
             return true;
         }
 
-        result = null;
+        var pairs = new List<(string Key, object? Value)>();
+        for (var i = 0; i < entries.Count; i += 2)
+            pairs.Add((entries[i], entries[i + 1]));
+
+        result = BuildJsonObject(pairs);
+        return true;
+    }
+
+    private static bool TryBuildJsonbObjectFromParallelArrays(object? keysValue, object? valuesValue, out object? result)
+    {
+        if (!TryReadPostgresTextArray(keysValue, out var keys)
+            || !TryReadPostgresTextArray(valuesValue, out var values)
+            || keys.Count != values.Count)
+        {
+            result = null;
+            return true;
+        }
+
+        var pairs = new List<(string Key, object? Value)>();
+        for (var i = 0; i < keys.Count; i++)
+            pairs.Add((keys[i], values[i]));
+
+        result = BuildJsonObject(pairs);
         return true;
     }
 

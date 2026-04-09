@@ -6,65 +6,20 @@ internal static class SqlCteParserHelper
         SqlQueryParserContext ctx,
         Func<string, SqlQueryBase> parseQuery)
     {
-        var list = new List<SqlCte>();
-        if (!ctx.IsWord(SqlConst.WITH))
-            return list;
-
-        ctx.Consume();
-        if (!ctx.Dialect.SupportsWithCte)
-            throw SqlUnsupported.NotSupported(ctx.Dialect, SqlConst.WITH_CTE);
-
-        if (ctx.IsWord(SqlConst.RECURSIVE))
-        {
-            if (!ctx.Dialect.SupportsWithRecursive)
-                throw SqlUnsupported.NotSupportedWithRecursive(ctx.Dialect);
-            ctx.Consume();
-        }
-
-        while (true)
-        {
-            var name = ctx.ExpectIdentifier();
-            if (ctx.IsSymbol("("))
-            {
-                ctx.Consume();
-                while (!ctx.IsSymbol(")"))
-                    ctx.Consume();
-                ctx.Consume();
-            }
-
-            if (!ctx.IsWord(SqlConst.AS))
-                throw new InvalidOperationException("CTE requires AS.");
-
-            ctx.Consume();
-            if (ctx.IsWord(SqlConst.NOT) && ctx.IsWord(1, SqlConst.MATERIALIZED))
-            {
-                if (!ctx.Dialect.SupportsWithMaterializedHint)
-                    throw SqlUnsupported.NotSupported(ctx.Dialect, "WITH ... AS NOT MATERIALIZED");
-                ctx.Consume();
-                ctx.Consume();
-            }
-            else if (ctx.IsWord(SqlConst.MATERIALIZED))
-            {
-                if (!ctx.Dialect.SupportsWithMaterializedHint)
-                    throw SqlUnsupported.NotSupported(ctx.Dialect, "WITH ... AS MATERIALIZED");
-                ctx.Consume();
-            }
-
-            var innerSql = ctx.ReadBalancedParenRawTokens();
-            var q = parseQuery(innerSql);
-            if (q is SqlSelectQuery or SqlUnionQuery)
-                list.Add(new SqlCte(name, q));
-
-            if (ctx.IsSymbol(","))
-            {
-                ctx.Consume();
-                continue;
-            }
-
-            break;
-        }
-
-        return list;
+        return TryParseCtesCore(
+            ctx.Dialect,
+            () => { ctx.Consume(); },
+            ctx.ExpectIdentifier,
+            offset => ctx.IsWord(offset, SqlConst.WITH),
+            offset => ctx.IsWord(offset, SqlConst.RECURSIVE),
+            offset => ctx.IsWord(offset, SqlConst.AS),
+            offset => ctx.IsWord(offset, SqlConst.NOT),
+            offset => ctx.IsWord(offset, SqlConst.MATERIALIZED),
+            offset => ctx.IsSymbol(offset, "("),
+            offset => ctx.IsSymbol(offset, ")"),
+            offset => ctx.IsSymbol(offset, ","),
+            ctx.ReadBalancedParenRawTokens,
+            parseQuery);
     }
 
     internal static List<SqlCte> TryParseCtes(
@@ -77,56 +32,74 @@ internal static class SqlCteParserHelper
         Func<string> readBalancedParenRawTokens,
         Func<string, SqlQueryBase> parseQuery)
     {
+        return TryParseCtesCore(
+            dialect,
+            consume,
+            expectIdentifier,
+            offset => isWord(peek(offset), SqlConst.WITH),
+            offset => isWord(peek(offset), SqlConst.RECURSIVE),
+            offset => isWord(peek(offset), SqlConst.AS),
+            offset => isWord(peek(offset), SqlConst.NOT),
+            offset => isWord(peek(offset), SqlConst.MATERIALIZED),
+            offset => isSymbol(peek(offset), "("),
+            offset => isSymbol(peek(offset), ")"),
+            offset => isSymbol(peek(offset), ","),
+            readBalancedParenRawTokens,
+            parseQuery);
+    }
+
+    private static List<SqlCte> TryParseCtesCore(
+        ISqlDialect dialect,
+        Action consume,
+        Func<string> expectIdentifier,
+        Func<int, bool> isWithWord,
+        Func<int, bool> isRecursiveWord,
+        Func<int, bool> isAsWord,
+        Func<int, bool> isNotWord,
+        Func<int, bool> isMaterializedWord,
+        Func<int, bool> isOpenParen,
+        Func<int, bool> isCloseParen,
+        Func<int, bool> isComma,
+        Func<string> readBalancedParenRawTokens,
+        Func<string, SqlQueryBase> parseQuery)
+    {
         var list = new List<SqlCte>();
-        if (!isWord(peek(0), SqlConst.WITH))
+        if (!isWithWord(0))
             return list;
 
         consume();
         if (!dialect.SupportsWithCte)
             throw SqlUnsupported.NotSupported(dialect, SqlConst.WITH_CTE);
 
-        if (isWord(peek(0), SqlConst.RECURSIVE))
+        if (isRecursiveWord(0))
         {
             if (!dialect.SupportsWithRecursive)
                 throw SqlUnsupported.NotSupportedWithRecursive(dialect);
+
             consume();
         }
 
         while (true)
         {
             var name = expectIdentifier();
-            if (isSymbol(peek(0), "("))
-            {
-                consume();
-                while (!isSymbol(peek(0), ")"))
-                    consume();
-                consume();
-            }
+            SkipOptionalCteColumnList(isOpenParen, isCloseParen, consume);
 
-            if (!isWord(peek(0), SqlConst.AS))
+            if (!isAsWord(0))
                 throw new InvalidOperationException("CTE requires AS.");
 
             consume();
-            if (isWord(peek(0), SqlConst.NOT) && isWord(peek(1), SqlConst.MATERIALIZED))
-            {
-                if (!dialect.SupportsWithMaterializedHint)
-                    throw SqlUnsupported.NotSupported(dialect, "WITH ... AS NOT MATERIALIZED");
-                consume();
-                consume();
-            }
-            else if (isWord(peek(0), SqlConst.MATERIALIZED))
-            {
-                if (!dialect.SupportsWithMaterializedHint)
-                    throw SqlUnsupported.NotSupported(dialect, "WITH ... AS MATERIALIZED");
-                consume();
-            }
+            ConsumeOptionalMaterializedHint(
+                dialect,
+                consume,
+                isNotWord,
+                isMaterializedWord);
 
             var innerSql = readBalancedParenRawTokens();
             var q = parseQuery(innerSql);
             if (q is SqlSelectQuery or SqlUnionQuery)
                 list.Add(new SqlCte(name, q));
 
-            if (isSymbol(peek(0), ","))
+            if (isComma(0))
             {
                 consume();
                 continue;
@@ -136,5 +109,44 @@ internal static class SqlCteParserHelper
         }
 
         return list;
+    }
+
+    private static void SkipOptionalCteColumnList(
+        Func<int, bool> isOpenParen,
+        Func<int, bool> isCloseParen,
+        Action consume)
+    {
+        if (!isOpenParen(0))
+            return;
+
+        consume();
+        while (!isCloseParen(0))
+            consume();
+        consume();
+    }
+
+    private static void ConsumeOptionalMaterializedHint(
+        ISqlDialect dialect,
+        Action consume,
+        Func<int, bool> isNotWord,
+        Func<int, bool> isMaterializedWord)
+    {
+        if (isNotWord(0) && isMaterializedWord(1))
+        {
+            if (!dialect.SupportsWithMaterializedHint)
+                throw SqlUnsupported.NotSupported(dialect, "WITH ... AS NOT MATERIALIZED");
+
+            consume();
+            consume();
+            return;
+        }
+
+        if (isMaterializedWord(0))
+        {
+            if (!dialect.SupportsWithMaterializedHint)
+                throw SqlUnsupported.NotSupported(dialect, "WITH ... AS MATERIALIZED");
+
+            consume();
+        }
     }
 }

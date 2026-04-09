@@ -74,11 +74,13 @@ internal sealed class AstQueryHavingHelper(
                 return;
             case InExpr inExpr:
                 ValidateHavingIdentifiersAreBound(inExpr.Left, row, dialect);
-                for (var idx = 0; idx < inExpr.Items.Count; idx++)
+                var inItemCount = inExpr.Items.Count;
+                for (var idx = 0; idx < inItemCount; idx++)
                     ValidateHavingIdentifiersAreBound(inExpr.Items[idx], row, dialect);
                 return;
             case RowExpr rowExpr:
-                for (var idx = 0; idx < rowExpr.Items.Count; idx++)
+                var rowItemCount = rowExpr.Items.Count;
+                for (var idx = 0; idx < rowItemCount; idx++)
                     ValidateHavingIdentifiersAreBound(rowExpr.Items[idx], row, dialect);
                 return;
             case BetweenExpr between:
@@ -90,9 +92,11 @@ internal sealed class AstQueryHavingHelper(
                 if (@case.BaseExpr is not null)
                     ValidateHavingIdentifiersAreBound(@case.BaseExpr, row, dialect);
 
-                for (var idx = 0; idx < @case.Whens.Count; idx++)
+                var whens = @case.Whens;
+                var whenCount = whens.Count;
+                for (var idx = 0; idx < whenCount; idx++)
                 {
-                    var when = @case.Whens[idx];
+                    var when = whens[idx];
                     ValidateHavingIdentifiersAreBound(when.When, row, dialect);
                     ValidateHavingIdentifiersAreBound(when.Then, row, dialect);
                 }
@@ -101,11 +105,13 @@ internal sealed class AstQueryHavingHelper(
                     ValidateHavingIdentifiersAreBound(@case.ElseExpr, row, dialect);
                 return;
             case FunctionCallExpr function:
-                for (var idx = 0; idx < function.Args.Count; idx++)
+                var functionArgCount = function.Args.Count;
+                for (var idx = 0; idx < functionArgCount; idx++)
                     ValidateHavingIdentifiersAreBound(function.Args[idx], row, dialect);
                 return;
             case CallExpr call:
-                for (var idx = 0; idx < call.Args.Count; idx++)
+                var callArgCount = call.Args.Count;
+                for (var idx = 0; idx < callArgCount; idx++)
                     ValidateHavingIdentifiersAreBound(call.Args[idx], row, dialect);
                 return;
             case JsonAccessExpr jsonAccess:
@@ -148,6 +154,9 @@ internal sealed class AstQueryHavingHelper(
         ref int? outOfRangeOrdinal,
         ref int? nonPositiveOrdinal)
     {
+        var selectItems = q.SelectItems;
+        var selectItemsCount = selectItems.Count;
+
         switch (expr)
         {
             case LiteralExpr l when allowOrdinalLiteral && TryLiteralToIntOrdinal(l.Value, out var ord):
@@ -159,122 +168,209 @@ internal sealed class AstQueryHavingHelper(
                     }
 
                     var idx = ord - 1;
-                    if (idx >= q.SelectItems.Count)
+                    if (idx >= selectItemsCount)
                     {
                         outOfRangeOrdinal ??= ord;
                         return expr;
                     }
 
-                    var selectItem = q.SelectItems[idx];
+                    var selectItem = selectItems[idx];
                     var (exprRaw, _) = _splitTrailingAsAlias(selectItem.Raw, selectItem.Alias);
                     usedOrdinal = true;
                     return _parseExpr(exprRaw);
                 }
 
             case BinaryExpr b:
+            {
                 var leftCanBeOrdinal = IsOrdinalCandidateSide(b.Op, leftSide: true);
                 var rightCanBeOrdinal = IsOrdinalCandidateSide(b.Op, leftSide: false);
-                return b with
-                {
-                    Left = RewriteHavingOrdinals(b.Left, q, ref usedOrdinal, leftCanBeOrdinal, ref outOfRangeOrdinal, ref nonPositiveOrdinal),
-                    Right = RewriteHavingOrdinals(b.Right, q, ref usedOrdinal, rightCanBeOrdinal, ref outOfRangeOrdinal, ref nonPositiveOrdinal)
-                };
+                var left = RewriteHavingOrdinals(b.Left, q, ref usedOrdinal, leftCanBeOrdinal, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                var right = RewriteHavingOrdinals(b.Right, q, ref usedOrdinal, rightCanBeOrdinal, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                return ReferenceEquals(left, b.Left) && ReferenceEquals(right, b.Right)
+                    ? b
+                    : b with { Left = left, Right = right };
+            }
             case UnaryExpr u:
-                return u with { Expr = RewriteHavingOrdinals(u.Expr, q, ref usedOrdinal, allowOrdinalLiteral, ref outOfRangeOrdinal, ref nonPositiveOrdinal) };
+            {
+                var rewritten = RewriteHavingOrdinals(u.Expr, q, ref usedOrdinal, allowOrdinalLiteral, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                return ReferenceEquals(rewritten, u.Expr) ? u : u with { Expr = rewritten };
+            }
             case IsNullExpr isn:
-                return isn with { Expr = RewriteHavingOrdinals(isn.Expr, q, ref usedOrdinal, allowOrdinalLiteral, ref outOfRangeOrdinal, ref nonPositiveOrdinal) };
+            {
+                var rewritten = RewriteHavingOrdinals(isn.Expr, q, ref usedOrdinal, allowOrdinalLiteral, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                return ReferenceEquals(rewritten, isn.Expr) ? isn : isn with { Expr = rewritten };
+            }
             case LikeExpr like:
-                return like with
-                {
-                    Left = RewriteHavingOrdinals(like.Left, q, ref usedOrdinal, true, ref outOfRangeOrdinal, ref nonPositiveOrdinal),
-                    Pattern = RewriteHavingOrdinals(like.Pattern, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal),
-                    Escape = like.Escape is null
-                        ? null
-                        : RewriteHavingOrdinals(like.Escape, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal)
-                };
-            case InExpr i:
-                var rewrittenInItems = new SqlExpr[i.Items.Count];
-                for (var idx = 0; idx < i.Items.Count; idx++)
-                {
-                    rewrittenInItems[idx] = RewriteHavingOrdinals(
-                        i.Items[idx],
-                        q,
-                        ref usedOrdinal,
-                        false,
-                        ref outOfRangeOrdinal,
-                        ref nonPositiveOrdinal);
-                }
-                return i with
-                {
-                    Left = RewriteHavingOrdinals(i.Left, q, ref usedOrdinal, true, ref outOfRangeOrdinal, ref nonPositiveOrdinal),
-                    Items = rewrittenInItems
-                };
-            case RowExpr r:
-                var rewrittenRowItems = new SqlExpr[r.Items.Count];
-                for (var idx = 0; idx < r.Items.Count; idx++)
-                {
-                    rewrittenRowItems[idx] = RewriteHavingOrdinals(
-                        r.Items[idx],
-                        q,
-                        ref usedOrdinal,
-                        false,
-                        ref outOfRangeOrdinal,
-                        ref nonPositiveOrdinal);
-                }
-                return r with { Items = rewrittenRowItems };
-            case BetweenExpr bt:
-                return bt with
-                {
-                    Expr = RewriteHavingOrdinals(bt.Expr, q, ref usedOrdinal, true, ref outOfRangeOrdinal, ref nonPositiveOrdinal),
-                    Low = RewriteHavingOrdinals(bt.Low, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal),
-                    High = RewriteHavingOrdinals(bt.High, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal)
-                };
-            case FunctionCallExpr fn:
-                var rewrittenFnArgs = new SqlExpr[fn.Args.Count];
-                for (var idx = 0; idx < fn.Args.Count; idx++)
-                {
-                    rewrittenFnArgs[idx] = RewriteHavingOrdinals(
-                        fn.Args[idx],
-                        q,
-                        ref usedOrdinal,
-                        false,
-                        ref outOfRangeOrdinal,
-                        ref nonPositiveOrdinal);
-                }
-                return fn with { Args = rewrittenFnArgs };
-            case CallExpr call:
-                var rewrittenCallArgs = new SqlExpr[call.Args.Count];
-                for (var idx = 0; idx < call.Args.Count; idx++)
-                {
-                    rewrittenCallArgs[idx] = RewriteHavingOrdinals(
-                        call.Args[idx],
-                        q,
-                        ref usedOrdinal,
-                        false,
-                        ref outOfRangeOrdinal,
-                        ref nonPositiveOrdinal);
-                }
-                return call with { Args = rewrittenCallArgs };
-            case CaseExpr c:
-                var rewrittenWhens = new CaseWhenThen[c.Whens.Count];
-                for (var idx = 0; idx < c.Whens.Count; idx++)
-                {
-                    var when = c.Whens[idx];
-                    rewrittenWhens[idx] = when with
+            {
+                var left = RewriteHavingOrdinals(like.Left, q, ref usedOrdinal, true, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                var pattern = RewriteHavingOrdinals(like.Pattern, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                var escape = like.Escape is null
+                    ? null
+                    : RewriteHavingOrdinals(like.Escape, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                return ReferenceEquals(left, like.Left)
+                    && ReferenceEquals(pattern, like.Pattern)
+                    && (like.Escape is null ? escape is null : ReferenceEquals(escape, like.Escape))
+                    ? like
+                    : like with
                     {
-                        When = RewriteHavingOrdinals(when.When, q, ref usedOrdinal, allowOrdinalLiteral, ref outOfRangeOrdinal, ref nonPositiveOrdinal),
-                        Then = RewriteHavingOrdinals(when.Then, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal)
+                        Left = left,
+                        Pattern = pattern,
+                        Escape = escape
                     };
-                }
-                return c with
-                {
-                    BaseExpr = c.BaseExpr is null ? null : RewriteHavingOrdinals(c.BaseExpr, q, ref usedOrdinal, true, ref outOfRangeOrdinal, ref nonPositiveOrdinal),
-                    Whens = rewrittenWhens,
-                    ElseExpr = c.ElseExpr is null ? null : RewriteHavingOrdinals(c.ElseExpr, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal)
-                };
+            }
+            case InExpr i:
+            {
+                var left = RewriteHavingOrdinals(i.Left, q, ref usedOrdinal, true, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                var items = RewriteSqlExprList(i.Items, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                return ReferenceEquals(left, i.Left) && ReferenceEquals(items, i.Items)
+                    ? i
+                    : i with { Left = left, Items = items };
+            }
+            case RowExpr r:
+            {
+                var items = RewriteSqlExprList(r.Items, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                return ReferenceEquals(items, r.Items) ? r : r with { Items = items };
+            }
+            case BetweenExpr bt:
+            {
+                var exprPart = RewriteHavingOrdinals(bt.Expr, q, ref usedOrdinal, true, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                var low = RewriteHavingOrdinals(bt.Low, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                var high = RewriteHavingOrdinals(bt.High, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                return ReferenceEquals(exprPart, bt.Expr)
+                    && ReferenceEquals(low, bt.Low)
+                    && ReferenceEquals(high, bt.High)
+                    ? bt
+                    : bt with
+                    {
+                        Expr = exprPart,
+                        Low = low,
+                        High = high
+                    };
+            }
+            case FunctionCallExpr fn:
+            {
+                var args = RewriteSqlExprList(fn.Args, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                return ReferenceEquals(args, fn.Args) ? fn : fn with { Args = args };
+            }
+            case CallExpr call:
+            {
+                var args = RewriteSqlExprList(call.Args, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                return ReferenceEquals(args, call.Args) ? call : call with { Args = args };
+            }
+            case CaseExpr c:
+            {
+                var baseExpr = c.BaseExpr is null
+                    ? null
+                    : RewriteHavingOrdinals(c.BaseExpr, q, ref usedOrdinal, true, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                var whens = RewriteCaseWhens(c.Whens, q, ref usedOrdinal, allowOrdinalLiteral, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                var elseExpr = c.ElseExpr is null
+                    ? null
+                    : RewriteHavingOrdinals(c.ElseExpr, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                return ReferenceEquals(baseExpr, c.BaseExpr)
+                    && ReferenceEquals(whens, c.Whens)
+                    && ReferenceEquals(elseExpr, c.ElseExpr)
+                    ? c
+                    : c with
+                    {
+                        BaseExpr = baseExpr,
+                        Whens = whens,
+                        ElseExpr = elseExpr
+                    };
+            }
             default:
                 return expr;
         }
+    }
+
+    private IReadOnlyList<SqlExpr> RewriteSqlExprList(
+        IReadOnlyList<SqlExpr> items,
+        SqlSelectQuery q,
+        ref bool usedOrdinal,
+        bool allowOrdinalLiteral,
+        ref int? outOfRangeOrdinal,
+        ref int? nonPositiveOrdinal)
+    {
+        var itemCount = items.Count;
+        SqlExpr[]? rewritten = null;
+        for (var idx = 0; idx < itemCount; idx++)
+        {
+            var originalItem = items[idx];
+            var rewrittenItem = RewriteHavingOrdinals(
+                originalItem,
+                q,
+                ref usedOrdinal,
+                allowOrdinalLiteral,
+                ref outOfRangeOrdinal,
+                ref nonPositiveOrdinal);
+
+            if (rewritten is null)
+            {
+                if (ReferenceEquals(rewrittenItem, originalItem))
+                    continue;
+
+                rewritten = new SqlExpr[itemCount];
+                for (var copyIndex = 0; copyIndex < idx; copyIndex++)
+                    rewritten[copyIndex] = items[copyIndex];
+            }
+
+            rewritten[idx] = rewrittenItem;
+        }
+
+        return rewritten ?? items;
+    }
+
+    private IReadOnlyList<CaseWhenThen> RewriteCaseWhens(
+        IReadOnlyList<CaseWhenThen> whens,
+        SqlSelectQuery q,
+        ref bool usedOrdinal,
+        bool allowOrdinalLiteral,
+        ref int? outOfRangeOrdinal,
+        ref int? nonPositiveOrdinal)
+    {
+        var whenCount = whens.Count;
+        CaseWhenThen[]? rewritten = null;
+        for (var idx = 0; idx < whenCount; idx++)
+        {
+            var originalWhen = whens[idx];
+            var rewrittenWhenExpr = RewriteHavingOrdinals(
+                originalWhen.When,
+                q,
+                ref usedOrdinal,
+                allowOrdinalLiteral,
+                ref outOfRangeOrdinal,
+                ref nonPositiveOrdinal);
+            var rewrittenThenExpr = RewriteHavingOrdinals(
+                originalWhen.Then,
+                q,
+                ref usedOrdinal,
+                false,
+                ref outOfRangeOrdinal,
+                ref nonPositiveOrdinal);
+
+            if (rewritten is null)
+            {
+                if (ReferenceEquals(rewrittenWhenExpr, originalWhen.When)
+                    && ReferenceEquals(rewrittenThenExpr, originalWhen.Then))
+                {
+                    continue;
+                }
+
+                rewritten = new CaseWhenThen[whenCount];
+                for (var copyIndex = 0; copyIndex < idx; copyIndex++)
+                    rewritten[copyIndex] = whens[copyIndex];
+            }
+
+            rewritten[idx] = ReferenceEquals(rewrittenWhenExpr, originalWhen.When)
+                && ReferenceEquals(rewrittenThenExpr, originalWhen.Then)
+                ? originalWhen
+                : originalWhen with
+                {
+                    When = rewrittenWhenExpr,
+                    Then = rewrittenThenExpr
+                };
+        }
+
+        return rewritten ?? whens;
     }
 
     private static bool IsOrdinalCandidateSide(SqlBinaryOp op, bool leftSide)
@@ -321,16 +417,20 @@ internal sealed class AstQueryHavingHelper(
     private static bool IsIdentifierBound(EvalRow row, string name)
     {
         var sources = row.Sources;
-        var dot = name.IndexOf('.');
+        var nameSpan = name.AsSpan();
+        var dot = nameSpan.IndexOf('.');
         if (dot >= 0)
         {
-            var qualifier = name[..dot].Trim();
-            var col = name[(dot + 1)..].Trim();
-            if (qualifier.Length == 0 || col.Length == 0)
+            var qualifier = nameSpan[..dot].Trim();
+            var col = nameSpan[(dot + 1)..].Trim();
+            if (qualifier.IsEmpty || col.IsEmpty)
                 return false;
 
-            if (sources.TryGetValue(qualifier, out var source)
-                && source.TryGetQualifiedColumnName(col, out var qualifiedColumnName))
+            var qualifierName = qualifier.ToString();
+            var columnName = col.ToString();
+
+            if (sources.TryGetValue(qualifierName, out var source)
+                && source.TryGetQualifiedColumnName(columnName, out var qualifiedColumnName))
             {
                 var qualifiedName = qualifiedColumnName ?? string.Empty;
                 if (qualifiedName.Length > 0
@@ -340,7 +440,7 @@ internal sealed class AstQueryHavingHelper(
                 }
             }
 
-            if (TryHasQualifiedField(row, col))
+            if (TryHasQualifiedField(row, sources, columnName))
                 return true;
 
             return false;
@@ -377,15 +477,20 @@ internal sealed class AstQueryHavingHelper(
         Dictionary<string, Source> sources,
         string columnName)
     {
+        if (sources.Count == 0)
+            return false;
+
+        var fields = row.Fields;
+
         if (row.TryGetSingleSource(out var singleSource)
-            && TryHasQualifiedFieldFromSource(singleSource!, row, columnName))
+            && TryHasQualifiedFieldFromSource(singleSource!, fields, columnName))
         {
             return true;
         }
 
         foreach (var source in sources.Values)
         {
-            if (TryHasQualifiedFieldFromSource(source, row, columnName))
+            if (TryHasQualifiedFieldFromSource(source, fields, columnName))
                 return true;
         }
 
@@ -394,14 +499,14 @@ internal sealed class AstQueryHavingHelper(
 
     private static bool TryHasQualifiedFieldFromSource(
         Source source,
-        EvalRow row,
+        Dictionary<string, object?> fields,
         string columnName)
     {
         if (!source.TryGetQualifiedColumnName(columnName, out var qualifiedName)
             || string.IsNullOrWhiteSpace(qualifiedName))
             return false;
 
-        return row.Fields.ContainsKey(qualifiedName!);
+        return fields.ContainsKey(qualifiedName!);
     }
 
     private static bool HasAggregateIdentifierOrTemporalReference(SqlExpr expr, ISqlDialect dialect)
@@ -421,28 +526,16 @@ internal sealed class AstQueryHavingHelper(
                 return HasAggregateFunctionCall(call.Name, call.Args, dialect);
 
             case BinaryExpr binary:
-                return HasAggregateIdentifierOrTemporalReference(binary.Left, dialect)
-                    || HasAggregateIdentifierOrTemporalReference(binary.Right, dialect);
+                return HasAggregateIdentifierOrTemporalReferenceInBinary(binary, dialect);
 
             case UnaryExpr unary:
                 return HasAggregateIdentifierOrTemporalReference(unary.Expr, dialect);
 
             case LikeExpr like:
-                return HasAggregateIdentifierOrTemporalReference(like.Left, dialect)
-                    || HasAggregateIdentifierOrTemporalReference(like.Pattern, dialect)
-                    || (like.Escape is not null && HasAggregateIdentifierOrTemporalReference(like.Escape, dialect));
+                return HasAggregateIdentifierOrTemporalReferenceInLike(like, dialect);
 
             case InExpr inExpr:
-                if (HasAggregateIdentifierOrTemporalReference(inExpr.Left, dialect))
-                    return true;
-
-                for (var idx = 0; idx < inExpr.Items.Count; idx++)
-                {
-                    if (HasAggregateIdentifierOrTemporalReference(inExpr.Items[idx], dialect))
-                        return true;
-                }
-
-                return false;
+                return HasAggregateIdentifierOrTemporalReferenceInIn(inExpr, dialect);
 
             case IsNullExpr isNull:
                 return HasAggregateIdentifierOrTemporalReference(isNull.Expr, dialect);
@@ -451,43 +544,84 @@ internal sealed class AstQueryHavingHelper(
                 return HasAggregateIdentifierOrTemporalReference(quantified.Left, dialect);
 
             case RowExpr row:
-                for (var idx = 0; idx < row.Items.Count; idx++)
-                {
-                    if (HasAggregateIdentifierOrTemporalReference(row.Items[idx], dialect))
-                        return true;
-                }
-
-                return false;
+                return HasAggregateIdentifierOrTemporalReferenceInRow(row, dialect);
 
             case BetweenExpr between:
-                return HasAggregateIdentifierOrTemporalReference(between.Expr, dialect)
-                    || HasAggregateIdentifierOrTemporalReference(between.Low, dialect)
-                    || HasAggregateIdentifierOrTemporalReference(between.High, dialect);
+                return HasAggregateIdentifierOrTemporalReferenceInBetween(between, dialect);
 
             case CaseExpr @case:
-                if (@case.BaseExpr is not null && HasAggregateIdentifierOrTemporalReference(@case.BaseExpr, dialect))
-                    return true;
-
-                for (var idx = 0; idx < @case.Whens.Count; idx++)
-                {
-                    var whenThen = @case.Whens[idx];
-                    if (HasAggregateIdentifierOrTemporalReference(whenThen.When, dialect)
-                        || HasAggregateIdentifierOrTemporalReference(whenThen.Then, dialect))
-                    {
-                        return true;
-                    }
-                }
-
-                return @case.ElseExpr is not null && HasAggregateIdentifierOrTemporalReference(@case.ElseExpr, dialect);
+                return HasAggregateIdentifierOrTemporalReferenceInCase(@case, dialect);
 
             case JsonAccessExpr jsonAccess:
-                return HasAggregateIdentifierOrTemporalReference(jsonAccess.Target, dialect)
-                    || HasAggregateIdentifierOrTemporalReference(jsonAccess.Path, dialect);
+                return HasAggregateIdentifierOrTemporalReferenceInJsonAccess(jsonAccess, dialect);
 
             default:
                 return false;
         }
     }
+
+    private static bool HasAggregateIdentifierOrTemporalReferenceInBinary(BinaryExpr binary, ISqlDialect dialect)
+        => HasAggregateIdentifierOrTemporalReference(binary.Left, dialect)
+           || HasAggregateIdentifierOrTemporalReference(binary.Right, dialect);
+
+    private static bool HasAggregateIdentifierOrTemporalReferenceInLike(LikeExpr like, ISqlDialect dialect)
+        => HasAggregateIdentifierOrTemporalReference(like.Left, dialect)
+           || HasAggregateIdentifierOrTemporalReference(like.Pattern, dialect)
+           || (like.Escape is not null && HasAggregateIdentifierOrTemporalReference(like.Escape, dialect));
+
+    private static bool HasAggregateIdentifierOrTemporalReferenceInIn(InExpr inExpr, ISqlDialect dialect)
+    {
+        if (HasAggregateIdentifierOrTemporalReference(inExpr.Left, dialect))
+            return true;
+
+        for (var idx = 0; idx < inExpr.Items.Count; idx++)
+        {
+            if (HasAggregateIdentifierOrTemporalReference(inExpr.Items[idx], dialect))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool HasAggregateIdentifierOrTemporalReferenceInRow(RowExpr row, ISqlDialect dialect)
+    {
+        for (var idx = 0; idx < row.Items.Count; idx++)
+        {
+            if (HasAggregateIdentifierOrTemporalReference(row.Items[idx], dialect))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool HasAggregateIdentifierOrTemporalReferenceInBetween(BetweenExpr between, ISqlDialect dialect)
+        => HasAggregateIdentifierOrTemporalReference(between.Expr, dialect)
+           || HasAggregateIdentifierOrTemporalReference(between.Low, dialect)
+           || HasAggregateIdentifierOrTemporalReference(between.High, dialect);
+
+    private static bool HasAggregateIdentifierOrTemporalReferenceInCase(CaseExpr @case, ISqlDialect dialect)
+    {
+        if (@case.BaseExpr is not null && HasAggregateIdentifierOrTemporalReference(@case.BaseExpr, dialect))
+            return true;
+
+        var whens = @case.Whens;
+        var whenCount = whens.Count;
+        for (var idx = 0; idx < whenCount; idx++)
+        {
+            var whenThen = whens[idx];
+            if (HasAggregateIdentifierOrTemporalReference(whenThen.When, dialect)
+                || HasAggregateIdentifierOrTemporalReference(whenThen.Then, dialect))
+            {
+                return true;
+            }
+        }
+
+        return @case.ElseExpr is not null && HasAggregateIdentifierOrTemporalReference(@case.ElseExpr, dialect);
+    }
+
+    private static bool HasAggregateIdentifierOrTemporalReferenceInJsonAccess(JsonAccessExpr jsonAccess, ISqlDialect dialect)
+        => HasAggregateIdentifierOrTemporalReference(jsonAccess.Target, dialect)
+           || HasAggregateIdentifierOrTemporalReference(jsonAccess.Path, dialect);
 
     private static bool HasAggregateFunctionCall(
         string name,
@@ -497,10 +631,11 @@ internal sealed class AstQueryHavingHelper(
         if (AggregateFunctionCatalog.Contains(name))
             return true;
 
-        if (args.Count == 0)
+        var argCount = args.Count;
+        if (argCount == 0)
             return dialect.AllowsTemporalCall(name);
 
-        for (var idx = 0; idx < args.Count; idx++)
+        for (var idx = 0; idx < argCount; idx++)
         {
             if (HasAggregateIdentifierOrTemporalReference(args[idx], dialect))
                 return true;

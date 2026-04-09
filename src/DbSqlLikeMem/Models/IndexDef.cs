@@ -550,10 +550,28 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
         int rowIndex,
         IReadOnlyDictionary<int, object?> existingRow,
         IReadOnlyDictionary<int, object?> simulatedRow,
-        IReadOnlyCollection<string> changedCols)
+        IReadOnlyList<string> changedCols)
     {
         EnsureReady();
-        if (!KeyCols.Intersect(changedCols, StringComparer.OrdinalIgnoreCase).Any()) return;
+        var hasChangedKeyCol = false;
+        for (var keyColIndex = 0; keyColIndex < KeyCols.Count; keyColIndex++)
+        {
+            var keyCol = KeyCols[keyColIndex];
+            for (var changedIndex = 0; changedIndex < changedCols.Count; changedIndex++)
+            {
+                if (string.Equals(keyCol, changedCols[changedIndex], StringComparison.OrdinalIgnoreCase))
+                {
+                    hasChangedKeyCol = true;
+                    break;
+                }
+            }
+
+            if (hasChangedKeyCol)
+                break;
+        }
+
+        if (!hasChangedKeyCol)
+            return;
 
         var oldKey = BuildIndexKey(existingRow);
         var newKey = BuildIndexKey(simulatedRow);

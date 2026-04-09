@@ -387,27 +387,54 @@ internal static class DbMergeStrategy
         {
             LiteralExpr lit => lit.Value is DBNull ? null : lit.Value,
             ParameterExpr p => TryResolveParameterValue(context.DbParameters, p.Name, out var value) ? value : null,
-            UnaryExpr { Op: SqlUnaryOp.Not, Expr: var inner } => !Convert.ToBoolean(EvaluateValuesSourceExpression(inner, context) ?? false),
-            BinaryExpr { Op: SqlBinaryOp.Add } b => Convert.ToDecimal(EvaluateValuesSourceExpression(b.Left, context) ?? 0m)
-                + Convert.ToDecimal(EvaluateValuesSourceExpression(b.Right, context) ?? 0m),
-            BinaryExpr { Op: SqlBinaryOp.Subtract } b => Convert.ToDecimal(EvaluateValuesSourceExpression(b.Left, context) ?? 0m)
-                - Convert.ToDecimal(EvaluateValuesSourceExpression(b.Right, context) ?? 0m),
-            BinaryExpr { Op: SqlBinaryOp.Multiply } b => Convert.ToDecimal(EvaluateValuesSourceExpression(b.Left, context) ?? 0m)
-                * Convert.ToDecimal(EvaluateValuesSourceExpression(b.Right, context) ?? 0m),
-            BinaryExpr { Op: SqlBinaryOp.Divide } b => Convert.ToDecimal(EvaluateValuesSourceExpression(b.Left, context) ?? 0m)
-                / Convert.ToDecimal(EvaluateValuesSourceExpression(b.Right, context) ?? 0m),
-            BinaryExpr { Op: SqlBinaryOp.Concat } b => EvaluateConcat(
-                EvaluateValuesSourceExpression(b.Left, context),
-                EvaluateValuesSourceExpression(b.Right, context),
-                context),
+            UnaryExpr { Op: SqlUnaryOp.Not, Expr: var inner } => EvaluateValuesSourceNot(inner, context),
+            BinaryExpr { Op: SqlBinaryOp.Add } b => EvaluateValuesSourceArithmetic(b, context, static (left, right) => left + right),
+            BinaryExpr { Op: SqlBinaryOp.Subtract } b => EvaluateValuesSourceArithmetic(b, context, static (left, right) => left - right),
+            BinaryExpr { Op: SqlBinaryOp.Multiply } b => EvaluateValuesSourceArithmetic(b, context, static (left, right) => left * right),
+            BinaryExpr { Op: SqlBinaryOp.Divide } b => EvaluateValuesSourceArithmetic(b, context, static (left, right) => left / right),
+            BinaryExpr { Op: SqlBinaryOp.Concat } b => EvaluateValuesSourceConcat(b, context),
             CallExpr call when call.Args.Count == 0 && context.TryEvaluateZeroArgCall(call.Name, out var temporal) => temporal,
             FunctionCallExpr fn when fn.Args.Count == 0 && context.TryEvaluateZeroArgCall(fn.Name, out var temporal) => temporal,
-            IdentifierExpr id when string.Equals(id.Name, SqlConst.NULL, StringComparison.OrdinalIgnoreCase) => null,
-            IdentifierExpr id when string.Equals(id.Name, SqlConst.TRUE, StringComparison.OrdinalIgnoreCase) => true,
-            IdentifierExpr id when string.Equals(id.Name, SqlConst.FALSE, StringComparison.OrdinalIgnoreCase) => false,
+            IdentifierExpr id => EvaluateValuesSourceIdentifier(id),
             _ => throw new NotSupportedException(
                 $"MERGE USING VALUES expression '{expr.GetType().Name}' is not supported yet.")
         };
+    }
+
+    private static object? EvaluateValuesSourceNot(
+        SqlExpr inner,
+        QueryExecutionContext context)
+        => !Convert.ToBoolean(EvaluateValuesSourceExpression(inner, context) ?? false);
+
+    private static object? EvaluateValuesSourceArithmetic(
+        BinaryExpr binary,
+        QueryExecutionContext context,
+        Func<decimal, decimal, decimal> operation)
+        => operation(
+            Convert.ToDecimal(EvaluateValuesSourceExpression(binary.Left, context) ?? 0m),
+            Convert.ToDecimal(EvaluateValuesSourceExpression(binary.Right, context) ?? 0m));
+
+    private static object? EvaluateValuesSourceConcat(
+        BinaryExpr binary,
+        QueryExecutionContext context)
+        => EvaluateConcat(
+            EvaluateValuesSourceExpression(binary.Left, context),
+            EvaluateValuesSourceExpression(binary.Right, context),
+            context);
+
+    private static object? EvaluateValuesSourceIdentifier(IdentifierExpr id)
+    {
+        if (string.Equals(id.Name, SqlConst.NULL, StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        if (string.Equals(id.Name, SqlConst.TRUE, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (string.Equals(id.Name, SqlConst.FALSE, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        throw new NotSupportedException(
+            $"MERGE USING VALUES expression '{id.GetType().Name}' is not supported yet.");
     }
 
     private static object? EvaluateConcat(

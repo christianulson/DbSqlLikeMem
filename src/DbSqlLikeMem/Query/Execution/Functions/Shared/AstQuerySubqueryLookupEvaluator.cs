@@ -33,15 +33,8 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
     {
         value = null;
 
-        if (query.Ctes.Count > 0
-            || query.Joins.Count > 0
-            || query.GroupBy.Count > 0
-            || query.Having is not null
-            || query.RowLimit is not null
-            || query.ForJson is not null)
-        {
+        if (!CanUseScalarCountFastPath(query))
             return false;
-        }
 
         if (query.SelectItems.Count != 1)
             return false;
@@ -50,15 +43,8 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
         if (!AstQueryAggregateEvaluator.TryParseScalarCountAggregate(exprRaw, _parseExpr, out var countArg, out var isCountBig))
             return false;
 
-        if (row is null
-            && countArg is StarExpr
-            && query.Table is not null
-            && query.Where is not null
-            && TryCountRowsFromSimpleEqualityScan(query, ctes, out var rawEqualityCount))
-        {
-            value = AstQueryAggregateEvaluator.CreateCountAggregateResult(_context, isCountBig, rawEqualityCount);
+        if (TryEvaluateScalarCountFastPath(query, row, ctes, countArg, isCountBig, out value))
             return true;
-        }
 
         var rows = _buildFrom(
             query.Table,
@@ -67,47 +53,113 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
             query.OrderBy.Count > 0,
             false);
 
-        long count = 0;
-        if (row is not null)
-        {
-            foreach (var candidate in rows)
-            {
-                var attached = _attachOuterRow(candidate, row);
-                if (query.Where is not null && !_eval(query.Where, attached, null, ctes).ToBool())
-                    continue;
-
-                if (countArg is StarExpr)
-                {
-                    count++;
-                    continue;
-                }
-
-                var evaluated = _eval(countArg, attached, null, ctes);
-                if (!AstQueryExecutorBase.IsNullish(evaluated))
-                    count++;
-            }
-        }
-        else
-        {
-            foreach (var candidate in rows)
-            {
-                if (query.Where is not null && !_eval(query.Where, candidate, null, ctes).ToBool())
-                    continue;
-
-                if (countArg is StarExpr)
-                {
-                    count++;
-                    continue;
-                }
-
-                var evaluated = _eval(countArg, candidate, null, ctes);
-                if (!AstQueryExecutorBase.IsNullish(evaluated))
-                    count++;
-            }
-        }
-
+        var count = CountScalarSubqueryRows(query, row, ctes, countArg, rows);
         value = AstQueryAggregateEvaluator.CreateCountAggregateResult(_context, isCountBig, count);
         return true;
+    }
+
+    private static bool CanUseScalarCountFastPath(SqlSelectQuery query)
+        => query.Ctes.Count == 0
+           && query.Joins.Count == 0
+           && query.GroupBy.Count == 0
+           && query.Having is null
+           && query.RowLimit is null
+           && query.ForJson is null;
+
+    private bool TryEvaluateScalarCountFastPath(
+        SqlSelectQuery query,
+        EvalRow? row,
+        IDictionary<string, Source> ctes,
+        SqlExpr countArg,
+        bool isCountBig,
+        out object? value)
+    {
+        value = null;
+
+        if (row is not null
+            || countArg is not StarExpr
+            || query.Table is null
+            || query.Where is null)
+        {
+            return false;
+        }
+
+        if (!TryCountRowsFromSimpleEqualityScan(query, ctes, out var rawEqualityCount))
+        {
+            return false;
+        }
+
+        value = AstQueryAggregateEvaluator.CreateCountAggregateResult(_context, isCountBig, rawEqualityCount);
+        return true;
+    }
+
+    private long CountScalarSubqueryRows(
+        SqlSelectQuery query,
+        EvalRow? row,
+        IDictionary<string, Source> ctes,
+        SqlExpr countArg,
+        IEnumerable<EvalRow> rows)
+    {
+        if (row is not null)
+        {
+            return CountRowsWithOuterRow(query, row, ctes, countArg, rows);
+        }
+
+        return CountRowsWithoutOuterRow(query, ctes, countArg, rows);
+    }
+
+    private long CountRowsWithOuterRow(
+        SqlSelectQuery query,
+        EvalRow row,
+        IDictionary<string, Source> ctes,
+        SqlExpr countArg,
+        IEnumerable<EvalRow> rows)
+    {
+        var count = 0L;
+        foreach (var candidate in rows)
+        {
+            var attached = _attachOuterRow(candidate, row);
+            if (query.Where is not null && !_eval(query.Where, attached, null, ctes).ToBool())
+                continue;
+
+            if (countArg is StarExpr)
+            {
+                count++;
+                continue;
+            }
+
+            var evaluated = _eval(countArg, attached, null, ctes);
+            if (!AstQueryExecutorBase.IsNullish(evaluated))
+                count++;
+        }
+
+        return count;
+    }
+
+    private long CountRowsWithoutOuterRow(
+        SqlSelectQuery query,
+        IDictionary<string, Source> ctes,
+        SqlExpr countArg,
+        IEnumerable<EvalRow> rows)
+    {
+        var count = 0L;
+        foreach (var candidate in rows)
+        {
+            if (query.Where is not null && !_eval(query.Where, candidate, null, ctes).ToBool())
+                continue;
+
+            if (countArg is StarExpr)
+            {
+                count++;
+                continue;
+            }
+
+            var evaluated = _eval(countArg, candidate, null, ctes);
+            if (!AstQueryExecutorBase.IsNullish(evaluated))
+                count++;
+        }
+
+        return count;
     }
 
     internal List<object?>? GetOrEvaluateSubqueryFirstColumnValuesForOperation(
@@ -227,16 +279,12 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
                 $"{operation}: SubqueryExpr sem AST parseado (Parsed vazio)."),
             ctes,
             row);
-        var values = new List<object?>(subqueryResult.Count);
-        if (subqueryResult is List<Dictionary<int, object?>> rowList)
+        var rowCount = subqueryResult.Count;
+        var values = new List<object?>(rowCount);
+        for (var i = 0; i < rowCount; i++)
         {
-            for (var i = 0; i < rowList.Count; i++)
-                values.Add(rowList[i].TryGetValue(0, out var cell) ? cell : null);
-        }
-        else
-        {
-            foreach (var resultRow in subqueryResult)
-                values.Add(resultRow.TryGetValue(0, out var cell) ? cell : null);
+            var resultRow = subqueryResult[i];
+            values.Add(resultRow.TryGetValue(0, out var cell) ? cell : null);
         }
 
         return values;
@@ -253,28 +301,17 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
                 $"{operation}: SubqueryExpr sem AST parseado (Parsed vazio)."),
             ctes,
             row);
-        var values = new List<object?[]>(subqueryResult.Count);
-        if (subqueryResult is List<Dictionary<int, object?>> rowList)
+        var columnCount = subqueryResult.Columns.Count;
+        var rowCount = subqueryResult.Count;
+        var values = new List<object?[]>(rowCount);
+        for (var rowIndex = 0; rowIndex < rowCount; rowIndex++)
         {
-            for (var rowIndex = 0; rowIndex < rowList.Count; rowIndex++)
-            {
-                var tuple = new object?[subqueryResult.Columns.Count];
-                for (var i = 0; i < tuple.Length; i++)
-                    tuple[i] = rowList[rowIndex].TryGetValue(i, out var cell) ? cell : null;
+            var resultRow = subqueryResult[rowIndex];
+            var tuple = new object?[columnCount];
+            for (var i = 0; i < columnCount; i++)
+                tuple[i] = resultRow.TryGetValue(i, out var cell) ? cell : null;
 
-                values.Add(tuple);
-            }
-        }
-        else
-        {
-            foreach (var resultRow in subqueryResult)
-            {
-                var tuple = new object?[subqueryResult.Columns.Count];
-                for (var i = 0; i < tuple.Length; i++)
-                    tuple[i] = resultRow.TryGetValue(i, out var cell) ? cell : null;
-
-                values.Add(tuple);
-            }
+            values.Add(tuple);
         }
 
         return values;
