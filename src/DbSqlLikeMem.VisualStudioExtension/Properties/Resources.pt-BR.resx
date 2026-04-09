@@ -102,6 +102,8 @@
   <data name="ConsistencyCheckCompletedCount" xml:space="preserve"><value>Checagem de consistência finalizada para {0} objeto(s).</value></data>
   <data name="InvalidLocalStateStartingEmpty" xml:space="preserve"><value>Estado local inválido. Iniciando com configuração vazia.</value></data>
   <data name="IndexesLabel" xml:space="preserve"><value>Índices</value></data>
+  <data name="ColumnsLabel" xml:space="preserve"><value>Colunas</value></data>
+  <data name="TriggersLabel" xml:space="preserve"><value>Triggers</value></data>
   <data name="OperationAlreadyInProgress" xml:space="preserve"><value>Já existe uma operação em andamento.</value></data>
 
   <data name="SelectObjectTypeToConfigureMappings" xml:space="preserve"><value>Selecione um tipo de objeto para configurar mapeamentos.</value></data>

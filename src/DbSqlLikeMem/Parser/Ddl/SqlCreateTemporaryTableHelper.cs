@@ -391,7 +391,7 @@ internal static class SqlCreateTemporaryTableHelper
         if (open < 0 || close <= open + 1)
             return 2;
 
-        var parts = typeSql[(open + 1)..close].Split(',').Select(_=>_.Trim()).Where(_=>!string.IsNullOrWhiteSpace(_)).ToArray();
+        var parts = typeSql[(open + 1)..close].Split(',').Select(_ => _.Trim()).Where(_ => !string.IsNullOrWhiteSpace(_)).ToArray();
         if (parts.Length < 2)
             return 2;
 

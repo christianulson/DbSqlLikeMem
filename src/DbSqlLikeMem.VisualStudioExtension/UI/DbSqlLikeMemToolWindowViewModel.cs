@@ -1271,7 +1271,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         var pkColumns = ParsePrimaryKey(dbObject);
         var fkColumns = new HashSet<string>(foreignKeys.Select(f => f.Column), StringComparer.OrdinalIgnoreCase);
 
-        var columnsNode = new ExplorerNode("Colunas", ExplorerNodeKind.TableDetailGroup)
+        var columnsNode = new ExplorerNode(Resources.ColumnsLabel, ExplorerNodeKind.TableDetailGroup)
         {
             ConnectionId = tableNode.ConnectionId,
             TableDetailKind = "Columns"
@@ -1322,7 +1322,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             });
         }
 
-        var triggersNode = new ExplorerNode("Triggers", ExplorerNodeKind.TableDetailGroup)
+        var triggersNode = new ExplorerNode(Resources.TriggersLabel, ExplorerNodeKind.TableDetailGroup)
         {
             ConnectionId = tableNode.ConnectionId,
             TableDetailKind = "Triggers"
@@ -1695,6 +1695,12 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         if (node.Kind == ExplorerNodeKind.ObjectType && node.ObjectType is not null)
         {
             return objects.Where(o => o.Type == node.ObjectType.Value);
+        }
+
+        if (node.Kind == ExplorerNodeKind.Schema)
+        {
+            return objects.Where(o =>
+                string.Equals(o.Schema, node.Label, StringComparison.OrdinalIgnoreCase));
         }
 
         if (node.Kind == ExplorerNodeKind.Connection)

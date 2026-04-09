@@ -263,35 +263,35 @@ internal sealed class AstQueryOpenJsonTableFunctionHandler(
         JsonElement value,
         SqlOpenJsonWithColumn column
     ) => column.DbType switch
-        {
-            DbType.Int16 => value.TryGetInt16(out var shortValue) ? shortValue : value.ToString(),
-            DbType.Int32 => value.TryGetInt32(out var intValue) ? intValue : value.ToString(),
-            DbType.Int64 => value.TryGetInt64(out var longValue) ? longValue : value.ToString(),
-            DbType.UInt16 => value.TryGetUInt16(out var ushortValue) ? ushortValue : value.ToString(),
-            DbType.UInt32 => value.TryGetUInt32(out var uintValue) ? uintValue : value.ToString(),
-            DbType.UInt64 => value.TryGetUInt64(out var ulongValue) ? ulongValue : value.ToString(),
-            DbType.Decimal or DbType.Currency => value.TryGetDecimal(out var decimalValue) ? decimalValue : value.ToString(),
-            DbType.Double or DbType.Single => value.TryGetDouble(out var doubleValue) ? doubleValue : value.ToString(),
-            DbType.Boolean => value.TryGetInt32(out var bitValue) ? bitValue != 0 : value.ToString(),
-            DbType.String or DbType.StringFixedLength or DbType.AnsiString or DbType.AnsiStringFixedLength => value.GetRawText(),
-            _ => value.ToString()
-        };
+    {
+        DbType.Int16 => value.TryGetInt16(out var shortValue) ? shortValue : value.ToString(),
+        DbType.Int32 => value.TryGetInt32(out var intValue) ? intValue : value.ToString(),
+        DbType.Int64 => value.TryGetInt64(out var longValue) ? longValue : value.ToString(),
+        DbType.UInt16 => value.TryGetUInt16(out var ushortValue) ? ushortValue : value.ToString(),
+        DbType.UInt32 => value.TryGetUInt32(out var uintValue) ? uintValue : value.ToString(),
+        DbType.UInt64 => value.TryGetUInt64(out var ulongValue) ? ulongValue : value.ToString(),
+        DbType.Decimal or DbType.Currency => value.TryGetDecimal(out var decimalValue) ? decimalValue : value.ToString(),
+        DbType.Double or DbType.Single => value.TryGetDouble(out var doubleValue) ? doubleValue : value.ToString(),
+        DbType.Boolean => value.TryGetInt32(out var bitValue) ? bitValue != 0 : value.ToString(),
+        DbType.String or DbType.StringFixedLength or DbType.AnsiString or DbType.AnsiStringFixedLength => value.GetRawText(),
+        _ => value.ToString()
+    };
 
     private static object? ConvertOpenJsonBoolean(
         bool rawValue,
         SqlOpenJsonWithColumn column
     ) => column.DbType switch
-        {
-            DbType.Boolean => rawValue,
-            DbType.Int16 => (short)(rawValue ? 1 : 0),
-            DbType.Int32 => rawValue ? 1 : 0,
-            DbType.Int64 => rawValue ? 1L : 0L,
-            DbType.UInt16 => (ushort)(rawValue ? 1 : 0),
-            DbType.UInt32 => rawValue ? 1u : 0u,
-            DbType.UInt64 => rawValue ? 1UL : 0UL,
-            DbType.Decimal or DbType.Currency => rawValue ? 1m : 0m,
-            DbType.Double or DbType.Single => rawValue ? 1d : 0d,
-            DbType.String or DbType.StringFixedLength or DbType.AnsiString or DbType.AnsiStringFixedLength => rawValue ? "true" : "false",
-            _ => rawValue ? "true" : "false"
-        };
+    {
+        DbType.Boolean => rawValue,
+        DbType.Int16 => (short)(rawValue ? 1 : 0),
+        DbType.Int32 => rawValue ? 1 : 0,
+        DbType.Int64 => rawValue ? 1L : 0L,
+        DbType.UInt16 => (ushort)(rawValue ? 1 : 0),
+        DbType.UInt32 => rawValue ? 1u : 0u,
+        DbType.UInt64 => rawValue ? 1UL : 0UL,
+        DbType.Decimal or DbType.Currency => rawValue ? 1m : 0m,
+        DbType.Double or DbType.Single => rawValue ? 1d : 0d,
+        DbType.String or DbType.StringFixedLength or DbType.AnsiString or DbType.AnsiStringFixedLength => rawValue ? "true" : "false",
+        _ => rawValue ? "true" : "false"
+    };
 }

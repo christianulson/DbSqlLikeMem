@@ -22,6 +22,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     private static readonly HashSet<ExplorerNodeKind> GenerationSupportedKinds =
     [
         ExplorerNodeKind.Connection,
+        ExplorerNodeKind.Schema,
         ExplorerNodeKind.ObjectType,
         ExplorerNodeKind.Object
     ];
@@ -112,20 +113,29 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     private void OnExplorerContextMenuOpened(object sender, RoutedEventArgs e)
     {
         var selectedNode = ExplorerTree.SelectedItem as ExplorerNode;
-        var isConnectionNodeSelected = selectedNode?.Kind == ExplorerNodeKind.Connection;
-        var isObjectTypeNodeSelected = selectedNode?.Kind == ExplorerNodeKind.ObjectType;
-        var isTableNodeSelected = selectedNode?.Kind == ExplorerNodeKind.Object && selectedNode.ObjectType == DatabaseObjectType.Table;
-        var isGenerationSupportedSelected = selectedNode is not null && GenerationSupportedKinds.Contains(selectedNode.Kind);
-        var canExtractScenario = isConnectionNodeSelected || isObjectTypeNodeSelected || isTableNodeSelected;
-        var canClearObjectTypeFilter = isObjectTypeNodeSelected
-            && selectedNode is not null
-            && !string.IsNullOrWhiteSpace(viewModel.GetObjectTypeFilter(selectedNode).FilterText);
 
+        // For TableDetailGroup/TableDetailItem, promote actions to the parent Object (table) node
+        var contextNode = selectedNode?.Kind is ExplorerNodeKind.TableDetailGroup or ExplorerNodeKind.TableDetailItem
+            ? FindParentObjectNode(selectedNode)
+            : selectedNode;
+
+        var isConnectionNodeSelected = contextNode?.Kind == ExplorerNodeKind.Connection;
+        var isSchemaNodeSelected = contextNode?.Kind == ExplorerNodeKind.Schema;
+        var isObjectTypeNodeSelected = contextNode?.Kind == ExplorerNodeKind.ObjectType;
+        var isTableNodeSelected = contextNode?.Kind == ExplorerNodeKind.Object && contextNode.ObjectType == DatabaseObjectType.Table;
+        var isGenerationSupportedSelected = contextNode is not null && GenerationSupportedKinds.Contains(contextNode.Kind);
+        var canExtractScenario = isConnectionNodeSelected || isSchemaNodeSelected || isObjectTypeNodeSelected || isTableNodeSelected;
+        var canClearObjectTypeFilter = isObjectTypeNodeSelected
+            && contextNode is not null
+            && !string.IsNullOrWhiteSpace(viewModel.GetObjectTypeFilter(contextNode).FilterText);
+
+        // Connection actions: visible for Connection and Schema (which belongs to a connection)
+        var showConnectionActions = isConnectionNodeSelected || isSchemaNodeSelected;
         EditConnectionMenuItem.Visibility = isConnectionNodeSelected ? Visibility.Visible : Visibility.Collapsed;
         RemoveConnectionMenuItem.Visibility = isConnectionNodeSelected ? Visibility.Visible : Visibility.Collapsed;
-        RefreshConnectionMenuItem.Visibility = isConnectionNodeSelected ? Visibility.Visible : Visibility.Collapsed;
-        CancelConnectionOperationMenuItem.Visibility = isConnectionNodeSelected ? Visibility.Visible : Visibility.Collapsed;
-        ConnectionActionsSeparator.Visibility = isConnectionNodeSelected ? Visibility.Visible : Visibility.Collapsed;
+        RefreshConnectionMenuItem.Visibility = showConnectionActions ? Visibility.Visible : Visibility.Collapsed;
+        CancelConnectionOperationMenuItem.Visibility = showConnectionActions ? Visibility.Visible : Visibility.Collapsed;
+        ConnectionActionsSeparator.Visibility = showConnectionActions ? Visibility.Visible : Visibility.Collapsed;
 
         ConfigureMappingsMenuItem.Visibility = isObjectTypeNodeSelected ? Visibility.Visible : Visibility.Collapsed;
         ConfigureTemplatesMenuItem.Visibility = isObjectTypeNodeSelected ? Visibility.Visible : Visibility.Collapsed;
@@ -201,6 +211,54 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         if (sender is TreeViewItem item && item.DataContext is ExplorerNode node)
         {
             node.IsExpanded = false;
+        }
+    }
+
+    /// <summary>
+    /// Returns the effective node for context menu actions.
+    /// For TableDetailGroup/TableDetailItem, promotes to the parent Object node.
+    /// </summary>
+    private ExplorerNode? GetEffectiveSelectedNode()
+    {
+        var node = ExplorerTree.SelectedItem as ExplorerNode;
+        if (node?.Kind is ExplorerNodeKind.TableDetailGroup or ExplorerNodeKind.TableDetailItem)
+            return FindParentObjectNode(node);
+        return node;
+    }
+
+    /// <summary>
+    /// For TableDetailGroup/TableDetailItem nodes, finds the parent Object node in the tree.
+    /// This allows detail-level nodes to inherit their parent table's context menu actions.
+    /// </summary>
+    private ExplorerNode? FindParentObjectNode(ExplorerNode? detailNode)
+    {
+        if (detailNode is null) return null;
+        foreach (var node in EnumerateNodes(viewModel.Nodes))
+        {
+            if (node.Kind == ExplorerNodeKind.Object)
+            {
+                foreach (var child in node.Children)
+                {
+                    if (ReferenceEquals(child, detailNode))
+                        return node;
+                    foreach (var grandchild in child.Children)
+                    {
+                        if (ReferenceEquals(grandchild, detailNode))
+                            return node;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private static IEnumerable<ExplorerNode> EnumerateNodes(IEnumerable<ExplorerNode> roots)
+    {
+        foreach (var node in roots)
+        {
+            yield return node;
+            foreach (var child in EnumerateNodes(node.Children))
+                yield return child;
         }
     }
 
@@ -345,7 +403,8 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     private async void OnGenerateAllClassesClick(object sender, RoutedEventArgs e)
         => await RunSafeAsync(async () =>
         {
-            if (ExplorerTree.SelectedItem is not ExplorerNode selected || !GenerationSupportedKinds.Contains(selected.Kind))
+            var selected = GetEffectiveSelectedNode();
+            if (selected is null || !GenerationSupportedKinds.Contains(selected.Kind))
             {
                 MessageBox.Show(System.Windows.Window.GetWindow(this), UiResources.SelectNodeToGenerateClasses, UiResources.GenerateClassesTitle, MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
@@ -374,7 +433,8 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     private async void OnGenerateClassesClick(object sender, RoutedEventArgs e)
         => await RunSafeAsync(async () =>
         {
-            if (ExplorerTree.SelectedItem is not ExplorerNode selected || !GenerationSupportedKinds.Contains(selected.Kind))
+            var selected = GetEffectiveSelectedNode();
+            if (selected is null || !GenerationSupportedKinds.Contains(selected.Kind))
             {
                 MessageBox.Show(System.Windows.Window.GetWindow(this), UiResources.SelectNodeToGenerateTestClasses, UiResources.GenerateTestClassesMenu, MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
@@ -401,7 +461,8 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     private async void OnGenerateModelClassesClick(object sender, RoutedEventArgs e)
         => await RunSafeAsync(async () =>
         {
-            if (ExplorerTree.SelectedItem is not ExplorerNode selected || !GenerationSupportedKinds.Contains(selected.Kind))
+            var selected = GetEffectiveSelectedNode();
+            if (selected is null || !GenerationSupportedKinds.Contains(selected.Kind))
             {
                 MessageBox.Show(System.Windows.Window.GetWindow(this), UiResources.SelectNodeToGenerateModelClasses, UiResources.GenerateModelClassesMenu, MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
@@ -415,7 +476,8 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     private async void OnGenerateRepositoryClassesClick(object sender, RoutedEventArgs e)
         => await RunSafeAsync(async () =>
         {
-            if (ExplorerTree.SelectedItem is not ExplorerNode selected || !GenerationSupportedKinds.Contains(selected.Kind))
+            var selected = GetEffectiveSelectedNode();
+            if (selected is null || !GenerationSupportedKinds.Contains(selected.Kind))
             {
                 MessageBox.Show(System.Windows.Window.GetWindow(this), UiResources.SelectNodeToGenerateRepositoryClasses, UiResources.GenerateRepositoryClassesMenu, MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
@@ -429,7 +491,8 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     private async void OnCheckConsistencyClick(object sender, RoutedEventArgs e)
         => await RunSafeAsync(async () =>
         {
-            if (ExplorerTree.SelectedItem is not ExplorerNode selected || !GenerationSupportedKinds.Contains(selected.Kind))
+            var selected = GetEffectiveSelectedNode();
+            if (selected is null || !GenerationSupportedKinds.Contains(selected.Kind))
             {
                 MessageBox.Show(System.Windows.Window.GetWindow(this), UiResources.SelectNodeToCheckConsistency, UiResources.CheckConsistencyMenu, MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
@@ -441,7 +504,8 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     private async void OnExtractScenarioClick(object sender, RoutedEventArgs e)
         => await RunSafeAsync(async () =>
         {
-            if (ExplorerTree.SelectedItem is not ExplorerNode selected || selected.ConnectionId is null)
+            var selected = GetEffectiveSelectedNode();
+            if (selected is null || selected.ConnectionId is null)
             {
                 MessageBox.Show(System.Windows.Window.GetWindow(this), UiResources.SelectNodeToExtractScenario, UiResources.ExtractScenarioButton, MessageBoxButton.OK, MessageBoxImage.Information);
                 return;

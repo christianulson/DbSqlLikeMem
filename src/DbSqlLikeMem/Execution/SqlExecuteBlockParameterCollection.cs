@@ -228,7 +228,7 @@ internal sealed class SqlExecuteBlockParameterCollection : DbParameterCollection
     public override void RemoveAt(string parameterName)
         => throw new NotSupportedException("The execute block parameter collection is read-only.");
 
-    #pragma warning disable CS8764, CS8765
+#pragma warning disable CS8764, CS8765
     private sealed class ScopedDbParameter : DbParameter
     {
         public override DbType DbType { get; set; }
@@ -257,5 +257,5 @@ internal sealed class SqlExecuteBlockParameterCollection : DbParameterCollection
 
         public override DataRowVersion SourceVersion { get; set; } = DataRowVersion.Current;
     }
-    #pragma warning restore CS8764, CS8765
+#pragma warning restore CS8764, CS8765
 }

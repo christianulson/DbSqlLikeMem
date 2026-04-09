@@ -181,102 +181,102 @@ internal sealed class AstQueryHavingHelper(
                 }
 
             case BinaryExpr b:
-            {
-                var leftCanBeOrdinal = IsOrdinalCandidateSide(b.Op, leftSide: true);
-                var rightCanBeOrdinal = IsOrdinalCandidateSide(b.Op, leftSide: false);
-                var left = RewriteHavingOrdinals(b.Left, q, ref usedOrdinal, leftCanBeOrdinal, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
-                var right = RewriteHavingOrdinals(b.Right, q, ref usedOrdinal, rightCanBeOrdinal, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
-                return ReferenceEquals(left, b.Left) && ReferenceEquals(right, b.Right)
-                    ? b
-                    : b with { Left = left, Right = right };
-            }
+                {
+                    var leftCanBeOrdinal = IsOrdinalCandidateSide(b.Op, leftSide: true);
+                    var rightCanBeOrdinal = IsOrdinalCandidateSide(b.Op, leftSide: false);
+                    var left = RewriteHavingOrdinals(b.Left, q, ref usedOrdinal, leftCanBeOrdinal, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                    var right = RewriteHavingOrdinals(b.Right, q, ref usedOrdinal, rightCanBeOrdinal, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                    return ReferenceEquals(left, b.Left) && ReferenceEquals(right, b.Right)
+                        ? b
+                        : b with { Left = left, Right = right };
+                }
             case UnaryExpr u:
-            {
-                var rewritten = RewriteHavingOrdinals(u.Expr, q, ref usedOrdinal, allowOrdinalLiteral, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
-                return ReferenceEquals(rewritten, u.Expr) ? u : u with { Expr = rewritten };
-            }
+                {
+                    var rewritten = RewriteHavingOrdinals(u.Expr, q, ref usedOrdinal, allowOrdinalLiteral, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                    return ReferenceEquals(rewritten, u.Expr) ? u : u with { Expr = rewritten };
+                }
             case IsNullExpr isn:
-            {
-                var rewritten = RewriteHavingOrdinals(isn.Expr, q, ref usedOrdinal, allowOrdinalLiteral, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
-                return ReferenceEquals(rewritten, isn.Expr) ? isn : isn with { Expr = rewritten };
-            }
+                {
+                    var rewritten = RewriteHavingOrdinals(isn.Expr, q, ref usedOrdinal, allowOrdinalLiteral, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                    return ReferenceEquals(rewritten, isn.Expr) ? isn : isn with { Expr = rewritten };
+                }
             case LikeExpr like:
-            {
-                var left = RewriteHavingOrdinals(like.Left, q, ref usedOrdinal, true, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
-                var pattern = RewriteHavingOrdinals(like.Pattern, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
-                var escape = like.Escape is null
-                    ? null
-                    : RewriteHavingOrdinals(like.Escape, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
-                return ReferenceEquals(left, like.Left)
-                    && ReferenceEquals(pattern, like.Pattern)
-                    && (like.Escape is null ? escape is null : ReferenceEquals(escape, like.Escape))
-                    ? like
-                    : like with
-                    {
-                        Left = left,
-                        Pattern = pattern,
-                        Escape = escape
-                    };
-            }
+                {
+                    var left = RewriteHavingOrdinals(like.Left, q, ref usedOrdinal, true, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                    var pattern = RewriteHavingOrdinals(like.Pattern, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                    var escape = like.Escape is null
+                        ? null
+                        : RewriteHavingOrdinals(like.Escape, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                    return ReferenceEquals(left, like.Left)
+                        && ReferenceEquals(pattern, like.Pattern)
+                        && (like.Escape is null ? escape is null : ReferenceEquals(escape, like.Escape))
+                        ? like
+                        : like with
+                        {
+                            Left = left,
+                            Pattern = pattern,
+                            Escape = escape
+                        };
+                }
             case InExpr i:
-            {
-                var left = RewriteHavingOrdinals(i.Left, q, ref usedOrdinal, true, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
-                var items = RewriteSqlExprList(i.Items, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
-                return ReferenceEquals(left, i.Left) && ReferenceEquals(items, i.Items)
-                    ? i
-                    : i with { Left = left, Items = items };
-            }
+                {
+                    var left = RewriteHavingOrdinals(i.Left, q, ref usedOrdinal, true, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                    var items = RewriteSqlExprList(i.Items, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                    return ReferenceEquals(left, i.Left) && ReferenceEquals(items, i.Items)
+                        ? i
+                        : i with { Left = left, Items = items };
+                }
             case RowExpr r:
-            {
-                var items = RewriteSqlExprList(r.Items, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
-                return ReferenceEquals(items, r.Items) ? r : r with { Items = items };
-            }
+                {
+                    var items = RewriteSqlExprList(r.Items, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                    return ReferenceEquals(items, r.Items) ? r : r with { Items = items };
+                }
             case BetweenExpr bt:
-            {
-                var exprPart = RewriteHavingOrdinals(bt.Expr, q, ref usedOrdinal, true, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
-                var low = RewriteHavingOrdinals(bt.Low, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
-                var high = RewriteHavingOrdinals(bt.High, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
-                return ReferenceEquals(exprPart, bt.Expr)
-                    && ReferenceEquals(low, bt.Low)
-                    && ReferenceEquals(high, bt.High)
-                    ? bt
-                    : bt with
-                    {
-                        Expr = exprPart,
-                        Low = low,
-                        High = high
-                    };
-            }
+                {
+                    var exprPart = RewriteHavingOrdinals(bt.Expr, q, ref usedOrdinal, true, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                    var low = RewriteHavingOrdinals(bt.Low, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                    var high = RewriteHavingOrdinals(bt.High, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                    return ReferenceEquals(exprPart, bt.Expr)
+                        && ReferenceEquals(low, bt.Low)
+                        && ReferenceEquals(high, bt.High)
+                        ? bt
+                        : bt with
+                        {
+                            Expr = exprPart,
+                            Low = low,
+                            High = high
+                        };
+                }
             case FunctionCallExpr fn:
-            {
-                var args = RewriteSqlExprList(fn.Args, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
-                return ReferenceEquals(args, fn.Args) ? fn : fn with { Args = args };
-            }
+                {
+                    var args = RewriteSqlExprList(fn.Args, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                    return ReferenceEquals(args, fn.Args) ? fn : fn with { Args = args };
+                }
             case CallExpr call:
-            {
-                var args = RewriteSqlExprList(call.Args, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
-                return ReferenceEquals(args, call.Args) ? call : call with { Args = args };
-            }
+                {
+                    var args = RewriteSqlExprList(call.Args, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                    return ReferenceEquals(args, call.Args) ? call : call with { Args = args };
+                }
             case CaseExpr c:
-            {
-                var baseExpr = c.BaseExpr is null
-                    ? null
-                    : RewriteHavingOrdinals(c.BaseExpr, q, ref usedOrdinal, true, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
-                var whens = RewriteCaseWhens(c.Whens, q, ref usedOrdinal, allowOrdinalLiteral, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
-                var elseExpr = c.ElseExpr is null
-                    ? null
-                    : RewriteHavingOrdinals(c.ElseExpr, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
-                return ReferenceEquals(baseExpr, c.BaseExpr)
-                    && ReferenceEquals(whens, c.Whens)
-                    && ReferenceEquals(elseExpr, c.ElseExpr)
-                    ? c
-                    : c with
-                    {
-                        BaseExpr = baseExpr,
-                        Whens = whens,
-                        ElseExpr = elseExpr
-                    };
-            }
+                {
+                    var baseExpr = c.BaseExpr is null
+                        ? null
+                        : RewriteHavingOrdinals(c.BaseExpr, q, ref usedOrdinal, true, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                    var whens = RewriteCaseWhens(c.Whens, q, ref usedOrdinal, allowOrdinalLiteral, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                    var elseExpr = c.ElseExpr is null
+                        ? null
+                        : RewriteHavingOrdinals(c.ElseExpr, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal);
+                    return ReferenceEquals(baseExpr, c.BaseExpr)
+                        && ReferenceEquals(whens, c.Whens)
+                        && ReferenceEquals(elseExpr, c.ElseExpr)
+                        ? c
+                        : c with
+                        {
+                            BaseExpr = baseExpr,
+                            Whens = whens,
+                            ElseExpr = elseExpr
+                        };
+                }
             default:
                 return expr;
         }

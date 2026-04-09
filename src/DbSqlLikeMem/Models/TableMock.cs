@@ -504,14 +504,14 @@ public abstract class TableMock
     /// <param name="v3">EN: Third primary key value. PT: Terceiro valor da chave primaria.</param>
     /// <param name="rowIndex">EN: Found row index. PT: Indice da linha encontrada.</param>
     /// <returns>EN: True if a matching row was found. PT: True se uma linha correspondente foi encontrada.</returns>
-        internal bool TryFindRowByPkValues(object? v1, object? v2, object? v3, out int rowIndex)
-        {
-            rowIndex = -1;
-            if (_primaryKeyIndexes.Count == 0 || _pkIndexArray.Length != 3)
-                return false;
+    internal bool TryFindRowByPkValues(object? v1, object? v2, object? v3, out int rowIndex)
+    {
+        rowIndex = -1;
+        if (_primaryKeyIndexes.Count == 0 || _pkIndexArray.Length != 3)
+            return false;
 
-            return _pkIndex.TryGetValue(new IndexKey(v1, v2, v3), out rowIndex);
-        }
+        return _pkIndex.TryGetValue(new IndexKey(v1, v2, v3), out rowIndex);
+    }
 
     /// <summary>
     /// EN: Rebuilds the PK index from all current rows.

@@ -439,11 +439,29 @@ namespace DbSqlLikeMem.VisualStudioExtension.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Columns.
+        /// </summary>
+        public static string ColumnsLabel {
+            get {
+                return ResourceManager.GetString("ColumnsLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Indexes.
         /// </summary>
         public static string IndexesLabel {
             get {
                 return ResourceManager.GetString("IndexesLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Triggers.
+        /// </summary>
+        public static string TriggersLabel {
+            get {
+                return ResourceManager.GetString("TriggersLabel", resourceCulture);
             }
         }
         
