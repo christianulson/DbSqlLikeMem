@@ -1,73 +1,79 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net472</TargetFramework>
-    <UseWPF>true</UseWPF>
-    <OutputType>Library</OutputType>
-    <AssemblyName>DbSqlLikeMem.VisualStudioExtension</AssemblyName>
-    <RootNamespace>DbSqlLikeMem.VisualStudioExtension</RootNamespace>
+	<PropertyGroup>
+		<TargetFramework>net472</TargetFramework>
+		<UseWPF>true</UseWPF>
+		<OutputType>Library</OutputType>
+		<AssemblyName>DbSqlLikeMem.VisualStudioExtension</AssemblyName>
+		<RootNamespace>DbSqlLikeMem.VisualStudioExtension</RootNamespace>
 
-    <!-- VSIX / VSSDK required properties -->
-    <MinimumVisualStudioVersion>17.0</MinimumVisualStudioVersion>
-    <GeneratePkgDefFile>true</GeneratePkgDefFile>
-    <UseCodebase>true</UseCodebase>
-    <CreateVsixContainer>true</CreateVsixContainer>
-    <IncludeAssemblyInVSIXContainer>true</IncludeAssemblyInVSIXContainer>
-    <IncludeDebugSymbolsInVSIXContainer>false</IncludeDebugSymbolsInVSIXContainer>
-    <IncludeDebugSymbolsInLocalVSIXDeployment>true</IncludeDebugSymbolsInLocalVSIXDeployment>
-    <CopyBuildOutputToOutputDirectory>true</CopyBuildOutputToOutputDirectory>
+		<!-- VSIX / VSSDK required properties -->
+		<MinimumVisualStudioVersion>17.0</MinimumVisualStudioVersion>
+		<GeneratePkgDefFile>true</GeneratePkgDefFile>
+		<UseCodebase>true</UseCodebase>
+		<CreateVsixContainer>true</CreateVsixContainer>
+		<IncludeAssemblyInVSIXContainer>true</IncludeAssemblyInVSIXContainer>
+		<IncludeDebugSymbolsInVSIXContainer>false</IncludeDebugSymbolsInVSIXContainer>
+		<IncludeDebugSymbolsInLocalVSIXDeployment>true</IncludeDebugSymbolsInLocalVSIXDeployment>
+		<CopyBuildOutputToOutputDirectory>true</CopyBuildOutputToOutputDirectory>
 
-    <NoWarn>$(NoWarn);VSTHRD200;VSTHRD100</NoWarn>
-  </PropertyGroup>
+		<NoWarn>$(NoWarn);VSTHRD200;VSTHRD100</NoWarn>
+	</PropertyGroup>
 
-  <!-- Deploy to Experimental instance on Debug builds -->
-  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-    <DeployExtension>true</DeployExtension>
-    <DeployVSTemplates>false</DeployVSTemplates>
-  </PropertyGroup>
+	<!-- Deploy to Experimental instance on Debug builds -->
+	<PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+		<DeployExtension>true</DeployExtension>
+		<DeployVSTemplates>false</DeployVSTemplates>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <!-- VSSDK BuildTools must be listed first — it injects the pkgdef/vsix targets -->
-    <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="17.14.2120" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.14.40265" ExcludeAssets="runtime" NoWarn="NU1605" />
-    <PackageReference Include="Microsoft.VisualStudio.ImageCatalog" Version="17.14.40260" />
-    <PackageReference Include="Microsoft.VisualStudio.Imaging" Version="17.14.40264" />
+	<ItemGroup>
+		<!-- VSSDK BuildTools must be listed first — it injects the pkgdef/vsix targets -->
+		<PackageReference Include="Microsoft.VSSDK.BuildTools" Version="17.14.2120" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.14.40265" ExcludeAssets="runtime" NoWarn="NU1605" />
+		<PackageReference Include="Microsoft.VisualStudio.ImageCatalog" Version="17.14.40260" />
+		<PackageReference Include="Microsoft.VisualStudio.Imaging" Version="17.14.40264" />
 
-	<PackageReference Include="FirebirdSql.Data.FirebirdClient" Version="7.10.1" />
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
-    <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="8.0.5" />
-    <PackageReference Include="MySqlConnector" Version="2.5.0" />
-    <PackageReference Include="Npgsql" Version="8.0.3" />
-    <PackageReference Include="Oracle.ManagedDataAccess" Version="23.5.1" />
-  </ItemGroup>
+		<PackageReference Include="FirebirdSql.Data.FirebirdClient" Version="10.3.4" />
+		<PackageReference Include="IBM.Data.DB2.Core" Version="1.3.0.100" />
+		<PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+		<PackageReference Include="Microsoft.Data.Sqlite.Core" Version="8.0.5" />
+		<PackageReference Include="MySqlConnector" Version="2.5.0" />
+		<PackageReference Include="Npgsql" Version="8.0.3" />
+		<PackageReference Include="Oracle.ManagedDataAccess" Version="23.5.1" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\DbSqlLikeMem.VisualStudioExtension.Core\DbSqlLikeMem.VisualStudioExtension.Core.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem.VisualStudioExtension.Core\DbSqlLikeMem.VisualStudioExtension.Core.csproj" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <Reference Include="System.Design" />
-  </ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Update="Properties\Resources.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <Compile Update="Properties\Resources.Designer.cs">
-      <DesignTime>true</DesignTime>
-      <AutoGen>true</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-    <EmbeddedResource Update="Properties\Resources.*.resx">
-      <DependentUpon>Resources.resx</DependentUpon>
-    </EmbeddedResource>
-  </ItemGroup>
+	<ItemGroup>
+		<InternalsVisibleTo Include="DbSqlLikeMem.VisualStudioExtension.XamlHarness" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <VSCTCompile Include="DbSqlLikeMemExtension.vsct" />
-    <None Include="source.extension.vsixmanifest">
-      <SubType>Designer</SubType>
-    </None>
-  </ItemGroup>
+	<ItemGroup>
+		<Reference Include="System.Design" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Update="Properties\Resources.resx">
+			<Generator>PublicResXFileCodeGenerator</Generator>
+			<LastGenOutput>Resources.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
+		<Compile Update="Properties\Resources.Designer.cs">
+			<DesignTime>true</DesignTime>
+			<AutoGen>true</AutoGen>
+			<DependentUpon>Resources.resx</DependentUpon>
+		</Compile>
+		<EmbeddedResource Update="Properties\Resources.*.resx">
+			<DependentUpon>Resources.resx</DependentUpon>
+		</EmbeddedResource>
+	</ItemGroup>
+
+	<ItemGroup>
+		<VSCTCompile Include="DbSqlLikeMemExtension.vsct" />
+		<None Include="source.extension.vsixmanifest">
+			<SubType>Designer</SubType>
+		</None>
+	</ItemGroup>
 
 </Project>

@@ -363,7 +363,7 @@ public sealed class SqlDatabaseMetadataProviderTests
         var mariaDbQuery = SqlMetadataQueryFactory.BuildListObjectsQuery("MariaDb");
         var mySqlQuery = SqlMetadataQueryFactory.BuildListObjectsQuery("MySql");
 
-        Assert.Contains("INFORMATION_SCHEMA.SEQUENCES", mariaDbQuery, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("TABLE_TYPE = 'SEQUENCE'", mariaDbQuery, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("INFORMATION_SCHEMA.SEQUENCES", mySqlQuery, StringComparison.OrdinalIgnoreCase);
     }
 

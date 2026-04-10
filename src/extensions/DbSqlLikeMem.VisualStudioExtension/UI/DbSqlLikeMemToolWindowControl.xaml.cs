@@ -24,6 +24,8 @@ namespace DbSqlLikeMem.VisualStudioExtension.UI;
 /// </summary>
 public partial class DbSqlLikeMemToolWindowControl : UserControl
 {
+    private const string HarnessLoadEnvironmentPropertyKey = "DbSqlLikeMem.XamlHarness.LoadEnvironment";
+
     private static readonly HashSet<ExplorerNodeKind> GenerationSupportedKinds =
     [
         ExplorerNodeKind.Connection,
@@ -35,14 +37,51 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     private readonly DbSqlLikeMemToolWindowViewModel viewModel;
 
     /// <summary>
-    /// Initializes the DbSqlLikeMem tool window user control and its view model.
-    /// Inicializa o controle da janela DbSqlLikeMem e seu view model.
+    /// EN: Initializes the tool window user control and its view model.
+    /// PT: Inicializa o controle da janela de ferramentas e seu view model.
     /// </summary>
     public DbSqlLikeMemToolWindowControl()
     {
+        ThreadHelper.ThrowIfNotOnUIThread();
         InitializeComponent();
-        viewModel = new DbSqlLikeMemToolWindowViewModel();
+        viewModel = new DbSqlLikeMemToolWindowViewModel(ShouldLoadPersistedState(), ResolveStorageScopeKey());
         DataContext = viewModel;
+    }
+
+    /// <summary>
+    /// EN: Replaces the current explorer state with the connections created by the harness profile.
+    /// PT: Substitui o estado atual do explorador pelas conexoes criadas pelo profile do harness.
+    /// </summary>
+    public Task LoadHarnessConnectionsAsync(IReadOnlyCollection<ConnectionDefinition> connections)
+        => viewModel.LoadHarnessConnectionsAsync(connections);
+
+    private static bool ShouldLoadPersistedState()
+        => Application.Current?.Properties[HarnessLoadEnvironmentPropertyKey] is not true;
+
+    private static string? ResolveStorageScopeKey()
+    {
+        try
+        {
+            if (Application.Current?.Properties[HarnessLoadEnvironmentPropertyKey] is true)
+            {
+                return null;
+            }
+
+            ThreadHelper.ThrowIfNotOnUIThread();
+            var dte = Package.GetGlobalService(typeof(DTE)) as DTE;
+            var solutionFullName = dte?.Solution?.FullName;
+            if (string.IsNullOrWhiteSpace(solutionFullName) || !File.Exists(solutionFullName))
+            {
+                return null;
+            }
+
+            return Path.GetFullPath(solutionFullName);
+        }
+        catch (Exception ex)
+        {
+            ExtensionLogger.Log($"ResolveStorageScopeKey error: {ex}");
+            return null;
+        }
     }
 
     private async void OnAddConnectionClick(object sender, RoutedEventArgs e)

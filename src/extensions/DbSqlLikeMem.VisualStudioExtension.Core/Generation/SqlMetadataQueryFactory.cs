@@ -161,6 +161,7 @@ SELECT '' AS SchemaName
        , CASE TABLE_TYPE
          WHEN 'BASE TABLE' THEN 'Table'
          WHEN 'VIEW' THEN 'View'
+         WHEN 'SEQUENCE' THEN 'Sequence'
          ELSE TABLE_TYPE
          END AS `ObjectType`
     FROM INFORMATION_SCHEMA.TABLES
@@ -303,11 +304,13 @@ SELECT SPECIFIC_SCHEMA AS SchemaName
     FROM INFORMATION_SCHEMA.ROUTINES
    WHERE ROUTINE_SCHEMA = @databaseName{AppendFilter(filter, "ROUTINE_NAME")}
    UNION ALL
-  SELECT SEQUENCE_SCHEMA AS `SchemaName`
-       , SEQUENCE_NAME AS `ObjectName`
+  SELECT TABLE_SCHEMA AS `SchemaName`
+       , TABLE_NAME AS `ObjectName`
        , 'Sequence' AS `ObjectType`
-    FROM INFORMATION_SCHEMA.SEQUENCES
-   WHERE SEQUENCE_SCHEMA = @databaseName{AppendFilter(filter, "SEQUENCE_NAME")}
+    FROM INFORMATION_SCHEMA.TABLES
+   WHERE TABLE_SCHEMA = @databaseName
+     AND TABLE_TYPE = 'SEQUENCE'
+     {AppendFilter(filter, "TABLE_NAME")}
 ORDER BY SchemaName, ObjectType, ObjectName;
 """;
 

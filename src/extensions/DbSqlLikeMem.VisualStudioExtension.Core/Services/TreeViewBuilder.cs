@@ -14,20 +14,34 @@ public sealed class TreeViewBuilder
     /// </summary>
     public TreeNode Build(ConnectionDefinition connection, IReadOnlyCollection<DatabaseObjectReference> objects)
     {
-        var root = new TreeNode(connection.DatabaseType) { ContextKey = "database-type" };
-        var dbNode = new TreeNode(connection.DatabaseName) { ContextKey = "database-name" };
+        var root = new TreeNode(connection.DatabaseType)
+        {
+            ContextKey = "database-type",
+            NodeGlyph = "🗃"
+        };
+        var dbNode = new TreeNode(connection.DatabaseName)
+        {
+            ContextKey = "database-name",
+            NodeGlyph = "🧩"
+        };
         root.AddChild(dbNode);
 
         foreach (DatabaseObjectType objectType in Enum.GetValues(typeof(DatabaseObjectType)))
         {
-            var typeNode = new TreeNode(DatabaseObjectTypeLabels.GetGroupLabel(objectType)) { ContextKey = "object-type", ObjectType = objectType };
+            var typeNode = new TreeNode(DatabaseObjectTypeLabels.GetGroupLabel(objectType))
+            {
+                ContextKey = "object-type",
+                ObjectType = objectType,
+                NodeGlyph = GetGroupGlyph(objectType)
+            };
 
             foreach (var item in objects.Where(o => o.Type == objectType).OrderBy(o => o.Name, StringComparer.OrdinalIgnoreCase))
             {
                 typeNode.AddChild(new TreeNode(item.Name)
                 {
                     ContextKey = "object",
-                    ObjectType = objectType
+                    ObjectType = objectType,
+                    NodeGlyph = GetObjectGlyph(objectType)
                 });
             }
 
@@ -36,4 +50,26 @@ public sealed class TreeViewBuilder
 
         return root;
     }
+
+    private static string GetGroupGlyph(DatabaseObjectType objectType)
+        => objectType switch
+        {
+            DatabaseObjectType.Table => "🗂",
+            DatabaseObjectType.View => "👁",
+            DatabaseObjectType.Procedure => "⚙",
+            DatabaseObjectType.Function => "λ",
+            DatabaseObjectType.Sequence => "🔢",
+            _ => "📁"
+        };
+
+    private static string GetObjectGlyph(DatabaseObjectType objectType)
+        => objectType switch
+        {
+            DatabaseObjectType.Table => "▦",
+            DatabaseObjectType.View => "◫",
+            DatabaseObjectType.Procedure => "ƒ",
+            DatabaseObjectType.Function => "λ",
+            DatabaseObjectType.Sequence => "🔢",
+            _ => "•"
+        };
 }

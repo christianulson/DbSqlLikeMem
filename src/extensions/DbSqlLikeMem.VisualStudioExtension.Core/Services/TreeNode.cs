@@ -32,6 +32,12 @@ public sealed class TreeNode(string label)
     public DatabaseObjectType? ObjectType { get; init; }
 
     /// <summary>
+    /// EN: Gets or sets the glyph shown before the node label.
+    /// PT: Obtém ou define o glifo exibido antes do rótulo do nó.
+    /// </summary>
+    public string NodeGlyph { get; init; } = string.Empty;
+
+    /// <summary>
     /// EN: Gets the parent node in the generated tree.
     /// PT: Obtém o nó pai na árvore gerada.
     /// </summary>

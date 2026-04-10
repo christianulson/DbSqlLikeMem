@@ -8,9 +8,9 @@ using MySqlConnector;
 using Npgsql;
 using Oracle.ManagedDataAccess.Client;
 
-namespace DbSqlLikeMem.VisualStudioExtension.Services;
+namespace DbSqlLikeMem.VisualStudioExtension.XamlHarness;
 
-internal sealed class AdoNetSqlQueryExecutor : ISqlQueryExecutor
+internal sealed class HarnessSqlQueryExecutor : ISqlQueryExecutor
 {
     public async Task<IReadOnlyCollection<IReadOnlyDictionary<string, object?>>> QueryAsync(
         ConnectionDefinition connection,
@@ -21,7 +21,7 @@ internal sealed class AdoNetSqlQueryExecutor : ISqlQueryExecutor
         var factory = GetFactory(connection.DatabaseType);
         using var dbConnection = factory.CreateConnection() ?? throw new InvalidOperationException("Falha ao criar conexão ADO.NET.");
         dbConnection.ConnectionString = connection.ConnectionString;
-        await dbConnection.OpenAsync(cancellationToken);
+        await dbConnection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
         using var command = dbConnection.CreateCommand();
         command.CommandText = sql;
@@ -35,13 +35,13 @@ internal sealed class AdoNetSqlQueryExecutor : ISqlQueryExecutor
         }
 
         var rows = new List<IReadOnlyDictionary<string, object?>>();
-        using var reader = await command.ExecuteReaderAsync(cancellationToken);
-        while (await reader.ReadAsync(cancellationToken))
+        using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             var row = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
             for (var i = 0; i < reader.FieldCount; i++)
             {
-                row[reader.GetName(i)] = await reader.IsDBNullAsync(i, cancellationToken) ? null : reader.GetValue(i);
+                row[reader.GetName(i)] = await reader.IsDBNullAsync(i, cancellationToken).ConfigureAwait(false) ? null : reader.GetValue(i);
             }
 
             rows.Add(row);
@@ -50,7 +50,7 @@ internal sealed class AdoNetSqlQueryExecutor : ISqlQueryExecutor
         return rows;
     }
 
-    internal static DbProviderFactory GetFactory(string databaseType)
+    private static DbProviderFactory GetFactory(string databaseType)
     {
         var normalizedType = DatabaseTypeNormalizer.NormalizeKey(databaseType);
         return normalizedType switch
@@ -59,7 +59,6 @@ internal sealed class AdoNetSqlQueryExecutor : ISqlQueryExecutor
             "postgresql" => NpgsqlFactory.Instance,
             "mysql" or "mariadb" => MySqlConnectorFactory.Instance,
             "oracle" => OracleClientFactory.Instance,
-            "sqlite" => Microsoft.Data.Sqlite.SqliteFactory.Instance,
             "db2" => DB2Factory.Instance,
             "firebird" => FirebirdClientFactory.Instance,
             _ => throw new NotSupportedException($"Banco não suportado para conexão real: {databaseType}")

@@ -164,4 +164,38 @@ public sealed class StatePersistenceServiceTests
             }
         }
     }
+
+    /// <summary>
+    /// EN: Ensures workspace-scoped state paths stay isolated per workspace identifier.
+    /// PT: Garante que os caminhos de estado por workspace fiquem isolados por identificador de workspace.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "StatePersistenceService")]
+    public void GetScopedStatePath_ShouldCreateDistinctPathsPerWorkspace()
+    {
+        var tempRoot = Path.Combine(Path.GetTempPath(), $"dbsql-state-root-{Guid.NewGuid():N}");
+
+        try
+        {
+            var service = new StatePersistenceService();
+            var solutionPath = @"C:\Repos\Alpha\Alpha.sln";
+            var otherSolutionPath = @"C:\Repos\Beta\Beta.sln";
+
+            var firstPath = service.GetScopedStatePath(solutionPath, tempRoot);
+            var secondPath = service.GetScopedStatePath(otherSolutionPath, tempRoot);
+            var fallbackPath = service.GetScopedStatePath(string.Empty, tempRoot);
+
+            Assert.NotEqual(firstPath, secondPath);
+            Assert.StartsWith(tempRoot, firstPath, StringComparison.OrdinalIgnoreCase);
+            Assert.EndsWith("visual-studio-extension-state.json", firstPath, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(Path.Combine(tempRoot, "DbSqlLikeMem", "visual-studio-extension-state.json"), fallbackPath);
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+    }
 }

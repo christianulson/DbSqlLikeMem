@@ -1,5 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Persistence;
 
@@ -24,6 +26,22 @@ public sealed class StatePersistenceService
     {
         var root = baseDirectory ?? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         return Path.Combine(root, "DbSqlLikeMem", "visual-studio-extension-state.json");
+    }
+
+    /// <summary>
+    /// EN: Returns the state path scoped to the supplied workspace identifier.
+    /// PT: Retorna o caminho do estado delimitado pelo identificador do workspace informado.
+    /// </summary>
+    public string GetScopedStatePath(string workspaceIdentifier, string? baseDirectory = null)
+    {
+        if (string.IsNullOrWhiteSpace(workspaceIdentifier))
+        {
+            return GetDefaultStatePath(baseDirectory);
+        }
+
+        var root = baseDirectory ?? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var workspaceFolder = BuildWorkspaceFolderName(workspaceIdentifier);
+        return Path.Combine(root, "DbSqlLikeMem", "workspaces", workspaceFolder, "visual-studio-extension-state.json");
     }
 
     /// <summary>
@@ -104,4 +122,18 @@ public sealed class StatePersistenceService
     /// </summary>
     public Task<ExtensionState?> ImportAsync(string filePath, CancellationToken cancellationToken = default)
         => LoadAsync(filePath, cancellationToken);
+
+    private static string BuildWorkspaceFolderName(string workspaceIdentifier)
+    {
+        using var sha256 = SHA256.Create();
+        var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(workspaceIdentifier.Trim().ToUpperInvariant()));
+
+        var builder = new StringBuilder(hashBytes.Length * 2);
+        foreach (var hashByte in hashBytes)
+        {
+            _ = builder.Append(hashByte.ToString("x2"));
+        }
+
+        return builder.ToString();
+    }
 }

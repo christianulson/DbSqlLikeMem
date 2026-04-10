@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "DbSqlLikeMem.XamlHarness": {
+      "commandName": "Project"
+    },
+    "DbSqlLikeMem.XamlHarness (Load Environment)": {
+      "commandName": "Project",
+      "commandLineArgs": "--load-harness-environment"
+    }
+  }
+}

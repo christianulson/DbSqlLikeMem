@@ -58,8 +58,10 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     private readonly ConnectionMappingService connectionMappingService = new();
     private readonly SemaphoreSlim operationLock = new(1, 1);
     private readonly string stateFilePath;
+    private readonly string legacyStateFilePath;
 
     private CancellationTokenSource? currentOperationCts;
+    private bool persistStateEnabled;
 
     private readonly ObservableCollection<ConnectionDefinition> connections = [];
     private readonly ObservableCollection<ConnectionMappingConfiguration> mappings = [];
@@ -73,13 +75,21 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     private FilterMode objectFilterMode = FilterMode.Like;
 
     /// <summary>
-    /// Initializes the view model, loads persisted state, and builds the initial tree.
-    /// Inicializa o view model, carrega o estado persistido e monta a árvore inicial.
+    /// EN: Initializes the view model, optionally loads persisted state from the requested workspace scope, and builds the initial tree.
+    /// PT: Inicializa o view model, carrega o estado persistido do escopo de workspace solicitado quando informado e monta a arvore inicial.
     /// </summary>
-    public DbSqlLikeMemToolWindowViewModel()
+    public DbSqlLikeMemToolWindowViewModel(bool loadPersistedState = true, string? storageScopeKey = null)
     {
-        stateFilePath = statePersistenceService.GetDefaultStatePath();
-        LoadState();
+        stateFilePath = string.IsNullOrWhiteSpace(storageScopeKey)
+            ? statePersistenceService.GetDefaultStatePath()
+            : statePersistenceService.GetScopedStatePath(storageScopeKey!);
+        legacyStateFilePath = statePersistenceService.GetDefaultStatePath();
+        persistStateEnabled = loadPersistedState;
+        if (loadPersistedState)
+        {
+            LoadState();
+        }
+
         RefreshTree();
     }
 
@@ -445,6 +455,49 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         SaveState();
         RefreshTree();
         SetStatusMessage(Resources.SettingsImportedSuccessfully);
+    }
+
+    /// <summary>
+    /// EN: Replaces the current state with the harness connections and refreshes the database objects.
+    /// PT: Substitui o estado atual pelas conexoes do harness e atualiza os objetos de banco.
+    /// </summary>
+    public async Task LoadHarnessConnectionsAsync(IReadOnlyCollection<ConnectionDefinition> harnessConnections)
+    {
+        if (harnessConnections is null)
+        {
+            throw new ArgumentNullException(nameof(harnessConnections));
+        }
+
+        persistStateEnabled = false;
+
+        connections.Clear();
+        mappings.Clear();
+        objectsByConnection.Clear();
+        healthByObject.Clear();
+        objectTypeFilters.Clear();
+        templateConfiguration = TemplateConfiguration.Default;
+
+        objectFilterText = string.Empty;
+        objectFilterMode = FilterMode.Like;
+        OnPropertyChanged(nameof(ObjectFilterText));
+        OnPropertyChanged(nameof(ObjectFilterMode));
+
+        foreach (var connection in harnessConnections)
+        {
+            connections.Add(connection);
+            mappings.Add(connectionMappingService.CreateDefaultConfiguration(connection.Id));
+        }
+
+        RefreshTree();
+
+        if (connections.Count == 0)
+        {
+            SetStatusMessage("Nenhuma conexao do ambiente de teste foi encontrada.");
+            return;
+        }
+
+        SetStatusMessage("Carregando ambiente de teste...");
+        await RefreshObjectsAsync().ConfigureAwait(false);
     }
 
 
@@ -956,6 +1009,13 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         try
         {
             var loaded = statePersistenceService.Load(stateFilePath);
+            var loadedFromLegacyState = false;
+            if (loaded is null && !string.Equals(stateFilePath, legacyStateFilePath, StringComparison.OrdinalIgnoreCase))
+            {
+                loaded = statePersistenceService.Load(legacyStateFilePath);
+                loadedFromLegacyState = loaded is not null;
+            }
+
             if (loaded is null)
             {
                 return;
@@ -973,6 +1033,18 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             }
 
             templateConfiguration = loaded.TemplateConfiguration ?? TemplateConfiguration.Default;
+
+            if (loadedFromLegacyState)
+            {
+                try
+                {
+                    SaveState();
+                }
+                catch (Exception ex)
+                {
+                    ExtensionLogger.Log($"Workspace state migration error: {ex}");
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -983,6 +1055,11 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
     private void SaveState()
     {
+        if (!persistStateEnabled)
+        {
+            return;
+        }
+
         var state = BuildPersistedState();
         statePersistenceService.Save(state, stateFilePath);
     }

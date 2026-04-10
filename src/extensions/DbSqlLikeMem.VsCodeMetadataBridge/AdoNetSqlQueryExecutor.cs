@@ -7,6 +7,8 @@ namespace DbSqlLikeMem.VsCodeMetadataBridge;
 
 internal sealed class BridgeSqlQueryExecutor : ISqlQueryExecutor
 {
+    private static readonly Lazy<HashSet<string>> RegisteredProviderNames = new(CreateRegisteredProviderNames, true);
+
     private static readonly Dictionary<string, string[]> ProviderCandidates =
         new(StringComparer.OrdinalIgnoreCase)
         {
@@ -97,13 +99,18 @@ internal sealed class BridgeSqlQueryExecutor : ISqlQueryExecutor
 
         foreach (var providerName in providerNames)
         {
+            if (!RegisteredProviderNames.Value.Contains(providerName))
+            {
+                continue;
+            }
+
             try
             {
                 return DbProviderFactories.GetFactory(providerName);
             }
             catch (ArgumentException)
             {
-                // try next
+                // try next registered provider
             }
         }
 
@@ -122,6 +129,22 @@ internal sealed class BridgeSqlQueryExecutor : ISqlQueryExecutor
         throw new InvalidOperationException(
             $"No ADO.NET provider registered for '{databaseType}'. Tried: {string.Join(", ", providerNames)}."
         );
+    }
+
+    private static HashSet<string> CreateRegisteredProviderNames()
+    {
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var providerTable = DbProviderFactories.GetFactoryClasses();
+
+        foreach (System.Data.DataRow row in providerTable.Rows)
+        {
+            if (row["InvariantName"] is string invariantName && !string.IsNullOrWhiteSpace(invariantName))
+            {
+                _ = names.Add(invariantName.Trim());
+            }
+        }
+
+        return names;
     }
 
     private static DbProviderFactory? TryCreateFactoryFromType(string fullTypeName)
