@@ -1,14 +1,14 @@
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
-/// Represents this public API type.
-/// Representa este tipo público da API.
+/// EN: Verifies the generation planner identifies missing mappings correctly.
+/// PT: Verifica se o planejador de geracao identifica corretamente mapeamentos ausentes.
 /// </summary>
 public class ClassGenerationPlannerTests
 {
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies a request without configuration requires mapping setup.
+    /// PT: Verifica se uma requisicao sem configuracao exige preparo de mapeamento.
     /// </summary>
     [Fact]
     [Trait("Category", "ClassGenerationPlanner")]
@@ -27,8 +27,8 @@ public class ClassGenerationPlannerTests
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies partially mapped requests report the remaining missing types.
+    /// PT: Verifica se requisicoes com mapeamento parcial relatam os tipos ausentes restantes.
     /// </summary>
     [Fact]
     [Trait("Category", "ClassGenerationPlanner")]

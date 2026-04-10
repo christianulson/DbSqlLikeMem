@@ -1,14 +1,14 @@
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
-/// Represents this public API type.
-/// Representa este tipo público da API.
+/// EN: Verifies object name filtering in the extension core.
+/// PT: Verifica a filtragem por nome de objeto no core da extensao.
 /// </summary>
 public class ObjectFilterServiceTests
 {
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies exact matching returns only the selected object.
+    /// PT: Verifica se a correspondencia exata retorna apenas o objeto selecionado.
     /// </summary>
     [Fact]
     [Trait("Category", "ObjectFilterService")]
@@ -28,8 +28,8 @@ public class ObjectFilterServiceTests
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies contains matching returns all objects whose names include the filter value.
+    /// PT: Verifica se a correspondencia por contem retorna todos os objetos cujo nome inclui o valor filtrado.
     /// </summary>
     [Fact]
     [Trait("Category", "ObjectFilterService")]
@@ -49,8 +49,8 @@ public class ObjectFilterServiceTests
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies blank filter values return the original object set.
+    /// PT: Verifica se valores de filtro em branco retornam o conjunto original de objetos.
     /// </summary>
     [Fact]
     [Trait("Category", "ObjectFilterService")]

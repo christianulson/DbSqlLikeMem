@@ -251,10 +251,6 @@ public sealed class Db2DialectFeatureParserTests(
     /// PT: Verifica se instrucoes SELECT recursivas sao rejeitadas.
     /// PT: Testa o comportamento de ParseSelect_WithRecursive_ShouldBeRejected.
     /// </summary>
-    /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
-    /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
@@ -277,10 +273,6 @@ public sealed class Db2DialectFeatureParserTests(
     /// EN: Verifies INSERT ... ON CONFLICT statements are rejected.
     /// PT: Verifica se instrucoes INSERT ... ON CONFLICT sao rejeitadas.
     /// PT: Testa o comportamento de ParseInsert_OnConflict_ShouldBeRejected.
-    /// </summary>
-    /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -560,10 +552,6 @@ public sealed class Db2DialectFeatureParserTests(
     /// PT: Verifica se dicas de indice do MySql sao rejeitadas pelo parser Db2.
     /// PT: Testa o comportamento de ParseSelect_WithMySqlIndexHints_ShouldBeRejected.
     /// </summary>
-    /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
-    /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
@@ -671,8 +659,8 @@ public sealed class Db2DialectFeatureParserTests(
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies unsupported SQL uses the standard not supported message.
+    /// PT: Verifica se SQL nao suportado usa a mensagem padrao de nao suportado.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -690,8 +678,8 @@ public sealed class Db2DialectFeatureParserTests(
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies UNION queries with ORDER BY parse as a union query.
+    /// PT: Verifica se consultas UNION com ORDER BY sao analisadas como uma union query.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -712,8 +700,8 @@ public sealed class Db2DialectFeatureParserTests(
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies a simple CTE parses when the Db2 version supports CTEs.
+    /// PT: Verifica se uma CTE simples e analisada quando a versao do Db2 suporta CTEs.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]

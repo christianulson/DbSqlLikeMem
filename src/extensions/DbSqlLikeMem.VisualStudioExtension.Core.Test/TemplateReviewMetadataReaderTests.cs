@@ -23,7 +23,7 @@ public sealed class TemplateReviewMetadataReaderTests
         Assert.Equal("quarterly", metadata.ReviewCadence);
         Assert.Equal("2026-03-08", metadata.LastReviewedOn);
         Assert.Equal("2026-06-30", metadata.NextPlannedReviewOn);
-        Assert.Equal("Light integration tests for tables, views, and repositories.", metadata.ProfileFocusById["api"]);
+        Assert.Equal("Light integration tests for tables, views, functions, and repositories.", metadata.ProfileFocusById["api"]);
         Assert.Contains("templates/dbsqllikemem/review-checklist.md", metadata.EvidenceFiles);
     }
 

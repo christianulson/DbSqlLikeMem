@@ -5,8 +5,8 @@ using System.Text.RegularExpressions;
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
 /// <summary>
-/// Represents this public API type.
-/// Representa este tipo público da API.
+/// EN: Normalizes database names and expressions into CLR-friendly generation tokens.
+/// PT: Normaliza nomes de banco e expressoes em tokens de geracao amigaveis ao CLR.
 /// </summary>
 public static class GenerationRuleSet
 {
@@ -16,8 +16,8 @@ public static class GenerationRuleSet
         TimeSpan.FromMilliseconds(500));
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Converts a database identifier into PascalCase for generated names.
+    /// PT: Converte um identificador de banco para PascalCase nos nomes gerados.
     /// </summary>
     public static string ToPascalCase(string value)
     {
@@ -42,8 +42,8 @@ public static class GenerationRuleSet
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Maps a database column type to a CLR-friendly generated type name.
+    /// PT: Mapeia um tipo de coluna de banco para um nome de tipo amigavel ao CLR.
     /// </summary>
     public static string MapDbType(
         string dataType,
@@ -57,8 +57,8 @@ public static class GenerationRuleSet
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Checks whether a default expression is a simple literal.
+    /// PT: Verifica se uma expressao padrao e um literal simples.
     /// </summary>
     public static bool IsSimpleLiteralDefault(string value)
     {
@@ -70,8 +70,8 @@ public static class GenerationRuleSet
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Formats a default value expression for generated C# code.
+    /// PT: Formata uma expressao de valor padrao para o codigo C# gerado.
     /// </summary>
     public static string FormatDefaultLiteral(string value, string dbType)
     {
@@ -89,8 +89,8 @@ public static class GenerationRuleSet
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Parses enum and set literals into discrete values.
+    /// PT: Analisa literais enum e set em valores discretos.
     /// </summary>
     public static string[] TryParseEnumValues(string columnType)
     {
@@ -106,8 +106,8 @@ public static class GenerationRuleSet
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Converts an SQL IS NULL expression into generated C# code when supported.
+    /// PT: Converte uma expressao SQL IS NULL em codigo C# gerado quando suportado.
     /// </summary>
     public static bool TryConvertIfIsNull(string sqlExpr, out string code)
     {
@@ -125,8 +125,8 @@ public static class GenerationRuleSet
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Escapes a string so it can be emitted as a C# string literal.
+    /// PT: Escapa uma string para que ela possa ser emitida como literal de string em C#.
     /// </summary>
     public static string Literal(string value)
         => "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";

@@ -33,9 +33,24 @@
                     <TextBlock Text="{x:Static prop:Resources.AddConnectionButton}" FontWeight="SemiBold" />
                 </StackPanel>
             </Button>
-            <Button Content="{x:Static prop:Resources.RefreshObjectsButton}" Padding="10,4" Margin="0,0,8,8" Click="OnRefreshObjectsClick" />
-            <Button Content="{x:Static prop:Resources.ImportSettingsButton}" Padding="10,4" Margin="0,0,8,8" Click="OnImportSettingsClick" />
-            <Button Content="{x:Static prop:Resources.ExportSettingsButton}" Padding="10,4" Margin="0,0,8,8" Click="OnExportSettingsClick" />
+            <Button Padding="10,4" Margin="0,0,8,8" Click="OnRefreshObjectsClick">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="14" Margin="0,0,6,0" />
+                    <TextBlock Text="{x:Static prop:Resources.RefreshObjectsButton}" />
+                </StackPanel>
+            </Button>
+            <Button Padding="10,4" Margin="0,0,8,8" Click="OnImportSettingsClick">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="&#xE8D4;" FontFamily="Segoe MDL2 Assets" FontSize="14" Margin="0,0,6,0" />
+                    <TextBlock Text="{x:Static prop:Resources.ImportSettingsButton}" />
+                </StackPanel>
+            </Button>
+            <Button Padding="10,4" Margin="0,0,8,8" Click="OnExportSettingsClick">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="&#xE8D5;" FontFamily="Segoe MDL2 Assets" FontSize="14" Margin="0,0,6,0" />
+                    <TextBlock Text="{x:Static prop:Resources.ExportSettingsButton}" />
+                </StackPanel>
+            </Button>
         </WrapPanel>
 
         <TreeView x:Name="ExplorerTree"
@@ -52,23 +67,79 @@
             </TreeView.ItemContainerStyle>
             <TreeView.ContextMenu>
                 <ContextMenu Opened="OnExplorerContextMenuOpened">
-                    <MenuItem x:Name="EditConnectionMenuItem" Header="{x:Static prop:Resources.EditConnectionMenu}" Click="OnEditConnectionClick" />
-                    <MenuItem x:Name="RefreshConnectionMenuItem" Header="{x:Static prop:Resources.RefreshObjectsButton}" Click="OnRefreshObjectsClick" />
-                    <MenuItem x:Name="CancelConnectionOperationMenuItem" Header="{x:Static prop:Resources.CancelOperationMenu}" Click="OnCancelOperationClick" />
-                    <MenuItem x:Name="RemoveConnectionMenuItem" Header="{x:Static prop:Resources.RemoveConnectionMenu}" Click="OnRemoveConnectionClick" />
+                    <MenuItem x:Name="EditConnectionMenuItem" Header="{x:Static prop:Resources.EditConnectionMenu}" Click="OnEditConnectionClick">
+                        <MenuItem.Icon>
+                            <TextBlock Text="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="RefreshConnectionMenuItem" Header="{x:Static prop:Resources.RefreshObjectsButton}" Click="OnRefreshObjectsClick">
+                        <MenuItem.Icon>
+                            <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="CancelConnectionOperationMenuItem" Header="{x:Static prop:Resources.CancelOperationMenu}" Click="OnCancelOperationClick">
+                        <MenuItem.Icon>
+                            <TextBlock Text="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="RemoveConnectionMenuItem" Header="{x:Static prop:Resources.RemoveConnectionMenu}" Click="OnRemoveConnectionClick">
+                        <MenuItem.Icon>
+                            <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                        </MenuItem.Icon>
+                    </MenuItem>
                     <Separator x:Name="ConnectionActionsSeparator" />
-                    <MenuItem x:Name="ConfigureMappingsMenuItem" Header="{x:Static prop:Resources.ConfigureMappingsMenu}" Click="OnConfigureMappingsClick" />
-                    <MenuItem x:Name="ConfigureTemplatesMenuItem" Header="{x:Static prop:Resources.ConfigureTemplatesMenu}" Click="OnConfigureTemplatesClick" />
-                    <MenuItem x:Name="ConfigureObjectTypeFilterMenuItem" Header="{x:Static prop:Resources.FilterItemsMenu}" Click="OnConfigureObjectTypeFilterClick" />
-                    <MenuItem x:Name="ClearObjectTypeFilterMenuItem" Header="{x:Static prop:Resources.ClearFilterMenu}" Click="OnClearObjectTypeFilterClick" />
+                    <MenuItem x:Name="ConfigureMappingsMenuItem" Header="{x:Static prop:Resources.ConfigureMappingsMenu}" Click="OnConfigureMappingsClick">
+                        <MenuItem.Icon>
+                            <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="ConfigureTemplatesMenuItem" Header="{x:Static prop:Resources.ConfigureTemplatesMenu}" Click="OnConfigureTemplatesClick">
+                        <MenuItem.Icon>
+                            <TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="ConfigureObjectTypeFilterMenuItem" Header="{x:Static prop:Resources.FilterItemsMenu}" Click="OnConfigureObjectTypeFilterClick">
+                        <MenuItem.Icon>
+                            <TextBlock Text="&#xE71C;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="ClearObjectTypeFilterMenuItem" Header="{x:Static prop:Resources.ClearFilterMenu}" Click="OnClearObjectTypeFilterClick">
+                        <MenuItem.Icon>
+                            <TextBlock Text="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                        </MenuItem.Icon>
+                    </MenuItem>
                     <Separator x:Name="GenerationActionsSeparator" />
-                    <MenuItem x:Name="GenerateAllClassesMenuItem" Header="{x:Static prop:Resources.GenerateAllClassesMenu}" Click="OnGenerateAllClassesClick" />
+                    <MenuItem x:Name="GenerateAllClassesMenuItem" Header="{x:Static prop:Resources.GenerateAllClassesMenu}" Click="OnGenerateAllClassesClick">
+                        <MenuItem.Icon>
+                            <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                        </MenuItem.Icon>
+                    </MenuItem>
                     <Separator x:Name="GenerateByTypeSeparator" />
-                    <MenuItem x:Name="GenerateTestClassesMenuItem" Header="{x:Static prop:Resources.GenerateTestClassesMenu}" Click="OnGenerateClassesClick" />
-                    <MenuItem x:Name="GenerateModelClassesMenuItem" Header="{x:Static prop:Resources.GenerateModelClassesMenu}" Click="OnGenerateModelClassesClick" />
-                    <MenuItem x:Name="GenerateRepositoryClassesMenuItem" Header="{x:Static prop:Resources.GenerateRepositoryClassesMenu}" Click="OnGenerateRepositoryClassesClick" />
-                    <MenuItem x:Name="CheckConsistencyMenuItem" Header="{x:Static prop:Resources.CheckConsistencyMenu}" Click="OnCheckConsistencyClick" />
-                    <MenuItem x:Name="ExtractScenarioMenuItem" Header="{x:Static prop:Resources.ExtractTestScenarioMenu}" Click="OnExtractScenarioClick" />
+                    <MenuItem x:Name="GenerateTestClassesMenuItem" Header="{x:Static prop:Resources.GenerateTestClassesMenu}" Click="OnGenerateClassesClick">
+                        <MenuItem.Icon>
+                            <TextBlock Text="&#xEAA8;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="GenerateModelClassesMenuItem" Header="{x:Static prop:Resources.GenerateModelClassesMenu}" Click="OnGenerateModelClassesClick">
+                        <MenuItem.Icon>
+                            <TextBlock Text="&#xE8F1;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="GenerateRepositoryClassesMenuItem" Header="{x:Static prop:Resources.GenerateRepositoryClassesMenu}" Click="OnGenerateRepositoryClassesClick">
+                        <MenuItem.Icon>
+                            <TextBlock Text="&#xE7BF;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="CheckConsistencyMenuItem" Header="{x:Static prop:Resources.CheckConsistencyMenu}" Click="OnCheckConsistencyClick">
+                        <MenuItem.Icon>
+                            <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="ExtractScenarioMenuItem" Header="{x:Static prop:Resources.ExtractTestScenarioMenu}" Click="OnExtractScenarioClick">
+                        <MenuItem.Icon>
+                            <TextBlock Text="&#xE898;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                        </MenuItem.Icon>
+                    </MenuItem>
                 </ContextMenu>
             </TreeView.ContextMenu>
         </TreeView>

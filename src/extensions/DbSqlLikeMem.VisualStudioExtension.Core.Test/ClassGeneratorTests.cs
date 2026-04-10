@@ -1,14 +1,14 @@
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
-/// Represents this public API type.
-/// Representa este tipo público da API.
+/// EN: Verifies generated class files are written using the configured mapping rules.
+/// PT: Verifica se os arquivos de classe gerados sao gravados usando as regras de mapeamento configuradas.
 /// </summary>
 public class ClassGeneratorTests
 {
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies the default file name pattern across the supported database types.
+    /// PT: Verifica o padrao padrao de nome de arquivo entre os tipos de banco suportados.
     /// </summary>
     [Theory]
     [Trait("Category", "ClassGenerator")]
@@ -52,8 +52,8 @@ public class ClassGeneratorTests
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies file name tokens include namespace, database, and object metadata.
+    /// PT: Verifica se os tokens do nome de arquivo incluem namespace, banco e metadados do objeto.
     /// </summary>
     [Fact]
     [Trait("Category", "ClassGenerator")]

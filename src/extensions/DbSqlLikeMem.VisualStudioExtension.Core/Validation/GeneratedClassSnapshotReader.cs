@@ -3,14 +3,14 @@ using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Validation;
 
 /// <summary>
-/// Represents this public API type.
-/// Representa este tipo público da API.
+/// EN: Reads embedded snapshot metadata from generated class files.
+/// PT: Le os metadados de snapshot embutidos em arquivos de classe gerados.
 /// </summary>
 public static class GeneratedClassSnapshotReader
 {
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Reads a generated file and returns the snapshot metadata embedded in it.
+    /// PT: Le um arquivo gerado e retorna os metadados de snapshot embutidos nele.
     /// </summary>
     public static async Task<LocalObjectSnapshot> ReadAsync(
         string filePath,
@@ -58,7 +58,24 @@ public static class GeneratedClassSnapshotReader
         IReadOnlyDictionary<string, string>? fallback)
     {
         var props = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var key in new[] { "Columns", "PrimaryKey", "Indexes", "ForeignKeys", "Triggers", "StartValue", "IncrementBy", "CurrentValue" })
+        foreach (var key in new[]
+        {
+            "Columns",
+            "PrimaryKey",
+            "Indexes",
+            "ForeignKeys",
+            "Triggers",
+            "RequiredIn",
+            "OptionalIn",
+            "OutParams",
+            "ReturnParam",
+            "Parameters",
+            "ReturnTypeSql",
+            "BodySql",
+            "StartValue",
+            "IncrementBy",
+            "CurrentValue"
+        })
         {
             if (metadata.TryGetValue(key, out var value))
             {

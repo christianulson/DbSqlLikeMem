@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
 /// <summary>
-/// Represents this public API type.
-/// Representa este tipo público da API.
+/// EN: Builds database-specific SQL used to read schema objects and routine metadata.
+/// PT: Monta SQL especifico de banco usado para ler objetos de schema e metadados de rotinas.
 /// </summary>
 public static class SqlMetadataQueryFactory
 {
@@ -10,6 +10,7 @@ public static class SqlMetadataQueryFactory
         new Dictionary<string, ISqlMetadataQueryStrategy>(StringComparer.Ordinal)
         {
             ["mysql"] = new MySqlMetadataQueryStrategy(),
+            ["mariadb"] = new MariaDbMetadataQueryStrategy(),
             ["sqlserver"] = new SqlServerMetadataQueryStrategy(),
             ["sqlazure"] = new SqlServerMetadataQueryStrategy(),
             ["azuresql"] = new SqlServerMetadataQueryStrategy(),
@@ -17,6 +18,7 @@ public static class SqlMetadataQueryFactory
             ["oracle"] = new OracleMetadataQueryStrategy(),
             ["sqlite"] = new SqliteMetadataQueryStrategy(),
             ["db2"] = new Db2MetadataQueryStrategy(),
+            ["firebird"] = new FirebirdMetadataQueryStrategy(),
         };
 
     /// <summary>
@@ -76,6 +78,22 @@ public static class SqlMetadataQueryFactory
     public static string BuildSequenceMetadataQuery(string databaseType)
         => ResolveStrategy(databaseType).BuildSequenceMetadataQuery();
 
+    /// <summary>
+    /// Builds the metadata query that returns routine-level details for the specified database type.
+    /// </summary>
+    /// <param name="databaseType">The target database type.</param>
+    /// <returns>The SQL query text.</returns>
+    public static string BuildRoutineMetadataQuery(string databaseType)
+        => ResolveStrategy(databaseType).BuildRoutineMetadataQuery();
+
+    /// <summary>
+    /// Builds the metadata query that returns routine parameters for the specified database type.
+    /// </summary>
+    /// <param name="databaseType">The target database type.</param>
+    /// <returns>The SQL query text.</returns>
+    public static string BuildRoutineParametersQuery(string databaseType)
+        => ResolveStrategy(databaseType).BuildRoutineParametersQuery();
+
     private static ISqlMetadataQueryStrategy ResolveStrategy(string databaseType)
     {
         var normalizedType = Normalize(databaseType);
@@ -87,6 +105,38 @@ public static class SqlMetadataQueryFactory
         throw new NotSupportedException($"Database type not supported for metadata queries: {databaseType}");
     }
 
+    private static string AppendFilter(string? filter, string columnName)
+        => string.IsNullOrWhiteSpace(filter) ? string.Empty : $" AND {columnName} {filter}";
+
+    private static string EmptyRoutineMetadataQuery()
+        => """
+SELECT '' AS SchemaName
+     , '' AS ObjectName
+     , '' AS RoutineType
+     , '' AS ReturnTypeSql
+     , '' AS BodySql
+ WHERE 1=0;
+""";
+
+    private static string EmptyRoutineParametersQuery()
+        => """
+SELECT '' AS SchemaName
+     , '' AS ObjectName
+     , '' AS ParameterName
+     , '' AS ParameterMode
+     , '' AS DataType
+     , CAST(0 AS INT) AS Ordinal
+     , '' AS DefaultValue
+     , '' AS IsNullable
+     , CAST(NULL AS BIGINT) AS CharMaxLen
+     , CAST(NULL AS INT) AS NumPrecision
+     , CAST(NULL AS INT) AS NumScale
+     , '0' AS IsVariadic
+     , '0' AS IsOrderByClause
+     , '0' AS IsFrameClause
+ WHERE 1=0;
+""";
+
     private interface ISqlMetadataQueryStrategy
     {
         string BuildListObjectsQuery(string? filter);
@@ -96,29 +146,32 @@ public static class SqlMetadataQueryFactory
         string BuildForeignKeysQuery();
         string BuildTriggersQuery();
         string BuildSequenceMetadataQuery();
+        string BuildRoutineMetadataQuery();
+        string BuildRoutineParametersQuery();
     }
 
-    private sealed class MySqlMetadataQueryStrategy : ISqlMetadataQueryStrategy
+    private class MySqlMetadataQueryStrategy : ISqlMetadataQueryStrategy
     {
-        public string BuildListObjectsQuery(string? filter)
+        public virtual string BuildListObjectsQuery(string? filter)
             => $"""
   SELECT TABLE_SCHEMA AS `SchemaName`
        , TABLE_NAME AS ObjectName
-       , CASE TABLE_TYPE 
-         WHEN 'BASE TABLE' THEN 'Table' 
-         WHEN 'VIEW' THEN 'View' 
-         ELSE TABLE_TYPE 
+       , CASE TABLE_TYPE
+         WHEN 'BASE TABLE' THEN 'Table'
+         WHEN 'VIEW' THEN 'View'
+         ELSE TABLE_TYPE
          END AS `ObjectType`
     FROM INFORMATION_SCHEMA.TABLES
-   WHERE TABLE_SCHEMA = @databaseName
-{(string.IsNullOrWhiteSpace(filter) ? string.Empty : " AND TABLE_NAME " + filter)}
+   WHERE TABLE_SCHEMA = @databaseName{AppendFilter(filter, "TABLE_NAME")}
    UNION ALL
   SELECT ROUTINE_SCHEMA AS `SchemaName`
        , ROUTINE_NAME AS `ObjectName`
-       , 'Procedure' AS `ObjectType`
+       , CASE ROUTINE_TYPE
+         WHEN 'FUNCTION' THEN 'Function'
+         ELSE 'Procedure'
+         END AS `ObjectType`
     FROM INFORMATION_SCHEMA.ROUTINES
-{(string.IsNullOrWhiteSpace(filter) ? string.Empty : " AND ROUTINE_NAME " + filter)}
-   WHERE ROUTINE_SCHEMA = @databaseName
+   WHERE ROUTINE_SCHEMA = @databaseName{AppendFilter(filter, "ROUTINE_NAME")}
 ORDER BY SchemaName, ObjectType, ObjectName;
 """;
 
@@ -184,8 +237,89 @@ SELECT TRIGGER_NAME AS `TriggerName`
  ORDER BY TRIGGER_NAME;
 """;
 
-        public string BuildSequenceMetadataQuery()
+        public virtual string BuildSequenceMetadataQuery()
             => "SELECT '' AS StartValue, '' AS IncrementBy, '' AS CurrentValue WHERE 1=0;";
+
+        public string BuildRoutineMetadataQuery()
+            => """
+SELECT ROUTINE_SCHEMA AS SchemaName
+     , ROUTINE_NAME AS ObjectName
+     , ROUTINE_TYPE AS RoutineType
+     , DATA_TYPE AS ReturnTypeSql
+     , ROUTINE_DEFINITION AS BodySql
+  FROM INFORMATION_SCHEMA.ROUTINES
+ WHERE ROUTINE_SCHEMA=@schemaName
+   AND ROUTINE_NAME=@objectName;
+""";
+
+        public string BuildRoutineParametersQuery()
+            => """
+SELECT SPECIFIC_SCHEMA AS SchemaName
+     , SPECIFIC_NAME AS ObjectName
+     , COALESCE(NULLIF(PARAMETER_NAME, ''), CONCAT(ROUTINE_NAME, '_return')) AS ParameterName
+     , CASE
+         WHEN ORDINAL_POSITION = 0 THEN 'RETURN'
+         ELSE COALESCE(PARAMETER_MODE, 'IN')
+       END AS ParameterMode
+     , DATA_TYPE AS DataType
+     , ORDINAL_POSITION AS Ordinal
+     , COALESCE(PARAMETER_DEFAULT, '') AS DefaultValue
+     , CASE WHEN IS_NULLABLE = 'YES' THEN 'YES' ELSE 'NO' END AS IsNullable
+     , CHARACTER_MAXIMUM_LENGTH AS CharMaxLen
+     , NUMERIC_PRECISION AS NumPrecision
+     , NUMERIC_SCALE AS NumScale
+     , CASE WHEN COALESCE(PARAMETER_MODE, '') LIKE '%VARIADIC%' THEN '1' ELSE '0' END AS IsVariadic
+     , '0' AS IsOrderByClause
+     , '0' AS IsFrameClause
+  FROM INFORMATION_SCHEMA.PARAMETERS
+ WHERE SPECIFIC_SCHEMA=@schemaName
+   AND SPECIFIC_NAME=@objectName
+ ORDER BY ORDINAL_POSITION;
+""";
+    }
+
+    private sealed class MariaDbMetadataQueryStrategy : MySqlMetadataQueryStrategy
+    {
+        public override string BuildListObjectsQuery(string? filter)
+            => $"""
+  SELECT TABLE_SCHEMA AS `SchemaName`
+       , TABLE_NAME AS ObjectName
+       , CASE TABLE_TYPE
+         WHEN 'BASE TABLE' THEN 'Table'
+         WHEN 'VIEW' THEN 'View'
+         ELSE TABLE_TYPE
+         END AS `ObjectType`
+    FROM INFORMATION_SCHEMA.TABLES
+   WHERE TABLE_SCHEMA = @databaseName{AppendFilter(filter, "TABLE_NAME")}
+   UNION ALL
+  SELECT ROUTINE_SCHEMA AS `SchemaName`
+       , ROUTINE_NAME AS `ObjectName`
+       , CASE ROUTINE_TYPE
+         WHEN 'FUNCTION' THEN 'Function'
+         ELSE 'Procedure'
+         END AS `ObjectType`
+    FROM INFORMATION_SCHEMA.ROUTINES
+   WHERE ROUTINE_SCHEMA = @databaseName{AppendFilter(filter, "ROUTINE_NAME")}
+   UNION ALL
+  SELECT SEQUENCE_SCHEMA AS `SchemaName`
+       , SEQUENCE_NAME AS `ObjectName`
+       , 'Sequence' AS `ObjectType`
+    FROM INFORMATION_SCHEMA.SEQUENCES
+   WHERE SEQUENCE_SCHEMA = @databaseName{AppendFilter(filter, "SEQUENCE_NAME")}
+ORDER BY SchemaName, ObjectType, ObjectName;
+""";
+
+        public override string BuildSequenceMetadataQuery()
+            => """
+SELECT SEQUENCE_SCHEMA AS SchemaName
+     , SEQUENCE_NAME AS ObjectName
+     , CAST(START_VALUE AS CHAR) AS StartValue
+     , CAST(INCREMENT AS CHAR) AS IncrementBy
+     , CAST(NULL AS CHAR) AS CurrentValue
+  FROM INFORMATION_SCHEMA.SEQUENCES
+ WHERE SEQUENCE_SCHEMA = @schemaName
+   AND SEQUENCE_NAME = @objectName;
+""";
     }
 
     private sealed class SqlServerMetadataQueryStrategy : ISqlMetadataQueryStrategy
@@ -194,17 +328,21 @@ SELECT TRIGGER_NAME AS `TriggerName`
             => $"""
   SELECT s.name AS [SchemaName]
        , o.name AS [ObjectName]
-       , CASE o.type 
-         WHEN 'U' THEN 'Table' 
-         WHEN 'V' THEN 'View' 
-         WHEN 'P' THEN 'Procedure' 
+       , CASE o.type
+         WHEN 'U' THEN 'Table'
+         WHEN 'V' THEN 'View'
+         WHEN 'P' THEN 'Procedure'
          WHEN 'SO' THEN 'Sequence'
-         ELSE o.type 
+         WHEN 'FN' THEN 'Function'
+         WHEN 'IF' THEN 'Function'
+         WHEN 'TF' THEN 'Function'
+         WHEN 'FS' THEN 'Function'
+         WHEN 'FT' THEN 'Function'
+         ELSE o.type
          END AS [ObjectType]
     FROM sys.objects o
     JOIN sys.schemas s ON s.schema_id = o.schema_id
-   WHERE o.type IN ('U', 'V', 'P', 'SO')
-{(string.IsNullOrWhiteSpace(filter) ? string.Empty : " AND o.name " + filter)}
+   WHERE o.type IN ('U', 'V', 'P', 'SO', 'FN', 'IF', 'TF', 'FS', 'FT'){AppendFilter(filter, "o.name")}
 ORDER BY s.name
        , ObjectType
        , o.name;
@@ -299,6 +437,53 @@ SELECT CAST(seq.start_value AS bigint) AS [StartValue]
  WHERE s.name=@schemaName
    AND seq.name=@objectName;
 """;
+
+        public string BuildRoutineMetadataQuery()
+            => """
+SELECT s.name AS [SchemaName]
+     , o.name AS [ObjectName]
+     , CASE WHEN o.type IN ('FN', 'IF', 'TF', 'FS', 'FT') THEN 'Function' ELSE 'Procedure' END AS [RoutineType]
+     , COALESCE(t.name, '') AS [ReturnTypeSql]
+     , COALESCE(m.definition, OBJECT_DEFINITION(o.object_id), '') AS [BodySql]
+  FROM sys.objects o
+  JOIN sys.schemas s ON s.schema_id = o.schema_id
+  LEFT JOIN sys.sql_modules m ON m.object_id = o.object_id
+  LEFT JOIN sys.parameters p0 ON p0.object_id = o.object_id AND p0.parameter_id = 0
+  LEFT JOIN sys.types t ON t.user_type_id = p0.user_type_id
+ WHERE s.name = @schemaName
+   AND o.name = @objectName
+   AND o.type IN ('P', 'FN', 'IF', 'TF', 'FS', 'FT');
+""";
+
+        public string BuildRoutineParametersQuery()
+            => """
+SELECT s.name AS [SchemaName]
+     , o.name AS [ObjectName]
+     , CASE
+         WHEN p.parameter_id = 0 THEN 'RETURN'
+         WHEN p.is_output = 1 THEN 'OUT'
+         ELSE 'IN'
+       END AS [ParameterMode]
+     , CASE WHEN p.parameter_id = 0 THEN 'return' ELSE REPLACE(REPLACE(p.name, '@', ''), ' ', '') END AS [ParameterName]
+     , COALESCE(t.name, '') AS [DataType]
+     , p.parameter_id AS [Ordinal]
+     , CASE WHEN p.has_default_value = 1 THEN COALESCE(CONVERT(nvarchar(4000), p.default_value), '') ELSE '' END AS [DefaultValue]
+     , CASE WHEN p.is_nullable = 1 THEN 'YES' ELSE 'NO' END AS [IsNullable]
+     , p.max_length AS [CharMaxLen]
+     , p.precision AS [NumPrecision]
+     , p.scale AS [NumScale]
+     , '0' AS [IsVariadic]
+     , '0' AS [IsOrderByClause]
+     , '0' AS [IsFrameClause]
+  FROM sys.parameters p
+  JOIN sys.objects o ON o.object_id = p.object_id
+  JOIN sys.schemas s ON s.schema_id = o.schema_id
+  LEFT JOIN sys.types t ON t.user_type_id = p.user_type_id
+ WHERE s.name = @schemaName
+   AND o.name = @objectName
+   AND o.type IN ('P', 'FN', 'IF', 'TF', 'FS', 'FT')
+ ORDER BY p.parameter_id;
+""";
     }
 
     private sealed class PostgreSqlMetadataQueryStrategy : ISqlMetadataQueryStrategy
@@ -310,17 +495,18 @@ SELECT n.nspname AS SchemaName, c.relname AS ObjectName,
 FROM pg_class c
 JOIN pg_namespace n ON n.oid = c.relnamespace
 WHERE c.relkind IN ('r','v') AND n.nspname NOT IN ('pg_catalog', 'information_schema')
-{(string.IsNullOrWhiteSpace(filter) ? string.Empty : " AND c.relname " + filter)}
+{AppendFilter(filter, "c.relname")}
 UNION ALL
-SELECT routine_schema AS SchemaName, routine_name AS ObjectName, 'Procedure' AS ObjectType
+SELECT routine_schema AS SchemaName, routine_name AS ObjectName,
+       CASE routine_type WHEN 'FUNCTION' THEN 'Function' ELSE 'Procedure' END AS ObjectType
 FROM information_schema.routines
 WHERE routine_schema NOT IN ('pg_catalog', 'information_schema')
-{(string.IsNullOrWhiteSpace(filter) ? string.Empty : " AND routine_name " + filter)}
+{AppendFilter(filter, "routine_name")}
 UNION ALL
 SELECT sequence_schema AS SchemaName, sequence_name AS ObjectName, 'Sequence' AS ObjectType
 FROM information_schema.sequences
 WHERE sequence_schema NOT IN ('pg_catalog', 'information_schema')
-{(string.IsNullOrWhiteSpace(filter) ? string.Empty : " AND sequence_name " + filter)}
+{AppendFilter(filter, "sequence_name")}
 ORDER BY SchemaName, ObjectType, ObjectName;
 """;
 
@@ -398,6 +584,43 @@ SELECT start_value::bigint AS StartValue
  WHERE schemaname=@schemaName
    AND sequencename=@objectName;
 """;
+
+        public string BuildRoutineMetadataQuery()
+            => """
+SELECT routine_schema AS SchemaName
+     , routine_name AS ObjectName
+     , routine_type AS RoutineType
+     , data_type AS ReturnTypeSql
+     , routine_definition AS BodySql
+  FROM information_schema.routines
+ WHERE routine_schema = @schemaName
+   AND routine_name = @objectName;
+""";
+
+        public string BuildRoutineParametersQuery()
+            => """
+SELECT specific_schema AS SchemaName
+     , specific_name AS ObjectName
+     , CASE
+         WHEN ordinal_position = 0 THEN 'RETURN'
+         ELSE COALESCE(parameter_mode, 'IN')
+       END AS ParameterMode
+     , COALESCE(parameter_name, 'return') AS ParameterName
+     , data_type AS DataType
+     , ordinal_position AS Ordinal
+     , COALESCE(parameter_default, '') AS DefaultValue
+     , CASE WHEN is_nullable = 'YES' THEN 'YES' ELSE 'NO' END AS IsNullable
+     , character_maximum_length AS CharMaxLen
+     , numeric_precision AS NumPrecision
+     , numeric_scale AS NumScale
+     , CASE WHEN COALESCE(parameter_mode, '') LIKE '%VARIADIC%' THEN '1' ELSE '0' END AS IsVariadic
+     , '0' AS IsOrderByClause
+     , '0' AS IsFrameClause
+  FROM information_schema.parameters
+ WHERE specific_schema = @schemaName
+   AND specific_name = @objectName
+ ORDER BY ordinal_position;
+""";
     }
 
     private sealed class OracleMetadataQueryStrategy : ISqlMetadataQueryStrategy
@@ -410,12 +633,13 @@ SELECT OWNER AS SchemaName
        WHEN 'TABLE' THEN 'Table' 
        WHEN 'VIEW' THEN 'View' 
        WHEN 'PROCEDURE' THEN 'Procedure' 
+       WHEN 'FUNCTION' THEN 'Function'
        WHEN 'SEQUENCE' THEN 'Sequence'
        ELSE OBJECT_TYPE 
        END AS ObjectType
 FROM ALL_OBJECTS
-WHERE OBJECT_TYPE IN ('TABLE', 'VIEW', 'PROCEDURE', 'SEQUENCE')
-  {(string.IsNullOrWhiteSpace(filter) ? string.Empty : " AND OBJECT_NAME " + filter)}
+WHERE OBJECT_TYPE IN ('TABLE', 'VIEW', 'PROCEDURE', 'FUNCTION', 'SEQUENCE')
+  {AppendFilter(filter, "OBJECT_NAME")}
 ORDER BY OWNER, ObjectType, OBJECT_NAME
 """;
 
@@ -480,6 +704,53 @@ SELECT LAST_NUMBER AS StartValue
 FROM ALL_SEQUENCES
 WHERE SEQUENCE_OWNER=:schemaName AND SEQUENCE_NAME=:objectName
 """;
+
+        public string BuildRoutineMetadataQuery()
+            => """
+SELECT p.OWNER AS SchemaName
+     , p.OBJECT_NAME AS ObjectName
+     , CASE p.OBJECT_TYPE WHEN 'FUNCTION' THEN 'Function' ELSE 'Procedure' END AS RoutineType
+     , COALESCE(a.DATA_TYPE, '') AS ReturnTypeSql
+     , COALESCE(s.TEXT, '') AS BodySql
+  FROM ALL_PROCEDURES p
+  LEFT JOIN ALL_ARGUMENTS a
+    ON a.OWNER = p.OWNER
+   AND a.OBJECT_NAME = p.OBJECT_NAME
+   AND a.OBJECT_ID = p.OBJECT_ID
+   AND a.POSITION = 0
+  LEFT JOIN ALL_SOURCE s
+    ON s.OWNER = p.OWNER
+   AND s.NAME = p.OBJECT_NAME
+   AND s.TYPE = p.OBJECT_TYPE
+ WHERE p.OWNER = :schemaName
+   AND p.OBJECT_NAME = :objectName;
+""";
+
+        public string BuildRoutineParametersQuery()
+            => """
+SELECT a.OWNER AS SchemaName
+     , a.OBJECT_NAME AS ObjectName
+     , CASE
+         WHEN a.POSITION = 0 THEN 'RETURN'
+         WHEN a.IN_OUT = 'OUT' THEN 'OUT'
+         ELSE 'IN'
+       END AS ParameterMode
+     , COALESCE(a.ARGUMENT_NAME, 'return') AS ParameterName
+     , COALESCE(a.DATA_TYPE, '') AS DataType
+     , a.POSITION AS Ordinal
+     , COALESCE(a.DEFAULT_VALUE, '') AS DefaultValue
+     , CASE WHEN a.IN_OUT = 'OUT' THEN 'NO' ELSE 'YES' END AS IsNullable
+     , a.CHAR_LENGTH AS CharMaxLen
+     , a.DATA_PRECISION AS NumPrecision
+     , a.DATA_SCALE AS NumScale
+     , CASE WHEN a.IN_OUT = 'IN/OUT' THEN '1' ELSE '0' END AS IsVariadic
+     , '0' AS IsOrderByClause
+     , '0' AS IsFrameClause
+  FROM ALL_ARGUMENTS a
+ WHERE a.OWNER = :schemaName
+   AND a.OBJECT_NAME = :objectName
+ ORDER BY a.POSITION;
+""";
     }
 
     private sealed class SqliteMetadataQueryStrategy : ISqlMetadataQueryStrategy
@@ -491,7 +762,7 @@ SELECT '' AS SchemaName
      , CASE type WHEN 'table' THEN 'Table' WHEN 'view' THEN 'View' ELSE type END AS ObjectType
 FROM sqlite_master
 WHERE type IN ('table','view') AND name NOT LIKE 'sqlite_%'
-{(string.IsNullOrWhiteSpace(filter) ? string.Empty : " AND name " + filter)}
+{AppendFilter(filter, "name")}
 ORDER BY ObjectType, ObjectName;
 """;
 
@@ -514,7 +785,7 @@ ORDER BY cid;
             => "SELECT name AS ColumnName FROM pragma_table_info(@objectName) WHERE pk > 0 ORDER BY pk;";
 
         public string BuildIndexesQuery()
-            => "-- sqlite indexes fetched through pragma index_list/index_info externally; return empty by default";
+            => "SELECT '' AS IndexName, 0 AS IsUnique, '' AS ColumnName, 0 AS Seq WHERE 1=0;";
 
         public string BuildForeignKeysQuery()
             => "SELECT \"\" AS ColumnName, \"\" AS RefTable, \"\" AS RefColumn WHERE 1=0;";
@@ -524,6 +795,12 @@ ORDER BY cid;
 
         public string BuildSequenceMetadataQuery()
             => "SELECT '' AS StartValue, '' AS IncrementBy, '' AS CurrentValue WHERE 1=0;";
+
+        public string BuildRoutineMetadataQuery()
+            => EmptyRoutineMetadataQuery();
+
+        public string BuildRoutineParametersQuery()
+            => EmptyRoutineParametersQuery();
     }
 
     private sealed class Db2MetadataQueryStrategy : ISqlMetadataQueryStrategy
@@ -535,21 +812,21 @@ SELECT RTRIM(TABSCHEMA) AS SchemaName
        CASE TYPE WHEN 'T' THEN 'Table' WHEN 'V' THEN 'View' ELSE TYPE END AS ObjectType
 FROM SYSCAT.TABLES
 WHERE TYPE IN ('T','V')
-  {(string.IsNullOrWhiteSpace(filter) ? string.Empty : " AND RTRIM(TABNAME) " + filter)}
+  {AppendFilter(filter, "RTRIM(TABNAME)")}
 UNION ALL
 SELECT RTRIM(ROUTINESCHEMA) AS SchemaName
      , RTRIM(ROUTINENAME) AS ObjectName
-     , 'Procedure' AS ObjectType
+     , CASE ROUTINETYPE WHEN 'F' THEN 'Function' ELSE 'Procedure' END AS ObjectType
 FROM SYSCAT.ROUTINES
-WHERE ROUTINETYPE = 'P'
-  {(string.IsNullOrWhiteSpace(filter) ? string.Empty : " AND RTRIM(ROUTINENAME) " + filter)}
+WHERE ROUTINETYPE IN ('P', 'F')
+  {AppendFilter(filter, "RTRIM(ROUTINENAME)")}
 UNION ALL
 SELECT RTRIM(SEQSCHEMA) AS SchemaName
      , RTRIM(SEQNAME) AS ObjectName
      , 'Sequence' AS ObjectType
 FROM SYSCAT.SEQUENCES
 WHERE 1=1
-  {(string.IsNullOrWhiteSpace(filter) ? string.Empty : " AND RTRIM(SEQNAME) " + filter)}
+  {AppendFilter(filter, "RTRIM(SEQNAME)")}
 ORDER BY SchemaName, ObjectType, ObjectName;
 """;
 
@@ -612,6 +889,193 @@ SELECT BIGINT(START) AS StartValue
      , CAST(NULL AS BIGINT) AS CurrentValue
 FROM SYSCAT.SEQUENCES
 WHERE RTRIM(SEQSCHEMA)=@schemaName AND RTRIM(SEQNAME)=@objectName;
+""";
+
+        public string BuildRoutineMetadataQuery()
+            => """
+SELECT RTRIM(ROUTINESCHEMA) AS SchemaName
+     , RTRIM(ROUTINENAME) AS ObjectName
+     , CASE ROUTINETYPE WHEN 'F' THEN 'Function' ELSE 'Procedure' END AS RoutineType
+     , COALESCE(TEXT, '') AS BodySql
+     , COALESCE(RETURNS, '') AS ReturnTypeSql
+  FROM SYSCAT.ROUTINES
+ WHERE RTRIM(ROUTINESCHEMA)=@schemaName
+   AND RTRIM(ROUTINENAME)=@objectName;
+""";
+
+        public string BuildRoutineParametersQuery()
+            => """
+SELECT RTRIM(ROUTINESCHEMA) AS SchemaName
+     , RTRIM(ROUTINENAME) AS ObjectName
+     , CASE
+         WHEN ORDINAL = 0 THEN 'RETURN'
+         WHEN COALESCE(PARM_MODE, 'IN') IN ('O', 'OUT') THEN 'OUT'
+         ELSE 'IN'
+       END AS ParameterMode
+     , COALESCE(RTRIM(PARMNAME), 'return') AS ParameterName
+     , COALESCE(RTRIM(TYPENAME), '') AS DataType
+     , ORDINAL AS Ordinal
+     , COALESCE(DEFAULT, '') AS DefaultValue
+     , CASE WHEN NULLS = 'Y' THEN 'YES' ELSE 'NO' END AS IsNullable
+     , LENGTH AS CharMaxLen
+     , SCALE AS NumPrecision
+     , SCALE AS NumScale
+     , CASE WHEN COALESCE(PARM_MODE, '') = 'V' THEN '1' ELSE '0' END AS IsVariadic
+     , '0' AS IsOrderByClause
+     , '0' AS IsFrameClause
+  FROM SYSCAT.ROUTINEPARMS
+ WHERE RTRIM(ROUTINESCHEMA)=@schemaName
+   AND RTRIM(ROUTINENAME)=@objectName
+ ORDER BY ORDINAL;
+""";
+    }
+
+    private sealed class FirebirdMetadataQueryStrategy : ISqlMetadataQueryStrategy
+    {
+        public string BuildListObjectsQuery(string? filter)
+            => $"""
+SELECT '' AS SchemaName
+     , TRIM(r.RDB$RELATION_NAME) AS ObjectName
+     , 'Table' AS ObjectType
+  FROM RDB$RELATIONS r
+ WHERE COALESCE(r.RDB$SYSTEM_FLAG, 0) = 0
+   AND r.RDB$VIEW_BLR IS NULL
+   {AppendFilter(filter, "TRIM(r.RDB$RELATION_NAME)")}
+UNION ALL
+SELECT '' AS SchemaName
+     , TRIM(r.RDB$RELATION_NAME) AS ObjectName
+     , 'View' AS ObjectType
+  FROM RDB$RELATIONS r
+ WHERE COALESCE(r.RDB$SYSTEM_FLAG, 0) = 0
+   AND r.RDB$VIEW_BLR IS NOT NULL
+   {AppendFilter(filter, "TRIM(r.RDB$RELATION_NAME)")}
+UNION ALL
+SELECT '' AS SchemaName
+     , TRIM(p.RDB$PROCEDURE_NAME) AS ObjectName
+     , 'Procedure' AS ObjectType
+  FROM RDB$PROCEDURES p
+ WHERE 1=1
+   {AppendFilter(filter, "TRIM(p.RDB$PROCEDURE_NAME)")}
+UNION ALL
+SELECT '' AS SchemaName
+     , TRIM(f.RDB$FUNCTION_NAME) AS ObjectName
+     , 'Function' AS ObjectType
+  FROM RDB$FUNCTIONS f
+ WHERE 1=1
+       {AppendFilter(filter, "TRIM(f.RDB$FUNCTION_NAME)")}
+ORDER BY SchemaName, ObjectType, ObjectName;
+""";
+
+        public string BuildObjectColumnsQuery()
+            => """
+SELECT TRIM(rf.RDB$FIELD_NAME) AS ColumnName
+     , CAST(f.RDB$FIELD_TYPE AS VARCHAR(20)) AS DataType
+     , rf.RDB$FIELD_POSITION AS Ordinal
+     , CASE WHEN COALESCE(rf.RDB$NULL_FLAG, 0) = 0 THEN 'YES' ELSE 'NO' END AS IsNullable
+     , '' AS Extra
+     , COALESCE(TRIM(CAST(rf.RDB$DEFAULT_SOURCE AS VARCHAR(32765))), '') AS DefaultValue
+     , f.RDB$CHARACTER_LENGTH AS CharMaxLen
+     , f.RDB$FIELD_PRECISION AS NumPrecision
+     , f.RDB$FIELD_SCALE AS NumScale
+     , CAST(f.RDB$FIELD_TYPE AS VARCHAR(20)) AS ColumnType
+     , '' AS ColumnGenerated
+  FROM RDB$RELATION_FIELDS rf
+  JOIN RDB$FIELDS f ON f.RDB$FIELD_NAME = rf.RDB$FIELD_SOURCE
+ WHERE TRIM(rf.RDB$RELATION_NAME) = @objectName
+ ORDER BY rf.RDB$FIELD_POSITION;
+""";
+
+        public string BuildPrimaryKeyQuery()
+            => "SELECT '' AS ColumnName WHERE 1=0;";
+
+        public string BuildIndexesQuery()
+            => "SELECT '' AS IndexName WHERE 1=0;";
+
+        public string BuildForeignKeysQuery()
+            => "SELECT '' AS ColumnName, '' AS RefTable, '' AS RefColumn WHERE 1=0;";
+
+        public string BuildTriggersQuery()
+            => "SELECT '' AS TriggerName WHERE 1=0;";
+
+        public string BuildSequenceMetadataQuery()
+            => """
+SELECT TRIM(g.RDB$GENERATOR_NAME) AS StartValue
+     , '1' AS IncrementBy
+     , '1' AS CurrentValue
+  FROM RDB$GENERATORS g
+ WHERE COALESCE(g.RDB$SYSTEM_FLAG, 0) = 0
+   AND TRIM(g.RDB$GENERATOR_NAME) = @objectName;
+""";
+
+        public string BuildRoutineMetadataQuery()
+            => """
+SELECT '' AS SchemaName
+     , TRIM(p.RDB$PROCEDURE_NAME) AS ObjectName
+     , 'Procedure' AS RoutineType
+     , COALESCE(TRIM(CAST(p.RDB$PROCEDURE_SOURCE AS VARCHAR(32765))), '') AS BodySql
+     , '' AS ReturnTypeSql
+  FROM RDB$PROCEDURES p
+ WHERE TRIM(p.RDB$PROCEDURE_NAME) = @objectName
+UNION ALL
+SELECT '' AS SchemaName
+     , TRIM(f.RDB$FUNCTION_NAME) AS ObjectName
+     , 'Function' AS RoutineType
+     , COALESCE(TRIM(CAST(f.RDB$FUNCTION_SOURCE AS VARCHAR(32765))), '') AS BodySql
+     , COALESCE(CAST(fr.RDB$FIELD_TYPE AS VARCHAR(20)), '') AS ReturnTypeSql
+  FROM RDB$FUNCTIONS f
+  LEFT JOIN RDB$FUNCTION_ARGUMENTS fa
+    ON fa.RDB$FUNCTION_NAME = f.RDB$FUNCTION_NAME
+   AND fa.RDB$ARGUMENT_POSITION = f.RDB$RETURN_ARGUMENT
+  LEFT JOIN RDB$FIELDS fr
+    ON fr.RDB$FIELD_NAME = fa.RDB$FIELD_SOURCE
+ WHERE TRIM(f.RDB$FUNCTION_NAME) = @objectName;
+""";
+
+        public string BuildRoutineParametersQuery()
+            => """
+SELECT '' AS SchemaName
+     , TRIM(pp.RDB$PROCEDURE_NAME) AS ObjectName
+     , CASE
+         WHEN pp.RDB$PARAMETER_NUMBER = 0 THEN 'RETURN'
+         WHEN COALESCE(pp.RDB$PARAMETER_TYPE, 0) = 1 THEN 'OUT'
+         ELSE 'IN'
+       END AS ParameterMode
+     , COALESCE(TRIM(pp.RDB$PARAMETER_NAME), 'return') AS ParameterName
+     , CAST(f.RDB$FIELD_TYPE AS VARCHAR(20)) AS DataType
+     , pp.RDB$PARAMETER_NUMBER AS Ordinal
+     , COALESCE(TRIM(CAST(pp.RDB$DEFAULT_SOURCE AS VARCHAR(32765))), '') AS DefaultValue
+     , CASE WHEN COALESCE(pp.RDB$NULL_FLAG, 0) = 0 THEN 'YES' ELSE 'NO' END AS IsNullable
+     , f.RDB$CHARACTER_LENGTH AS CharMaxLen
+     , f.RDB$FIELD_PRECISION AS NumPrecision
+     , f.RDB$FIELD_SCALE AS NumScale
+     , '0' AS IsVariadic
+     , '0' AS IsOrderByClause
+     , '0' AS IsFrameClause
+  FROM RDB$PROCEDURE_PARAMETERS pp
+  LEFT JOIN RDB$FIELDS f ON f.RDB$FIELD_NAME = pp.RDB$FIELD_SOURCE
+ WHERE TRIM(pp.RDB$PROCEDURE_NAME) = @objectName
+UNION ALL
+SELECT '' AS SchemaName
+     , TRIM(fa.RDB$FUNCTION_NAME) AS ObjectName
+     , CASE
+         WHEN fa.RDB$ARGUMENT_POSITION = 0 THEN 'RETURN'
+         ELSE 'IN'
+       END AS ParameterMode
+     , COALESCE(TRIM(fa.RDB$ARGUMENT_NAME), 'return') AS ParameterName
+     , CAST(fb.RDB$FIELD_TYPE AS VARCHAR(20)) AS DataType
+     , fa.RDB$ARGUMENT_POSITION AS Ordinal
+     , COALESCE(TRIM(CAST(fa.RDB$DEFAULT_SOURCE AS VARCHAR(32765))), '') AS DefaultValue
+     , CASE WHEN COALESCE(fa.RDB$NULL_FLAG, 0) = 0 THEN 'YES' ELSE 'NO' END AS IsNullable
+     , fb.RDB$CHARACTER_LENGTH AS CharMaxLen
+     , fb.RDB$FIELD_PRECISION AS NumPrecision
+     , fb.RDB$FIELD_SCALE AS NumScale
+     , '0' AS IsVariadic
+     , '0' AS IsOrderByClause
+     , '0' AS IsFrameClause
+  FROM RDB$FUNCTION_ARGUMENTS fa
+  LEFT JOIN RDB$FIELDS fb ON fb.RDB$FIELD_NAME = fa.RDB$FIELD_SOURCE
+ WHERE TRIM(fa.RDB$FUNCTION_NAME) = @objectName
+ ORDER BY Ordinal;
 """;
     }
 

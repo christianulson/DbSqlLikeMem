@@ -8,7 +8,7 @@ Projeto inicial para suportar uma extensão do Visual Studio focada em geração
 - Montagem de árvore no formato:
   - Tipo de Banco
     - Nome do Banco
-      - Tipo de Objeto (Tables, Views, Procedures, Sequences)
+      - Tipo de Objeto (Tables, Views, Procedures, Functions, Sequences)
         - Lista de objetos
 - Filtro de objetos por `Equals` e `Like` (contains case-insensitive).
 - Planejador de geração que identifica ausência de mapeamento e permite bloquear geração até configurar.
@@ -18,8 +18,8 @@ Projeto inicial para suportar uma extensão do Visual Studio focada em geração
 - Serviço de validação de consistência (vermelho/amarelo/verde) comparando objeto local vs base, distinguindo trio local incompleto de divergência real de metadados e expondo os artefatos faltantes em ordem determinística para a UI.
 - O mesmo serviço de consistência agora também detecta drift de snapshot em `class/model/repository`, reaproveitando `GeneratedClassSnapshotReader` para verificar se os três artefatos ainda apontam para o mesmo objeto de banco.
 - Persistência local de conexões/configurações + exportação/importação em JSON.
-- Provedor SQL de metadados estruturais (`SqlDatabaseMetadataProvider`) com consultas por banco (MySql, SqlServer/SqlAzure, PostgreSql, Oracle, Sqlite, Db2) para listar objetos e colunas.
-- Extração de metadata de `Sequence` para os bancos suportados por essa feature (SqlServer/SqlAzure, PostgreSql, Oracle e Db2).
+- Provedor SQL de metadados estruturais (`SqlDatabaseMetadataProvider`) com consultas por banco (MySql, MariaDb, Firebird, SqlServer/SqlAzure, PostgreSql, Oracle, Sqlite, Db2) para listar objetos, colunas e routines.
+- Extração de metadata de `Sequence` para os bancos suportados por essa feature (SqlServer/SqlAzure, PostgreSql, Oracle, Db2 e Firebird).
 - Fábrica de conteúdo estruturado (`StructuredClassContentFactory`) com metadados serializados no arquivo gerado.
 - Renderizador compartilhado de tokens de template (`TemplateContentRenderer`) para `Model`/`Repository`, incluindo `{{Namespace}}`.
 - O mesmo renderizador de template também prependa cabeçalho padronizado `// DBSqlLikeMem:*` para preservar rastreabilidade do objeto de origem nos artefatos `Model`/`Repository`.
@@ -31,7 +31,7 @@ Projeto inicial para suportar uma extensão do Visual Studio focada em geração
 - O mesmo formatter agora também expõe os diretórios recomendados de saída de `Model`/`Repository`, mantendo a decisão operacional alinhada ao catálogo versionado.
 - Catálogo de tokens suportados (`TemplateTokenCatalog`) para detectar placeholders fora do contrato antes de aceitar templates customizados.
 - Resolvedor compartilhado de nome de arquivo (`TemplateFileNamePatternResolver`) para geração e consistência de `Model`/`Repository` com placeholders configuráveis.
-- Serviço de mapeamento por conexão/tipo (`ConnectionMappingService`) para evitar que ajustes de `Table`, `View`, `Procedure` ou `Sequence` contaminem outros tipos já configurados na VSIX, além de reutilizar os defaults versionados `api`/`worker` no fluxo de `Configure Mappings`.
+- Serviço de mapeamento por conexão/tipo (`ConnectionMappingService`) para evitar que ajustes de `Table`, `View`, `Procedure`, `Function` ou `Sequence` contaminem outros tipos já configurados na VSIX, além de reutilizar os defaults versionados `api`/`worker` no fluxo de `Configure Mappings`.
 - Leitor de snapshot local (`GeneratedClassSnapshotReader`) para comparar arquivo gerado vs estrutura atual extraída do banco via `ObjectConsistencyChecker`.
 
 ## Próximos passos sugeridos

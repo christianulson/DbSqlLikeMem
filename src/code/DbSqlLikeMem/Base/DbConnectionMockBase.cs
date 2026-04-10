@@ -569,6 +569,7 @@ public abstract class DbConnectionMockBase(
             .FirstOrDefault(static schema =>
                 schema.Tables.Count > 0
                 || schema.Views.Count > 0
+                || schema.Functions.Count > 0
                 || schema.Procedures.Count > 0
                 || schema.Sequences.Count > 0)
             ?.Name
@@ -1645,6 +1646,21 @@ public abstract class DbConnectionMockBase(
     #region Procedures
 
     /// <summary>
+    /// EN: Registers a stored procedure in the current database schema.
+    /// PT: Registra um procedimento armazenado no schema atual do banco.
+    /// </summary>
+    /// <param name="procedure">EN: Procedure definition. PT: Definicao do procedimento.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    public void AddProcedure(
+        ProcedureDef procedure,
+        string? schemaName = null)
+        => CreateProcedure(
+            procedure.Name,
+            procedure,
+            orReplace: true,
+            schemaName ?? Database);
+
+    /// <summary>
     /// EN: Registers a stored procedure.
     /// PT: Registra um procedimento armazenado.
     /// </summary>
@@ -1653,8 +1669,20 @@ public abstract class DbConnectionMockBase(
     public void AddProdecure(
         ProcedureDef pr,
         string? schemaName = null)
-        => Db.AddProdecure(
-            pr,
+        => AddProcedure(pr, schemaName);
+
+    /// <summary>
+    /// EN: Registers a user-defined function in the current database schema.
+    /// PT: Registra uma funcao definida pelo usuario no schema atual do banco.
+    /// </summary>
+    /// <param name="function">EN: Function definition. PT: Definicao da funcao.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    public void AddFunction(
+        DbFunctionDef function,
+        string? schemaName = null)
+        => CreateFunction(
+            function,
+            orReplace: true,
             schemaName ?? Database);
 
     /// <summary>

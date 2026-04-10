@@ -7,7 +7,7 @@ export interface TemplateSettingsLike {
   repositoryFileNamePattern: string;
 }
 
-export type MappingBaselineObjectType = 'Table' | 'View' | 'Procedure' | 'Sequence';
+export type MappingBaselineObjectType = 'Table' | 'View' | 'Procedure' | 'Function' | 'Sequence';
 
 export interface MappingBaselineEntry {
   targetFolder: string;
@@ -43,7 +43,7 @@ const TEMPLATE_BASELINE_PROFILES: readonly TemplateBaselineProfile[] = [
     version: 'vCurrent',
     label: 'API',
     description: 'Read-oriented baseline for models and repositories.',
-    recommendedTestFocus: 'Light integration tests for tables, views, and repositories.',
+    recommendedTestFocus: 'Light integration tests for tables, views, functions, and repositories.',
     reviewCadence: 'quarterly',
     nextPlannedReviewOn: '2026-06-30',
     modelTemplatePath: 'templates/dbsqllikemem/vCurrent/api/model.template.txt',
@@ -56,6 +56,7 @@ const TEMPLATE_BASELINE_PROFILES: readonly TemplateBaselineProfile[] = [
       Table: { targetFolder: 'tests/Integration/Tables', fileSuffix: 'TableIntegrationTests' },
       View: { targetFolder: 'tests/Integration/Views', fileSuffix: 'ViewIntegrationTests' },
       Procedure: { targetFolder: 'tests/Integration/Procedures', fileSuffix: 'ProcedureIntegrationTests' },
+      Function: { targetFolder: 'tests/Integration/Functions', fileSuffix: 'FunctionIntegrationTests' },
       Sequence: { targetFolder: 'tests/Integration/Sequences', fileSuffix: 'SequenceIntegrationTests' }
     }
   },
@@ -64,7 +65,7 @@ const TEMPLATE_BASELINE_PROFILES: readonly TemplateBaselineProfile[] = [
     version: 'vCurrent',
     label: 'Worker/Batch',
     description: 'Execution-oriented baseline for batch and worker solutions.',
-    recommendedTestFocus: 'Consistency-oriented tests for batch flows and DML validation.',
+    recommendedTestFocus: 'Consistency-oriented tests for batch flows, functions, and DML validation.',
     reviewCadence: 'quarterly',
     nextPlannedReviewOn: '2026-06-30',
     modelTemplatePath: 'templates/dbsqllikemem/vCurrent/worker/model.template.txt',
@@ -77,6 +78,7 @@ const TEMPLATE_BASELINE_PROFILES: readonly TemplateBaselineProfile[] = [
       Table: { targetFolder: 'tests/Consistency/Tables', fileSuffix: 'TableConsistencyTests' },
       View: { targetFolder: 'tests/Consistency/Views', fileSuffix: 'ViewConsistencyTests' },
       Procedure: { targetFolder: 'tests/Consistency/Procedures', fileSuffix: 'ProcedureConsistencyTests' },
+      Function: { targetFolder: 'tests/Consistency/Functions', fileSuffix: 'FunctionConsistencyTests' },
       Sequence: { targetFolder: 'tests/Consistency/Sequences', fileSuffix: 'SequenceConsistencyTests' }
     }
   }
@@ -96,6 +98,7 @@ export function getMappingBaselineDefaults(profileId: string): Record<MappingBas
     Table: { targetFolder: 'tests/Integration/Tables', fileSuffix: 'TableIntegrationTests' },
     View: { targetFolder: 'tests/Integration/Views', fileSuffix: 'ViewIntegrationTests' },
     Procedure: { targetFolder: 'tests/Integration/Procedures', fileSuffix: 'ProcedureIntegrationTests' },
+    Function: { targetFolder: 'tests/Integration/Functions', fileSuffix: 'FunctionIntegrationTests' },
     Sequence: { targetFolder: 'tests/Integration/Sequences', fileSuffix: 'SequenceIntegrationTests' }
   };
 }

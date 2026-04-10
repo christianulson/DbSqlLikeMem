@@ -31,7 +31,7 @@
   "categories": [
     "Other"
   ],
-  "activationEvents__old": [
+  "activationEvents": [
     "onCommand:dbSqlLikeMem.addConnection",
     "onCommand:dbSqlLikeMem.checkConsistency",
     "onCommand:dbSqlLikeMem.configureMappings",
@@ -127,37 +127,58 @@
         {
           "command": "dbSqlLikeMem.openManager",
           "when": "view == dbSqlLikeMem.connections",
-          "group": "navigation@0"
+          "group": "navigation@0",
+          "icon": {
+            "id": "database"
+          }
         },
         {
           "command": "dbSqlLikeMem.addConnection",
           "when": "view == dbSqlLikeMem.connections",
-          "group": "navigation"
+          "group": "navigation",
+          "icon": {
+            "id": "add"
+          }
         },
         {
           "command": "dbSqlLikeMem.refresh",
           "when": "view == dbSqlLikeMem.connections",
-          "group": "navigation"
+          "group": "navigation",
+          "icon": {
+            "id": "refresh"
+          }
         },
         {
           "command": "dbSqlLikeMem.setFilter",
           "when": "view == dbSqlLikeMem.connections",
-          "group": "navigation"
+          "group": "navigation",
+          "icon": {
+            "id": "filter"
+          }
         },
         {
           "command": "dbSqlLikeMem.configureTemplates",
           "when": "view == dbSqlLikeMem.connections",
-          "group": "navigation"
+          "group": "navigation",
+          "icon": {
+            "id": "file"
+          }
         },
         {
           "command": "dbSqlLikeMem.exportState",
           "when": "view == dbSqlLikeMem.connections",
-          "group": "navigation@8"
+          "group": "navigation@8",
+          "icon": {
+            "id": "export"
+          }
         },
         {
           "command": "dbSqlLikeMem.importState",
           "when": "view == dbSqlLikeMem.connections",
-          "group": "navigation@9"
+          "group": "navigation@9",
+          "icon": {
+            "id": "import"
+          }
         }
       ],
       "view/item/context": [
@@ -212,12 +233,18 @@
         {
           "command": "dbSqlLikeMem.editConnection",
           "when": "view == dbSqlLikeMem.connections && viewItem == db-database",
-          "group": "1_connection"
+          "group": "1_connection",
+          "icon": {
+            "id": "edit"
+          }
         },
         {
           "command": "dbSqlLikeMem.removeConnection",
           "when": "view == dbSqlLikeMem.connections && viewItem == db-database",
-          "group": "1_connection@1"
+          "group": "1_connection@1",
+          "icon": {
+            "id": "trash"
+          }
         },
         {
           "command": "dbSqlLikeMem.generateClasses",
@@ -333,7 +360,8 @@
     }
   },
   "scripts": {
-    "compile": "tsc -p ./",
+    "compile:bridge": "node ./scripts/build-bridge.js",
+    "compile": "npm run compile:bridge && tsc -p ./",
     "watch": "tsc -watch -p ./",
     "vscode:prepublish": "npm run generate:icon && npm run compile",
     "lint": "tsc -p ./ --noEmit",

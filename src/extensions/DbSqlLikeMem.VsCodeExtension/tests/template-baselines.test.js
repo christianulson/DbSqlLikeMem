@@ -28,9 +28,10 @@ test('getTemplateBaselineProfile resolves worker baseline', () => {
   assert.equal(profile.modelFileNamePattern, '{NamePascal}Model.cs');
   assert.equal(profile.reviewCadence, 'quarterly');
   assert.equal(profile.nextPlannedReviewOn, '2026-06-30');
-  assert.equal(profile.recommendedTestFocus, 'Consistency-oriented tests for batch flows and DML validation.');
+  assert.equal(profile.recommendedTestFocus, 'Consistency-oriented tests for batch flows, functions, and DML validation.');
   assert.equal(profile.mappingDefaults.Table.targetFolder, 'tests/Consistency/Tables');
   assert.equal(profile.mappingDefaults.Procedure.fileSuffix, 'ProcedureConsistencyTests');
+  assert.equal(profile.mappingDefaults.Function.targetFolder, 'tests/Consistency/Functions');
   assert.equal(profile.mappingDefaults.Sequence.targetFolder, 'tests/Consistency/Sequences');
 });
 
@@ -40,6 +41,7 @@ test('getMappingBaselineDefaults resolves api recommendations for test mappings'
   assert.equal(defaults.Table.targetFolder, 'tests/Integration/Tables');
   assert.equal(defaults.View.fileSuffix, 'ViewIntegrationTests');
   assert.equal(defaults.Procedure.targetFolder, 'tests/Integration/Procedures');
+  assert.equal(defaults.Function.fileSuffix, 'FunctionIntegrationTests');
   assert.equal(defaults.Sequence.fileSuffix, 'SequenceIntegrationTests');
 });
 
@@ -69,7 +71,7 @@ test('parseTemplateReviewMetadata reads governance fields from repository contra
     "lastReviewedOn": "2026-03-08",
     "nextPlannedReviewOn": "2026-06-30",
     "profiles": {
-      "api": { "focus": "Light integration tests for tables, views, and repositories." }
+      "api": { "focus": "Light integration tests for tables, views, functions, and repositories." }
     },
     "evidenceFiles": ["CHANGELOG.md", "templates/dbsqllikemem/review-checklist.md"]
   }`);
@@ -78,7 +80,7 @@ test('parseTemplateReviewMetadata reads governance fields from repository contra
   assert.equal(metadata.reviewCadence, 'quarterly');
   assert.equal(metadata.lastReviewedOn, '2026-03-08');
   assert.equal(metadata.nextPlannedReviewOn, '2026-06-30');
-  assert.equal(metadata.profileFocusById.api, 'Light integration tests for tables, views, and repositories.');
+  assert.equal(metadata.profileFocusById.api, 'Light integration tests for tables, views, functions, and repositories.');
   assert.deepEqual(metadata.evidenceFiles, ['CHANGELOG.md', 'templates/dbsqllikemem/review-checklist.md']);
 });
 
@@ -91,7 +93,7 @@ test('buildTemplateBaselineProfileSummary exposes review metadata and evidence c
     "lastReviewedOn": "2026-03-08",
     "nextPlannedReviewOn": "2026-06-30",
     "profiles": {
-      "api": { "focus": "Light integration tests for tables, views, and repositories." }
+      "api": { "focus": "Light integration tests for tables, views, functions, and repositories." }
     },
     "evidenceFiles": ["CHANGELOG.md", "docs/features-backlog/index.md"]
   }`);
@@ -114,7 +116,7 @@ test('buildTemplateBaselineProfileSummary exposes overdue review windows', () =>
     "lastReviewedOn": "2025-12-31",
     "nextPlannedReviewOn": "2026-01-15",
     "profiles": {
-      "worker": { "focus": "Consistency-oriented tests for batch flows and DML validation." }
+      "worker": { "focus": "Consistency-oriented tests for batch flows, functions, and DML validation." }
     },
     "evidenceFiles": ["CHANGELOG.md"]
   }`);
@@ -155,7 +157,7 @@ test('validateTemplateBaselineProfileAlignment reports overdue review windows', 
     lastReviewedOn: '2025-12-31',
     nextPlannedReviewOn: '2026-01-15',
     profileFocusById: {
-      api: 'Light integration tests for tables, views, and repositories.'
+      api: 'Light integration tests for tables, views, functions, and repositories.'
     },
     evidenceFiles: ['CHANGELOG.md']
   }, '2026-03-08');

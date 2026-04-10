@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -14,6 +15,7 @@ public partial class ConnectionDialog : Window
     public ConnectionDialog()
     {
         InitializeComponent();
+        DatabaseTypeCombo.ItemsSource = DatabaseTypeCatalog.SupportedDatabaseTypes;
         Loaded += OnLoaded;
     }
 
@@ -27,7 +29,7 @@ public partial class ConnectionDialog : Window
     /// Gets or sets the selected database provider type.
     /// Obtém ou define o tipo de provedor de banco selecionado.
     /// </summary>
-    public string DatabaseType { get; set; } = "SqlServer";
+    public string DatabaseType { get; set; } = DatabaseTypeCatalog.DefaultDatabaseType;
 
     /// <summary>
     /// Gets or sets the connection string used to access the database.
@@ -40,23 +42,15 @@ public partial class ConnectionDialog : Window
         NameTextBox.Text = ConnectionName;
         ConnectionStringTextBox.Text = ConnectionString;
 
-        foreach (var item in DatabaseTypeCombo.Items)
-        {
-            if (item is ComboBoxItem comboItem && string.Equals(comboItem.Content?.ToString(), DatabaseType, StringComparison.OrdinalIgnoreCase))
-            {
-                DatabaseTypeCombo.SelectedItem = comboItem;
-                return;
-            }
-        }
-
-        DatabaseTypeCombo.SelectedIndex = 0;
+        DatabaseTypeCombo.SelectedItem = DatabaseTypeCatalog.SupportedDatabaseTypes.FirstOrDefault(type => string.Equals(type, DatabaseType, StringComparison.OrdinalIgnoreCase))
+            ?? DatabaseTypeCatalog.SupportedDatabaseTypes[0];
     }
 
     private void OnSaveClick(object sender, RoutedEventArgs e)
     {
         ConnectionName = NameTextBox.Text.Trim();
         ConnectionString = ConnectionStringTextBox.Text.Trim();
-        DatabaseType = (DatabaseTypeCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "SqlServer";
+        DatabaseType = DatabaseTypeCombo.SelectedItem?.ToString() ?? DatabaseTypeCatalog.DefaultDatabaseType;
 
         if (string.IsNullOrWhiteSpace(ConnectionName) || string.IsNullOrWhiteSpace(ConnectionString))
         {

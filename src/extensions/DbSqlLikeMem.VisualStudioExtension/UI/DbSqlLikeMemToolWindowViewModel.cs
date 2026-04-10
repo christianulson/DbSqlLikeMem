@@ -969,7 +969,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
             foreach (var mapping in loaded.Mappings)
             {
-                mappings.Add(mapping);
+                mappings.Add(NormalizeMappingConfiguration(mapping));
             }
 
             templateConfiguration = loaded.TemplateConfiguration ?? TemplateConfiguration.Default;
@@ -1145,10 +1145,38 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             DatabaseObjectType.Table => "Tables",
             DatabaseObjectType.View => "Views",
             DatabaseObjectType.Procedure => "Procedures",
+            DatabaseObjectType.Function => "Functions",
             _ => objectType.ToString()
         };
 
         return hasFilter ? $"{baseLabel} 🔎" : baseLabel;
+    }
+
+    private static ConnectionMappingConfiguration NormalizeMappingConfiguration(ConnectionMappingConfiguration mapping)
+    {
+        if (mapping.Mappings.ContainsKey(DatabaseObjectType.Function))
+        {
+            return mapping;
+        }
+
+        var updated = mapping.Mappings.ToDictionary(entry => entry.Key, entry => entry.Value);
+        var fallback = mapping.Mappings.TryGetValue(DatabaseObjectType.Procedure, out var procedureMapping)
+            ? procedureMapping
+            : mapping.Mappings.Values.FirstOrDefault();
+
+        if (fallback is null)
+        {
+            updated[DatabaseObjectType.Function] = new ObjectTypeMapping(DatabaseObjectType.Function, "Generated");
+            return new ConnectionMappingConfiguration(mapping.ConnectionId, updated);
+        }
+
+        updated[DatabaseObjectType.Function] = new ObjectTypeMapping(
+            DatabaseObjectType.Function,
+            fallback.OutputDirectory,
+            fallback.FileNamePattern,
+            fallback.Namespace);
+
+        return new ConnectionMappingConfiguration(mapping.ConnectionId, updated);
     }
 
     private static string BuildMissingGeneratedFilesMessage(IReadOnlyCollection<string> missingArtifactKinds)

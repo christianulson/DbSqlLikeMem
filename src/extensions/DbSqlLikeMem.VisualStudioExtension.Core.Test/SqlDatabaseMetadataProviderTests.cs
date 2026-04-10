@@ -1,14 +1,14 @@
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
-/// Represents this public API type.
-/// Representa este tipo público da API.
+/// EN: Verifies metadata extraction and query generation for supported database providers.
+/// PT: Verifica a extracao de metadados e a geracao de consultas para provedores de banco suportados.
 /// </summary>
 public sealed class SqlDatabaseMetadataProviderTests
 {
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies table metadata is serialized with columns, keys, indexes, foreign keys, and triggers.
+    /// PT: Verifica se os metadados de tabela sao serializados com colunas, chaves, indices, chaves estrangeiras e triggers.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlDatabaseMetadataProvider")]
@@ -51,6 +51,66 @@ public sealed class SqlDatabaseMetadataProviderTests
         Assert.Equal("trg_orders_audit", result.Properties["Triggers"]);
     }
 
+    /// <summary>
+    /// EN: Ensures routine metadata and parameter metadata are serialized for function objects.
+    /// PT: Garante que os metadados da rotina e dos parametros sejam serializados para objetos do tipo function.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlDatabaseMetadataProvider")]
+    public async Task GetObjectAsync_ReturnsRoutineMetadataForFunction()
+    {
+        var executor = new FakeSqlQueryExecutor();
+        executor.WhenContains("FROM INFORMATION_SCHEMA.TABLES", [
+            Row(("SchemaName", "dbo"), ("ObjectName", "fn_Total"), ("ObjectType", "Function"))
+        ]);
+        executor.WhenContains("ROUTINE_DEFINITION", [
+            Row(("SchemaName", "dbo"), ("ObjectName", "fn_Total"), ("RoutineType", "Function"), ("ReturnTypeSql", "int"), ("BodySql", "CustomerId"))
+        ]);
+        executor.WhenContains("INFORMATION_SCHEMA.PARAMETERS", [
+            Row(("SchemaName", "dbo"), ("ObjectName", "fn_Total"), ("ParameterName", "CustomerId"), ("ParameterMode", "IN"), ("DataType", "int"), ("Ordinal", 1), ("DefaultValue", ""), ("IsNullable", "NO"), ("CharMaxLen", null), ("NumPrecision", 10), ("NumScale", 0), ("IsVariadic", "0"), ("IsOrderByClause", "0"), ("IsFrameClause", "0"))
+        ]);
+
+        var provider = new SqlDatabaseMetadataProvider(executor);
+        var conn = new ConnectionDefinition("1", "MySql", "ERP", "conn");
+        var reference = new DatabaseObjectReference("dbo", "fn_Total", DatabaseObjectType.Function);
+
+        var result = await provider.GetObjectAsync(conn, reference, TestContext.Current.CancellationToken);
+
+        Assert.NotNull(result);
+        Assert.Equal("int", result!.Properties!["ReturnTypeSql"]);
+        Assert.Equal("CustomerId", result.Properties["BodySql"]);
+        Assert.Contains("CustomerId|int|1|0|0|0|", result.Properties["Parameters"]);
+    }
+
+    /// <summary>
+    /// EN: Ensures function body text is reduced to the executable scalar expression before serialization.
+    /// PT: Garante que o texto do corpo da function seja reduzido a expressao escalar executavel antes da serializacao.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlDatabaseMetadataProvider")]
+    public async Task GetObjectAsync_NormalizesFunctionBodyFromCreateFunctionSource()
+    {
+        var executor = new FakeSqlQueryExecutor();
+        executor.WhenContains("FROM INFORMATION_SCHEMA.TABLES", [
+            Row(("SchemaName", "dbo"), ("ObjectName", "fn_Total"), ("ObjectType", "Function"))
+        ]);
+        executor.WhenContains("ROUTINE_DEFINITION", [
+            Row(("SchemaName", "dbo"), ("ObjectName", "fn_Total"), ("RoutineType", "Function"), ("ReturnTypeSql", "int"), ("BodySql", "CREATE FUNCTION fn_Total(CustomerId int) RETURNS int AS BEGIN RETURN CustomerId + 1; END"))
+        ]);
+        executor.WhenContains("INFORMATION_SCHEMA.PARAMETERS", [
+            Row(("SchemaName", "dbo"), ("ObjectName", "fn_Total"), ("ParameterName", "CustomerId"), ("ParameterMode", "IN"), ("DataType", "int"), ("Ordinal", 1), ("DefaultValue", ""), ("IsNullable", "NO"), ("CharMaxLen", null), ("NumPrecision", 10), ("NumScale", 0), ("IsVariadic", "0"), ("IsOrderByClause", "0"), ("IsFrameClause", "0"))
+        ]);
+
+        var provider = new SqlDatabaseMetadataProvider(executor);
+        var conn = new ConnectionDefinition("1", "MySql", "ERP", "conn");
+        var reference = new DatabaseObjectReference("dbo", "fn_Total", DatabaseObjectType.Function);
+
+        var result = await provider.GetObjectAsync(conn, reference, TestContext.Current.CancellationToken);
+
+        Assert.NotNull(result);
+        Assert.Equal("CustomerId + 1", result!.Properties!["BodySql"]);
+    }
+
 
     /// <summary>
     /// Verifies MySQL list query uses database name parsed from connection string.
@@ -77,8 +137,32 @@ public sealed class SqlDatabaseMetadataProviderTests
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies MariaDB list query uses the database name parsed from the connection string.
+    /// PT: Verifica se a consulta de listagem do MariaDB usa o nome do banco extraído da connection string.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlDatabaseMetadataProvider")]
+    public async Task ListObjectsAsync_ForMariaDb_UsesDatabaseNameFromConnectionString()
+    {
+        var executor = new FakeSqlQueryExecutor();
+        executor.WhenContains("FROM INFORMATION_SCHEMA.TABLES", []);
+
+        var provider = new SqlDatabaseMetadataProvider(executor);
+        var conn = new ConnectionDefinition(
+            "1",
+            "MariaDb",
+            "AliasMaria",
+            "Server=localhost;Port=3306;Database=addresses_mariadb;Uid=root;Pwd=secret;");
+
+        _ = await provider.ListObjectsAsync(conn, TestContext.Current.CancellationToken);
+
+        Assert.True(executor.TryGetLastParametersFor("FROM INFORMATION_SCHEMA.TABLES", out var parameters));
+        Assert.Equal("addresses_mariadb", parameters!["databaseName"]?.ToString());
+    }
+
+    /// <summary>
+    /// EN: Verifies provider support stays available for the configured database types.
+    /// PT: Verifica se o suporte do provedor permanece disponivel para os tipos de banco configurados.
     /// </summary>
     [Theory]
     [Trait("Category", "SqlDatabaseMetadataProvider")]
@@ -92,6 +176,8 @@ public sealed class SqlDatabaseMetadataProviderTests
     [InlineData("Oracle")]
     [InlineData("Sqlite")]
     [InlineData("Db2")]
+    [InlineData("MariaDb")]
+    [InlineData("Firebird")]
     public void QueryFactory_SupportsConfiguredDatabases(string databaseType)
     {
         Assert.False(string.IsNullOrWhiteSpace(SqlMetadataQueryFactory.BuildListObjectsQuery(databaseType)));
@@ -101,6 +187,53 @@ public sealed class SqlDatabaseMetadataProviderTests
         Assert.False(string.IsNullOrWhiteSpace(SqlMetadataQueryFactory.BuildForeignKeysQuery(databaseType)));
         Assert.False(string.IsNullOrWhiteSpace(SqlMetadataQueryFactory.BuildTriggersQuery(databaseType)));
         Assert.False(string.IsNullOrWhiteSpace(SqlMetadataQueryFactory.BuildSequenceMetadataQuery(databaseType)));
+        Assert.False(string.IsNullOrWhiteSpace(SqlMetadataQueryFactory.BuildRoutineMetadataQuery(databaseType)));
+        Assert.False(string.IsNullOrWhiteSpace(SqlMetadataQueryFactory.BuildRoutineParametersQuery(databaseType)));
+    }
+
+    /// <summary>
+    /// EN: Verifies MariaDB exposes a sequence metadata query with sequence columns.
+    /// PT: Verifica se o MariaDB expõe uma consulta de metadata de sequence com as colunas de sequence.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlDatabaseMetadataProvider")]
+    public void QueryFactory_BuildsMariaDbSequenceMetadataQuery()
+    {
+        var query = SqlMetadataQueryFactory.BuildSequenceMetadataQuery("MariaDb");
+
+        Assert.Contains("INFORMATION_SCHEMA.SEQUENCES", query, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("START_VALUE", query, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("INCREMENT", query, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies Firebird list queries include tables, views, procedures and functions.
+    /// PT: Verifica se as consultas de listagem do Firebird incluem tabelas, views, procedimentos e funcoes.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlDatabaseMetadataProvider")]
+    public void QueryFactory_BuildsFirebirdListObjectsQuery()
+    {
+        var query = SqlMetadataQueryFactory.BuildListObjectsQuery("Firebird");
+
+        Assert.Contains("RDB$RELATIONS", query, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("RDB$PROCEDURES", query, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("RDB$FUNCTIONS", query, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies MariaDB list queries include sequences while MySQL keeps the shared subset.
+    /// PT: Verifica se as consultas de listagem do MariaDB incluem sequences enquanto o MySQL mantem o subconjunto compartilhado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlDatabaseMetadataProvider")]
+    public void QueryFactory_BuildsMariaDbListObjectsQueryWithSequences()
+    {
+        var mariaDbQuery = SqlMetadataQueryFactory.BuildListObjectsQuery("MariaDb");
+        var mySqlQuery = SqlMetadataQueryFactory.BuildListObjectsQuery("MySql");
+
+        Assert.Contains("INFORMATION_SCHEMA.SEQUENCES", mariaDbQuery, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("INFORMATION_SCHEMA.SEQUENCES", mySqlQuery, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -128,8 +261,8 @@ public sealed class SqlDatabaseMetadataProviderTests
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies MariaDB sequence metadata queries expose the expected columns.
+    /// PT: Verifica se as consultas de metadata de sequence do MariaDB expõem as colunas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlDatabaseMetadataProvider")]
@@ -156,6 +289,35 @@ public sealed class SqlDatabaseMetadataProviderTests
         Assert.False(result.Properties.ContainsKey("Columns"));
     }
 
+    /// <summary>
+    /// EN: Verifies MariaDB sequence metadata is read and serialized with the sequence detail query.
+    /// PT: Verifica se a metadata de sequence do MariaDB e lida e serializada pela query de detalhe da sequence.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlDatabaseMetadataProvider")]
+    public async Task GetObjectAsync_ForMariaDbSequence_ReturnsSequenceMetadataOnly()
+    {
+        var executor = new FakeSqlQueryExecutor();
+        executor.WhenContains("FROM INFORMATION_SCHEMA.TABLES", [
+            Row(("SchemaName", "dbo"), ("ObjectName", "seq_orders"), ("ObjectType", "Sequence"))
+        ]);
+        executor.WhenContains("CAST(START_VALUE AS CHAR)", [
+            Row(("SchemaName", "dbo"), ("ObjectName", "seq_orders"), ("StartValue", 100L), ("IncrementBy", 5L), ("CurrentValue", 115L))
+        ]);
+
+        var provider = new SqlDatabaseMetadataProvider(executor);
+        var conn = new ConnectionDefinition("1", "MariaDb", "ERP", "Server=.;Database=erp;");
+        var reference = new DatabaseObjectReference("dbo", "seq_orders", DatabaseObjectType.Sequence);
+
+        var result = await provider.GetObjectAsync(conn, reference, TestContext.Current.CancellationToken);
+
+        Assert.NotNull(result);
+        Assert.Equal("100", result!.Properties!["StartValue"]);
+        Assert.Equal("5", result.Properties["IncrementBy"]);
+        Assert.Equal("115", result.Properties["CurrentValue"]);
+        Assert.False(result.Properties.ContainsKey("Columns"));
+    }
+
     private static IReadOnlyDictionary<string, object?> Row(params (string Key, object? Value)[] items)
         => items.ToDictionary(x => x.Key, x => x.Value);
 
@@ -164,10 +326,10 @@ public sealed class SqlDatabaseMetadataProviderTests
         private readonly List<(string Contains, IReadOnlyCollection<IReadOnlyDictionary<string, object?>> Rows)> _responses = [];
         private readonly List<(string Sql, IReadOnlyDictionary<string, object?> Parameters)> _calls = [];
 
-        /// <summary>
-        /// Executes this API operation.
-        /// Executa esta operação da API.
-        /// </summary>
+    /// <summary>
+    /// EN: Verifies Firebird list queries include the object families used by the generator.
+    /// PT: Verifica se as consultas de listagem do Firebird incluem as familias de objetos usadas pela geracao.
+    /// </summary>
         public void WhenContains(string containsSql, IReadOnlyCollection<IReadOnlyDictionary<string, object?>> rows)
             => _responses.Add((containsSql, rows));
 
@@ -186,10 +348,10 @@ public sealed class SqlDatabaseMetadataProviderTests
             return false;
         }
 
-        /// <summary>
-        /// Executes this API operation.
-        /// Executa esta operação da API.
-        /// </summary>
+    /// <summary>
+    /// EN: Verifies MariaDB list queries include sequence objects.
+    /// PT: Verifica se as consultas de listagem do MariaDB incluem objetos do tipo sequence.
+    /// </summary>
         public Task<IReadOnlyCollection<IReadOnlyDictionary<string, object?>>> QueryAsync(
             ConnectionDefinition connection,
             string sql,

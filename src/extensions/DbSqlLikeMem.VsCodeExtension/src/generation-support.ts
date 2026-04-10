@@ -1,6 +1,7 @@
 import * as path from 'node:path';
 
-export type SupportedDatabaseObjectType = 'Table' | 'View' | 'Procedure' | 'Sequence';
+export const SUPPORTED_DATABASE_OBJECT_TYPES = ['Table', 'View', 'Procedure', 'Function', 'Sequence'] as const;
+export type SupportedDatabaseObjectType = (typeof SUPPORTED_DATABASE_OBJECT_TYPES)[number];
 export type TemplateGenerationKind = 'model' | 'repository';
 export type GenerationCheckStatus = 'ok' | 'partial' | 'missing' | 'drift';
 export type GeneratedArtifactKind = 'test' | 'model' | 'repository';
@@ -12,6 +13,13 @@ export interface GenerationObjectReference {
   columns?: ReadonlyArray<GenerationColumnReference>;
   foreignKeys?: ReadonlyArray<GenerationForeignKeyReference>;
   sequenceMetadata?: GenerationSequenceMetadata;
+  requiredIn?: string;
+  optionalIn?: string;
+  outParams?: string;
+  returnParam?: string;
+  parameters?: string;
+  returnTypeSql?: string;
+  bodySql?: string;
 }
 
 export interface GenerationColumnReference {
@@ -55,6 +63,13 @@ export interface GeneratedArtifactMetadata {
   objectType: SupportedDatabaseObjectType;
   columns?: string;
   foreignKeys?: string;
+  requiredIn?: string;
+  optionalIn?: string;
+  outParams?: string;
+  returnParam?: string;
+  parameters?: string;
+  returnTypeSql?: string;
+  bodySql?: string;
   startValue?: string;
   incrementBy?: string;
   currentValue?: string;
@@ -263,6 +278,13 @@ export function parseGeneratedArtifactMetadata(content: string): GeneratedArtifa
     objectType,
     columns: metadata.get('Columns'),
     foreignKeys: metadata.get('ForeignKeys'),
+    requiredIn: metadata.get('RequiredIn'),
+    optionalIn: metadata.get('OptionalIn'),
+    outParams: metadata.get('OutParams'),
+    returnParam: metadata.get('ReturnParam'),
+    parameters: metadata.get('Parameters'),
+    returnTypeSql: metadata.get('ReturnTypeSql'),
+    bodySql: metadata.get('BodySql'),
     startValue: metadata.get('StartValue'),
     incrementBy: metadata.get('IncrementBy'),
     currentValue: metadata.get('CurrentValue')
@@ -295,6 +317,13 @@ export function isGeneratedArtifactStructureAligned(
 
   return (metadata.columns ?? '') === serializeColumns(objectRef.columns)
     && (metadata.foreignKeys ?? '') === serializeForeignKeys(objectRef.foreignKeys)
+    && (metadata.requiredIn ?? '') === (objectRef.requiredIn ?? '')
+    && (metadata.optionalIn ?? '') === (objectRef.optionalIn ?? '')
+    && (metadata.outParams ?? '') === (objectRef.outParams ?? '')
+    && (metadata.returnParam ?? '') === (objectRef.returnParam ?? '')
+    && (metadata.parameters ?? '') === (objectRef.parameters ?? '')
+    && (metadata.returnTypeSql ?? '') === (objectRef.returnTypeSql ?? '')
+    && (metadata.bodySql ?? '') === (objectRef.bodySql ?? '')
     && (metadata.startValue ?? '') === (objectRef.sequenceMetadata?.startValue ?? '')
     && (metadata.incrementBy ?? '') === (objectRef.sequenceMetadata?.incrementBy ?? '')
     && (metadata.currentValue ?? '') === (objectRef.sequenceMetadata?.currentValue ?? '');
@@ -338,13 +367,20 @@ function buildGeneratedArtifactMetadataHeader(objectRef: GenerationObjectReferen
     + `// DBSqlLikeMem:Type=${objectRef.objectType}\n`
     + `// DBSqlLikeMem:Columns=${serializeColumns(objectRef.columns)}\n`
     + `// DBSqlLikeMem:ForeignKeys=${serializeForeignKeys(objectRef.foreignKeys)}\n`
+    + `// DBSqlLikeMem:RequiredIn=${objectRef.requiredIn ?? ''}\n`
+    + `// DBSqlLikeMem:OptionalIn=${objectRef.optionalIn ?? ''}\n`
+    + `// DBSqlLikeMem:OutParams=${objectRef.outParams ?? ''}\n`
+    + `// DBSqlLikeMem:ReturnParam=${objectRef.returnParam ?? ''}\n`
+    + `// DBSqlLikeMem:Parameters=${objectRef.parameters ?? ''}\n`
+    + `// DBSqlLikeMem:ReturnTypeSql=${objectRef.returnTypeSql ?? ''}\n`
+    + `// DBSqlLikeMem:BodySql=${objectRef.bodySql ?? ''}\n`
     + `// DBSqlLikeMem:StartValue=${objectRef.sequenceMetadata?.startValue ?? ''}\n`
     + `// DBSqlLikeMem:IncrementBy=${objectRef.sequenceMetadata?.incrementBy ?? ''}\n`
     + `// DBSqlLikeMem:CurrentValue=${objectRef.sequenceMetadata?.currentValue ?? ''}\n`;
 }
 
 function isSupportedDatabaseObjectType(value: string | undefined): value is SupportedDatabaseObjectType {
-  return value === 'Table' || value === 'View' || value === 'Procedure' || value === 'Sequence';
+  return value === 'Table' || value === 'View' || value === 'Procedure' || value === 'Function' || value === 'Sequence';
 }
 
 function serializeColumns(columns: ReadonlyArray<GenerationColumnReference> | undefined): string {

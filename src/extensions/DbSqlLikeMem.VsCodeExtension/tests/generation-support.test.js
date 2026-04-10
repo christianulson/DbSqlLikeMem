@@ -8,6 +8,7 @@ const {
   buildTestClassName,
   evaluateGenerationConsistency,
   generateTestClassTemplate,
+  SUPPORTED_DATABASE_OBJECT_TYPES,
   isGeneratedArtifactMetadataAligned,
   isGeneratedArtifactStructureAligned,
   parseGeneratedArtifactMetadata,
@@ -130,10 +131,37 @@ test('parseGeneratedArtifactMetadata reads the standardized snapshot header', ()
     objectType: 'View',
     columns: undefined,
     foreignKeys: undefined,
+    requiredIn: undefined,
+    optionalIn: undefined,
+    outParams: undefined,
+    returnParam: undefined,
+    parameters: undefined,
+    returnTypeSql: undefined,
+    bodySql: undefined,
     startValue: undefined,
     incrementBy: undefined,
     currentValue: undefined
   });
+});
+
+test('renderTemplateContent stores routine metadata headers for functions', () => {
+  const content = renderTemplateContent(
+    'public class {{ClassName}}\\n{\\n}\\n',
+    'TotalFunction',
+    {
+      schema: 'dbo',
+      name: 'fn_total',
+      objectType: 'Function',
+      parameters: 'CustomerId|int|1|0|0|0|',
+      returnTypeSql: 'int',
+      bodySql: 'CustomerId'
+    },
+    { databaseType: 'SqlServer', databaseName: 'ERP' }
+  );
+
+  assert.match(content, /\/\/ DBSqlLikeMem:Parameters=CustomerId\|int\|1\|0\|0\|0\|/);
+  assert.match(content, /\/\/ DBSqlLikeMem:ReturnTypeSql=int/);
+  assert.match(content, /\/\/ DBSqlLikeMem:BodySql=CustomerId/);
 });
 
 test('isGeneratedArtifactMetadataAligned detects drift against the selected object', () => {
@@ -269,4 +297,8 @@ test('buildTestClassName supports sequence objects in the same deterministic pat
 
 test('sanitizeClassName replaces unsupported characters with underscores', () => {
   assert.equal(sanitizeClassName('vw.active-customers.cs'), 'vw_active_customers_cs');
+});
+
+test('SUPPORTED_DATABASE_OBJECT_TYPES keeps the supported generation surface aligned', () => {
+  assert.deepEqual(SUPPORTED_DATABASE_OBJECT_TYPES, ['Table', 'View', 'Procedure', 'Function', 'Sequence']);
 });

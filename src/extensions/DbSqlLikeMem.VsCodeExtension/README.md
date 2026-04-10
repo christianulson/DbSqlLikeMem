@@ -6,16 +6,16 @@ Extensão equivalente ao fluxo desenhado para o Visual Studio Extension Core, ad
 
 - Sidebar própria **DbSqlLikeMem** na Activity Bar.
 - Cadastro de conexões (persistidas no `globalState` da extensão).
-- Validação de conexão ao adicionar/editar (com tentativa real para `SqlServer` via `sqlcmd`).
+- Validação de conexão ao adicionar/editar com metadata real via bridge `.NET` para os bancos suportados.
 - TreeView por:
   - Tipo de banco
   - Database
-  - Tipo do objeto (`Table`, `View`, `Procedure`, `Sequence`)
+  - Tipo do objeto (`Table`, `View`, `Procedure`, `Function`, `Sequence`)
   - Objeto (`schema.nome`)
-  - Colunas e Foreign Keys (para tabelas SQL Server)
+  - Colunas e Foreign Keys (quando o provider expõe esse metadata)
 - Filtro por modo `Like` e `Equals`.
 - Interface gráfica (Manager) para cadastrar/editar/remover conexões e configurar mapeamentos.
-- Configuração de mapeamentos por tipo de objeto (`Table`, `View`, `Procedure`, `Sequence`) também no menu de contexto do nó do database.
+- Configuração de mapeamentos por tipo de objeto (`Table`, `View`, `Procedure`, `Function`, `Sequence`) também no menu de contexto do nó do database.
 - Geração de classes de **teste** `.cs` no workspace (ação principal), com prévia de conflitos (sobrescrita) e scaffold inicial explícito (`[Fact(Skip = ...)]`, metadados de origem e blocos Arrange/Act/Assert).
 - Geração de classes de **modelo** a partir de template com tokens, com prévia de conflitos (sobrescrita), incluindo objetos `Sequence` quando a metadata do provider os expõe e cabeçalho padronizado `// DBSqlLikeMem:*` com snapshot estrutural mínimo (`Columns`/`ForeignKeys` e metadata de sequência) para rastreabilidade da origem.
 - Geração de classes de **repositório** a partir de template com tokens, com prévia de conflitos (sobrescrita), incluindo objetos `Sequence` quando a metadata do provider os expõe e cabeçalho padronizado `// DBSqlLikeMem:*` com snapshot estrutural mínimo (`Columns`/`ForeignKeys` e metadata de sequência) para rastreabilidade da origem.
@@ -33,7 +33,7 @@ Extensão equivalente ao fluxo desenhado para o Visual Studio Extension Core, ad
 - Menus de contexto de geração/consistência disponíveis em todos os níveis relevantes da árvore (tipo de banco, database, tipo de objeto, objeto e detalhes como colunas/FKs).
 - Exportação/importação do estado em JSON.
 
-> Atualmente a extensão já usa metadata real para `SqlServer` (incluindo `sys.sequences`) e mantém fallback simplificado para os demais bancos enquanto a malha de providers reais é expandida.
+> Atualmente a extensão usa metadata real via bridge `.NET` e mantém fallback legado apenas para o cenário `SqlServer` quando a ponte ainda não está publicada no workspace.
 
 ## Comandos
 

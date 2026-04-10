@@ -17,6 +17,7 @@ public sealed record SchemaSnapshot
         "indexes",
         "foreign-keys",
         "views",
+        "functions",
         "sequences",
         "procedure-signatures",
         "file-roundtrip",
@@ -452,18 +453,6 @@ public sealed record SchemaSnapshot
                 }
             }
 
-            foreach (var viewSnapshot in schemaSnapshot.Views)
-            {
-                var parsed = SqlQueryParser.Parse(
-                    viewSnapshot.SelectSql,
-                    db,
-                    db.Dialect,
-                    null,
-                    SqlCustomFunctionResolverFactory.Create(db, schemaSnapshot.Name));
-                schemaMock.Views[viewSnapshot.Name] = parsed as SqlSelectQuery
-                    ?? throw new InvalidOperationException($"View '{viewSnapshot.Name}' did not deserialize to SELECT.");
-            }
-
             foreach (var sequenceSnapshot in schemaSnapshot.Sequences)
             {
                 db.AddSequence(
@@ -475,7 +464,26 @@ public sealed record SchemaSnapshot
             }
 
             foreach (var procedureSnapshot in schemaSnapshot.Procedures)
-                db.AddProdecure(procedureSnapshot.ToProcedureDef(), schemaSnapshot.Name);
+                db.AddProcedure(procedureSnapshot.ToProcedureDef(), schemaSnapshot.Name);
+
+            var functionNames = schemaSnapshot.Functions
+                .Select(static function => function.Name)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var functionSnapshot in schemaSnapshot.Functions)
+                db.AddFunction(functionSnapshot.ToFunctionDef(db, functionNames), schemaSnapshot.Name);
+
+            foreach (var viewSnapshot in schemaSnapshot.Views)
+            {
+                var parsed = SqlQueryParser.Parse(
+                    viewSnapshot.SelectSql,
+                    db,
+                    db.Dialect,
+                    null,
+                    SqlCustomFunctionResolverFactory.Create(db, schemaSnapshot.Name));
+                schemaMock.Views[viewSnapshot.Name] = parsed as SqlSelectQuery
+                    ?? throw new InvalidOperationException($"View '{viewSnapshot.Name}' did not deserialize to SELECT.");
+            }
         }
 
         if (db.Count == 0)
@@ -556,6 +564,17 @@ public sealed record SchemaSnapshot
                 $"View '{viewLeft.Name}' in schema '{schemaName}'",
                 viewLeft,
                 viewRight),
+            differences);
+
+        CompareNamedCollection(
+            $"Function in schema '{schemaName}'",
+            left.Functions,
+            right.Functions,
+            static function => function.Name,
+            (functionLeft, functionRight) => CompareSerializedObject(
+                $"Function '{functionLeft.Name}' in schema '{schemaName}'",
+                functionLeft,
+                functionRight),
             differences);
 
         CompareNamedCollection(
@@ -668,6 +687,12 @@ public sealed record SchemaSnapshotSchema
     public required IReadOnlyList<SchemaSnapshotView> Views { get; init; }
 
     /// <summary>
+    /// EN: User-defined functions captured for the schema.
+    /// PT: Funcoes definidas pelo usuario capturadas para o schema.
+    /// </summary>
+    public IReadOnlyList<SchemaSnapshotFunction> Functions { get; init; } = [];
+
+    /// <summary>
     /// EN: Stored procedures captured for the schema.
     /// PT: Procedures capturadas para o schema.
     /// </summary>
@@ -689,6 +714,9 @@ public sealed record SchemaSnapshotSchema
             Views = [.. schema.Views
                 .OrderBy(static view => view.Key, StringComparer.OrdinalIgnoreCase)
                 .Select(static view => SchemaSnapshotView.FromView(view.Key, view.Value))],
+            Functions = [.. schema.Functions
+                .OrderBy(static function => function.Key, StringComparer.OrdinalIgnoreCase)
+                .Select(static function => SchemaSnapshotFunction.FromFunction(function.Key, function.Value))],
             Procedures = [.. schema.Procedures
                 .OrderBy(static procedure => procedure.Key, StringComparer.OrdinalIgnoreCase)
                 .Select(static procedure => SchemaSnapshotProcedure.FromProcedure(procedure.Key, procedure.Value))],
@@ -1020,6 +1048,139 @@ public sealed record SchemaSnapshotSequence
             IncrementBy = sequence.IncrementBy,
             CurrentValue = sequence.CurrentValue
         };
+}
+
+/// <summary>
+/// EN: Captures a user-defined function body and signature inside a schema snapshot.
+/// PT: Captura o corpo e a assinatura de uma funcao definida pelo usuario dentro de um snapshot de schema.
+/// </summary>
+public sealed record SchemaSnapshotFunction
+{
+    /// <summary>
+    /// EN: Function name.
+    /// PT: Nome da funcao.
+    /// </summary>
+    public required string Name { get; init; }
+
+    /// <summary>
+    /// EN: SQL return type declared by the function.
+    /// PT: Tipo de retorno SQL declarado pela funcao.
+    /// </summary>
+    public string? ReturnTypeSql { get; init; }
+
+    /// <summary>
+    /// EN: Parameters declared by the function.
+    /// PT: Parametros declarados pela funcao.
+    /// </summary>
+    public IReadOnlyList<SchemaSnapshotFunctionParam> Parameters { get; init; } = [];
+
+    /// <summary>
+    /// EN: Scalar SQL body of the function.
+    /// PT: Corpo SQL escalar da funcao.
+    /// </summary>
+    public string? BodySql { get; init; }
+
+    internal static SchemaSnapshotFunction FromFunction(string name, DbFunctionDef function)
+        => new()
+        {
+            Name = name,
+            ReturnTypeSql = function.ReturnTypeSql,
+            Parameters = [.. function.Parameters.Select(static parameter => SchemaSnapshotFunctionParam.FromParameter(parameter))],
+            BodySql = function.Body is null ? null : SqlExprPrinter.Print(function.Body)
+        };
+
+    internal DbFunctionDef ToFunctionDef(
+        DbMock db,
+        HashSet<string> functionNames)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(db, nameof(db));
+        ArgumentNullExceptionCompatible.ThrowIfNull(functionNames, nameof(functionNames));
+
+        var bodySql = string.IsNullOrWhiteSpace(BodySql) ? "NULL" : BodySql;
+        var body = SqlExpressionParser.ParseScalar(
+            bodySql!,
+            db,
+            db.Dialect,
+            null,
+            functionNames.Contains);
+
+        return DbFunctionDef.CreateUserDefined(
+            Name,
+            ReturnTypeSql,
+            [.. Parameters.Select(static parameter => parameter.ToParameter())],
+            body);
+    }
+}
+
+/// <summary>
+/// EN: Captures a user-defined function parameter inside a schema snapshot.
+/// PT: Captura um parametro de funcao definida pelo usuario dentro de um snapshot de schema.
+/// </summary>
+public sealed record SchemaSnapshotFunctionParam
+{
+    /// <summary>
+    /// EN: Parameter name.
+    /// PT: Nome do parametro.
+    /// </summary>
+    public required string Name { get; init; }
+
+    /// <summary>
+    /// EN: SQL type text associated with the parameter.
+    /// PT: Texto SQL do tipo associado ao parametro.
+    /// </summary>
+    public string? TypeSql { get; init; }
+
+    /// <summary>
+    /// EN: Indicates whether the parameter is required.
+    /// PT: Indica se o parametro e obrigatorio.
+    /// </summary>
+    public required bool Required { get; init; }
+
+    /// <summary>
+    /// EN: Indicates whether the parameter accepts variadic values.
+    /// PT: Indica se o parametro aceita valores variadicos.
+    /// </summary>
+    public bool IsVariadic { get; init; }
+
+    /// <summary>
+    /// EN: Indicates whether the parameter represents an ORDER BY clause.
+    /// PT: Indica se o parametro representa uma clausula ORDER BY.
+    /// </summary>
+    public bool IsOrderByClause { get; init; }
+
+    /// <summary>
+    /// EN: Indicates whether the parameter represents a frame clause.
+    /// PT: Indica se o parametro representa uma clausula de frame.
+    /// </summary>
+    public bool IsFrameClause { get; init; }
+
+    /// <summary>
+    /// EN: Serialized default value when present.
+    /// PT: Valor padrao serializado quando presente.
+    /// </summary>
+    public JsonElement? Value { get; init; }
+
+    internal static SchemaSnapshotFunctionParam FromParameter(DbFunctionParameterDef parameter)
+        => new()
+        {
+            Name = parameter.Name,
+            TypeSql = parameter.TypeSql,
+            Required = parameter.Required,
+            IsVariadic = parameter.IsVariadic,
+            IsOrderByClause = parameter.IsOrderByClause,
+            IsFrameClause = parameter.IsFrameClause,
+            Value = SchemaSnapshot.SerializeDefaultValue(parameter.DefaultValue)
+        };
+
+    internal DbFunctionParameterDef ToParameter()
+        => new(
+            Name,
+            TypeSql,
+            Required,
+            IsVariadic,
+            IsOrderByClause,
+            IsFrameClause,
+            SchemaSnapshot.DeserializeDefaultValue(Value));
 }
 
 /// <summary>

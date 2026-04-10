@@ -15,7 +15,7 @@ public static class TemplateBaselineCatalog
             "API",
             "vCurrent",
             "Read-oriented baseline for solutions centered on models and repositories.",
-            "Light integration tests for tables, views, and repositories.",
+            "Light integration tests for tables, views, functions, and repositories.",
             "quarterly",
             "2026-06-30",
             "templates/dbsqllikemem/vCurrent/api/model.template.txt",
@@ -26,13 +26,14 @@ public static class TemplateBaselineCatalog
                 "tests/Integration/Tables", "{NamePascal}TableIntegrationTests.cs",
                 "tests/Integration/Views", "{NamePascal}ViewIntegrationTests.cs",
                 "tests/Integration/Procedures", "{NamePascal}ProcedureIntegrationTests.cs",
+                "tests/Integration/Functions", "{NamePascal}FunctionIntegrationTests.cs",
                 "tests/Integration/Sequences", "{NamePascal}SequenceIntegrationTests.cs")),
         new TemplateBaselineProfile(
             "worker",
             "Worker/Batch",
             "vCurrent",
             "Execution-oriented baseline for worker and batch solutions.",
-            "Consistency-oriented tests for batch flows and DML validation.",
+            "Consistency-oriented tests for batch flows, functions, and DML validation.",
             "quarterly",
             "2026-06-30",
             "templates/dbsqllikemem/vCurrent/worker/model.template.txt",
@@ -43,6 +44,7 @@ public static class TemplateBaselineCatalog
                 "tests/Consistency/Tables", "{NamePascal}TableConsistencyTests.cs",
                 "tests/Consistency/Views", "{NamePascal}ViewConsistencyTests.cs",
                 "tests/Consistency/Procedures", "{NamePascal}ProcedureConsistencyTests.cs",
+                "tests/Consistency/Functions", "{NamePascal}FunctionConsistencyTests.cs",
                 "tests/Consistency/Sequences", "{NamePascal}SequenceConsistencyTests.cs")),
     ];
 
@@ -142,6 +144,8 @@ public static class TemplateBaselineCatalog
         string viewFileNamePattern,
         string procedureOutputDirectory,
         string procedureFileNamePattern,
+        string functionOutputDirectory,
+        string functionFileNamePattern,
         string sequenceOutputDirectory,
         string sequenceFileNamePattern)
         => new Dictionary<DatabaseObjectType, ObjectTypeMapping>
@@ -149,6 +153,7 @@ public static class TemplateBaselineCatalog
             [DatabaseObjectType.Table] = new(DatabaseObjectType.Table, tableOutputDirectory, tableFileNamePattern),
             [DatabaseObjectType.View] = new(DatabaseObjectType.View, viewOutputDirectory, viewFileNamePattern),
             [DatabaseObjectType.Procedure] = new(DatabaseObjectType.Procedure, procedureOutputDirectory, procedureFileNamePattern),
+            [DatabaseObjectType.Function] = new(DatabaseObjectType.Function, functionOutputDirectory, functionFileNamePattern),
             [DatabaseObjectType.Sequence] = new(DatabaseObjectType.Sequence, sequenceOutputDirectory, sequenceFileNamePattern),
         };
 }

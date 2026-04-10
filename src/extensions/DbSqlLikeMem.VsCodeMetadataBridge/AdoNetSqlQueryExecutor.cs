@@ -3,9 +3,9 @@ using System.Reflection;
 using DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 
-namespace DbSqlLikeMem.VisualStudioExtension.Services;
+namespace DbSqlLikeMem.VsCodeMetadataBridge;
 
-internal sealed class AdoNetSqlQueryExecutor : ISqlQueryExecutor
+internal sealed class BridgeSqlQueryExecutor : ISqlQueryExecutor
 {
     private static readonly Dictionary<string, string[]> ProviderCandidates =
         new(StringComparer.OrdinalIgnoreCase)
@@ -18,7 +18,7 @@ internal sealed class AdoNetSqlQueryExecutor : ISqlQueryExecutor
             ["mariadb"] = ["MySqlConnector", "MySql.Data.MySqlClient"],
             ["oracle"] = ["Oracle.ManagedDataAccess.Client"],
             ["sqlite"] = ["Microsoft.Data.Sqlite", "System.Data.SQLite"],
-            ["db2"] = ["IBM.Data.DB2", "IBM.Data.DB2.Core"],
+            ["db2"] = ["IBM.Data.Db2", "IBM.Data.DB2.Core"],
             ["firebird"] = ["FirebirdSql.Data.FirebirdClient"]
         };
 
@@ -33,7 +33,7 @@ internal sealed class AdoNetSqlQueryExecutor : ISqlQueryExecutor
             ["mariadb"] = ["MySqlConnector.MySqlConnectorFactory", "MySql.Data.MySqlClient.MySqlClientFactory"],
             ["oracle"] = ["Oracle.ManagedDataAccess.Client.OracleClientFactory"],
             ["sqlite"] = ["Microsoft.Data.Sqlite.SqliteFactory", "System.Data.SQLite.SQLiteFactory"],
-            ["db2"] = ["IBM.Data.DB2.DB2Factory", "IBM.Data.DB2.Core.DB2Factory"],
+            ["db2"] = ["IBM.Data.Db2.DB2Factory", "IBM.Data.DB2.Core.DB2Factory"],
             ["firebird"] = ["FirebirdSql.Data.FirebirdClient.FirebirdClientFactory"]
         };
 
@@ -43,9 +43,7 @@ internal sealed class AdoNetSqlQueryExecutor : ISqlQueryExecutor
         IReadOnlyDictionary<string, object?> parameters,
         CancellationToken cancellationToken = default)
     {
-        var factory = GetFactory(connection.DatabaseType);
-        using var dbConnection = factory.CreateConnection() ?? throw new InvalidOperationException("Falha ao criar conexão ADO.NET.");
-        dbConnection.ConnectionString = connection.ConnectionString;
+        using var dbConnection = CreateConnection(connection);
         await dbConnection.OpenAsync(cancellationToken);
 
         using var command = dbConnection.CreateCommand();
@@ -75,12 +73,26 @@ internal sealed class AdoNetSqlQueryExecutor : ISqlQueryExecutor
         return rows;
     }
 
-    internal static DbProviderFactory GetFactory(string databaseType)
+    public async Task TestConnectionAsync(ConnectionDefinition connection, CancellationToken cancellationToken = default)
+    {
+        using var dbConnection = CreateConnection(connection);
+        await dbConnection.OpenAsync(cancellationToken);
+    }
+
+    private static DbConnection CreateConnection(ConnectionDefinition connection)
+    {
+        var factory = GetFactory(connection.DatabaseType);
+        var dbConnection = factory.CreateConnection() ?? throw new InvalidOperationException($"Failed to create provider connection for '{connection.DatabaseType}'.");
+        dbConnection.ConnectionString = connection.ConnectionString;
+        return dbConnection;
+    }
+
+    private static DbProviderFactory GetFactory(string databaseType)
     {
         var normalizedType = NormalizeDatabaseType(databaseType);
         if (!ProviderCandidates.TryGetValue(normalizedType, out var providerNames))
         {
-            throw new NotSupportedException($"Banco não suportado para conexão real: {databaseType}");
+            throw new NotSupportedException($"Database type not supported for ADO.NET bridge: {databaseType}");
         }
 
         foreach (var providerName in providerNames)
@@ -108,8 +120,7 @@ internal sealed class AdoNetSqlQueryExecutor : ISqlQueryExecutor
         }
 
         throw new InvalidOperationException(
-            $"Nenhum provider ADO.NET registrado para '{databaseType}'. Tentativas: {string.Join(", ", providerNames)}. " +
-            "Instale o provider correspondente (pacote NuGet e/ou registro no machine.config)."
+            $"No ADO.NET provider registered for '{databaseType}'. Tried: {string.Join(", ", providerNames)}."
         );
     }
 

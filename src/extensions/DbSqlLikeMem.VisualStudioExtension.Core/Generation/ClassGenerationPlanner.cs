@@ -3,14 +3,14 @@ using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
 /// <summary>
-/// Represents this public API type.
-/// Representa este tipo público da API.
+/// EN: Computes which mappings are required before generation can run.
+/// PT: Calcula quais mapeamentos sao necessarios antes que a geracao possa executar.
 /// </summary>
 public sealed class ClassGenerationPlanner
 {
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Builds a generation plan and reports missing mappings for the request.
+    /// PT: Monta um plano de geracao e informa mapeamentos ausentes para a requisicao.
     /// </summary>
     public GenerationPlan BuildPlan(GenerationRequest request, ConnectionMappingConfiguration? configuration)
     {

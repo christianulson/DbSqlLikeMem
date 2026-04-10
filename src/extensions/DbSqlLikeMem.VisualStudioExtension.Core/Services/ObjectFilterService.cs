@@ -3,14 +3,14 @@ using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Services;
 
 /// <summary>
-/// Represents this public API type.
-/// Representa este tipo público da API.
+/// EN: Filters database objects by name using the selected comparison mode.
+/// PT: Filtra objetos de banco pelo nome usando o modo de comparacao selecionado.
 /// </summary>
 public sealed class ObjectFilterService
 {
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Returns the objects whose names match the provided filter value.
+    /// PT: Retorna os objetos cujos nomes correspondem ao valor de filtro informado.
     /// </summary>
     public IReadOnlyCollection<DatabaseObjectReference> Filter(
         IEnumerable<DatabaseObjectReference> objects,

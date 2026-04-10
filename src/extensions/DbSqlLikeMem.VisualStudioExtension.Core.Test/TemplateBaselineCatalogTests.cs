@@ -24,10 +24,11 @@ public sealed class TemplateBaselineCatalogTests
                 Assert.Equal("vCurrent", api.Version);
                 Assert.Equal("quarterly", api.ReviewCadence);
                 Assert.Equal("2026-06-30", api.NextPlannedReviewOn);
-                Assert.Equal("Light integration tests for tables, views, and repositories.", api.RecommendedTestFocus);
+                Assert.Equal("Light integration tests for tables, views, functions, and repositories.", api.RecommendedTestFocus);
                 Assert.Equal("src/Models", api.ModelOutputDirectory);
                 Assert.Equal("src/Repositories", api.RepositoryOutputDirectory);
                 Assert.Equal("tests/Integration/Tables", api.RecommendedMappings[DatabaseObjectType.Table].OutputDirectory);
+                Assert.Equal("{NamePascal}FunctionIntegrationTests.cs", api.RecommendedMappings[DatabaseObjectType.Function].FileNamePattern);
                 Assert.Equal("{NamePascal}SequenceIntegrationTests.cs", api.RecommendedMappings[DatabaseObjectType.Sequence].FileNamePattern);
             },
             worker =>
@@ -36,10 +37,11 @@ public sealed class TemplateBaselineCatalogTests
                 Assert.Equal("vCurrent", worker.Version);
                 Assert.Equal("quarterly", worker.ReviewCadence);
                 Assert.Equal("2026-06-30", worker.NextPlannedReviewOn);
-                Assert.Equal("Consistency-oriented tests for batch flows and DML validation.", worker.RecommendedTestFocus);
+                Assert.Equal("Consistency-oriented tests for batch flows, functions, and DML validation.", worker.RecommendedTestFocus);
                 Assert.Equal("src/Batch/Models", worker.ModelOutputDirectory);
                 Assert.Equal("src/Batch/Repositories", worker.RepositoryOutputDirectory);
                 Assert.Equal("tests/Consistency/Views", worker.RecommendedMappings[DatabaseObjectType.View].OutputDirectory);
+                Assert.Equal("{NamePascal}FunctionConsistencyTests.cs", worker.RecommendedMappings[DatabaseObjectType.Function].FileNamePattern);
                 Assert.Equal("{NamePascal}ProcedureConsistencyTests.cs", worker.RecommendedMappings[DatabaseObjectType.Procedure].FileNamePattern);
             });
     }

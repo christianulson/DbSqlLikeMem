@@ -6,10 +6,10 @@
   "nextPlannedReviewOn": "2026-06-30",
   "profiles": {
     "api": {
-      "focus": "Light integration tests for tables, views, and repositories."
+      "focus": "Light integration tests for tables, views, functions, and repositories."
     },
     "worker": {
-      "focus": "Consistency-oriented tests for batch flows and DML validation."
+      "focus": "Consistency-oriented tests for batch flows, functions, and DML validation."
     }
   },
   "evidenceFiles": [

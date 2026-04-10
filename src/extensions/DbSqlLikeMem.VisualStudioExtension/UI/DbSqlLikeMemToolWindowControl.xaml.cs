@@ -75,7 +75,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
             {
                 Owner = System.Windows.Window.GetWindow(this),
                 ConnectionName = existing?.DatabaseName ?? selected.Label,
-                DatabaseType = existing?.DatabaseType ?? "SqlServer",
+                DatabaseType = existing?.DatabaseType ?? DatabaseTypeCatalog.DefaultDatabaseType,
                 ConnectionString = existing?.ConnectionString ?? string.Empty
             };
 

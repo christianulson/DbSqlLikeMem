@@ -55,4 +55,45 @@ public sealed class StatePersistenceServiceTests
             }
         }
     }
+
+    /// <summary>
+    /// EN: Ensures legacy database type aliases are normalized when persisted state is loaded.
+    /// PT: Garante que aliases legados de tipo de banco sejam normalizados quando o estado persistido e carregado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "StatePersistenceService")]
+    public void Load_ShouldNormalizeLegacyDatabaseTypeAliases()
+    {
+        var tempPath = Path.Combine(Path.GetTempPath(), $"dbsql-state-alias-{Guid.NewGuid():N}.json");
+
+        try
+        {
+            File.WriteAllText(tempPath, """
+            {
+              "connections": [
+                {
+                  "id": "1",
+                  "databaseType": "azure-sql",
+                  "databaseName": "ERP",
+                  "connectionString": "Server=.;Database=ERP;"
+                }
+              ],
+              "mappings": []
+            }
+            """);
+
+            var service = new StatePersistenceService();
+            var loaded = service.Load(tempPath);
+
+            var connection = Assert.Single(loaded!.Connections);
+            Assert.Equal("AzureSql", connection.DatabaseType);
+        }
+        finally
+        {
+            if (File.Exists(tempPath))
+            {
+                File.Delete(tempPath);
+            }
+        }
+    }
 }

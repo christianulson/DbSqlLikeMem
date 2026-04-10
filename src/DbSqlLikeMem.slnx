@@ -163,6 +163,9 @@
     <Project Path="extensions/DbSqlLikeMem.VisualStudioExtension.XamlHarness/DbSqlLikeMem.VisualStudioExtension.XamlHarness.csproj" />
     <Project Path="extensions/DbSqlLikeMem.VisualStudioExtension/DbSqlLikeMem.VisualStudioExtension.csproj" />
   </Folder>
+  <Folder Name="/extensions/VsCodeMetadataBridge/">
+    <Project Path="extensions/DbSqlLikeMem.VsCodeMetadataBridge/DbSqlLikeMem.VsCodeMetadataBridge.csproj" />
+  </Folder>
   <Folder Name="/benchmark/">
 	<Project Path="benchmark/DbSqlLikeMem.Benchmarks.Test/DbSqlLikeMem.Benchmarks.Test.csproj" />
 	<Project Path="benchmark/DbSqlLikeMem.Benchmarks/DbSqlLikeMem.Benchmarks.csproj" />

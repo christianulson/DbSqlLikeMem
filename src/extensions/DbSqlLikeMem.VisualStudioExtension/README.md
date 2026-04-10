@@ -11,7 +11,7 @@ Projeto VSIX para hospedar a interface do DbSqlLikeMem no Visual Studio.
 
 2. **Carregamento real de objetos**
    - Botão **Atualizar objetos** para listar metadados estruturais via `SqlDatabaseMetadataProvider`.
-   - Objetos `Sequence` entram na árvore para bancos com metadata suportada (SqlServer/SqlAzure, PostgreSql, Oracle e Db2).
+   - Objetos `Function` e `Sequence` entram na árvore para bancos com metadata suportada (MySql, MariaDb, Firebird, SqlServer/SqlAzure, PostgreSql, Oracle, Sqlite e Db2).
 
 3. **Menus de contexto na árvore**
    - **Gerar classes de teste**
@@ -48,7 +48,7 @@ Projeto VSIX para hospedar a interface do DbSqlLikeMem no Visual Studio.
 
 8. **Mapeamentos de geração realmente por conexão e tipo**
    - O menu **Configurar mapeamentos** da VSIX agora respeita o nó selecionado (`conexão + tipo de objeto`) em vez de reaplicar o mesmo padrão para toda a malha já configurada.
-   - Ajustes em `Table`, `View`, `Procedure` ou `Sequence` preservam os demais mapeamentos existentes da mesma conexão.
+   - Ajustes em `Table`, `View`, `Procedure`, `Function` ou `Sequence` preservam os demais mapeamentos existentes da mesma conexão.
    - O mesmo diálogo agora também oferece perfis `API` e `Worker/Batch` para aplicar defaults versionados de pasta/padrão por tipo de objeto, alinhando a VSIX ao catálogo `templates/dbsqllikemem/vCurrent`.
    - A recomendação exibida no diálogo agora inclui também pasta/padrão sugeridos para o tipo atual, junto do contexto de foco e revisão do perfil.
 

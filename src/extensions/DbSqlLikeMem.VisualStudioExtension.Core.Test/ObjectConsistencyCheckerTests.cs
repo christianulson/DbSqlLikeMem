@@ -1,14 +1,14 @@
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
-/// Represents this public API type.
-/// Representa este tipo público da API.
+/// EN: Verifies local and remote object consistency checks.
+/// PT: Verifica as checagens de consistencia entre o objeto local e o remoto.
 /// </summary>
 public class ObjectConsistencyCheckerTests
 {
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies missing database objects are reported as missing in the database.
+    /// PT: Verifica se objetos ausentes no banco sao reportados como ausentes no banco.
     /// </summary>
     [Fact]
     [Trait("Category", "ObjectConsistencyChecker")]
@@ -27,8 +27,8 @@ public class ObjectConsistencyCheckerTests
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies property mismatches are reported as different from the database.
+    /// PT: Verifica se divergencias de propriedades sao reportadas como diferentes do banco.
     /// </summary>
     [Fact]
     [Trait("Category", "ObjectConsistencyChecker")]
@@ -224,16 +224,16 @@ public class ObjectConsistencyCheckerTests
     private sealed class FakeMetadataProvider(DatabaseObjectReference? dbObject) : IDatabaseMetadataProvider
     {
         /// <summary>
-        /// Executes this API operation.
-        /// Executa esta operação da API.
+        /// EN: Returns the configured in-memory object for consistency checks.
+        /// PT: Retorna o objeto em memoria configurado para as checagens de consistencia.
         /// </summary>
         public Task<DatabaseObjectReference?> GetObjectAsync(ConnectionDefinition connection, DatabaseObjectReference reference,
             CancellationToken cancellationToken = default)
             => Task.FromResult(dbObject);
 
         /// <summary>
-        /// Executes this API operation.
-        /// Executa esta operação da API.
+        /// EN: Returns the configured in-memory object list for consistency checks.
+        /// PT: Retorna a lista de objetos em memoria configurada para as checagens de consistencia.
         /// </summary>
         public Task<IReadOnlyCollection<DatabaseObjectReference>> ListObjectsAsync(ConnectionDefinition connection,
             CancellationToken cancellationToken = default)

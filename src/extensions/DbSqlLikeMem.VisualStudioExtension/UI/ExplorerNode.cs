@@ -126,6 +126,7 @@ public sealed class ExplorerNode(string label, ExplorerNodeKind kind)
             DatabaseObjectType.Table => "🗂",
             DatabaseObjectType.View => "👁",
             DatabaseObjectType.Procedure => "⚙",
+            DatabaseObjectType.Function => "λ",
             _ => "📁"
         },
         ExplorerNodeKind.Object => ObjectType switch
@@ -133,6 +134,7 @@ public sealed class ExplorerNode(string label, ExplorerNodeKind kind)
             DatabaseObjectType.Table => "▦",
             DatabaseObjectType.View => "◫",
             DatabaseObjectType.Procedure => "ƒ",
+            DatabaseObjectType.Function => "λ",
             _ => "•"
         },
         ExplorerNodeKind.TableDetailGroup => TableDetailKind switch

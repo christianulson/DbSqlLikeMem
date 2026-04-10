@@ -575,6 +575,60 @@ public sealed record DbFunctionDef(
         };
 
     /// <summary>
+    /// EN: Creates a user-defined scalar function by parsing the SQL body in the provided database context.
+    /// PT: Cria uma funcao escalar definida pelo usuario fazendo o parsing do corpo SQL no contexto de banco informado.
+    /// </summary>
+    /// <param name="name">EN: Function name. PT: Nome da funcao.</param>
+    /// <param name="returnTypeSql">EN: SQL text for the return type. PT: Texto SQL do tipo de retorno.</param>
+    /// <param name="parameters">EN: Declared function parameters. PT: Parametros declarados da funcao.</param>
+    /// <param name="bodySql">EN: Scalar SQL expression used as the function body. PT: Expressao SQL escalar usada como corpo da funcao.</param>
+    /// <param name="db">EN: Database context used to parse the body. PT: Contexto de banco usado para fazer o parsing do corpo.</param>
+    /// <param name="customFunctionSupported">EN: Optional resolver for schema-defined functions referenced by the body. PT: Resolvedor opcional para funcoes definidas no schema referenciadas pelo corpo.</param>
+    /// <returns>EN: Created function definition. PT: Definicao de funcao criada.</returns>
+    public static DbFunctionDef CreateUserDefined(
+        string name,
+        string? returnTypeSql,
+        IReadOnlyList<DbFunctionParameterDef>? parameters,
+        string bodySql,
+        DbMock db,
+        Func<string, bool>? customFunctionSupported = null)
+        => CreateUserDefined(name, returnTypeSql, parameters, bodySql, db, db.Dialect, customFunctionSupported);
+
+    /// <summary>
+    /// EN: Creates a user-defined scalar function by parsing the SQL body with an explicit dialect.
+    /// PT: Cria uma funcao escalar definida pelo usuario fazendo o parsing do corpo SQL com um dialeto explicito.
+    /// </summary>
+    /// <param name="name">EN: Function name. PT: Nome da funcao.</param>
+    /// <param name="returnTypeSql">EN: SQL text for the return type. PT: Texto SQL do tipo de retorno.</param>
+    /// <param name="parameters">EN: Declared function parameters. PT: Parametros declarados da funcao.</param>
+    /// <param name="bodySql">EN: Scalar SQL expression used as the function body. PT: Expressao SQL escalar usada como corpo da funcao.</param>
+    /// <param name="db">EN: Database context used to parse the body. PT: Contexto de banco usado para fazer o parsing do corpo.</param>
+    /// <param name="dialect">EN: Optional dialect override used while parsing. PT: Dialeto opcional de substituicao usado durante o parsing.</param>
+    /// <param name="customFunctionSupported">EN: Optional resolver for schema-defined functions referenced by the body. PT: Resolvedor opcional para funcoes definidas no schema referenciadas pelo corpo.</param>
+    /// <returns>EN: Created function definition. PT: Definicao de funcao criada.</returns>
+    internal static DbFunctionDef CreateUserDefined(
+        string name,
+        string? returnTypeSql,
+        IReadOnlyList<DbFunctionParameterDef>? parameters,
+        string bodySql,
+        DbMock db,
+        ISqlDialect? dialect = null,
+        Func<string, bool>? customFunctionSupported = null)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(bodySql, nameof(bodySql));
+        ArgumentNullExceptionCompatible.ThrowIfNull(db, nameof(db));
+
+        var parsedBody = SqlExpressionParser.ParseScalar(
+            bodySql,
+            db,
+            dialect ?? db.Dialect,
+            null,
+            customFunctionSupported);
+
+        return CreateUserDefined(name, returnTypeSql, parameters, parsedBody);
+    }
+
+    /// <summary>
     /// EN: Creates a table function definition with the provided signatures.
     /// PT: Cria uma definicao de funcao de tabela com as assinaturas fornecidas.
     /// </summary>

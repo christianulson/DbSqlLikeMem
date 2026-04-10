@@ -22,6 +22,11 @@ public enum DatabaseObjectType
     /// </summary>
     Procedure,
     /// <summary>
+    /// User-defined function object.
+    /// Objeto de funcao definida pelo usuario.
+    /// </summary>
+    Function,
+    /// <summary>
     /// Sequence object.
     /// Objeto de sequence.
     /// </summary>

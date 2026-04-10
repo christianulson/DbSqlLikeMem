@@ -1,14 +1,14 @@
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
-/// Represents this public API type.
-/// Representa este tipo público da API.
+/// EN: Verifies structured class generation for tables, sequences, and routines.
+/// PT: Verifica a geracao estruturada de classes para tabelas, sequences e rotinas.
 /// </summary>
 public sealed class StructuredClassContentFactoryTests
 {
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies table generation keeps columns, primary keys, indexes, and foreign keys aligned with the console generator.
+    /// PT: Verifica se a geracao de tabela mantem colunas, chaves primarias, indices e chaves estrangeiras alinhados com o gerador de console.
     /// </summary>
     [Fact]
     [Trait("Category", "StructuredClassContentFactory")]
@@ -35,8 +35,8 @@ public sealed class StructuredClassContentFactoryTests
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies composite primary keys are emitted as a single primary index that contains every key field.
+    /// PT: Verifica se chaves primarias compostas sao emitidas como um unico indice primario contendo todos os campos da chave.
     /// </summary>
     [Fact]
     [Trait("Category", "StructuredClassContentFactory")]
@@ -60,10 +60,9 @@ public sealed class StructuredClassContentFactoryTests
         Assert.Contains("table.CreateIndex(\"PRIMARY\", [\"OrderId\", \"ItemId\"], unique: true);", content);
     }
 
-
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies the SQL Server strategy keeps tinyint mapped as a byte and bit mapped as a boolean.
+    /// PT: Verifica se a estrategia de SQL Server mantem tinyint mapeado como byte e bit mapeado como boolean.
     /// </summary>
     [Fact]
     [Trait("Category", "StructuredClassContentFactory")]
@@ -86,9 +85,10 @@ public sealed class StructuredClassContentFactoryTests
         Assert.Contains("table.AddColumn(\"IsEnabled\", DbType.Byte, false", content);
         Assert.Contains("table.AddColumn(\"BitMask\", DbType.Boolean, false", content);
     }
+
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies the default type rules match the console generator for tinyint and bit columns.
+    /// PT: Verifica se as regras de tipo padrao coincidem com o gerador de console para colunas tinyint e bit.
     /// </summary>
     [Fact]
     [Trait("Category", "StructuredClassContentFactory")]
@@ -114,8 +114,8 @@ public sealed class StructuredClassContentFactoryTests
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies sequence generation emits the sequence factory and schema registration call.
+    /// PT: Verifica se a geracao de sequence emite a factory da sequence e a chamada de registro do schema.
     /// </summary>
     [Fact]
     [Trait("Category", "StructuredClassContentFactory")]
@@ -137,5 +137,58 @@ public sealed class StructuredClassContentFactoryTests
         Assert.Contains("public static SequenceDef CreateSequenceSeqOrders", content);
         Assert.Contains("db.AddSequence(\"seq_orders\", startValue: 100L, incrementBy: 5L, currentValue: 115L, schemaName: \"dbo\")", content);
         Assert.Contains("// DBSqlLikeMem:CurrentValue=115", content);
+    }
+
+    /// <summary>
+    /// EN: Verifies procedure generation emits routine metadata and adds the procedure to the database snapshot.
+    /// PT: Verifica se a geracao de procedure emite os metadados da rotina e adiciona a procedure ao snapshot do banco.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "StructuredClassContentFactory")]
+    public void Build_ForProcedure_GeneratesProcedureFactoryUsingRoutineMetadata()
+    {
+        var dbObject = new DatabaseObjectReference(
+            "dbo",
+            "sp_update_customer",
+            DatabaseObjectType.Procedure,
+            new Dictionary<string, string>
+            {
+                ["RequiredIn"] = "CustomerId|Int32|1|",
+                ["OptionalIn"] = "Region|String|0|EU",
+                ["OutParams"] = "RowsAffected|Int32|1|",
+                ["ReturnParam"] = "ReturnCode|Int32|0|"
+            });
+
+        var content = StructuredClassContentFactory.Build(dbObject, "Sample.Namespace");
+
+        Assert.Contains("public static ProcedureDef CreateProcedureSpUpdateCustomer", content);
+        Assert.Contains("new ProcedureDef(\"sp_update_customer\", [new ProcParam(\"CustomerId\", DbType.Int32, true)], [new ProcParam(\"Region\", DbType.String, false, \"EU\")], [new ProcParam(\"RowsAffected\", DbType.Int32, true)], new ProcParam(\"ReturnCode\", DbType.Int32, false))", content);
+        Assert.Contains("db.AddProcedure(procedure, schemaName: \"dbo\")", content);
+    }
+
+    /// <summary>
+    /// EN: Verifies function generation emits routine metadata and adds the function to the database snapshot.
+    /// PT: Verifica se a geracao de function emite os metadados da rotina e adiciona a function ao snapshot do banco.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "StructuredClassContentFactory")]
+    public void Build_ForFunction_GeneratesFunctionFactoryUsingRoutineMetadata()
+    {
+        var dbObject = new DatabaseObjectReference(
+            "dbo",
+            "fn_total",
+            DatabaseObjectType.Function,
+            new Dictionary<string, string>
+            {
+                ["Parameters"] = "CustomerId|int|1|0|0|0|",
+                ["ReturnTypeSql"] = "int",
+                ["BodySql"] = "CustomerId"
+            });
+
+        var content = StructuredClassContentFactory.Build(dbObject, "Sample.Namespace");
+
+        Assert.Contains("public static DbFunctionDef CreateFunctionFnTotal", content);
+        Assert.Contains("DbFunctionDef.CreateUserDefined(\"fn_total\", \"int\", [new DbFunctionParameterDef(\"CustomerId\", \"int\", true, false, false, false)], \"CustomerId\", db)", content);
+        Assert.Contains("db.AddFunction(function, schemaName: \"dbo\")", content);
     }
 }

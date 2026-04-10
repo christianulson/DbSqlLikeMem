@@ -1,14 +1,14 @@
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
-/// Regression tests focused on quality/performance sensitive flows.
-/// Testes de regressão focados em fluxos sensíveis de qualidade/performance.
+/// EN: Regression tests focused on quality and performance-sensitive flows.
+/// PT: Testes de regressao focados em fluxos sensiveis de qualidade e performance.
 /// </summary>
 public sealed class QualityRegressionTests
 {
     /// <summary>
-    /// Ensures generation honors cancellation and does not continue writing files.
-    /// Garante que a geração respeita cancelamento e não continua gravando arquivos.
+    /// EN: Ensures generation honors cancellation and does not continue writing files.
+    /// PT: Garante que a geracao respeita cancelamento e nao continua gravando arquivos.
     /// </summary>
     [Fact]
     [Trait("Category", "QualityRegression")]
@@ -75,8 +75,8 @@ public sealed class QualityRegressionTests
     }
 
     /// <summary>
-    /// Ensures snapshot reader falls back to provided reference when metadata is not present.
-    /// Garante fallback para referência padrão quando metadados não estão presentes no arquivo.
+    /// EN: Ensures snapshot reader falls back to the provided reference when metadata is not present.
+    /// PT: Garante fallback para a referencia fornecida quando os metadados nao estao presentes no arquivo.
     /// </summary>
     [Fact]
     [Trait("Category", "QualityRegression")]
@@ -111,8 +111,8 @@ public sealed class QualityRegressionTests
     }
 
     /// <summary>
-    /// Ensures consistency checker returns synchronized status when local and database properties match.
-    /// Garante status sincronizado quando propriedades locais e do banco são equivalentes.
+    /// EN: Ensures consistency checker returns synchronized status when local and database properties match.
+    /// PT: Garante que o verificador de consistencia retorne status sincronizado quando as propriedades locais e do banco coincidem.
     /// </summary>
     [Fact]
     [Trait("Category", "QualityRegression")]
@@ -146,8 +146,8 @@ public sealed class QualityRegressionTests
     private sealed class QualityMetadataProvider(DatabaseObjectReference dbObject) : IDatabaseMetadataProvider
     {
         /// <summary>
-        /// Executes this API operation.
-        /// Executa esta operação da API.
+        /// EN: Returns the single in-memory object used by the regression test provider.
+        /// PT: Retorna o unico objeto em memoria usado pelo provider do teste de regressao.
         /// </summary>
         public Task<IReadOnlyCollection<DatabaseObjectReference>> ListObjectsAsync(
             ConnectionDefinition connection,
@@ -155,8 +155,8 @@ public sealed class QualityRegressionTests
             => Task.FromResult<IReadOnlyCollection<DatabaseObjectReference>>([dbObject]);
 
         /// <summary>
-        /// Executes this API operation.
-        /// Executa esta operação da API.
+        /// EN: Returns the same in-memory object for every metadata lookup.
+        /// PT: Retorna o mesmo objeto em memoria para toda consulta de metadados.
         /// </summary>
         public Task<DatabaseObjectReference?> GetObjectAsync(
             ConnectionDefinition connection,

@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.Sqlite.Test.Parser;
 
 /// <summary>
-/// Represents this public API type.
-/// Representa este tipo público da API.
+/// EN: Verifies SQLite parser behavior across the supported feature subset.
+/// PT: Verifica o comportamento do parser SQLite no subconjunto de recursos suportado.
 /// </summary>
 public sealed class SqliteDialectFeatureParserTests(
     ITestOutputHelper helper
@@ -164,8 +164,8 @@ public sealed class SqliteDialectFeatureParserTests(
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies SQLite ON CONFLICT DO UPDATE parses correctly.
+    /// PT: Verifica se SQLite ON CONFLICT DO UPDATE e analisado corretamente.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -316,8 +316,8 @@ public sealed class SqliteDialectFeatureParserTests(
         Assert.IsType<SqlSelectQuery>(parsed);
     }
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies MySQL index hints are rejected by the SQLite parser.
+    /// PT: Verifica se dicas de indice do MySQL sao rejeitadas pelo parser SQLite.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -350,8 +350,8 @@ public sealed class SqliteDialectFeatureParserTests(
 
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies unsupported SQL uses the standard not supported message.
+    /// PT: Verifica se SQL nao suportado usa a mensagem padrao de nao suportado.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -367,8 +367,8 @@ public sealed class SqliteDialectFeatureParserTests(
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies UNION queries with ORDER BY parse as a union query.
+    /// PT: Verifica se consultas UNION com ORDER BY sao analisadas como uma union query.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]

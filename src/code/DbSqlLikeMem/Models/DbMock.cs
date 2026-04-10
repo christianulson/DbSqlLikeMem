@@ -555,18 +555,40 @@ public abstract class DbMock
     /// EN: Registers a stored procedure in the specified schema.
     /// PT: Registra um procedimento armazenado no schema informado.
     /// </summary>
+    /// <param name="procedure">EN: Procedure definition. PT: Definição do procedimento.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    public void AddProcedure(
+        ProcedureDef procedure,
+        string? schemaName = null)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(procedure.Name, nameof(procedure.Name));
+        var sc = GetSchemaName(schemaName);
+        if (!this.TryGetValue(sc, out var s) || s == null)
+            CreateSchema(sc);
+        this[sc].CreateProcedure(procedure.Name, procedure, orReplace: true);
+    }
+
+    /// <summary>
+    /// EN: Registers a stored procedure using the legacy method name kept for compatibility.
+    /// PT: Registra um procedimento armazenado usando o nome de metodo legado mantido por compatibilidade.
+    /// </summary>
     /// <param name="pr">EN: Procedure definition. PT: Definição do procedimento.</param>
     /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
     public void AddProdecure(
         ProcedureDef pr,
         string? schemaName = null)
-    {
-        ArgumentNullExceptionCompatible.ThrowIfNull(pr.Name, nameof(pr.Name));
-        var sc = GetSchemaName(schemaName);
-        if (!this.TryGetValue(sc, out var s) || s == null)
-            CreateSchema(sc);
-        this[sc].CreateProcedure(pr.Name, pr, orReplace: true);
-    }
+        => AddProcedure(pr, schemaName);
+
+    /// <summary>
+    /// EN: Registers a user-defined function in the specified schema.
+    /// PT: Registra uma funcao definida pelo usuario no schema informado.
+    /// </summary>
+    /// <param name="function">EN: Function definition. PT: Definicao da funcao.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    public void AddFunction(
+        DbFunctionDef function,
+        string? schemaName = null)
+        => CreateFunction(function, orReplace: true, schemaName);
 
     /// <summary>
     /// EN: Tries to get a stored procedure by name.

@@ -2,14 +2,14 @@ using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
 /// <summary>
-/// Represents this public API type.
-/// Representa este tipo público da API.
+/// EN: Writes generated class files for the selected database objects.
+/// PT: Grava arquivos de classe gerados para os objetos de banco selecionados.
 /// </summary>
 public sealed class ClassGenerator
 {
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Generates the files for the current request and returns the written paths.
+    /// PT: Gera os arquivos para a requisicao atual e retorna os caminhos gravados.
     /// </summary>
     public async Task<IReadOnlyCollection<string>> GenerateAsync(
         GenerationRequest request,

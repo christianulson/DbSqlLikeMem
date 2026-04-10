@@ -1,14 +1,14 @@
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
-/// Represents this public API type.
-/// Representa este tipo público da API.
+/// EN: Verifies database generation rules used by the extension core.
+/// PT: Verifica as regras de geracao de banco usadas pelo core da extensao.
 /// </summary>
 public sealed class GenerationRuleSetTests
 {
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies PascalCase conversion for common identifier formats.
+    /// PT: Verifica a conversao para PascalCase em formatos comuns de identificador.
     /// </summary>
     [Theory]
     [Trait("Category", "GenerationRuleSet")]
@@ -26,8 +26,8 @@ public sealed class GenerationRuleSetTests
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies CLR type mapping for database column types and provider rules.
+    /// PT: Verifica o mapeamento de tipos CLR para tipos de coluna e regras do provedor.
     /// </summary>
     [Theory]
     [Trait("Category", "GenerationRuleSet")]
@@ -38,6 +38,11 @@ public sealed class GenerationRuleSetTests
     [InlineData("bit", null, 8, "Mask", "MySql", "UInt64")]
     [InlineData("tinyint", null, 1, "IsEnabled", "SqlServer", "Byte")]
     [InlineData("uniqueidentifier", null, null, "Id", "SqlServer", "Guid")]
+    [InlineData("7", null, null, "Count", "Firebird", "Int16")]
+    [InlineData("8", null, null, "Count", "Firebird", "Int32")]
+    [InlineData("8", null, 5, "Amount", "Firebird", "Decimal")]
+    [InlineData("23", null, null, "IsEnabled", "Firebird", "Boolean")]
+    [InlineData("37", 50L, null, "Name", "Firebird", "String")]
     public void MapDbType_ResolvesStrategiesAndRules(
         string dataType,
         long? charMaxLen,
@@ -51,8 +56,8 @@ public sealed class GenerationRuleSetTests
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies GUID heuristics for binary and character columns.
+    /// PT: Verifica heuristicas de GUID para colunas binaria e de caractere.
     /// </summary>
     [Theory]
     [Trait("Category", "GenerationRuleSet")]
@@ -68,8 +73,8 @@ public sealed class GenerationRuleSetTests
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies literal default detection used by the generator.
+    /// PT: Verifica a deteccao de literais padrao usada pela geracao.
     /// </summary>
     [Theory]
     [Trait("Category", "GenerationRuleSet")]
@@ -84,8 +89,8 @@ public sealed class GenerationRuleSetTests
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies default literal formatting for boolean, string, and numeric values.
+    /// PT: Verifica a formatacao de literais padrao para valores booleanos, string e numericos.
     /// </summary>
     [Theory]
     [Trait("Category", "GenerationRuleSet")]
@@ -100,8 +105,8 @@ public sealed class GenerationRuleSetTests
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies enum and set parsing returns the expected discrete values.
+    /// PT: Verifica se o parser de enum e set retorna os valores discretos esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "GenerationRuleSet")]
@@ -115,8 +120,8 @@ public sealed class GenerationRuleSetTests
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies enum parsing returns no values for non-enum inputs.
+    /// PT: Verifica se o parser de enum nao retorna valores para entradas nao enum.
     /// </summary>
     [Fact]
     [Trait("Category", "GenerationRuleSet")]
@@ -127,8 +132,8 @@ public sealed class GenerationRuleSetTests
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies the generated lambda for SQL IS NULL expressions.
+    /// PT: Verifica a lambda gerada para expressoes SQL IS NULL.
     /// </summary>
     [Fact]
     [Trait("Category", "GenerationRuleSet")]
@@ -142,8 +147,8 @@ public sealed class GenerationRuleSetTests
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies the fallback behavior when the SQL pattern does not match.
+    /// PT: Verifica o comportamento de fallback quando o padrao SQL nao corresponde.
     /// </summary>
     [Fact]
     [Trait("Category", "GenerationRuleSet")]
@@ -156,8 +161,8 @@ public sealed class GenerationRuleSetTests
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Verifies string escaping for generated C# literals.
+    /// PT: Verifica o escaping de string para literais C# gerados.
     /// </summary>
     [Fact]
     [Trait("Category", "GenerationRuleSet")]

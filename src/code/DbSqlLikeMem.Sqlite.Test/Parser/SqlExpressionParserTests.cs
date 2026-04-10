@@ -15,10 +15,6 @@ public sealed class SqlExpressionParserTests(
     /// EN: Verifies the parser accepts supported real-world WHERE expressions.
     /// PT: Verifica se o parser aceita expressoes WHERE reais suportadas.
     /// </summary>
-    /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
-    /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataBySqliteVersion(nameof(WhereExpressions_Supported))]
@@ -97,10 +93,6 @@ public sealed class SqlExpressionParserTests(
     /// EN: Verifies unsupported WHERE expressions raise an error.
     /// PT: Verifica se expressoes WHERE nao suportadas geram erro.
     /// </summary>
-    /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
-    /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataBySqliteVersion(nameof(WhereExpressions_Unsupported))]
@@ -139,10 +131,6 @@ public sealed class SqlExpressionParserTests(
     /// EN: Verifies OR binds looser than AND.
     /// PT: Verifica se OR tem precedencia menor que AND.
     /// </summary>
-    /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
-    /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
@@ -174,10 +162,6 @@ public sealed class SqlExpressionParserTests(
     /// EN: Verifies parentheses override operator precedence.
     /// PT: Verifica se parenteses sobrescrevem a precedencia dos operadores.
     /// </summary>
-    /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
-    /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
@@ -202,10 +186,6 @@ public sealed class SqlExpressionParserTests(
     /// EN: Verifies NOT expressions are parsed correctly.
     /// PT: Verifica se expressoes NOT sao parseadas corretamente.
     /// </summary>
-    /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
-    /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
@@ -226,10 +206,6 @@ public sealed class SqlExpressionParserTests(
     /// EN: Verifies IS NOT NULL is parsed as a negated IS NULL expression.
     /// PT: Verifica se IS NOT NULL e parseado como uma expressao IS NULL negada.
     /// </summary>
-    /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
-    /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
@@ -245,10 +221,6 @@ public sealed class SqlExpressionParserTests(
     /// <summary>
     /// EN: Verifies IN lists are parsed correctly.
     /// PT: Verifica se listas IN sao parseadas corretamente.
-    /// </summary>
-    /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -266,10 +238,6 @@ public sealed class SqlExpressionParserTests(
     /// EN: Verifies LIKE expressions are parsed correctly.
     /// PT: Verifica se expressoes LIKE sao parseadas corretamente.
     /// </summary>
-    /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
-    /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
@@ -285,10 +253,6 @@ public sealed class SqlExpressionParserTests(
     /// <summary>
     /// EN: Verifies aliased column identifiers are parsed correctly.
     /// PT: Verifica se identificadores de coluna com alias sao parseados corretamente.
-    /// </summary>
-    /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -315,10 +279,6 @@ public sealed class SqlExpressionParserTests(
     /// EN: Verifies parameter tokens are parsed correctly.
     /// PT: Verifica se tokens de parametro sao parseados corretamente.
     /// </summary>
-    /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
-    /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
@@ -334,10 +294,6 @@ public sealed class SqlExpressionParserTests(
     /// <summary>
     /// EN: Verifies backticked identifiers are parsed correctly.
     /// PT: Verifica se identificadores entre backticks sao parseados corretamente.
-    /// </summary>
-    /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -355,10 +311,6 @@ public sealed class SqlExpressionParserTests(
     /// <summary>
     /// EN: Verifies double-quoted string literals are parsed correctly.
     /// PT: Verifica se literais de string entre aspas duplas sao parseados corretamente.
-    /// </summary>
-    /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -391,10 +343,6 @@ public sealed class SqlExpressionParserTests(
     /// <summary>
     /// EN: Verifies the printer is stable for a simple expression.
     /// PT: Verifica se o printer e estavel para uma expressao simples.
-    /// </summary>
-    /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]

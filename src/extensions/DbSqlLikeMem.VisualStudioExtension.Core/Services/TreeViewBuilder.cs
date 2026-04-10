@@ -3,14 +3,14 @@ using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Services;
 
 /// <summary>
-/// Represents this public API type.
-/// Representa este tipo público da API.
+/// EN: Builds the hierarchical tree used to display connections and database objects.
+/// PT: Monta a árvore hierarquica usada para exibir conexoes e objetos de banco.
 /// </summary>
 public sealed class TreeViewBuilder
 {
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Builds a tree rooted at the connection and grouped by object type.
+    /// PT: Monta uma árvore enraizada na conexao e agrupada por tipo de objeto.
     /// </summary>
     public TreeNode Build(ConnectionDefinition connection, IReadOnlyCollection<DatabaseObjectReference> objects)
     {
@@ -42,6 +42,7 @@ public sealed class TreeViewBuilder
         DatabaseObjectType.Table => "Tables",
         DatabaseObjectType.View => "Views",
         DatabaseObjectType.Procedure => "Procedures",
+        DatabaseObjectType.Function => "Functions",
         DatabaseObjectType.Sequence => "Sequences",
         _ => type.ToString()
     };

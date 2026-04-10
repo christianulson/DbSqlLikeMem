@@ -4,8 +4,8 @@ using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Validation;
 
 /// <summary>
-/// Represents this public API type.
-/// Representa este tipo público da API.
+/// EN: Evaluates whether generated artifacts stay aligned with their database object snapshot.
+/// PT: Avalia se os artefatos gerados continuam alinhados com o snapshot do objeto de banco.
 /// </summary>
 public sealed class ObjectConsistencyChecker
 {
@@ -140,8 +140,8 @@ public sealed class ObjectConsistencyChecker
     }
 
     /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
+    /// EN: Compares the persisted snapshot against the current database object metadata.
+    /// PT: Compara o snapshot persistido com os metadados atuais do objeto de banco.
     /// </summary>
     public async Task<ObjectHealthResult> CheckAsync(
         ConnectionDefinition connection,

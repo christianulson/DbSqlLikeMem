@@ -9,6 +9,7 @@ import {
   buildTestClassName,
   evaluateGenerationConsistency,
   generateTestClassTemplate,
+  SUPPORTED_DATABASE_OBJECT_TYPES,
   isGeneratedArtifactMetadataAligned,
   isGeneratedArtifactStructureAligned,
   renderTemplateContent
@@ -23,7 +24,7 @@ import {
 } from './template-baselines';
 import { findUnsupportedTemplateTokens } from './template-token-catalog';
 
-type DatabaseObjectType = 'Table' | 'View' | 'Procedure' | 'Sequence';
+type DatabaseObjectType = 'Table' | 'View' | 'Procedure' | 'Function' | 'Sequence';
 type FilterMode = 'Equals' | 'Like';
 
 interface ConnectionDefinition {
@@ -53,6 +54,13 @@ interface DatabaseObjectReference {
   columns?: DatabaseColumnReference[];
   foreignKeys?: ForeignKeyReference[];
   sequenceMetadata?: SequenceMetadataReference;
+  requiredIn?: string;
+  optionalIn?: string;
+  outParams?: string;
+  returnParam?: string;
+  parameters?: string;
+  returnTypeSql?: string;
+  bodySql?: string;
 }
 
 interface DatabaseColumnReference {
@@ -103,7 +111,33 @@ interface ConnectionInput {
   connectionString: string;
 }
 
+const SUPPORTED_DATABASE_TYPES = [
+  'SqlServer',
+  'SqlAzure',
+  'AzureSql',
+  'PostgreSql',
+  'Oracle',
+  'MySql',
+  'MariaDb',
+  'Sqlite',
+  'Db2',
+  'Firebird'
+] as const;
 
+const DEFAULT_DATABASE_TYPE = SUPPORTED_DATABASE_TYPES[0];
+const SQL_SERVER_FAMILY_DATABASE_TYPES = new Set<string>(['sqlserver', 'sqlazure', 'azuresql']);
+const DATABASE_TYPE_ALIAS_MAP = new Map<string, string>([
+  ['sqlserver', 'SqlServer'],
+  ['sqlazure', 'SqlAzure'],
+  ['azuresql', 'AzureSql'],
+  ['postgresql', 'PostgreSql'],
+  ['oracle', 'Oracle'],
+  ['mysql', 'MySql'],
+  ['mariadb', 'MariaDb'],
+  ['sqlite', 'Sqlite'],
+  ['db2', 'Db2'],
+  ['firebird', 'Firebird']
+]);
 interface GenerationPlan {
   objectRef: DatabaseObjectReference;
   targetFile: string;
@@ -140,12 +174,16 @@ const DEFAULT_STATE: ExtensionState = {
 };
 
 function createDefaultMappings(folder: string, fileSuffix: string, namespace?: string): ObjectTypeMapping[] {
-  return ['Table', 'View', 'Procedure', 'Sequence'].map((objectType) => ({
-    objectType: objectType as DatabaseObjectType,
+  return SUPPORTED_DATABASE_OBJECT_TYPES.map((objectType) => ({
+    objectType,
     targetFolder: folder,
     fileSuffix,
     namespace: namespace || undefined
   }));
+}
+
+function isSupportedDatabaseObjectType(value: string): value is DatabaseObjectType {
+  return SUPPORTED_DATABASE_OBJECT_TYPES.includes(value as DatabaseObjectType);
 }
 
 class DbNodeItem extends vscode.TreeItem {
@@ -208,11 +246,129 @@ interface DatabaseMetadataProvider {
   testConnection(connection: ConnectionDefinition): Promise<{ success: boolean; message?: string }>;
 }
 
+interface BridgeResponseEnvelope {
+  success: boolean;
+  message?: string;
+  objects?: DatabaseObjectReference[];
+}
+
+class BridgeMetadataProvider implements DatabaseMetadataProvider {
+  private readonly legacyProvider = new SqlMetadataProvider();
+  private readonly warnedConnectionIds = new Set<string>();
+
+  constructor(private readonly bridgeDllPath: string) {
+  }
+
+  public async getObjects(connection: ConnectionDefinition): Promise<DatabaseObjectReference[]> {
+    const bridgeResult = await this.runBridgeCommand(connection, 'list-objects');
+    if (bridgeResult?.success && Array.isArray(bridgeResult.objects)) {
+      return bridgeResult.objects;
+    }
+
+    if (isSqlServerFamilyDatabaseType(connection.databaseType)) {
+      return this.legacyProvider.getObjects(connection);
+    }
+
+    if (bridgeResult?.message) {
+      this.warnConnectionFailure(connection, bridgeResult.message);
+    } else {
+      this.warnConnectionFailure(connection, vscode.l10n.t('Metadata bridge helper not found at {0}.', this.bridgeDllPath));
+    }
+
+    return [];
+  }
+
+  public async testConnection(connection: ConnectionDefinition): Promise<{ success: boolean; message?: string }> {
+    const bridgeResult = await this.runBridgeCommand(connection, 'test-connection');
+    if (bridgeResult?.success) {
+      return { success: true };
+    }
+
+    if (isSqlServerFamilyDatabaseType(connection.databaseType)) {
+      return this.legacyProvider.testConnection(connection);
+    }
+
+    return {
+      success: false,
+      message: bridgeResult?.message ?? vscode.l10n.t('Metadata bridge helper not found at {0}.', this.bridgeDllPath)
+    };
+  }
+
+  private async runBridgeCommand(connection: ConnectionDefinition, operation: 'list-objects' | 'test-connection'): Promise<BridgeResponseEnvelope | null> {
+    if (!(await this.isBridgeAvailable())) {
+      return null;
+    }
+
+    const args = [
+      this.bridgeDllPath,
+      '--operation',
+      operation,
+      '--database-type',
+      connection.databaseType,
+      '--database-name',
+      connection.databaseName,
+      '--connection-string',
+      connection.connectionString,
+      '--display-name',
+      connection.name
+    ];
+
+    const execFileAsync = promisify(execFile);
+    try {
+      const { stdout } = await execFileAsync('dotnet', args, { maxBuffer: 10 * 1024 * 1024, timeout: 60000 });
+      return this.parseBridgeResponse(stdout);
+    } catch (error) {
+      const stdout = error instanceof Error && 'stdout' in error ? String((error as { stdout?: string }).stdout ?? '') : '';
+      const parsed = this.parseBridgeResponse(stdout);
+      if (parsed) {
+        return parsed;
+      }
+
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        success: false,
+        message
+      };
+    }
+  }
+
+  private parseBridgeResponse(stdout: string): BridgeResponseEnvelope | null {
+    const trimmed = stdout.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(trimmed) as BridgeResponseEnvelope;
+    } catch {
+      return null;
+    }
+  }
+
+  private async isBridgeAvailable(): Promise<boolean> {
+    try {
+      await fs.access(this.bridgeDllPath);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private warnConnectionFailure(connection: ConnectionDefinition, message: string): void {
+    if (this.warnedConnectionIds.has(connection.id)) {
+      return;
+    }
+
+    this.warnedConnectionIds.add(connection.id);
+    vscode.window.showWarningMessage(vscode.l10n.t('Failed to connect to {0}: {1}', connection.name, message));
+  }
+}
+
 class SqlMetadataProvider implements DatabaseMetadataProvider {
   private warnedConnectionIds = new Set<string>();
 
   public async getObjects(connection: ConnectionDefinition): Promise<DatabaseObjectReference[]> {
-    if (connection.databaseType.toLowerCase() !== 'sqlserver') {
+    if (!isSqlServerFamilyDatabaseType(connection.databaseType)) {
       return [];
     }
 
@@ -222,10 +378,12 @@ class SqlMetadataProvider implements DatabaseMetadataProvider {
       return [];
     }
 
-    const query = "SET NOCOUNT ON; SELECT TABLE_SCHEMA AS [schema], TABLE_NAME AS [name], CASE TABLE_TYPE WHEN 'BASE TABLE' THEN 'Table' ELSE 'View' END AS [objectType] FROM INFORMATION_SCHEMA.TABLES UNION ALL SELECT ROUTINE_SCHEMA AS [schema], ROUTINE_NAME AS [name], 'Procedure' AS [objectType] FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_TYPE = 'PROCEDURE' UNION ALL SELECT SCHEMA_NAME(schema_id) AS [schema], name AS [name], 'Sequence' AS [objectType] FROM sys.sequences ORDER BY [schema], [name];";
+    const query = "SET NOCOUNT ON; SELECT TABLE_SCHEMA AS [schema], TABLE_NAME AS [name], CASE TABLE_TYPE WHEN 'BASE TABLE' THEN 'Table' ELSE 'View' END AS [objectType] FROM INFORMATION_SCHEMA.TABLES UNION ALL SELECT ROUTINE_SCHEMA AS [schema], ROUTINE_NAME AS [name], CASE ROUTINE_TYPE WHEN 'FUNCTION' THEN 'Function' ELSE 'Procedure' END AS [objectType] FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_TYPE IN ('PROCEDURE', 'FUNCTION') UNION ALL SELECT SCHEMA_NAME(schema_id) AS [schema], name AS [name], 'Sequence' AS [objectType] FROM sys.sequences ORDER BY [schema], [name];";
     const columnQuery = "SET NOCOUNT ON; SELECT TABLE_SCHEMA AS [schema], TABLE_NAME AS [name], COLUMN_NAME AS [columnName], DATA_TYPE AS [dataType], IS_NULLABLE AS [isNullable], ORDINAL_POSITION AS [ordinalPosition] FROM INFORMATION_SCHEMA.COLUMNS ORDER BY TABLE_SCHEMA, TABLE_NAME, ORDINAL_POSITION;";
     const foreignKeyQuery = "SET NOCOUNT ON; SELECT sch.name AS [schema], t.name AS [name], fk.name AS [fkName], refSch.name AS [referencedSchema], refTable.name AS [referencedTable] FROM sys.foreign_keys fk JOIN sys.tables t ON fk.parent_object_id = t.object_id JOIN sys.schemas sch ON t.schema_id = sch.schema_id JOIN sys.tables refTable ON fk.referenced_object_id = refTable.object_id JOIN sys.schemas refSch ON refTable.schema_id = refSch.schema_id ORDER BY sch.name, t.name, fk.name;";
     const sequenceQuery = "SET NOCOUNT ON; SELECT SCHEMA_NAME(schema_id) AS [schema], name AS [name], CAST(start_value AS nvarchar(50)) AS [startValue], CAST(increment AS nvarchar(50)) AS [incrementBy], CAST(current_value AS nvarchar(50)) AS [currentValue] FROM sys.sequences ORDER BY [schema], [name];";
+    const routineMetadataQuery = "SET NOCOUNT ON; SELECT SCHEMA_NAME(o.schema_id) AS [schema], o.name AS [name], CASE WHEN o.type IN ('FN', 'IF', 'TF', 'FS', 'FT') THEN 'Function' ELSE 'Procedure' END AS [objectType], COALESCE(OBJECT_DEFINITION(o.object_id), '') AS [bodySql], COALESCE(CASE WHEN p0.parameter_id = 0 THEN t.name ELSE '' END, '') AS [returnTypeSql] FROM sys.objects o JOIN sys.schemas s ON s.schema_id = o.schema_id LEFT JOIN sys.parameters p0 ON p0.object_id = o.object_id AND p0.parameter_id = 0 LEFT JOIN sys.types t ON t.user_type_id = p0.user_type_id WHERE o.type IN ('P', 'FN', 'IF', 'TF', 'FS', 'FT') ORDER BY SCHEMA_NAME(o.schema_id), o.name;";
+    const routineParametersQuery = "SET NOCOUNT ON; SELECT SCHEMA_NAME(o.schema_id) AS [schema], o.name AS [name], CASE WHEN p.parameter_id = 0 THEN 'RETURN' WHEN p.is_output = 1 THEN 'OUT' ELSE 'IN' END AS [parameterMode], CASE WHEN p.parameter_id = 0 THEN 'return' ELSE REPLACE(REPLACE(p.name, '@', ''), ' ', '') END AS [parameterName], COALESCE(t.name, '') AS [dataType], p.parameter_id AS [ordinal], CASE WHEN p.has_default_value = 1 THEN COALESCE(CONVERT(nvarchar(4000), p.default_value), '') ELSE '' END AS [defaultValue], CASE WHEN p.is_nullable = 1 THEN 'YES' ELSE 'NO' END AS [isNullable], p.max_length AS [charMaxLen], p.precision AS [numPrecision], p.scale AS [numScale], '0' AS [isVariadic], '0' AS [isOrderByClause], '0' AS [isFrameClause] FROM sys.parameters p JOIN sys.objects o ON o.object_id = p.object_id JOIN sys.schemas s ON s.schema_id = o.schema_id LEFT JOIN sys.types t ON t.user_type_id = p.user_type_id WHERE o.type IN ('P', 'FN', 'IF', 'TF', 'FS', 'FT') ORDER BY SCHEMA_NAME(o.schema_id), o.name, p.parameter_id;";
 
     try {
       const { stdout } = await this.executeSqlCmd(parsed, query);
@@ -235,8 +393,9 @@ class SqlMetadataProvider implements DatabaseMetadataProvider {
         .filter((line) => line && line.includes('|'))
         .map((line) => line.split('|').map((x) => x.trim()))
         .filter((parts) => parts.length >= 3)
-        .map((parts) => ({ schema: parts[0], name: parts[1], objectType: parts[2] as DatabaseObjectType }))
-        .filter((x) => (x.objectType === 'Table' || x.objectType === 'View' || x.objectType === 'Procedure' || x.objectType === 'Sequence') && x.schema && x.name);
+        .filter((parts): parts is [string, string, string] => isSupportedDatabaseObjectType(parts[2]))
+        .map((parts) => ({ schema: parts[0], name: parts[1], objectType: parts[2] }))
+        .filter((x) => x.schema && x.name);
 
       const byObjectKey = new Map<string, DatabaseObjectReference>();
       for (const objectRef of objects) {
@@ -288,6 +447,55 @@ class SqlMetadataProvider implements DatabaseMetadataProvider {
         };
       }
 
+      const { stdout: routineMetadataStdout } = await this.executeSqlCmd(parsed, routineMetadataQuery);
+      const routineMetadataByObjectKey = new Map<string, { bodySql?: string; returnTypeSql?: string }>();
+      for (const parts of this.parsePipeRows(routineMetadataStdout, 5)) {
+        const owner = byObjectKey.get(this.buildObjectKey(parts[0], parts[1]));
+        if (!owner || (owner.objectType !== 'Procedure' && owner.objectType !== 'Function')) {
+          continue;
+        }
+
+        routineMetadataByObjectKey.set(this.buildObjectKey(parts[0], parts[1]), {
+          bodySql: parts[3] || undefined,
+          returnTypeSql: parts[4] || undefined
+        });
+      }
+
+      const { stdout: routineParametersStdout } = await this.executeSqlCmd(parsed, routineParametersQuery);
+      const routineParametersByObjectKey = new Map<string, string[][]>();
+      for (const parts of this.parsePipeRows(routineParametersStdout, 14)) {
+        const owner = byObjectKey.get(this.buildObjectKey(parts[0], parts[1]));
+        if (!owner || (owner.objectType !== 'Procedure' && owner.objectType !== 'Function')) {
+          continue;
+        }
+
+        const key = this.buildObjectKey(parts[0], parts[1]);
+        const bucket = routineParametersByObjectKey.get(key) ?? [];
+        bucket.push(parts);
+        routineParametersByObjectKey.set(key, bucket);
+      }
+
+      for (const objectRef of objects) {
+        if (objectRef.objectType === 'Procedure') {
+          const routineKey = this.buildObjectKey(objectRef.schema, objectRef.name);
+          const params = routineParametersByObjectKey.get(routineKey) ?? [];
+          const metadata = routineMetadataByObjectKey.get(routineKey);
+          const serialized = this.serializeSqlServerProcedureRoutine(params, metadata?.returnTypeSql);
+          objectRef.requiredIn = serialized.requiredIn;
+          objectRef.optionalIn = serialized.optionalIn;
+          objectRef.outParams = serialized.outParams;
+          objectRef.returnParam = serialized.returnParam;
+        } else if (objectRef.objectType === 'Function') {
+          const routineKey = this.buildObjectKey(objectRef.schema, objectRef.name);
+          const params = routineParametersByObjectKey.get(routineKey) ?? [];
+          const metadata = routineMetadataByObjectKey.get(routineKey);
+          const serialized = this.serializeSqlServerFunctionRoutine(params, metadata?.returnTypeSql, metadata?.bodySql);
+          objectRef.parameters = serialized.parameters;
+          objectRef.returnTypeSql = serialized.returnTypeSql;
+          objectRef.bodySql = serialized.bodySql;
+        }
+      }
+
       for (const objectRef of objects) {
         objectRef.columns?.sort((a: DatabaseColumnReference, b: DatabaseColumnReference) => a.ordinalPosition - b.ordinalPosition);
       }
@@ -313,8 +521,126 @@ class SqlMetadataProvider implements DatabaseMetadataProvider {
     return `${schema.toLowerCase()}|${name.toLowerCase()}`;
   }
 
+  private serializeSqlServerProcedureRoutine(rows: string[][], returnTypeSql?: string): { requiredIn: string; optionalIn: string; outParams: string; returnParam: string } {
+    const requiredIn: string[] = [];
+    const optionalIn: string[] = [];
+    const outParams: string[] = [];
+    let returnParam = '';
+
+    for (const parts of rows.sort((left, right) => Number(left[5] ?? 0) - Number(right[5] ?? 0))) {
+      const mode = (parts[2] || 'IN').toUpperCase();
+      const name = parts[3] || 'Parameter';
+      const dbType = this.mapSqlServerDbType(parts[4] || '', parts[8], parts[9]);
+      const value = parts[6] || '';
+      const required = value.length === 0;
+      const serialized = `${name}|${dbType}|${required ? '1' : '0'}|${value}`;
+
+      if (mode === 'RETURN') {
+        returnParam = serialized;
+        continue;
+      }
+
+      if (mode.includes('OUT')) {
+        outParams.push(serialized);
+        continue;
+      }
+
+      if (required) {
+        requiredIn.push(serialized);
+      } else {
+        optionalIn.push(serialized);
+      }
+    }
+
+    if (!returnParam && returnTypeSql) {
+      returnParam = `return|${this.mapSqlServerDbType(returnTypeSql)}|0|`;
+    }
+
+    return {
+      requiredIn: requiredIn.join(';'),
+      optionalIn: optionalIn.join(';'),
+      outParams: outParams.join(';'),
+      returnParam
+    };
+  }
+
+  private serializeSqlServerFunctionRoutine(rows: string[][], returnTypeSql?: string, bodySql?: string): { parameters: string; returnTypeSql: string; bodySql: string } {
+    const parameters = rows
+      .filter((parts) => (parts[2] || 'IN').toUpperCase() !== 'RETURN')
+      .sort((left, right) => Number(left[5] ?? 0) - Number(right[5] ?? 0))
+      .map((parts) => {
+        const name = parts[3] || 'Parameter';
+        const typeSql = parts[4] || '';
+        const required = (parts[6] || '').length === 0 ? '1' : '0';
+        const isVariadic = '0';
+        const isOrderByClause = '0';
+        const isFrameClause = '0';
+        const value = parts[6] || '';
+        return `${name}|${typeSql}|${required}|${isVariadic}|${isOrderByClause}|${isFrameClause}|${value}`;
+      });
+
+    return {
+      parameters: parameters.join(';'),
+      returnTypeSql: returnTypeSql || '',
+      bodySql: bodySql || ''
+    };
+  }
+
+  private mapSqlServerDbType(dataType: string, charMaxLen?: string, numPrecision?: string): string {
+    const type = dataType.trim().toLowerCase();
+    const precision = Number.parseInt(numPrecision ?? '', 10);
+    const length = Number.parseInt(charMaxLen ?? '', 10);
+
+    switch (type) {
+      case 'bigint':
+        return 'Int64';
+      case 'int':
+        return 'Int32';
+      case 'smallint':
+        return 'Int16';
+      case 'tinyint':
+        return precision === 1 || length === 1 ? 'Boolean' : 'Byte';
+      case 'bit':
+        return 'Boolean';
+      case 'decimal':
+      case 'numeric':
+      case 'money':
+      case 'smallmoney':
+        return 'Decimal';
+      case 'float':
+        return 'Double';
+      case 'real':
+        return 'Single';
+      case 'date':
+      case 'datetime':
+      case 'datetime2':
+      case 'smalldatetime':
+      case 'datetimeoffset':
+        return 'DateTime';
+      case 'time':
+        return 'Time';
+      case 'uniqueidentifier':
+        return 'Guid';
+      case 'binary':
+      case 'varbinary':
+      case 'image':
+        return 'Binary';
+      case 'xml':
+      case 'nchar':
+      case 'nvarchar':
+      case 'varchar':
+      case 'char':
+      case 'text':
+      case 'ntext':
+      case 'sysname':
+        return 'String';
+      default:
+        return 'String';
+    }
+  }
+
   public async testConnection(connection: ConnectionDefinition): Promise<{ success: boolean; message?: string }> {
-    if (connection.databaseType.toLowerCase() !== 'sqlserver') {
+    if (!isSqlServerFamilyDatabaseType(connection.databaseType)) {
       return { success: true };
     }
 
@@ -395,7 +721,8 @@ function parseSqlServerConnectionString(connectionString: string): { server?: st
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  const metadataProvider = new SqlMetadataProvider();
+  const metadataProvider = new BridgeMetadataProvider(
+    path.join(context.extensionPath, 'out', 'metadata-bridge', 'DbSqlLikeMem.VsCodeMetadataBridge.dll'));
   const treeProvider = new ConnectionTreeDataProvider();
 
   let state = await loadState(context);
@@ -436,7 +763,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         if (payload.type === 'saveConnection') {
           const existingId = String(payload.connectionId ?? '').trim();
           const name = String(payload.name ?? '').trim();
-          const databaseType = String(payload.databaseType ?? '').trim();
+          const databaseType = normalizeDatabaseType(String(payload.databaseType ?? '').trim());
           const databaseName = String(payload.databaseName ?? '').trim();
           const connectionString = String(payload.connectionString ?? '').trim();
 
@@ -510,11 +837,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           const viewSuffix = String(payload.viewSuffix ?? '').trim();
           const procedureFolder = String(payload.procedureFolder ?? '').trim();
           const procedureSuffix = String(payload.procedureSuffix ?? '').trim();
+          const functionFolder = String(payload.functionFolder ?? '').trim();
+          const functionSuffix = String(payload.functionSuffix ?? '').trim();
           const sequenceFolder = String(payload.sequenceFolder ?? '').trim();
           const sequenceSuffix = String(payload.sequenceSuffix ?? '').trim();
           const namespace = String(payload.namespace ?? '').trim();
 
-          if (!connectionId || !tableFolder || !tableSuffix || !viewFolder || !viewSuffix || !procedureFolder || !procedureSuffix || !sequenceFolder || !sequenceSuffix) {
+          if (!connectionId || !tableFolder || !tableSuffix || !viewFolder || !viewSuffix || !procedureFolder || !procedureSuffix || !functionFolder || !functionSuffix || !sequenceFolder || !sequenceSuffix) {
             vscode.window.showWarningMessage(vscode.l10n.t('Fill in connection, folders and mapping suffixes.'));
             return;
           }
@@ -525,6 +854,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
               { objectType: 'Table', targetFolder: tableFolder, fileSuffix: tableSuffix, namespace: namespace || undefined },
               { objectType: 'View', targetFolder: viewFolder, fileSuffix: viewSuffix, namespace: namespace || undefined },
               { objectType: 'Procedure', targetFolder: procedureFolder, fileSuffix: procedureSuffix, namespace: namespace || undefined },
+              { objectType: 'Function', targetFolder: functionFolder, fileSuffix: functionSuffix, namespace: namespace || undefined },
               { objectType: 'Sequence', targetFolder: sequenceFolder, fileSuffix: sequenceSuffix, namespace: namespace || undefined }
             ]
           };
@@ -596,10 +926,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         return;
       }
 
-      const connectionId = `${newConnection.databaseType}-${newConnection.databaseName}-${Date.now()}`;
+      const normalizedDatabaseType = normalizeDatabaseType(newConnection.databaseType);
+      const connectionId = `${normalizedDatabaseType}-${newConnection.databaseName}-${Date.now()}`;
       const draftConnection: ConnectionDefinition = {
         id: connectionId,
-        ...newConnection
+        ...newConnection,
+        databaseType: normalizedDatabaseType
       };
 
       if (!await validateAndNotifyConnection(metadataProvider, draftConnection)) {
@@ -724,6 +1056,22 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         return;
       }
 
+      const functionFolder = await vscode.window.showInputBox({
+        prompt: vscode.l10n.t('Folder for Function'),
+        value: selectedMappingBaseline?.Function.targetFolder ?? currentByType.get('Function')?.targetFolder ?? 'src/Models/Functions'
+      });
+      if (!functionFolder) {
+        return;
+      }
+
+      const functionSuffix = await vscode.window.showInputBox({
+        prompt: vscode.l10n.t('Class suffix for Function'),
+        value: selectedMappingBaseline?.Function.fileSuffix ?? currentByType.get('Function')?.fileSuffix ?? 'FunctionTests'
+      });
+      if (!functionSuffix) {
+        return;
+      }
+
       const sequenceFolder = await vscode.window.showInputBox({
         prompt: vscode.l10n.t('Folder for Sequence'),
         value: selectedMappingBaseline?.Sequence.targetFolder ?? currentByType.get('Sequence')?.targetFolder ?? 'src/Models/Sequences'
@@ -742,7 +1090,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
       const namespace = await vscode.window.showInputBox({
         prompt: vscode.l10n.t('Namespace (optional)'),
-        value: currentByType.get('Table')?.namespace ?? currentByType.get('View')?.namespace ?? currentByType.get('Procedure')?.namespace ?? currentByType.get('Sequence')?.namespace ?? ''
+        value: currentByType.get('Table')?.namespace ?? currentByType.get('View')?.namespace ?? currentByType.get('Procedure')?.namespace ?? currentByType.get('Function')?.namespace ?? currentByType.get('Sequence')?.namespace ?? ''
       });
       if (namespace === undefined) {
         return;
@@ -754,6 +1102,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           { objectType: 'Table', targetFolder: tableFolder, fileSuffix: tableSuffix, namespace: namespace || undefined },
           { objectType: 'View', targetFolder: viewFolder, fileSuffix: viewSuffix, namespace: namespace || undefined },
           { objectType: 'Procedure', targetFolder: procedureFolder, fileSuffix: procedureSuffix, namespace: namespace || undefined },
+          { objectType: 'Function', targetFolder: functionFolder, fileSuffix: functionSuffix, namespace: namespace || undefined },
           { objectType: 'Sequence', targetFolder: sequenceFolder, fileSuffix: sequenceSuffix, namespace: namespace || undefined }
         ]
       };
@@ -1085,14 +1434,11 @@ async function buildTree(
     };
 
     const objects = applyFilter(await provider.getObjects(connection), filterText, filterMode);
-    const objectGroups: Record<DatabaseObjectType, DatabaseObjectReference[]> = {
-      Table: objects.filter((x) => x.objectType === 'Table'),
-      View: objects.filter((x) => x.objectType === 'View'),
-      Procedure: objects.filter((x) => x.objectType === 'Procedure'),
-      Sequence: objects.filter((x) => x.objectType === 'Sequence')
-    };
+    const objectGroups = Object.fromEntries(
+      SUPPORTED_DATABASE_OBJECT_TYPES.map((objectType) => [objectType, objects.filter((x) => x.objectType === objectType)])
+    ) as Record<DatabaseObjectType, DatabaseObjectReference[]>;
 
-    (Object.keys(objectGroups) as DatabaseObjectType[]).forEach((objectType) => {
+    SUPPORTED_DATABASE_OBJECT_TYPES.forEach((objectType) => {
       const objectTypeNode: TreeNode = {
         id: `objtype-${connection.id}-${objectType}`,
         label: objectType,
@@ -1175,7 +1521,124 @@ function createObjectChildren(connectionId: string, objectRef: DatabaseObjectRef
     });
   }
 
+  if (objectRef.objectType === 'Procedure' || objectRef.objectType === 'Function') {
+    children.push(...createRoutineChildren(connectionId, objectRef));
+  }
+
   return children;
+}
+
+function createRoutineChildren(connectionId: string, objectRef: DatabaseObjectReference): TreeNode[] {
+  const objectKey = `${connectionId}-${objectRef.objectType}-${objectRef.schema}.${objectRef.name}`;
+  const children: TreeNode[] = [];
+
+  if (objectRef.objectType === 'Procedure') {
+    addRoutineSection(children, connectionId, objectRef, objectKey, 'Required In', objectRef.requiredIn, 'routine-required');
+    addRoutineSection(children, connectionId, objectRef, objectKey, 'Optional In', objectRef.optionalIn, 'routine-optional');
+    addRoutineSection(children, connectionId, objectRef, objectKey, 'Out Params', objectRef.outParams, 'routine-out');
+    addRoutineSection(children, connectionId, objectRef, objectKey, 'Return Param', objectRef.returnParam, 'routine-return');
+    return children;
+  }
+
+  addRoutineSection(children, connectionId, objectRef, objectKey, 'Parameters', objectRef.parameters, 'routine-parameters');
+  addRoutineScalar(children, connectionId, objectRef, objectKey, 'Return Type', objectRef.returnTypeSql, 'routine-return-type');
+  addRoutineScalar(children, connectionId, objectRef, objectKey, 'Body', objectRef.bodySql, 'routine-body');
+  return children;
+}
+
+function addRoutineSection(
+  target: TreeNode[],
+  connectionId: string,
+  objectRef: DatabaseObjectReference,
+  objectKey: string,
+  sectionLabel: string,
+  serializedItems: string | undefined,
+  sectionKey: string
+): void {
+  if (!serializedItems?.trim()) {
+    return;
+  }
+
+  const parsedItems = parseRoutineSerializedItems(serializedItems, objectRef.objectType);
+  if (parsedItems.length === 0) {
+    return;
+  }
+
+  target.push({
+    id: `section-${sectionKey}-${objectKey}`,
+    label: sectionLabel,
+    kind: 'section',
+    connectionId,
+    objectRef,
+    children: parsedItems.map((item, index) => ({
+      id: `${sectionKey}-${objectKey}-${index}`,
+      label: item,
+      kind: 'column',
+      connectionId,
+      objectRef
+    }))
+  });
+}
+
+function addRoutineScalar(
+  target: TreeNode[],
+  connectionId: string,
+  objectRef: DatabaseObjectReference,
+  objectKey: string,
+  sectionLabel: string,
+  value: string | undefined,
+  sectionKey: string
+): void {
+  const text = value?.trim();
+  if (!text) {
+    return;
+  }
+
+  target.push({
+    id: `section-${sectionKey}-${objectKey}`,
+    label: sectionLabel,
+    kind: 'section',
+    connectionId,
+    objectRef,
+    children: [
+      {
+        id: `${sectionKey}-${objectKey}-0`,
+        label: text,
+        kind: 'column',
+        connectionId,
+        objectRef
+      }
+    ]
+  });
+}
+
+function parseRoutineSerializedItems(serialized: string, objectType: DatabaseObjectType): string[] {
+  return serialized
+    .split(';')
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      const parts = entry.split('|');
+      if (objectType === 'Procedure') {
+        const name = parts[0] || 'Parameter';
+        const dbType = parts[1] || 'String';
+        const required = parts[2] === '1' ? 'required' : 'optional';
+        const value = parts[3];
+        return value ? `${name} (${dbType}, ${required}) = ${value}` : `${name} (${dbType}, ${required})`;
+      }
+
+      const name = parts[0] || 'Parameter';
+      const typeSql = parts[1] || 'String';
+      const required = parts[2] === '1' ? 'required' : 'optional';
+      const flags = [
+        parts[3] === '1' ? 'variadic' : '',
+        parts[4] === '1' ? 'order by' : '',
+        parts[5] === '1' ? 'frame' : ''
+      ].filter(Boolean);
+      const value = parts[6];
+      const suffix = [required, ...flags].join(', ');
+      return value ? `${name} (${typeSql}, ${suffix}) = ${value}` : `${name} (${typeSql}, ${suffix})`;
+    });
 }
 
 function applyFilter(
@@ -1242,16 +1705,73 @@ function normalizeState(raw?: Partial<ExtensionState>): ExtensionState {
     return structuredClone(DEFAULT_STATE);
   }
 
+  const mappingConfigurations = (raw.mappingConfigurations ?? []).map(normalizeMappingConfiguration);
+  const connections = (raw.connections ?? []).map((connection) => ({
+    ...connection,
+    databaseType: normalizeDatabaseType(connection.databaseType)
+  }));
+
   return {
     ...structuredClone(DEFAULT_STATE),
     ...raw,
+    connections,
     templateSettings: {
       ...DEFAULT_STATE.templateSettings,
       ...(raw.templateSettings ?? {})
     },
+    mappingConfigurations,
     generationCheckByObjectKey: raw.generationCheckByObjectKey ?? {},
     generationCheckDetailsByObjectKey: raw.generationCheckDetailsByObjectKey ?? {}
   };
+}
+
+function normalizeMappingConfiguration(configuration: ConnectionMappingConfiguration): ConnectionMappingConfiguration {
+  if (configuration.mappings.some((mapping) => mapping.objectType === 'Function')) {
+    return configuration;
+  }
+
+  const fallback = configuration.mappings.find((mapping) => mapping.objectType === 'Procedure')
+    ?? configuration.mappings[0];
+
+  if (!fallback) {
+    return {
+      connectionId: configuration.connectionId,
+      mappings: createDefaultMappings('Generated', '{NamePascal}{Type}Factory.cs')
+    };
+  }
+
+  return {
+    connectionId: configuration.connectionId,
+    mappings: [
+      ...configuration.mappings,
+      {
+        objectType: 'Function',
+        targetFolder: fallback.targetFolder,
+        fileSuffix: fallback.fileSuffix,
+        namespace: fallback.namespace
+      }
+    ]
+  };
+}
+
+function isSqlServerFamilyDatabaseType(databaseType: string): boolean {
+  const normalized = normalizeDatabaseType(databaseType).trim().toLowerCase();
+  return SQL_SERVER_FAMILY_DATABASE_TYPES.has(normalized);
+}
+
+function normalizeDatabaseType(databaseType: string): string {
+  const trimmed = (databaseType ?? '').trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  const exactMatch = SUPPORTED_DATABASE_TYPES.find((type) => type.toLowerCase() === trimmed.toLowerCase());
+  if (exactMatch) {
+    return exactMatch;
+  }
+
+  const normalizedKey = trimmed.replace(/[\s_-]/g, '').toLowerCase();
+  return DATABASE_TYPE_ALIAS_MAP.get(normalizedKey) ?? trimmed;
 }
 
 async function saveState(context: vscode.ExtensionContext, state: ExtensionState): Promise<void> {
@@ -1320,7 +1840,15 @@ async function findMetadataDriftedArtifacts(
 }
 
 function hasStructuralGenerationMetadata(objectRef: DatabaseObjectReference): boolean {
-  return !!objectRef.columns?.length || !!objectRef.foreignKeys?.length;
+  return !!objectRef.columns?.length
+    || !!objectRef.foreignKeys?.length
+    || !!objectRef.requiredIn?.trim()
+    || !!objectRef.optionalIn?.trim()
+    || !!objectRef.outParams?.trim()
+    || !!objectRef.returnParam?.trim()
+    || !!objectRef.parameters?.trim()
+    || !!objectRef.returnTypeSql?.trim()
+    || !!objectRef.bodySql?.trim();
 }
 
 async function generateTemplateBasedFiles(
@@ -1464,7 +1992,7 @@ async function promptConnectionInput(connection?: ConnectionDefinition): Promise
     return undefined;
   }
 
-  const databaseType = await vscode.window.showQuickPick(['SqlServer', 'PostgreSql', 'Oracle', 'MySql', 'Sqlite'], {
+  const databaseType = await vscode.window.showQuickPick([...SUPPORTED_DATABASE_TYPES], {
     placeHolder: vscode.l10n.t('Database type'),
     title: connection ? vscode.l10n.t('Edit connection') : vscode.l10n.t('Add connection')
   });
@@ -1536,6 +2064,8 @@ function getManagerHtml(state: ExtensionState): string {
     viewSuffix: vscode.l10n.t('View suffix'),
     procedureFolder: vscode.l10n.t('Procedure folder'),
     procedureSuffix: vscode.l10n.t('Procedure suffix'),
+    functionFolder: vscode.l10n.t('Function folder'),
+    functionSuffix: vscode.l10n.t('Function suffix'),
     sequenceFolder: vscode.l10n.t('Sequence folder'),
     sequenceSuffix: vscode.l10n.t('Sequence suffix'),
     optionalNamespace: vscode.l10n.t('Namespace (optional)'),
@@ -1547,6 +2077,17 @@ function getManagerHtml(state: ExtensionState): string {
   const connectionOptions = state.connections
     .map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)} (${escapeHtml(c.databaseType)} / ${escapeHtml(c.databaseName)})</option>`)
     .join('');
+  const databaseTypeOptions = SUPPORTED_DATABASE_TYPES
+    .map((databaseType) => `<option>${escapeHtml(databaseType)}</option>`)
+    .join('');
+  const editConnectionIcon = `
+    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path d="M11.75 1.75a1.5 1.5 0 0 1 2.12 0l.38.38a1.5 1.5 0 0 1 0 2.12l-7.9 7.9-3.22.84.84-3.22 7.78-8.02Zm.88 1.06-7.06 7.27-.34 1.3 1.3-.34 7.06-7.06-.96-1.17Zm1.49 1.49-.53-.53.37-.37a.5.5 0 0 0 0-.71l-.28-.28a.5.5 0 0 0-.71 0l-.37.37-.53-.53.37-.37a1.25 1.25 0 0 1 1.77 0l.28.28a1.25 1.25 0 0 1 0 1.77l-.37.37Z"/>
+    </svg>`;
+  const deleteConnectionIcon = `
+    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path d="M6.5 1.5h3a1 1 0 0 1 1 1V3h2.25a.75.75 0 0 1 0 1.5h-.72l-.62 8.25a1.75 1.75 0 0 1-1.74 1.62H6.33a1.75 1.75 0 0 1-1.74-1.62L3.97 4.5h-.72a.75.75 0 0 1 0-1.5H5v-.5a1 1 0 0 1 1-1Zm.5 1.5h2v-.5h-2V3Zm-2.25 1.5.56 7.56c.02.2.18.44.52.44h4.14c.34 0 .5-.24.52-.44L10.54 4.5h-5.8ZM6.5 6.5a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 1 .5-.5Zm3 0a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 1 .5-.5Z"/>
+    </svg>`;
 
   const mappingByConnection = new Map(state.mappingConfigurations.map((m) => [m.connectionId, m]));
   const mappingFormData = JSON.stringify(Object.fromEntries(
@@ -1558,19 +2099,19 @@ function getManagerHtml(state: ExtensionState): string {
   const connectionsTable = state.connections.length === 0
     ? `<p><em>${escapeHtml(tr.noConnectionConfigured)}</em></p>`
     : `<table><thead><tr><th>${escapeHtml(tr.name)}</th><th>${escapeHtml(tr.type)}</th><th>${escapeHtml(tr.database)}</th><th>${escapeHtml(tr.actions)}</th></tr></thead><tbody>${state.connections
-      .map((c) => `<tr><td>${escapeHtml(c.name)}</td><td>${escapeHtml(c.databaseType)}</td><td>${escapeHtml(c.databaseName)}</td><td class="actions"><button class="icon-btn" title="${escapeHtml(tr.editConnection)}" aria-label="${escapeHtml(tr.editConnection)}" data-edit="${escapeHtml(c.id)}" data-name="${escapeHtml(c.name)}" data-type="${escapeHtml(c.databaseType)}" data-db="${escapeHtml(c.databaseName)}">✏️</button><button class="icon-btn" title="${escapeHtml(tr.deleteConnection)}" aria-label="${escapeHtml(tr.deleteConnection)}" data-remove="${escapeHtml(c.id)}">🗑️</button></td></tr>`)
+      .map((c) => `<tr><td>${escapeHtml(c.name)}</td><td>${escapeHtml(c.databaseType)}</td><td>${escapeHtml(c.databaseName)}</td><td class="actions"><button class="icon-btn" title="${escapeHtml(tr.editConnection)}" aria-label="${escapeHtml(tr.editConnection)}" data-edit="${escapeHtml(c.id)}" data-name="${escapeHtml(c.name)}" data-type="${escapeHtml(c.databaseType)}" data-db="${escapeHtml(c.databaseName)}">${editConnectionIcon}</button><button class="icon-btn" title="${escapeHtml(tr.deleteConnection)}" aria-label="${escapeHtml(tr.deleteConnection)}" data-remove="${escapeHtml(c.id)}">${deleteConnectionIcon}</button></td></tr>`)
       .join('')}</tbody></table>`;
 
   const mappingsTable = state.connections.length === 0
     ? `<p><em>${escapeHtml(tr.addConnectionForMappings)}</em></p>`
-    : `<table><thead><tr><th>${escapeHtml(tr.connection)}</th><th>Table</th><th>View</th><th>Procedure</th><th>Sequence</th></tr></thead><tbody>${state.connections
+    : `<table><thead><tr><th>${escapeHtml(tr.connection)}</th>${SUPPORTED_DATABASE_OBJECT_TYPES.map((objectType) => `<th>${escapeHtml(objectType)}</th>`).join('')}</tr></thead><tbody>${state.connections
       .map((c) => {
         const map = mappingByConnection.get(c.id);
         const byType = (type: DatabaseObjectType): string => {
           const m = map?.mappings.find((x) => x.objectType === type);
           return m ? `${escapeHtml(m.targetFolder)} / ${escapeHtml(m.fileSuffix)}` : '-';
         };
-        return `<tr><td>${escapeHtml(c.name)}</td><td>${byType('Table')}</td><td>${byType('View')}</td><td>${byType('Procedure')}</td><td>${byType('Sequence')}</td></tr>`;
+        return `<tr><td>${escapeHtml(c.name)}</td>${SUPPORTED_DATABASE_OBJECT_TYPES.map((objectType) => `<td>${byType(objectType)}</td>`).join('')}</tr>`;
       }).join('')}</tbody></table>`;
 
   return `<!DOCTYPE html>
@@ -1587,7 +2128,8 @@ function getManagerHtml(state: ExtensionState): string {
     label { display: block; margin-top: 8px; font-size: 12px; opacity: 0.9; }
     input, select { width: 100%; margin-top: 4px; padding: 6px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border); }
     button { margin-top: 10px; padding: 6px 10px; }
-    .icon-btn { width: 30px; height: 30px; padding: 0; margin-top: 0; margin-right: 4px; font-size: 16px; line-height: 1; }
+    .icon-btn { width: 30px; height: 30px; padding: 0; margin-top: 0; margin-right: 4px; display: inline-flex; align-items: center; justify-content: center; color: var(--vscode-foreground); background: var(--vscode-button-secondaryBackground); border: 1px solid var(--vscode-button-border); border-radius: 4px; }
+    .icon-btn svg { width: 14px; height: 14px; fill: currentColor; display: block; }
     .actions { white-space: nowrap; }
     table { width: 100%; border-collapse: collapse; margin-top: 8px; }
     th, td { border: 1px solid var(--vscode-panel-border); padding: 6px; text-align: left; }
@@ -1603,7 +2145,7 @@ function getManagerHtml(state: ExtensionState): string {
       <label>${escapeHtml(tr.name)}</label><input id="name" />
       <label>${escapeHtml(tr.databaseType)}</label>
       <select id="databaseType">
-        <option>SqlServer</option><option>PostgreSql</option><option>Oracle</option><option>MySql</option><option>Sqlite</option><option>Db2</option>
+        ${databaseTypeOptions}
       </select>
       <label>${escapeHtml(tr.primaryDatabase)}</label><input id="databaseName" />
       <label>${escapeHtml(tr.connectionString)}</label><input id="connectionString" type="password" />
@@ -1620,6 +2162,8 @@ function getManagerHtml(state: ExtensionState): string {
       <label>${escapeHtml(tr.viewSuffix)}</label><input id="viewSuffix" value="ViewTests" />
       <label>${escapeHtml(tr.procedureFolder)}</label><input id="procedureFolder" value="src/Models/Procedures" />
       <label>${escapeHtml(tr.procedureSuffix)}</label><input id="procedureSuffix" value="ProcedureTests" />
+      <label>${escapeHtml(tr.functionFolder)}</label><input id="functionFolder" value="src/Models/Functions" />
+      <label>${escapeHtml(tr.functionSuffix)}</label><input id="functionSuffix" value="FunctionTests" />
       <label>${escapeHtml(tr.sequenceFolder)}</label><input id="sequenceFolder" value="src/Models/Sequences" />
       <label>${escapeHtml(tr.sequenceSuffix)}</label><input id="sequenceSuffix" value="SequenceTests" />
       <label>${escapeHtml(tr.optionalNamespace)}</label><input id="namespace" />
@@ -1639,6 +2183,7 @@ function getManagerHtml(state: ExtensionState): string {
 
   <script>
     const vscode = acquireVsCodeApi();
+    const defaultDatabaseType = ${JSON.stringify(DEFAULT_DATABASE_TYPE)};
     const mappingFormData = ${mappingFormData};
 
     function hydrateMappingForm() {
@@ -1650,9 +2195,11 @@ function getManagerHtml(state: ExtensionState): string {
       document.getElementById('viewSuffix').value = selected.View?.fileSuffix || 'ViewTests';
       document.getElementById('procedureFolder').value = selected.Procedure?.targetFolder || 'src/Models/Procedures';
       document.getElementById('procedureSuffix').value = selected.Procedure?.fileSuffix || 'ProcedureTests';
+      document.getElementById('functionFolder').value = selected.Function?.targetFolder || 'src/Models/Functions';
+      document.getElementById('functionSuffix').value = selected.Function?.fileSuffix || 'FunctionTests';
       document.getElementById('sequenceFolder').value = selected.Sequence?.targetFolder || 'src/Models/Sequences';
       document.getElementById('sequenceSuffix').value = selected.Sequence?.fileSuffix || 'SequenceTests';
-      document.getElementById('namespace').value = selected.Table?.namespace || selected.View?.namespace || selected.Procedure?.namespace || selected.Sequence?.namespace || '';
+      document.getElementById('namespace').value = selected.Table?.namespace || selected.View?.namespace || selected.Procedure?.namespace || selected.Function?.namespace || selected.Sequence?.namespace || '';
     }
 
     document.getElementById('saveConnection')?.addEventListener('click', () => {
@@ -1679,6 +2226,8 @@ function getManagerHtml(state: ExtensionState): string {
         viewSuffix: document.getElementById('viewSuffix').value,
         procedureFolder: document.getElementById('procedureFolder').value,
         procedureSuffix: document.getElementById('procedureSuffix').value,
+        functionFolder: document.getElementById('functionFolder').value,
+        functionSuffix: document.getElementById('functionSuffix').value,
         sequenceFolder: document.getElementById('sequenceFolder').value,
         sequenceSuffix: document.getElementById('sequenceSuffix').value,
         namespace: document.getElementById('namespace').value
@@ -1689,7 +2238,7 @@ function getManagerHtml(state: ExtensionState): string {
       btn.addEventListener('click', () => {
         document.getElementById('connectionIdHidden').value = btn.getAttribute('data-edit') || '';
         document.getElementById('name').value = btn.getAttribute('data-name') || '';
-        document.getElementById('databaseType').value = btn.getAttribute('data-type') || 'SqlServer';
+        document.getElementById('databaseType').value = btn.getAttribute('data-type') || defaultDatabaseType;
         document.getElementById('databaseName').value = btn.getAttribute('data-db') || '';
       });
     });

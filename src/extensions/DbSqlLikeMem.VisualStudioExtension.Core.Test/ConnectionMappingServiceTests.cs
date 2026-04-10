@@ -84,6 +84,8 @@ public sealed class ConnectionMappingServiceTests
         Assert.Equal("tests/Integration/Tables", updated.Mappings[DatabaseObjectType.Table].OutputDirectory);
         Assert.Equal("Company.Project.Integration", updated.Mappings[DatabaseObjectType.Table].Namespace);
 
+        Assert.Equal("{NamePascal}{Type}Factory.cs", updated.Mappings[DatabaseObjectType.Function].FileNamePattern);
+        Assert.Equal("Generated", updated.Mappings[DatabaseObjectType.Function].OutputDirectory);
         Assert.Equal("{NamePascal}{Type}Factory.cs", updated.Mappings[DatabaseObjectType.View].FileNamePattern);
         Assert.Equal("Generated", updated.Mappings[DatabaseObjectType.View].OutputDirectory);
     }
