@@ -32,8 +32,27 @@ public sealed class TreeNode(string label)
     public DatabaseObjectType? ObjectType { get; init; }
 
     /// <summary>
+    /// EN: Gets the parent node in the generated tree.
+    /// PT: Obtém o nó pai na árvore gerada.
+    /// </summary>
+    public TreeNode? Parent { get; private set; }
+
+    /// <summary>
     /// EN: Gets the child nodes of this node.
     /// PT: Obtém os nós filhos deste nó.
     /// </summary>
     public List<TreeNode> Children { get; } = [];
+
+    /// <summary>
+    /// EN: Adds a child node and links it back to this node as its parent.
+    /// PT: Adiciona um nó filho e o vincula a este nó como pai.
+    /// </summary>
+    /// <param name="child">EN: The child node to add. PT: O nó filho a adicionar.</param>
+    public void AddChild(TreeNode child)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(child, nameof(child));
+
+        child.Parent = this;
+        Children.Add(child);
+    }
 }

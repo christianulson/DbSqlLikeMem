@@ -2,12 +2,13 @@
 
 > Looking for English? See [Features.md](Features.md).
 
-> Este arquivo é mantido para navegação rápida no NuGet/GitHub. A versão canônica e completa está em [`docs/old/providers-and-features.md`](docs/old/providers-and-features.md).
+> Este arquivo é mantido para navegação rápida no NuGet/GitHub. As páginas atuais de seleção e compatibilidade de providers estão em [`docs/Wiki/Providers-and-Compatibility.pt-BR.md`](docs/Wiki/Providers-and-Compatibility.pt-BR.md), enquanto [`docs/old/providers-and-features.md`](docs/old/providers-and-features.md) permanece como referência legada.
 
 ## Links rápidos
 
 - [Versão em inglês](Features.md)
-- [Documentação canônica de provedores e features](docs/old/providers-and-features.md)
+- [Documentação atual de seleção e compatibilidade](docs/Wiki/Providers-and-Compatibility.pt-BR.md)
+- [Documentação legada de provedores e features](docs/old/providers-and-features.md)
 - [Guia de início rápido](docs/getting-started.md)
 - [Visão geral do repositório](README.md)
 
@@ -15,12 +16,14 @@
 
 | Banco | Pacote | Versões simuladas |
 | --- | --- | --- |
-| MySQL | `DbSqlLikeMem.MySql` | 3, 4, 5, 8 |
+| MySQL | `DbSqlLikeMem.MySql` | 3.0, 4.0, 5.5, 5.6, 5.7, 8.0, 8.4 |
+| MariaDB | `DbSqlLikeMem.MariaDb` | 10.3, 10.5, 10.6, 10.8, 11.0 |
+| Firebird | `DbSqlLikeMem.Firebird` | 2.1, 2.5, 3.0, 4.0, 5.0 |
 | SQL Server | `DbSqlLikeMem.SqlServer` | 7, 2000, 2005, 2008, 2012, 2014, 2016, 2017, 2019, 2022 |
 | SQL Azure | `DbSqlLikeMem.SqlAzure` | 100, 110, 120, 130, 140, 150, 160, 170 |
 | Oracle | `DbSqlLikeMem.Oracle` | 7, 8, 9, 10, 11, 12, 18, 19, 21, 23 |
 | PostgreSQL (Npgsql) | `DbSqlLikeMem.Npgsql` | 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 |
-| SQLite | `DbSqlLikeMem.Sqlite` | 3 |
+| SQLite | `DbSqlLikeMem.Sqlite` | 3.24, 3.25, 3.33, 3.35, 3.38, 3.40, 3.51 |
 | DB2 | `DbSqlLikeMem.Db2` | 8, 9, 10, 11 |
 
 ## Capacidades comuns (todos os providers)
@@ -86,6 +89,22 @@
 
 - `INSERT ... ON DUPLICATE KEY UPDATE`: suportado.
 - Index hints (`USE/IGNORE/FORCE INDEX`) parseados, com semântica e validações suportadas no executor.
+
+### MariaDB
+
+- Comportamento de dialeto por versão no pacote do provider.
+- Fluxos de escrita da familia MySQL com gates de versão do MariaDB.
+- Sequence com `NEXT VALUE FOR` / `PREVIOUS VALUE FOR` a partir do MariaDB 10.3.
+- `RETURNING` a partir do MariaDB 10.5.
+- `JSON_TABLE` a partir do MariaDB 10.6.
+- `UPDATE ... RETURNING` continua bloqueado no contrato atual do MariaDB.
+
+### Firebird
+
+- Comportamento de dialeto por versão no pacote do provider.
+- Fluxos `FIRST`, `SKIP`, `ROWS`, `MERGE`, `RETURNING`, `EXECUTE BLOCK` e `EXECUTE STATEMENT` no estilo Firebird.
+- `GEN_ID` e sintaxe de sequence estão implementados no parser/runtime, incluindo nomes qualificados por schema.
+- Variáveis de contexto e blocos básicos de tratamento de excecao do Firebird estão cobertos no subconjunto suportado.
 
 ### SQL Server
 

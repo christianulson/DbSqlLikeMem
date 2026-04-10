@@ -1,5 +1,3 @@
-using DbSqlLikeMem.Models;
-
 namespace DbSqlLikeMem;
 
 internal static class SelectPlanBuilderHelper

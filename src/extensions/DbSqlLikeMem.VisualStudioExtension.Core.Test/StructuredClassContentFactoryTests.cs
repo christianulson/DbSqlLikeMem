@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
-/// EN: Verifies structured class generation for tables, sequences, and routines.
-/// PT: Verifica a geracao estruturada de classes para tabelas, sequences e rotinas.
+/// EN: Verifies structured class generation for tables, views, sequences, and routines.
+/// PT: Verifica a geracao estruturada de classes para tabelas, views, sequences e rotinas.
 /// </summary>
 public sealed class StructuredClassContentFactoryTests
 {
@@ -32,6 +32,34 @@ public sealed class StructuredClassContentFactoryTests
         Assert.Contains("table.AddPrimaryKeyIndexes(\"Id\");", content);
         Assert.Contains("table.CreateIndex(\"IX_Orders_CustomerId\", [\"CustomerId\"], unique: false);", content);
         Assert.Contains("table.CreateForeignKey(\"FK_orders_CustomerId_Customers_Id\", \"Customers\", [(\"CustomerId\", \"Id\")]);", content);
+    }
+
+    /// <summary>
+    /// EN: Verifies view generation follows the same table-like column and key emission path.
+    /// PT: Verifica se a geracao de view segue o mesmo caminho de emissao de colunas e chaves da tabela.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "StructuredClassContentFactory")]
+    public void Build_ForView_GeneratesTableLikeFactoryUsingViewMetadata()
+    {
+        var dbObject = new DatabaseObjectReference(
+            "dbo",
+            "active_orders",
+            DatabaseObjectType.View,
+            new Dictionary<string, string>
+            {
+                ["Columns"] = "Id|int|0|0|1|||0|int|;CustomerId|int|1|0|0||||int|",
+                ["PrimaryKey"] = "Id",
+                ["Indexes"] = "IX_ActiveOrders_CustomerId|0|CustomerId",
+                ["ForeignKeys"] = "CustomerId|Customers|Id"
+            });
+
+        var content = StructuredClassContentFactory.Build(dbObject, "Sample.Namespace");
+
+        Assert.Contains("public static ITableMock CreateViewActiveOrders(this DbMock db)", content);
+        Assert.Contains("table.AddColumn(\"Id\", DbType.Int32, false, true", content);
+        Assert.Contains("table.CreateIndex(\"IX_ActiveOrders_CustomerId\", [\"CustomerId\"], unique: false);", content);
+        Assert.Contains("table.CreateForeignKey(\"FK_active_orders_CustomerId_Customers_Id\", \"Customers\", [(\"CustomerId\", \"Id\")]);", content);
     }
 
     /// <summary>

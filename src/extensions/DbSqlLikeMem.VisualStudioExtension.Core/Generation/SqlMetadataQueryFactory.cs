@@ -1,3 +1,5 @@
+using DbSqlLikeMem.VisualStudioExtension.Core.Models;
+
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
 /// <summary>
@@ -96,7 +98,7 @@ public static class SqlMetadataQueryFactory
 
     private static ISqlMetadataQueryStrategy ResolveStrategy(string databaseType)
     {
-        var normalizedType = Normalize(databaseType);
+        var normalizedType = DatabaseTypeNormalizer.NormalizeKey(databaseType);
         if (Strategies.TryGetValue(normalizedType, out var strategy))
         {
             return strategy;
@@ -1079,9 +1081,4 @@ SELECT '' AS SchemaName
 """;
     }
 
-    private static string Normalize(string databaseType)
-        => databaseType.Replace("_", string.Empty)
-            .Replace("-", string.Empty)
-            .Trim()
-            .ToLowerInvariant();
 }

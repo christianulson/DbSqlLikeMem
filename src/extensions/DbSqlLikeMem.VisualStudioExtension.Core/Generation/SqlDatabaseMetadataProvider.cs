@@ -122,7 +122,7 @@ public sealed class SqlDatabaseMetadataProvider(ISqlQueryExecutor queryExecutor)
 
     private static string ResolveDatabaseNameForMetadata(ConnectionDefinition connection)
     {
-        var databaseType = NormalizeDatabaseType(connection.DatabaseType);
+        var databaseType = DatabaseTypeNormalizer.NormalizeKey(connection.DatabaseType);
         if (!DatabaseTypesRequiringNameParsing.Contains(databaseType))
             return connection.DatabaseName;
 
@@ -141,13 +141,6 @@ public sealed class SqlDatabaseMetadataProvider(ISqlQueryExecutor queryExecutor)
 
         return connection.DatabaseName;
     }
-
-    private static string NormalizeDatabaseType(string? databaseType)
-        => (databaseType ?? string.Empty)
-            .Replace("_", string.Empty)
-            .Replace("-", string.Empty)
-            .Trim()
-            .ToLowerInvariant();
 
     private static bool TryReadDatabaseName(DbConnectionStringBuilder builder, out string databaseName)
     {
@@ -384,7 +377,7 @@ public sealed class SqlDatabaseMetadataProvider(ISqlQueryExecutor queryExecutor)
         string databaseType,
         IReadOnlyDictionary<string, object?> row)
     {
-        if (!NormalizeDatabaseType(databaseType).Equals("firebird", StringComparison.Ordinal))
+        if (!DatabaseTypeNormalizer.NormalizeKey(databaseType).Equals("firebird", StringComparison.Ordinal))
         {
             return ReadString(row, "DataType");
         }

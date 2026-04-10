@@ -8,7 +8,7 @@
 		<PackageReference Include="coverlet.collector" Version="8.0.0" />
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'net462' And ('$(IsTestProject)' == 'true' Or '$(IsTestToolsProject)' == 'true')">
+	<ItemGroup Condition="('$(TargetFramework)' == 'net462' Or '$(TargetFramework)' == 'net472') And ('$(IsTestProject)' == 'true' Or '$(IsTestToolsProject)' == 'true')">
 		<PackageReference Include="FluentAssertions" Version="8.8.0" />
 		<PackageReference Include="FluentAssertions.Analyzers" Version="0.34.1" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.3.0" />
@@ -31,7 +31,7 @@
 	</ItemGroup>
 
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'net462' And '$(IsTestProject)' == 'true'">
+	<ItemGroup Condition="('$(TargetFramework)' == 'net462' Or '$(TargetFramework)' == 'net472') And '$(IsTestProject)' == 'true'">
 		<PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

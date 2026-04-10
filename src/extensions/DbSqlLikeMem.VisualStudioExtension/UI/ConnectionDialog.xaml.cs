@@ -1,6 +1,4 @@
-using System.Linq;
 using System.Windows;
-using System.Windows.Controls;
 
 using UiResources = DbSqlLikeMem.VisualStudioExtension.Properties.Resources;
 

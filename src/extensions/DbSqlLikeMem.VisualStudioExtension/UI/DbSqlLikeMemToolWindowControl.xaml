@@ -4,11 +4,22 @@
         xmlns:prop="clr-namespace:DbSqlLikeMem.VisualStudioExtension.Properties"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:catalog="clr-namespace:Microsoft.VisualStudio.Imaging;assembly=Microsoft.VisualStudio.ImageCatalog"
+             xmlns:imaging="clr-namespace:Microsoft.VisualStudio.Imaging;assembly=Microsoft.VisualStudio.Imaging"
              xmlns:ui="clr-namespace:DbSqlLikeMem.VisualStudioExtension.UI"
              mc:Ignorable="d"
              d:DesignHeight="480"
              d:DesignWidth="420">
     <UserControl.Resources>
+        <Style x:Key="ToolbarIconStyle" TargetType="{x:Type imaging:CrispImage}">
+            <Setter Property="Width" Value="14" />
+            <Setter Property="Height" Value="14" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+        </Style>
+        <Style x:Key="ContextIconStyle" TargetType="{x:Type imaging:CrispImage}">
+            <Setter Property="Width" Value="12" />
+            <Setter Property="Height" Value="12" />
+        </Style>
         <HierarchicalDataTemplate DataType="{x:Type ui:ExplorerNode}" ItemsSource="{Binding Children}">
             <StackPanel Orientation="Horizontal" ToolTip="{Binding HealthMessage}">
                 <TextBlock Text="{Binding NodeGlyph}" Margin="0,0,6,0" />
@@ -29,25 +40,25 @@
         <WrapPanel Grid.Row="0" Orientation="Horizontal">
             <Button Padding="10,4" MinWidth="156" Margin="0,0,8,8" Click="OnAddConnectionClick">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="14" Margin="0,0,6,0" />
+                    <imaging:CrispImage Style="{StaticResource ToolbarIconStyle}" Moniker="{x:Static catalog:KnownMonikers.Add}" />
                     <TextBlock Text="{x:Static prop:Resources.AddConnectionButton}" FontWeight="SemiBold" />
                 </StackPanel>
             </Button>
             <Button Padding="10,4" Margin="0,0,8,8" Click="OnRefreshObjectsClick">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="14" Margin="0,0,6,0" />
+                    <imaging:CrispImage Style="{StaticResource ToolbarIconStyle}" Moniker="{x:Static catalog:KnownMonikers.Rerun}" />
                     <TextBlock Text="{x:Static prop:Resources.RefreshObjectsButton}" />
                 </StackPanel>
             </Button>
             <Button Padding="10,4" Margin="0,0,8,8" Click="OnImportSettingsClick">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="&#xE8D4;" FontFamily="Segoe MDL2 Assets" FontSize="14" Margin="0,0,6,0" />
+                    <imaging:CrispImage Style="{StaticResource ToolbarIconStyle}" Moniker="{x:Static catalog:KnownMonikers.ImportSettings}" />
                     <TextBlock Text="{x:Static prop:Resources.ImportSettingsButton}" />
                 </StackPanel>
             </Button>
             <Button Padding="10,4" Margin="0,0,8,8" Click="OnExportSettingsClick">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="&#xE8D5;" FontFamily="Segoe MDL2 Assets" FontSize="14" Margin="0,0,6,0" />
+                    <imaging:CrispImage Style="{StaticResource ToolbarIconStyle}" Moniker="{x:Static catalog:KnownMonikers.VisualStudioDownload}" />
                     <TextBlock Text="{x:Static prop:Resources.ExportSettingsButton}" />
                 </StackPanel>
             </Button>
@@ -69,75 +80,75 @@
                 <ContextMenu Opened="OnExplorerContextMenuOpened">
                     <MenuItem x:Name="EditConnectionMenuItem" Header="{x:Static prop:Resources.EditConnectionMenu}" Click="OnEditConnectionClick">
                         <MenuItem.Icon>
-                            <TextBlock Text="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                            <imaging:CrispImage Style="{StaticResource ContextIconStyle}" Moniker="{x:Static catalog:KnownMonikers.EditQuery}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="RefreshConnectionMenuItem" Header="{x:Static prop:Resources.RefreshObjectsButton}" Click="OnRefreshObjectsClick">
                         <MenuItem.Icon>
-                            <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                            <imaging:CrispImage Style="{StaticResource ContextIconStyle}" Moniker="{x:Static catalog:KnownMonikers.Rerun}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="CancelConnectionOperationMenuItem" Header="{x:Static prop:Resources.CancelOperationMenu}" Click="OnCancelOperationClick">
                         <MenuItem.Icon>
-                            <TextBlock Text="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                            <imaging:CrispImage Style="{StaticResource ContextIconStyle}" Moniker="{x:Static catalog:KnownMonikers.StopFilter}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="RemoveConnectionMenuItem" Header="{x:Static prop:Resources.RemoveConnectionMenu}" Click="OnRemoveConnectionClick">
                         <MenuItem.Icon>
-                            <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                            <imaging:CrispImage Style="{StaticResource ContextIconStyle}" Moniker="{x:Static catalog:KnownMonikers.DeleteEntity}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <Separator x:Name="ConnectionActionsSeparator" />
                     <MenuItem x:Name="ConfigureMappingsMenuItem" Header="{x:Static prop:Resources.ConfigureMappingsMenu}" Click="OnConfigureMappingsClick">
                         <MenuItem.Icon>
-                            <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                            <imaging:CrispImage Style="{StaticResource ContextIconStyle}" Moniker="{x:Static catalog:KnownMonikers.Settings}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="ConfigureTemplatesMenuItem" Header="{x:Static prop:Resources.ConfigureTemplatesMenu}" Click="OnConfigureTemplatesClick">
                         <MenuItem.Icon>
-                            <TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                            <imaging:CrispImage Style="{StaticResource ContextIconStyle}" Moniker="{x:Static catalog:KnownMonikers.Settings}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="ConfigureObjectTypeFilterMenuItem" Header="{x:Static prop:Resources.FilterItemsMenu}" Click="OnConfigureObjectTypeFilterClick">
                         <MenuItem.Icon>
-                            <TextBlock Text="&#xE71C;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                            <imaging:CrispImage Style="{StaticResource ContextIconStyle}" Moniker="{x:Static catalog:KnownMonikers.EditFilter}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="ClearObjectTypeFilterMenuItem" Header="{x:Static prop:Resources.ClearFilterMenu}" Click="OnClearObjectTypeFilterClick">
                         <MenuItem.Icon>
-                            <TextBlock Text="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                            <imaging:CrispImage Style="{StaticResource ContextIconStyle}" Moniker="{x:Static catalog:KnownMonikers.Remove}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <Separator x:Name="GenerationActionsSeparator" />
                     <MenuItem x:Name="GenerateAllClassesMenuItem" Header="{x:Static prop:Resources.GenerateAllClassesMenu}" Click="OnGenerateAllClassesClick">
                         <MenuItem.Icon>
-                            <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                            <imaging:CrispImage Style="{StaticResource ContextIconStyle}" Moniker="{x:Static catalog:KnownMonikers.CodeInformation}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <Separator x:Name="GenerateByTypeSeparator" />
                     <MenuItem x:Name="GenerateTestClassesMenuItem" Header="{x:Static prop:Resources.GenerateTestClassesMenu}" Click="OnGenerateClassesClick">
                         <MenuItem.Icon>
-                            <TextBlock Text="&#xEAA8;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                            <imaging:CrispImage Style="{StaticResource ContextIconStyle}" Moniker="{x:Static catalog:KnownMonikers.Run}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="GenerateModelClassesMenuItem" Header="{x:Static prop:Resources.GenerateModelClassesMenu}" Click="OnGenerateModelClassesClick">
                         <MenuItem.Icon>
-                            <TextBlock Text="&#xE8F1;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                            <imaging:CrispImage Style="{StaticResource ContextIconStyle}" Moniker="{x:Static catalog:KnownMonikers.Property}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="GenerateRepositoryClassesMenuItem" Header="{x:Static prop:Resources.GenerateRepositoryClassesMenu}" Click="OnGenerateRepositoryClassesClick">
                         <MenuItem.Icon>
-                            <TextBlock Text="&#xE7BF;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                            <imaging:CrispImage Style="{StaticResource ContextIconStyle}" Moniker="{x:Static catalog:KnownMonikers.Output}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="CheckConsistencyMenuItem" Header="{x:Static prop:Resources.CheckConsistencyMenu}" Click="OnCheckConsistencyClick">
                         <MenuItem.Icon>
-                            <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                            <imaging:CrispImage Style="{StaticResource ContextIconStyle}" Moniker="{x:Static catalog:KnownMonikers.Analysis}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="ExtractScenarioMenuItem" Header="{x:Static prop:Resources.ExtractTestScenarioMenu}" Click="OnExtractScenarioClick">
                         <MenuItem.Icon>
-                            <TextBlock Text="&#xE898;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                            <imaging:CrispImage Style="{StaticResource ContextIconStyle}" Moniker="{x:Static catalog:KnownMonikers.Run}" />
                         </MenuItem.Icon>
                     </MenuItem>
                 </ContextMenu>

@@ -83,6 +83,137 @@ public sealed class SqlDatabaseMetadataProviderTests
     }
 
     /// <summary>
+    /// EN: Ensures MariaDB routine metadata is serialized with body normalization, return type, and parameters.
+    /// PT: Garante que os metadados de rotina do MariaDB sejam serializados com normalizacao do corpo, tipo de retorno e parametros.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlDatabaseMetadataProvider")]
+    public async Task GetObjectAsync_ReturnsRoutineMetadataForMariaDbFunction()
+    {
+        var executor = new FakeSqlQueryExecutor();
+        executor.WhenContains("FROM INFORMATION_SCHEMA.TABLES", [
+            Row(("SchemaName", "dbo"), ("ObjectName", "fn_Total"), ("ObjectType", "Function"))
+        ]);
+        executor.WhenContains("ROUTINE_DEFINITION", [
+            Row(("SchemaName", "dbo"), ("ObjectName", "fn_Total"), ("RoutineType", "Function"), ("ReturnTypeSql", "int"), ("BodySql", "CREATE FUNCTION fn_Total(CustomerId int) RETURNS int DETERMINISTIC RETURN CustomerId + 1;"))
+        ]);
+        executor.WhenContains("INFORMATION_SCHEMA.PARAMETERS", [
+            Row(("SchemaName", "dbo"), ("ObjectName", "fn_Total"), ("ParameterName", "CustomerId"), ("ParameterMode", "IN"), ("DataType", "int"), ("Ordinal", 1), ("DefaultValue", ""), ("IsNullable", "NO"), ("CharMaxLen", null), ("NumPrecision", 10), ("NumScale", 0), ("IsVariadic", "0"), ("IsOrderByClause", "0"), ("IsFrameClause", "0"))
+        ]);
+
+        var provider = new SqlDatabaseMetadataProvider(executor);
+        var conn = new ConnectionDefinition("1", "MariaDb", "ERP", "Server=.;Database=erp;");
+        var reference = new DatabaseObjectReference("dbo", "fn_Total", DatabaseObjectType.Function);
+
+        var result = await provider.GetObjectAsync(conn, reference, TestContext.Current.CancellationToken);
+
+        Assert.NotNull(result);
+        Assert.Equal("int", result!.Properties!["ReturnTypeSql"]);
+        Assert.Equal("CustomerId + 1", result.Properties["BodySql"]);
+        Assert.Contains("CustomerId|int|1|0|0|0|", result.Properties["Parameters"]);
+    }
+
+    /// <summary>
+    /// EN: Ensures MariaDB procedure metadata is serialized with procedure parameters and return handling.
+    /// PT: Garante que os metadados de procedure do MariaDB sejam serializados com parametros da procedure e tratamento de retorno.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlDatabaseMetadataProvider")]
+    public async Task GetObjectAsync_ReturnsRoutineMetadataForMariaDbProcedure()
+    {
+        var executor = new FakeSqlQueryExecutor();
+        executor.WhenContains("FROM INFORMATION_SCHEMA.TABLES", [
+            Row(("SchemaName", "dbo"), ("ObjectName", "sp_update_customer"), ("ObjectType", "Procedure"))
+        ]);
+        executor.WhenContains("ROUTINE_DEFINITION", [
+            Row(("SchemaName", "dbo"), ("ObjectName", "sp_update_customer"), ("RoutineType", "Procedure"), ("ReturnTypeSql", ""), ("BodySql", "CREATE PROCEDURE sp_update_customer(IN CustomerId int, IN Region varchar(50) DEFAULT 'EU', OUT RowsAffected int) BEGIN SELECT 1; END"))
+        ]);
+        executor.WhenContains("INFORMATION_SCHEMA.PARAMETERS", [
+            Row(("SchemaName", "dbo"), ("ObjectName", "sp_update_customer"), ("ParameterName", "CustomerId"), ("ParameterMode", "IN"), ("DataType", "int"), ("Ordinal", 1), ("DefaultValue", ""), ("IsNullable", "NO"), ("CharMaxLen", null), ("NumPrecision", 10), ("NumScale", 0), ("IsVariadic", "0"), ("IsOrderByClause", "0"), ("IsFrameClause", "0")),
+            Row(("SchemaName", "dbo"), ("ObjectName", "sp_update_customer"), ("ParameterName", "Region"), ("ParameterMode", "IN"), ("DataType", "varchar"), ("Ordinal", 2), ("DefaultValue", "EU"), ("IsNullable", "NO"), ("CharMaxLen", 50), ("NumPrecision", null), ("NumScale", null), ("IsVariadic", "0"), ("IsOrderByClause", "0"), ("IsFrameClause", "0")),
+            Row(("SchemaName", "dbo"), ("ObjectName", "sp_update_customer"), ("ParameterName", "RowsAffected"), ("ParameterMode", "OUT"), ("DataType", "int"), ("Ordinal", 3), ("DefaultValue", ""), ("IsNullable", "NO"), ("CharMaxLen", null), ("NumPrecision", 10), ("NumScale", 0), ("IsVariadic", "0"), ("IsOrderByClause", "0"), ("IsFrameClause", "0"))
+        ]);
+
+        var provider = new SqlDatabaseMetadataProvider(executor);
+        var conn = new ConnectionDefinition("1", "MariaDb", "ERP", "Server=.;Database=erp;");
+        var reference = new DatabaseObjectReference("dbo", "sp_update_customer", DatabaseObjectType.Procedure);
+
+        var result = await provider.GetObjectAsync(conn, reference, TestContext.Current.CancellationToken);
+
+        Assert.NotNull(result);
+        Assert.Equal("CustomerId|int|1|", result!.Properties!["RequiredIn"]);
+        Assert.Equal("Region|String|0|EU", result.Properties["OptionalIn"]);
+        Assert.Equal("RowsAffected|Int32|1|", result.Properties["OutParams"]);
+        Assert.Equal(string.Empty, result.Properties["ReturnParam"]);
+    }
+
+    /// <summary>
+    /// EN: Ensures Firebird procedure metadata is serialized with input and output parameters.
+    /// PT: Garante que os metadados de procedure do Firebird sejam serializados com parametros de entrada e saida.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlDatabaseMetadataProvider")]
+    public async Task GetObjectAsync_ReturnsRoutineMetadataForFirebirdProcedure()
+    {
+        var executor = new FakeSqlQueryExecutor();
+        executor.WhenContains("TRIM(p.RDB$PROCEDURE_NAME) AS ObjectName", [
+            Row(("SchemaName", ""), ("ObjectName", "sp_update_customer"), ("ObjectType", "Procedure"))
+        ]);
+        executor.WhenContains("RDB$PROCEDURE_SOURCE", [
+            Row(("SchemaName", ""), ("ObjectName", "sp_update_customer"), ("RoutineType", "Procedure"), ("BodySql", "CREATE PROCEDURE sp_update_customer (CustomerId INTEGER, Region VARCHAR(50) DEFAULT 'EU') AS BEGIN /* body */ END"), ("ReturnTypeSql", ""))
+        ]);
+        executor.WhenContains("RDB$PROCEDURE_PARAMETERS", [
+            Row(("SchemaName", ""), ("ObjectName", "sp_update_customer"), ("ParameterMode", "IN"), ("ParameterName", "CustomerId"), ("DataType", 8), ("Ordinal", 1), ("DefaultValue", ""), ("IsNullable", "NO"), ("CharMaxLen", null), ("NumPrecision", 10), ("NumScale", 0), ("IsVariadic", "0"), ("IsOrderByClause", "0"), ("IsFrameClause", "0")),
+            Row(("SchemaName", ""), ("ObjectName", "sp_update_customer"), ("ParameterMode", "IN"), ("ParameterName", "Region"), ("DataType", 37), ("Ordinal", 2), ("DefaultValue", "EU"), ("IsNullable", "NO"), ("CharMaxLen", 50), ("NumPrecision", null), ("NumScale", null), ("IsVariadic", "0"), ("IsOrderByClause", "0"), ("IsFrameClause", "0")),
+            Row(("SchemaName", ""), ("ObjectName", "sp_update_customer"), ("ParameterMode", "OUT"), ("ParameterName", "RowsAffected"), ("DataType", 8), ("Ordinal", 3), ("DefaultValue", ""), ("IsNullable", "NO"), ("CharMaxLen", null), ("NumPrecision", 10), ("NumScale", 0), ("IsVariadic", "0"), ("IsOrderByClause", "0"), ("IsFrameClause", "0"))
+        ]);
+
+        var provider = new SqlDatabaseMetadataProvider(executor);
+        var conn = new ConnectionDefinition("1", "Firebird", "ERP", "Server=.;Database=erp;");
+        var reference = new DatabaseObjectReference(string.Empty, "sp_update_customer", DatabaseObjectType.Procedure);
+
+        var result = await provider.GetObjectAsync(conn, reference, TestContext.Current.CancellationToken);
+
+        Assert.NotNull(result);
+        Assert.Equal("CustomerId|Int32|1|", result!.Properties!["RequiredIn"]);
+        Assert.Equal("Region|String|0|EU", result.Properties["OptionalIn"]);
+        Assert.Equal("RowsAffected|Int32|1|", result.Properties["OutParams"]);
+        Assert.Equal(string.Empty, result.Properties["ReturnParam"]);
+    }
+
+    /// <summary>
+    /// EN: Ensures Firebird function metadata is serialized with normalized body, return type, and parameters.
+    /// PT: Garante que os metadados de function do Firebird sejam serializados com corpo normalizado, tipo de retorno e parametros.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlDatabaseMetadataProvider")]
+    public async Task GetObjectAsync_ReturnsRoutineMetadataForFirebirdFunction()
+    {
+        var executor = new FakeSqlQueryExecutor();
+        executor.WhenContains("TRIM(f.RDB$FUNCTION_NAME) AS ObjectName", [
+            Row(("SchemaName", ""), ("ObjectName", "fn_total"), ("ObjectType", "Function"))
+        ]);
+        executor.WhenContains("RDB$FUNCTION_SOURCE", [
+            Row(("SchemaName", ""), ("ObjectName", "fn_total"), ("RoutineType", "Function"), ("BodySql", "CREATE FUNCTION fn_total(a INTEGER, b VARCHAR(50)) RETURNS INTEGER AS BEGIN RETURN a + 1; END"), ("ReturnTypeSql", ""))
+        ]);
+        executor.WhenContains("RDB$FUNCTION_ARGUMENTS", [
+            Row(("SchemaName", ""), ("ObjectName", "fn_total"), ("ParameterMode", "RETURN"), ("ParameterName", "return"), ("DataType", 8), ("Ordinal", 0), ("DefaultValue", ""), ("IsNullable", "NO"), ("CharMaxLen", null), ("NumPrecision", 10), ("NumScale", 0), ("IsVariadic", "0"), ("IsOrderByClause", "0"), ("IsFrameClause", "0")),
+            Row(("SchemaName", ""), ("ObjectName", "fn_total"), ("ParameterMode", "IN"), ("ParameterName", "a"), ("DataType", 37), ("Ordinal", 1), ("DefaultValue", ""), ("IsNullable", "NO"), ("CharMaxLen", 50), ("NumPrecision", null), ("NumScale", null), ("IsVariadic", "0"), ("IsOrderByClause", "0"), ("IsFrameClause", "0"))
+        ]);
+
+        var provider = new SqlDatabaseMetadataProvider(executor);
+        var conn = new ConnectionDefinition("1", "Firebird", "ERP", "Server=.;Database=erp;");
+        var reference = new DatabaseObjectReference(string.Empty, "fn_total", DatabaseObjectType.Function);
+
+        var result = await provider.GetObjectAsync(conn, reference, TestContext.Current.CancellationToken);
+
+        Assert.NotNull(result);
+        Assert.Equal("NUMERIC(10, 0)", result!.Properties!["ReturnTypeSql"]);
+        Assert.Equal("a + 1", result.Properties["BodySql"]);
+        Assert.Contains("a|VARCHAR(50)|1|0|0|0|", result.Properties["Parameters"]);
+    }
+
+    /// <summary>
     /// EN: Ensures function body text is reduced to the executable scalar expression before serialization.
     /// PT: Garante que o texto do corpo da function seja reduzido a expressao escalar executavel antes da serializacao.
     /// </summary>
@@ -326,10 +457,10 @@ public sealed class SqlDatabaseMetadataProviderTests
         private readonly List<(string Contains, IReadOnlyCollection<IReadOnlyDictionary<string, object?>> Rows)> _responses = [];
         private readonly List<(string Sql, IReadOnlyDictionary<string, object?> Parameters)> _calls = [];
 
-    /// <summary>
-    /// EN: Verifies Firebird list queries include the object families used by the generator.
-    /// PT: Verifica se as consultas de listagem do Firebird incluem as familias de objetos usadas pela geracao.
-    /// </summary>
+        /// <summary>
+        /// EN: Records a canned response for queries that contain the provided SQL fragment.
+        /// PT: Registra uma resposta preparada para consultas que contenham o fragmento de SQL informado.
+        /// </summary>
         public void WhenContains(string containsSql, IReadOnlyCollection<IReadOnlyDictionary<string, object?>> rows)
             => _responses.Add((containsSql, rows));
 
@@ -348,10 +479,10 @@ public sealed class SqlDatabaseMetadataProviderTests
             return false;
         }
 
-    /// <summary>
-    /// EN: Verifies MariaDB list queries include sequence objects.
-    /// PT: Verifica se as consultas de listagem do MariaDB incluem objetos do tipo sequence.
-    /// </summary>
+        /// <summary>
+        /// EN: Returns the most recent parameters for the matching query fragment.
+        /// PT: Retorna os parametros mais recentes para o fragmento de consulta correspondente.
+        /// </summary>
         public Task<IReadOnlyCollection<IReadOnlyDictionary<string, object?>>> QueryAsync(
             ConnectionDefinition connection,
             string sql,

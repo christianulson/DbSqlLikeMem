@@ -89,7 +89,7 @@ internal sealed class BridgeSqlQueryExecutor : ISqlQueryExecutor
 
     private static DbProviderFactory GetFactory(string databaseType)
     {
-        var normalizedType = NormalizeDatabaseType(databaseType);
+        var normalizedType = DatabaseTypeNormalizer.NormalizeKey(databaseType);
         if (!ProviderCandidates.TryGetValue(normalizedType, out var providerNames))
         {
             throw new NotSupportedException($"Database type not supported for ADO.NET bridge: {databaseType}");
@@ -123,13 +123,6 @@ internal sealed class BridgeSqlQueryExecutor : ISqlQueryExecutor
             $"No ADO.NET provider registered for '{databaseType}'. Tried: {string.Join(", ", providerNames)}."
         );
     }
-
-    private static string NormalizeDatabaseType(string databaseType)
-        => (databaseType ?? string.Empty)
-            .Replace("_", string.Empty)
-            .Replace("-", string.Empty)
-            .Trim()
-            .ToLowerInvariant();
 
     private static DbProviderFactory? TryCreateFactoryFromType(string fullTypeName)
     {

@@ -1,3 +1,5 @@
+using DbSqlLikeMem.VisualStudioExtension.Core.Models;
+
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
 /// <summary>
@@ -16,14 +18,11 @@ public static class GenerationRuleStrategyResolver
     /// PT: Retorna a estrategia que corresponde ao tipo de banco informado.
     /// </summary>
     public static IGenerationRuleStrategy Resolve(string? databaseType)
-        => Normalize(databaseType) switch
+        => DatabaseTypeNormalizer.NormalizeKey(databaseType) switch
         {
             "firebird" => Firebird,
             "mysql" => MySql,
             "oracle" => Oracle,
             _ => Default
         };
-
-    private static string Normalize(string? databaseType)
-        => (databaseType ?? string.Empty).Trim().ToLowerInvariant();
 }

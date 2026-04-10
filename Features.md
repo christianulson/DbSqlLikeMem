@@ -2,12 +2,13 @@
 
 > Looking for Portuguese? See [Funcionalidades.md](Funcionalidades.md).
 
-> This file is kept for compatibility and quick NuGet/GitHub navigation. The canonical and fully maintained version lives at [`docs/old/providers-and-features.md`](docs/old/providers-and-features.md).
+> This file is kept for compatibility and quick NuGet/GitHub navigation. The current provider selection and compatibility pages live at [`docs/Wiki/Providers-and-Compatibility.md`](docs/Wiki/Providers-and-Compatibility.md), while [`docs/old/providers-and-features.md`](docs/old/providers-and-features.md) remains as a legacy reference.
 
 ## Quick links
 
 - [Portuguese version](Funcionalidades.md)
-- [Canonical provider and feature documentation](docs/old/providers-and-features.md)
+- [Current provider and compatibility documentation](docs/Wiki/Providers-and-Compatibility.md)
+- [Legacy provider and feature documentation](docs/old/providers-and-features.md)
 - [Getting started guide](docs/getting-started.md)
 - [Root repository overview](README.md)
 
@@ -15,12 +16,14 @@
 
 | Database | Package | Simulated versions |
 | --- | --- | --- |
-| MySQL | `DbSqlLikeMem.MySql` | 3, 4, 5, 8 |
+| MySQL | `DbSqlLikeMem.MySql` | 3.0, 4.0, 5.5, 5.6, 5.7, 8.0, 8.4 |
+| MariaDB | `DbSqlLikeMem.MariaDb` | 10.3, 10.5, 10.6, 10.8, 11.0 |
+| Firebird | `DbSqlLikeMem.Firebird` | 2.1, 2.5, 3.0, 4.0, 5.0 |
 | SQL Server | `DbSqlLikeMem.SqlServer` | 7, 2000, 2005, 2008, 2012, 2014, 2016, 2017, 2019, 2022 |
 | SQL Azure | `DbSqlLikeMem.SqlAzure` | 100, 110, 120, 130, 140, 150, 160, 170 |
 | Oracle | `DbSqlLikeMem.Oracle` | 7, 8, 9, 10, 11, 12, 18, 19, 21, 23 |
 | PostgreSQL (Npgsql) | `DbSqlLikeMem.Npgsql` | 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 |
-| SQLite | `DbSqlLikeMem.Sqlite` | 3 |
+| SQLite | `DbSqlLikeMem.Sqlite` | 3.24, 3.25, 3.33, 3.35, 3.38, 3.40, 3.51 |
 | DB2 | `DbSqlLikeMem.Db2` | 8, 9, 10, 11 |
 
 ## Common capabilities (all providers)
@@ -86,6 +89,22 @@
 
 - `INSERT ... ON DUPLICATE KEY UPDATE`: supported.
 - Index hints (`USE/IGNORE/FORCE INDEX`) parsed, with supported execution semantics and validations.
+
+### MariaDB
+
+- Version-aware dialect behavior in provider package.
+- MySQL-family write flows with MariaDB-specific version gates.
+- `NEXT VALUE FOR` / `PREVIOUS VALUE FOR` sequence support from MariaDB 10.3 onward.
+- `RETURNING` support from MariaDB 10.5 onward.
+- `JSON_TABLE` support from MariaDB 10.6 onward.
+- `UPDATE ... RETURNING` remains blocked in the current MariaDB contract.
+
+### Firebird
+
+- Version-aware dialect behavior in provider package.
+- Firebird-style `FIRST`, `SKIP`, `ROWS`, `MERGE`, `RETURNING`, `EXECUTE BLOCK`, and `EXECUTE STATEMENT` flows.
+- `GEN_ID` and sequence syntax are implemented in the parser/runtime, including schema-qualified names.
+- Firebird context variables and basic exception-handling blocks are covered in the supported subset.
 
 ### SQL Server
 

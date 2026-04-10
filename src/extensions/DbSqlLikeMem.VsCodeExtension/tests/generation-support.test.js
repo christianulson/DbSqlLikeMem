@@ -84,6 +84,21 @@ test('buildTemplateClassFilePath uses deterministic model and repository targets
   );
 });
 
+test('buildTemplateClassFilePath supports function objects with the shared template flow', () => {
+  assert.equal(
+    buildTemplateClassFilePath(
+      'c:\\workspace',
+      { schema: 'dbo', name: 'fn_total', objectType: 'Function' },
+      'model',
+      'src/Models/Functions',
+      { databaseType: 'SqlServer', databaseName: 'ERP' },
+      '{NamePascal}{Type}Factory.cs',
+      'Company.Project.Functions'
+    ),
+    path.join('c:\\workspace', 'src/Models/Functions', 'FnTotalFunctionFactory.cs')
+  );
+});
+
 test('resolveTemplateFileName expands placeholders for template-based generation', () => {
   const fileName = resolveTemplateFileName(
     { schema: 'sales', name: 'monthly-report', objectType: 'View' },
@@ -162,6 +177,42 @@ test('renderTemplateContent stores routine metadata headers for functions', () =
   assert.match(content, /\/\/ DBSqlLikeMem:Parameters=CustomerId\|int\|1\|0\|0\|0\|/);
   assert.match(content, /\/\/ DBSqlLikeMem:ReturnTypeSql=int/);
   assert.match(content, /\/\/ DBSqlLikeMem:BodySql=CustomerId/);
+});
+
+test('isGeneratedArtifactStructureAligned detects routine metadata drift for functions', () => {
+  const content = [
+    '// DBSqlLikeMem:Schema=dbo',
+    '// DBSqlLikeMem:Object=fn_total',
+    '// DBSqlLikeMem:Type=Function',
+    '// DBSqlLikeMem:Parameters=CustomerId|int|1|0|0|0|',
+    '// DBSqlLikeMem:ReturnTypeSql=int',
+    '// DBSqlLikeMem:BodySql=CustomerId',
+    'public class TotalFunction {}'
+  ].join('\n');
+
+  assert.equal(
+    isGeneratedArtifactStructureAligned(content, {
+      schema: 'dbo',
+      name: 'fn_total',
+      objectType: 'Function',
+      parameters: 'CustomerId|int|1|0|0|0|',
+      returnTypeSql: 'int',
+      bodySql: 'CustomerId'
+    }),
+    true
+  );
+
+  assert.equal(
+    isGeneratedArtifactStructureAligned(content, {
+      schema: 'dbo',
+      name: 'fn_total',
+      objectType: 'Function',
+      parameters: 'CustomerId|int|1|0|0|0|',
+      returnTypeSql: 'bigint',
+      bodySql: 'CustomerId'
+    }),
+    false
+  );
 });
 
 test('isGeneratedArtifactMetadataAligned detects drift against the selected object', () => {

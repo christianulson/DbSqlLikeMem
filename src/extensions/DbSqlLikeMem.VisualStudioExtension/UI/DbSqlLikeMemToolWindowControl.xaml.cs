@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using DbSqlLikeMem.VisualStudioExtension.Core.Services;
 using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 using DbSqlLikeMem.VisualStudioExtension.Services;
 using EnvDTE;
@@ -17,6 +18,10 @@ using UiResources = DbSqlLikeMem.VisualStudioExtension.Properties.Resources;
 
 namespace DbSqlLikeMem.VisualStudioExtension.UI;
 
+/// <summary>
+/// EN: Hosts the Visual Studio tool window UI and wires explorer actions to the view model.
+/// PT: Hospeda a interface da janela de ferramentas do Visual Studio e conecta as acoes do explorador ao view model.
+/// </summary>
 public partial class DbSqlLikeMemToolWindowControl : UserControl
 {
     private static readonly HashSet<ExplorerNodeKind> GenerationSupportedKinds =
@@ -112,58 +117,49 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
 
     private void OnExplorerContextMenuOpened(object sender, RoutedEventArgs e)
     {
-        var selectedNode = ExplorerTree.SelectedItem as ExplorerNode;
-
-        // For TableDetailGroup/TableDetailItem, promote actions to the parent Object (table) node
-        var contextNode = selectedNode?.Kind is ExplorerNodeKind.TableDetailGroup or ExplorerNodeKind.TableDetailItem
-            ? FindParentObjectNode(selectedNode)
-            : selectedNode;
+        var contextNode = ExplorerNodeSelectionResolver.GetEffectiveSelectedNode(ExplorerTree.SelectedItem as ExplorerNode);
 
         var isConnectionNodeSelected = contextNode?.Kind == ExplorerNodeKind.Connection;
         var isSchemaNodeSelected = contextNode?.Kind == ExplorerNodeKind.Schema;
         var isObjectTypeNodeSelected = contextNode?.Kind == ExplorerNodeKind.ObjectType;
         var isTableNodeSelected = contextNode?.Kind == ExplorerNodeKind.Object && contextNode.ObjectType == DatabaseObjectType.Table;
         var isGenerationSupportedSelected = contextNode is not null && GenerationSupportedKinds.Contains(contextNode.Kind);
-        var canExtractScenario = isConnectionNodeSelected || isSchemaNodeSelected || isObjectTypeNodeSelected || isTableNodeSelected;
-        var canClearObjectTypeFilter = isObjectTypeNodeSelected
+        var hasObjectTypeFilter = isObjectTypeNodeSelected
             && contextNode is not null
             && !string.IsNullOrWhiteSpace(viewModel.GetObjectTypeFilter(contextNode).FilterText);
 
-        // Connection actions: visible for Connection and Schema (which belongs to a connection)
-        var showConnectionActions = isConnectionNodeSelected || isSchemaNodeSelected;
-        EditConnectionMenuItem.Visibility = isConnectionNodeSelected ? Visibility.Visible : Visibility.Collapsed;
-        RemoveConnectionMenuItem.Visibility = isConnectionNodeSelected ? Visibility.Visible : Visibility.Collapsed;
-        RefreshConnectionMenuItem.Visibility = showConnectionActions ? Visibility.Visible : Visibility.Collapsed;
-        CancelConnectionOperationMenuItem.Visibility = showConnectionActions ? Visibility.Visible : Visibility.Collapsed;
-        ConnectionActionsSeparator.Visibility = showConnectionActions ? Visibility.Visible : Visibility.Collapsed;
+        var visibility = ExplorerContextMenuStateCalculator.Calculate(
+            new ExplorerContextMenuSelection(
+                isConnectionNodeSelected,
+                isSchemaNodeSelected,
+                isObjectTypeNodeSelected,
+                isTableNodeSelected,
+                hasObjectTypeFilter,
+                isGenerationSupportedSelected));
 
-        ConfigureMappingsMenuItem.Visibility = isObjectTypeNodeSelected ? Visibility.Visible : Visibility.Collapsed;
-        ConfigureTemplatesMenuItem.Visibility = isObjectTypeNodeSelected ? Visibility.Visible : Visibility.Collapsed;
-        ConfigureObjectTypeFilterMenuItem.Visibility = isObjectTypeNodeSelected ? Visibility.Visible : Visibility.Collapsed;
-        ClearObjectTypeFilterMenuItem.Visibility = canClearObjectTypeFilter ? Visibility.Visible : Visibility.Collapsed;
+        EditConnectionMenuItem.Visibility = visibility.EditConnectionVisible ? Visibility.Visible : Visibility.Collapsed;
+        RemoveConnectionMenuItem.Visibility = visibility.RemoveConnectionVisible ? Visibility.Visible : Visibility.Collapsed;
+        RefreshConnectionMenuItem.Visibility = visibility.RefreshConnectionVisible ? Visibility.Visible : Visibility.Collapsed;
+        CancelConnectionOperationMenuItem.Visibility = visibility.CancelConnectionOperationVisible ? Visibility.Visible : Visibility.Collapsed;
+        ConnectionActionsSeparator.Visibility = visibility.ConnectionActionsSeparatorVisible ? Visibility.Visible : Visibility.Collapsed;
 
-        GenerationActionsSeparator.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
-        GenerateAllClassesMenuItem.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
-        GenerateByTypeSeparator.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
-        GenerateTestClassesMenuItem.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
-        GenerateModelClassesMenuItem.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
-        GenerateRepositoryClassesMenuItem.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
-        CheckConsistencyMenuItem.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
-        ExtractScenarioMenuItem.Visibility = canExtractScenario ? Visibility.Visible : Visibility.Collapsed;
+        ConfigureMappingsMenuItem.Visibility = visibility.ConfigureMappingsVisible ? Visibility.Visible : Visibility.Collapsed;
+        ConfigureTemplatesMenuItem.Visibility = visibility.ConfigureTemplatesVisible ? Visibility.Visible : Visibility.Collapsed;
+        ConfigureObjectTypeFilterMenuItem.Visibility = visibility.ConfigureObjectTypeFilterVisible ? Visibility.Visible : Visibility.Collapsed;
+        ClearObjectTypeFilterMenuItem.Visibility = visibility.ClearObjectTypeFilterVisible ? Visibility.Visible : Visibility.Collapsed;
+
+        GenerationActionsSeparator.Visibility = visibility.GenerationActionsSeparatorVisible ? Visibility.Visible : Visibility.Collapsed;
+        GenerateAllClassesMenuItem.Visibility = visibility.GenerateAllClassesVisible ? Visibility.Visible : Visibility.Collapsed;
+        GenerateByTypeSeparator.Visibility = visibility.GenerateByTypeSeparatorVisible ? Visibility.Visible : Visibility.Collapsed;
+        GenerateTestClassesMenuItem.Visibility = visibility.GenerateTestClassesVisible ? Visibility.Visible : Visibility.Collapsed;
+        GenerateModelClassesMenuItem.Visibility = visibility.GenerateModelClassesVisible ? Visibility.Visible : Visibility.Collapsed;
+        GenerateRepositoryClassesMenuItem.Visibility = visibility.GenerateRepositoryClassesVisible ? Visibility.Visible : Visibility.Collapsed;
+        CheckConsistencyMenuItem.Visibility = visibility.CheckConsistencyVisible ? Visibility.Visible : Visibility.Collapsed;
+        ExtractScenarioMenuItem.Visibility = visibility.ExtractScenarioVisible ? Visibility.Visible : Visibility.Collapsed;
 
         if (sender is ContextMenu contextMenu)
         {
-            var hasVisibleAction = false;
-            foreach (var item in contextMenu.Items)
-            {
-                if (item is Control control && control.Visibility == Visibility.Visible)
-                {
-                    hasVisibleAction = true;
-                    break;
-                }
-            }
-
-            if (!hasVisibleAction)
+            if (!visibility.HasVisibleAction)
             {
                 contextMenu.IsOpen = false;
             }
@@ -214,54 +210,6 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         }
     }
 
-    /// <summary>
-    /// Returns the effective node for context menu actions.
-    /// For TableDetailGroup/TableDetailItem, promotes to the parent Object node.
-    /// </summary>
-    private ExplorerNode? GetEffectiveSelectedNode()
-    {
-        var node = ExplorerTree.SelectedItem as ExplorerNode;
-        if (node?.Kind is ExplorerNodeKind.TableDetailGroup or ExplorerNodeKind.TableDetailItem)
-            return FindParentObjectNode(node);
-        return node;
-    }
-
-    /// <summary>
-    /// For TableDetailGroup/TableDetailItem nodes, finds the parent Object node in the tree.
-    /// This allows detail-level nodes to inherit their parent table's context menu actions.
-    /// </summary>
-    private ExplorerNode? FindParentObjectNode(ExplorerNode? detailNode)
-    {
-        if (detailNode is null) return null;
-        foreach (var node in EnumerateNodes(viewModel.Nodes))
-        {
-            if (node.Kind == ExplorerNodeKind.Object)
-            {
-                foreach (var child in node.Children)
-                {
-                    if (ReferenceEquals(child, detailNode))
-                        return node;
-                    foreach (var grandchild in child.Children)
-                    {
-                        if (ReferenceEquals(grandchild, detailNode))
-                            return node;
-                    }
-                }
-            }
-        }
-        return null;
-    }
-
-    private static IEnumerable<ExplorerNode> EnumerateNodes(IEnumerable<ExplorerNode> roots)
-    {
-        foreach (var node in roots)
-        {
-            yield return node;
-            foreach (var child in EnumerateNodes(node.Children))
-                yield return child;
-        }
-    }
-
     private static T? FindParent<T>(DependencyObject child) where T : DependencyObject
     {
         var current = child;
@@ -280,20 +228,23 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
 
     private void OnConfigureMappingsClick(object sender, RoutedEventArgs e)
     {
-        if (ExplorerTree.SelectedItem is not ExplorerNode selected || selected.Kind != ExplorerNodeKind.ObjectType)
+        if (ExplorerTree.SelectedItem is not ExplorerNode selected
+            || selected.Kind != ExplorerNodeKind.ObjectType
+            || selected.ConnectionId is not string connectionId
+            || selected.ObjectType is not DatabaseObjectType objectType)
         {
             MessageBox.Show(System.Windows.Window.GetWindow(this), UiResources.SelectObjectTypeToConfigureMappings, UiResources.ConfigureMappingsMenu, MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
         var (FileNamePattern, OutputDirectory, Namespace) = viewModel.GetMappingDefaults(selected);
-        var dialog = new MappingDialog(selected.ObjectType!.Value, FileNamePattern, OutputDirectory, Namespace) { Owner = System.Windows.Window.GetWindow(this) };
+        var dialog = new MappingDialog(objectType, FileNamePattern, OutputDirectory, Namespace) { Owner = System.Windows.Window.GetWindow(this) };
 
         if (dialog.ShowDialog() == true)
         {
             viewModel.ApplyMappingForObjectType(
-                selected.ConnectionId!,
-                selected.ObjectType!.Value,
+                connectionId,
+                objectType,
                 dialog.FileNamePattern,
                 dialog.OutputDirectory,
                 dialog.Namespace);
@@ -303,7 +254,9 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
 
     private void OnConfigureTemplatesClick(object sender, RoutedEventArgs e)
     {
-        if (ExplorerTree.SelectedItem is not ExplorerNode selected || selected.Kind != ExplorerNodeKind.ObjectType)
+        if (ExplorerTree.SelectedItem is not ExplorerNode selected
+            || selected.Kind != ExplorerNodeKind.ObjectType
+            || selected.ObjectType is not DatabaseObjectType)
         {
             MessageBox.Show(System.Windows.Window.GetWindow(this), UiResources.SelectObjectTypeToConfigureTemplates, UiResources.ConfigureTemplatesMenu, MessageBoxButton.OK, MessageBoxImage.Information);
             return;
@@ -403,7 +356,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     private async void OnGenerateAllClassesClick(object sender, RoutedEventArgs e)
         => await RunSafeAsync(async () =>
         {
-            var selected = GetEffectiveSelectedNode();
+            var selected = ExplorerNodeSelectionResolver.GetEffectiveSelectedNode(ExplorerTree.SelectedItem as ExplorerNode);
             if (selected is null || !GenerationSupportedKinds.Contains(selected.Kind))
             {
                 MessageBox.Show(System.Windows.Window.GetWindow(this), UiResources.SelectNodeToGenerateClasses, UiResources.GenerateClassesTitle, MessageBoxButton.OK, MessageBoxImage.Information);
@@ -433,7 +386,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     private async void OnGenerateClassesClick(object sender, RoutedEventArgs e)
         => await RunSafeAsync(async () =>
         {
-            var selected = GetEffectiveSelectedNode();
+            var selected = ExplorerNodeSelectionResolver.GetEffectiveSelectedNode(ExplorerTree.SelectedItem as ExplorerNode);
             if (selected is null || !GenerationSupportedKinds.Contains(selected.Kind))
             {
                 MessageBox.Show(System.Windows.Window.GetWindow(this), UiResources.SelectNodeToGenerateTestClasses, UiResources.GenerateTestClassesMenu, MessageBoxButton.OK, MessageBoxImage.Information);
@@ -461,7 +414,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     private async void OnGenerateModelClassesClick(object sender, RoutedEventArgs e)
         => await RunSafeAsync(async () =>
         {
-            var selected = GetEffectiveSelectedNode();
+            var selected = ExplorerNodeSelectionResolver.GetEffectiveSelectedNode(ExplorerTree.SelectedItem as ExplorerNode);
             if (selected is null || !GenerationSupportedKinds.Contains(selected.Kind))
             {
                 MessageBox.Show(System.Windows.Window.GetWindow(this), UiResources.SelectNodeToGenerateModelClasses, UiResources.GenerateModelClassesMenu, MessageBoxButton.OK, MessageBoxImage.Information);
@@ -476,7 +429,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     private async void OnGenerateRepositoryClassesClick(object sender, RoutedEventArgs e)
         => await RunSafeAsync(async () =>
         {
-            var selected = GetEffectiveSelectedNode();
+            var selected = ExplorerNodeSelectionResolver.GetEffectiveSelectedNode(ExplorerTree.SelectedItem as ExplorerNode);
             if (selected is null || !GenerationSupportedKinds.Contains(selected.Kind))
             {
                 MessageBox.Show(System.Windows.Window.GetWindow(this), UiResources.SelectNodeToGenerateRepositoryClasses, UiResources.GenerateRepositoryClassesMenu, MessageBoxButton.OK, MessageBoxImage.Information);
@@ -491,7 +444,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     private async void OnCheckConsistencyClick(object sender, RoutedEventArgs e)
         => await RunSafeAsync(async () =>
         {
-            var selected = GetEffectiveSelectedNode();
+            var selected = ExplorerNodeSelectionResolver.GetEffectiveSelectedNode(ExplorerTree.SelectedItem as ExplorerNode);
             if (selected is null || !GenerationSupportedKinds.Contains(selected.Kind))
             {
                 MessageBox.Show(System.Windows.Window.GetWindow(this), UiResources.SelectNodeToCheckConsistency, UiResources.CheckConsistencyMenu, MessageBoxButton.OK, MessageBoxImage.Information);
@@ -504,7 +457,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     private async void OnExtractScenarioClick(object sender, RoutedEventArgs e)
         => await RunSafeAsync(async () =>
         {
-            var selected = GetEffectiveSelectedNode();
+            var selected = ExplorerNodeSelectionResolver.GetEffectiveSelectedNode(ExplorerTree.SelectedItem as ExplorerNode);
             if (selected is null || selected.ConnectionId is null)
             {
                 MessageBox.Show(System.Windows.Window.GetWindow(this), UiResources.SelectNodeToExtractScenario, UiResources.ExtractScenarioButton, MessageBoxButton.OK, MessageBoxImage.Information);

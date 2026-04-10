@@ -57,8 +57,8 @@ public enum ExplorerNodeKind
 /// Representa um nó da árvore do explorador exibida na interface.
 /// </summary>
 /// <remarks>
-/// Initializes a new explorer node with a label and kind.
-/// Inicializa um novo nó do explorador com rótulo e tipo.
+/// EN: Initializes a new explorer node with a label and kind.
+/// PT: Inicializa um novo nó do explorador com rótulo e tipo.
 /// </remarks>
 public sealed class ExplorerNode(string label, ExplorerNodeKind kind)
 {
@@ -111,6 +111,12 @@ public sealed class ExplorerNode(string label, ExplorerNodeKind kind)
     /// </summary>
     public string? HealthMessage { get; set; }
 
+
+    /// <summary>
+    /// Gets the parent node in the explorer tree.
+    /// Obtém o nó pai na árvore do explorador.
+    /// </summary>
+    public ExplorerNode? Parent { get; private set; }
 
     /// <summary>
     /// Gets an icon glyph for the node kind.
@@ -174,6 +180,19 @@ public sealed class ExplorerNode(string label, ExplorerNodeKind kind)
     /// Obtém ou define se o nó está expandido na árvore.
     /// </summary>
     public bool IsExpanded { get; set; }
+
+    /// <summary>
+    /// Adds a child node and links it back to this node as its parent.
+    /// Adiciona um nó filho e o vincula a este nó como pai.
+    /// </summary>
+    /// <param name="child">The child node to add. O nó filho a adicionar.</param>
+    public void AddChild(ExplorerNode child)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(child, nameof(child));
+
+        child.Parent = this;
+        Children.Add(child);
+    }
 
     /// <summary>
     /// Gets the child nodes of this explorer node.

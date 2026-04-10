@@ -23,6 +23,22 @@ public static class StructuredClassContentFactory
         if (dbObject.Type is DatabaseObjectType.Procedure or DatabaseObjectType.Function)
             return BuildRoutine(dbObject, @namespace);
 
+        return dbObject.Type switch
+        {
+            DatabaseObjectType.Table => BuildTable(dbObject, @namespace, databaseType),
+            DatabaseObjectType.View => BuildView(dbObject, @namespace, databaseType),
+            _ => BuildTable(dbObject, @namespace, databaseType)
+        };
+    }
+
+    private static string BuildTable(DatabaseObjectReference dbObject, string? @namespace, string? databaseType)
+        => BuildTableLike(dbObject, @namespace, databaseType);
+
+    private static string BuildView(DatabaseObjectReference dbObject, string? @namespace, string? databaseType)
+        => BuildTableLike(dbObject, @namespace, databaseType);
+
+    private static string BuildTableLike(DatabaseObjectReference dbObject, string? @namespace, string? databaseType)
+    {
         var effectiveDatabaseType = string.IsNullOrWhiteSpace(databaseType) ? "MySql" : databaseType!;
         var className = $"{GenerationRuleSet.ToPascalCase(dbObject.Name)}{dbObject.Type}Factory";
         var methodName = $"Create{dbObject.Type}{GenerationRuleSet.ToPascalCase(dbObject.Name)}";

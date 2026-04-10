@@ -1,10 +1,8 @@
-using System.Data.Common;
-
 namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Resolves provider-specific connection strings for container-backed fidelity tests and benchmark sessions.
-/// PT: ResolveRowsFrameRange strings de conexao especificas do provedor para testes de fidelidade com container e sessoes de benchmark.
+/// PT: Resolve strings de conexao especificas do provedor para testes de fidelidade com container e sessoes de benchmark.
 /// </summary>
 public static class ProviderConnectionStringResolver
 {
@@ -16,7 +14,7 @@ public static class ProviderConnectionStringResolver
     /// <param name="connectionString">EN: The resolved connection string when one is available. PT: A string de conexao resolvida quando houver uma disponivel.</param>
     /// <returns>EN: True when a connection string was resolved or when SQLite uses an empty local string. PT: True quando uma string de conexao foi resolvida ou quando o SQLite usa uma string local vazia.</returns>
     public static bool TryResolve(ProviderId provider, out string connectionString)
-        => TryResolve(provider, out connectionString, out _);
+        => TryResolve(provider, Environment.GetEnvironmentVariable, out connectionString, out _);
 
     /// <summary>
     /// EN: Tries to resolve a container connection string and the source variable name for the specified provider.
@@ -30,7 +28,17 @@ public static class ProviderConnectionStringResolver
         ProviderId provider,
         out string connectionString,
         out string sourceName)
+        => TryResolve(provider, Environment.GetEnvironmentVariable, out connectionString, out sourceName);
+
+    internal static bool TryResolve(
+        ProviderId provider,
+        Func<string, string?> environmentVariableAccessor,
+        out string connectionString,
+        out string sourceName)
     {
+        if (environmentVariableAccessor is null)
+            throw new ArgumentNullException(nameof(environmentVariableAccessor));
+
         if (provider == ProviderId.Sqlite)
         {
             connectionString = string.Empty;
@@ -40,12 +48,12 @@ public static class ProviderConnectionStringResolver
 
         foreach (var variableName in GetEnvironmentVariableNames(provider))
         {
-            var value = Environment.GetEnvironmentVariable(variableName);
+            var value = environmentVariableAccessor(variableName);
             if (!string.IsNullOrWhiteSpace(value))
             {
                 connectionString = provider == ProviderId.Oracle
-                    ? EnsureOracleConnectionTimeout(value)
-                    : value;
+                    ? EnsureOracleConnectionTimeout(value!)
+                    : value!;
                 sourceName = variableName;
                 return true;
             }
@@ -110,4 +118,3 @@ public static class ProviderConnectionStringResolver
         return builder.ConnectionString;
     }
 }
-

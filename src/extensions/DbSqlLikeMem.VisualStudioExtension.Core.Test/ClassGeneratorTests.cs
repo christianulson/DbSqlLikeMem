@@ -95,4 +95,73 @@ public class ClassGeneratorTests
             }
         }
     }
+
+    /// <summary>
+    /// EN: Verifies procedure and function objects are written in the same generation run using their routine-specific factories.
+    /// PT: Verifica se objetos procedure e function sao gravados na mesma execucao de geracao usando suas factories especificas de rotina.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ClassGenerator")]
+    public async Task GenerateAsync_WritesProcedureAndFunctionFilesInTheSameRun()
+    {
+        var outputDir = Path.Combine(Path.GetTempPath(), $"dbsql-{Guid.NewGuid():N}");
+
+        try
+        {
+            var generator = new ClassGenerator();
+            var request = new GenerationRequest(
+                new ConnectionDefinition("1", "SqlServer", "ERP", "conn"),
+                [
+                    new DatabaseObjectReference(
+                        "dbo",
+                        "sp_update_customer",
+                        DatabaseObjectType.Procedure,
+                        new Dictionary<string, string>
+                        {
+                            ["RequiredIn"] = "CustomerId|Int32|1|",
+                            ["OptionalIn"] = "",
+                            ["OutParams"] = "RowsAffected|Int32|1|",
+                            ["ReturnParam"] = "ReturnCode|Int32|0|"
+                        }),
+                    new DatabaseObjectReference(
+                        "dbo",
+                        "fn_total",
+                        DatabaseObjectType.Function,
+                        new Dictionary<string, string>
+                        {
+                            ["Parameters"] = "CustomerId|int|1|0|0|0|",
+                            ["ReturnTypeSql"] = "int",
+                            ["BodySql"] = "CustomerId + 1"
+                        })
+                ]);
+
+            var config = new ConnectionMappingConfiguration(
+                "1",
+                new Dictionary<DatabaseObjectType, ObjectTypeMapping>
+                {
+                    [DatabaseObjectType.Table] = new(DatabaseObjectType.Table, outputDir)
+                });
+
+            var files = await generator.GenerateAsync(request, config, dbObject => $"// {dbObject.Type}:{dbObject.Name}", TestContext.Current.CancellationToken);
+
+            var writtenFiles = files.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToArray();
+            var expectedFiles = new[]
+            {
+                Path.Combine(outputDir, "FnTotalFunctionFactory.cs"),
+                Path.Combine(outputDir, "SpUpdateCustomerProcedureFactory.cs")
+            };
+
+            Assert.Equal(expectedFiles, writtenFiles);
+            Assert.All(writtenFiles, file => Assert.True(File.Exists(file)));
+            Assert.Equal("// Function:fn_total", await File.ReadAllTextAsync(Path.Combine(outputDir, "FnTotalFunctionFactory.cs"), TestContext.Current.CancellationToken));
+            Assert.Equal("// Procedure:sp_update_customer", await File.ReadAllTextAsync(Path.Combine(outputDir, "SpUpdateCustomerProcedureFactory.cs"), TestContext.Current.CancellationToken));
+        }
+        finally
+        {
+            if (Directory.Exists(outputDir))
+            {
+                Directory.Delete(outputDir, recursive: true);
+            }
+        }
+    }
 }

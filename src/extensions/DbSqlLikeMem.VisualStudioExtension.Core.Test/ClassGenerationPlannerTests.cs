@@ -27,19 +27,19 @@ public class ClassGenerationPlannerTests
     }
 
     /// <summary>
-    /// EN: Verifies partially mapped requests report the remaining missing types.
-    /// PT: Verifica se requisicoes com mapeamento parcial relatam os tipos ausentes restantes.
+    /// EN: Verifies normalized configurations keep procedure and function requests ready for generation.
+    /// PT: Verifica se configuracoes normalizadas mantem requisicoes de procedure e function prontas para geracao.
     /// </summary>
     [Fact]
     [Trait("Category", "ClassGenerationPlanner")]
-    public void BuildPlan_WithPartialMappings_ReturnsMissingTypes()
+    public void BuildPlan_WithNormalizedConfiguration_DoesNotReportRoutineMissingTypes()
     {
         var planner = new ClassGenerationPlanner();
         var request = new GenerationRequest(
             new ConnectionDefinition("1", "SqlServer", "ERP", "Server=.;Database=ERP"),
             [
-                new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table),
-                new DatabaseObjectReference("dbo", "vw_Orders", DatabaseObjectType.View)
+                new DatabaseObjectReference("dbo", "sp_update_customer", DatabaseObjectType.Procedure),
+                new DatabaseObjectReference("dbo", "fn_total", DatabaseObjectType.Function)
             ]);
 
         var config = new ConnectionMappingConfiguration("1", new Dictionary<DatabaseObjectType, ObjectTypeMapping>
@@ -49,8 +49,10 @@ public class ClassGenerationPlannerTests
 
         var plan = planner.BuildPlan(request, config);
 
-        Assert.True(plan.RequiresConfiguration);
-        Assert.Single(plan.MissingMappings);
-        Assert.Contains(DatabaseObjectType.View, plan.MissingMappings);
+        Assert.False(plan.RequiresConfiguration);
+        Assert.Empty(plan.MissingMappings);
+        Assert.Equal(2, plan.ObjectsToGenerate.Count);
+        Assert.Contains(DatabaseObjectType.Procedure, config.Mappings.Keys);
+        Assert.Contains(DatabaseObjectType.Function, config.Mappings.Keys);
     }
 }

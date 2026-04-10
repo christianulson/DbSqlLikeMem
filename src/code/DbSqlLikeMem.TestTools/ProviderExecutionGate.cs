@@ -1,6 +1,4 @@
 using System.Collections.Concurrent;
-using System.Data.Common;
-using System.Threading;
 
 namespace DbSqlLikeMem.TestTools;
 

@@ -1,3 +1,5 @@
+using DbSqlLikeMem.Models;
+
 namespace DbSqlLikeMem.SqlServer.Test;
 
 /// <summary>
@@ -30,6 +32,43 @@ public sealed class SqlServerMockTests
         ]);
         _connection = new SqlServerConnectionMock(db);
         _connection.Open();
+    }
+
+    /// <summary>
+    /// EN: Verifies public routine registration APIs keep functions, procedures, and snapshots in sync.
+    /// PT: Verifica se as APIs publicas de registro de routines mantem funcoes, procedimentos e snapshots sincronizados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void CreateFunctionAndProcedure_ShouldRegisterPublicRoutineApi()
+    {
+        var db = (SqlServerDbMock)_connection.Db;
+
+        var function = DbFunctionDef.CreateUserDefined(
+            "fn_add",
+            "INT",
+            [
+                new DbFunctionParameterDef("@left", "INT"),
+                new DbFunctionParameterDef("@right", "INT")
+            ],
+            "@left + @right",
+            db,
+            dialect: db.Dialect);
+
+        db.CreateFunction(function);
+        db.CreateProcedure("sp_ping", new ProcedureDef("sp_ping", [], [], []));
+
+        using var command = _connection.CreateCommand();
+        command.CommandText = "SELECT fn_add(3, 4) FROM Users WHERE Id = 1";
+        Assert.Equal(7, Convert.ToInt32(command.ExecuteScalar()));
+
+        Assert.True(db.TryGetProcedure("sp_ping", out var procedure));
+        Assert.Equal("sp_ping", procedure!.Name);
+
+        var snapshot = SchemaSnapshot.Export(db);
+        var schema = Assert.Single(snapshot.Schemas);
+        Assert.Contains(schema.Functions, item => item.Name == "fn_add");
+        Assert.Contains(schema.Procedures, item => item.Name == "sp_ping");
     }
 
     /// <summary>
@@ -2415,4 +2454,3 @@ public sealed class SqlServerMockTests
     }
 
 }
-

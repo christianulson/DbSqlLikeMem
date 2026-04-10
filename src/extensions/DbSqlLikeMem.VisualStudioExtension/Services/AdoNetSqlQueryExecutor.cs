@@ -77,7 +77,7 @@ internal sealed class AdoNetSqlQueryExecutor : ISqlQueryExecutor
 
     internal static DbProviderFactory GetFactory(string databaseType)
     {
-        var normalizedType = NormalizeDatabaseType(databaseType);
+        var normalizedType = DatabaseTypeNormalizer.NormalizeKey(databaseType);
         if (!ProviderCandidates.TryGetValue(normalizedType, out var providerNames))
         {
             throw new NotSupportedException($"Banco não suportado para conexão real: {databaseType}");
@@ -112,13 +112,6 @@ internal sealed class AdoNetSqlQueryExecutor : ISqlQueryExecutor
             "Instale o provider correspondente (pacote NuGet e/ou registro no machine.config)."
         );
     }
-
-    private static string NormalizeDatabaseType(string databaseType)
-        => (databaseType ?? string.Empty)
-            .Replace("_", string.Empty)
-            .Replace("-", string.Empty)
-            .Trim()
-            .ToLowerInvariant();
 
     private static DbProviderFactory? TryCreateFactoryFromType(string fullTypeName)
     {

@@ -16,34 +16,24 @@ public sealed class TreeViewBuilder
     {
         var root = new TreeNode(connection.DatabaseType) { ContextKey = "database-type" };
         var dbNode = new TreeNode(connection.DatabaseName) { ContextKey = "database-name" };
-        root.Children.Add(dbNode);
+        root.AddChild(dbNode);
 
         foreach (DatabaseObjectType objectType in Enum.GetValues(typeof(DatabaseObjectType)))
         {
-            var typeNode = new TreeNode(GetGroupLabel(objectType)) { ContextKey = "object-type", ObjectType = objectType };
+            var typeNode = new TreeNode(DatabaseObjectTypeLabels.GetGroupLabel(objectType)) { ContextKey = "object-type", ObjectType = objectType };
 
             foreach (var item in objects.Where(o => o.Type == objectType).OrderBy(o => o.Name, StringComparer.OrdinalIgnoreCase))
             {
-                typeNode.Children.Add(new TreeNode(item.Name)
+                typeNode.AddChild(new TreeNode(item.Name)
                 {
                     ContextKey = "object",
                     ObjectType = objectType
                 });
             }
 
-            dbNode.Children.Add(typeNode);
+            dbNode.AddChild(typeNode);
         }
 
         return root;
     }
-
-    private static string GetGroupLabel(DatabaseObjectType type) => type switch
-    {
-        DatabaseObjectType.Table => "Tables",
-        DatabaseObjectType.View => "Views",
-        DatabaseObjectType.Procedure => "Procedures",
-        DatabaseObjectType.Function => "Functions",
-        DatabaseObjectType.Sequence => "Sequences",
-        _ => type.ToString()
-    };
 }

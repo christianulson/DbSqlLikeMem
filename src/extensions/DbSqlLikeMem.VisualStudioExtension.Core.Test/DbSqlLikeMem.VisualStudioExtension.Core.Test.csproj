@@ -1,17 +1,27 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<IsPackable>false</IsPackable>
 		<IsTestProject>true</IsTestProject>
 		<IsExtensionProject>true</IsExtensionProject>
 		<TargetFrameworks>net8.0</TargetFrameworks>
+		<PlatformTarget>x64</PlatformTarget>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\DbSqlLikeMem.VisualStudioExtension.Core\DbSqlLikeMem.VisualStudioExtension.Core.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.TestTools\DbSqlLikeMem.TestTools.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.MySql\DbSqlLikeMem.MySql.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.MariaDb\DbSqlLikeMem.MariaDb.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.Npgsql\DbSqlLikeMem.Npgsql.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.SqlServer\DbSqlLikeMem.SqlServer.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.Oracle\DbSqlLikeMem.Oracle.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.Db2\DbSqlLikeMem.Db2.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.Firebird\DbSqlLikeMem.Firebird.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<Using Include="Xunit" />
+		<Using Include="DbSqlLikeMem.TestTools" />
 		<Using Include="DbSqlLikeMem.VisualStudioExtension.Core.Generation" />
 		<Using Include="DbSqlLikeMem.VisualStudioExtension.Core.Models" />
 		<Using Include="DbSqlLikeMem.VisualStudioExtension.Core.Services" />

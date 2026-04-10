@@ -643,7 +643,14 @@ public abstract class DbMock
         return _runtimeFunctions.Contains(functionName.NormalizeName());
     }
 
-    internal void CreateFunction(
+    /// <summary>
+    /// EN: Replaces or registers a user-defined function in the specified schema.
+    /// PT: Substitui ou registra uma funcao definida pelo usuario no schema informado.
+    /// </summary>
+    /// <param name="definition">EN: Function definition. PT: Definicao da funcao.</param>
+    /// <param name="orReplace">EN: True to replace an existing definition. PT: True para substituir uma definicao existente.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    public void CreateFunction(
         DbFunctionDef definition,
         bool orReplace = false,
         string? schemaName = null)
@@ -724,7 +731,7 @@ public abstract class DbMock
     /// <param name="procedure">EN: Procedure definition. PT: Definição da procedure.</param>
     /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
     /// <param name="orReplace">EN: True to replace an existing definition. PT: True para substituir uma definição existente.</param>
-    internal void CreateProcedure(
+    public void CreateProcedure(
         string procedureName,
         ProcedureDef procedure,
         bool orReplace = false,

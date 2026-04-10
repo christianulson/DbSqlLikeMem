@@ -107,4 +107,22 @@ public sealed class ConnectionMappingServiceTests
         Assert.Equal("{NamePascal}SequenceConsistencyTests.cs", mapping.FileNamePattern);
         Assert.Equal("Company.Project.Batch.Sequences", mapping.Namespace);
     }
+
+    /// <summary>
+    /// EN: Ensures function mappings reuse the same baseline catalog defaults while preserving the informed namespace.
+    /// PT: Garante que mapeamentos de function reutilizem os mesmos defaults do catalogo de baseline preservando o namespace informado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ConnectionMappingService")]
+    public void CreateRecommendedMapping_Function_ShouldReuseProfileDefaultsAndPreserveNamespace()
+    {
+        var service = new ConnectionMappingService();
+
+        var mapping = service.CreateRecommendedMapping("api", DatabaseObjectType.Function, "Company.Project.Models.Functions");
+
+        Assert.Equal(DatabaseObjectType.Function, mapping.ObjectType);
+        Assert.Equal("tests/Integration/Functions", mapping.OutputDirectory);
+        Assert.Equal("{NamePascal}FunctionIntegrationTests.cs", mapping.FileNamePattern);
+        Assert.Equal("Company.Project.Models.Functions", mapping.Namespace);
+    }
 }

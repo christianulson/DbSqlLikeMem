@@ -7,6 +7,71 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 public sealed class QualityRegressionTests
 {
     /// <summary>
+    /// EN: Ensures the shared UI database type catalog stays aligned with the core normalizer.
+    /// PT: Garante que o catalogo compartilhado de tipos de banco da UI permaneça alinhado com o normalizador do core.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "QualityRegression")]
+    public void DatabaseTypeNormalizer_ShouldExposeSupportedDisplayNames()
+    {
+        var supported = DatabaseTypeNormalizer.GetSupportedDisplayNames();
+
+        Assert.Equal(
+            ["SqlServer", "SqlAzure", "AzureSql", "PostgreSql", "MySql", "MariaDb", "Oracle", "Sqlite", "Db2", "Firebird"],
+            supported);
+    }
+
+    /// <summary>
+    /// EN: Ensures database object type labels stay canonical across the UI and tree builders.
+    /// PT: Garante que os rótulos de tipos de objeto de banco permaneçam canônicos na UI e nos construtores de árvore.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "QualityRegression")]
+    [InlineData(DatabaseObjectType.Table, "Tables")]
+    [InlineData(DatabaseObjectType.View, "Views")]
+    [InlineData(DatabaseObjectType.Procedure, "Procedures")]
+    [InlineData(DatabaseObjectType.Function, "Functions")]
+    [InlineData(DatabaseObjectType.Sequence, "Sequences")]
+    public void DatabaseObjectTypeLabels_ShouldReturnCanonicalPluralLabels(DatabaseObjectType objectType, string expectedLabel)
+    {
+        Assert.Equal(expectedLabel, DatabaseObjectTypeLabels.GetGroupLabel(objectType));
+    }
+
+    /// <summary>
+    /// EN: Ensures database type normalization keeps canonical labels and lookup keys aligned.
+    /// PT: Garante que a normalizacao de tipo de banco mantenha rotulos canônicos e chaves de consulta alinhados.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "QualityRegression")]
+    [InlineData(" sql-server ", "SqlServer", "sqlserver")]
+    [InlineData("Azure-SQL", "SqlAzure", "azuresql")]
+    [InlineData("DB2/LUW", "Db2", "db2luw")]
+    [InlineData("PgSQL", "PostgreSql", "pgsql")]
+    public void DatabaseTypeNormalizer_ShouldHandleLegacyAliases(string input, string expectedDisplayName, string expectedKey)
+    {
+        Assert.Equal(expectedDisplayName, DatabaseTypeNormalizer.NormalizeDisplayName(input));
+        Assert.Equal(expectedKey, DatabaseTypeNormalizer.NormalizeKey(input));
+    }
+
+    /// <summary>
+    /// EN: Ensures legacy database type aliases are normalized in the connection definition constructor.
+    /// PT: Garante que aliases legados de tipo de banco sejam normalizados no construtor da definicao de conexao.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "QualityRegression")]
+    [InlineData("mssql", "SqlServer")]
+    [InlineData("azure-sql", "AzureSql")]
+    [InlineData("pgsql", "PostgreSql")]
+    [InlineData("db2/luw", "Db2")]
+    [InlineData("firebirdsql", "Firebird")]
+    public void ConnectionDefinition_WhenCreated_WithLegacyAliases_NormalizesDatabaseType(string databaseType, string expectedDatabaseType)
+    {
+        var connection = new ConnectionDefinition("1", databaseType, "ERP", "conn");
+
+        Assert.Equal(expectedDatabaseType, connection.DatabaseType);
+    }
+
+    /// <summary>
     /// EN: Ensures generation honors cancellation and does not continue writing files.
     /// PT: Garante que a geracao respeita cancelamento e nao continua gravando arquivos.
     /// </summary>

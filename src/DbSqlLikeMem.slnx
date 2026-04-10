@@ -158,6 +158,7 @@
     <File Path="extensions/Directory.Build.targets" />
   </Folder>
   <Folder Name="/extensions/VisualStudioExtension/">
+    <Project Path="extensions/DbSqlLikeMem.VisualStudioExtension.Tests/DbSqlLikeMem.VisualStudioExtension.Tests.csproj" />
     <Project Path="extensions/DbSqlLikeMem.VisualStudioExtension.Core.Test/DbSqlLikeMem.VisualStudioExtension.Core.Test.csproj" />
     <Project Path="extensions/DbSqlLikeMem.VisualStudioExtension.Core/DbSqlLikeMem.VisualStudioExtension.Core.csproj" />
     <Project Path="extensions/DbSqlLikeMem.VisualStudioExtension.XamlHarness/DbSqlLikeMem.VisualStudioExtension.XamlHarness.csproj" />

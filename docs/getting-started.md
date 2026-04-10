@@ -124,6 +124,24 @@ connection.Execute(
 var users = connection.Query("SELECT * FROM user").ToList();
 ```
 
+### Exemplo 1b: criação de tabela via SQL + seed básico (SQL Server)
+
+```csharp
+using DbSqlLikeMem.SqlServer;
+
+var db = new SqlServerDbMock { ThreadSafe = true };
+using var connection = new SqlServerConnectionMock(db);
+
+connection.Open();
+connection.Execute("CREATE TABLE users (Id INT PRIMARY KEY, Name VARCHAR(100) NOT NULL)");
+connection.Execute("INSERT INTO users (Id, Name) VALUES (1, 'Alice')");
+
+var users = connection.Query("SELECT * FROM users").ToList();
+```
+
+**EN:** This path is useful when you want to validate the DDL parser in addition to the fluent `AddTable` mapping.
+**PT-BR:** Esse caminho é útil quando você quer validar o parser de DDL além do mapeamento fluente via `AddTable`.
+
 ### Exemplo 2: schema manual + seed (PostgreSQL)
 
 ```csharp

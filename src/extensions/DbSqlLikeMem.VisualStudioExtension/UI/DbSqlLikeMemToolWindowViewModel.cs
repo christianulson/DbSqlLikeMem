@@ -1071,19 +1071,19 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                                 AddTableDetailsNodes(objectNode, dbObject);
                             }
 
-                            objectTypeNode.Children.Add(objectNode);
+                            objectTypeNode.AddChild(objectNode);
                         }
 
                         if (objectTypeNode.Children.Count > 0)
                         {
-                            schemaNode.Children.Add(objectTypeNode);
+                            schemaNode.AddChild(objectTypeNode);
                         }
                     }
 
-                    connectionNode.Children.Add(schemaNode);
+                    connectionNode.AddChild(schemaNode);
                 }
 
-                typeNode.Children.Add(connectionNode);
+                typeNode.AddChild(connectionNode);
             }
 
             Nodes.Add(typeNode);
@@ -1140,14 +1140,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
     private static string BuildObjectTypeLabel(DatabaseObjectType objectType, bool hasFilter)
     {
-        var baseLabel = objectType switch
-        {
-            DatabaseObjectType.Table => "Tables",
-            DatabaseObjectType.View => "Views",
-            DatabaseObjectType.Procedure => "Procedures",
-            DatabaseObjectType.Function => "Functions",
-            _ => objectType.ToString()
-        };
+        var baseLabel = DatabaseObjectTypeLabels.GetGroupLabel(objectType);
 
         return hasFilter ? $"{baseLabel} 🔎" : baseLabel;
     }
@@ -1313,7 +1306,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                     ? "🔗"
                     : "•";
 
-            columnsNode.Children.Add(new ExplorerNode($"{icon} {column.Name} ({column.DataType})", ExplorerNodeKind.TableDetailItem)
+            columnsNode.AddChild(new ExplorerNode($"{icon} {column.Name} ({column.DataType})", ExplorerNodeKind.TableDetailItem)
             {
                 ConnectionId = tableNode.ConnectionId,
                 TableDetailKind = "Column"
@@ -1328,7 +1321,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
         foreach (var index in indexes)
         {
-            indexesNode.Children.Add(new ExplorerNode(index, ExplorerNodeKind.TableDetailItem)
+            indexesNode.AddChild(new ExplorerNode(index, ExplorerNodeKind.TableDetailItem)
             {
                 ConnectionId = tableNode.ConnectionId,
                 TableDetailKind = "Index"
@@ -1343,7 +1336,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
         foreach (var fk in foreignKeys)
         {
-            foreignKeysNode.Children.Add(new ExplorerNode($"{fk.Column} → {fk.RefTable}.{fk.RefColumn}", ExplorerNodeKind.TableDetailItem)
+            foreignKeysNode.AddChild(new ExplorerNode($"{fk.Column} → {fk.RefTable}.{fk.RefColumn}", ExplorerNodeKind.TableDetailItem)
             {
                 ConnectionId = tableNode.ConnectionId,
                 TableDetailKind = "ForeignKey"
@@ -1358,17 +1351,17 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
         foreach (var trigger in triggers)
         {
-            triggersNode.Children.Add(new ExplorerNode(trigger, ExplorerNodeKind.TableDetailItem)
+            triggersNode.AddChild(new ExplorerNode(trigger, ExplorerNodeKind.TableDetailItem)
             {
                 ConnectionId = tableNode.ConnectionId,
                 TableDetailKind = "Trigger"
             });
         }
 
-        tableNode.Children.Add(columnsNode);
-        tableNode.Children.Add(indexesNode);
-        tableNode.Children.Add(foreignKeysNode);
-        tableNode.Children.Add(triggersNode);
+        tableNode.AddChild(columnsNode);
+        tableNode.AddChild(indexesNode);
+        tableNode.AddChild(foreignKeysNode);
+        tableNode.AddChild(triggersNode);
     }
 
     private static HashSet<string> ParsePrimaryKey(DatabaseObjectReference dbObject)
@@ -1625,15 +1618,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     }
 
     private static bool IsSqlServerFamily(string databaseType)
-    {
-        var normalized = (databaseType ?? string.Empty)
-            .Replace("_", string.Empty)
-            .Replace("-", string.Empty)
-            .Trim()
-            .ToLowerInvariant();
-
-        return normalized is "sqlserver" or "sqlazure" or "azuresql";
-    }
+        => DatabaseTypeNormalizer.NormalizeKey(databaseType) is "sqlserver" or "sqlazure" or "azuresql";
 
     private static string FormatSqlLiteral(object value)
         => value switch

@@ -1774,7 +1774,14 @@ public abstract class DbConnectionMockBase(
         sqlDialect.Functions.Add(definition);
     }
 
-    internal void CreateFunction(
+    /// <summary>
+    /// EN: Replaces or registers a user-defined function in the current database schema.
+    /// PT: Substitui ou registra uma funcao definida pelo usuario no schema atual do banco.
+    /// </summary>
+    /// <param name="definition">EN: Function definition. PT: Definicao da funcao.</param>
+    /// <param name="orReplace">EN: True to replace an existing definition. PT: True para substituir uma definicao existente.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    public void CreateFunction(
         DbFunctionDef definition,
         bool orReplace = false,
         string? schemaName = null)
@@ -1874,7 +1881,15 @@ public abstract class DbConnectionMockBase(
         SqlQueryParser.ClearAstCache();
     }
 
-    internal void CreateProcedure(
+    /// <summary>
+    /// EN: Replaces or registers a stored procedure in the current database schema.
+    /// PT: Substitui ou registra um procedimento armazenado no schema atual do banco.
+    /// </summary>
+    /// <param name="procedureName">EN: Procedure name. PT: Nome da procedure.</param>
+    /// <param name="procedure">EN: Procedure definition. PT: Definicao da procedure.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <param name="orReplace">EN: True to replace an existing definition. PT: True para substituir uma definicao existente.</param>
+    public void CreateProcedure(
         string procedureName,
         ProcedureDef procedure,
         bool orReplace = false,

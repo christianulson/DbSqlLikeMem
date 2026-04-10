@@ -1,5 +1,6 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import { randomBytes } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import * as vscode from 'vscode';
@@ -128,15 +129,22 @@ const DEFAULT_DATABASE_TYPE = SUPPORTED_DATABASE_TYPES[0];
 const SQL_SERVER_FAMILY_DATABASE_TYPES = new Set<string>(['sqlserver', 'sqlazure', 'azuresql']);
 const DATABASE_TYPE_ALIAS_MAP = new Map<string, string>([
   ['sqlserver', 'SqlServer'],
+  ['mssql', 'SqlServer'],
   ['sqlazure', 'SqlAzure'],
   ['azuresql', 'AzureSql'],
   ['postgresql', 'PostgreSql'],
+  ['postgres', 'PostgreSql'],
+  ['pg', 'PostgreSql'],
+  ['pgsql', 'PostgreSql'],
   ['oracle', 'Oracle'],
   ['mysql', 'MySql'],
   ['mariadb', 'MariaDb'],
   ['sqlite', 'Sqlite'],
+  ['sqlite3', 'Sqlite'],
   ['db2', 'Db2'],
-  ['firebird', 'Firebird']
+  ['db2luw', 'Db2'],
+  ['firebird', 'Firebird'],
+  ['firebirdsql', 'Firebird']
 ]);
 interface GenerationPlan {
   objectRef: DatabaseObjectReference;
@@ -750,7 +758,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       );
 
       const render = (): void => {
-        panel.webview.html = getManagerHtml(state);
+        panel.webview.html = getManagerHtml(panel.webview, state);
       };
 
       panel.webview.onDidReceiveMessage(async (message: unknown) => {
@@ -1770,7 +1778,7 @@ function normalizeDatabaseType(databaseType: string): string {
     return exactMatch;
   }
 
-  const normalizedKey = trimmed.replace(/[\s_-]/g, '').toLowerCase();
+  const normalizedKey = trimmed.replace(/[\s_\-/]/g, '').toLowerCase();
   return DATABASE_TYPE_ALIAS_MAP.get(normalizedKey) ?? trimmed;
 }
 
@@ -2039,7 +2047,7 @@ async function resolveConnectionFromItem(
 }
 
 
-function getManagerHtml(state: ExtensionState): string {
+function getManagerHtml(webview: vscode.Webview, state: ExtensionState): string {
   const tr = {
     noConnectionConfigured: vscode.l10n.t('No connection configured.'),
     addConnectionForMappings: vscode.l10n.t('Add a connection to configure mappings.'),
@@ -2080,14 +2088,15 @@ function getManagerHtml(state: ExtensionState): string {
   const databaseTypeOptions = SUPPORTED_DATABASE_TYPES
     .map((databaseType) => `<option>${escapeHtml(databaseType)}</option>`)
     .join('');
-  const editConnectionIcon = `
-    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-      <path d="M11.75 1.75a1.5 1.5 0 0 1 2.12 0l.38.38a1.5 1.5 0 0 1 0 2.12l-7.9 7.9-3.22.84.84-3.22 7.78-8.02Zm.88 1.06-7.06 7.27-.34 1.3 1.3-.34 7.06-7.06-.96-1.17Zm1.49 1.49-.53-.53.37-.37a.5.5 0 0 0 0-.71l-.28-.28a.5.5 0 0 0-.71 0l-.37.37-.53-.53.37-.37a1.25 1.25 0 0 1 1.77 0l.28.28a1.25 1.25 0 0 1 0 1.77l-.37.37Z"/>
-    </svg>`;
-  const deleteConnectionIcon = `
-    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-      <path d="M6.5 1.5h3a1 1 0 0 1 1 1V3h2.25a.75.75 0 0 1 0 1.5h-.72l-.62 8.25a1.75 1.75 0 0 1-1.74 1.62H6.33a1.75 1.75 0 0 1-1.74-1.62L3.97 4.5h-.72a.75.75 0 0 1 0-1.5H5v-.5a1 1 0 0 1 1-1Zm.5 1.5h2v-.5h-2V3Zm-2.25 1.5.56 7.56c.02.2.18.44.52.44h4.14c.34 0 .5-.24.52-.44L10.54 4.5h-5.8ZM6.5 6.5a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 1 .5-.5Zm3 0a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 1 .5-.5Z"/>
-    </svg>`;
+  const codiconStylesheetUri = getCodiconStylesheetUri(webview);
+  const nonce = generateNonce();
+  const csp = [
+    "default-src 'none'",
+    `img-src ${webview.cspSource} data:`,
+    `style-src ${webview.cspSource} 'unsafe-inline'`,
+    `font-src ${webview.cspSource}`,
+    `script-src 'nonce-${nonce}'`
+  ].join('; ');
 
   const mappingByConnection = new Map(state.mappingConfigurations.map((m) => [m.connectionId, m]));
   const mappingFormData = JSON.stringify(Object.fromEntries(
@@ -2099,7 +2108,7 @@ function getManagerHtml(state: ExtensionState): string {
   const connectionsTable = state.connections.length === 0
     ? `<p><em>${escapeHtml(tr.noConnectionConfigured)}</em></p>`
     : `<table><thead><tr><th>${escapeHtml(tr.name)}</th><th>${escapeHtml(tr.type)}</th><th>${escapeHtml(tr.database)}</th><th>${escapeHtml(tr.actions)}</th></tr></thead><tbody>${state.connections
-      .map((c) => `<tr><td>${escapeHtml(c.name)}</td><td>${escapeHtml(c.databaseType)}</td><td>${escapeHtml(c.databaseName)}</td><td class="actions"><button class="icon-btn" title="${escapeHtml(tr.editConnection)}" aria-label="${escapeHtml(tr.editConnection)}" data-edit="${escapeHtml(c.id)}" data-name="${escapeHtml(c.name)}" data-type="${escapeHtml(c.databaseType)}" data-db="${escapeHtml(c.databaseName)}">${editConnectionIcon}</button><button class="icon-btn" title="${escapeHtml(tr.deleteConnection)}" aria-label="${escapeHtml(tr.deleteConnection)}" data-remove="${escapeHtml(c.id)}">${deleteConnectionIcon}</button></td></tr>`)
+      .map((c) => `<tr><td>${escapeHtml(c.name)}</td><td>${escapeHtml(c.databaseType)}</td><td>${escapeHtml(c.databaseName)}</td><td class="actions"><button class="icon-btn" title="${escapeHtml(tr.editConnection)}" aria-label="${escapeHtml(tr.editConnection)}" data-edit="${escapeHtml(c.id)}" data-name="${escapeHtml(c.name)}" data-type="${escapeHtml(c.databaseType)}" data-db="${escapeHtml(c.databaseName)}"><span class="codicon codicon-edit" aria-hidden="true"></span></button><button class="icon-btn" title="${escapeHtml(tr.deleteConnection)}" aria-label="${escapeHtml(tr.deleteConnection)}" data-remove="${escapeHtml(c.id)}"><span class="codicon codicon-trash" aria-hidden="true"></span></button></td></tr>`)
       .join('')}</tbody></table>`;
 
   const mappingsTable = state.connections.length === 0
@@ -2120,6 +2129,8 @@ function getManagerHtml(state: ExtensionState): string {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${escapeHtml(tr.managerTitle)}</title>
+  <meta http-equiv="Content-Security-Policy" content="${csp}" />
+  <link rel="stylesheet" href="${codiconStylesheetUri}" />
   <style>
     body { font-family: var(--vscode-font-family); color: var(--vscode-foreground); padding: 16px; }
     h2 { margin-top: 20px; }
@@ -2129,7 +2140,7 @@ function getManagerHtml(state: ExtensionState): string {
     input, select { width: 100%; margin-top: 4px; padding: 6px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border); }
     button { margin-top: 10px; padding: 6px 10px; }
     .icon-btn { width: 30px; height: 30px; padding: 0; margin-top: 0; margin-right: 4px; display: inline-flex; align-items: center; justify-content: center; color: var(--vscode-foreground); background: var(--vscode-button-secondaryBackground); border: 1px solid var(--vscode-button-border); border-radius: 4px; }
-    .icon-btn svg { width: 14px; height: 14px; fill: currentColor; display: block; }
+    .icon-btn .codicon { font-size: 14px; line-height: 1; }
     .actions { white-space: nowrap; }
     table { width: 100%; border-collapse: collapse; margin-top: 8px; }
     th, td { border: 1px solid var(--vscode-panel-border); padding: 6px; text-align: left; }
@@ -2181,7 +2192,7 @@ function getManagerHtml(state: ExtensionState): string {
     </section>
   </div>
 
-  <script>
+  <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
     const defaultDatabaseType = ${JSON.stringify(DEFAULT_DATABASE_TYPE)};
     const mappingFormData = ${mappingFormData};
@@ -2260,5 +2271,24 @@ function escapeHtml(value: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function getCodiconStylesheetUri(webview: vscode.Webview): string {
+  const codiconPath = path.join(
+    path.dirname(process.execPath),
+    'resources',
+    'app',
+    'node_modules',
+    '@vscode',
+    'codicons',
+    'dist',
+    'codicon.css'
+  );
+
+  return webview.asWebviewUri(vscode.Uri.file(codiconPath)).toString();
+}
+
+function generateNonce(): string {
+  return randomBytes(32).toString('base64url');
 }
 
