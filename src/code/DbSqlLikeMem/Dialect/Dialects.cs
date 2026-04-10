@@ -191,6 +191,9 @@ internal abstract class SqlDialectBase : ISqlDialect
     public virtual bool SupportsIifFunction => true;
     public virtual bool SupportsWindowFunctions => true;
     public virtual bool SupportsWindowFrameClause => false;
+    public virtual bool SupportsWindowFrameRowsClause => SupportsWindowFrameClause;
+    public virtual bool SupportsWindowFrameRangeClause => SupportsWindowFrameClause;
+    public virtual bool SupportsWindowFrameGroupsClause => SupportsWindowFrameClause;
     public virtual bool SupportsForJsonClause => false;
     public virtual bool SupportsPivotClause => false;
     public virtual bool SupportsUnpivotClause => false;
@@ -253,6 +256,12 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// PT: Indica se CONCAT() retorna null quando qualquer argumento e null.
     /// </summary>
     public virtual bool ConcatFunctionReturnsNullOnNullInput => true;
+
+    /// <summary>
+    /// EN: Indicates whether the pipe operator (||) is treated as string concatenation.
+    /// PT: Indica se o operador pipe (||) e tratado como concatenacao de strings.
+    /// </summary>
+    public virtual bool SupportsPipeConcatOperator => false;
 
     /// <summary>
     /// EN: Legacy combined concat null behavior kept for compatibility with older call sites.
@@ -950,6 +959,12 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// PT: Obtém ou define AllowsParserLimitOffsetCompatibility.
     /// </summary>
     public virtual bool AllowsParserLimitOffsetCompatibility => false;
+
+    /// <summary>
+    /// EN: Returns the parser cache suffix used to isolate dialect modes that change tokenization or parsing.
+    /// PT: Retorna o sufixo de cache do parser usado para isolar modos de dialeto que mudam tokenizacao ou parsing.
+    /// </summary>
+    public virtual string ParserCacheKeySuffix => string.Empty;
 
     /// <summary>
     /// EN: Gets or sets SupportsSqlServerTableHints.

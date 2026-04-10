@@ -56,15 +56,26 @@ internal static class SqlWindowExpressionParserHelper
             && spec.OrderBy.Count == 0)
             throw ctx.Error($"Window function '{functionName}' requires ORDER BY in OVER clause.", contextToken);
 
-        if (ctx.Dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
-            && spec.Frame is not null
-            && !AstQueryWindowFunctionSupport.SupportsWindowFrame(functionName))
-        {
-            throw ctx.Error($"Window function '{functionName}' does not support ROWS, RANGE or GROUPS clauses.", contextToken);
-        }
-
         if (spec.Frame is not null)
         {
+            if (!ctx.Dialect.SupportsWindowFrameClause)
+                throw ctx.NotSupported("window frame clauses");
+
+            if (spec.Frame.Unit == WindowFrameUnit.Rows && !ctx.Dialect.SupportsWindowFrameRowsClause)
+                throw ctx.NotSupported("ROWS window frame clauses");
+
+            if (spec.Frame.Unit == WindowFrameUnit.Range && !ctx.Dialect.SupportsWindowFrameRangeClause)
+                throw ctx.NotSupported("RANGE window frame clauses");
+
+            if (spec.Frame.Unit == WindowFrameUnit.Groups && !ctx.Dialect.SupportsWindowFrameGroupsClause)
+                throw ctx.NotSupported("GROUPS window frame clauses");
+
+            if (ctx.Dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
+                && !AstQueryWindowFunctionSupport.SupportsWindowFrame(functionName))
+            {
+                throw ctx.Error($"Window function '{functionName}' does not support ROWS, RANGE or GROUPS clauses.", contextToken);
+            }
+
             ctx.EnsureWindowFrameSemanticRange(spec.Frame, contextToken);
             ctx.EnsureWindowFrameOffsetSupport(spec.Frame, contextToken);
         }

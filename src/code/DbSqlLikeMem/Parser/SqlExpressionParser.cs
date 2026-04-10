@@ -625,13 +625,17 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
     private bool TryParseAddSubInfix(ref SqlExpr left, int minBp)
     {
         var t = _context.Peek();
-        if (t.Kind != SqlTokenKind.Operator || (t.Text != "+" && t.Text != "-" && t.Text != "||"))
+        var isPipeConcat = t.Kind == SqlTokenKind.Operator
+            && t.Text == "||"
+            && _context.Dialect.SupportsPipeConcatOperator;
+
+        if (t.Kind != SqlTokenKind.Operator || (t.Text != "+" && t.Text != "-" && !isPipeConcat))
             return false;
 
         var (lbp, rbp) = (60, 61);
         if (lbp < minBp) return false;
 
-        _context.Consume(); // + or -
+        _context.Consume(); // +, - or ||
         var right = ParseExpression(rbp);
         var op = t.Text == "+"
             ? SqlBinaryOp.Add
@@ -727,14 +731,20 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
     private bool TryParseAndOrInfix(ref SqlExpr left, int minBp)
     {
         var t = _context.Peek();
-        if (!(SqlExpressionParserContext.IsKeyword(t, SqlConst.AND) || SqlExpressionParserContext.IsKeyword(t, SqlConst.OR)))
+        var isPipeOr = t.Kind == SqlTokenKind.Operator
+            && t.Text == "||"
+            && !_context.Dialect.SupportsPipeConcatOperator;
+
+        if (!(SqlExpressionParserContext.IsKeyword(t, SqlConst.AND)
+            || SqlExpressionParserContext.IsKeyword(t, SqlConst.OR)
+            || isPipeOr))
             return false;
 
         var op = SqlExpressionParserContext.IsKeyword(t, SqlConst.AND) ? SqlBinaryOp.And : SqlBinaryOp.Or;
         var (lbp, rbp) = op == SqlBinaryOp.And ? (20, 21) : (10, 11);
         if (lbp < minBp) return false;
 
-        _context.Consume();
+        _context.Consume(); // AND, OR or ||
         var right = ParseExpression(rbp);
         left = new BinaryExpr(op, left, right);
         return true;

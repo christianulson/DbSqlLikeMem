@@ -11,12 +11,17 @@ public class MySqlDbMock
     internal override SqlDialectBase Dialect { get; set; }
 
     /// <summary>
-    /// EN: Initializes an in-memory MySQL mock database with the requested version.
-    /// PT: Inicializa um banco MySQL simulado em memória com a versão informada.
+    /// EN: Initializes an in-memory MySQL mock database with the requested version and optional ANSI_QUOTES and PIPES_AS_CONCAT parsing modes.
+    /// PT: Inicializa um banco MySQL simulado em memória com a versão informada e os modos opcionais de parsing ANSI_QUOTES e PIPES_AS_CONCAT.
     /// </summary>
+    /// <param name="version">EN: Optional simulated version. PT: Versão simulada opcional.</param>
+    /// <param name="ansiQuotes">EN: Enables ANSI_QUOTES mode so double quotes are parsed as identifiers. PT: Habilita o modo ANSI_QUOTES para que aspas duplas sejam interpretadas como identificadores.</param>
+    /// <param name="pipesAsConcat">EN: Enables PIPES_AS_CONCAT mode so || is parsed as string concatenation. PT: Habilita o modo PIPES_AS_CONCAT para que || seja interpretado como concatenacao de strings.</param>
     public MySqlDbMock(
-        int? version = null
-        ) : this(version, static currentVersion => new MySqlDialect(currentVersion))
+        int? version = null,
+        bool ansiQuotes = false,
+        bool pipesAsConcat = false
+        ) : this(version, currentVersion => new MySqlDialect(currentVersion, ansiQuotes, pipesAsConcat))
     {
     }
 

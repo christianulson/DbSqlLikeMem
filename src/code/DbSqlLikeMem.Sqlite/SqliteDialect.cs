@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.Sqlite;
+namespace DbSqlLikeMem.Sqlite;
 
 internal sealed class SqliteDialect : SqlDialectBase
 {
@@ -132,6 +132,8 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// PT: Obtém ou define concat returns null on null input.
     /// </summary>
     public override bool ConcatReturnsNullOnNullInput => true;
+    /// <inheritdoc />
+    public override bool SupportsPipeConcatOperator => true;
     /// <summary>
     /// EN: Gets whether json arrow operators is supported.
     /// PT: Obtém se há suporte a json arrow operators.

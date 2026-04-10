@@ -37,7 +37,7 @@ internal sealed class AutoSqlDialect : SqlDialectBase
             version: version,
             keywords: [],
             binOps: _binaryOperators,
-            operators: ["<=>", ">=", "<=", "<>", "!="])
+            operators: ["<=>", ">=", "<=", "<>", "!=", "||"])
     {
         SqlSharedScalarFunctionRegistry.Register(this);
         AutoScalarFunctionRegistry.Register(this);
@@ -107,6 +107,9 @@ internal sealed class AutoSqlDialect : SqlDialectBase
     /// PT: Habilita parsing de OFFSET/FETCH para dialetos que expõem a cauda de paginacao em duas clausulas.
     /// </summary>
     public override bool SupportsOffsetFetch => true;
+
+    /// <inheritdoc />
+    public override bool SupportsPipeConcatOperator => true;
 
     /// <inheritdoc />
     public override bool SupportsSequenceDdl => true;

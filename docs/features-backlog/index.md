@@ -132,7 +132,6 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: parser/runtime passaram a suportar um primeiro subset pragmático de `FUNCTION` escalar (`CREATE FUNCTION ... RETURNS <type> AS BEGIN RETURN <expr> END` + `DROP FUNCTION`) no estilo `SQL Server/SqlAzure`, com execução end-to-end de chamadas zero-arg e gate explícito de `NotSupportedException` nos demais dialetos enquanto as variantes reais de cada provider continuam fora do subset.
 - Incremento desta sessão: o suporte de FUNCTION evoluiu para um subset pragmático e provider-real também em MySQL, PostgreSQL, Oracle e Db2, com parâmetros escalares simples, corpo mínimo compatível por dialeto (RETURN <expr>, AS 'SELECT <expr>' LANGUAGE SQL, RETURN ... IS BEGIN ... END) e cobertura versionada/end-to-end nos providers que aceitam DDL de função; SQLite permanece fora do escopo com gate explícito de NotSupportedException.
 - Incremento desta sessão: `CREATE OR REPLACE FUNCTION` passou a ser suportado no subset provider-real de PostgreSQL e Oracle, com substituição end-to-end do corpo existente e regressão versionada explícita de rejeição nos providers que aceitam `FUNCTION` mas não expõem a variante `OR REPLACE`.
-- TODO: expandir o subset DDL com `ALTER TABLE` pragmático e hardening adicional de `CREATE/DROP INDEX`, mantendo gate explícito por dialeto/versão e sem aceitar DDL avançado fora do contrato real do provider.
 - TODO: revisar a trilha restante de objetos programáveis (`PROCEDURE`/`TRIGGER` DDL e variantes avançadas de `FUNCTION`, como sobrecarga por assinatura, defaults de parâmetros, funções tabulares e corpos procedurais mais ricos) para deixar explícito no backlog o que será suportado de forma real e o que continuará bloqueado por `NotSupportedException`.
 
 #### 1.2.2 Interpretação de comandos DML
@@ -966,7 +965,6 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 - Implementação estimada: **80%**.
 - A próxima expansão deve continuar por famílias de dialeto, reaproveitando parser/runtime existentes antes de isolar o que realmente merecer provider próprio.
-- TODO: adicionar `FirebirdDialect` com suporte inicial a `SELECT FIRST`, `ROWS` e `GENERATOR`, mantendo gates explícitos para tudo que ainda não entrar no subset.
 - TODO: refatorar a família PostgreSQL para permitir um `DuckDbDialect` compartilhando o máximo possível do caminho `Npgsql/PostgreSQL`.
 - TODO: cobrir no `DuckDbDialect` o subset inicial realmente priorizado (`STRUCT`, `LIST`, `UNNEST`) somente depois da base compartilhada estar pronta.
 - TODO: planejar a fase posterior da família analytics com `ClickHouse` (`ARRAY JOIN`, `LIMIT BY`, `ENGINE MergeTree`) sem acoplar sintaxe analítica diretamente ao executor comum.
@@ -1052,9 +1050,9 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: a trilha de performance agora consolida, no backlog, os hot paths do core já estabilizados em otimizações anteriores com chaves estruturadas para índices e PK, `AddBatch` incremental e paralelização best-effort em caminhos thread-safe, sem reabrir funcionalidades já fechadas no código.
 - TODO: ampliar a matriz compartilhada para capacidades avançadas auditadas contra bancos reais (`FOR JSON`, `CROSS APPLY/OUTER APPLY`, `LATERAL`, `DISTINCT ON`, `json_each/json_tree`, `PIVOT/UNPIVOT`) com status explícito por provider.
 - TODO: incluir `SqlDialect.Auto` na malha `parser`/`smoke` com snapshots dedicados para sintaxes equivalentes de paginação e demais heurísticas que entrarem no modo automático.
-- TODO: expandir a matriz para os próximos providers/famílias planejados (`Firebird`, `DuckDB` e, em fase posterior, `ClickHouse`/`Snowflake`) com status por etapa de implementação.
+- TODO: expandir a matriz para os próximos providers/famílias planejados (`DuckDB` e, em fase posterior, `ClickHouse`/`Snowflake`) com status por etapa de implementação.
 - TODO: conectar a futura API de validação cross-dialect aos artefatos publicados da matriz para transformar compatibilidade em evidência objetiva de CI.
-- Providers do backlog com benchmark viável por container para expansão futura: `Firebird` e `ClickHouse`.
+- Providers do backlog com benchmark viável por container para expansão futura: `ClickHouse`.
 - Fora desta trilha por enquanto: `DuckDB` e `SQLite` permanecem embedded/nativos, e `SqlAzure`/`Snowflake` seguem sem baseline local/container equivalente no ciclo atual.
 
 #### 3.7.2 Priorização de gaps
@@ -1071,7 +1069,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 - Implementação estimada: **84%**.
 - Comandos que bloqueiam operações essenciais de CRUD e autenticação/autorização da aplicação.
-- TODO: manter nesta onda os gaps que ainda quebram fluxo essencial do core, começando por `SqlDialect.Auto`, refatoração das famílias reutilizáveis de dialeto e o fechamento dos gaps pequenos/críticos do parser comum.
+- TODO: manter nesta onda os gaps que ainda quebram fluxo essencial do core, começando pela refatoração das famílias reutilizáveis de dialeto e pelo fechamento dos gaps pequenos/críticos do parser comum.
 - TODO: manter também nesta onda os gaps que ainda quebram fluxo essencial do core, como `UPDATE/DELETE` multi-tabela dirigidos por dialeto, `PIVOT` subset incompleto e families JSON tabulares mais críticas por provider.
 
 #### 3.8.2 Onda 2 (alta)
@@ -1081,7 +1079,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Inclui execução do plano P11/P12 para confiabilidade transacional, concorrência e diagnóstico de erro com contexto.
 - Status detalhado de transações concorrentes: fase de hardening base concluída (100%), governança em progresso (~10%) e cenários críticos (fases 2–5) priorizados para fechamento.
 - TODO: manter nesta onda recursos avançados de consulta com impacto funcional frequente (`FOR JSON`, `STRING_SPLIT`, `CROSS APPLY/OUTER APPLY`, `DISTINCT ON`, `LATERAL`, window frames avançados no SQLite).
-- TODO: priorizar nesta onda `Firebird`, `DuckDB` e `Cross Dialect Validator`, respeitando a ordem de dependências definida no roadmap, já que `Query Plan Debugger` e `Schema Snapshot` passaram a constar como trilhas já materializadas no índice.
+- TODO: priorizar nesta onda `DuckDB` e `Cross Dialect Validator`, respeitando a ordem de dependências definida no roadmap, já que `Query Plan Debugger` e `Schema Snapshot` passaram a constar como trilhas já materializadas no índice.
 
 #### 3.8.3 Onda 3 (média/baixa)
 
@@ -1155,7 +1153,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: o parser comum de agregação textual foi endurecido para a forma nativa do MySQL (`GROUP_CONCAT(DISTINCT ... ORDER BY ... SEPARATOR ...)`), aceitando `SEPARATOR` como terminador válido do `ORDER BY` interno apenas quando o dialeto/função o suportam.
 - Incremento desta sessão: a trilha auditada de regras por dialeto removeu os últimos branches comportamentais centrais por `dialect.Name` para mutações multi-tabela, rowcount de UPSERT e `SQL_CALC_FOUND_ROWS`, consolidando parser/executor/strategies sob o mesmo contrato de capability do provider.
 - Incremento desta sessão: a próxima fatia funcional do executor fechou o subset principal de `PIVOT` com `SUM/MIN/MAX/AVG`, adicionou `UNPIVOT` e abriu o subset inicial de `FOR JSON` no caminho compartilhado de `SQL Server/SqlAzure`, deixando agregadores avançados, nuances tabulares por versão e arestas finas de serialização JSON como backlog residual explícito.
-- TODO: executar o roadmap remanescente na ordem acordada: `SqlDialect.Auto` -> `Firebird` -> `DuckDB` -> `Cross Dialect Validator`, considerando `Query Plan Debugger` e `Schema Snapshot` como trilhas já materializadas no ciclo atual.
+- TODO: executar o roadmap remanescente na ordem acordada: `DuckDB` -> `Cross Dialect Validator`, considerando `Query Plan Debugger` e `Schema Snapshot` como trilhas já materializadas no ciclo atual.
 - TODO: extrair/refatorar bases compartilhadas por família antes de `DuckDB`, para evitar duplicação e preservar o parser/executor agnósticos.
 - TODO: fechar a trilha auditada contra bancos reais com implementação incremental de `FOR JSON`/`STRING_SPLIT`/`CROSS APPLY`/`OUTER APPLY` (SQL Server/SqlAzure), `DISTINCT ON`/`LATERAL` (PostgreSQL), `json_each`/`json_tree` e frames avançados de window (SQLite).
 - TODO: revisar cada nova feature acima com a regra "dialeto manda", garantindo gate no tokenizer/parser, contract no executor e suíte positiva/negativa por versão simulada antes de marcar o item como concluído.
@@ -1548,8 +1546,6 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 ### 7.0 Núcleo e DDL
 
-- `ALTER TABLE` pragmático.
-- `CREATE/DROP INDEX` com hardening adicional.
 - Objetos programáveis: `PROCEDURE`, `TRIGGER` e variantes avançadas de `FUNCTION`.
 
 ### 7.1 Execução avançada
@@ -1560,22 +1556,18 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 ### 7.2 Famílias futuras
 
-- `Firebird`.
 - `DuckDB`.
 - `ClickHouse`.
 - `Snowflake`.
 
 ### 7.3 Camada compartilhada
 
-- `SqlDialect.Auto`.
 - `SqlCompatibilityCheck` / `ValidateAcrossDialects(query)`.
 - `TestAcrossDialects(query)`.
 - Matriz cross-dialect e snapshots de CI.
 
 ### 7.4 Observabilidade e release
 
-- Execution plan debugger.
-- Trace e métricas em memória.
 - Resumo de impacto por provider/dialeto.
 - Governança de SemVer e publicação.
 

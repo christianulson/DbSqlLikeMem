@@ -219,6 +219,47 @@ public sealed class MySqlDialectFeatureParserTests(
     }
 
     /// <summary>
+    /// EN: Verifies ANSI_QUOTES mode enables double-quoted identifiers in the MySQL dialect.
+    /// PT: Verifica se o modo ANSI_QUOTES habilita identificadores entre aspas duplas no dialeto MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void AnsiQuotesMode_ShouldEnableDoubleQuotedIdentifiers(int version)
+    {
+        var dialect = Get(version, v => new MySqlDialect(v, ansiQuotes: true));
+
+        Assert.True(dialect.AllowsDoubleQuoteIdentifiers);
+        Assert.False(dialect.IsStringQuote('"'));
+        Assert.Equal(SqlIdentifierEscapeStyle.double_quote, dialect.IdentifierEscapeStyle);
+    }
+
+    /// <summary>
+    /// EN: Verifies ANSI_QUOTES parses double-quoted identifiers even when the same SQL was cached under default MySQL mode.
+    /// PT: Verifica se ANSI_QUOTES interpreta identificadores entre aspas duplas mesmo quando o mesmo SQL foi cacheado no modo MySQL padrao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void AnsiQuotesMode_ShouldNotReuseCachedLiteralParsing(int version)
+    {
+        var db = Get(version, v => new MySqlDbMock(v));
+        var defaultDialect = Get(version, v => new MySqlDialect(v));
+        var ansiDialect = Get(version, v => new MySqlDialect(v, ansiQuotes: true));
+
+        var defaultExpr = SqlExpressionParser.ParseWhere("\"DeletedDtt\" IS NULL", db, defaultDialect);
+        var defaultIsNull = Assert.IsType<IsNullExpr>(defaultExpr);
+        Assert.IsType<LiteralExpr>(defaultIsNull.Expr);
+
+        var ansiExpr = SqlExpressionParser.ParseWhere("\"DeletedDtt\" IS NULL", db, ansiDialect);
+        var ansiIsNull = Assert.IsType<IsNullExpr>(ansiExpr);
+        var id = Assert.IsType<IdentifierExpr>(ansiIsNull.Expr);
+        Assert.Equal("DeletedDtt", id.Name);
+    }
+
+    /// <summary>
     /// EN: Ensures MySQL keeps FOUND_ROWS/ROW_COUNT wired through the dialect capability used by the executor.
     /// PT: Garante que o MySQL mantenha FOUND_ROWS/ROW_COUNT ligados pela capability de dialeto usada pelo executor.
     /// </summary>

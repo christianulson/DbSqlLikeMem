@@ -115,7 +115,24 @@ public sealed class MySqlBatchMock :
 #endif
         (MySqlDataReaderMock)await ExecuteDbDataReaderAsync(CommandBehavior.Default, cancellationToken).ConfigureAwait(false);
 
-    //// TODO: new ExecuteReaderAsync(CommandBehavior)
+#if NET6_0_OR_GREATER
+    /// <summary>
+    /// EN: Asynchronously executes the batch with the requested command behavior and returns a typed MySqlDataReaderMock.
+    /// PT: Executa o lote de forma assíncrona com o comportamento de comando solicitado e retorna um MySqlDataReaderMock tipado.
+    /// </summary>
+    public new async Task<MySqlDataReaderMock> ExecuteReaderAsync(
+        CommandBehavior commandBehavior,
+        CancellationToken cancellationToken = default) =>
+#else
+    /// <summary>
+    /// EN: Asynchronously executes the batch with the requested command behavior and returns a typed MySqlDataReaderMock.
+    /// PT: Executa o lote de forma assíncrona com o comportamento de comando solicitado e retorna um MySqlDataReaderMock tipado.
+    /// </summary>
+    public async Task<MySqlDataReaderMock> ExecuteReaderAsync(
+        CommandBehavior commandBehavior,
+        CancellationToken cancellationToken = default) =>
+#endif
+        (MySqlDataReaderMock)await ExecuteDbDataReaderAsync(commandBehavior, cancellationToken).ConfigureAwait(false);
 
 #if NET6_0_OR_GREATER
     /// <summary>

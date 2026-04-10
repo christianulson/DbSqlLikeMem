@@ -87,6 +87,9 @@ internal partial class FirebirdDialect : SqlDialectBase, ISqlDialect
     /// </summary>
     public override bool SupportsLikeEscapeClause => true;
 
+    /// <inheritdoc />
+    public override bool SupportsPipeConcatOperator => true;
+
     /// <summary>
     /// EN: Indicates whether SQL window functions are supported by the configured Firebird version.
     /// PT: Indica se funções de janela SQL são suportadas pela versão configurada do Firebird.

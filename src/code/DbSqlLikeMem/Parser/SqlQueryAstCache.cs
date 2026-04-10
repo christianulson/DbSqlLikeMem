@@ -3,7 +3,7 @@ namespace DbSqlLikeMem;
 internal sealed class SqlQueryAstCache
 {
     // Bump when parser semantics change in a way that invalidates previously cached ASTs.
-    private const int ParserCacheKeyVersion = 3;
+    private const int ParserCacheKeyVersion = 4;
 
     private readonly int _capacity;
     private readonly object _gate = new();
@@ -35,7 +35,7 @@ internal sealed class SqlQueryAstCache
         return new SqlQueryAstCache(parsed);
     }
 
-    public static string BuildKey(string sql, string dialectName, int dialectVersion)
+    public static string BuildKey(string sql, string dialectName, int dialectVersion, string parserCacheKeySuffix)
         => string.Concat(
             "p",
             ParserCacheKeyVersion.ToString(CultureInfo.InvariantCulture),
@@ -43,6 +43,8 @@ internal sealed class SqlQueryAstCache
             dialectName,
             "::v",
             dialectVersion.ToString(CultureInfo.InvariantCulture),
+            "::",
+            parserCacheKeySuffix,
             "::",
             NormalizeSql(sql));
 

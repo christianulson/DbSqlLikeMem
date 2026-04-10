@@ -153,6 +153,12 @@ internal interface ISqlDialect
     bool AllowsParserDeleteWithoutFromCompatibility { get; }
     bool AllowsParserLimitOffsetCompatibility { get; }
 
+    /// <summary>
+    /// EN: Returns the parser cache suffix used to isolate dialect modes that change tokenization or parsing.
+    /// PT: Retorna o sufixo de cache do parser usado para isolar modos de dialeto que mudam tokenizacao ou parsing.
+    /// </summary>
+    string ParserCacheKeySuffix { get; }
+
     // Table hints
     bool SupportsSqlServerTableHints { get; }
     bool SupportsSqlServerQueryHints { get; }
@@ -199,6 +205,12 @@ internal interface ISqlDialect
     bool ConcatFunctionReturnsNullOnNullInput { get; }
 
     /// <summary>
+    /// EN: Indicates whether the pipe operator (||) is treated as string concatenation.
+    /// PT: Indica se o operador pipe (||) e tratado como concatenacao de strings.
+    /// </summary>
+    bool SupportsPipeConcatOperator { get; }
+
+    /// <summary>
     /// EN: Legacy combined concat null behavior kept for compatibility with older call sites.
     /// PT: Comportamento legado combinado de concat null mantido por compatibilidade com call sites antigos.
     /// </summary>
@@ -210,6 +222,21 @@ internal interface ISqlDialect
     bool IsIntegerCastTypeName(string typeName);
     bool SupportsWindowFunctions { get; }
     bool SupportsWindowFrameClause { get; }
+    /// <summary>
+    /// EN: Indicates whether ROWS window frame clauses are supported by the current dialect/version.
+    /// PT: Indica se cláusulas de frame ROWS são suportadas pelo dialeto/versao atual.
+    /// </summary>
+    bool SupportsWindowFrameRowsClause { get; }
+    /// <summary>
+    /// EN: Indicates whether RANGE window frame clauses are supported by the current dialect/version.
+    /// PT: Indica se cláusulas de frame RANGE são suportadas pelo dialeto/versao atual.
+    /// </summary>
+    bool SupportsWindowFrameRangeClause { get; }
+    /// <summary>
+    /// EN: Indicates whether GROUPS window frame clauses are supported by the current dialect/version.
+    /// PT: Indica se cláusulas de frame GROUPS são suportadas pelo dialeto/versao atual.
+    /// </summary>
+    bool SupportsWindowFrameGroupsClause { get; }
     bool SupportsLikeEscapeClause { get; }
     bool SupportsIlikeOperator { get; }
     char? LikeDefaultEscapeCharacter { get; }

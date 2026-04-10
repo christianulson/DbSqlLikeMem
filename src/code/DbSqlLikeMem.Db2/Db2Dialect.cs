@@ -70,6 +70,8 @@ internal sealed class Db2Dialect : SqlDialectBase, ISqlDialect
     /// PT: Obtém se há suporte a offset fetch.
     /// </summary>
     public override bool SupportsOffsetFetch => Version >= OffsetFetchMinVersion;
+    /// <inheritdoc />
+    public override bool SupportsPipeConcatOperator => true;
 
     public override bool SupportsLikeEscapeClause => true;
 

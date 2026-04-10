@@ -57,6 +57,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
     internal const int WindowFunctionsROW_NUMBERMinVersion = 2005;
     internal const int WindowFunctionsMinVersion = 2012;
     internal const int WindowFrameClauseMinVersion = 2012;
+    internal const int WindowFrameGroupsMinVersion = 2022;
 
     /// <summary>
     /// EN: Gets or sets allows bracket identifiers.
@@ -98,12 +99,26 @@ internal sealed class SqlServerDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsWindowFunctions => Version >= WindowFunctionsMinVersion;
 
-    //TODO: Separar ROWS BETWEEN - 2012, RANGE BETWEEN - 2012, GROUPS BETWEEN - 2022
     /// <summary>
     /// EN: Indicates whether SQL window frame clauses are supported by the configured version.
     /// PT: Indica se cláusulas de frame de janela SQL são suportadas pela versão configurada.
     /// </summary>
     public override bool SupportsWindowFrameClause => Version >= WindowFrameClauseMinVersion;
+    /// <summary>
+    /// EN: Indicates whether ROWS window frame clauses are supported by the configured SQL Server version.
+    /// PT: Indica se cláusulas de frame ROWS são suportadas pela versão configurada do SQL Server.
+    /// </summary>
+    public override bool SupportsWindowFrameRowsClause => Version >= WindowFrameClauseMinVersion;
+    /// <summary>
+    /// EN: Indicates whether RANGE window frame clauses are supported by the configured SQL Server version.
+    /// PT: Indica se cláusulas de frame RANGE são suportadas pela versão configurada do SQL Server.
+    /// </summary>
+    public override bool SupportsWindowFrameRangeClause => Version >= WindowFrameClauseMinVersion;
+    /// <summary>
+    /// EN: Indicates whether GROUPS window frame clauses are supported by the configured SQL Server version.
+    /// PT: Indica se cláusulas de frame GROUPS são suportadas pela versão configurada do SQL Server.
+    /// </summary>
+    public override bool SupportsWindowFrameGroupsClause => Version >= WindowFrameGroupsMinVersion;
 
     public override bool SupportsWithinGroupForStringAggregates => Version >= StringAggMinVersion;
 

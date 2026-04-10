@@ -7,30 +7,37 @@ namespace DbSqlLikeMem.MySql;
 internal partial class MySqlDialect : SqlDialectBase
 {
     internal const string DialectName = "mysql";
+    private readonly bool _ansiQuotes;
+    private readonly bool _pipesAsConcat;
 
     /// <summary>
-    /// EN: Initializes the MySQL dialect for the requested simulated version.
-    /// PT: Inicializa o dialeto MySQL para a versão simulada informada.
+    /// EN: Initializes the MySQL dialect for the requested simulated version and optional parser modes.
+    /// PT: Inicializa o dialeto MySQL para a versão simulada informada e modos opcionais de parser.
     /// </summary>
     /// <param name="version">EN: Simulated MySQL version. PT: Versão simulada do MySQL.</param>
+    /// <param name="ansiQuotes">EN: Enables ANSI_QUOTES mode so double quotes are parsed as identifiers. PT: Habilita o modo ANSI_QUOTES para que aspas duplas sejam interpretadas como identificadores.</param>
+    /// <param name="pipesAsConcat">EN: Enables PIPES_AS_CONCAT mode so || is parsed as string concatenation. PT: Habilita o modo PIPES_AS_CONCAT para que || seja interpretado como concatenacao de strings.</param>
     internal MySqlDialect(
-        int version
-        ) : this(DialectName, version)
+        int version,
+        bool ansiQuotes = false,
+        bool pipesAsConcat = false
+        ) : this(DialectName, version, ansiQuotes, pipesAsConcat)
     {
     }
 
-    //TODO: implementar ANSI_QUOTES
-    //TODO: implementar PIPES_AS_CONCAT
-
     /// <summary>
-    /// EN: Initializes a MySQL-family dialect with a custom provider name and version.
-    /// PT: Inicializa um dialeto da família MySQL com nome de provedor e versão customizados.
+    /// EN: Initializes a MySQL-family dialect with a custom provider name, version, and optional parser modes.
+    /// PT: Inicializa um dialeto da família MySQL com nome de provedor, versão e modos opcionais de parser customizados.
     /// </summary>
     /// <param name="dialectName">EN: Dialect/provider name exposed to the parser and executor. PT: Nome do dialeto/provedor exposto ao parser e executor.</param>
     /// <param name="version">EN: Simulated dialect version. PT: Versão simulada do dialeto.</param>
+    /// <param name="ansiQuotes">EN: Enables ANSI_QUOTES mode so double quotes are parsed as identifiers. PT: Habilita o modo ANSI_QUOTES para que aspas duplas sejam interpretadas como identificadores.</param>
+    /// <param name="pipesAsConcat">EN: Enables PIPES_AS_CONCAT mode so || is parsed as string concatenation. PT: Habilita o modo PIPES_AS_CONCAT para que || seja interpretado como concatenacao de strings.</param>
     protected MySqlDialect(
         string dialectName,
-        int version
+        int version,
+        bool ansiQuotes = false,
+        bool pipesAsConcat = false
         ) : base(
         name: dialectName,
         version: version,
@@ -40,7 +47,6 @@ internal partial class MySqlDialect : SqlDialectBase
             new KeyValuePair<string, SqlBinaryOp>(SqlConst.AND, SqlBinaryOp.And),
             new KeyValuePair<string, SqlBinaryOp>("&&", SqlBinaryOp.And),
             new KeyValuePair<string, SqlBinaryOp>(SqlConst.OR, SqlBinaryOp.Or),
-            new KeyValuePair<string, SqlBinaryOp>("||", SqlBinaryOp.Or),
             new KeyValuePair<string, SqlBinaryOp>("=", SqlBinaryOp.Eq),
             new KeyValuePair<string, SqlBinaryOp>("<>", SqlBinaryOp.Neq),
             new KeyValuePair<string, SqlBinaryOp>("!=", SqlBinaryOp.Neq),
@@ -49,6 +55,7 @@ internal partial class MySqlDialect : SqlDialectBase
             new KeyValuePair<string, SqlBinaryOp>("<", SqlBinaryOp.Less),
             new KeyValuePair<string, SqlBinaryOp>("<=", SqlBinaryOp.LessOrEqual),
             new KeyValuePair<string, SqlBinaryOp>("<=>", SqlBinaryOp.NullSafeEq),
+            new KeyValuePair<string, SqlBinaryOp>("||", pipesAsConcat ? SqlBinaryOp.Concat : SqlBinaryOp.Or),
         ],
         operators:
         [
@@ -57,6 +64,8 @@ internal partial class MySqlDialect : SqlDialectBase
             "&&", "||"
         ])
     {
+        _ansiQuotes = ansiQuotes;
+        _pipesAsConcat = pipesAsConcat;
         RegisterScalarFunctions(version);
         RegisterTableFunctions(version);
         SqlSharedWindowFunctionRegistry.Register(this);
@@ -82,18 +91,28 @@ internal partial class MySqlDialect : SqlDialectBase
     /// EN: Gets or sets AllowsDoubleQuoteIdentifiers.
     /// PT: Obtém ou define AllowsDoubleQuoteIdentifiers.
     /// </summary>
-    public override bool AllowsDoubleQuoteIdentifiers => false; // keep tokenizer behavior: " as string
+    public override bool AllowsDoubleQuoteIdentifiers => _ansiQuotes;
+    /// <inheritdoc />
+    public override string ParserCacheKeySuffix
+        => string.Concat(
+            "|ansiQuotes=",
+            _ansiQuotes ? "1" : "0",
+            "|pipesAsConcat=",
+            _pipesAsConcat ? "1" : "0");
+    /// <inheritdoc />
+    public override bool SupportsPipeConcatOperator => _pipesAsConcat;
     /// <summary>
     /// EN: Gets or sets IdentifierEscapeStyle.
     /// PT: Obtém ou define IdentifierEscapeStyle.
     /// </summary>
-    public override SqlIdentifierEscapeStyle IdentifierEscapeStyle => SqlIdentifierEscapeStyle.backtick;
+    public override SqlIdentifierEscapeStyle IdentifierEscapeStyle
+        => _ansiQuotes ? SqlIdentifierEscapeStyle.double_quote : SqlIdentifierEscapeStyle.backtick;
 
     /// <summary>
     /// EN: Implements IsStringQuote.
     /// PT: Implementa IsStringQuote.
     /// </summary>
-    public override bool IsStringQuote(char ch) => ch is '\'' or '"';
+    public override bool IsStringQuote(char ch) => ch == '\'' || (ch == '"' && !_ansiQuotes);
     /// <summary>
     /// EN: Gets or sets StringEscapeStyle.
     /// PT: Obtém ou define StringEscapeStyle.

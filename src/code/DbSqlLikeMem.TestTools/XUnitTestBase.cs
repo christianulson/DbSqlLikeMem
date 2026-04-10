@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
@@ -204,21 +203,16 @@ public abstract class XUnitTestBase : IDisposable
         return testMethod?.Name ?? "UnknownTest";
     }
 
-    private static readonly ConcurrentDictionary<string, object> ObjCache = [];
-
     /// <summary>
-    /// Retrieves a cached dialect instance for the specified version, or creates and caches a new instance if one does
-    /// not exist.
+    /// EN: Creates a dialect or helper instance for the requested version.
+    /// PT: Cria um dialeto ou helper para a versão solicitada.
     /// </summary>
-    /// <remarks>This method uses an internal cache to store and retrieve dialect instances by type and
-    /// version. If a dialect for the given version does not exist in the cache, the provided creation function is used
-    /// to instantiate and cache it. This approach improves performance by avoiding redundant instantiations.</remarks>
-    /// <typeparam name="T">The type of the dialect to retrieve or create.</typeparam>
-    /// <param name="version">The version number used to identify the dialect instance.</param>
-    /// <param name="fnCreate">A function that creates a new dialect instance for the specified version if one is not already cached.</param>
-    /// <returns>A dialect instance of type T corresponding to the specified version.</returns>
+    /// <typeparam name="T">EN: Instance type. PT: Tipo da instância.</typeparam>
+    /// <param name="version">EN: Version number used to build the instance. PT: Número da versão usado para construir a instância.</param>
+    /// <param name="fnCreate">EN: Factory that creates the instance for the requested version. PT: Factory que cria a instância para a versão solicitada.</param>
+    /// <returns>EN: Created instance of type T. PT: Instância criada do tipo T.</returns>
     protected static T Get<T>(int version, Func<int, T> fnCreate)
-        => (T)ObjCache.GetOrAdd($"{typeof(T).FullName}_v{version}", _ => fnCreate(version)!);
+        => fnCreate(version)!;
 
     #region Dispose
 

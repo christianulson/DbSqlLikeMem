@@ -50,6 +50,22 @@ public sealed class SqlDialectAutoParserTests(
     }
 
     /// <summary>
+    /// EN: Verifies Auto dialect parses the pipe operator as string concatenation.
+    /// PT: Verifica se o dialeto Auto interpreta o operador pipe como concatenacao de strings.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldParsePipeOperator_AsStringConcat()
+    {
+        var dialect = new AutoSqlDialect();
+        var db = Get(1, v => new AutoDbMock(v));
+        var expr = SqlExpressionParser.ParseScalar("'a' || 'b' || 'c'", db, dialect);
+
+        var concat = Assert.IsType<BinaryExpr>(expr);
+        Assert.Equal(SqlBinaryOp.Concat, concat.Op);
+    }
+
+    /// <summary>
     /// EN: Verifies OFFSET/FETCH keeps using the canonical LIMIT/OFFSET node in Auto dialect.
     /// PT: Verifica se OFFSET/FETCH continua usando o no canonico de LIMIT/OFFSET no dialeto Auto.
     /// </summary>

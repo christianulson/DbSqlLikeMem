@@ -2891,6 +2891,17 @@ public sealed class SqlServerDialectFeatureParserTests(
 
         var followingExpr = SqlExpressionParser.ParseScalar("COUNT(*) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)", db, d);
         Assert.IsType<WindowFunctionExpr>(followingExpr);
+
+        if (version < SqlServerDialect.WindowFrameGroupsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar("COUNT(*) OVER (ORDER BY id GROUPS BETWEEN 1 PRECEDING AND CURRENT ROW)", db, d));
+        }
+        else
+        {
+            var groupsExpr = SqlExpressionParser.ParseScalar("COUNT(*) OVER (ORDER BY id GROUPS BETWEEN 1 PRECEDING AND CURRENT ROW)", db, d);
+            Assert.IsType<WindowFunctionExpr>(groupsExpr);
+        }
     }
 
     /// <summary>

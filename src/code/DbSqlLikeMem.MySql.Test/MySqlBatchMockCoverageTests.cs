@@ -17,6 +17,13 @@ public sealed class MySqlBatchMockCoverageTests(
         return method.Invoke(batch, args);
     }
 
+    private static T GetNonPublicProperty<T>(MySqlBatchMock batch, string propertyName)
+    {
+        var property = typeof(MySqlBatchMock).GetProperty(propertyName, BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMemberException(typeof(MySqlBatchMock).FullName, propertyName);
+        return (T)(property.GetValue(batch) ?? throw new InvalidOperationException($"Property '{propertyName}' returned null."));
+    }
+
     /// <summary>
     /// EN: Verifies batch commands expose their default provider-facing surface.
     /// PT: Verifica se comandos em lote expõem sua superficie padrao voltada ao provedor.
@@ -163,6 +170,40 @@ public sealed class MySqlBatchMockCoverageTests(
         executable.Parameters.Count.Should().Be(2);
         ((MySqlParameter)executable.Parameters[0]).Value.Should().Be(1);
         ((MySqlParameter)executable.Parameters[1]).Value.Should().Be("Ana");
+    }
+
+    /// <summary>
+    /// EN: Verifies the async reader overload propagates the requested command behavior to the batch execution pipeline.
+    /// PT: Verifica se o overload async de reader propaga o comportamento de comando solicitado para o pipeline de execucao em lote.
+    /// </summary>
+    [Fact]
+#pragma warning disable AsyncFixer02
+#pragma warning disable xUnit1051
+    public async Task BatchAsyncReaderWithBehavior_ShouldPropagateCommandBehavior()
+    {
+        var db = new MySqlDbMock();
+        db.AddTable("Users", [
+            new("Id", DbType.Int32, false),
+            new("Name", DbType.String, false)
+        ]);
+
+        using var connection = new MySqlConnectionMock(db);
+        connection.Open();
+
+        using (var seed = connection.CreateCommand())
+        {
+            seed.CommandText = "INSERT INTO Users (Id, Name) VALUES (1, 'Ana')";
+            seed.ExecuteNonQuery();
+        }
+
+        using var batch = new MySqlBatchMock(connection);
+        batch.BatchCommands.Add(new MySqlBatchCommandMock("SELECT Name FROM Users WHERE Id = 1"));
+
+        using var reader = await batch.ExecuteReaderAsync(CommandBehavior.SequentialAccess);
+
+        reader.Read().Should().BeTrue();
+        reader.GetString(0).Should().Be("Ana");
+        GetNonPublicProperty<CommandBehavior>(batch, "CurrentCommandBehavior").Should().Be(CommandBehavior.SequentialAccess);
     }
 #pragma warning restore xUnit1051
 #pragma warning restore AsyncFixer02

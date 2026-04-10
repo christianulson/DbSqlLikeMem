@@ -77,6 +77,23 @@ public sealed class FirebirdDialectFeatureParserTests(
     }
 
     /// <summary>
+    /// EN: Ensures Firebird keeps the pipe operator as string concatenation in scalar expressions.
+    /// PT: Garante que o Firebird mantenha o operador pipe como concatenacao de strings em expressoes escalares.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void ParseScalarPipeConcat_ShouldReturnConcatExpression()
+    {
+        var dialect = new FirebirdDialect(FirebirdDbVersions.Default);
+        var db = new FirebirdDbMock(FirebirdDbVersions.Default);
+
+        var expr = SqlExpressionParser.ParseScalar("CURRENT_USER || '|' || CURRENT_ROLE", db, dialect);
+
+        var concat = Assert.IsType<BinaryExpr>(expr);
+        Assert.Equal(SqlBinaryOp.Concat, concat.Op);
+    }
+
+    /// <summary>
     /// EN: Ensures Firebird rejects scalar function defaults that are followed by required parameters.
     /// PT: Garante que o Firebird rejeite defaults de funcao escalar seguidos por parametros obrigatorios.
     /// </summary>

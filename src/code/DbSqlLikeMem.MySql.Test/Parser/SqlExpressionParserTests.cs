@@ -165,6 +165,40 @@ public sealed class SqlExpressionParserTests(
     }
 
     /// <summary>
+    /// EN: Verifies MySQL keeps the pipe operator as logical OR by default.
+    /// PT: Verifica se o MySQL mantém o operador pipe como OR lógico por padrao.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void PipeOperator_ShouldBehaveAsOrByDefault(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var ast = SqlExpressionParser.ParseWhere("'a' || 'b' || 'c'", db, d);
+
+        var or = ast.Should().BeOfType<BinaryExpr>().Subject;
+        or.Op.Should().Be(SqlBinaryOp.Or);
+    }
+
+    /// <summary>
+    /// EN: Verifies MySQL switches the pipe operator to string concatenation when PIPES_AS_CONCAT is enabled.
+    /// PT: Verifica se o MySQL troca o operador pipe para concatenacao de strings quando PIPES_AS_CONCAT esta habilitado.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void PipeOperator_ShouldBehaveAsConcatWhenPipesAsConcatEnabled(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v, pipesAsConcat: true));
+        var db = Get(version, v => new MySqlDbMock(v, pipesAsConcat: true));
+        var ast = SqlExpressionParser.ParseWhere("'a' || 'b' || 'c'", db, d);
+
+        var concat = ast.Should().BeOfType<BinaryExpr>().Subject;
+        concat.Op.Should().Be(SqlBinaryOp.Concat);
+    }
+
+    /// <summary>
     /// EN: Verifies parentheses override operator precedence.
     /// PT: Verifica se parenteses sobrescrevem a precedencia dos operadores.
     /// </summary>
@@ -309,6 +343,23 @@ public sealed class SqlExpressionParserTests(
         var d = Get(version, v => new MySqlDialect(v));
         var db = Get(version, v => new MySqlDbMock(v));
         var ast = SqlExpressionParser.ParseWhere("`DeletedDtt` IS NULL", db, d);
+        var n = ast.Should().BeOfType<IsNullExpr>().Subject;
+        var id = n.Expr.Should().BeOfType<IdentifierExpr>().Subject;
+        id.Name.Should().Be("DeletedDtt");
+    }
+
+    /// <summary>
+    /// EN: Verifies ANSI_QUOTES mode treats double-quoted names as identifiers.
+    /// PT: Verifica se o modo ANSI_QUOTES trata nomes entre aspas duplas como identificadores.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void DoubleQuoted_Identifier_ShouldParse_WhenAnsiQuotesEnabled(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v, ansiQuotes: true));
+        var db = Get(version, v => new MySqlDbMock(v, ansiQuotes: true));
+        var ast = SqlExpressionParser.ParseWhere("\"DeletedDtt\" IS NULL", db, d);
         var n = ast.Should().BeOfType<IsNullExpr>().Subject;
         var id = n.Expr.Should().BeOfType<IdentifierExpr>().Subject;
         id.Name.Should().Be("DeletedDtt");

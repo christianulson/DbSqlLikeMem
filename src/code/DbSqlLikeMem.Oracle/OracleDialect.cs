@@ -77,6 +77,8 @@ internal sealed class OracleDialect : SqlDialectBase, ISqlDialect
     /// PT: Obtém ou define string escape style.
     /// </summary>
     public override SqlStringEscapeStyle StringEscapeStyle => SqlStringEscapeStyle.doubled_quote;
+    /// <inheritdoc />
+    public override bool SupportsPipeConcatOperator => true;
     /// <summary>
     /// EN: Gets the text comparison mode used by Oracle string equality and ordering fallbacks.
     /// PT: Obtém o modo de comparação de texto usado pelos fallbacks de igualdade e ordenacao de strings no Oracle.

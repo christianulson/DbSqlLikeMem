@@ -61,6 +61,8 @@ internal sealed class NpgsqlDialect : SqlDialectBase, ISqlDialect
     /// PT: Obtém se há suporte a limit offset.
     /// </summary>
     public override bool SupportsLimitOffset => true;
+    /// <inheritdoc />
+    public override bool SupportsPipeConcatOperator => true;
 
     /// <summary>
     /// EN: Indicates whether IIF(...) is supported by this dialect.
