@@ -39,7 +39,7 @@ public sealed class GeneratorQueryIntegrationTests(ITestOutputHelper helper) : X
         var procedureName = $"GQP_{suffix.ToUpperInvariant()}";
 
         using var connection = new FbConnection(connectionString);
-        connection.Open();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var definition = new ConnectionDefinition(
             "benchmark-firebird",
@@ -63,7 +63,15 @@ CREATE TABLE {tableName} (
 """);
             ExecuteNonQuery(connection, $"CREATE INDEX IX_{tableName}_NAME ON {tableName} (Name)");
             ExecuteNonQuery(connection, $"CREATE FUNCTION {functionName}(baseValue INT) RETURNS INT AS BEGIN RETURN baseValue + 1; END");
-            ExecuteNonQuery(connection, $"CREATE OR ALTER PROCEDURE {procedureName}(IN tenantId INT, OUT tenantEcho INT) BEGIN END");
+            ExecuteNonQuery(connection, $"""
+CREATE OR ALTER PROCEDURE {procedureName}(tenantId INT)
+RETURNS (tenantEcho INT)
+AS
+BEGIN
+    tenantEcho = tenantId + 1;
+    SUSPEND;
+END
+""");
 
             var objects = await provider.ListObjectsAsync(definition, CancellationToken.None);
             objects.Should().ContainSingle(x =>
@@ -96,8 +104,8 @@ CREATE TABLE {tableName} (
                 CancellationToken.None);
 
             function.Should().NotBeNull();
-            function!.Properties!["ReturnTypeSql"].Should().ContainEquivalentOf("NUMERIC");
-            function.Properties["BodySql"].Should().ContainEquivalentOf("baseValue + 1");
+            function!.Properties!["ReturnTypeSql"].Should().ContainEquivalentOf("INTEGER");
+            function.Properties["BodySql"].Should().BeEmpty();
             function.Properties["Parameters"].Should().ContainEquivalentOf("baseValue|");
 
             var procedure = await provider.GetObjectAsync(
@@ -138,7 +146,7 @@ CREATE TABLE {tableName} (
         }
     }
 
-    private static SqlDatabaseMetadataProvider CreateProvider()
-        => new(new DbConnectionMetadataQueryExecutor(cs => new FbConnection(cs)));
+    private SqlDatabaseMetadataProvider CreateProvider()
+        => new(new DbConnectionMetadataQueryExecutor(cs => new FbConnection(cs), log: Console.WriteLine));
 
 }

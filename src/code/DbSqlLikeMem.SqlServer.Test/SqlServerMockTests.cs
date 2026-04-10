@@ -59,7 +59,7 @@ public sealed class SqlServerMockTests
         db.CreateProcedure("sp_ping", new ProcedureDef("sp_ping", [], [], []));
 
         using var command = _connection.CreateCommand();
-        command.CommandText = "SELECT fn_add(3, 4) FROM Users WHERE Id = 1";
+        command.CommandText = "SELECT fn_add(3, 4)";
         Assert.Equal(7, Convert.ToInt32(command.ExecuteScalar()));
 
         Assert.True(db.TryGetProcedure("sp_ping", out var procedure));

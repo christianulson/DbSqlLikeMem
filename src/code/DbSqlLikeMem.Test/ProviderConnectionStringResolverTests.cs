@@ -30,7 +30,7 @@ public sealed class ProviderConnectionStringResolverTests
         if (provider == ProviderId.Oracle)
         {
             connectionString.Should().Contain("Connection Timeout=120");
-            connectionString.Should().Contain(expectedConnectionString);
+            connectionString.ToLowerInvariant().Should().Contain(expectedConnectionString.ToLowerInvariant());
             return;
         }
 

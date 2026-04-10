@@ -206,7 +206,10 @@ public sealed class SqlDatabaseMetadataProvider(ISqlQueryExecutor queryExecutor)
             .Select(r => new
             {
                 IndexName = ReadString(r, "IndexName"),
-                IsUnique = ReadBoolFlexible(r, "IsUnique") || ReadString(r, "Uniqueness").Equals(Const.UNIQUE, StringComparison.OrdinalIgnoreCase) || ReadString(r, "UniqueRule").Equals("U", StringComparison.OrdinalIgnoreCase) || ReadInt(r, "NonUnique") == 0,
+                IsUnique = ReadBoolFlexible(r, "IsUnique")
+                    || ReadString(r, "Uniqueness").Equals(Const.UNIQUE, StringComparison.OrdinalIgnoreCase)
+                    || ReadString(r, "UniqueRule").Equals("U", StringComparison.OrdinalIgnoreCase)
+                    || (HasValue(r, "NonUnique") && ReadInt(r, "NonUnique") == 0),
                 Column = ReadString(r, "ColumnName"),
                 Seq = ReadInt(r, "Seq")
             })
@@ -222,6 +225,9 @@ public sealed class SqlDatabaseMetadataProvider(ISqlQueryExecutor queryExecutor)
 
         return string.Join(";", grouped);
     }
+
+    private static bool HasValue(IReadOnlyDictionary<string, object?> row, string key)
+        => !string.IsNullOrWhiteSpace(ReadString(row, key));
 
     private static bool IsPrimaryIndexName(string indexName)
         => indexName.Equals(Const.PRIMARY, StringComparison.OrdinalIgnoreCase)
@@ -640,8 +646,19 @@ public sealed class SqlDatabaseMetadataProvider(ISqlQueryExecutor queryExecutor)
     private static bool IsRoutineReturnParameter(IReadOnlyDictionary<string, object?> row)
     {
         var mode = ReadString(row, "ParameterMode");
-        return mode.Equals("RETURN", StringComparison.OrdinalIgnoreCase)
-            || ReadInt(row, "Ordinal") == 0;
+        if (mode.Equals("RETURN", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (ReadInt(row, "Ordinal") != 0)
+        {
+            return false;
+        }
+
+        return !mode.Equals("IN", StringComparison.OrdinalIgnoreCase)
+            && !mode.Equals("OUT", StringComparison.OrdinalIgnoreCase)
+            && !mode.Equals("INOUT", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsProcedureReturn(IReadOnlyDictionary<string, object?> row)

@@ -133,7 +133,7 @@ public sealed class StatePersistenceServiceTests
                   "connectionId": "1",
                   "mappings": {
                     "Table": {
-                      "objectType": "Table",
+                      "objectType": 0,
                       "outputDirectory": "Generated/Tables",
                       "fileNamePattern": "{NamePascal}TableTests.cs",
                       "namespace": "Company.Project.Generated"

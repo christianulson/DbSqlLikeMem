@@ -24,11 +24,11 @@ public sealed class ExplorerContextMenuStateTests
             hasObjectTypeFilter: false,
             isGenerationSupportedSelected: false));
 
-        Assert.True(state.EditConnectionVisible);
-        Assert.True(state.RemoveConnectionVisible);
-        Assert.True(state.RefreshConnectionVisible);
-        Assert.True(state.CancelConnectionOperationVisible);
-        Assert.True(state.ConnectionActionsSeparatorVisible);
+        Assert.Equal(isConnectionNodeSelected, state.EditConnectionVisible);
+        Assert.Equal(isConnectionNodeSelected, state.RemoveConnectionVisible);
+        Assert.Equal(isConnectionNodeSelected || isSchemaNodeSelected, state.RefreshConnectionVisible);
+        Assert.Equal(isConnectionNodeSelected || isSchemaNodeSelected, state.CancelConnectionOperationVisible);
+        Assert.Equal(isConnectionNodeSelected || isSchemaNodeSelected, state.ConnectionActionsSeparatorVisible);
         Assert.True(state.ExtractScenarioVisible);
         Assert.False(state.ConfigureMappingsVisible);
         Assert.False(state.ConfigureTemplatesVisible);

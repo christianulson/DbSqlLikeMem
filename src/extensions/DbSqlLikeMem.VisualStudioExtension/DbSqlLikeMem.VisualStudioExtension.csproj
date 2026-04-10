@@ -29,6 +29,8 @@
     <!-- VSSDK BuildTools must be listed first — it injects the pkgdef/vsix targets -->
     <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="17.14.2120" PrivateAssets="all" />
     <PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.14.40265" ExcludeAssets="runtime" NoWarn="NU1605" />
+    <PackageReference Include="Microsoft.VisualStudio.ImageCatalog" Version="17.14.40260" />
+    <PackageReference Include="Microsoft.VisualStudio.Imaging" Version="17.14.40264" />
 
 	<PackageReference Include="FirebirdSql.Data.FirebirdClient" Version="7.10.1" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />

@@ -258,15 +258,15 @@ SELECT ROUTINE_SCHEMA AS SchemaName
             => """
 SELECT SPECIFIC_SCHEMA AS SchemaName
      , SPECIFIC_NAME AS ObjectName
-     , COALESCE(NULLIF(PARAMETER_NAME, ''), CONCAT(ROUTINE_NAME, '_return')) AS ParameterName
+     , COALESCE(NULLIF(PARAMETER_NAME, ''), CONCAT(SPECIFIC_NAME, '_return')) AS ParameterName
      , CASE
          WHEN ORDINAL_POSITION = 0 THEN 'RETURN'
          ELSE COALESCE(PARAMETER_MODE, 'IN')
        END AS ParameterMode
      , DATA_TYPE AS DataType
      , ORDINAL_POSITION AS Ordinal
-     , COALESCE(PARAMETER_DEFAULT, '') AS DefaultValue
-     , CASE WHEN IS_NULLABLE = 'YES' THEN 'YES' ELSE 'NO' END AS IsNullable
+     , '' AS DefaultValue
+     , CASE WHEN ORDINAL_POSITION = 0 THEN 'NO' ELSE 'YES' END AS IsNullable
      , CHARACTER_MAXIMUM_LENGTH AS CharMaxLen
      , NUMERIC_PRECISION AS NumPrecision
      , NUMERIC_SCALE AS NumScale
@@ -601,27 +601,30 @@ SELECT routine_schema AS SchemaName
 
         public string BuildRoutineParametersQuery()
             => """
-SELECT specific_schema AS SchemaName
-     , specific_name AS ObjectName
+SELECT r.routine_schema AS SchemaName
+     , r.routine_name AS ObjectName
      , CASE
          WHEN ordinal_position = 0 THEN 'RETURN'
          ELSE COALESCE(parameter_mode, 'IN')
        END AS ParameterMode
-     , COALESCE(parameter_name, 'return') AS ParameterName
-     , data_type AS DataType
-     , ordinal_position AS Ordinal
-     , COALESCE(parameter_default, '') AS DefaultValue
-     , CASE WHEN is_nullable = 'YES' THEN 'YES' ELSE 'NO' END AS IsNullable
-     , character_maximum_length AS CharMaxLen
-     , numeric_precision AS NumPrecision
-     , numeric_scale AS NumScale
-     , CASE WHEN COALESCE(parameter_mode, '') LIKE '%VARIADIC%' THEN '1' ELSE '0' END AS IsVariadic
+     , COALESCE(p.parameter_name, 'return') AS ParameterName
+     , p.data_type AS DataType
+     , p.ordinal_position AS Ordinal
+     , COALESCE(p.parameter_default, '') AS DefaultValue
+     , CASE WHEN p.ordinal_position = 0 THEN 'NO' ELSE 'YES' END AS IsNullable
+     , p.character_maximum_length AS CharMaxLen
+     , p.numeric_precision AS NumPrecision
+     , p.numeric_scale AS NumScale
+     , CASE WHEN COALESCE(p.parameter_mode, '') LIKE '%VARIADIC%' THEN '1' ELSE '0' END AS IsVariadic
      , '0' AS IsOrderByClause
      , '0' AS IsFrameClause
-  FROM information_schema.parameters
- WHERE specific_schema = @schemaName
-   AND specific_name = @objectName
- ORDER BY ordinal_position;
+  FROM information_schema.routines r
+  JOIN information_schema.parameters p
+    ON p.specific_schema = r.specific_schema
+   AND p.specific_name = r.specific_name
+ WHERE r.routine_schema = @schemaName
+   AND r.routine_name = @objectName
+ ORDER BY p.ordinal_position;
 """;
     }
 
@@ -712,18 +715,19 @@ WHERE SEQUENCE_OWNER=:schemaName AND SEQUENCE_NAME=:objectName
 SELECT p.OWNER AS SchemaName
      , p.OBJECT_NAME AS ObjectName
      , CASE p.OBJECT_TYPE WHEN 'FUNCTION' THEN 'Function' ELSE 'Procedure' END AS RoutineType
-     , COALESCE(a.DATA_TYPE, '') AS ReturnTypeSql
-     , COALESCE(s.TEXT, '') AS BodySql
+     , COALESCE((SELECT MAX(a.DATA_TYPE)
+                   FROM ALL_ARGUMENTS a
+                  WHERE a.OWNER = p.OWNER
+                    AND a.OBJECT_NAME = p.OBJECT_NAME
+                    AND a.OBJECT_ID = p.OBJECT_ID
+                    AND a.POSITION = 0
+                    AND a.DATA_LEVEL = 0), '') AS ReturnTypeSql
+     , (SELECT LISTAGG(TRIM(s.TEXT), CHR(10)) WITHIN GROUP (ORDER BY s.LINE)
+          FROM ALL_SOURCE s
+         WHERE s.OWNER = p.OWNER
+           AND s.NAME = p.OBJECT_NAME
+           AND s.TYPE = CASE p.OBJECT_TYPE WHEN 'FUNCTION' THEN 'FUNCTION' ELSE 'PROCEDURE' END) AS BodySql
   FROM ALL_PROCEDURES p
-  LEFT JOIN ALL_ARGUMENTS a
-    ON a.OWNER = p.OWNER
-   AND a.OBJECT_NAME = p.OBJECT_NAME
-   AND a.OBJECT_ID = p.OBJECT_ID
-   AND a.POSITION = 0
-  LEFT JOIN ALL_SOURCE s
-    ON s.OWNER = p.OWNER
-   AND s.NAME = p.OBJECT_NAME
-   AND s.TYPE = p.OBJECT_TYPE
  WHERE p.OWNER = :schemaName
    AND p.OBJECT_NAME = :objectName;
 """;
@@ -740,7 +744,7 @@ SELECT a.OWNER AS SchemaName
      , COALESCE(a.ARGUMENT_NAME, 'return') AS ParameterName
      , COALESCE(a.DATA_TYPE, '') AS DataType
      , a.POSITION AS Ordinal
-     , COALESCE(a.DEFAULT_VALUE, '') AS DefaultValue
+     , CASE WHEN a.DEFAULTED = 'Y' THEN 'Y' ELSE '' END AS DefaultValue
      , CASE WHEN a.IN_OUT = 'OUT' THEN 'NO' ELSE 'YES' END AS IsNullable
      , a.CHAR_LENGTH AS CharMaxLen
      , a.DATA_PRECISION AS NumPrecision
@@ -936,6 +940,10 @@ SELECT RTRIM(ROUTINESCHEMA) AS SchemaName
     {
         public string BuildListObjectsQuery(string? filter)
             => $"""
+SELECT src.SchemaName
+     , src.ObjectName
+     , src.ObjectType
+  FROM (
 SELECT '' AS SchemaName
      , TRIM(r.RDB$RELATION_NAME) AS ObjectName
      , 'Table' AS ObjectType
@@ -965,39 +973,60 @@ SELECT '' AS SchemaName
   FROM RDB$FUNCTIONS f
  WHERE 1=1
        {AppendFilter(filter, "TRIM(f.RDB$FUNCTION_NAME)")}
-ORDER BY SchemaName, ObjectType, ObjectName;
+  ) src
+ ORDER BY src.SchemaName, src.ObjectType, src.ObjectName;
 """;
 
         public string BuildObjectColumnsQuery()
             => """
 SELECT TRIM(rf.RDB$FIELD_NAME) AS ColumnName
-     , CAST(f.RDB$FIELD_TYPE AS VARCHAR(20)) AS DataType
+     , '' AS DataType
      , rf.RDB$FIELD_POSITION AS Ordinal
      , CASE WHEN COALESCE(rf.RDB$NULL_FLAG, 0) = 0 THEN 'YES' ELSE 'NO' END AS IsNullable
      , '' AS Extra
-     , COALESCE(TRIM(CAST(rf.RDB$DEFAULT_SOURCE AS VARCHAR(32765))), '') AS DefaultValue
-     , f.RDB$CHARACTER_LENGTH AS CharMaxLen
-     , f.RDB$FIELD_PRECISION AS NumPrecision
-     , f.RDB$FIELD_SCALE AS NumScale
-     , CAST(f.RDB$FIELD_TYPE AS VARCHAR(20)) AS ColumnType
+     , '' AS DefaultValue
+     , CAST(NULL AS BIGINT) AS CharMaxLen
+     , CAST(NULL AS INTEGER) AS NumPrecision
+     , CAST(NULL AS INTEGER) AS NumScale
+     , '' AS ColumnType
      , '' AS ColumnGenerated
   FROM RDB$RELATION_FIELDS rf
-  JOIN RDB$FIELDS f ON f.RDB$FIELD_NAME = rf.RDB$FIELD_SOURCE
  WHERE TRIM(rf.RDB$RELATION_NAME) = @objectName
  ORDER BY rf.RDB$FIELD_POSITION;
 """;
 
         public string BuildPrimaryKeyQuery()
-            => "SELECT '' AS ColumnName WHERE 1=0;";
+            => """
+SELECT TRIM(seg.RDB$FIELD_NAME) AS ColumnName
+  FROM RDB$RELATION_CONSTRAINTS rc
+  JOIN RDB$INDICES i ON i.RDB$INDEX_NAME = rc.RDB$INDEX_NAME
+  JOIN RDB$INDEX_SEGMENTS seg ON seg.RDB$INDEX_NAME = i.RDB$INDEX_NAME
+ WHERE COALESCE(i.RDB$SYSTEM_FLAG, 0) = 0
+   AND rc.RDB$CONSTRAINT_TYPE = 'PRIMARY KEY'
+   AND TRIM(rc.RDB$RELATION_NAME) = @objectName
+ ORDER BY seg.RDB$FIELD_POSITION;
+""";
 
         public string BuildIndexesQuery()
-            => "SELECT '' AS IndexName WHERE 1=0;";
+            => """
+SELECT TRIM(i.RDB$INDEX_NAME) AS IndexName
+     , CASE WHEN COALESCE(i.RDB$UNIQUE_FLAG, 0) = 1 THEN '1' ELSE '0' END AS IsUnique
+     , TRIM(seg.RDB$FIELD_NAME) AS ColumnName
+     , seg.RDB$FIELD_POSITION AS Seq
+  FROM RDB$INDICES i
+  JOIN RDB$INDEX_SEGMENTS seg ON seg.RDB$INDEX_NAME = i.RDB$INDEX_NAME
+  LEFT JOIN RDB$RELATION_CONSTRAINTS rc ON rc.RDB$INDEX_NAME = i.RDB$INDEX_NAME
+ WHERE COALESCE(i.RDB$SYSTEM_FLAG, 0) = 0
+   AND rc.RDB$INDEX_NAME IS NULL
+   AND TRIM(i.RDB$RELATION_NAME) = @objectName
+ ORDER BY i.RDB$INDEX_NAME, seg.RDB$FIELD_POSITION;
+""";
 
         public string BuildForeignKeysQuery()
-            => "SELECT '' AS ColumnName, '' AS RefTable, '' AS RefColumn WHERE 1=0;";
+            => "SELECT '' AS ColumnName, '' AS RefTable, '' AS RefColumn FROM RDB$DATABASE WHERE 1=0;";
 
         public string BuildTriggersQuery()
-            => "SELECT '' AS TriggerName WHERE 1=0;";
+            => "SELECT '' AS TriggerName FROM RDB$DATABASE WHERE 1=0;";
 
         public string BuildSequenceMetadataQuery()
             => """
@@ -1014,7 +1043,7 @@ SELECT TRIM(g.RDB$GENERATOR_NAME) AS StartValue
 SELECT '' AS SchemaName
      , TRIM(p.RDB$PROCEDURE_NAME) AS ObjectName
      , 'Procedure' AS RoutineType
-     , COALESCE(TRIM(CAST(p.RDB$PROCEDURE_SOURCE AS VARCHAR(32765))), '') AS BodySql
+     , '' AS BodySql
      , '' AS ReturnTypeSql
   FROM RDB$PROCEDURES p
  WHERE TRIM(p.RDB$PROCEDURE_NAME) = @objectName
@@ -1022,8 +1051,8 @@ UNION ALL
 SELECT '' AS SchemaName
      , TRIM(f.RDB$FUNCTION_NAME) AS ObjectName
      , 'Function' AS RoutineType
-     , COALESCE(TRIM(CAST(f.RDB$FUNCTION_SOURCE AS VARCHAR(32765))), '') AS BodySql
-     , COALESCE(CAST(fr.RDB$FIELD_TYPE AS VARCHAR(20)), '') AS ReturnTypeSql
+     , '' AS BodySql
+     , COALESCE(CAST(fr.RDB$FIELD_TYPE AS VARCHAR(20)), CAST(fa.RDB$FIELD_TYPE AS VARCHAR(20)), '') AS ReturnTypeSql
   FROM RDB$FUNCTIONS f
   LEFT JOIN RDB$FUNCTION_ARGUMENTS fa
     ON fa.RDB$FUNCTION_NAME = f.RDB$FUNCTION_NAME
@@ -1038,46 +1067,47 @@ SELECT '' AS SchemaName
 SELECT '' AS SchemaName
      , TRIM(pp.RDB$PROCEDURE_NAME) AS ObjectName
      , CASE
-         WHEN pp.RDB$PARAMETER_NUMBER = 0 THEN 'RETURN'
          WHEN COALESCE(pp.RDB$PARAMETER_TYPE, 0) = 1 THEN 'OUT'
          ELSE 'IN'
        END AS ParameterMode
      , COALESCE(TRIM(pp.RDB$PARAMETER_NAME), 'return') AS ParameterName
-     , CAST(f.RDB$FIELD_TYPE AS VARCHAR(20)) AS DataType
+     , '' AS DataType
      , pp.RDB$PARAMETER_NUMBER AS Ordinal
-     , COALESCE(TRIM(CAST(pp.RDB$DEFAULT_SOURCE AS VARCHAR(32765))), '') AS DefaultValue
+     , '' AS DefaultValue
      , CASE WHEN COALESCE(pp.RDB$NULL_FLAG, 0) = 0 THEN 'YES' ELSE 'NO' END AS IsNullable
-     , f.RDB$CHARACTER_LENGTH AS CharMaxLen
-     , f.RDB$FIELD_PRECISION AS NumPrecision
-     , f.RDB$FIELD_SCALE AS NumScale
+     , CAST(NULL AS INTEGER) AS CharMaxLen
+     , CAST(NULL AS INTEGER) AS NumPrecision
+     , CAST(NULL AS INTEGER) AS NumScale
      , '0' AS IsVariadic
      , '0' AS IsOrderByClause
      , '0' AS IsFrameClause
   FROM RDB$PROCEDURE_PARAMETERS pp
-  LEFT JOIN RDB$FIELDS f ON f.RDB$FIELD_NAME = pp.RDB$FIELD_SOURCE
- WHERE TRIM(pp.RDB$PROCEDURE_NAME) = @objectName
+WHERE TRIM(pp.RDB$PROCEDURE_NAME) = @objectName
 UNION ALL
 SELECT '' AS SchemaName
      , TRIM(fa.RDB$FUNCTION_NAME) AS ObjectName
      , CASE
-         WHEN fa.RDB$ARGUMENT_POSITION = 0 THEN 'RETURN'
+         WHEN COALESCE(TRIM(fa.RDB$ARGUMENT_NAME), '') = '' THEN 'RETURN'
+         WHEN fa.RDB$ARGUMENT_POSITION = COALESCE(f.RDB$RETURN_ARGUMENT, 0) THEN 'RETURN'
          ELSE 'IN'
        END AS ParameterMode
      , COALESCE(TRIM(fa.RDB$ARGUMENT_NAME), 'return') AS ParameterName
-     , CAST(fb.RDB$FIELD_TYPE AS VARCHAR(20)) AS DataType
+     , COALESCE(CAST(fr.RDB$FIELD_TYPE AS VARCHAR(20)), CAST(fa.RDB$FIELD_TYPE AS VARCHAR(20)), '') AS DataType
      , fa.RDB$ARGUMENT_POSITION AS Ordinal
-     , COALESCE(TRIM(CAST(fa.RDB$DEFAULT_SOURCE AS VARCHAR(32765))), '') AS DefaultValue
+     , '' AS DefaultValue
      , CASE WHEN COALESCE(fa.RDB$NULL_FLAG, 0) = 0 THEN 'YES' ELSE 'NO' END AS IsNullable
-     , fb.RDB$CHARACTER_LENGTH AS CharMaxLen
-     , fb.RDB$FIELD_PRECISION AS NumPrecision
-     , fb.RDB$FIELD_SCALE AS NumScale
+     , CAST(COALESCE(fr.RDB$CHARACTER_LENGTH, fa.RDB$CHARACTER_LENGTH) AS INTEGER) AS CharMaxLen
+     , CAST(COALESCE(fr.RDB$FIELD_PRECISION, fa.RDB$FIELD_PRECISION) AS INTEGER) AS NumPrecision
+     , CAST(ABS(COALESCE(fr.RDB$FIELD_SCALE, fa.RDB$FIELD_SCALE)) AS INTEGER) AS NumScale
      , '0' AS IsVariadic
      , '0' AS IsOrderByClause
      , '0' AS IsFrameClause
   FROM RDB$FUNCTION_ARGUMENTS fa
-  LEFT JOIN RDB$FIELDS fb ON fb.RDB$FIELD_NAME = fa.RDB$FIELD_SOURCE
- WHERE TRIM(fa.RDB$FUNCTION_NAME) = @objectName
- ORDER BY Ordinal;
+  JOIN RDB$FUNCTIONS f
+    ON f.RDB$FUNCTION_NAME = fa.RDB$FUNCTION_NAME
+  LEFT JOIN RDB$FIELDS fr
+    ON fr.RDB$FIELD_NAME = fa.RDB$FIELD_SOURCE
+ WHERE TRIM(f.RDB$FUNCTION_NAME) = @objectName
 """;
     }
 

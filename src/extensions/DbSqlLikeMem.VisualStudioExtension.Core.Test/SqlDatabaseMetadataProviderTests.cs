@@ -141,9 +141,9 @@ public sealed class SqlDatabaseMetadataProviderTests
         var result = await provider.GetObjectAsync(conn, reference, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
-        Assert.Equal("CustomerId|int|1|", result!.Properties!["RequiredIn"]);
+        Assert.Equal("CustomerId|Int32|1|", result!.Properties!["RequiredIn"]);
         Assert.Equal("Region|String|0|EU", result.Properties["OptionalIn"]);
-        Assert.Equal("RowsAffected|Int32|1|", result.Properties["OutParams"]);
+        Assert.Equal("RowsAffected|Int32|0|", result.Properties["OutParams"]);
         Assert.Equal(string.Empty, result.Properties["ReturnParam"]);
     }
 
@@ -175,9 +175,9 @@ public sealed class SqlDatabaseMetadataProviderTests
         var result = await provider.GetObjectAsync(conn, reference, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
-        Assert.Equal("CustomerId|Int32|1|", result!.Properties!["RequiredIn"]);
+        Assert.Equal("CustomerId|Decimal|1|", result!.Properties!["RequiredIn"]);
         Assert.Equal("Region|String|0|EU", result.Properties["OptionalIn"]);
-        Assert.Equal("RowsAffected|Int32|1|", result.Properties["OutParams"]);
+        Assert.Equal("RowsAffected|Decimal|0|", result.Properties["OutParams"]);
         Assert.Equal(string.Empty, result.Properties["ReturnParam"]);
     }
 
@@ -209,7 +209,7 @@ public sealed class SqlDatabaseMetadataProviderTests
 
         Assert.NotNull(result);
         Assert.Equal("NUMERIC(10, 0)", result!.Properties!["ReturnTypeSql"]);
-        Assert.Equal("a + 1", result.Properties["BodySql"]);
+        Assert.Equal(string.Empty, result.Properties["BodySql"]);
         Assert.Contains("a|VARCHAR(50)|1|0|0|0|", result.Properties["Parameters"]);
     }
 

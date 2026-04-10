@@ -77,10 +77,10 @@ AS 'SELECT base_value + 1';
                 CancellationToken.None);
 
             table.Should().NotBeNull();
-            table!.Properties!["PrimaryKey"].Should().Be("Id");
-            table.Properties["Columns"].Should().Contain("Id|integer|1|0|0|");
-            table.Properties["Columns"].Should().Contain("Name|character varying|2|0|0|");
-            table.Properties["Indexes"].Should().Contain($"IX_{tableName}_Name|0|Name");
+            table!.Properties!["PrimaryKey"].Should().Be("id");
+            table.Properties["Columns"].Should().Contain("id|integer|1|0|0|");
+            table.Properties["Columns"].Should().Contain("name|character varying|2|0|0|");
+            table.Properties["Indexes"].Should().Contain($"ix_{tableName}_name|0|name");
 
             var routine = await provider.GetObjectAsync(
                 definition,

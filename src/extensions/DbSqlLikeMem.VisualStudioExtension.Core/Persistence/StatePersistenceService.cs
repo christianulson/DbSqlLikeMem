@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Persistence;
 
@@ -11,7 +12,8 @@ public sealed class StatePersistenceService
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
         WriteIndented = true,
-        PropertyNameCaseInsensitive = true
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() }
     };
 
     /// <summary>

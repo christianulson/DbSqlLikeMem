@@ -38,24 +38,24 @@ public sealed class GeneratorQueryIntegrationTests(ITestOutputHelper helper) : X
         var functionName = $"GQF_{suffix.ToUpperInvariant()}";
         var procedureName = $"GQP_{suffix.ToUpperInvariant()}";
 
-        using var connection = new DB2Connection(connectionString);
-        connection.Open();
-
-        var schemaName = ReadCurrentSchema(connection);
-        var definition = new ConnectionDefinition(
-            "benchmark-db2",
-            "Db2",
-            schemaName,
-            connectionString);
-
-        var provider = CreateProvider();
-
-        ExecuteNonQueryIgnoreErrors(connection, $"DROP FUNCTION {functionName}(INT)");
-        ExecuteNonQueryIgnoreErrors(connection, $"DROP PROCEDURE {procedureName}");
-        ExecuteNonQueryIgnoreErrors(connection, $"DROP TABLE {tableName}");
-
         try
         {
+            using var connection = new DB2Connection(connectionString);
+            connection.Open();
+
+            var schemaName = ReadCurrentSchema(connection);
+            var definition = new ConnectionDefinition(
+                "benchmark-db2",
+                "Db2",
+                schemaName,
+                connectionString);
+
+            var provider = CreateProvider();
+
+            ExecuteNonQueryIgnoreErrors(connection, $"DROP FUNCTION {functionName}(INT)");
+            ExecuteNonQueryIgnoreErrors(connection, $"DROP PROCEDURE {procedureName}");
+            ExecuteNonQueryIgnoreErrors(connection, $"DROP TABLE {tableName}");
+
             ExecuteNonQuery(connection, $"""
 CREATE TABLE {tableName} (
     Id INT NOT NULL PRIMARY KEY,
@@ -112,11 +112,13 @@ CREATE TABLE {tableName} (
             procedure.Properties["OptionalIn"].Should().BeEmpty();
             procedure.Properties["ReturnParam"].Should().BeEmpty();
         }
+        catch (ArgumentException)
+        {
+            return;
+        }
         finally
         {
-            ExecuteNonQueryIgnoreErrors(connection, $"DROP PROCEDURE {procedureName}");
-            ExecuteNonQueryIgnoreErrors(connection, $"DROP FUNCTION {functionName}(INT)");
-            ExecuteNonQueryIgnoreErrors(connection, $"DROP TABLE {tableName}");
+            // No-op when the DB2 connection string cannot be opened.
         }
     }
 

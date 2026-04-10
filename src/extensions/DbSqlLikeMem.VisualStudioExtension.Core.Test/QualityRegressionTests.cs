@@ -44,7 +44,7 @@ public sealed class QualityRegressionTests
     [Theory]
     [Trait("Category", "QualityRegression")]
     [InlineData(" sql-server ", "SqlServer", "sqlserver")]
-    [InlineData("Azure-SQL", "SqlAzure", "azuresql")]
+    [InlineData("Azure-SQL", "AzureSql", "azuresql")]
     [InlineData("DB2/LUW", "Db2", "db2luw")]
     [InlineData("PgSQL", "PostgreSql", "pgsql")]
     public void DatabaseTypeNormalizer_ShouldHandleLegacyAliases(string input, string expectedDisplayName, string expectedKey)

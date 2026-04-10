@@ -32,7 +32,7 @@ public sealed class GeneratorQueryIntegrationTests(ITestOutputHelper helper) : X
         var schemaName = "BENCHMARK";
 
         using var connection = new OracleConnection(connectionString);
-        connection.Open();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var definition = new ConnectionDefinition(
             "benchmark-oracle",
@@ -42,8 +42,8 @@ public sealed class GeneratorQueryIntegrationTests(ITestOutputHelper helper) : X
 
         var provider = CreateProvider();
 
-        ExecuteNonQuery(connection, $"DROP FUNCTION {functionName}");
-        ExecuteNonQuery(connection, $"DROP TABLE {tableName}");
+        ExecuteNonQueryIgnoreErrors(connection, $"DROP FUNCTION {functionName}");
+        ExecuteNonQueryIgnoreErrors(connection, $"DROP TABLE {tableName}");
 
         try
         {
@@ -79,10 +79,10 @@ END;
                 CancellationToken.None);
 
             table.Should().NotBeNull();
-            table!.Properties!["PrimaryKey"].Should().Be("Id");
-            table.Properties["Columns"].Should().Contain("Id|NUMBER|1|0|0|");
-            table.Properties["Columns"].Should().Contain("Name|VARCHAR2|2|0|0|");
-            table.Properties["Indexes"].Should().Contain($"IX_{tableName}_NAME|0|Name");
+            table!.Properties!["PrimaryKey"].Should().Be("ID");
+            table.Properties["Columns"].Should().Contain("ID|NUMBER|1|0|0|");
+            table.Properties["Columns"].Should().Contain("NAME|VARCHAR2|2|0|0|");
+            table.Properties["Indexes"].Should().Contain($"IX_{tableName}_NAME|0|NAME");
 
             var routine = await provider.GetObjectAsync(
                 definition,
@@ -92,7 +92,7 @@ END;
             routine.Should().NotBeNull();
             routine!.Properties!["ReturnTypeSql"].Should().Contain("NUMBER");
             routine.Properties["BodySql"].Should().Be("baseValue + 1");
-            routine.Properties["Parameters"].Should().Contain("baseValue|NUMBER|1|0|0|0|");
+            routine.Properties["Parameters"].Should().Contain("BASEVALUE|NUMBER|1|0|0|0|");
         }
         finally
         {
@@ -124,6 +124,7 @@ END;
         => new(new DbConnectionMetadataQueryExecutor(
             cs => new OracleConnection(cs),
             command => ((OracleCommand)command).BindByName = true,
-            name => name.StartsWith(":", StringComparison.Ordinal) ? name : $":{name}"));
+            name => name.StartsWith(":", StringComparison.Ordinal) ? name : $":{name}",
+            Console.WriteLine));
 
 }
