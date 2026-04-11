@@ -12,11 +12,12 @@ public class InsertTests(
     ) : InsertTestsBase<SqliteConnectionMock, SqliteConnection>(
     helper,
     new SqliteProviderSqlDialect(),
-    () => new SqliteConnectionMock(),
+    static () => new SqliteConnectionMock(Db, "DefaultSchema"),
     s => new SqliteConnection(s)
     )
 {
     private static readonly int _bootstrap = InitializeBootstrap();
+    private static readonly SqliteDbMock Db = new() { ThreadSafe = true };
 
     private static int InitializeBootstrap()
     {

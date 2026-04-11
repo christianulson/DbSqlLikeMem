@@ -12,8 +12,9 @@ public class InsertTests(
     ) : InsertTestsBase<SqlAzureConnectionMock, SqlConnection>(
     helper,
     new SqlAzureProviderSqlDialect(),
-    () => new SqlAzureConnectionMock(),
+    static () => new SqlAzureConnectionMock(Db),
     s => new SqlConnection(s)
     )
 {
+    private static readonly SqlAzureDbMock Db = new() { ThreadSafe = true };
 }

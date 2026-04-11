@@ -345,7 +345,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.2.5 Funções SQL agregadoras e de composição de texto
 
-- Implementação estimada: **96%**.
+- Implementação estimada: **100%**.
 - Parser e AST agora suportam `WITHIN GROUP (ORDER BY ...)` para agregações textuais com gate explícito por dialeto/função.
 - Cobertura atual inclui parsing de ordenação simples e composta, validação de cláusula malformada (`WITHIN GROUP requires ORDER BY`) e cenários negativos por função não nativa no dialeto.
 - Hardening recente ampliou a validação de `ORDER BY` malformado dentro de `WITHIN GROUP` (lista vazia, vírgula inicial, vírgula final e ausência de vírgula entre expressões), com mensagens acionáveis por cenário.
@@ -353,7 +353,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: parser/runtime passaram a aceitar a sintaxe nativa do SQLite para ordenação interna em `GROUP_CONCAT(... ORDER BY ...)`, reutilizando a mesma trilha lógica de ordenação da agregação textual e cobrindo também `DISTINCT` + erro acionável para vírgula final malformada.
 - Incremento desta sessão: parser/runtime passaram a aceitar a sintaxe nativa do MySQL para `GROUP_CONCAT(expr ORDER BY ... SEPARATOR ...)`, reaproveitando a mesma trilha de ordenação da agregação textual, com cobertura para `DISTINCT` e erro acionável quando `SEPARATOR` não recebe expressão.
 - Trilha ordered-set para agregações textuais concluída para dialetos suportados (SQL Server, Npgsql, Oracle e DB2), com bloqueio explícito e testado para MySQL e manutenção do `WITHIN GROUP` como não suportado no SQLite, onde o equivalente nativo `GROUP_CONCAT(... ORDER BY ...)` agora está coberto.
-- TODO: revisar `DISTINCT` por agregador/dialeto para impedir aceitar no mock combinações que o banco real não expõe na sintaxe oficial (ex.: `STRING_AGG` no SQL Server), mantendo parser/executor/testes sob contrato real de cada provider.
+- Incremento desta sessão: o parser e a suíte regressiva passaram a rejeitar `DISTINCT` nas combinações não oficiais por dialeto/agregador, bloqueando `STRING_AGG(DISTINCT ...)` em SQL Server/SqlAzure e `GROUP_CONCAT(DISTINCT ..., separador)` no SQLite, enquanto as formas oficiais com `ORDER BY` interno e `SEPARATOR` seguem cobertas nos providers que as expõem.
 
 #### 1.2.6 Funções de data/hora cross-dialect
 

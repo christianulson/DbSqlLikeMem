@@ -156,14 +156,18 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
     }
 
     /// <summary>
-    /// EN: Ensures string aggregation with DISTINCT ignores NULL values and deduplicates text.
-    /// PT: Garante que agregação textual com DISTINCT ignore NULL e remova duplicidade de texto.
+    /// EN: Ensures SQL Server rejects DISTINCT directly inside STRING_AGG.
+    /// PT: Garante que o SQL Server rejeite DISTINCT diretamente dentro de STRING_AGG.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAggregation")]
-    public void StringAggregation_Distinct_ShouldIgnoreNullValues()
+    public void StringAggregation_Distinct_ShouldThrowNotSupported()
     {
-        AssertStringAggregationDistinctIgnoresNullValues("SELECT STRING_AGG(DISTINCT val, '|') AS joined FROM textagg_data WHERE grp = 1");
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            Query("SELECT STRING_AGG(DISTINCT val, '|') AS joined FROM textagg_data WHERE grp = 1"));
+
+        Assert.Contains("STRING_AGG", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("DISTINCT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 
@@ -201,14 +205,18 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
     }
 
     /// <summary>
-    /// EN: Ensures DISTINCT respects WITHIN GROUP ordering semantics.
-    /// PT: Garante que DISTINCT respeite a semântica de ordenação do WITHIN GROUP.
+    /// EN: Ensures SQL Server rejects DISTINCT inside STRING_AGG even when WITHIN GROUP is present.
+    /// PT: Garante que o SQL Server rejeite DISTINCT dentro de STRING_AGG mesmo com WITHIN GROUP presente.
     /// </summary>
     [Fact]
     [Trait("Category", "Aggregation")]
-    public void StringAggregation_DistinctWithinGroupCompositeOrder_ShouldApplyOrderBy()
+    public void StringAggregation_DistinctWithinGroupCompositeOrder_ShouldThrowNotSupported()
     {
-        AssertWithinGroupDistinctOrdering("SELECT STRING_AGG(DISTINCT val, '|') WITHIN GROUP (ORDER BY ord1 ASC, ord2 ASC) AS joined FROM textagg_distinct_order WHERE grp = 1", "b|a");
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            Query("SELECT STRING_AGG(DISTINCT val, '|') WITHIN GROUP (ORDER BY ord1 ASC, ord2 ASC) AS joined FROM textagg_distinct_order WHERE grp = 1"));
+
+        Assert.Contains("STRING_AGG", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("DISTINCT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 

@@ -159,7 +159,7 @@ CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (Order
 
     /// <inheritdoc />
     public override string JsonScalarRead(string jsonLiteral) =>
-        $"SELECT CAST('{jsonLiteral}' AS json) ->> 'name'";
+        $"SELECT JSONB_EXTRACT_PATH_TEXT(CAST('{jsonLiteral}' AS jsonb), 'name')";
 
     /// <inheritdoc />
     public override string StringAggregateDistinct(string tableName) =>
@@ -175,7 +175,7 @@ CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (Order
 
     /// <inheritdoc />
     public override string JsonPathRead(string jsonLiteral) =>
-        $"SELECT ('{jsonLiteral}'::json -> 'user' ->> 'name')";
+        $"SELECT JSONB_EXTRACT_PATH_TEXT(CAST('{jsonLiteral}' AS jsonb), 'user', 'name')";
 
     /// <inheritdoc />
     public override string JsonProfileNameExpression(string jsonColumn) =>

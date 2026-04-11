@@ -96,6 +96,57 @@ public class InsertUsersServiceTest<T>(
         return affected;
     }
 
+    /// <summary>
+    /// EN: Inserts a single user row with provider parameters and validates the persisted row.
+    /// PT: Insere uma linha unica de usuario com parametros do provedor e valida a linha persistida.
+    /// </summary>
+    public int RunParameterInsertSingle(params object[] pars)
+    {
+        var users = (string)pars[0];
+        var uId = (string)pars[1];
+        var tableName = BuildScenarioTableName(users, uId);
+        var id = 1;
+        var name = $"User {id}";
+
+        using var command = Connection.CreateCommand();
+        command.CommandText = $"""
+INSERT INTO {tableName} (
+    Id,
+    Name
+)
+VALUES (
+    {Dialect.Parameter("id")},
+    {Dialect.Parameter("name")}
+)
+""";
+
+        AddParameter(command, "id", DbType.Int32, id);
+        AddParameter(command, "name", DbType.String, name);
+
+        var affected = command.ExecuteNonQuery();
+        if (affected < 1)
+        {
+            throw new InvalidOperationException($"Unexpected parameter insert rowcount for {Dialect.DisplayName}: {affected}.");
+        }
+
+        using var verifyCommand = Connection.CreateCommand();
+        verifyCommand.CommandText = $"""
+SELECT Name
+FROM {tableName}
+WHERE Id = {Dialect.Parameter("id")}
+""";
+        AddParameter(verifyCommand, "id", DbType.Int32, id);
+
+        var result = Convert.ToString(verifyCommand.ExecuteScalar(), CultureInfo.InvariantCulture);
+        result.Should().Be(name);
+
+        GC.KeepAlive(users);
+        GC.KeepAlive(uId);
+        GC.KeepAlive(id);
+        GC.KeepAlive(name);
+        return affected;
+    }
+
     private void InsertSequentialRows(string users, int rowCount, int startId)
     {
         for (var i = 0; i < rowCount; i++)
@@ -138,6 +189,15 @@ public class InsertUsersServiceTest<T>(
 
     private new object? ExecuteScalar(string sql, DbTransaction? transaction = null)
         => ExecuteScalarOnConnection(Connection, sql, transaction);
+
+    private static void AddParameter(DbCommand command, string name, DbType dbType, object? value)
+    {
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = name;
+        parameter.DbType = dbType;
+        parameter.Value = value ?? DBNull.Value;
+        command.Parameters.Add(parameter);
+    }
 
     private static string BuildScenarioTableName(string users, string uId)
         => $"{users}_{uId}";

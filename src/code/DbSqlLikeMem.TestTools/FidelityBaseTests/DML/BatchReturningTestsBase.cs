@@ -25,6 +25,16 @@ public abstract class BatchReturningTestsBase<T, T2>(
             (service, tableName) => service.RunReturningInsert(tableName),
             (service, tableName) => service.RunReturningInsert(tableName)).Should().Be(1);
 
+    /// <summary>
+    /// EN: Verifies that an INSERT RETURNING workflow persists one row and returns one reader row for the current provider.
+    /// PT: Verifica se um fluxo INSERT RETURNING persiste uma linha e retorna uma linha no reader para o provedor atual.
+    /// </summary>
+    [Fact]
+    public void ReturningInsertTest()
+        => RunReturningComparison(
+            (service, tableName) => service.RunReturningInsert(tableName),
+            (service, tableName) => service.RunReturningInsert(tableName)).Should().Be(1);
+
     private TResult RunReturningComparison<TResult>(
         Func<BatchServiceTest<T>, string, TResult> runMock,
         Func<BatchServiceTest<T2>, string, TResult> runContainer)

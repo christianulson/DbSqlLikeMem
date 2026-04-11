@@ -64,6 +64,340 @@ public abstract class StringAggregateTestsBase<T, T2>(
     }
 
     /// <summary>
+    /// EN: Verifies plain string aggregation returns the expected result for the current provider.
+    /// PT: Verifica se a agregacao simples de strings retorna o resultado esperado para o provedor atual.
+    /// </summary>
+    [Fact]
+    public void StringAggregateTest()
+    {
+        var users = "Users";
+        var uId = NewToken();
+        var tableName = ResolveUsersTableName(users, uId);
+
+        using var connMock = connectionMock();
+        connMock.Open();
+
+        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob")]);
+        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
+        serviceTest.CreateScenario(users, uId);
+
+        try
+        {
+            var resultMock = serviceTest.RunStringAggregate(tableName);
+            resultMock.Should().NotBeNull();
+
+            if (IsSelectContainerComparisonEnabled(dialect.Provider)
+                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+            {
+                using var connContainer = connectionContainer(connectionString);
+                connContainer.Open();
+                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob")]);
+                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
+                serviceTestContainer.CreateScenario(users, uId);
+                try
+                {
+                    var resultContainer = serviceTestContainer.RunStringAggregate(tableName);
+                    resultMock.Should().Be(resultContainer);
+                }
+                finally
+                {
+                    serviceTestContainer.DropScenario(users, uId);
+                }
+            }
+        }
+        finally
+        {
+            serviceTest.DropScenario(users, uId);
+        }
+    }
+
+    /// <summary>
+    /// EN: Verifies ordered string aggregation returns the expected result for the current provider.
+    /// PT: Verifica se a agregacao ordenada de strings retorna o resultado esperado para o provedor atual.
+    /// </summary>
+    [Fact]
+    public void StringAggregateOrderedTest()
+    {
+        var users = "Users";
+        var uId = NewToken();
+        var tableName = ResolveUsersTableName(users, uId);
+
+        using var connMock = connectionMock();
+        connMock.Open();
+
+        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob")]);
+        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
+        serviceTest.CreateScenario(users, uId);
+
+        try
+        {
+            var resultMock = serviceTest.RunStringAggregateOrdered(tableName);
+            resultMock.Should().NotBeNull();
+
+            if (IsSelectContainerComparisonEnabled(dialect.Provider)
+                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+            {
+                using var connContainer = connectionContainer(connectionString);
+                connContainer.Open();
+                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob")]);
+                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
+                serviceTestContainer.CreateScenario(users, uId);
+                try
+                {
+                    var resultContainer = serviceTestContainer.RunStringAggregateOrdered(tableName);
+                    resultMock.Should().Be(resultContainer);
+                }
+                finally
+                {
+                    serviceTestContainer.DropScenario(users, uId);
+                }
+            }
+        }
+        finally
+        {
+            serviceTest.DropScenario(users, uId);
+        }
+    }
+
+    /// <summary>
+    /// EN: Verifies distinct string aggregation returns the expected result for the current provider.
+    /// PT: Verifica se a agregacao distinta de strings retorna o resultado esperado para o provedor atual.
+    /// </summary>
+    [Fact]
+    public void StringAggregateDistinctTest()
+    {
+        var users = "Users";
+        var uId = NewToken();
+        var tableName = ResolveUsersTableName(users, uId);
+
+        using var connMock = connectionMock();
+        connMock.Open();
+
+        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob")]);
+        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
+        serviceTest.CreateScenario(users, uId);
+
+        try
+        {
+            var resultMock = serviceTest.RunStringAggregateDistinct(tableName);
+            resultMock.Should().NotBeNull();
+
+            if (IsSelectContainerComparisonEnabled(dialect.Provider)
+                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+            {
+                using var connContainer = connectionContainer(connectionString);
+                connContainer.Open();
+                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob")]);
+                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
+                serviceTestContainer.CreateScenario(users, uId);
+                try
+                {
+                    var resultContainer = serviceTestContainer.RunStringAggregateDistinct(tableName);
+                    resultMock.Should().Be(resultContainer);
+                }
+                finally
+                {
+                    serviceTestContainer.DropScenario(users, uId);
+                }
+            }
+        }
+        finally
+        {
+            serviceTest.DropScenario(users, uId);
+        }
+    }
+
+    /// <summary>
+    /// EN: Verifies custom-separator string aggregation returns the expected result for the current provider.
+    /// PT: Verifica se a agregacao de strings com separador customizado retorna o resultado esperado para o provedor atual.
+    /// </summary>
+    [Fact]
+    public void StringAggregateCustomSeparatorTest()
+    {
+        var users = "Users";
+        var uId = NewToken();
+        var tableName = ResolveUsersTableName(users, uId);
+
+        using var connMock = connectionMock();
+        connMock.Open();
+
+        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob")]);
+        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
+        serviceTest.CreateScenario(users, uId);
+
+        try
+        {
+            var resultMock = serviceTest.RunStringAggregateCustomSeparator(tableName);
+            resultMock.Should().NotBeNull();
+
+            if (IsSelectContainerComparisonEnabled(dialect.Provider)
+                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+            {
+                using var connContainer = connectionContainer(connectionString);
+                connContainer.Open();
+                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob")]);
+                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
+                serviceTestContainer.CreateScenario(users, uId);
+                try
+                {
+                    var resultContainer = serviceTestContainer.RunStringAggregateCustomSeparator(tableName);
+                    resultMock.Should().Be(resultContainer);
+                }
+                finally
+                {
+                    serviceTestContainer.DropScenario(users, uId);
+                }
+            }
+        }
+        finally
+        {
+            serviceTest.DropScenario(users, uId);
+        }
+    }
+
+    /// <summary>
+    /// EN: Verifies large-group string aggregation returns the expected result for the current provider.
+    /// PT: Verifica se a agregacao de strings em grupo grande retorna o resultado esperado para o provedor atual.
+    /// </summary>
+    [Fact]
+    public void StringAggregateLargeGroupTest()
+    {
+        var users = "Users";
+        var uId = NewToken();
+        var tableName = ResolveUsersTableName(users, uId);
+
+        using var connMock = connectionMock();
+        connMock.Open();
+
+        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob")]);
+        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
+        serviceTest.CreateScenario(users, uId);
+
+        try
+        {
+            var resultMock = serviceTest.RunStringAggregateLargeGroup(tableName);
+            resultMock.Should().NotBeNull();
+
+            if (IsSelectContainerComparisonEnabled(dialect.Provider)
+                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+            {
+                using var connContainer = connectionContainer(connectionString);
+                connContainer.Open();
+                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob")]);
+                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
+                serviceTestContainer.CreateScenario(users, uId);
+                try
+                {
+                    var resultContainer = serviceTestContainer.RunStringAggregateLargeGroup(tableName);
+                    resultMock.Should().Be(resultContainer);
+                }
+                finally
+                {
+                    serviceTestContainer.DropScenario(users, uId);
+                }
+            }
+        }
+        finally
+        {
+            serviceTest.DropScenario(users, uId);
+        }
+    }
+
+    /// <summary>
+    /// EN: Verifies string aggregation summary matrix returns the expected result for the current provider.
+    /// PT: Verifica se a matriz resumo de agregacao de strings retorna o resultado esperado para o provedor atual.
+    /// </summary>
+    [Fact]
+    public void StringAggregateSummaryMatrixTest()
+    {
+        var users = "Users";
+        var uId = NewToken();
+        var tableName = ResolveUsersTableName(users, uId);
+
+        using var connMock = connectionMock();
+        connMock.Open();
+
+        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]);
+        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
+        serviceTest.CreateScenario(users, uId);
+
+        try
+        {
+            var resultMock = RunStringAggregationSummary(serviceTest, tableName);
+
+            if (IsSelectContainerComparisonEnabled(dialect.Provider)
+                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+            {
+                using var connContainer = connectionContainer(connectionString);
+                connContainer.Open();
+                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]);
+                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
+                serviceTestContainer.CreateScenario(users, uId);
+                try
+                {
+                    var resultContainer = RunStringAggregationSummary(serviceTestContainer, tableName);
+                    resultMock.Should().Be(resultContainer);
+                }
+                finally
+                {
+                    serviceTestContainer.DropScenario(users, uId);
+                }
+            }
+        }
+        finally
+        {
+            serviceTest.DropScenario(users, uId);
+        }
+    }
+
+    /// <summary>
+    /// EN: Verifies grouped string aggregation matrix returns the expected result for the current provider.
+    /// PT: Verifica se a matriz agrupada de agregacao de strings retorna o resultado esperado para o provedor atual.
+    /// </summary>
+    [Fact]
+    public void StringAggregateGroupCaseMatrixTest()
+    {
+        var users = "Users";
+        var uId = NewToken();
+        var tableName = ResolveUsersTableName(users, uId);
+
+        using var connMock = connectionMock();
+        connMock.Open();
+
+        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]);
+        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
+        serviceTest.CreateScenario(users, uId);
+
+        try
+        {
+            var resultMock = RunStringAggregationGroupCase(serviceTest, tableName);
+
+            if (IsSelectContainerComparisonEnabled(dialect.Provider)
+                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+            {
+                using var connContainer = connectionContainer(connectionString);
+                connContainer.Open();
+                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]);
+                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
+                serviceTestContainer.CreateScenario(users, uId);
+                try
+                {
+                    var resultContainer = RunStringAggregationGroupCase(serviceTestContainer, tableName);
+                    resultMock.Should().Be(resultContainer);
+                }
+                finally
+                {
+                    serviceTestContainer.DropScenario(users, uId);
+                }
+            }
+        }
+        finally
+        {
+            serviceTest.DropScenario(users, uId);
+        }
+    }
+
+    /// <summary>
     /// EN: Verifies string aggregation together with total, distinct, and repeated-name counts for the current provider.
     /// PT: Verifica agregacao de strings junto com contagens total, distinta e de nomes repetidos para o provedor atual.
     /// </summary>

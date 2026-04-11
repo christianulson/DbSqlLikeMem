@@ -160,14 +160,18 @@ public sealed class SqliteAggregationTests : AggregationHavingOrdinalTestsBase<S
 
 
     /// <summary>
-    /// EN: Ensures string aggregation with DISTINCT ignores NULL values and deduplicates text.
-    /// PT: Garante que agregação textual com DISTINCT ignore NULL e remova duplicidade de texto.
+    /// EN: Ensures SQLite rejects DISTINCT when GROUP_CONCAT uses a separate separator argument.
+    /// PT: Garante que o SQLite rejeite DISTINCT quando GROUP_CONCAT usa um segundo argumento de separador.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteAggregation")]
-    public void StringAggregation_Distinct_ShouldIgnoreNullValues()
+    public void StringAggregation_Distinct_ShouldThrowNotSupported()
     {
-        AssertStringAggregationDistinctIgnoresNullValues("SELECT GROUP_CONCAT(DISTINCT val, '|') AS joined FROM textagg_data WHERE grp = 1");
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            Query("SELECT GROUP_CONCAT(DISTINCT val, '|') AS joined FROM textagg_data WHERE grp = 1"));
+
+        Assert.Contains("GROUP_CONCAT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("DISTINCT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -184,16 +188,18 @@ public sealed class SqliteAggregationTests : AggregationHavingOrdinalTestsBase<S
     }
 
     /// <summary>
-    /// EN: Ensures DISTINCT respects SQLite native ORDER BY inside GROUP_CONCAT.
-    /// PT: Garante que DISTINCT respeite o ORDER BY nativo dentro do GROUP_CONCAT no SQLite.
+    /// EN: Ensures SQLite rejects DISTINCT when a separate separator is combined with native ORDER BY inside GROUP_CONCAT.
+    /// PT: Garante que o SQLite rejeite DISTINCT quando um segundo argumento de separador é combinado com ORDER BY nativo dentro de GROUP_CONCAT.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteAggregation")]
-    public void StringAggregation_DistinctOrderByInsideCall_ShouldWork()
+    public void StringAggregation_DistinctOrderByInsideCall_ShouldThrowNotSupported()
     {
-        AssertStringAggregationDistinctWithInternalOrder(
-            "SELECT GROUP_CONCAT(DISTINCT val, '|' ORDER BY ord1 ASC, ord2 ASC) AS joined FROM textagg_distinct_order WHERE grp = 1",
-            "b|a");
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            Query("SELECT GROUP_CONCAT(DISTINCT val, '|' ORDER BY ord1 ASC, ord2 ASC) AS joined FROM textagg_distinct_order WHERE grp = 1"));
+
+        Assert.Contains("GROUP_CONCAT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("DISTINCT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

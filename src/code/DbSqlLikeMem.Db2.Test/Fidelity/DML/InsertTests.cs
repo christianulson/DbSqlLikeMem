@@ -1,3 +1,4 @@
+using DbSqlLikeMem.Db2;
 using DbSqlLikeMem.Db2.TestTools;
 using DbSqlLikeMem.TestTools.Tests.DML;
 #if NET462
@@ -15,8 +16,9 @@ public class InsertTests(
     ) : InsertTestsBase<Db2ConnectionMock, DB2Connection>(
     helper,
     new Db2ProviderSqlDialect(),
-    () => new Db2ConnectionMock(),
+    static () => new Db2ConnectionMock(Db),
     Db2ConnectionFactory.Create
     )
 {
+    private static readonly Db2DbMock Db = new() { ThreadSafe = true };
 }

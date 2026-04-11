@@ -169,6 +169,14 @@ public abstract class BenchmarkSuiteBase
     public void UpdateByPk() => Run(BenchmarkFeatureId.UpdateByPk);
 
     /// <summary>
+    /// EN: Executes an update/delete round-trip benchmark.
+    /// PT: Executa um benchmark de ciclo de update/delete.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void UpdateDeleteRoundTrip() => Run(BenchmarkFeatureId.UpdateDeleteRoundTrip);
+
+    /// <summary>
     /// EN: Executes a primary-key delete benchmark.
     /// PT: Executa um benchmark de exclusao por chave primaria.
     /// </summary>
@@ -191,6 +199,30 @@ public abstract class BenchmarkSuiteBase
     [Benchmark]
     [BenchmarkCategory("transactions")]
     public void TransactionRollback() => Run(BenchmarkFeatureId.TransactionRollback);
+
+    /// <summary>
+    /// EN: Executes an update/delete workflow inside a transaction benchmark.
+    /// PT: Executa um benchmark de update/delete dentro de uma transacao.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("transactions")]
+    public void TransactionalUpdateDeleteCommit() => Run(BenchmarkFeatureId.TransactionalUpdateDeleteCommit);
+
+    /// <summary>
+    /// EN: Executes a typed parameter insert transaction commit benchmark.
+    /// PT: Executa um benchmark de confirmacao de transacao com inserts tipados.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("transactions")]
+    public void ParameterTransactionCommit() => Run(BenchmarkFeatureId.ParameterTransactionCommit);
+
+    /// <summary>
+    /// EN: Executes a typed parameter insert transaction rollback benchmark.
+    /// PT: Executa um benchmark de rollback de transacao com inserts tipados.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("transactions")]
+    public void ParameterTransactionRollback() => Run(BenchmarkFeatureId.ParameterTransactionRollback);
 
     /// <summary>
     /// EN: Executes a provider-specific upsert benchmark.

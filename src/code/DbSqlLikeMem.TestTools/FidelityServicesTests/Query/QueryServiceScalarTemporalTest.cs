@@ -927,6 +927,78 @@ FROM SYSIBM.SYSDUMMY1
         return 1;
     }
 
+    /// <summary>
+    /// EN: Executes the broad parameter projection benchmark and returns the first projected value.
+    /// PT: Executa o benchmark amplo de projeção de parametros e retorna o primeiro valor projetado.
+    /// </summary>
+    public string? RunParameterProjection()
+    {
+        var createdAt = Dialect.Provider == ProviderId.Npgsql
+            ? new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Utc)
+            : new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified);
+
+        using var command = Connection.CreateCommand();
+        command.CommandText = Dialect.Provider == ProviderId.Db2
+            ? $"""
+SELECT
+    CAST({Dialect.Parameter("textValue")} AS VARCHAR(100)) AS TextValue,
+    CAST({Dialect.Parameter("ansiTextValue")} AS VARCHAR(100)) AS AnsiTextValue,
+    CAST({Dialect.Parameter("ansiFixedTextValue")} AS CHAR(20)) AS AnsiFixedTextValue,
+    CAST({Dialect.Parameter("fixedTextValue")} AS CHAR(20)) AS FixedTextValue,
+    CAST({Dialect.Parameter("int16Value")} AS SMALLINT) AS Int16Value,
+    CAST({Dialect.Parameter("int32Value")} AS INTEGER) AS Int32Value,
+    CAST({Dialect.Parameter("int64Value")} AS BIGINT) AS Int64Value,
+    CAST({Dialect.Parameter("boolValue")} AS BOOLEAN) AS BoolValue,
+    CAST({Dialect.Parameter("decimalValue")} AS DECIMAL(19,4)) AS DecimalValue,
+    CAST({Dialect.Parameter("doubleValue")} AS DOUBLE) AS DoubleValue,
+    CAST({Dialect.Parameter("timeSpanValue")} AS VARCHAR(32)) AS TimeSpanValue,
+    CAST({Dialect.Parameter("dateTimeOffsetValue")} AS VARCHAR(40)) AS DateTimeOffsetValue,
+    CAST({Dialect.Parameter("dateTimeValue")} AS TIMESTAMP) AS DateTimeValue,
+    CAST({Dialect.Parameter("guidValue")} AS VARCHAR(36)) AS GuidValue,
+    CAST({Dialect.Parameter("binaryValue")} AS VARCHAR(4) FOR BIT DATA) AS BinaryValue
+FROM SYSIBM.SYSDUMMY1
+"""
+            : Dialect.SelectParameterProjection($"""
+    {Dialect.Parameter("textValue")} AS TextValue,
+    {Dialect.Parameter("ansiTextValue")} AS AnsiTextValue,
+    {Dialect.Parameter("ansiFixedTextValue")} AS AnsiFixedTextValue,
+    {Dialect.Parameter("fixedTextValue")} AS FixedTextValue,
+    {Dialect.Parameter("int16Value")} AS Int16Value,
+    {Dialect.Parameter("int32Value")} AS Int32Value,
+    {Dialect.Parameter("int64Value")} AS Int64Value,
+    {Dialect.Parameter("boolValue")} AS BoolValue,
+    {Dialect.Parameter("decimalValue")} AS DecimalValue,
+    {Dialect.Parameter("doubleValue")} AS DoubleValue,
+    {Dialect.Parameter("timeSpanValue")} AS TimeSpanValue,
+    {Dialect.Parameter("dateTimeOffsetValue")} AS DateTimeOffsetValue,
+    {Dialect.Parameter("dateTimeValue")} AS DateTimeValue,
+    {Dialect.Parameter("guidValue")} AS GuidValue,
+    {Dialect.Parameter("binaryValue")} AS BinaryValue
+""");
+
+        AddParameter(command, "textValue", DbType.String, "benchmark");
+        AddParameter(command, "ansiTextValue", DbType.AnsiString, "ansi");
+        AddParameter(command, "ansiFixedTextValue", DbType.AnsiStringFixedLength, "fixed-ansi");
+        AddParameter(command, "fixedTextValue", DbType.StringFixedLength, "fixed-text");
+        AddParameter(command, "int16Value", DbType.Int16, (short)16);
+        AddParameter(command, "int32Value", DbType.Int32, 32);
+        AddParameter(command, "int64Value", DbType.Int64, 64L);
+        AddParameter(command, "boolValue", DbType.Boolean, true);
+        AddParameter(command, "decimalValue", DbType.Decimal, 12.34m);
+        AddParameter(command, "doubleValue", DbType.Double, 56.78d);
+        AddParameter(command, "timeSpanValue", DbType.Time, TimeSpan.FromHours(1.5));
+        AddParameter(command, "dateTimeOffsetValue", DbType.DateTimeOffset, new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.Zero));
+        AddParameter(command, "dateTimeValue", DbType.DateTime, NormalizeNpgsqlDateTimeInput(createdAt));
+        AddParameter(command, "guidValue", DbType.Guid, Guid.Parse("11111111-2222-3333-4444-555555555555"));
+        AddParameter(command, "binaryValue", DbType.Binary, new byte[] { 1, 2, 3, 4 });
+
+        var value = Convert.ToString(command.ExecuteScalar(), CultureInfo.InvariantCulture);
+        value.Should().Be("benchmark");
+        GC.KeepAlive(value);
+        GC.KeepAlive(createdAt);
+        return value;
+    }
+
     private static void AddParameter(DbCommand command, string name, DbType dbType, object? value)
     {
         var parameter = command.CreateParameter();

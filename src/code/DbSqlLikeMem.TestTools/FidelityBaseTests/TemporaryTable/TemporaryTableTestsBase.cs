@@ -59,6 +59,14 @@ public abstract class TemporaryTableTestsBase<T, T2>(
     }
 
     /// <summary>
+    /// EN: Verifies creating a temporary table from a filtered source query returns the expected projected rows.
+    /// PT: Verifica se criar uma tabela temporaria a partir de uma consulta filtrada retorna as linhas projetadas esperadas.
+    /// </summary>
+    [Fact]
+    public void TempTableCreateAndUseTest()
+        => CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows();
+
+    /// <summary>
     /// EN: Verifies that rolling back a transaction clears rows written to a temporary users table.
     /// PT: Verifica se o rollback de uma transacao limpa as linhas gravadas em uma tabela temporaria de usuarios.
     /// </summary>
@@ -99,6 +107,14 @@ public abstract class TemporaryTableTestsBase<T, T2>(
             serviceTest.DropScenario(tableName);
         }
     }
+
+    /// <summary>
+    /// EN: Verifies rolling back a transaction clears rows written to a temporary users table.
+    /// PT: Verifica se o rollback de uma transacao limpa as linhas gravadas em uma tabela temporaria de usuarios.
+    /// </summary>
+    [Fact]
+    public void TempTableRollbackTest()
+        => CreateTemporaryUsersTable_Rollback_ShouldClearRows();
 
     /// <summary>
     /// EN: Verifies that a temporary users table accepts inserts and returns the expected row count.
@@ -189,6 +205,14 @@ public abstract class TemporaryTableTestsBase<T, T2>(
             serviceTest.DropScenario(tableName);
         }
     }
+
+    /// <summary>
+    /// EN: Verifies that a temporary users table is not visible from a secondary connection.
+    /// PT: Verifica se uma tabela temporaria de usuarios nao fica visivel a partir de uma conexao secundaria.
+    /// </summary>
+    [Fact]
+    public void TempTableCrossConnectionIsolationTest()
+        => CreateTemporaryUsersTable_CrossConnectionIsolation_ShouldReturnZero();
 
     private static string NewToken()
         => Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();

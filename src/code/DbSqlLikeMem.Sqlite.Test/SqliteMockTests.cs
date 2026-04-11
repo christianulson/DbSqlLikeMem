@@ -589,7 +589,7 @@ public sealed class SqliteMockTests
 
         Convert.ToString(command.ExecuteScalar()).Should().Be("Ana|Bia|Caio");
 
-        command.CommandText = "SELECT GROUP_CONCAT(DISTINCT Name, '|') FROM Users";
+        command.CommandText = "SELECT GROUP_CONCAT(DISTINCT Name ORDER BY Name SEPARATOR '|') FROM Users";
         Convert.ToString(command.ExecuteScalar()).Should().Be("Ana|Bia|Caio");
 
         command.CommandText = "SELECT STRING_AGG(Name, '|') FROM Users";

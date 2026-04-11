@@ -1526,6 +1526,8 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         ParseAggregateSeparatorKeywordIfPresent(name, args);
 
         _context.ExpectSymbol(")");
+        ValidateStringAggregateDistinctUsage(name, distinct, args);
+
         return new CallExpr(name, args, distinct, aggregateOrderBy)
             .BindScalarFunctionDefinition(_context.Dialect);
     }
@@ -1604,6 +1606,28 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         }
 
         args[1] = separatorExpr;
+    }
+
+    private void ValidateStringAggregateDistinctUsage(string functionName, bool distinct, IReadOnlyList<SqlExpr> args)
+    {
+        if (!distinct)
+            return;
+
+        var dialectName = _context.Dialect.Name;
+
+        if (functionName.Equals(SqlConst.STRING_AGG, StringComparison.OrdinalIgnoreCase)
+            && (dialectName.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
+                || dialectName.Equals("sqlazure", StringComparison.OrdinalIgnoreCase)))
+        {
+            throw SqlUnsupported.NotSupported(_context.Dialect, "DISTINCT in STRING_AGG");
+        }
+
+        if (functionName.Equals(SqlConst.GROUP_CONCAT, StringComparison.OrdinalIgnoreCase)
+            && dialectName.Equals("sqlite", StringComparison.OrdinalIgnoreCase)
+            && args.Count > 1)
+        {
+            throw SqlUnsupported.NotSupported(_context.Dialect, "DISTINCT with multiple arguments in GROUP_CONCAT");
+        }
     }
 
     private SqlExpr ParseStringAggregateFunctionArgument(string functionName)

@@ -12,8 +12,9 @@ public class InsertTests(
     ) : InsertTestsBase<SqlServerConnectionMock, SqlConnection>(
     helper,
     new SqlServerProviderSqlDialect(),
-    () => new SqlServerConnectionMock(),
+    static () => new SqlServerConnectionMock(Db),
     s => new SqlConnection(s)
     )
 {
+    private static readonly SqlServerDbMock Db = new() { ThreadSafe = true };
 }

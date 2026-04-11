@@ -147,6 +147,9 @@ public abstract partial class BenchmarkSessionBase(
             case BenchmarkFeatureId.UpdateByPk:
                 RunUpdateByPk();
                 break;
+            case BenchmarkFeatureId.UpdateDeleteRoundTrip:
+                RunUpdateDeleteRoundTrip();
+                break;
             case BenchmarkFeatureId.DeleteByPk:
                 RunDeleteByPk();
                 break;
@@ -155,6 +158,15 @@ public abstract partial class BenchmarkSessionBase(
                 break;
             case BenchmarkFeatureId.TransactionRollback:
                 RunTransactionRollback();
+                break;
+            case BenchmarkFeatureId.TransactionalUpdateDeleteCommit:
+                RunTransactionalUpdateDeleteCommit();
+                break;
+            case BenchmarkFeatureId.ParameterTransactionCommit:
+                RunParameterTransactionCommit();
+                break;
+            case BenchmarkFeatureId.ParameterTransactionRollback:
+                RunParameterTransactionRollback();
                 break;
             case BenchmarkFeatureId.SavepointCreate:
                 RunSavepointCreate();
@@ -657,6 +669,17 @@ public abstract partial class BenchmarkSessionBase(
     }
 
     /// <summary>
+    /// EN: Executes an update/delete round trip and validates the remaining row count.
+    /// PT-br: Executa um ciclo de update/delete e valida a contagem de linhas restante.
+    /// </summary>
+    protected virtual void RunUpdateDeleteRoundTrip()
+    {
+        var state = GetPreparedCrudUsersState("UpdateDeleteRoundTrip");
+        var count = state.RunUpdateDeleteRoundTrip();
+        GC.KeepAlive(count);
+    }
+
+    /// <summary>
     /// EN: Executes an insert inside a transaction, commits it, and validates the committed result.
     /// PT-br: Executa uma inserção dentro de uma transação, confirma a operação e valida o resultado confirmado.
     /// </summary>
@@ -677,6 +700,17 @@ public abstract partial class BenchmarkSessionBase(
     {
         var state = GetPreparedTransactionUsersState("TransactionUsers");
         var count = state.RunTransactionRollback();
+        GC.KeepAlive(count);
+    }
+
+    /// <summary>
+    /// EN: Executes an update/delete workflow inside a transaction and validates the committed result.
+    /// PT-br: Executa um fluxo de update/delete dentro de uma transação e valida o resultado confirmado.
+    /// </summary>
+    protected virtual void RunTransactionalUpdateDeleteCommit()
+    {
+        var state = GetPreparedCrudUsersState("TransactionalUpdateDeleteCommit");
+        var count = state.RunTransactionalUpdateDeleteCommit();
         GC.KeepAlive(count);
     }
 
@@ -736,6 +770,28 @@ public abstract partial class BenchmarkSessionBase(
     {
         var state = GetPreparedInsertUsersState("ParameterInsertSingle");
         var count = state.RunParameterInsertSingle();
+        GC.KeepAlive(count);
+    }
+
+    /// <summary>
+    /// EN: Executes typed parameter inserts inside a committed transaction and validates the persisted rows.
+    /// PT-br: Executa inserts tipados com parametros dentro de uma transação confirmada e valida as linhas persistidas.
+    /// </summary>
+    protected virtual void RunParameterTransactionCommit()
+    {
+        var state = GetPreparedParameterTransactionUsersState("ParameterTransactionCommit");
+        var count = state.RunParameterTransactionCommit();
+        GC.KeepAlive(count);
+    }
+
+    /// <summary>
+    /// EN: Executes typed parameter inserts inside a rolled-back transaction and validates that no rows remain.
+    /// PT-br: Executa inserts tipados com parametros dentro de uma transação revertida e valida que nenhuma linha permaneceu.
+    /// </summary>
+    protected virtual void RunParameterTransactionRollback()
+    {
+        var state = GetPreparedParameterTransactionUsersState("ParameterTransactionRollback");
+        var count = state.RunParameterTransactionRollback();
         GC.KeepAlive(count);
     }
 

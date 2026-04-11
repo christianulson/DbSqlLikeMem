@@ -254,6 +254,20 @@ public abstract partial class BenchmarkSessionBase
                 return new PreparedParameterProjectionState(connection, Dialect);
             });
 
+    private PreparedParameterTransactionUsersState GetPreparedParameterTransactionUsersState(string key)
+        => GetOrCreatePreparedState(
+            key,
+            () =>
+            {
+                var uId = NextToken();
+                var users = NewUsersTableName();
+                var connection = CreateConnection();
+                connection.Open();
+                var service = CreateMutationService(connection, BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
+                service.CreateScenario(users, uId);
+                return new PreparedParameterTransactionUsersState(connection, service, Dialect, users, uId);
+            });
+
     protected int RunPreparedStoredProcedureCall(string key)
         => GetPreparedStoredProcedureState(key).RunStoredProcedureCall();
 
@@ -1212,6 +1226,62 @@ VALUES (
             }
         }
 
+        public int RunUpdateDeleteRoundTrip()
+        {
+            try
+            {
+                return service.RunUpdateDeleteRoundTrip(UsersTable);
+            }
+            finally
+            {
+                try
+                {
+                    ExecuteNonQuery(connection, _dialect.UpdateUserNameById(UsersTable, 1, "Alice"));
+                }
+                catch
+                {
+                    // Ignore cleanup failures during benchmark teardown.
+                }
+
+                try
+                {
+                    ExecuteNonQuery(connection, _dialect.InsertUser(UsersTable, 2, "Bob"));
+                }
+                catch
+                {
+                    // Ignore cleanup failures during benchmark teardown.
+                }
+            }
+        }
+
+        public int RunTransactionalUpdateDeleteCommit()
+        {
+            try
+            {
+                return service.RunTransactionalUpdateDeleteCommit(UsersTable);
+            }
+            finally
+            {
+                try
+                {
+                    ExecuteNonQuery(connection, _dialect.UpdateUserNameById(UsersTable, 1, "Alice"));
+                }
+                catch
+                {
+                    // Ignore cleanup failures during benchmark teardown.
+                }
+
+                try
+                {
+                    ExecuteNonQuery(connection, _dialect.InsertUser(UsersTable, 2, "Bob"));
+                }
+                catch
+                {
+                    // Ignore cleanup failures during benchmark teardown.
+                }
+            }
+        }
+
         public string RunUpsert()
         {
             try
@@ -1230,6 +1300,91 @@ VALUES (
                 }
             }
         }
+
+        public void Dispose()
+        {
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                try
+                {
+                    ExecuteNonQuery(connection, service.Dialect.DropTable(users, uId));
+                }
+                catch
+                {
+                    // Ignore cleanup failures during benchmark teardown.
+                }
+            }
+            finally
+            {
+                connection.Dispose();
+            }
+        }
+    }
+
+    private sealed class PreparedParameterTransactionUsersState(
+        DbConnection connection,
+        DmlMutationServiceTest<DbConnection> service,
+        ProviderSqlDialect dialect,
+        string users,
+        string uId) : IDisposable
+    {
+        private readonly ProviderSqlDialect _dialect = dialect;
+
+        private string UsersTable => $"{users}_{uId}";
+
+        public int RunParameterTransactionCommit()
+        {
+            try
+            {
+                return service.RunParameterTransactionCommit(
+                    UsersTable,
+                    "Alice-v2",
+                    "Bob-v2",
+                    "alice@example.com",
+                    "bob@example.com",
+                    NormalizeDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified)),
+                    NormalizeDateTimeInput(new DateTime(2024, 2, 3, 4, 5, 6, DateTimeKind.Unspecified)));
+            }
+            finally
+            {
+                try
+                {
+                    ExecuteNonQuery(connection, _dialect.DeleteUserById(UsersTable, 2));
+                }
+                catch
+                {
+                    // Ignore cleanup failures during benchmark teardown.
+                }
+
+                try
+                {
+                    ExecuteNonQuery(connection, _dialect.DeleteUserById(UsersTable, 1));
+                }
+                catch
+                {
+                    // Ignore cleanup failures during benchmark teardown.
+                }
+            }
+        }
+
+        public int RunParameterTransactionRollback()
+            => service.RunParameterTransactionRollback(
+                UsersTable,
+                "Alice-v2",
+                "Bob-v2",
+                "alice@example.com",
+                "bob@example.com",
+                NormalizeDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified)),
+                NormalizeDateTimeInput(new DateTime(2024, 2, 3, 4, 5, 6, DateTimeKind.Unspecified)));
+
+        private DateTime NormalizeDateTimeInput(DateTime value)
+            => _dialect.Provider == ProviderId.Npgsql && value.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(value, DateTimeKind.Utc)
+                : value;
 
         public void Dispose()
         {

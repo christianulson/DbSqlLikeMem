@@ -76,6 +76,175 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
         }
     }
 
+    /// <summary>
+    /// EN: Verifies the scalar date benchmark returns a non-default temporal value for the current provider.
+    /// PT: Verifica se o benchmark escalar de data retorna um valor temporal nao padrao para o provedor atual.
+    /// </summary>
+    [Fact]
+    public void DateScalarTest()
+    {
+        using var connMock = connectionMock();
+        connMock.Open();
+
+        var serviceTest = new QueryServiceTest<T>(connMock, new UsersScenario<T>(dialect), dialect);
+        var resultMock = NormalizeDateTimeValue(serviceTest.RunDateScalar());
+        resultMock.Should().NotBe(default);
+
+        if (IsSelectContainerComparisonEnabled(dialect.Provider)
+            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        {
+            using var connContainer = connectionContainer(connectionString);
+            connContainer.Open();
+            var serviceTestContainer = new QueryServiceTest<T2>(connContainer, new UsersScenario<T2>(dialect), dialect);
+            var resultContainer = NormalizeDateTimeValue(serviceTestContainer.RunDateScalar());
+            resultMock.Should().BeCloseTo(resultContainer, TemporalComparisonTolerance);
+        }
+    }
+
+    /// <summary>
+    /// EN: Verifies the current timestamp benchmark returns a non-default temporal value for the current provider.
+    /// PT: Verifica se o benchmark de timestamp atual retorna um valor temporal nao padrao para o provedor atual.
+    /// </summary>
+    [Fact]
+    public void TemporalCurrentTimestampTest()
+    {
+        using var connMock = connectionMock();
+        connMock.Open();
+
+        var serviceTest = new QueryServiceTest<T>(connMock, new UsersScenario<T>(dialect), dialect);
+        var resultMock = NormalizeDateTimeValue(serviceTest.RunTemporalCurrentTimestamp());
+        resultMock.Should().NotBe(default);
+
+        if (IsSelectContainerComparisonEnabled(dialect.Provider)
+            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        {
+            using var connContainer = connectionContainer(connectionString);
+            connContainer.Open();
+            var serviceTestContainer = new QueryServiceTest<T2>(connContainer, new UsersScenario<T2>(dialect), dialect);
+            var resultContainer = NormalizeDateTimeValue(serviceTestContainer.RunTemporalCurrentTimestamp());
+            resultMock.Should().BeCloseTo(resultContainer, TemporalComparisonTolerance);
+        }
+    }
+
+    /// <summary>
+    /// EN: Verifies the temporal date-add benchmark returns a non-default temporal value for the current provider.
+    /// PT: Verifica se o benchmark temporal de soma de data retorna um valor temporal nao padrao para o provedor atual.
+    /// </summary>
+    [Fact]
+    public void TemporalDateAddTest()
+    {
+        using var connMock = connectionMock();
+        connMock.Open();
+
+        var serviceTest = new QueryServiceTest<T>(connMock, new UsersScenario<T>(dialect), dialect);
+        var resultMock = NormalizeDateTimeValue(serviceTest.RunTemporalDateAdd());
+        resultMock.Should().NotBe(default);
+
+        if (IsSelectContainerComparisonEnabled(dialect.Provider)
+            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        {
+            using var connContainer = connectionContainer(connectionString);
+            connContainer.Open();
+            var serviceTestContainer = new QueryServiceTest<T2>(connContainer, new UsersScenario<T2>(dialect), dialect);
+            var resultContainer = NormalizeDateTimeValue(serviceTestContainer.RunTemporalDateAdd());
+            resultMock.Should().BeCloseTo(resultContainer, TemporalComparisonTolerance);
+        }
+    }
+
+    /// <summary>
+    /// EN: Verifies the current-time predicate benchmark counts the configured rows for the current provider.
+    /// PT: Verifica se o benchmark de predicado de tempo atual conta as linhas configuradas para o provedor atual.
+    /// </summary>
+    [Fact]
+    public void TemporalNowWhereTest()
+    {
+        var users = "Users";
+        var uId = NewToken();
+
+        using var connMock = connectionMock();
+        connMock.Open();
+
+        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bravo"), (3, "Aaron")]);
+        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
+        serviceTest.CreateScenario(users, uId);
+
+        try
+        {
+            var resultMock = Convert.ToInt32(serviceTest.RunTemporalNowWhere(users), CultureInfo.InvariantCulture);
+            resultMock.Should().Be(3);
+
+            if (IsSelectContainerComparisonEnabled(dialect.Provider)
+                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+            {
+                using var connContainer = connectionContainer(connectionString);
+                connContainer.Open();
+                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bravo"), (3, "Aaron")]);
+                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
+                serviceTestContainer.CreateScenario(users, uId);
+                try
+                {
+                    var resultContainer = Convert.ToInt32(serviceTestContainer.RunTemporalNowWhere(users), CultureInfo.InvariantCulture);
+                    resultMock.Should().Be(resultContainer);
+                }
+                finally
+                {
+                    serviceTestContainer.DropScenario(users, uId);
+                }
+            }
+        }
+        finally
+        {
+            serviceTest.DropScenario(users, uId);
+        }
+    }
+
+    /// <summary>
+    /// EN: Verifies the current-time ordering benchmark returns the expected first row for the current provider.
+    /// PT: Verifica se o benchmark de ordenacao por tempo atual retorna a primeira linha esperada para o provedor atual.
+    /// </summary>
+    [Fact]
+    public void TemporalNowOrderByTest()
+    {
+        var users = "Users";
+        var uId = NewToken();
+
+        using var connMock = connectionMock();
+        connMock.Open();
+
+        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bravo"), (3, "Aaron")]);
+        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
+        serviceTest.CreateScenario(users, uId);
+
+        try
+        {
+            var resultMock = Convert.ToString(serviceTest.RunTemporalNowOrderBy(users), CultureInfo.InvariantCulture);
+            resultMock.Should().Be("Aaron");
+
+            if (IsSelectContainerComparisonEnabled(dialect.Provider)
+                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+            {
+                using var connContainer = connectionContainer(connectionString);
+                connContainer.Open();
+                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bravo"), (3, "Aaron")]);
+                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
+                serviceTestContainer.CreateScenario(users, uId);
+                try
+                {
+                    var resultContainer = Convert.ToString(serviceTestContainer.RunTemporalNowOrderBy(users), CultureInfo.InvariantCulture);
+                    resultMock.Should().Be(resultContainer);
+                }
+                finally
+                {
+                    serviceTestContainer.DropScenario(users, uId);
+                }
+            }
+        }
+        finally
+        {
+            serviceTest.DropScenario(users, uId);
+        }
+    }
+
     private static (DateTime DateScalar, DateTime CurrentTimestamp, DateTime DateAdd, int WhereCount, string OrderedName) RunScalarTemporalMatrix<TConnection>(
         QueryServiceTest<TConnection> serviceTest,
         string users)

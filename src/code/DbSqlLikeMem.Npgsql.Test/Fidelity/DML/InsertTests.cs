@@ -12,8 +12,9 @@ public class InsertTests(
     ) : InsertTestsBase<NpgsqlConnectionMock, NpgsqlConnection>(
     helper,
     new NpgsqlProviderSqlDialect(),
-    () => new NpgsqlConnectionMock(),
+    static () => new NpgsqlConnectionMock(Db),
     s => new NpgsqlConnection(s)
     )
 {
+    private static readonly NpgsqlDbMock Db = new() { ThreadSafe = true };
 }

@@ -24,6 +24,14 @@ public abstract class SequenceTestsBase<T, T2>(
         => RunSequenceNextValuesTest();
 
     /// <summary>
+    /// EN: Verifies that a created sequence returns the expected next values for the current provider.
+    /// PT: Verifica se uma sequence criada retorna os proximos valores esperados para o provedor atual.
+    /// </summary>
+    [Fact]
+    public void SequenceNextValueTest()
+        => RunSequenceNextValuesTest();
+
+    /// <summary>
     /// EN: Verifies that sequence values can be consumed by inserts and keep the expected row range for the current provider.
     /// PT: Verifica se valores de sequence podem ser consumidos por inserts e mantem a faixa esperada de linhas para o provedor atual.
     /// </summary>

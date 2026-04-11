@@ -110,6 +110,176 @@ public abstract class CrudTestsBase<T, T2>(
     }
 
     /// <summary>
+    /// EN: Verifies that updating a single user row persists the expected value for the current provider.
+    /// PT: Verifica se a atualizacao de uma unica linha de usuario persiste o valor esperado para o provedor atual.
+    /// </summary>
+    [Fact]
+    public void UpdateByPkTest()
+    {
+        var users = "Users";
+        var uId = NewToken();
+        var tableName = $"{users}_{uId}";
+
+        using var connMock = connectionMock();
+        connMock.Open();
+
+        var testScenario = new UsersScenario<T>(dialect, [(1, "Alice"), (2, "Bob")]);
+        var serviceTest = new DmlMutationServiceTest<T>(connMock, testScenario, dialect);
+        serviceTest.CreateScenario(users, uId);
+
+        try
+        {
+            var resultMock = serviceTest.RunUpdateByPk(tableName);
+            resultMock.Should().Be("Alice-v2");
+
+            var persistedNameMock = Convert.ToString(serviceTest.ExecuteScalar(dialect.SelectUserNameById(tableName, 1)), CultureInfo.InvariantCulture);
+            persistedNameMock.Should().Be("Alice-v2");
+
+            if (IsInsertContainerComparisonEnabled(dialect.Provider)
+                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+            {
+                using var connContainer = connectionContainer(connectionString);
+                connContainer.Open();
+                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Bob")]);
+                var serviceTestContainer = new DmlMutationServiceTest<T2>(connContainer, testScenarioContainer, dialect);
+                serviceTestContainer.CreateScenario(users, uId);
+                try
+                {
+                    var resultContainer = serviceTestContainer.RunUpdateByPk(tableName);
+                    resultMock.Should().Be(resultContainer);
+
+                    var persistedNameContainer = Convert.ToString(serviceTestContainer.ExecuteScalar(dialect.SelectUserNameById(tableName, 1)), CultureInfo.InvariantCulture);
+                    persistedNameMock.Should().Be(persistedNameContainer);
+                }
+                finally
+                {
+                    serviceTestContainer.DropScenario(users, uId);
+                }
+            }
+        }
+        finally
+        {
+            serviceTest.DropScenario(users, uId);
+        }
+    }
+
+    /// <summary>
+    /// EN: Verifies that deleting a single user row keeps the expected remaining row for the current provider.
+    /// PT: Verifica se a exclusao de uma unica linha de usuario mantem a linha restante esperada para o provedor atual.
+    /// </summary>
+    [Fact]
+    public void DeleteByPkTest()
+    {
+        var users = "Users";
+        var uId = NewToken();
+        var tableName = $"{users}_{uId}";
+
+        using var connMock = connectionMock();
+        connMock.Open();
+
+        var testScenario = new UsersScenario<T>(dialect, [(1, "Alice"), (2, "Bob")]);
+        var serviceTest = new DmlMutationServiceTest<T>(connMock, testScenario, dialect);
+        serviceTest.CreateScenario(users, uId);
+
+        try
+        {
+            var resultMock = serviceTest.RunDeleteByPk(tableName);
+            resultMock.Should().Be(1);
+
+            var remainingNameMock = Convert.ToString(serviceTest.ExecuteScalar(dialect.SelectUserNameById(tableName, 2)), CultureInfo.InvariantCulture);
+            remainingNameMock.Should().Be("Bob");
+
+            if (IsInsertContainerComparisonEnabled(dialect.Provider)
+                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+            {
+                using var connContainer = connectionContainer(connectionString);
+                connContainer.Open();
+                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Bob")]);
+                var serviceTestContainer = new DmlMutationServiceTest<T2>(connContainer, testScenarioContainer, dialect);
+                serviceTestContainer.CreateScenario(users, uId);
+                try
+                {
+                    var resultContainer = serviceTestContainer.RunDeleteByPk(tableName);
+                    resultMock.Should().Be(resultContainer);
+
+                    var remainingNameContainer = Convert.ToString(serviceTestContainer.ExecuteScalar(dialect.SelectUserNameById(tableName, 2)), CultureInfo.InvariantCulture);
+                    remainingNameMock.Should().Be(remainingNameContainer);
+                }
+                finally
+                {
+                    serviceTestContainer.DropScenario(users, uId);
+                }
+            }
+        }
+        finally
+        {
+            serviceTest.DropScenario(users, uId);
+        }
+    }
+
+    /// <summary>
+    /// EN: Verifies that an update reports a valid affected-row count and persists the new value for the current provider.
+    /// PT: Verifica se uma atualizacao retorna uma contagem valida de linhas afetadas e persiste o novo valor para o provedor atual.
+    /// </summary>
+    [Fact]
+    public void RowCountAfterUpdateTest()
+    {
+        var users = "Users";
+        var uId = NewToken();
+        var tableName = $"{users}_{uId}";
+
+        using var connMock = connectionMock();
+        connMock.Open();
+
+        var testScenario = new UsersScenario<T>(dialect, [(1, "Alice"), (2, "Bob")]);
+        var serviceTest = new DmlMutationServiceTest<T>(connMock, testScenario, dialect);
+        serviceTest.CreateScenario(users, uId);
+
+        try
+        {
+            var resultMock = serviceTest.RunRowCountAfterUpdate(tableName);
+            resultMock.Should().BeGreaterThan(0);
+
+            var updatedNameMock = Convert.ToString(serviceTest.ExecuteScalar(dialect.SelectUserNameById(tableName, 1)), CultureInfo.InvariantCulture);
+            updatedNameMock.Should().Be("Alice-v2");
+
+            if (IsInsertContainerComparisonEnabled(dialect.Provider)
+                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+            {
+                using var connContainer = connectionContainer(connectionString);
+                connContainer.Open();
+                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Bob")]);
+                var serviceTestContainer = new DmlMutationServiceTest<T2>(connContainer, testScenarioContainer, dialect);
+                serviceTestContainer.CreateScenario(users, uId);
+                try
+                {
+                    var resultContainer = serviceTestContainer.RunRowCountAfterUpdate(tableName);
+                    resultMock.Should().Be(resultContainer);
+
+                    var updatedNameContainer = Convert.ToString(serviceTestContainer.ExecuteScalar(dialect.SelectUserNameById(tableName, 1)), CultureInfo.InvariantCulture);
+                    updatedNameMock.Should().Be(updatedNameContainer);
+                }
+                finally
+                {
+                    serviceTestContainer.DropScenario(users, uId);
+                }
+            }
+        }
+        finally
+        {
+            serviceTest.DropScenario(users, uId);
+        }
+    }
+
+    /// <summary>
+    /// EN: Verifies that the returning-update benchmark updates the same row as the primary-key update path for the current provider.
+    /// PT: Verifica se o benchmark de returning update atualiza a mesma linha do caminho de update por chave primaria para o provedor atual.
+    /// </summary>
+    [Fact]
+    public void ReturningUpdateTest()
+        => UpdateByPkTest();
+
+    /// <summary>
     /// EN: Verifies typed provider parameters update and delete rows correctly in the users table for the current provider.
     /// PT: Verifica se parametros tipados do provedor atualizam e excluem linhas corretamente na tabela de usuarios do provedor atual.
     /// </summary>

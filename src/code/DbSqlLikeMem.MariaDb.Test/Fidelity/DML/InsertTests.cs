@@ -12,8 +12,9 @@ public class InsertTests(
     ) : InsertTestsBase<MariaDbConnectionMock, MySqlConnection>(
     helper,
     new MariaDbProviderSqlDialect(),
-    () => new MariaDbConnectionMock(),
+    static () => new MariaDbConnectionMock(Db),
     s => new MySqlConnection(s)
     )
 {
+    private static readonly MariaDbDbMock Db = new() { ThreadSafe = true };
 }

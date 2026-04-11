@@ -24,6 +24,14 @@ public abstract class InsertTestsBase<T, T2>(
         => RunInsertCountTest(1);
 
     /// <summary>
+    /// EN: Verifies the parameter insert benchmark persists one row for the current provider.
+    /// PT: Verifica se o benchmark de insert parametrizado persiste uma linha para o provedor atual.
+    /// </summary>
+    [Fact]
+    public void ParameterInsertSingleTest()
+        => RunParameterInsertSingleTest();
+
+    /// <summary>
     /// EN: Verifies that ten sequential inserts persist ten rows for the current provider.
     /// PT: Verifica se dez inserts sequenciais persistem dez linhas para o provedor atual.
     /// </summary>
@@ -38,6 +46,22 @@ public abstract class InsertTestsBase<T, T2>(
     [Fact]
     public void InsertBatch100Test()
         => RunInsertCountTest(100);
+
+    /// <summary>
+    /// EN: Verifies that one hundred parallel inserts persist one hundred rows for the current provider.
+    /// PT: Verifica se cem inserts paralelos persistem cem linhas para o provedor atual.
+    /// </summary>
+    [Fact]
+    public void InsertBatch100ParallelTest()
+        => RunInsertParallelCountTest(100);
+
+    /// <summary>
+    /// EN: Verifies that the parallel insert benchmark persists one hundred rows for the current provider.
+    /// PT: Verifica se o benchmark de insert paralelo persiste cem linhas para o provedor atual.
+    /// </summary>
+    [Fact]
+    public void ParallelInsertTest()
+        => RunInsertParallelCountTest(100);
 
     /// <summary>
     /// EN: Verifies that a single insert reports a valid affected-row count for the current provider.
@@ -70,6 +94,46 @@ public abstract class InsertTestsBase<T, T2>(
             using var connContainer = connectionContainer(connectionString);
             connContainer.Open();
             var resultContainer = RunInsertCountScenario(connContainer, users, uId, rowCount);
+            resultMock.Should().Be(resultContainer);
+        }
+    }
+
+    private void RunParameterInsertSingleTest()
+    {
+        var users = "Users";
+        var uId = NewToken();
+
+        using var connMock = connectionMock();
+        connMock.Open();
+        var resultMock = RunParameterInsertSingleScenario(connMock, users, uId);
+        resultMock.Should().Be(1);
+
+        if (IsInsertContainerComparisonEnabled(dialect.Provider)
+            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        {
+            using var connContainer = connectionContainer(connectionString);
+            connContainer.Open();
+            var resultContainer = RunParameterInsertSingleScenario(connContainer, users, uId);
+            resultMock.Should().Be(resultContainer);
+        }
+    }
+
+    private void RunInsertParallelCountTest(int rowCount)
+    {
+        var users = "Users";
+        var uId = NewToken();
+
+        using var connMock = connectionMock();
+        connMock.Open();
+        var resultMock = RunInsertParallelCountScenario(connMock, users, uId, rowCount, connectionMock);
+
+        if (dialect.Provider is not ProviderId.Sqlite
+            && IsInsertContainerComparisonEnabled(dialect.Provider)
+            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        {
+            using var connContainer = connectionContainer(connectionString);
+            connContainer.Open();
+            var resultContainer = RunInsertParallelCountScenario(connContainer, users, uId, rowCount, () => connectionContainer(connectionString));
             resultMock.Should().Be(resultContainer);
         }
     }
@@ -137,6 +201,26 @@ public abstract class InsertTestsBase<T, T2>(
         }
     }
 
+    private int RunParameterInsertSingleScenario<TConnection>(
+        TConnection connection,
+        string users,
+        string uId)
+        where TConnection : DbConnection
+    {
+        var testScenario = new InsertUsersScenario<TConnection>(dialect);
+        var serviceTest = new InsertUsersServiceTest<TConnection>(connection, testScenario, dialect);
+        serviceTest.CreateScenario(users, uId);
+
+        try
+        {
+            return serviceTest.RunParameterInsertSingle(users, uId);
+        }
+        finally
+        {
+            serviceTest.DropScenario(users, uId);
+        }
+    }
+
     private int RunRowCountAfterInsertScenario<TConnection>(
         TConnection connection,
         string users,
@@ -174,6 +258,28 @@ public abstract class InsertTestsBase<T, T2>(
             var firstName = Convert.ToString(serviceTest.ExecuteScalar(dialect.SelectUserNameById(tableName, 10))) ?? string.Empty;
             var lastName = Convert.ToString(serviceTest.ExecuteScalar(dialect.SelectUserNameById(tableName, 12))) ?? string.Empty;
             return (firstName, lastName);
+        }
+        finally
+        {
+            serviceTest.DropScenario(users, uId);
+        }
+    }
+
+    private int RunInsertParallelCountScenario<TConnection>(
+        TConnection connection,
+        string users,
+        string uId,
+        int rowCount,
+        Func<TConnection> connectionFactory)
+        where TConnection : DbConnection
+    {
+        var testScenario = new InsertUsersScenario<TConnection>(dialect);
+        var serviceTest = new InsertUsersServiceTest<TConnection>(connection, testScenario, dialect, connectionFactory);
+        serviceTest.CreateScenario(users, uId);
+
+        try
+        {
+            return serviceTest.RunParallelTest(users, uId, rowCount);
         }
         finally
         {

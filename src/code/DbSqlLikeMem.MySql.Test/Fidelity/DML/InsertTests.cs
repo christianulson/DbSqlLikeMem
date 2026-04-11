@@ -12,8 +12,9 @@ public class InsertTests(
     ) : InsertTestsBase<MySqlConnectionMock, MySqlConnection>(
     helper,
     new MySqlProviderSqlDialect(),
-    () => new MySqlConnectionMock(),
+    static () => new MySqlConnectionMock(Db),
     s => new MySqlConnection(s)
     )
 {
+    private static readonly MySqlDbMock Db = new() { ThreadSafe = true };
 }

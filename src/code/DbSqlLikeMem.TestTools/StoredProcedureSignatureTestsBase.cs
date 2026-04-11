@@ -59,6 +59,15 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
     }
 
     /// <summary>
+    /// EN: Verifies a stored procedure call validates required input and output parameters.
+    /// PT: Verifica se uma chamada de procedure valida parametros obrigatorios de entrada e saida.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "StoredProcedureSignature")]
+    public void StoredProcedureCallTest()
+        => StoredProcedure_ShouldValidateRequiredInAndOutParams();
+
+    /// <summary>
     /// EN: Verifies stored procedure calls populate mixed typed output parameters and return values.
     /// PT: Verifica se chamadas de procedure preenchem parametros de saida de tipos mistos e valores de retorno.
     /// </summary>

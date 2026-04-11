@@ -206,6 +206,96 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     }
 
     /// <summary>
+    /// EN: Verifies that JSON scalar reads return the expected text for the current provider.
+    /// PT: Verifica se leituras escalares de JSON retornam o texto esperado para o provedor atual.
+    /// </summary>
+    [Fact]
+    public void JsonScalarReadTest()
+    {
+        if (!dialect.SupportsJsonScalarRead)
+        {
+            return;
+        }
+
+        using var connMock = connectionMock();
+        connMock.Open();
+
+        var serviceTest = new QueryServiceTest<T>(connMock, new InsertUsersScenario<T>(dialect), dialect);
+        var resultMock = NormalizeScalarText(serviceTest.RunJsonScalarRead());
+        resultMock.Should().Be("Alice");
+
+        if (IsSelectContainerComparisonEnabled(dialect.Provider)
+            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        {
+            using var connContainer = connectionContainer(connectionString);
+            connContainer.Open();
+            var serviceTestContainer = new QueryServiceTest<T2>(connContainer, new InsertUsersScenario<T2>(dialect), dialect);
+            var resultContainer = NormalizeScalarText(serviceTestContainer.RunJsonScalarRead());
+            resultMock.Should().Be(resultContainer);
+        }
+    }
+
+    /// <summary>
+    /// EN: Verifies that nested JSON path reads return the expected text for the current provider.
+    /// PT: Verifica se leituras de caminho JSON aninhado retornam o texto esperado para o provedor atual.
+    /// </summary>
+    [Fact]
+    public void JsonPathReadTest()
+    {
+        if (!dialect.SupportsJsonScalarRead)
+        {
+            return;
+        }
+
+        using var connMock = connectionMock();
+        connMock.Open();
+
+        var serviceTest = new QueryServiceTest<T>(connMock, new InsertUsersScenario<T>(dialect), dialect);
+        var resultMock = NormalizeScalarText(serviceTest.RunJsonPathRead());
+        resultMock.Should().Be("Alice");
+
+        if (IsSelectContainerComparisonEnabled(dialect.Provider)
+            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        {
+            using var connContainer = connectionContainer(connectionString);
+            connContainer.Open();
+            var serviceTestContainer = new QueryServiceTest<T2>(connContainer, new InsertUsersScenario<T2>(dialect), dialect);
+            var resultContainer = NormalizeScalarText(serviceTestContainer.RunJsonPathRead());
+            resultMock.Should().Be(resultContainer);
+        }
+    }
+
+    /// <summary>
+    /// EN: Verifies that a missing JSON path returns a null value for the current provider.
+    /// PT: Verifica se um caminho JSON ausente retorna um valor nulo para o provedor atual.
+    /// </summary>
+    [Fact]
+    public void JsonMissingPathReturnsNullTest()
+    {
+        if (!dialect.SupportsJsonScalarRead)
+        {
+            return;
+        }
+
+        using var connMock = connectionMock();
+        connMock.Open();
+
+        var serviceTest = new QueryServiceTest<T>(connMock, new InsertUsersScenario<T>(dialect), dialect);
+        var resultMock = NormalizeScalarText(serviceTest.RunJsonInsertCast());
+        resultMock.Should().BeNull();
+
+        if (IsSelectContainerComparisonEnabled(dialect.Provider)
+            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        {
+            using var connContainer = connectionContainer(connectionString);
+            connContainer.Open();
+            var serviceTestContainer = new QueryServiceTest<T2>(connContainer, new InsertUsersScenario<T2>(dialect), dialect);
+            var resultContainer = NormalizeScalarText(serviceTestContainer.RunJsonInsertCast());
+            resultMock.Should().Be(resultContainer);
+        }
+    }
+
+    /// <summary>
     /// EN: Verifies a large temporal projection query over typed columns for the current provider.
     /// PT: Verifica uma consulta temporal grande sobre colunas tipadas para o provedor atual.
     /// </summary>
@@ -622,4 +712,9 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     private static string NewToken()
         => Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+
+    private static string? NormalizeScalarText(object? value)
+        => value is null or DBNull
+            ? null
+            : Convert.ToString(value, CultureInfo.InvariantCulture);
 }

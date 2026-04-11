@@ -85,6 +85,12 @@ public enum BenchmarkFeatureId
     UpdateByPk,
 
     /// <summary>
+    /// EN: Executes an update/delete round trip.
+    /// PT: Executa um ciclo de update/delete.
+    /// </summary>
+    UpdateDeleteRoundTrip,
+
+    /// <summary>
     /// EN: Deletes one row by primary key.
     /// PT: Remove uma linha pela chave primaria.
     /// </summary>
@@ -101,6 +107,24 @@ public enum BenchmarkFeatureId
     /// PT: Desfaz uma transacao.
     /// </summary>
     TransactionRollback,
+
+    /// <summary>
+    /// EN: Executes an update/delete workflow inside a transaction.
+    /// PT: Executa um fluxo de update/delete dentro de uma transacao.
+    /// </summary>
+    TransactionalUpdateDeleteCommit,
+
+    /// <summary>
+    /// EN: Executes typed parameter inserts inside a committed transaction.
+    /// PT: Executa inserts tipados com parametros dentro de uma transacao confirmada.
+    /// </summary>
+    ParameterTransactionCommit,
+
+    /// <summary>
+    /// EN: Executes typed parameter inserts inside a rolled-back transaction.
+    /// PT: Executa inserts tipados com parametros dentro de uma transacao revertida.
+    /// </summary>
+    ParameterTransactionRollback,
 
     /// <summary>
     /// EN: Creates a savepoint.

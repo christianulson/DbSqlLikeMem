@@ -2942,6 +2942,27 @@ public sealed class SqlServerDialectFeatureParserTests(
     }
 
     /// <summary>
+    /// EN: Ensures SQL Server parser rejects DISTINCT directly inside STRING_AGG.
+    /// PT: Garante que o parser SQL Server rejeite DISTINCT diretamente dentro de STRING_AGG.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_StringAggDistinct_ShouldThrowNotSupported(int version)
+    {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("STRING_AGG(DISTINCT amount, '|')", db, d));
+
+        Assert.Contains("STRING_AGG", ex.Message, StringComparison.OrdinalIgnoreCase);
+        if (version >= SqlServerDialect.StringAggMinVersion)
+            Assert.Contains("DISTINCT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures SQL Server parser blocks non-native ordered-set aggregate names with WITHIN GROUP.
     /// PT: Garante que o parser SQL Server bloqueie nomes não nativos de agregação ordered-set com WITHIN GROUP.
     /// </summary>

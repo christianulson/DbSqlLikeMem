@@ -163,7 +163,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
     [Trait("Category", "MySqlAggregation")]
     public void StringAggregation_Distinct_ShouldIgnoreNullValues()
     {
-        AssertStringAggregationDistinctIgnoresNullValues("SELECT GROUP_CONCAT(DISTINCT val, '|') AS joined FROM textagg_data WHERE grp = 1");
+        AssertStringAggregationDistinctIgnoresNullValues("SELECT GROUP_CONCAT(DISTINCT val ORDER BY val SEPARATOR '|') AS joined FROM textagg_data WHERE grp = 1");
     }
 
     /// <summary>

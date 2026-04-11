@@ -12,8 +12,9 @@ public class InsertTests(
     ) : InsertTestsBase<OracleConnectionMock, OracleConnection>(
     helper,
     new OracleProviderSqlDialect(),
-    () => new OracleConnectionMock(),
+    static () => new OracleConnectionMock(Db),
     s => new OracleConnection(s)
     )
 {
+    private static readonly OracleDbMock Db = new() { ThreadSafe = true };
 }

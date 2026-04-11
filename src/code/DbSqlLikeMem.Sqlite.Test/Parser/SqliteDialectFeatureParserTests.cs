@@ -905,6 +905,26 @@ public sealed class SqliteDialectFeatureParserTests(
     }
 
     /// <summary>
+    /// EN: Ensures SQLite parser rejects DISTINCT when GROUP_CONCAT uses a separate separator argument.
+    /// PT: Garante que o parser SQLite rejeite DISTINCT quando GROUP_CONCAT usa um argumento separado de separador.
+    /// </summary>
+    /// <param name="version">EN: SQLite dialect version under test. PT: Versão do dialeto SQLite em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseScalar_GroupConcatDistinctWithSeparator_ShouldThrowNotSupported(int version)
+    {
+        var db = Get(version, v => new SqliteDbMock(v));
+        var dialect = Get(version, v => new SqliteDialect(v));
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(DISTINCT amount, '|')", db, dialect));
+
+        Assert.Contains("GROUP_CONCAT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("DISTINCT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures malformed native aggregate ORDER BY in SQLite fails with actionable message.
     /// PT: Garante que ORDER BY nativo malformado em agregacao SQLite falhe com mensagem acionavel.
     /// </summary>

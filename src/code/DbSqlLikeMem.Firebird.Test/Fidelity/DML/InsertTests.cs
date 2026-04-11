@@ -1,3 +1,4 @@
+using DbSqlLikeMem.Firebird;
 using DbSqlLikeMem.TestTools.Tests.DML;
 
 namespace DbSqlLikeMem.Firebird.Test.Fidelity.DML;
@@ -11,8 +12,9 @@ public class InsertTests(
     ) : InsertTestsBase<FirebirdConnectionMock, FbConnection>(
     helper,
     new FirebirdProviderSqlDialect(),
-    () => new FirebirdConnectionMock(),
+    static () => new FirebirdConnectionMock(Db),
     s => new FbConnection(s)
     )
 {
+    private static readonly FirebirdDbMock Db = new() { ThreadSafe = true };
 }

@@ -811,6 +811,27 @@ public sealed class SqlAzureDialectFeatureParserTests(
     }
 
     /// <summary>
+    /// EN: Ensures SQL Azure parser rejects DISTINCT directly inside STRING_AGG.
+    /// PT: Garante que o parser SQL Azure rejeite DISTINCT diretamente dentro de STRING_AGG.
+    /// </summary>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nível de compatibilidade SQL Azure em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ParseScalar_StringAggDistinct_ShouldThrowNotSupported(int compatibilityLevel)
+    {
+        var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("STRING_AGG(DISTINCT amount, '|')", db, dialect));
+
+        Assert.Contains("STRING_AGG", ex.Message, StringComparison.OrdinalIgnoreCase);
+        if (compatibilityLevel >= SqlAzureDbCompatibilityLevels.SqlServer2017)
+            Assert.Contains("DISTINCT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures malformed WITHIN GROUP in SQL Azure keeps the actionable ORDER BY diagnostic from the shared parser path.
     /// PT: Garante que WITHIN GROUP malformado no SQL Azure preserve o diagnostico acionavel de ORDER BY do caminho compartilhado do parser.
     /// </summary>
