@@ -92,7 +92,7 @@ public sealed record BenchmarkRunOptions(
             UseInProcess: useInProcess,
             PreferPreProvisionedDatabases: preferPreProvisionedDatabases,
             ValidateCatalog: validateCatalog,
-            BenchmarkDotNetArgs: benchmarkArgs.ToArray());
+            BenchmarkDotNetArgs: [.. benchmarkArgs]);
     }
 }
 
@@ -135,7 +135,7 @@ public class BenchmarkConfig : ManualConfig
                 .WithWarmupCount(1)
                 .WithIterationCount(3);
 
-            ArtifactsPath = Path.GetFullPath("../../docs/Wiki/BenchmarkResults");
+            ArtifactsPath = Path.GetFullPath("../../../docs/Wiki/BenchmarkResults");
         }
 
         var useInProcess = ShouldUseInProcess(options);

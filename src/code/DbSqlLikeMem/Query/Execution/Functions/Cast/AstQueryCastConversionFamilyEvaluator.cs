@@ -501,10 +501,6 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
         if (AstQueryExecutorBase.IsNullish(v))
             return null;
 
-        var traceGroupedCaseWhen = fn.Args.Count > 0 && ContainsParameter(fn.Args[0], "cutoff");
-
-        LogCastEntry(fn, traceGroupedCaseWhen, v!, type);
-
         try
         {
             if (v is byte[] bytes && IsBinaryCastTypeName(type))
@@ -540,19 +536,6 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
             return null;
         }
 #pragma warning restore CA1031
-    }
-
-    private static void LogCastEntry(
-        FunctionCallExpr fn,
-        bool traceGroupedCaseWhen,
-        object value,
-        string type)
-    {
-        if (!IsCastDebugFunction(fn.Name))
-            return;
-
-        Console.WriteLine(
-            $"[CastDebug][entry] name={fn.Name} trace={traceGroupedCaseWhen} arg0={FormatDebugValue(value)} type={type}");
     }
 
     private static bool TryEvalCastIntegerResult(
@@ -605,7 +588,6 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
         if (IsSqlServerDialect(context.Dialect))
             throw new InvalidCastException();
 
-        LogCastFallback(fn.Name, "INT", value, type, "0");
         result = 0;
         return true;
     }
@@ -640,7 +622,6 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
 
         if (result is not null)
         {
-            LogCastSuccess(fn.Name, "DECIMAL", value, type, result);
             return true;
         }
 
@@ -648,14 +629,12 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
         if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var dx))
         {
             result = dx;
-            LogCastSuccess(fn.Name, "DECIMAL", value, type, result);
             return true;
         }
 
         if (IsSqlServerDialect(context.Dialect))
             throw new InvalidCastException();
 
-        LogCastFallback(fn.Name, "DECIMAL", value, type, "0m");
         result = 0m;
         return true;
     }
@@ -687,7 +666,6 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
         if (IsSqlServerDialect(context.Dialect))
             throw new InvalidCastException();
 
-        LogCastFallback(fn.Name, "FLOAT", value, type, "0d");
         result = 0d;
         return true;
     }
@@ -712,7 +690,6 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
         if (IsSqlServerDialect(context.Dialect))
             throw new InvalidCastException();
 
-        LogCastFallback(fn.Name, "DATE", value, type, "NULL");
         result = null;
         return true;
     }
@@ -752,43 +729,11 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
         return true;
     }
 
-    private static void LogCastSuccess(
-        string functionName,
-        string category,
-        object value,
-        string type,
-        object? result)
-    {
-        if (!IsCastDebugFunction(functionName))
-            return;
-
-        Console.WriteLine(
-            $"[CastDebug][{category}] input={FormatDebugValue(value)} type={type} result={FormatDebugValue(result)}");
-    }
-
-    private static void LogCastFallback(
-        string functionName,
-        string category,
-        object value,
-        string type,
-        string fallbackText)
-    {
-        if (!IsCastDebugFunction(functionName))
-            return;
-
-        Console.WriteLine(
-            $"[CastDebug][{category}] input={FormatDebugValue(value)} type={type} result={fallbackText} (fallback)");
-    }
-
     private static bool IsSqlServerDialect(ISqlDialect? dialect)
         => dialect is not null && string.Equals(dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsFirebirdDialect(ISqlDialect? dialect)
         => dialect is not null && string.Equals(dialect.Name, "firebird", StringComparison.OrdinalIgnoreCase);
-
-    private static bool IsCastDebugFunction(string functionName)
-        => string.Equals(functionName, "CAST", StringComparison.OrdinalIgnoreCase)
-           || string.Equals(functionName, "CONVERT", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsDecimalCastTypeName(string typeName)
         => typeName.StartsWith("DECIMAL", StringComparison.OrdinalIgnoreCase)
@@ -901,9 +846,4 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
             RowExpr rowExpr => rowExpr.Items.Any(item => ContainsParameter(item, parameterName)),
             _ => false
         };
-
-    private static string FormatDebugValue(object? value)
-        => value is null or DBNull
-            ? "NULL"
-            : $"{value} ({value.GetType().Name})";
 }

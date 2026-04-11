@@ -102,6 +102,7 @@ public abstract class BaseServiceTest<T>(
         string sql,
         DbTransaction? transaction = null)
     {
+        EnsureConnectionOpen();
         using var gate = ProviderExecutionGate.Acquire(Connection, dialect.Provider);
         var total = 0;
         foreach (var statement in SplitSqlStatements(NormalizeScenarioSql(sql)))
@@ -125,6 +126,7 @@ public abstract class BaseServiceTest<T>(
         string sql,
         DbTransaction? transaction = null)
     {
+        EnsureConnectionOpen();
         using var gate = ProviderExecutionGate.Acquire(Connection, dialect.Provider);
         var total = 0;
         foreach (var statement in SplitSqlStatements(NormalizeScenarioSql(sql)))
@@ -149,6 +151,7 @@ public abstract class BaseServiceTest<T>(
         string sql,
         DbTransaction? transaction = null)
     {
+        EnsureConnectionOpen();
         sql = NormalizeScenarioSql(sql);
         using var command = Connection.CreateCommand();
         command.CommandText = sql;
@@ -175,6 +178,7 @@ public abstract class BaseServiceTest<T>(
         string sql,
         DbTransaction? transaction = null)
     {
+        EnsureConnectionOpen();
         sql = NormalizeScenarioSql(sql);
         using var command = Connection.CreateCommand();
         command.CommandText = sql;
@@ -232,6 +236,14 @@ public abstract class BaseServiceTest<T>(
         }
 
         return sql;
+    }
+
+    private void EnsureConnectionOpen()
+    {
+        if (Connection.State != ConnectionState.Open)
+        {
+            Connection.Open();
+        }
     }
 
     private static IReadOnlyList<string> SplitSqlStatements(string sql)

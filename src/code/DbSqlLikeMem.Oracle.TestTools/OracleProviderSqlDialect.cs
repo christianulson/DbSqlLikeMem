@@ -58,7 +58,16 @@ CREATE TABLE {NormalizeScenarioTableName($"{tableName}_{uId}")} (
     Balance NUMBER(12,2) DEFAULT 0.00 NOT NULL,
     CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     UpdatedAt TIMESTAMP NULL,
+    BirthDate DATE NULL,
     ProfileJson CLOB NULL,
+    FixedCode CHAR(4) NULL,
+    BigCount NUMBER(19) NULL,
+    PrecisionValue NUMBER(18,4) NULL,
+    DoubleValue BINARY_DOUBLE NULL,
+    GuidValue VARCHAR2(36) NULL,
+    BinaryValue RAW(16) NULL,
+    TimeValue VARCHAR2(32) NULL,
+    DateTimeOffsetValue TIMESTAMP WITH TIME ZONE NULL,
     CONSTRAINT CK_{NormalizeScenarioTableName(tableName)}_{uId}_ProfileJson CHECK (ProfileJson IS JSON)
 )";
 

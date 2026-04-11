@@ -189,6 +189,51 @@ public abstract partial class BenchmarkSessionBase(
             case BenchmarkFeatureId.ParameterInsertSingle:
                 RunParameterInsertSingle();
                 break;
+            case BenchmarkFeatureId.ParameterSelectByNameMatrix:
+                RunParameterSelectByNameMatrix();
+                break;
+            case BenchmarkFeatureId.ParameterSelectByIdMatrix:
+                RunParameterSelectByIdMatrix();
+                break;
+            case BenchmarkFeatureId.ParameterRoundTripMatrix:
+                RunParameterRoundTripMatrix();
+                break;
+            case BenchmarkFeatureId.ParameterTypeMatrix:
+                RunParameterTypeMatrix();
+                break;
+            case BenchmarkFeatureId.ParameterDateCurrencyMatrix:
+                RunParameterDateCurrencyMatrix();
+                break;
+            case BenchmarkFeatureId.TypedFieldStorageMatrix:
+                RunTypedFieldStorageMatrix();
+                break;
+            case BenchmarkFeatureId.TypedFieldFunctionMatrix:
+                RunTypedFieldFunctionMatrix();
+                break;
+            case BenchmarkFeatureId.TypedFieldCalculationMatrix:
+                RunTypedFieldCalculationMatrix();
+                break;
+            case BenchmarkFeatureId.TypedFieldAndFunctionBlend:
+                RunTypedFieldAndFunctionBlend();
+                break;
+            case BenchmarkFeatureId.TypedFieldCompoundPredicateMatrix:
+                RunTypedFieldCompoundPredicateMatrix();
+                break;
+            case BenchmarkFeatureId.TypedFieldCastCalculationMatrix:
+                RunTypedFieldCastCalculationMatrix();
+                break;
+            case BenchmarkFeatureId.TypedFieldNullComparisonMatrix:
+                RunTypedFieldNullComparisonMatrix();
+                break;
+            case BenchmarkFeatureId.TypedFieldTextLengthMatrix:
+                RunTypedFieldTextLengthMatrix();
+                break;
+            case BenchmarkFeatureId.TypedFieldTextCaseMatrix:
+                RunTypedFieldTextCaseMatrix();
+                break;
+            case BenchmarkFeatureId.TypedFieldPredicateMatrix:
+                RunTypedFieldPredicateMatrix();
+                break;
             case BenchmarkFeatureId.StoredProcedureCall:
                 RunStoredProcedureCall();
                 break;
@@ -234,6 +279,9 @@ public abstract partial class BenchmarkSessionBase(
             case BenchmarkFeatureId.JsonPathRead:
                 RunJsonPathRead();
                 break;
+            case BenchmarkFeatureId.JsonTypedFieldMatrix:
+                RunJsonTypedFieldMatrix();
+                break;
             case BenchmarkFeatureId.TemporalCurrentTimestamp:
                 RunTemporalCurrentTimestamp();
                 break;
@@ -245,6 +293,15 @@ public abstract partial class BenchmarkSessionBase(
                 break;
             case BenchmarkFeatureId.TemporalNowOrderBy:
                 RunTemporalNowOrderBy();
+                break;
+            case BenchmarkFeatureId.TemporalFieldMatrix:
+                RunTemporalFieldMatrix();
+                break;
+            case BenchmarkFeatureId.TemporalComparisonMatrix:
+                RunTemporalComparisonMatrix();
+                break;
+            case BenchmarkFeatureId.TemporalArithmeticMatrix:
+                RunTemporalArithmeticMatrix();
                 break;
             case BenchmarkFeatureId.RowCountAfterInsert:
                 RunRowCountAfterInsert();
@@ -774,6 +831,183 @@ public abstract partial class BenchmarkSessionBase(
     }
 
     /// <summary>
+    /// EN: Executes a parameterized lookup by name benchmark.
+    /// PT: Executa um benchmark de consulta parametrizada por nome.
+    /// </summary>
+    protected virtual void RunParameterSelectByNameMatrix()
+    {
+        var state = GetPreparedUsersQueryState(
+            "ParameterSelectByNameMatrix",
+            (1, "Alice"),
+            (2, "Bob"),
+            (3, "Charlie"),
+            (4, "Delta"),
+            (5, "Echo"));
+        var value = state.RunParameterSelectByNameMatrix();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes a parameterized lookup by id benchmark.
+    /// PT: Executa um benchmark de consulta parametrizada por id.
+    /// </summary>
+    protected virtual void RunParameterSelectByIdMatrix()
+    {
+        var state = GetPreparedUsersQueryState(
+            "ParameterSelectByIdMatrix",
+            (1, "Alice"),
+            (2, "Bob"),
+            (3, "Charlie"),
+            (4, "Delta"),
+            (5, "Echo"));
+        var value = state.RunParameterSelectByIdMatrix();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes a typed parameter round-trip benchmark.
+    /// PT: Executa um benchmark de roundtrip de parametros tipados.
+    /// </summary>
+    protected virtual void RunParameterRoundTripMatrix()
+    {
+        var state = GetPreparedTypedFieldStorageMatrixState("ParameterRoundTripMatrix");
+        var value = state.RunParameterRoundTripMatrix();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes a typed parameter projection benchmark.
+    /// PT: Executa um benchmark de projeção de parametros tipados.
+    /// </summary>
+    protected virtual void RunParameterTypeMatrix()
+    {
+        var state = GetPreparedParameterMatrixState("ParameterTypeMatrix");
+        var value = state.RunParameterTypeMatrix();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes a typed date and currency parameter benchmark.
+    /// PT: Executa um benchmark de data e moeda com parametros tipados.
+    /// </summary>
+    protected virtual void RunParameterDateCurrencyMatrix()
+    {
+        var state = GetPreparedParameterMatrixState("ParameterDateCurrencyMatrix");
+        var value = state.RunParameterDateCurrencyMatrix();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the typed field storage matrix benchmark and keeps the validated snapshot alive.
+    /// PT: Executa o benchmark da matriz de armazenamento tipado e mantem o snapshot validado ativo.
+    /// </summary>
+    protected virtual void RunTypedFieldStorageMatrix()
+    {
+        var state = GetPreparedTypedFieldStorageMatrixState("TypedFieldStorageMatrix");
+        var snapshot = state.RunTypedFieldStorageMatrix();
+        GC.KeepAlive(snapshot);
+    }
+
+    /// <summary>
+    /// EN: Executes the typed field function matrix benchmark and keeps the validated snapshot alive.
+    /// PT: Executa o benchmark da matriz de funcoes tipadas e mantem o snapshot validado ativo.
+    /// </summary>
+    protected virtual void RunTypedFieldFunctionMatrix()
+    {
+        var state = GetPreparedTypedFieldStorageMatrixState("TypedFieldFunctionMatrix");
+        var snapshot = state.RunTypedFieldFunctionMatrix();
+        GC.KeepAlive(snapshot);
+    }
+
+    /// <summary>
+    /// EN: Executes the typed field calculation matrix benchmark and keeps the validated snapshot alive.
+    /// PT: Executa o benchmark da matriz de calculo tipado e mantem o snapshot validado ativo.
+    /// </summary>
+    protected virtual void RunTypedFieldCalculationMatrix()
+    {
+        var state = GetPreparedTypedFieldStorageMatrixState("TypedFieldCalculationMatrix");
+        var snapshot = state.RunTypedFieldCalculationMatrix();
+        GC.KeepAlive(snapshot);
+    }
+
+    /// <summary>
+    /// EN: Executes the typed field and function blend benchmark and keeps the validated count alive.
+    /// PT-br: Executa o benchmark de mistura de campos tipados e funcoes e mantem a contagem validada ativa.
+    /// </summary>
+    protected virtual void RunTypedFieldAndFunctionBlend()
+    {
+        var state = GetPreparedTypedFieldStorageMatrixState("TypedFieldAndFunctionBlend");
+        var value = state.RunTypedFieldAndFunctionBlend();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the typed field compound predicate matrix benchmark and keeps the validated count alive.
+    /// PT-br: Executa o benchmark da matriz de predicados compostos com campos tipados e mantem a contagem validada ativa.
+    /// </summary>
+    protected virtual void RunTypedFieldCompoundPredicateMatrix()
+    {
+        var state = GetPreparedTypedFieldStorageMatrixState("TypedFieldCompoundPredicateMatrix");
+        var value = state.RunTypedFieldCompoundPredicateMatrix();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the typed field cast calculation matrix benchmark and keeps the validated snapshot alive.
+    /// PT: Executa o benchmark da matriz de calculo com casts em campos tipados e mantem o snapshot validado ativo.
+    /// </summary>
+    protected virtual void RunTypedFieldCastCalculationMatrix()
+    {
+        var state = GetPreparedTypedFieldStorageMatrixState("TypedFieldCastCalculationMatrix");
+        var snapshot = state.RunCastCalculationMatrix();
+        GC.KeepAlive(snapshot);
+    }
+
+    /// <summary>
+    /// EN: Executes the typed field null comparison matrix benchmark and keeps the validated snapshot alive.
+    /// PT: Executa o benchmark da matriz de comparacao com null em campos tipados e mantem o snapshot validado ativo.
+    /// </summary>
+    protected virtual void RunTypedFieldNullComparisonMatrix()
+    {
+        var state = GetPreparedTypedFieldStorageMatrixState("TypedFieldNullComparisonMatrix");
+        var snapshot = state.RunNullComparisonMatrix();
+        GC.KeepAlive(snapshot);
+    }
+
+    /// <summary>
+    /// EN: Executes the typed field text length matrix benchmark and keeps the validated snapshot alive.
+    /// PT: Executa o benchmark da matriz de comprimento de texto em campos tipados e mantem o snapshot validado ativo.
+    /// </summary>
+    protected virtual void RunTypedFieldTextLengthMatrix()
+    {
+        var state = GetPreparedTypedFieldStorageMatrixState("TypedFieldTextLengthMatrix");
+        var snapshot = state.RunTextLengthMatrix();
+        GC.KeepAlive(snapshot);
+    }
+
+    /// <summary>
+    /// EN: Executes the typed field text case matrix benchmark and keeps the validated snapshot alive.
+    /// PT: Executa o benchmark da matriz de caixa de texto em campos tipados e mantem o snapshot validado ativo.
+    /// </summary>
+    protected virtual void RunTypedFieldTextCaseMatrix()
+    {
+        var state = GetPreparedTypedFieldStorageMatrixState("TypedFieldTextCaseMatrix");
+        var snapshot = state.RunTextCaseMatrix();
+        GC.KeepAlive(snapshot);
+    }
+
+    /// <summary>
+    /// EN: Executes the typed field predicate matrix benchmark and keeps the validated snapshot alive.
+    /// PT: Executa o benchmark da matriz de predicados em campos tipados e mantem o snapshot validado ativo.
+    /// </summary>
+    protected virtual void RunTypedFieldPredicateMatrix()
+    {
+        var state = GetPreparedTypedFieldStorageMatrixState("TypedFieldPredicateMatrix");
+        var snapshot = state.RunTypedFieldPredicateMatrix();
+        GC.KeepAlive(snapshot);
+    }
+
+    /// <summary>
     /// EN: Executes typed parameter inserts inside a committed transaction and validates the persisted rows.
     /// PT-br: Executa inserts tipados com parametros dentro de uma transação confirmada e valida as linhas persistidas.
     /// </summary>
@@ -1031,12 +1265,56 @@ public abstract partial class BenchmarkSessionBase(
         GC.KeepAlive(value);
     }
 
+    /// <summary>
+    /// EN: Executes the temporal field matrix benchmark and keeps the validated snapshot alive.
+    /// PT-br: Executa o benchmark da matriz de campos temporais e mantem o snapshot validado ativo.
+    /// </summary>
+    protected virtual void RunTemporalFieldMatrix()
+    {
+        var state = GetPreparedTypedFieldStorageMatrixState("TemporalFieldMatrix");
+        var snapshot = state.RunTemporalFieldMatrix();
+        GC.KeepAlive(snapshot);
+    }
+
+    /// <summary>
+    /// EN: Executes the temporal comparison matrix benchmark and keeps the validated snapshot alive.
+    /// PT-br: Executa o benchmark da matriz de comparacao temporal e mantem o snapshot validado ativo.
+    /// </summary>
+    protected virtual void RunTemporalComparisonMatrix()
+    {
+        var state = GetPreparedTypedFieldStorageMatrixState("TemporalComparisonMatrix");
+        var snapshot = state.RunTemporalComparisonMatrix();
+        GC.KeepAlive(snapshot);
+    }
+
+    /// <summary>
+    /// EN: Executes the temporal arithmetic matrix benchmark and keeps the validated snapshot alive.
+    /// PT-br: Executa o benchmark da matriz de aritmetica temporal e mantem o snapshot validado ativo.
+    /// </summary>
+    protected virtual void RunTemporalArithmeticMatrix()
+    {
+        var state = GetPreparedTypedFieldStorageMatrixState("TemporalArithmeticMatrix");
+        var snapshot = state.RunTemporalArithmeticMatrix();
+        GC.KeepAlive(snapshot);
+    }
+
     protected virtual void RunJsonPathRead()
     {
         var state = GetPreparedNoopQueryState("NoopQuery");
         var service = state.Service;
         var value = service.RunJsonPathRead();
         GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the JSON typed field matrix benchmark and keeps the validated snapshot alive.
+    /// PT-br: Executa o benchmark da matriz de campos tipados com JSON e mantem o snapshot validado ativo.
+    /// </summary>
+    protected virtual void RunJsonTypedFieldMatrix()
+    {
+        var state = GetPreparedTypedFieldStorageMatrixState("JsonTypedFieldMatrix");
+        var snapshot = state.RunJsonTypedFieldMatrix();
+        GC.KeepAlive(snapshot);
     }
 
     protected virtual void RunRowCountAfterSelect()

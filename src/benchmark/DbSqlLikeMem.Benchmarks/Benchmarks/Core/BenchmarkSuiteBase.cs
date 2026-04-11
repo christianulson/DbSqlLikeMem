@@ -249,6 +249,126 @@ public abstract class BenchmarkSuiteBase
     public void ParameterInsertSingle() => Run(BenchmarkFeatureId.ParameterInsertSingle);
 
     /// <summary>
+    /// EN: Executes a parameterized name lookup benchmark.
+    /// PT: Executa um benchmark de consulta parametrizada por nome.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void ParameterSelectByNameMatrix() => Run(BenchmarkFeatureId.ParameterSelectByNameMatrix);
+
+    /// <summary>
+    /// EN: Executes a parameterized id lookup benchmark.
+    /// PT: Executa um benchmark de consulta parametrizada por id.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void ParameterSelectByIdMatrix() => Run(BenchmarkFeatureId.ParameterSelectByIdMatrix);
+
+    /// <summary>
+    /// EN: Executes a typed parameter round-trip benchmark.
+    /// PT: Executa um benchmark de roundtrip de parametros tipados.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void ParameterRoundTripMatrix() => Run(BenchmarkFeatureId.ParameterRoundTripMatrix);
+
+    /// <summary>
+    /// EN: Executes a typed parameter projection benchmark.
+    /// PT: Executa um benchmark de projeção de parametros tipados.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void ParameterTypeMatrix() => Run(BenchmarkFeatureId.ParameterTypeMatrix);
+
+    /// <summary>
+    /// EN: Executes a typed date and currency parameter benchmark.
+    /// PT: Executa um benchmark de data e moeda com parametros tipados.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void ParameterDateCurrencyMatrix() => Run(BenchmarkFeatureId.ParameterDateCurrencyMatrix);
+
+    /// <summary>
+    /// EN: Executes the typed field storage matrix benchmark.
+    /// PT: Executa o benchmark da matriz de armazenamento tipado.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void TypedFieldStorageMatrix() => Run(BenchmarkFeatureId.TypedFieldStorageMatrix);
+
+    /// <summary>
+    /// EN: Executes the typed field function matrix benchmark.
+    /// PT: Executa o benchmark da matriz de funcoes tipadas.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void TypedFieldFunctionMatrix() => Run(BenchmarkFeatureId.TypedFieldFunctionMatrix);
+
+    /// <summary>
+    /// EN: Executes the typed field calculation matrix benchmark.
+    /// PT: Executa o benchmark da matriz de calculo tipado.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void TypedFieldCalculationMatrix() => Run(BenchmarkFeatureId.TypedFieldCalculationMatrix);
+
+    /// <summary>
+    /// EN: Executes the typed field and function blend benchmark.
+    /// PT: Executa o benchmark de mistura de campos tipados e funcoes.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void TypedFieldAndFunctionBlend() => Run(BenchmarkFeatureId.TypedFieldAndFunctionBlend);
+
+    /// <summary>
+    /// EN: Executes the typed field compound predicate matrix benchmark.
+    /// PT: Executa o benchmark da matriz de predicados compostos com campos tipados.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void TypedFieldCompoundPredicateMatrix() => Run(BenchmarkFeatureId.TypedFieldCompoundPredicateMatrix);
+
+    /// <summary>
+    /// EN: Executes the typed field cast calculation matrix benchmark.
+    /// PT: Executa o benchmark da matriz de calculo com casts em campos tipados.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void TypedFieldCastCalculationMatrix() => Run(BenchmarkFeatureId.TypedFieldCastCalculationMatrix);
+
+    /// <summary>
+    /// EN: Executes the typed field null comparison matrix benchmark.
+    /// PT: Executa o benchmark da matriz de comparacao com null em campos tipados.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void TypedFieldNullComparisonMatrix() => Run(BenchmarkFeatureId.TypedFieldNullComparisonMatrix);
+
+    /// <summary>
+    /// EN: Executes the typed field text length matrix benchmark.
+    /// PT: Executa o benchmark da matriz de comprimento de texto em campos tipados.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void TypedFieldTextLengthMatrix() => Run(BenchmarkFeatureId.TypedFieldTextLengthMatrix);
+
+    /// <summary>
+    /// EN: Executes the typed field text case matrix benchmark.
+    /// PT: Executa o benchmark da matriz de caixa de texto em campos tipados.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void TypedFieldTextCaseMatrix() => Run(BenchmarkFeatureId.TypedFieldTextCaseMatrix);
+
+    /// <summary>
+    /// EN: Executes the typed field predicate matrix benchmark.
+    /// PT: Executa o benchmark da matriz de predicados em campos tipados.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void TypedFieldPredicateMatrix() => Run(BenchmarkFeatureId.TypedFieldPredicateMatrix);
+
+    /// <summary>
     /// EN: Executes a stored procedure call benchmark.
     /// PT: Executa um benchmark de chamada de procedimento armazenado.
     /// </summary>
@@ -398,6 +518,14 @@ public abstract class BenchmarkSuiteBase
     [BenchmarkCategory("json")]
     public void JsonPathRead() => Run(BenchmarkFeatureId.JsonPathRead);
 
+    /// <summary>
+    /// EN: Executes the JSON typed field matrix benchmark.
+    /// PT: Executa o benchmark da matriz de campos tipados com JSON.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("json")]
+    public void JsonTypedFieldMatrix() => Run(BenchmarkFeatureId.JsonTypedFieldMatrix);
+
     [Benchmark]
     [BenchmarkCategory("temporal")]
     public void TemporalCurrentTimestamp() => Run(BenchmarkFeatureId.TemporalCurrentTimestamp);
@@ -413,6 +541,30 @@ public abstract class BenchmarkSuiteBase
     [Benchmark]
     [BenchmarkCategory("temporal")]
     public void TemporalNowOrderBy() => Run(BenchmarkFeatureId.TemporalNowOrderBy);
+
+    /// <summary>
+    /// EN: Executes the temporal field matrix benchmark.
+    /// PT: Executa o benchmark da matriz de campos temporais.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("temporal")]
+    public void TemporalFieldMatrix() => Run(BenchmarkFeatureId.TemporalFieldMatrix);
+
+    /// <summary>
+    /// EN: Executes the temporal comparison matrix benchmark.
+    /// PT: Executa o benchmark da matriz de comparacao temporal.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("temporal")]
+    public void TemporalComparisonMatrix() => Run(BenchmarkFeatureId.TemporalComparisonMatrix);
+
+    /// <summary>
+    /// EN: Executes the temporal arithmetic matrix benchmark.
+    /// PT: Executa o benchmark da matriz de aritmetica temporal.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("temporal")]
+    public void TemporalArithmeticMatrix() => Run(BenchmarkFeatureId.TemporalArithmeticMatrix);
 
     [Benchmark]
     [BenchmarkCategory("dialect")]

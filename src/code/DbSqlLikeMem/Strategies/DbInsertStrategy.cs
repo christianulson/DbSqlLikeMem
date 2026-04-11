@@ -73,7 +73,6 @@ internal static class DbInsertStrategy
         var connection = context.Connection;
         context.ResetPositionalParameterCursor();
         var dialect = context.Dialect;
-        var pars = context.DbParameters;
         var capturePlans = context.CaptureExecutionPlans;
         var sw = capturePlans ? Stopwatch.StartNew() : null;
         var metricsEnabled = context.MetricsEnabled;
@@ -783,7 +782,6 @@ internal static class DbInsertStrategy
     {
         var connection = context.Connection;
         var dialect = context.Dialect;
-        var pars = context.DbParameters;
         var rows = new List<Dictionary<int, object?>>(query.ValuesRaw.Count);
         var colNames = query.Columns; // Lista de colunas do Insert
         ColumnDef[]? explicitTargetColumns = null;
@@ -947,7 +945,6 @@ internal static class DbInsertStrategy
     {
         var connection = context.Connection;
         var dialect = context.Dialect;
-        var pars = context.DbParameters;
         var executor = context.CreateExecutor();
         var res = executor.ExecuteSelect(query.InsertSelect!);
 
@@ -999,7 +996,6 @@ internal static class DbInsertStrategy
         SqlExpr? parsedExpr,
         Dictionary<int, object?> row)
     {
-        var pars = context.DbParameters;
         table.CurrentColumn = colDef.Name;
         object? resolved;
         var trimmedRawValue = rawValue.Trim();
@@ -1021,6 +1017,7 @@ internal static class DbInsertStrategy
         }
         table.CurrentColumn = null;
 
+        resolved = context.NormalizeResolvedValue(resolved);
         var val = (resolved is DBNull) ? null : NormalizeValueForColumn(colDef.DbType, resolved);
         if (val == null && !colDef.Nullable)
             throw table.ColumnCannotBeNull("Idx:" + colDef.Index);
@@ -1059,7 +1056,6 @@ internal static class DbInsertStrategy
     {
         var connection = context.Connection;
         var dialect = context.Dialect;
-        var pars = context.DbParameters;
         value = null;
         if (parsedExpr is null)
             return false;

@@ -254,6 +254,38 @@ public abstract partial class BenchmarkSessionBase
                 return new PreparedParameterProjectionState(connection, Dialect);
             });
 
+    private PreparedParameterMatrixState GetPreparedParameterMatrixState(string key)
+        => GetOrCreatePreparedState(
+            key,
+            () =>
+            {
+                var uId = NextToken();
+                var users = NewUsersTableName();
+                var connection = CreateConnection();
+                connection.Open();
+                var service = CreateQueryService(
+                    connection,
+                    BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
+                service.CreateScenario(users, uId);
+                return new PreparedParameterMatrixState(connection, service, users, uId);
+            });
+
+    private PreparedTypedFieldStorageMatrixState GetPreparedTypedFieldStorageMatrixState(string key)
+        => GetOrCreatePreparedState(
+            key,
+            () =>
+            {
+                var uId = NextToken();
+                var users = NewUsersTableName();
+                var connection = CreateConnection();
+                connection.Open();
+                var service = CreateQueryService(
+                    connection,
+                    BenchmarkScenarioFactory.CreateInsertUsersScenario<DbConnection>(Dialect));
+                service.CreateScenario(users, uId);
+                return new PreparedTypedFieldStorageMatrixState(connection, service, users, uId);
+            });
+
     private PreparedParameterTransactionUsersState GetPreparedParameterTransactionUsersState(string key)
         => GetOrCreatePreparedState(
             key,
@@ -1560,6 +1592,153 @@ VALUES (
         }
     }
 
+    private sealed class PreparedTypedFieldStorageMatrixState(
+        DbConnection connection,
+        QueryServiceTest<DbConnection> service,
+        string users,
+        string uId) : IDisposable
+    {
+        private readonly ProviderSqlDialect _dialect = service.Dialect;
+
+        public QueryResultSnapshot RunTypedFieldStorageMatrix()
+            => RunTypedFieldMatrix(() => service.RunTypedFieldStorageMatrix(users, uId));
+
+        public QueryResultSnapshot RunTypedFieldFunctionMatrix()
+            => RunTypedFieldMatrix(() => service.RunTypedFieldFunctionMatrix(users, uId));
+
+        public QueryResultSnapshot RunTypedFieldCalculationMatrix()
+            => RunTypedFieldMatrix(() => service.RunTypedFieldCalculationMatrix(users, uId));
+
+        public QueryResultSnapshot RunTemporalFieldMatrix()
+            => RunTypedFieldMatrix(() => service.RunTemporalFieldMatrix(users, uId));
+
+        public QueryResultSnapshot RunTemporalComparisonMatrix()
+            => RunTypedFieldMatrix(() => service.RunTemporalComparisonMatrix(users, uId));
+
+        public QueryResultSnapshot RunTemporalArithmeticMatrix()
+            => RunTypedFieldMatrix(() => service.RunTemporalArithmeticMatrix(users, uId));
+
+        public QueryResultSnapshot RunJsonTypedFieldMatrix()
+            => RunTypedFieldMatrix(() => service.RunJsonTypedFieldMatrix(users, uId));
+
+        public int RunParameterRoundTripMatrix()
+        {
+            var createdAt = _dialect.Provider == ProviderId.Npgsql
+                ? new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Utc)
+                : new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified);
+
+            return RunTypedFieldMatrix(() => service.RunParameterRoundTripMatrix(
+                users,
+                uId,
+                1,
+                "Param Alice",
+                DBNull.Value,
+                true,
+                (short)31,
+                12.34m,
+                createdAt,
+                DBNull.Value,
+                DBNull.Value));
+        }
+
+        public int RunTypedFieldAndFunctionBlend()
+            => RunTypedFieldMatrix(() => service.RunTypedFieldAndFunctionBlend(users, uId));
+
+        public int RunTypedFieldCompoundPredicateMatrix()
+            => RunTypedFieldMatrix(() => service.RunTypedFieldCompoundPredicateMatrix(users, uId));
+
+        public QueryResultSnapshot RunCastCalculationMatrix()
+            => RunTypedFieldMatrix(() => service.RunCastCalculationMatrix(users, uId));
+
+        public QueryResultSnapshot RunNullComparisonMatrix()
+            => RunTypedFieldMatrix(() => service.RunNullComparisonMatrix(users, uId));
+
+        public QueryResultSnapshot RunTextLengthMatrix()
+            => RunTypedFieldMatrix(() => service.RunTextLengthMatrix(users, uId));
+
+        public QueryResultSnapshot RunTextCaseMatrix()
+            => RunTypedFieldMatrix(() => service.RunTextCaseMatrix(users, uId));
+
+        public QueryResultSnapshot RunTypedFieldPredicateMatrix()
+            => RunTypedFieldMatrix(() => service.RunTypedFieldPredicateMatrix(users, uId));
+
+        private T RunTypedFieldMatrix<T>(Func<T> action)
+        {
+            try
+            {
+                return action();
+            }
+            finally
+            {
+                CleanupTypedFieldRows();
+            }
+        }
+
+        private void CleanupTypedFieldRows()
+        {
+            var usersTable = $"{users}_{uId}";
+
+            try
+            {
+                ExecuteNonQuery(connection, _dialect.DeleteUserById(usersTable, 4));
+            }
+            catch
+            {
+                // Ignore cleanup failures during benchmark teardown.
+            }
+
+            try
+            {
+                ExecuteNonQuery(connection, _dialect.DeleteUserById(usersTable, 3));
+            }
+            catch
+            {
+                // Ignore cleanup failures during benchmark teardown.
+            }
+
+            try
+            {
+                ExecuteNonQuery(connection, _dialect.DeleteUserById(usersTable, 2));
+            }
+            catch
+            {
+                // Ignore cleanup failures during benchmark teardown.
+            }
+
+            try
+            {
+                ExecuteNonQuery(connection, _dialect.DeleteUserById(usersTable, 1));
+            }
+            catch
+            {
+                // Ignore cleanup failures during benchmark teardown.
+            }
+        }
+
+        public void Dispose()
+        {
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                try
+                {
+                    ExecuteNonQuery(connection, service.Dialect.DropTable(users, uId));
+                }
+                catch
+                {
+                    // Ignore cleanup failures during benchmark teardown.
+                }
+            }
+            finally
+            {
+                connection.Dispose();
+            }
+        }
+    }
+
     private sealed class PreparedParameterProjectionState(
         DbConnection connection,
         ProviderSqlDialect dialect) : IDisposable
@@ -1691,6 +1870,63 @@ VALUES (
         public void Dispose()
         {
             connection.Dispose();
+        }
+    }
+
+    private sealed class PreparedParameterMatrixState(
+        DbConnection connection,
+        QueryServiceTest<DbConnection> service,
+        string users,
+        string uId) : IDisposable
+    {
+        public int RunParameterTypeMatrix()
+        {
+            var createdAt = service.Dialect.Provider == ProviderId.Npgsql
+                ? new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Utc)
+                : new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified);
+
+            return service.RunParameterTypeMatrix(
+                "Typed param",
+                "Ansi param",
+                "Fixed ANSI",
+                "Fixed Text",
+                (short)12,
+                34,
+                56L,
+                true,
+                78.90m,
+                12.5d,
+                TimeSpan.FromHours(1.5),
+                new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.Zero),
+                createdAt,
+                Guid.Parse("11111111-2222-3333-4444-555555555555"),
+                new byte[] { 1, 2, 3, 4 });
+        }
+
+        public int RunParameterDateCurrencyMatrix()
+            => service.RunParameterDateCurrencyMatrix(new DateTime(2024, 1, 2, 0, 0, 0, DateTimeKind.Unspecified), 123.45m);
+
+        public void Dispose()
+        {
+            try
+            {
+                service.DropScenario(users, uId);
+            }
+            catch
+            {
+                try
+                {
+                    ExecuteNonQuery(connection, service.Dialect.DropTable(users, uId));
+                }
+                catch
+                {
+                    // Ignore cleanup failures during benchmark teardown.
+                }
+            }
+            finally
+            {
+                connection.Dispose();
+            }
         }
     }
 
@@ -2195,6 +2431,12 @@ ORDER BY Name
 
             return count;
         }
+
+        public string? RunParameterSelectByNameMatrix()
+            => service.RunParameterSelectByNameMatrix(UsersTable, "Bob");
+
+        public string? RunParameterSelectByIdMatrix()
+            => service.RunParameterSelectByIdMatrix(UsersTable, 3, "Charlie");
 
         public void Dispose()
         {

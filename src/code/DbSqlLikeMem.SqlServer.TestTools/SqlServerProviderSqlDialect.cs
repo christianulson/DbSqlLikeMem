@@ -56,7 +56,16 @@ CREATE TABLE {tableName}_{uId} (
     Balance DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     UpdatedAt DATETIME2 NULL,
+    BirthDate DATE NULL,
     ProfileJson NVARCHAR(MAX) NULL,
+    FixedCode CHAR(4) NULL,
+    BigCount BIGINT NULL,
+    PrecisionValue DECIMAL(18,4) NULL,
+    DoubleValue FLOAT NULL,
+    GuidValue UNIQUEIDENTIFIER NULL,
+    BinaryValue VARBINARY(16) NULL,
+    TimeValue TIME NULL,
+    DateTimeOffsetValue DATETIMEOFFSET NULL,
     CONSTRAINT CK_{tableName}_{uId}_ProfileJson CHECK (ProfileJson IS NULL OR ISJSON(ProfileJson) = 1)
 )";
 

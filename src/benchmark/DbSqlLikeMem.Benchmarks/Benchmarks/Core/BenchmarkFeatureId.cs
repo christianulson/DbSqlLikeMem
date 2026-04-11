@@ -223,6 +223,12 @@ public enum BenchmarkFeatureId
     JsonPathRead,
 
     /// <summary>
+    /// EN: Executes a JSON typed field matrix benchmark.
+    /// PT: Executa um benchmark da matriz de campos tipados com JSON.
+    /// </summary>
+    JsonTypedFieldMatrix,
+
+    /// <summary>
     /// EN: Executes a current timestamp scalar query.
     /// PT: Executa uma consulta escalar de timestamp atual.
     /// </summary>
@@ -245,6 +251,24 @@ public enum BenchmarkFeatureId
     /// PT: Executa uma consulta temporal com ordenacao por tempo atual.
     /// </summary>
     TemporalNowOrderBy,
+
+    /// <summary>
+    /// EN: Executes a temporal field matrix benchmark.
+    /// PT: Executa um benchmark da matriz de campos temporais.
+    /// </summary>
+    TemporalFieldMatrix,
+
+    /// <summary>
+    /// EN: Executes a temporal comparison matrix benchmark.
+    /// PT: Executa um benchmark da matriz de comparacao temporal.
+    /// </summary>
+    TemporalComparisonMatrix,
+
+    /// <summary>
+    /// EN: Executes a temporal arithmetic matrix benchmark.
+    /// PT: Executa um benchmark da matriz de aritmetica temporal.
+    /// </summary>
+    TemporalArithmeticMatrix,
 
     /// <summary>
     /// EN: Executes a distinct string aggregation query.
@@ -695,6 +719,96 @@ public enum BenchmarkFeatureId
     /// PT: Executa um benchmark de insercao parametrizada de uma linha.
     /// </summary>
     ParameterInsertSingle,
+
+    /// <summary>
+    /// EN: Executes a parameterized name lookup benchmark.
+    /// PT: Executa um benchmark de consulta parametrizada por nome.
+    /// </summary>
+    ParameterSelectByNameMatrix,
+
+    /// <summary>
+    /// EN: Executes a parameterized id lookup benchmark.
+    /// PT: Executa um benchmark de consulta parametrizada por id.
+    /// </summary>
+    ParameterSelectByIdMatrix,
+
+    /// <summary>
+    /// EN: Executes a typed parameter round-trip benchmark.
+    /// PT: Executa um benchmark de roundtrip de parametros tipados.
+    /// </summary>
+    ParameterRoundTripMatrix,
+
+    /// <summary>
+    /// EN: Executes a typed parameter projection benchmark.
+    /// PT: Executa um benchmark de projeção de parametros tipados.
+    /// </summary>
+    ParameterTypeMatrix,
+
+    /// <summary>
+    /// EN: Executes a typed date and currency parameter benchmark.
+    /// PT: Executa um benchmark de data e moeda com parametros tipados.
+    /// </summary>
+    ParameterDateCurrencyMatrix,
+
+    /// <summary>
+    /// EN: Executes a typed field storage matrix benchmark.
+    /// PT: Executa um benchmark da matriz de armazenamento tipado.
+    /// </summary>
+    TypedFieldStorageMatrix,
+
+    /// <summary>
+    /// EN: Executes a typed field function matrix benchmark.
+    /// PT: Executa um benchmark da matriz de funcoes tipadas.
+    /// </summary>
+    TypedFieldFunctionMatrix,
+
+    /// <summary>
+    /// EN: Executes a typed field calculation matrix benchmark.
+    /// PT: Executa um benchmark da matriz de calculo tipado.
+    /// </summary>
+    TypedFieldCalculationMatrix,
+
+    /// <summary>
+    /// EN: Executes a typed field and function blend benchmark.
+    /// PT: Executa um benchmark de mistura de campos tipados e funcoes.
+    /// </summary>
+    TypedFieldAndFunctionBlend,
+
+    /// <summary>
+    /// EN: Executes a typed field compound predicate matrix benchmark.
+    /// PT: Executa um benchmark da matriz de predicados compostos com campos tipados.
+    /// </summary>
+    TypedFieldCompoundPredicateMatrix,
+
+    /// <summary>
+    /// EN: Executes a typed field cast calculation matrix benchmark.
+    /// PT: Executa um benchmark da matriz de calculo com casts em campos tipados.
+    /// </summary>
+    TypedFieldCastCalculationMatrix,
+
+    /// <summary>
+    /// EN: Executes a typed field null comparison matrix benchmark.
+    /// PT: Executa um benchmark da matriz de comparacao com null em campos tipados.
+    /// </summary>
+    TypedFieldNullComparisonMatrix,
+
+    /// <summary>
+    /// EN: Executes a typed field text length matrix benchmark.
+    /// PT: Executa um benchmark da matriz de comprimento de texto em campos tipados.
+    /// </summary>
+    TypedFieldTextLengthMatrix,
+
+    /// <summary>
+    /// EN: Executes a typed field text case matrix benchmark.
+    /// PT: Executa um benchmark da matriz de caixa de texto em campos tipados.
+    /// </summary>
+    TypedFieldTextCaseMatrix,
+
+    /// <summary>
+    /// EN: Executes a typed field predicate matrix benchmark.
+    /// PT: Executa um benchmark da matriz de predicados em campos tipados.
+    /// </summary>
+    TypedFieldPredicateMatrix,
 
     /// <summary>
     /// EN: Executes a stored procedure call benchmark.

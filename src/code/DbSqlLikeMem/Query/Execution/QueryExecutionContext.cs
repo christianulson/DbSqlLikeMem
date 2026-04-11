@@ -220,9 +220,7 @@ internal sealed class QueryExecutionContext
             return false;
         }
 
-        value = positionalParameters[index].Value;
-        if (value is DBNull)
-            value = null;
+        value = NormalizeResolvedValue(positionalParameters[index].Value);
 
         return true;
     }
@@ -251,7 +249,7 @@ internal sealed class QueryExecutionContext
             var candidate = parameter.ParameterName?.TrimStart('@', ':', '?');
             if (string.Equals(candidate, normalized, StringComparison.OrdinalIgnoreCase))
             {
-                value = parameter.Value is DBNull ? null : parameter.Value;
+                value = NormalizeResolvedValue(parameter.Value);
                 return true;
             }
         }
@@ -282,7 +280,7 @@ internal sealed class QueryExecutionContext
             if (DbParameters[index] is not IDataParameter parameter)
                 continue;
 
-            value = parameter.Value is DBNull ? null : parameter.Value;
+            value = NormalizeResolvedValue(parameter.Value);
             return true;
         }
 
@@ -319,6 +317,27 @@ internal sealed class QueryExecutionContext
         }
 
         return hasDigit;
+    }
+
+    internal object? NormalizeResolvedValue(object? value)
+    {
+        if (value is DBNull)
+            return null;
+
+        if (string.Equals(Connection.ProviderExecutionDialect.Name, "oracle", StringComparison.OrdinalIgnoreCase)
+            && value is string text
+            && text.Length == 0)
+        {
+            return null;
+        }
+
+        if (string.Equals(Connection.ProviderExecutionDialect.Name, "sqlite", StringComparison.OrdinalIgnoreCase)
+            && value is decimal decimalValue)
+        {
+            return Convert.ToDecimal(Convert.ToDouble(decimalValue, CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+        }
+
+        return value;
     }
 
     /// <summary>

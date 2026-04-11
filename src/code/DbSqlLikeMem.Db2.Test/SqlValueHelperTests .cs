@@ -198,12 +198,25 @@ public sealed class SqlValueHelperTests(
         {
             Db2ValueHelper.CurrentColumn = "Amount";
             var ex = Assert.Throws<Db2MockException>(() =>
-                Db2ValueHelper.Resolve("10.123", DbType.Decimal, false, null, tb.Columns));
+            Db2ValueHelper.Resolve("10.123", DbType.Decimal, false, null, tb.Columns));
             Assert.Equal(1265, ex.ErrorCode);
         }
         finally
         {
             Db2ValueHelper.CurrentColumn = prev;
         }
+    }
+
+    /// <summary>
+    /// EN: Verifies empty text literals resolve to empty strings for Db2 string columns.
+    /// PT: Verifica se literais de texto vazios sao resolvidos como string vazia para colunas string do Db2.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlValueHelperTests ")]
+    public void Resolve_ShouldPreserveEmptyStringLiteral_ForTextColumns()
+    {
+        var value = Db2ValueHelper.Resolve("''", DbType.String, isNullable: false, pars: null, colDict: null);
+
+        Assert.Equal(string.Empty, value);
     }
 }

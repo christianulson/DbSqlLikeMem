@@ -12,19 +12,26 @@ public static class DbTypeParser
     /// </summary>
     public static object? Parse(this DbType dbType, string? value)
     {
-        // 1️⃣ null, vazio ou "null" textual => null
-        if (string.IsNullOrWhiteSpace(value) ||
-            value!.Equals("null", StringComparison.OrdinalIgnoreCase))
+        var isTextType = dbType == DbType.String
+            || dbType == DbType.AnsiString
+            || dbType == DbType.StringFixedLength
+            || dbType == DbType.AnsiStringFixedLength;
+
+        // 1️⃣ null textual sempre vira null; texto vazio é preservado para tipos textuais.
+        if (string.IsNullOrWhiteSpace(value))
+            return isTextType ? string.Empty : null;
+
+        if (value!.Equals("null", StringComparison.OrdinalIgnoreCase))
             return null;
 
         // remove aspas simples comuns em SQL literals
         value = Unquote(value);
 
-        if (dbType != DbType.String
-            && dbType != DbType.AnsiString
-            && dbType != DbType.StringFixedLength
-            && dbType != DbType.AnsiStringFixedLength
-            && value.Equals("null", StringComparison.OrdinalIgnoreCase))
+        if (isTextType)
+            return value;
+
+        if (string.IsNullOrWhiteSpace(value)
+            || value.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }

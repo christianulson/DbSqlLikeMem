@@ -5,6 +5,13 @@ internal static class SqlParameterDbTypeParserHelper
     internal static DbType ParseDbType(string typeSql)
     {
         var normalizedType = typeSql.Trim().NormalizeName();
+        if (normalizedType.Equals("DATETIMEOFFSET", StringComparison.OrdinalIgnoreCase)
+            || normalizedType.Equals("TIMESTAMPTZ", StringComparison.OrdinalIgnoreCase)
+            || normalizedType.Equals("TIMESTAMP WITH TIME ZONE", StringComparison.OrdinalIgnoreCase))
+        {
+            return DbType.DateTimeOffset;
+        }
+
         var typeNameEnd = normalizedType.IndexOf('(');
         var spaceIndex = normalizedType.IndexOf(' ');
         if (spaceIndex >= 0 && (typeNameEnd < 0 || spaceIndex < typeNameEnd))

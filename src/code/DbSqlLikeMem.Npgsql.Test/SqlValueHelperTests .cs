@@ -205,4 +205,33 @@ public sealed class SqlValueHelperTests(
             NpgsqlValueHelper.CurrentColumn = prev;
         }
     }
+
+    /// <summary>
+    /// EN: Verifies timestamptz values preserve their original offset when resolved through the Npgsql helper.
+    /// PT: Verifica se valores timestamptz preservam o offset original ao serem resolvidos pelo helper do Npgsql.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlValueHelperTests ")]
+    public void Resolve_ShouldPreserveDateTimeOffset_Offset()
+    {
+        var value = new DateTimeOffset(2026, 1, 19, 8, 15, 30, TimeSpan.FromHours(-3));
+
+        using var connection = new NpgsqlConnectionMock();
+        using var command = connection.CreateCommand();
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = "p0";
+        parameter.Value = value;
+        command.Parameters.Add(parameter);
+
+        var resolved = NpgsqlValueHelper.Resolve(
+            "@p0",
+            DbType.DateTimeOffset,
+            isNullable: false,
+            pars: command.Parameters,
+            colDict: null);
+
+        var dto = Assert.IsType<DateTimeOffset>(resolved);
+        Assert.Equal(value.Offset, dto.Offset);
+        Assert.Equal(value, dto);
+    }
 }

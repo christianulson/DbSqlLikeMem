@@ -10,11 +10,11 @@
 		<RepositoryType>git</RepositoryType>
 		<RepositoryUrl>https://github.com/christianulson/DbSqlLikeMem</RepositoryUrl>
 		<PackageProjectUrl>https://github.com/christianulson/DbSqlLikeMem</PackageProjectUrl>
-		<PackageTags>in-memory;database;sql;unit-testing;mock;dapper;ado.net;npgsql;sqlite;oracle;sqlserver;sqlazure;mysql;db2</PackageTags>
+		<PackageTags>in-memory;database;sql;unit-testing;mock;dapper;ado.net;npgsql;sqlite;oracle;sqlserver;sqlazure;mysql;db2;vibecode</PackageTags>
 		<PackageReleaseNotes>See release notes and changelog in the GitHub repository.</PackageReleaseNotes>
 		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<Version>1.17.0</Version>
+		<Version>0.0.1</Version>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>
 		<EmbedUntrackedSources>true</EmbedUntrackedSources>

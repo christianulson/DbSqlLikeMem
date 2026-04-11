@@ -10,6 +10,17 @@ internal static class SqlAlterTableHelper
             throw new InvalidOperationException("ALTER TABLE ADD COLUMN requires a SQL type name.");
 
         var typeName = ctx.Consume().Text;
+        if (typeName.Trim().NormalizeName().Equals("TIMESTAMP", StringComparison.OrdinalIgnoreCase)
+            && ctx.IsWord(0, SqlConst.WITH)
+            && ctx.IsWord(1, "TIME")
+            && ctx.IsWord(2, "ZONE"))
+        {
+            ctx.Consume();
+            ctx.Consume();
+            ctx.Consume();
+            typeName = "TIMESTAMP WITH TIME ZONE";
+        }
+
         string? rawArgs = null;
 
         if (ctx.IsSymbol("("))
@@ -36,6 +47,7 @@ internal static class SqlAlterTableHelper
             "BOOLEAN" or "BOOL" => DbType.Boolean,
             "DATE" => DbType.Date,
             "TIMESTAMP" or "DATETIME" => DbType.DateTime,
+            "DATETIMEOFFSET" or "TIMESTAMPTZ" or "TIMESTAMP WITH TIME ZONE" => DbType.DateTimeOffset,
             "GUID" or "UUID" => DbType.Guid,
             "BLOB" or "BINARY" or "VARBINARY" => DbType.Binary,
             _ => DbType.String,

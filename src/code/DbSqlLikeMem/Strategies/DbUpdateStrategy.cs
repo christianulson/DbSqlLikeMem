@@ -35,7 +35,6 @@ internal static class DbUpdateStrategy
     {
         var connection = context.Connection;
         context.ResetPositionalParameterCursor();
-        var pars = context.DbParameters;
         var capturePlans = context.CaptureExecutionPlans;
         var sw = capturePlans ? Stopwatch.StartNew() : null;
         var metricsEnabled = context.MetricsEnabled;
@@ -113,7 +112,7 @@ internal static class DbUpdateStrategy
         }
 
         if (conditions.Count > 0
-            && TableMock.TryFindRowByPkConditions(table, whereContextBase.Fork(), pars, conditions, out var pkRowIndex))
+            && TableMock.TryFindRowByPkConditions(table, whereContextBase.Fork(), context.DbParameters, conditions, out var pkRowIndex))
         {
             ProcessMatchedRow(pkRowIndex);
         }
@@ -122,7 +121,7 @@ internal static class DbUpdateStrategy
             for (var rowIdx = 0; rowIdx < table.Count; rowIdx++)
             {
                 var row = table[rowIdx];
-                if (!TableMock.IsMatchSimple(table, whereContextBase.Fork(), pars, conditions, row))
+                if (!TableMock.IsMatchSimple(table, whereContextBase.Fork(), context.DbParameters, conditions, row))
                     continue;
 
                 ProcessMatchedRow(rowIdx);
@@ -383,7 +382,7 @@ internal static class DbUpdateStrategy
                 return parameterValue;
 
             var raw = table.Resolve(trimmedExprRaw, info.DbType, info.Nullable, context.DbParameters, table.Columns);
-            return raw is DBNull ? null : raw;
+            return context.NormalizeResolvedValue(raw is DBNull ? null : raw);
         }
         finally
         {

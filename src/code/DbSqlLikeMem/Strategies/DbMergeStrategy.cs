@@ -49,7 +49,6 @@ internal static class DbMergeStrategy
     {
         var connection = context.Connection;
         context.ResetPositionalParameterCursor();
-        var pars = context.DbParameters;
         var dialect = context.Dialect;
         var sql = query.RawSql;
         var targetMatch = Regex.Match(
@@ -157,7 +156,7 @@ internal static class DbMergeStrategy
                     var oldSnapshot = TableMock.CloneRow(table[existingIndex]);
                     foreach (var assignment in parsedUpdates)
                     {
-                        var value = ResolveMergeValue(assignment.ValueToken, sourceAlias, srcValues, table, assignment.TargetColumn.Name, pars);
+                        var value = ResolveMergeValue(assignment.ValueToken, sourceAlias, srcValues, table, assignment.TargetColumn.Name, context);
                         table.UpdateRowColumn(existingIndex, assignment.TargetColumn.Index, value);
                     }
 
@@ -175,7 +174,7 @@ internal static class DbMergeStrategy
                 {
                     var valueToken = i < insertVals.Count ? insertVals[i] : SqlConst.NULL;
                     var targetColumn = insertTargets[i];
-                    var value = ResolveMergeValue(valueToken, sourceAlias, srcValues, table, targetColumn.Name, pars);
+                    var value = ResolveMergeValue(valueToken, sourceAlias, srcValues, table, targetColumn.Name, context);
                     newRow[targetColumn.Index] = value is DBNull ? null : value;
                 }
 
@@ -250,14 +249,14 @@ internal static class DbMergeStrategy
         IReadOnlyDictionary<string, object?> sourceValues,
         TableMock table,
         string columnName,
-        DbParameterCollection pars)
+        QueryExecutionContext context)
     {
         var token = raw.Trim();
         if (token.StartsWith(sourceAlias + ".", StringComparison.OrdinalIgnoreCase))
         {
             var key = token[(sourceAlias.Length + 1)..];
             sourceValues.TryGetValue(key, out var v);
-            return CoerceToColumnType(v, table.GetColumn(columnName).DbType);
+            return CoerceToColumnType(context.NormalizeResolvedValue(v), table.GetColumn(columnName).DbType);
         }
 
         if (token.Equals(SqlConst.NULL, StringComparison.OrdinalIgnoreCase))
@@ -265,9 +264,9 @@ internal static class DbMergeStrategy
 
         var col = table.GetColumn(columnName);
         table.CurrentColumn = columnName;
-        var resolved = table.Resolve(token, col.DbType, col.Nullable, pars, table.Columns);
+        var resolved = table.Resolve(token, col.DbType, col.Nullable, context.DbParameters, table.Columns);
         table.CurrentColumn = null;
-        return resolved is DBNull ? null : CoerceToColumnType(resolved, col.DbType);
+        return CoerceToColumnType(context.NormalizeResolvedValue(resolved is DBNull ? null : resolved), col.DbType);
     }
 
     private static object? CoerceToColumnType(object? value, DbType dbType)
@@ -386,7 +385,7 @@ internal static class DbMergeStrategy
     {
         return expr switch
         {
-            LiteralExpr lit => lit.Value is DBNull ? null : lit.Value,
+            LiteralExpr lit => context.NormalizeResolvedValue(lit.Value),
             ParameterExpr p => context.TryResolveParameter(p.Name, out var value) ? value : null,
             UnaryExpr { Op: SqlUnaryOp.Not, Expr: var inner } => EvaluateValuesSourceNot(inner, context),
             BinaryExpr { Op: SqlBinaryOp.Add } b => EvaluateValuesSourceArithmetic(b, context, static (left, right) => left + right),

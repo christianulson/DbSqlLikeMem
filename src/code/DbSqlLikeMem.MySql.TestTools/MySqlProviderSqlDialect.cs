@@ -27,7 +27,16 @@ CREATE TABLE {tableName}_{uId} (
     Balance DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     CreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UpdatedAt TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    ProfileJson JSON NULL
+    BirthDate DATE NULL,
+    ProfileJson JSON NULL,
+    FixedCode CHAR(4) NULL,
+    BigCount BIGINT NULL,
+    PrecisionValue DECIMAL(18,4) NULL,
+    DoubleValue DOUBLE NULL,
+    GuidValue CHAR(36) NULL,
+    BinaryValue VARBINARY(16) NULL,
+    TimeValue TIME NULL,
+    DateTimeOffsetValue VARCHAR(40) NULL
 )";
 
     /// <inheritdoc />

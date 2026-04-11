@@ -53,7 +53,16 @@ CREATE TABLE {tableName}_{uId} (
     Balance NUMERIC(12,2) NOT NULL DEFAULT 0.00,
     CreatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UpdatedAt TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-    ProfileJson JSONB NULL
+    BirthDate DATE NULL,
+    ProfileJson JSONB NULL,
+    FixedCode CHAR(4) NULL,
+    BigCount BIGINT NULL,
+    PrecisionValue NUMERIC(18,4) NULL,
+    DoubleValue DOUBLE PRECISION NULL,
+    GuidValue UUID NULL,
+    BinaryValue BYTEA NULL,
+    TimeValue TIME NULL,
+    DateTimeOffsetValue TIMESTAMPTZ NULL
 )";
 
     /// <inheritdoc />

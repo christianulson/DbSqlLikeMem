@@ -280,8 +280,8 @@ public abstract class CrudTestsBase<T, T2>(
         => UpdateByPkTest();
 
     /// <summary>
-    /// EN: Verifies typed provider parameters update and delete rows correctly in the users table for the current provider.
-    /// PT: Verifica se parametros tipados do provedor atualizam e excluem linhas corretamente na tabela de usuarios do provedor atual.
+    /// EN: Verifies typed provider parameters update and delete rows correctly in the users table for the current provider, including Oracle empty-string normalization in the updated email column.
+    /// PT: Verifica se parametros tipados do provedor atualizam e excluem linhas corretamente na tabela de usuarios do provedor atual, incluindo a normalizacao de string vazia no email atualizado para Oracle.
     /// </summary>
     [Fact]
     public void ParameterUpdateDeleteRoundTripTest()
@@ -306,7 +306,7 @@ public abstract class CrudTestsBase<T, T2>(
             var resultMock = serviceTest.RunParameterUpdateDeleteRoundTrip(
                 tableName,
                 "Alice-v2",
-                "alice@example.com",
+                string.Empty,
                 true,
                 (short)31,
                 123.45m,
@@ -331,7 +331,7 @@ public abstract class CrudTestsBase<T, T2>(
                     var resultContainer = serviceTestContainer.RunParameterUpdateDeleteRoundTrip(
                         tableName,
                         "Alice-v2",
-                        "alice@example.com",
+                        string.Empty,
                         true,
                         (short)31,
                         123.45m,

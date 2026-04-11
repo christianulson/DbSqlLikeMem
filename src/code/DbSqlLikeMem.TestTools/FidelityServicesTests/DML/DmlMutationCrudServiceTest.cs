@@ -255,8 +255,8 @@ FROM {tableName}
     }
 
     /// <summary>
-    /// EN: Updates typed user columns with provider parameters, deletes another row, and validates the persisted result.
-    /// PT: Atualiza colunas tipadas de usuario com parametros do provedor, exclui outra linha e valida o resultado persistido.
+    /// EN: Updates typed user columns with provider parameters, including Oracle empty-string normalization for email, deletes another row, and validates the persisted result.
+    /// PT: Atualiza colunas tipadas de usuario com parametros do provedor, incluindo a normalizacao de string vazia para email no Oracle, exclui outra linha e valida o resultado persistido.
     /// </summary>
     public int RunParameterUpdateDeleteRoundTrip(params object[] pars)
     {
@@ -270,12 +270,13 @@ FROM {tableName}
         var updatedAt = (DateTime)pars[6];
         var profileJson = (string)pars[7];
         var deleteId = (int)pars[8];
+        var emailSql = email.Length == 0 ? "''" : Dialect.Parameter("email");
         using var updateCommand = Connection.CreateCommand();
         updateCommand.CommandText = NormalizeScenarioSql($"""
 UPDATE {tableName}
 SET
     Name = {Dialect.Parameter("name")},
-    Email = {Dialect.Parameter("email")},
+    Email = {emailSql},
     IsActive = {Dialect.Parameter("isActive")},
     Age = {Dialect.Parameter("age")},
     Balance = {Dialect.Parameter("balance")},
@@ -285,7 +286,10 @@ WHERE Id = 1
 """);
 
         AddParameter(updateCommand, "name", DbType.String, name);
-        AddParameter(updateCommand, "email", DbType.AnsiStringFixedLength, email);
+        if (email.Length > 0)
+        {
+            AddParameter(updateCommand, "email", DbType.AnsiStringFixedLength, email);
+        }
         AddParameter(updateCommand, "isActive", DbType.Boolean, isActive);
         AddParameter(updateCommand, "age", DbType.Int16, age);
         AddParameter(updateCommand, "balance", DbType.Currency, balance);
@@ -328,7 +332,8 @@ WHERE Id = 1
         using var reader = verifyCommand.ExecuteReader();
         reader.Read().Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(name);
-        Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture)?.TrimEnd().Should().Be(email);
+        (reader.IsDBNull(1) ? null : Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture)?.TrimEnd())
+            .Should().Be(NormalizeOracleNullableText(email));
         Convert.ToBoolean(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(isActive);
         Convert.ToInt16(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(age);
         Convert.ToDecimal(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(balance);
@@ -350,6 +355,9 @@ WHERE Id = 1
         GC.KeepAlive(deleteId);
         return updated + deleted;
     }
+
+    private string? NormalizeOracleNullableText(string? value)
+        => Dialect.Provider == ProviderId.Oracle && string.IsNullOrEmpty(value) ? null : value;
 
     private void InsertTypedUser(
         string tableName,

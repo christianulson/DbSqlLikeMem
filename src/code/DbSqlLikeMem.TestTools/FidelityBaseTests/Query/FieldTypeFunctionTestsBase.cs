@@ -155,6 +155,52 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     }
 
     /// <summary>
+    /// EN: Verifies text, boolean, integer, exact and approximate numeric, fixed-length text, bigint, GUID, binary, time, DateTimeOffset, and temporal columns round-trip consistently for the current provider, including boundary values such as empty strings and zero-length binary payloads.
+    /// PT: Verifica se colunas de texto, booleano, inteiro, numerico exato e aproximado, texto de tamanho fixo, bigint, GUID, binario, time, DateTimeOffset e colunas temporais retornam valores consistentes para o provedor atual, incluindo valores de borda como strings vazias e binarios de tamanho zero.
+    /// </summary>
+    [Fact]
+    public void TypedFieldStorageMatrixTest()
+    {
+        var users = "Users";
+        var uId = NewToken();
+
+        using var connMock = connectionMock();
+        connMock.Open();
+
+        var testScenario = new InsertUsersScenario<T>(dialect);
+        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
+        serviceTest.CreateScenario(users, uId);
+
+        try
+        {
+            var resultMock = serviceTest.RunTypedFieldStorageMatrix(users, uId);
+
+            if (IsInsertContainerComparisonEnabled(dialect.Provider)
+                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+            {
+                using var connContainer = connectionContainer(connectionString);
+                connContainer.Open();
+                var testScenarioContainer = new InsertUsersScenario<T2>(dialect);
+                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
+                serviceTestContainer.CreateScenario(users, uId);
+                try
+                {
+                    var resultContainer = serviceTestContainer.RunTypedFieldStorageMatrix(users, uId);
+                    resultMock.ShouldMatch(resultContainer);
+                }
+                finally
+                {
+                    serviceTestContainer.DropScenario(users, uId);
+                }
+            }
+        }
+        finally
+        {
+            serviceTest.DropScenario(users, uId);
+        }
+    }
+
+    /// <summary>
     /// EN: Verifies a large JSON projection query over typed columns for the current provider.
     /// PT: Verifica uma consulta grande de JSON sobre colunas tipadas para o provedor atual.
     /// </summary>

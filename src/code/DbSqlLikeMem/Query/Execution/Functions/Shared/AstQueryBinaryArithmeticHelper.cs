@@ -91,17 +91,20 @@ internal static class AstQueryBinaryArithmeticHelper
     {
         result = null;
 
+        if (op is not (SqlBinaryOp.Add or SqlBinaryOp.Subtract))
+            return false;
+
+        if (TryConvertNumericToDouble(left, out _))
+            return false;
+
         if (!AstQueryExecutionRuntimeHelper.TryCoerceDateTime(left, out var dateTime))
             return false;
 
         if (right is IntervalValue interval)
         {
-            result = op switch
-            {
-                SqlBinaryOp.Add => dateTime.Add(interval.Span),
-                SqlBinaryOp.Subtract => dateTime.Subtract(interval.Span),
-                _ => throw new InvalidOperationException("op aritmético inválido")
-            };
+            result = op == SqlBinaryOp.Add
+                ? dateTime.Add(interval.Span)
+                : dateTime.Subtract(interval.Span);
             return true;
         }
 
@@ -114,13 +117,20 @@ internal static class AstQueryBinaryArithmeticHelper
         if (!TryConvertNumericToDouble(right, out var dayOffset))
             return false;
 
-        result = op switch
+        if (op == SqlBinaryOp.Add)
         {
-            SqlBinaryOp.Add => dateTime.AddDays(dayOffset),
-            SqlBinaryOp.Subtract => dateTime.AddDays(-dayOffset),
-            _ => throw new InvalidOperationException("op aritmético inválido")
-        };
-        return true;
+            result = dateTime.AddDays(dayOffset);
+            return true;
+        }
+
+        if (op == SqlBinaryOp.Subtract)
+        {
+            result = dateTime.AddDays(-dayOffset);
+            return true;
+        }
+
+        result = null;
+        return false;
     }
 
     internal static bool TryConvertNumericToDouble(object? value, out double result)

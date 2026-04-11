@@ -867,7 +867,7 @@ FROM SYSIBM.SYSDUMMY1
         NormalizeDateTimeValue(reader.GetValue(12)).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
             .Should().Be(dateTimeValue.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
         NormalizeGuidValue(reader.GetValue(13)).Should().Be(guidValue);
-        NormalizeBinaryValue(reader.GetValue(14)).Should().Equal(binaryValue);
+        NormalizeBinaryValue(reader.GetValue(14), Dialect.Provider).Should().Equal(binaryValue);
 
         reader.Read().Should().BeFalse();
 
@@ -999,7 +999,7 @@ FROM SYSIBM.SYSDUMMY1
         return value;
     }
 
-    private static void AddParameter(DbCommand command, string name, DbType dbType, object? value)
+    private void AddParameter(DbCommand command, string name, DbType dbType, object? value)
     {
         var parameter = command.CreateParameter();
         parameter.ParameterName = name;
@@ -1026,6 +1026,14 @@ FROM SYSIBM.SYSDUMMY1
         else
         {
             parameter.DbType = dbType;
+        }
+        if (Dialect.Provider == ProviderId.Npgsql && dbType == DbType.DateTime && value is DateTime dateTime && dateTime.Kind == DateTimeKind.Unspecified)
+        {
+            value = DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+        }
+        if (Dialect.Provider == ProviderId.Npgsql && dbType == DbType.DateTimeOffset && value is DateTimeOffset dateTimeOffset && dateTimeOffset.Offset != TimeSpan.Zero)
+        {
+            value = dateTimeOffset.ToUniversalTime();
         }
         parameter.Value = isOracleParameter
             ? NormalizeOracleParameterValue(value)
@@ -1059,7 +1067,7 @@ FROM SYSIBM.SYSDUMMY1
         {
             (DbType.Guid, Guid guid) => guid.ToString("D", CultureInfo.InvariantCulture),
             (DbType.Time, TimeSpan timeSpan) => timeSpan.ToString("c", CultureInfo.InvariantCulture),
-            (DbType.DateTime, DateTime dateTime) => dateTime.ToString("O", CultureInfo.InvariantCulture),
+            (DbType.DateTime, DateTime dateTime) => dateTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
             (DbType.DateTimeOffset, DateTimeOffset dateTimeOffset) => dateTimeOffset.ToString("O", CultureInfo.InvariantCulture),
             _ => value
         };
@@ -1113,6 +1121,24 @@ FROM SYSIBM.SYSDUMMY1
         return true;
     }
 
+    private static bool TryNormalizeTimeOnlyValue(object? value, out TimeSpan timeSpan)
+    {
+        timeSpan = default;
+
+        if (value is null)
+            return false;
+
+        var type = value.GetType();
+        if (!string.Equals(type.FullName, "System.TimeOnly", StringComparison.Ordinal))
+            return false;
+
+        if (type.GetMethod("ToTimeSpan", Type.EmptyTypes)?.Invoke(value, null) is not TimeSpan normalized)
+            return false;
+
+        timeSpan = normalized;
+        return true;
+    }
+
     private DateTime NormalizeNpgsqlDateTimeInput(DateTime value)
     {
         if (Dialect.Provider == ProviderId.Npgsql && value.Kind == DateTimeKind.Unspecified)
@@ -1150,6 +1176,7 @@ FROM SYSIBM.SYSDUMMY1
         return value switch
         {
             TimeSpan timeSpan => timeSpan,
+            _ when TryNormalizeTimeOnlyValue(value, out var timeOnly) => timeOnly,
             DateTime dateTime => dateTime.TimeOfDay,
             string text => ParseTimeSpanText(text),
             null => throw new InvalidOperationException("TimeSpan parameter returned a null value."),
@@ -1176,7 +1203,7 @@ FROM SYSIBM.SYSDUMMY1
         return TimeSpan.Parse(text, CultureInfo.InvariantCulture);
     }
 
-    private static byte[] NormalizeBinaryValue(object? value)
+    private static byte[] NormalizeBinaryValue(object? value, ProviderId provider)
     {
         return value switch
         {
@@ -1184,6 +1211,7 @@ FROM SYSIBM.SYSDUMMY1
             ReadOnlyMemory<byte> memory => memory.ToArray(),
             Memory<byte> memory => memory.ToArray(),
             string text => ParseBinaryText(text),
+            DBNull when provider == ProviderId.Oracle => Array.Empty<byte>(),
             null => throw new InvalidOperationException("Binary parameter returned a null value."),
             _ => throw new InvalidOperationException($"Unsupported binary parameter type: {value.GetType().FullName}.")
         };
