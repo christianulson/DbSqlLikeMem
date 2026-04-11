@@ -738,7 +738,7 @@ public abstract class PerformanceTestsBase<T, T2>(
         => provider is not (ProviderId.MySql or ProviderId.MariaDb or ProviderId.Npgsql or ProviderId.Db2 or ProviderId.Oracle or ProviderId.SqlAzure or ProviderId.SqlServer or ProviderId.Sqlite);
 
     private static bool SupportsExecutionPlanJoin(ProviderId provider)
-        => provider is not (ProviderId.MySql or ProviderId.MariaDb or ProviderId.Npgsql or ProviderId.Oracle or ProviderId.SqlAzure or ProviderId.SqlServer or ProviderId.Sqlite);
+        => provider is not (ProviderId.MySql or ProviderId.MariaDb or ProviderId.Npgsql or ProviderId.Oracle or ProviderId.SqlAzure or ProviderId.SqlServer or ProviderId.Sqlite or ProviderId.Db2);
 
     private static bool SupportsExecutionPlanSelect(ProviderId provider)
         => provider is not (ProviderId.MySql or ProviderId.MariaDb or ProviderId.Npgsql or ProviderId.Oracle or ProviderId.SqlAzure or ProviderId.SqlServer or ProviderId.Sqlite);
